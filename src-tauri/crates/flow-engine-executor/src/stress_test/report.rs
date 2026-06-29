@@ -117,7 +117,7 @@ mod tests {
         use flow_engine_core::node::{Node, NodePosition};
         use flow_engine_core::node_config::NodeData;
 
-        Flow { uuid: "test-flow-001".to_string(), name: "Test Flow".to_string(), nodes: vec![Node {
+        Flow { uuid: "test-flow-001".to_string(), name: "Test Flow".to_string(), description: None, nodes: vec![Node {
             uuid: "entry-001".to_string(),
             node_type: "entry".to_string(),
             name: "Entry".to_string(),

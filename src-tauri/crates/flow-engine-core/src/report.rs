@@ -520,6 +520,7 @@ mod tests {
         let flow = crate::flow::Flow {
             uuid: "flow-snap-001".to_string(),
             name: "Snapshot Flow".to_string(),
+            description: None,
             initial_variables: None,
             environments: vec![],
             active_environment: None,

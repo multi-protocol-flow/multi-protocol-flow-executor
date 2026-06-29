@@ -1279,7 +1279,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1324,7 +1324,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1355,7 +1355,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![http_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![http_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1401,7 +1401,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let variables = json!({
             "test_var": "test_value",
@@ -1452,7 +1452,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let start_time = Instant::now();
@@ -1484,7 +1484,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1528,7 +1528,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1572,7 +1572,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1616,7 +1616,7 @@ mod tests {
             target_port_id: "in".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1650,7 +1650,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1697,7 +1697,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1762,7 +1762,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -2006,7 +2006,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         // 创建取消通道并立即发送取消信号
         let (tx, rx) = tokio::sync::watch::channel(false);
@@ -2041,7 +2041,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "正常执行测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "正常执行测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         // 创建取消通道但不发送信号
         let (_tx, rx) = tokio::sync::watch::channel(false);
@@ -2070,7 +2070,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消错误测试".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消错误测试".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let (tx, rx) = tokio::sync::watch::channel(false);
         let _ = tx.send(true);
@@ -2111,7 +2111,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id, initial_variables: None, environments: vec![], active_environment: None, name: "runtime_variables 覆盖测试".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id, initial_variables: None, environments: vec![], active_environment: None, name: "runtime_variables 覆盖测试".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let runtime_vars = json!({
@@ -2159,7 +2159,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id, initial_variables: None, environments: vec![], active_environment: None, name: "runtime_variables None 测试".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id, initial_variables: None, environments: vec![], active_environment: None, name: "runtime_variables None 测试".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;

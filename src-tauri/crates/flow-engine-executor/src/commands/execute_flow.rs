@@ -145,7 +145,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let input = ExecuteFlowCommandInput {
                     flow_id: flow_id.clone(),
@@ -181,7 +181,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "变量测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "变量测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         // 传入变量
         let variables = json!({
@@ -229,7 +229,7 @@ mod tests {
             on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "无效流程".to_string(), nodes: vec![http_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "无效流程".to_string(), description: None, nodes: vec![http_node], connections: vec![], hooks: None };
 
         let input = ExecuteFlowCommandInput {
                     flow_id: flow_id.clone(),
@@ -263,7 +263,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "日志测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "日志测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let input = ExecuteFlowCommandInput {
                     flow_id: flow_id.clone(),
@@ -314,7 +314,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "多节点流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "多节点流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let input = ExecuteFlowCommandInput {
                     flow_id: flow_id.clone(),
@@ -345,7 +345,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "时间测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "时间测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let input = ExecuteFlowCommandInput {
                     flow_id: flow_id.clone(),
@@ -380,7 +380,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: flow_name.clone(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: flow_name.clone(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let input = ExecuteFlowCommandInput {
                     flow_id: flow_id.clone(),
@@ -413,7 +413,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "空变量测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "空变量测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         // 传入空对象
         let input = ExecuteFlowCommandInput {
@@ -450,7 +450,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "状态测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "状态测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let input = ExecuteFlowCommandInput {
                     flow_id: flow_id.clone(),

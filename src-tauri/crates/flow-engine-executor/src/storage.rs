@@ -1783,7 +1783,7 @@ mod tests {
     fn test_flow_file_roundtrip() {
         use flow_engine_core::flow::Flow;
 
-        let flow = Flow { uuid: "test-flow-001".to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
+        let flow = Flow { uuid: "test-flow-001".to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
         let flow_file = FlowFile {
             _version: 1,
             flow,
@@ -1804,7 +1804,7 @@ mod tests {
     fn test_flow_file_meta_roundtrip() {
         use flow_engine_core::flow::Flow;
 
-        let flow = Flow { uuid: "builtin-flow-001".to_string(), name: "内置模板".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
+        let flow = Flow { uuid: "builtin-flow-001".to_string(), name: "内置模板".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
         let meta = serde_json::json!({
             "version": 5,
             "isBuiltin": true
@@ -1830,7 +1830,7 @@ mod tests {
     fn test_flow_file_no_meta_serialization() {
         use flow_engine_core::flow::Flow;
 
-        let flow = Flow { uuid: "normal-flow".to_string(), name: "普通流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
+        let flow = Flow { uuid: "normal-flow".to_string(), name: "普通流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
         let flow_file = FlowFile {
             _version: 1,
             flow,
@@ -1900,7 +1900,7 @@ mod tests {
 
     /// 创建测试用的 Flow 对象
     fn create_test_flow(uuid: &str, name: &str) -> Flow {
-        Flow { uuid: uuid.to_string(), name: name.to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None }
+        Flow { uuid: uuid.to_string(), name: name.to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None }
     }
 
     /// 测试 save_flow_file 和 load_flow_file 的基本功能

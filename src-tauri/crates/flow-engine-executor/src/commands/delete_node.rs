@@ -85,7 +85,7 @@ mod tests {
         on_error: None,
         };
 
-        Flow { uuid: "flow-001".to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![entry_node, http_node], connections: vec![], hooks: None }
+        Flow { uuid: "flow-001".to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![entry_node, http_node], connections: vec![], hooks: None }
     }
 
     #[test]

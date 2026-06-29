@@ -574,7 +574,7 @@ mod tests {
 
     /// 创建最小化的测试流程（仅含 entry 节点）
     fn create_test_flow() -> Flow {
-        Flow { uuid: "test-dataset-flow".to_string(), name: "Dataset Test Flow".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![Node {
+        Flow { uuid: "test-dataset-flow".to_string(), name: "Dataset Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![Node {
             uuid: "entry-001".to_string(),
             node_type: "entry".to_string(),
             name: "Entry".to_string(),
