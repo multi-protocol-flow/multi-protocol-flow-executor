@@ -423,13 +423,13 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* 主说明卡片 */}
-      <div className="rounded-lg border border-amber-200/50 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 p-4 overflow-hidden">
+      <div className="rounded-lg border border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 dark:from-amber-950/40 dark:to-yellow-950/30 p-4 overflow-hidden">
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-2">
             <Wrench className="h-4 w-4" />
             {getLL().panels.mcpCallTool.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-amber-700/90 whitespace-normal break-words">
+          <p className="text-sm leading-relaxed text-amber-700/90 dark:text-amber-300/80 whitespace-normal break-words">
             {getLL().panels.mcpCallTool.description()}
           </p>
         </div>
@@ -494,7 +494,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
             <button
               type="button"
               onClick={() => setToolInputMode(prev => prev === 'select' ? 'manual' : 'select')}
-              className="text-xs text-amber-600 hover:text-amber-800 hover:underline transition-colors"
+              className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 hover:underline transition-colors"
             >
               {toolInputMode === 'select' ? getLL().panels.manualInput() : getLL().panels.dropdownSelect()}
             </button>
@@ -518,7 +518,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
               </SelectContent>
             </Select>
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+              <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                 {getLL().panels.mcpCallTool.toolCount({ count: discoveredTools.length })}
               </span>
             </div>
@@ -537,7 +537,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
                 <button
                   type="button"
                   onClick={() => setToolInputMode('select')}
-                  className="text-amber-600 hover:underline"
+                  className="text-amber-600 dark:text-amber-400 hover:underline"
                 >
                   {getLL().panels.switchToDropdown()}
                 </button>
@@ -557,25 +557,25 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
 
       {/* 选中工具的详情说明 */}
       {selectedTool && (
-        <div className="rounded-lg border border-amber-200/50 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 p-3 overflow-hidden">
+        <div className="rounded-lg border border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 dark:from-amber-950/40 dark:to-yellow-950/30 p-3 overflow-hidden">
           <div className="space-y-2">
-            <h5 className="text-xs font-semibold text-amber-900 flex items-center gap-1.5">
+            <h5 className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
               <Wrench className="h-3.5 w-3.5" />
               {selectedTool.name}
             </h5>
             {selectedTool.description && (
-              <p className="text-xs leading-relaxed text-amber-800 whitespace-normal break-words">
+              <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300/90 whitespace-normal break-words">
                 {selectedTool.description}
               </p>
             )}
             {schemaAnalysis.fields.length > 0 && (
-              <div className="space-y-1 pt-1 border-t border-amber-200/40">
-                <p className="text-[10px] font-medium text-amber-700">{getLL().panels.mcpCallTool.paramList()}</p>
+              <div className="space-y-1 pt-1 border-t border-amber-200/40 dark:border-amber-700/40">
+                <p className="text-[10px] font-medium text-amber-700 dark:text-amber-400">{getLL().panels.mcpCallTool.paramList()}</p>
                 <div className="space-y-0.5">
                   {schemaAnalysis.fields.map((field) => (
                     <div key={field.name} className="flex items-start gap-1 text-[10px]">
-                      <code className="rounded bg-amber-100/80 px-1 py-0 text-amber-900 font-mono shrink-0">{field.name}</code>
-                      <span className="text-amber-600/80">{field.type}</span>
+                      <code className="rounded bg-amber-100/80 dark:bg-amber-900/60 px-1 py-0 text-amber-900 dark:text-amber-200 font-mono shrink-0">{field.name}</code>
+                      <span className="text-amber-600/80 dark:text-amber-400/80">{field.type}</span>
                       {field.required && <span className="text-rose-500">*</span>}
                       {field.description && <span className="text-muted-foreground">— {field.description}</span>}
                     </div>
@@ -600,7 +600,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
             <button
               type="button"
               onClick={() => setArgsMode(prev => prev === 'form' ? 'json' : 'form')}
-              className="text-xs text-amber-600 hover:text-amber-800 hover:underline transition-colors"
+              className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 hover:underline transition-colors"
             >
               {argsMode === 'form' ? getLL().panels.mcpCallTool.jsonMode() : getLL().panels.mcpCallTool.formMode()}
             </button>
@@ -692,8 +692,8 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
           /* JSON 模式 / 无 Schema / 复杂 Schema */
           <>
             {selectedTool?.input_schema && !schemaAnalysis.isSimple && (
-              <div className="rounded-md bg-amber-50/60 border border-amber-100 px-3 py-2 mb-2">
-                <p className="text-xs text-amber-700">
+              <div className="rounded-md bg-amber-50/60 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800/40 px-3 py-2 mb-2">
+                <p className="text-xs text-amber-700 dark:text-amber-300">
                   {getLL().panels.mcpCallTool.complexSchemaHint()}
                 </p>
               </div>
@@ -732,7 +732,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
           <p>{getLL().panels.mcpCallTool.callExplanation1()}</p>
           <p>{getLL().panels.mcpCallTool.callExplanation2()}</p>
           {discoveredTools.length === 0 && currentConnectionId && (
-            <p className="text-amber-600">{getLL().panels.mcpCallTool.noDiscoveryHint()}</p>
+            <p className="text-amber-600 dark:text-amber-400">{getLL().panels.mcpCallTool.noDiscoveryHint()}</p>
           )}
         </div>
       </div>

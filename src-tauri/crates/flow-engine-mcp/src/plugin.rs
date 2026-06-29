@@ -106,13 +106,36 @@ impl NodePlugin for McpConnectPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        match config.get("url").and_then(|v| v.as_str()) {
-            Some(url) if !url.is_empty() => {}
-            _ => errors.push(ValidationError {
-                field: "url".into(),
-                message: "URL 不能为空".into(),
-            }),
+
+        // 根据传输模式选择验证字段
+        let transport = config
+            .get("transport")
+            .and_then(|v| v.as_str())
+            .unwrap_or("streamable_http");
+
+        match transport {
+            "stdio" => {
+                // Stdio 模式：command 必填，url 可选
+                match config.get("command").and_then(|v| v.as_str()) {
+                    Some(cmd) if !cmd.is_empty() => {}
+                    _ => errors.push(ValidationError {
+                        field: "command".into(),
+                        message: "Stdio 模式下 command 不能为空".into(),
+                    }),
+                }
+            }
+            _ => {
+                // Streamable HTTP 模式（默认）：url 必填
+                match config.get("url").and_then(|v| v.as_str()) {
+                    Some(url) if !url.is_empty() => {}
+                    _ => errors.push(ValidationError {
+                        field: "url".into(),
+                        message: "URL 不能为空".into(),
+                    }),
+                }
+            }
         }
+
         errors
     }
 

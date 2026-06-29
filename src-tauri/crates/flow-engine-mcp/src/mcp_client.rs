@@ -75,47 +75,53 @@ pub async fn create_mcp_client(
         })
         .collect();
 
-    // 获取可用资源列表
-    let resources_result = service
-        .list_all_resources()
-        .await
-        .map_err(|e| format!("获取资源列表失败: {}", e))?;
-    let resources: Vec<McpResourceInfo> = resources_result
-        .iter()
-        .map(|res| McpResourceInfo {
-            uri: res.uri.to_string(),
-            name: res.name.to_string(),
-            description: res.description.clone(),
-            mime_type: res.mime_type.clone(),
-        })
-        .collect();
+    // 获取可用资源列表（优雅降级：服务器不支持时返回空列表）
+    let resources: Vec<McpResourceInfo> = match service.list_all_resources().await {
+        Ok(result) => result
+            .iter()
+            .map(|res| McpResourceInfo {
+                uri: res.uri.to_string(),
+                name: res.name.to_string(),
+                description: res.description.clone(),
+                mime_type: res.mime_type.clone(),
+            })
+            .collect(),
+        Err(e) => {
+            let err_str = e.to_string();
+            log::warn!("[MCP] 获取资源列表失败（已降级为空列表）: {}", err_str);
+            Vec::new()
+        }
+    };
 
-    // 获取可用提示词列表
-    let prompts_result = service
-        .list_all_prompts()
-        .await
-        .map_err(|e| format!("获取提示词列表失败: {}", e))?;
-    let prompts: Vec<McpPromptInfo> = prompts_result
-        .iter()
-        .map(|prompt| {
-            let arguments = match &prompt.arguments {
-                Some(args) => args
-                    .iter()
-                    .map(|arg| McpPromptArgumentInfo {
-                        name: arg.name.clone(),
-                        description: arg.description.clone(),
-                        required: arg.required,
-                    })
-                    .collect(),
-                None => Vec::new(),
-            };
-            McpPromptInfo {
-                name: prompt.name.clone(),
-                description: prompt.description.clone(),
-                arguments,
-            }
-        })
-        .collect();
+    // 获取可用提示词列表（优雅降级：服务器不支持时返回空列表）
+    let prompts: Vec<McpPromptInfo> = match service.list_all_prompts().await {
+        Ok(result) => result
+            .iter()
+            .map(|prompt| {
+                let arguments = match &prompt.arguments {
+                    Some(args) => args
+                        .iter()
+                        .map(|arg| McpPromptArgumentInfo {
+                            name: arg.name.clone(),
+                            description: arg.description.clone(),
+                            required: arg.required,
+                        })
+                        .collect(),
+                    None => Vec::new(),
+                };
+                McpPromptInfo {
+                    name: prompt.name.clone(),
+                    description: prompt.description.clone(),
+                    arguments,
+                }
+            })
+            .collect(),
+        Err(e) => {
+            let err_str = e.to_string();
+            log::warn!("[MCP] 获取提示词列表失败（已降级为空列表）: {}", err_str);
+            Vec::new()
+        }
+    };
 
     Ok(McpClientResult {
         service,

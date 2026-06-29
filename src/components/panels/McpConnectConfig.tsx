@@ -381,13 +381,13 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* 主说明卡片 */}
-      <div className="rounded-lg border border-amber-200/50 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 p-4 overflow-hidden">
+      <div className="rounded-lg border border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 dark:from-amber-950/40 dark:to-yellow-950/30 p-4 overflow-hidden">
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-2">
             <Plug className="h-4 w-4" />
             {getLL().panels.mcpConnect.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-amber-700/90 whitespace-normal break-words">
+          <p className="text-sm leading-relaxed text-amber-700/90 dark:text-amber-300/80 whitespace-normal break-words">
             {getLL().panels.mcpConnect.description()}
           </p>
         </div>
@@ -638,28 +638,28 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           type="button"
           variant="outline"
           size="sm"
-          className="w-full gap-2"
+          className="w-full gap-2 whitespace-normal break-words h-auto min-h-9 py-2"
           disabled={isDiscoverDisabled}
           onClick={handleDiscover}
         >
           {isDiscovering ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin shrink-0" />
           ) : (
-            <Search className="h-4 w-4" />
+            <Search className="h-4 w-4 shrink-0" />
           )}
-          {isDiscovering ? getLL().panels.mcpConnect.discoveringServices() : getLL().panels.mcpConnect.testConnectionDiscover()}
+          <span className="text-wrap">{isDiscovering ? getLL().panels.mcpConnect.discoveringServices() : getLL().panels.mcpConnect.testConnectionDiscover()}</span>
         </Button>
 
         {/* 发现错误 */}
         {discoveryError && (
-          <div className="rounded-md border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 px-3 py-2 text-xs text-rose-600 dark:text-rose-400">
+          <div className="rounded-md border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 px-3 py-2 text-xs text-rose-600 dark:text-rose-400 break-words">
             {discoveryError}
           </div>
         )}
 
         {/* 发现成功摘要 */}
         {hasDiscoveredData && !discoveryError && (
-          <div className="rounded-md border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
+          <div className="rounded-md border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400 break-words">
             <p>{getLL().panels.mcpConnect.discoverySummary({ tools: displayTools.length, resources: displayResources.length, prompts: displayPrompts.length })}</p>
           </div>
         )}
@@ -732,7 +732,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
                             <p className="text-[10px] font-medium text-muted-foreground">{getLL().panels.mcpConnect.parametersLabel()}</p>
                             {schemaFields.map((f) => (
                               <div key={f.name} className="flex items-start gap-1 text-[10px]">
-                                <code className="rounded bg-amber-100/80 px-1 py-0 text-amber-900 font-mono shrink-0">{f.name}</code>
+                                <code className="rounded bg-amber-100/80 dark:bg-amber-900/60 px-1 py-0 text-amber-900 dark:text-amber-200 font-mono shrink-0">{f.name}</code>
                                 <span className="text-muted-foreground">{f.type}</span>
                                 {f.required && <span className="text-rose-500">*</span>}
                                 {f.description && <span className="text-muted-foreground">— {f.description}</span>}

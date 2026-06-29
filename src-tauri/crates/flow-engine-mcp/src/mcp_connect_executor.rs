@@ -115,22 +115,74 @@ impl NodeExecutor for McpConnectExecutor {
             })
             .await;
 
-        // 4. 构建连接配置（使用替换后的值）
+        // 4. 变量替换（headers / custom_headers / env 的键和值都需替换）
+        let headers = match &config.headers {
+            Some(h) => {
+                let mut replaced = HashMap::new();
+                for (key, value) in h {
+                    let replaced_key = replace_variables(key, context).map_err(|e| {
+                        format!("headers key 变量替换失败: {}", e)
+                    })?;
+                    let replaced_value = replace_variables(value, context).map_err(|e| {
+                        format!("headers value 变量替换失败: {}", e)
+                    })?;
+                    replaced.insert(replaced_key, replaced_value);
+                }
+                Some(replaced)
+            }
+            None => None,
+        };
+
+        let custom_headers = match &config.custom_headers {
+            Some(h) => {
+                let mut replaced = HashMap::new();
+                for (key, value) in h {
+                    let replaced_key = replace_variables(key, context).map_err(|e| {
+                        format!("custom_headers key 变量替换失败: {}", e)
+                    })?;
+                    let replaced_value = replace_variables(value, context).map_err(|e| {
+                        format!("custom_headers value 变量替换失败: {}", e)
+                    })?;
+                    replaced.insert(replaced_key, replaced_value);
+                }
+                Some(replaced)
+            }
+            None => None,
+        };
+
+        let env = match &config.env {
+            Some(e) => {
+                let mut replaced = HashMap::new();
+                for (key, value) in e {
+                    let replaced_key = replace_variables(key, context).map_err(|e| {
+                        format!("env key 变量替换失败: {}", e)
+                    })?;
+                    let replaced_value = replace_variables(value, context).map_err(|e| {
+                        format!("env value 变量替换失败: {}", e)
+                    })?;
+                    replaced.insert(replaced_key, replaced_value);
+                }
+                Some(replaced)
+            }
+            None => None,
+        };
+
+        // 5. 构建连接配置（使用替换后的值）
         let connect_config = flow_engine_core::node_config::McpConnectConfig {
             url,
-            headers: config.headers.clone(),
+            headers,
             protocol_version: config.protocol_version.clone(),
-            custom_headers: config.custom_headers.clone(),
+            custom_headers,
             discovered_tools: Vec::new(),
             discovered_resources: Vec::new(),
             discovered_prompts: Vec::new(),
             transport: config.transport.clone(),
             command,
             args,
-            env: config.env.clone(),
+            env,
         };
 
-        // 5. 建立连接
+        // 6. 建立连接
         let connect_result = self
             .mcp_manager
             .connect(node.uuid.clone(), connect_config)
