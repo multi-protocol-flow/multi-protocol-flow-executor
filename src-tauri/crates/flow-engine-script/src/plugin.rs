@@ -6,7 +6,8 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
+use serde_json::Value;
 use std::collections::HashMap;
 
 /// 脚本节点插件
@@ -71,6 +72,51 @@ impl NodePlugin for ScriptPlugin {
             }
             _ => "false".to_string(),
         }
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        // 1. script must be non-empty
+        match config.get("script").and_then(|v| v.as_str()) {
+            Some(s) if !s.trim().is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "script".to_string(),
+                message: "Script cannot be empty".to_string(),
+            }),
+        }
+
+        // 2. timeout_ms must be between 1000 and 60000
+        if let Some(Value::Number(n)) = config.get("timeout_ms") {
+            if let Some(val) = n.as_u64() {
+                if val < 1000 || val > 60000 {
+                    errors.push(ValidationError {
+                        field: "timeout_ms".to_string(),
+                        message: format!(
+                            "timeout_ms must be between 1000 and 60000, got {}",
+                            val
+                        ),
+                    });
+                }
+            }
+        }
+
+        // 3. memory_limit_mb must be between 1 and 1024
+        if let Some(Value::Number(n)) = config.get("memory_limit_mb") {
+            if let Some(val) = n.as_u64() {
+                if val < 1 || val > 1024 {
+                    errors.push(ValidationError {
+                        field: "memory_limit_mb".to_string(),
+                        message: format!(
+                            "memory_limit_mb must be between 1 and 1024, got {}",
+                            val
+                        ),
+                    });
+                }
+            }
+        }
+
+        errors
     }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {

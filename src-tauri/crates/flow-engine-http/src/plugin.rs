@@ -7,7 +7,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 
 /// HTTP 请求节点插件
@@ -128,6 +128,67 @@ impl NodePlugin for HttpPlugin {
                 }
             }
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        // 1. url non-empty
+        match config.get("url").and_then(|v| v.as_str()) {
+            Some(url) if !url.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "url".into(),
+                message: "URL 不能为空".into(),
+            }),
+        }
+
+        // 2. method must be one of the valid HTTP methods
+        let valid_methods = ["get", "post", "put", "delete", "patch", "head", "options"];
+        match config.get("method").and_then(|v| v.as_str()) {
+            Some(m) if valid_methods.contains(&m) => {}
+            _ => errors.push(ValidationError {
+                field: "method".into(),
+                message: format!(
+                    "请求方法无效，有效值为: {}",
+                    valid_methods.join(", ")
+                ),
+            }),
+        }
+
+        // 3. timeout_ms range (if present)
+        if let Some(timeout) = config.get("timeout_ms").and_then(|v| v.as_u64()) {
+            if timeout < 1000 || timeout > 300000 {
+                errors.push(ValidationError {
+                    field: "timeout_ms".into(),
+                    message: "超时时间必须在 1000ms 到 300000ms 之间".into(),
+                });
+            }
+        }
+
+        // 4. body must be non-empty when body_type != "none" and no file_path
+        let body_type = config.get("body_type").and_then(|v| v.as_str());
+        if body_type.is_some_and(|bt| bt != "none") {
+            let has_file = config
+                .get("file_path")
+                .and_then(|v| v.as_str())
+                .is_some_and(|s| !s.is_empty());
+
+            if !has_file {
+                let body_missing = config
+                    .get("body")
+                    .and_then(|v| v.as_str())
+                    .map_or(true, |s| s.is_empty());
+
+                if body_missing {
+                    errors.push(ValidationError {
+                        field: "body".into(),
+                        message: "请求体类型非 none 时，请求体不能为空".into(),
+                    });
+                }
+            }
+        }
+
+        errors
     }
 
     async fn execute(

@@ -4,7 +4,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 
 /// 条件分支节点插件
@@ -80,6 +80,61 @@ impl NodePlugin for ConditionalPlugin {
             "advanced_expression": config.get("advanced_expression"),
             "expected_value_type": config.get("expected_value_type"),
         }))
+    }
+
+    /// 配置验证
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        let condition_type = config
+            .get("condition_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("simple");
+
+        match condition_type {
+            "simple" => {
+                // field_path must be non-empty if present
+                if let Some(fp) = config.get("field_path").and_then(|v| v.as_str()) {
+                    if fp.is_empty() {
+                        errors.push(ValidationError {
+                            field: "field_path".into(),
+                            message: "字段路径不能为空".into(),
+                        });
+                    }
+                }
+
+                // operator must be a known value if present
+                const VALID_OPERATORS: &[&str] = &[
+                    "equal", "not_equal", "gt", "gte", "lt", "lte", "contains", "matches",
+                    "exists", "not_exists", "true", "false", "in", "not_in", "type_is", "between",
+                ];
+                if let Some(op) = config.get("operator").and_then(|v| v.as_str()) {
+                    if !VALID_OPERATORS.contains(&op) {
+                        errors.push(ValidationError {
+                            field: "operator".into(),
+                            message: format!("未知的操作符: {}", op),
+                        });
+                    }
+                }
+            }
+            "advanced" => {
+                // advanced_expression must be non-empty
+                let expr = config.get("advanced_expression");
+                let is_empty = expr
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.is_empty())
+                    .unwrap_or(true); // absent/null → treat as empty
+                if is_empty {
+                    errors.push(ValidationError {
+                        field: "advanced_expression".into(),
+                        message: "高级表达式不能为空".into(),
+                    });
+                }
+            }
+            _ => {}
+        }
+
+        errors
     }
 
     /// 委托给 `ConditionalNodeExecutor` 执行
