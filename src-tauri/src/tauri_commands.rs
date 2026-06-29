@@ -3965,6 +3965,7 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             name: "测试流程".to_string(),
+            description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
             initial_variables: None,
@@ -4007,6 +4008,7 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             name: "测试流程".to_string(),
+            description: None,
             nodes: vec![start_node],
             connections: vec![],
             initial_variables: None,
@@ -4042,6 +4044,7 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             name: "测试流程".to_string(),
+            description: None,
             nodes: vec![http_node],
             connections: vec![],
             initial_variables: None,
@@ -4081,6 +4084,7 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             name: "测试流程".to_string(),
+            description: None,
             nodes: vec![start_node],
             connections: vec![],
             initial_variables: None,
@@ -4131,6 +4135,7 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             name: "测试流程".to_string(),
+            description: None,
             nodes: vec![start_node],
             connections: vec![],
             initial_variables: None,
@@ -4187,8 +4192,9 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             name: "测试流程".to_string(),
-            nodes: vec![start_node, http_node],
-            connections: vec![],
+            description: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
             initial_variables: None,
             environments: vec![],
             active_environment: None,
@@ -4278,6 +4284,7 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             name: "测试流程".to_string(),
+            description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
             initial_variables: None,
@@ -4311,6 +4318,7 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             name: "测试流程".to_string(),
+            description: None,
             nodes: vec![http_node],
             connections: vec![],
             initial_variables: None,
@@ -4351,6 +4359,7 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             name: "测试流程".to_string(),
+            description: None,
             nodes: vec![start_node],
             connections: vec![],
             initial_variables: None,

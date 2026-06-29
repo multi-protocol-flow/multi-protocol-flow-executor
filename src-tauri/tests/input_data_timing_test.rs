@@ -44,6 +44,7 @@ async fn test_input_data_timing_basic() {
     let flow = Flow {
         uuid: "flow-1".to_string(),
         name: "测试流程".to_string(),
+        description: None,
         nodes: vec![entry_node],
         connections: vec![],
         initial_variables: None,
@@ -113,6 +114,7 @@ async fn test_input_data_timing_with_initial_variables() {
     let flow = Flow {
         uuid: "flow-2".to_string(),
         name: "带初始变量的流程".to_string(),
+        description: None,
         nodes: vec![entry_node],
         connections: vec![],
         initial_variables: Some(initial_vars),
@@ -225,6 +227,7 @@ async fn test_input_data_timing_http_node() {
     let flow = Flow {
         uuid: "flow-3".to_string(),
         name: "HTTP 测试流程".to_string(),
+        description: None,
         nodes: vec![entry_node, http_node],
         connections: vec![connection],
         initial_variables: Some(initial_vars),

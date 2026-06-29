@@ -26,6 +26,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
     Flow {
         uuid: flow_uuid.to_string(),
         name: "WebSocket 调试测试流程".to_string(),
+        description: None,
         initial_variables: None,
         active_environment: None,
         environments: vec![],
