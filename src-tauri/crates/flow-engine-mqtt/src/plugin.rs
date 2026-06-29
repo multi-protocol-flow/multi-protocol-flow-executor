@@ -14,7 +14,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -104,6 +104,20 @@ impl NodePlugin for MqttConnectPlugin {
             "clean_session": config.get("clean_session"),
             "keep_alive_secs": config.get("keep_alive_secs"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("url").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "url".into(),
+                message: "URL 不能为空".into(),
+            }),
+        }
+
+        errors
     }
 
     async fn execute(
@@ -207,6 +221,28 @@ impl NodePlugin for MqttPublishPlugin {
             "retain": config.get("retain"),
             "payload_format": config.get("payload_format"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        match config.get("topic").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "topic".into(),
+                message: "主题不能为空".into(),
+            }),
+        }
+
+        errors
     }
 
     async fn execute(
@@ -314,6 +350,28 @@ impl NodePlugin for MqttSubscribePlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        match config.get("topic").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "topic".into(),
+                message: "主题不能为空".into(),
+            }),
+        }
+
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -412,6 +470,28 @@ impl NodePlugin for MqttUnsubscribePlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        match config.get("topic").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "topic".into(),
+                message: "主题不能为空".into(),
+            }),
+        }
+
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -490,6 +570,20 @@ impl NodePlugin for MqttDisconnectPlugin {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        errors
     }
 
     async fn execute(
@@ -592,6 +686,28 @@ impl NodePlugin for MqttWaitMessagePlugin {
             "timeout_ms": config.get("timeout_ms"),
             "max_messages": config.get("max_messages"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        match config.get("topic").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "topic".into(),
+                message: "主题不能为空".into(),
+            }),
+        }
+
+        errors
     }
 
     async fn execute(
@@ -697,6 +813,36 @@ impl NodePlugin for MqttRequestPlugin {
             "qos": config.get("qos"),
             "timeout_ms": config.get("timeout_ms"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        match config.get("request_topic").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "request_topic".into(),
+                message: "请求主题不能为空".into(),
+            }),
+        }
+
+        match config.get("response_topic").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "response_topic".into(),
+                message: "响应主题不能为空".into(),
+            }),
+        }
+
+        errors
     }
 
     async fn execute(

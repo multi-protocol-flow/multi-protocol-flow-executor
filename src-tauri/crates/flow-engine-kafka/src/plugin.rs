@@ -14,7 +14,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -101,6 +101,20 @@ impl NodePlugin for KafkaConnectPlugin {
             "sasl_mechanism": config.get("sasl_mechanism"),
             "connect_timeout_ms": config.get("connect_timeout_ms"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("bootstrap_servers").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "bootstrap_servers".into(),
+                message: "bootstrap_servers 不能为空".into(),
+            }),
+        }
+
+        errors
     }
 
     async fn execute(
@@ -206,6 +220,28 @@ impl NodePlugin for KafkaProducePlugin {
             "compression": config.get("compression"),
             "ack_timeout_ms": config.get("ack_timeout_ms"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        match config.get("topic").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "topic".into(),
+                message: "主题不能为空".into(),
+            }),
+        }
+
+        errors
     }
 
     async fn execute(
@@ -314,6 +350,28 @@ impl NodePlugin for KafkaConsumePlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        match config.get("topic").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "topic".into(),
+                message: "主题不能为空".into(),
+            }),
+        }
+
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -418,6 +476,28 @@ impl NodePlugin for KafkaConsumeBatchPlugin {
             "poll_timeout_ms": config.get("poll_timeout_ms"),
             "batch_strategy": config.get("batch_strategy"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        match config.get("topic").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "topic".into(),
+                message: "主题不能为空".into(),
+            }),
+        }
+
+        errors
     }
 
     async fn execute(
@@ -525,6 +605,28 @@ impl NodePlugin for KafkaAdminPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        match config.get("operation").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "operation".into(),
+                message: "操作类型不能为空".into(),
+            }),
+        }
+
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -630,6 +732,28 @@ impl NodePlugin for KafkaSchemaRegistryPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        match config.get("operation").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "operation".into(),
+                message: "操作类型不能为空".into(),
+            }),
+        }
+
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -709,6 +833,20 @@ impl NodePlugin for KafkaClosePlugin {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+
+        errors
     }
 
     async fn execute(
