@@ -12,11 +12,11 @@ use crate::assertion::preset::get_preset;
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
-use flow_engine_core::executor::NodeExecutor;
+use flow_engine_core::executor::{NodeExecutor, replace_variables};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::node_config::{AssertionConfig, AssertionOutput, NodeData, OnFailureMode};
-use serde_json::json;
+use flow_engine_core::node_config::{Assertion, AssertionConfig, AssertionOutput, NodeData, OnFailureMode};
+use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -96,6 +96,9 @@ impl NodeExecutor for AssertionNodeExecutor {
                 return Err(error_msg);
             }
         };
+
+        // 1.5. 变量替换：对断言配置中的 target/expected/description 执行变量插值
+        let assertion_config = resolve_assertion_config_variables(&assertion_config, context);
 
         // 2. 解析数据来源：若指定了 source_node_id，从该节点的执行报告中读取输出；
         //    否则使用 last_node_output（最近上游节点输出）
@@ -410,6 +413,107 @@ impl AssertionNodeExecutor {
             failed_details.join("; ")
         )
     }
+}
+
+// ============================================================================
+// 变量替换辅助函数
+// ============================================================================
+
+/// 替换断言配置中的变量（target / expected / description）
+///
+/// 对每个启用的断言：
+/// - `target`: 字符串变量替换（`{{var}}` → 字符串）
+/// - `expected`: JSON 变量替换（精确 `{{var}}` 引用保留原始 JSON 类型，部分替换得字符串）
+/// - `description`: 字符串变量替换
+fn resolve_assertion_config_variables(
+    config: &AssertionConfig,
+    context: &ExecutionContext,
+) -> AssertionConfig {
+    let assertions: Vec<Assertion> = config
+        .assertions
+        .iter()
+        .map(|assertion| {
+            if !assertion.enabled {
+                return assertion.clone();
+            }
+
+            let mut a = assertion.clone();
+
+            // 替换 target (JSONPath 表达式)
+            if let Ok(resolved) = replace_variables(&a.target, context) {
+                a.target = resolved;
+            }
+
+            // 替换 expected（保留 JSON 类型）
+            a.expected = resolve_expected_variables(&a.expected, context);
+
+            // 替换 description
+            if let Some(ref desc) = a.description {
+                if let Ok(resolved) = replace_variables(desc, context) {
+                    a.description = Some(resolved);
+                }
+            }
+
+            a
+        })
+        .collect();
+
+    AssertionConfig {
+        assertions,
+        ..config.clone()
+    }
+}
+
+/// 递归解析期望值中的变量占位符，尽可能保留原始 JSON 类型
+///
+/// - 精确 `{{var}}` → 从上下文中查找变量并返回原始 JSON 值，保留类型
+/// - 含 `{{var}}` 的部分字符串 → 进行字符串替换，结果为字符串
+/// - 对象/数组 → 递归处理每个字段/元素
+/// - 数值/布尔/null → 保持不变
+fn resolve_expected_variables(value: &Value, context: &ExecutionContext) -> Value {
+    match value {
+        // 精确变量引用 `{{name}}` → 获取原始 JSON 值（保留类型）
+        Value::String(s) if is_exact_variable_ref(s) => {
+            let var_path = &s[2..s.len() - 2].trim();
+            resolve_json_value(var_path, context).unwrap_or_else(|| value.clone())
+        }
+        // 含 {{var}} 的字符串 → 字符串替换
+        Value::String(s) => replace_variables(s, context)
+            .map(Value::String)
+            .unwrap_or_else(|_| value.clone()),
+        // 对象 → 递归处理
+        Value::Object(map) => {
+            let resolved: Map<String, Value> = map
+                .iter()
+                .map(|(k, v)| (k.clone(), resolve_expected_variables(v, context)))
+                .collect();
+            Value::Object(resolved)
+        }
+        // 数组 → 递归处理
+        Value::Array(arr) => {
+            let resolved: Vec<Value> =
+                arr.iter().map(|v| resolve_expected_variables(v, context)).collect();
+            Value::Array(resolved)
+        }
+        // 数值/布尔/null → 保持不变
+        _ => value.clone(),
+    }
+}
+
+/// 判断字符串是否是精确的变量引用 `{{name}}`（不含嵌套 `{{}}`）
+fn is_exact_variable_ref(s: &str) -> bool {
+    s.len() > 4 && s.starts_with("{{") && s.ends_with("}}") && !s[2..s.len() - 2].contains("{{")
+}
+
+/// 从上下文中按点号分隔路径查找变量的原始 JSON 值
+fn resolve_json_value(path: &str, context: &ExecutionContext) -> Option<Value> {
+    let merged_vars = context.variables.get_merged_variables();
+    let parts: Vec<&str> = path.split('.').collect();
+    let mut current = merged_vars.get(parts[0])?;
+    for part in &parts[1..] {
+        current = current.as_object()?.get(*part)?;
+    }
+    Some(current.clone())
 }
 
 // ============================================================================
