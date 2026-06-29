@@ -75,6 +75,8 @@ interface FlowState {
   setFlow: (flow: Flow | null) => void;
   /** 更新流程名称 */
   updateFlowName: (name: string) => void;
+  /** 更新流程描述 */
+  updateFlowDescription: (description: string) => void;
   /** 更新流程初始变量 */
   updateInitialVariables: (variables: Record<string, unknown>) => void;
   /** 设置环境列表 */
@@ -189,6 +191,15 @@ export const useFlowStore = create<FlowState>((set, get) => {
       set((state) => {
         if (!state.flow) return state;
         const newFlow = { ...state.flow, name };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
+
+    updateFlowDescription: (description) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const newFlow = { ...state.flow, description };
         const history = pushHistory(state, newFlow);
         if (!history) return { flow: newFlow, isDirty: true };
         return { ...history, flow: newFlow, isDirty: true };

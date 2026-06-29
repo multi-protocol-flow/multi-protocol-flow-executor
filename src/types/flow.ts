@@ -25,6 +25,8 @@ export interface Flow {
   uuid: string;
   /** 流程名称 */
   name: string;
+  /** 流程描述（Markdown 格式） */
+  description?: string;
   /** 流程级别的初始变量 */
   initial_variables?: Record<string, unknown>;
   /** 环境列表（多组命名变量集，如 dev/staging/prod） */

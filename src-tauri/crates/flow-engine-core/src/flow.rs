@@ -22,6 +22,9 @@ pub struct Flow {
     pub uuid: String,
     /// 流程名称
     pub name: String,
+    /// 流程描述（Markdown 格式）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     /// 流程级别的初始变量
     #[serde(default)]
     pub initial_variables: Option<HashMap<String, serde_json::Value>>,
@@ -65,6 +68,7 @@ mod tests {
         let flow = Flow {
             uuid: "test-uuid-123".to_string(),
             name: "Test Flow".to_string(),
+            description: None,
             initial_variables: None,
             environments: vec![],
             active_environment: None,
@@ -92,6 +96,7 @@ mod tests {
         let flow = Flow {
             uuid: "test-uuid-456".to_string(),
             name: "Flow with Variables".to_string(),
+            description: None,
             initial_variables: Some(vars),
             environments: vec![],
             active_environment: None,
@@ -113,6 +118,7 @@ mod tests {
         let flow = Flow {
             uuid: "test-uuid-789".to_string(),
             name: "Serialization Test".to_string(),
+            description: None,
             initial_variables: None,
             environments: vec![],
             active_environment: None,
@@ -134,6 +140,7 @@ mod tests {
         let flow = Flow {
             uuid: "test-uuid-999".to_string(),
             name: "Flow with Initial Variables".to_string(),
+            description: None,
             initial_variables: Some(vars),
             environments: vec![],
             active_environment: None,
@@ -219,6 +226,7 @@ mod tests {
         let flow = Flow {
             uuid: "test-1".to_string(),
             name: "Test".to_string(),
+            description: None,
             initial_variables: Some({
                 let mut vars = HashMap::new();
                 vars.insert("key".to_string(), json!("fallback"));
@@ -241,6 +249,7 @@ mod tests {
         let flow = Flow {
             uuid: "test-2".to_string(),
             name: "Test".to_string(),
+            description: None,
             initial_variables: Some({
                 let mut vars = HashMap::new();
                 vars.insert("key".to_string(), json!("fallback"));
@@ -280,6 +289,7 @@ mod tests {
         let flow = Flow {
             uuid: "test-3".to_string(),
             name: "Test".to_string(),
+            description: None,
             initial_variables: Some({
                 let mut vars = HashMap::new();
                 vars.insert("key".to_string(), json!("fallback"));
@@ -301,6 +311,7 @@ mod tests {
         let flow = Flow {
             uuid: "test-4".to_string(),
             name: "Test".to_string(),
+            description: None,
             initial_variables: None,
             environments: vec![],
             active_environment: None,
