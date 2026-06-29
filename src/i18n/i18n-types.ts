@@ -12751,7 +12751,7 @@ type RootTranslation = {
 		 */
 		context_delete_node: string
 		/**
-		 * 测试此节点
+		 * 测​试​此​节​点
 		 */
 		context_test_node: string
 		/**
@@ -13793,6 +13793,34 @@ type RootTranslation = {
 		 * 变​量​引​用​失​效​:
 		 */
 		var_ref_invalid: string
+		/**
+		 * 流​程​信​息
+		 */
+		flow_info_title: string
+		/**
+		 * 流​程​描​述
+		 */
+		flow_info_description: string
+		/**
+		 * 描​述​这​个​流​程​的​作​用​.​.​.​ ​支​持​ ​M​a​r​k​d​o​w​n
+		 */
+		flow_info_description_placeholder: string
+		/**
+		 * 编​辑
+		 */
+		flow_info_edit: string
+		/**
+		 * 预​览
+		 */
+		flow_info_preview: string
+		/**
+		 * 收​起
+		 */
+		flow_info_collapse: string
+		/**
+		 * 展​开
+		 */
+		flow_info_expand: string
 		/**
 		 * 流​程​验​证​未​通​过
 		 */
@@ -32487,6 +32515,34 @@ export type TranslationFunctions = {
 		 * 变量引用失效:
 		 */
 		var_ref_invalid: () => LocalizedString
+		/**
+		 * 流程信息
+		 */
+		flow_info_title: () => LocalizedString
+		/**
+		 * 流程描述
+		 */
+		flow_info_description: () => LocalizedString
+		/**
+		 * 描述这个流程的作用... 支持 Markdown
+		 */
+		flow_info_description_placeholder: () => LocalizedString
+		/**
+		 * 编辑
+		 */
+		flow_info_edit: () => LocalizedString
+		/**
+		 * 预览
+		 */
+		flow_info_preview: () => LocalizedString
+		/**
+		 * 收起
+		 */
+		flow_info_collapse: () => LocalizedString
+		/**
+		 * 展开
+		 */
+		flow_info_expand: () => LocalizedString
 		/**
 		 * 流程验证未通过
 		 */

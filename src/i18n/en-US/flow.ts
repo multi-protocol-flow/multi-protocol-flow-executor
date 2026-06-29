@@ -408,6 +408,15 @@ const en_US_flow = {
   // Variable validation
   var_ref_invalid: 'Invalid variable references:',
 
+  // Flow info
+  flow_info_title: 'Flow Info',
+  flow_info_description: 'Description',
+  flow_info_description_placeholder: 'Describe the purpose of this flow... Supports Markdown',
+  flow_info_edit: 'Edit',
+  flow_info_preview: 'Preview',
+  flow_info_collapse: 'Collapse',
+  flow_info_expand: 'Expand',
+
   // Flow validation
   validation_error_title: 'Flow Validation Failed',
   validation_error_desc: 'The flow has the following validation issues. Please fix them before proceeding.',

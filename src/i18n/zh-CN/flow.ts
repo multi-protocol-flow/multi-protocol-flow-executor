@@ -408,6 +408,15 @@ const zh_CN_flow: BaseTranslation = {
   // 变量引用验证
   var_ref_invalid: '变量引用失效:',
 
+  // 流程信息
+  flow_info_title: '流程信息',
+  flow_info_description: '流程描述',
+  flow_info_description_placeholder: '描述这个流程的作用... 支持 Markdown',
+  flow_info_edit: '编辑',
+  flow_info_preview: '预览',
+  flow_info_collapse: '收起',
+  flow_info_expand: '展开',
+
   // 流程验证
   validation_error_title: '流程验证未通过',
   validation_error_desc: '该流程存在以下验证问题，请修复后再操作',
