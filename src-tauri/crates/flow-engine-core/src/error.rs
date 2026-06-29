@@ -376,6 +376,22 @@ pub enum ErrorCode {
     E_VAL_CYCLE_DETECTED,
     /// Missing entry node.
     E_VAL_MISSING_ENTRY,
+    /// Duplicate node UUID detected.
+    E_VAL_DUPLICATE_NODE_ID,
+    /// Connection references non-existent node.
+    E_VAL_CONN_NODE_NOT_FOUND,
+    /// Connection references non-existent port.
+    E_VAL_PORT_NOT_FOUND,
+    /// Node is not reachable from any Entry node.
+    E_VAL_NODE_UNREACHABLE,
+    /// Node data contains unknown/unexpected fields.
+    E_VAL_UNKNOWN_FIELD,
+    /// Node is missing a required field.
+    E_VAL_MISSING_REQUIRED_FIELD,
+    /// Node data field type mismatch.
+    E_VAL_TYPE_MISMATCH,
+    /// Unknown/unsupported node type.
+    E_VAL_UNKNOWN_NODE_TYPE,
 
     // ===== HTTP errors =====
     /// HTTP request failed.
@@ -565,6 +581,14 @@ impl ErrorCode {
             Self::E_VAL_PORT_DUPLICATE => &["port_id", "node_id"],
             Self::E_VAL_CYCLE_DETECTED => &["node_id"],
             Self::E_VAL_MISSING_ENTRY => &["message"],
+            Self::E_VAL_DUPLICATE_NODE_ID => &["name", "uuid"],
+            Self::E_VAL_CONN_NODE_NOT_FOUND => &["id", "uuid"],
+            Self::E_VAL_PORT_NOT_FOUND => &["name", "port_id"],
+            Self::E_VAL_NODE_UNREACHABLE => &["name"],
+            Self::E_VAL_UNKNOWN_FIELD => &["message"],
+            Self::E_VAL_MISSING_REQUIRED_FIELD => &["name", "field"],
+            Self::E_VAL_TYPE_MISMATCH => &["message"],
+            Self::E_VAL_UNKNOWN_NODE_TYPE => &["name", "type"],
             // HTTP
             Self::E_HTTP_REQUEST_FAILED => &["url", "method", "message"],
             Self::E_HTTP_STATUS_ERROR => &["url", "status", "message"],
@@ -668,6 +692,14 @@ impl ErrorCode {
             Self::E_VAL_PORT_DUPLICATE => "E_VAL_PORT_DUPLICATE",
             Self::E_VAL_CYCLE_DETECTED => "E_VAL_CYCLE_DETECTED",
             Self::E_VAL_MISSING_ENTRY => "E_VAL_MISSING_ENTRY",
+            Self::E_VAL_DUPLICATE_NODE_ID => "E_VAL_DUPLICATE_NODE_ID",
+            Self::E_VAL_CONN_NODE_NOT_FOUND => "E_VAL_CONN_NODE_NOT_FOUND",
+            Self::E_VAL_PORT_NOT_FOUND => "E_VAL_PORT_NOT_FOUND",
+            Self::E_VAL_NODE_UNREACHABLE => "E_VAL_NODE_UNREACHABLE",
+            Self::E_VAL_UNKNOWN_FIELD => "E_VAL_UNKNOWN_FIELD",
+            Self::E_VAL_MISSING_REQUIRED_FIELD => "E_VAL_MISSING_REQUIRED_FIELD",
+            Self::E_VAL_TYPE_MISMATCH => "E_VAL_TYPE_MISMATCH",
+            Self::E_VAL_UNKNOWN_NODE_TYPE => "E_VAL_UNKNOWN_NODE_TYPE",
             Self::E_HTTP_REQUEST_FAILED => "E_HTTP_REQUEST_FAILED",
             Self::E_HTTP_STATUS_ERROR => "E_HTTP_STATUS_ERROR",
             Self::E_HTTP_INVALID_URL => "E_HTTP_INVALID_URL",
@@ -756,6 +788,14 @@ impl ErrorCode {
             Self::E_VAL_PORT_DUPLICATE => ErrorKind::Validation,
             Self::E_VAL_CYCLE_DETECTED => ErrorKind::Validation,
             Self::E_VAL_MISSING_ENTRY => ErrorKind::Validation,
+            Self::E_VAL_DUPLICATE_NODE_ID => ErrorKind::Validation,
+            Self::E_VAL_CONN_NODE_NOT_FOUND => ErrorKind::Validation,
+            Self::E_VAL_PORT_NOT_FOUND => ErrorKind::Validation,
+            Self::E_VAL_NODE_UNREACHABLE => ErrorKind::Validation,
+            Self::E_VAL_UNKNOWN_FIELD => ErrorKind::Validation,
+            Self::E_VAL_MISSING_REQUIRED_FIELD => ErrorKind::Validation,
+            Self::E_VAL_TYPE_MISMATCH => ErrorKind::Validation,
+            Self::E_VAL_UNKNOWN_NODE_TYPE => ErrorKind::Validation,
             Self::E_HTTP_REQUEST_FAILED => ErrorKind::Execution,
             Self::E_HTTP_STATUS_ERROR => ErrorKind::Execution,
             Self::E_HTTP_INVALID_URL => ErrorKind::Validation,
@@ -845,6 +885,14 @@ impl std::fmt::Display for ErrorCode {
             Self::E_VAL_PORT_DUPLICATE => write!(f, "Duplicate port detected"),
             Self::E_VAL_CYCLE_DETECTED => write!(f, "Cycle detected in flow"),
             Self::E_VAL_MISSING_ENTRY => write!(f, "Missing entry node"),
+            Self::E_VAL_DUPLICATE_NODE_ID => write!(f, "Duplicate node UUID detected"),
+            Self::E_VAL_CONN_NODE_NOT_FOUND => write!(f, "Connection references non-existent node"),
+            Self::E_VAL_PORT_NOT_FOUND => write!(f, "Connection references non-existent port"),
+            Self::E_VAL_NODE_UNREACHABLE => write!(f, "Node is not reachable from any Entry node"),
+            Self::E_VAL_UNKNOWN_FIELD => write!(f, "Node data contains unknown fields"),
+            Self::E_VAL_MISSING_REQUIRED_FIELD => write!(f, "Node is missing a required field"),
+            Self::E_VAL_TYPE_MISMATCH => write!(f, "Node data field type mismatch"),
+            Self::E_VAL_UNKNOWN_NODE_TYPE => write!(f, "Unknown or unsupported node type"),
             Self::E_HTTP_REQUEST_FAILED => write!(f, "HTTP request failed"),
             Self::E_HTTP_STATUS_ERROR => write!(f, "HTTP status error"),
             Self::E_HTTP_INVALID_URL => write!(f, "Invalid HTTP URL"),
