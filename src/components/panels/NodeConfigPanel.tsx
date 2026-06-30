@@ -78,7 +78,7 @@ interface NodeConfigPanelProps {
 }
 
 /** 懒加载配置面板包装组件 — 手动加载，避免 React.lazy 动态创建的身份丢失问题 */
-function LazyConfigPanel({ nodeType, data, onSave }: { nodeType: string; data: NodeData; onSave: (data: NodeData) => void }) {
+function LazyConfigPanel({ nodeType, data, onSave, nodeUuid }: { nodeType: string; data: NodeData; onSave: (data: NodeData) => void; nodeUuid: string | null }) {
   const [Component, setComponent] = useState<React.ComponentType<any> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -113,7 +113,7 @@ function LazyConfigPanel({ nodeType, data, onSave }: { nodeType: string; data: N
     );
   }
 
-  return <Component data={data} onSave={onSave} />;
+  return <Component key={nodeUuid} data={data} onSave={onSave} />;
 }
 
 export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeConfigPanelProps) {
@@ -298,6 +298,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
               if (isSchemaDriven(nodeType)) {
                 return (
                   <SchemaConfigPanel
+                    key={selectedNode.uuid}
                     schema={{}}
                     data={nodeData as unknown as Record<string, unknown>}
                     onSave={(data) => handleSave(data as unknown as NodeData)}
@@ -310,6 +311,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                   nodeType={nodeType}
                   data={nodeData}
                   onSave={handleSave}
+                  nodeUuid={selectedNode.uuid}
                 />
               );
             })()}
