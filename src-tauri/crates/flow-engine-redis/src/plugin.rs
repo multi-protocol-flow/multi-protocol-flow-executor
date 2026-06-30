@@ -103,7 +103,7 @@ impl NodePlugin for RedisConnectPlugin {
             Some(host) if !host.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "host".into(),
-                message: "Host 不能为空".into(),
+                message: "Host is required".into(),
             }),
         }
         errors
@@ -212,14 +212,14 @@ impl NodePlugin for RedisCommandPlugin {
             Some(id) if !id.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         match config.get("command").and_then(|v| v.as_str()) {
             Some(cmd) if !cmd.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "command".into(),
-                message: "命令不能为空".into(),
+                message: "Command is required".into(),
             }),
         }
         errors
@@ -308,7 +308,7 @@ impl NodePlugin for RedisClosePlugin {
             Some(id) if !id.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         errors

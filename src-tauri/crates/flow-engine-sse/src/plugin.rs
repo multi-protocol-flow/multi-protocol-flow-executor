@@ -102,7 +102,7 @@ impl NodePlugin for SseConnectPlugin {
             Some(url) if !url.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "url".into(),
-                message: "URL 不能为空".into(),
+                message: "URL is required".into(),
             }),
         }
         errors
@@ -214,7 +214,7 @@ impl NodePlugin for SseListenPlugin {
             Some(id) if !id.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         errors
@@ -306,7 +306,7 @@ impl NodePlugin for SseDisconnectPlugin {
             Some(id) if !id.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         errors

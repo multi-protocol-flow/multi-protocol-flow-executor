@@ -120,7 +120,7 @@ impl NodePlugin for McpConnectPlugin {
                     Some(cmd) if !cmd.is_empty() => {}
                     _ => errors.push(ValidationError {
                         field: "command".into(),
-                        message: "Stdio 模式下 command 不能为空".into(),
+                        message: "Command is required in Stdio mode".into(),
                     }),
                 }
             }
@@ -130,7 +130,7 @@ impl NodePlugin for McpConnectPlugin {
                     Some(url) if !url.is_empty() => {}
                     _ => errors.push(ValidationError {
                         field: "url".into(),
-                        message: "URL 不能为空".into(),
+                        message: "URL is required".into(),
                     }),
                 }
             }
@@ -241,14 +241,14 @@ impl NodePlugin for McpCallToolPlugin {
             Some(id) if !id.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
-            }),
+                message: "Connection ID is required".into(),
+            })
         }
         match config.get("tool_name").and_then(|v| v.as_str()) {
             Some(name) if !name.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "tool_name".into(),
-                message: "工具名称不能为空".into(),
+                message: "Tool name is required".into(),
             }),
         }
         errors
@@ -354,14 +354,14 @@ impl NodePlugin for McpReadResourcePlugin {
             Some(id) if !id.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         match config.get("resource_uri").and_then(|v| v.as_str()) {
             Some(uri) if !uri.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "resource_uri".into(),
-                message: "资源 URI 不能为空".into(),
+                message: "Resource URI is required".into(),
             }),
         }
         errors
@@ -449,7 +449,7 @@ impl NodePlugin for McpClosePlugin {
             Some(id) if !id.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         errors
@@ -557,14 +557,14 @@ impl NodePlugin for McpGetPromptPlugin {
             Some(id) if !id.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         match config.get("prompt_name").and_then(|v| v.as_str()) {
             Some(name) if !name.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "prompt_name".into(),
-                message: "提示词名称不能为空".into(),
+                message: "Prompt name is required".into(),
             }),
         }
         errors
