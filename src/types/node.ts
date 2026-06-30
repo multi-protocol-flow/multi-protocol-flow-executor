@@ -176,7 +176,7 @@ export interface FormField {
   /** 字段值 */
   value: string;
   /** 字段类型 */
-  type?: FormFieldType;
+  field_type?: FormFieldType;
   /** 文件路径（仅 file 类型使用） */
   file_path?: string;
 }

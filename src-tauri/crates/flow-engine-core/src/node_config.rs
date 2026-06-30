@@ -105,7 +105,7 @@ pub struct FormField {
     /// 字段值
     pub value: String,
     /// 字段类型
-    #[serde(default, alias = "type")]
+    #[serde(default)]
     pub field_type: FormFieldType,
     /// 文件路径（仅文件类型字段）
     #[serde(skip_serializing_if = "Option::is_none")]

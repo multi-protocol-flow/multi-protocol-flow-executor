@@ -66,19 +66,21 @@ function CollapsibleSection({ title, icon, defaultOpen = false, extra, children 
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
-        aria-expanded={isOpen}
-      >
-        <div className="text-muted-foreground">
-          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </div>
-        <div className="text-muted-foreground">{icon}</div>
-        <span className="font-medium text-foreground text-sm">{title}</span>
-        {extra && <div className="ml-auto">{extra}</div>}
-      </button>
+      <div className="flex items-center w-full bg-muted/30 hover:bg-muted/50 transition-colors">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex-1 flex items-center gap-2 p-3 text-left"
+          aria-expanded={isOpen}
+        >
+          <div className="text-muted-foreground">
+            {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </div>
+          <div className="text-muted-foreground">{icon}</div>
+          <span className="font-medium text-foreground text-sm">{title}</span>
+        </button>
+        {extra && <div className="pr-3">{extra}</div>}
+      </div>
       {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
     </div>
   );
@@ -176,13 +178,13 @@ function FormDataFieldsTable({ fields }: { fields: FormField[] }) {
           <div className="px-2.5 py-1.5 border-r border-b border-border text-center">
             <span className={cn(
               'text-[10px] px-1.5 py-0.5 rounded font-mono',
-              field.type === 'file' ? 'text-amber-600 bg-amber-50' : 'text-muted-foreground bg-muted'
+              field.field_type === 'file' ? 'text-amber-600 bg-amber-50' : 'text-muted-foreground bg-muted'
             )}>
-              {field.type === 'file' ? 'file' : 'text'}
+              {field.field_type === 'file' ? 'file' : 'text'}
             </span>
           </div>
           <div className="px-2.5 py-1.5 border-b border-border break-all">
-            {field.type === 'file' ? (
+            {field.field_type === 'file' ? (
               <span className="font-mono text-muted-foreground">{field.file_path || ll.execution.viewers.file_not_selected()}</span>
             ) : (
               <span className="text-foreground">{field.value}</span>
@@ -346,8 +348,8 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
         bodyTypeViewer = 'form-data';
         formDataArr = extractFormFields(config.body, config.form_fields).map(f => ({
           key: f.key,
-          value: f.type === 'file' ? (f.file_path || f.value) : f.value,
-          type: f.type === 'file' ? ('file' as const) : ('text' as const),
+          value: f.field_type === 'file' ? (f.file_path || f.value) : f.value,
+          type: f.field_type === 'file' ? ('file' as const) : ('text' as const),
         }));
         break;
       case 'x-www-form-urlencoded':

@@ -117,7 +117,7 @@ function LazyConfigPanel({ nodeType, data, onSave }: { nodeType: string; data: N
 }
 
 export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeConfigPanelProps) {
-  const { flow, getSelectedNode, updateNode } = useFlowStore();
+  const { getSelectedNode } = useFlowStore();
   const modifyNodeConfig = useDebugStore((state) => state.modifyNodeConfig);
   const historyVersion = useFlowStore(selectHistoryVersion);
   const ll = getLL().panels.nodeConfig;
@@ -125,13 +125,10 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   // 优先使用外部传入的节点，否则回退到 store 中的选中节点
   const selectedNode = externalNode ?? getSelectedNode();
 
-  // 冻结节点 UUID（ref 持久化），确保组件卸载时（如点击画布取消选中）仍能正确保存
-  // 使用 useEffect 更新而非渲染期间更新，确保子组件的 cleanup effect 执行时
-  // ref 仍是旧节点的 UUID，避免卸载保存时写入错误节点
-  const frozenNodeUuidRef = useRef<string | null>(null);
-  useEffect(() => {
-    frozenNodeUuidRef.current = selectedNode?.uuid ?? null;
-  }, [selectedNode?.uuid]);
+  // 当前渲染周期的节点 UUID（在渲染阶段同步捕获，用于 handleSave 闭包）
+  // 子组件的 cleanup effect 中持有的 onSave 闭包捕获的是创建时的 uuid，
+  // 因此即使节点切换后 cleanup 执行，保存的目标仍是正确的旧节点。
+  const renderNodeUuid = selectedNode?.uuid ?? null;
 
   // 稳定数据引用：仅在节点 UUID 变化或 undo/redo 时更新
   // 避免自动保存后 store 更新 → data prop 变化 → 子组件 reset() → 输入框失焦
@@ -220,23 +217,24 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
 
   /**
    * 处理配置保存
-   * 使用 ref 持久化的 UUID，确保取消选中节点后仍能正确保存
-   * 去重：使用深度比较（属性顺序无关），避免表单序列化差异触发无意义保存
+   * 通过闭包捕获当前渲染时刻的节点 UUID（renderNodeUuid），
+   * 确保子组件卸载时 cleanup 中调用的 onSave 仍能正确保存到原节点。
    *
    * 合并策略：面板输出的 data 只包含该面板已知的字段，
    * 通过 mergeNodeData 与原始节点数据合并，确保未知字段不被丢弃。
    */
   const handleSave = (data: NodeData) => {
-    if (frozenNodeUuidRef.current) {
-      // 从 flow 中按 UUID 查找节点（不用 getSelectedNode，因为卸载时选中状态可能已变）
-      const node = flow?.nodes.find((n) => n.uuid === frozenNodeUuidRef.current);
-      // 合并：面板输出覆盖原始值，但面板不认识的字段从原始值保留
-      const merged = node ? mergeNodeData(node.data as unknown as Record<string, unknown>, data as unknown as Record<string, unknown>) : data;
-      if (node && deepEqual(node.data, merged)) {
-        return;
-      }
-      updateNode(frozenNodeUuidRef.current, { data: merged as NodeData });
+    if (!renderNodeUuid) return;
+    // 使用 getState() 获取调用时刻的最新 store 状态，避免闭包捕获过期 flow
+    const { flow: latestFlow, updateNode: doUpdate } = useFlowStore.getState();
+    if (!latestFlow) return;
+    const node = latestFlow.nodes.find((n) => n.uuid === renderNodeUuid);
+    // 合并：面板输出覆盖原始值，但面板不认识的字段从原始值保留
+    const merged = node ? mergeNodeData(node.data as unknown as Record<string, unknown>, data as unknown as Record<string, unknown>) : data;
+    if (node && deepEqual(node.data, merged as NodeData)) {
+      return;
     }
+    doUpdate(renderNodeUuid, { data: merged as NodeData });
   };
 
   return (

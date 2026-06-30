@@ -40,19 +40,21 @@ function CollapsibleSection({ title, icon, defaultOpen = false, extra, children 
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
-        aria-expanded={isOpen}
-      >
-        <div className="text-muted-foreground">
-          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </div>
-        <div className="text-muted-foreground">{icon}</div>
-        <span className="font-medium text-foreground text-sm">{title}</span>
-        {extra && <div className="ml-auto">{extra}</div>}
-      </button>
+      <div className="flex items-center w-full bg-muted/30 hover:bg-muted/50 transition-colors">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex-1 flex items-center gap-2 p-3 text-left"
+          aria-expanded={isOpen}
+        >
+          <div className="text-muted-foreground">
+            {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </div>
+          <div className="text-muted-foreground">{icon}</div>
+          <span className="font-medium text-foreground text-sm">{title}</span>
+        </button>
+        {extra && <div className="pr-3">{extra}</div>}
+      </div>
       {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
     </div>
   );

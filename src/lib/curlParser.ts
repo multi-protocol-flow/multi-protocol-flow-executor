@@ -117,17 +117,17 @@ export function parseCurlToFormData(curlString: string): HttpConfigFormData | nu
           if (eqIndex >= 0) {
             const key = entry.substring(0, eqIndex);
             const filePath = entry.substring(eqIndex + 2);
-            return { key, value: '', type: 'file' as const, file_path: filePath };
+            return { key, value: '', field_type: 'file' as const, file_path: filePath };
           }
           // 无 key 的文件: @filepath
-          return { key: 'file', value: '', type: 'file' as const, file_path: entry.substring(1) };
+          return { key: 'file', value: '', field_type: 'file' as const, file_path: entry.substring(1) };
         }
         const eqIndex = entry.indexOf('=');
         if (eqIndex >= 0) {
           return {
             key: entry.substring(0, eqIndex),
             value: entry.substring(eqIndex + 1),
-            type: 'text' as const,
+            field_type: 'text' as const,
           };
         }
         return { key: entry, value: '', type: 'text' as const };

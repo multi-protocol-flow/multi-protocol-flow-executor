@@ -56,6 +56,9 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
     return initial;
   });
 
+  // 追踪用户是否实际修改过字段（用于屏蔽切换节点时残留的 debounce 保存）
+  const isActuallyDirtyRef = useRef(false);
+
   // 追踪待执行的 setTimeout，组件卸载时清除
   const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
@@ -66,8 +69,16 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
     };
   }, []);
 
-  // 当外部 data 变化时（例如切换节点），同步 formValues
+  // 当外部 data 变化时（例如切换节点）：
+  // 1. 同步 formValues 到新节点的数据
+  // 2. 清除待执行的延迟保存定时器，防止旧节点数据写入新节点
+  // 3. 重置 dirty 标记
   useEffect(() => {
+    // 清除所有待执行的延迟保存
+    pendingTimersRef.current.forEach((id) => clearTimeout(id));
+    pendingTimersRef.current.clear();
+    isActuallyDirtyRef.current = false;
+
     const updated: Record<string, unknown> = {};
     for (const [key, prop] of propertyEntries) {
       updated[key] = getFieldValue(key, data, prop);
@@ -89,12 +100,15 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
 
   /**
    * 更新字段值并延迟触发 onSave
+   * 标记 dirty 状态，debounce 回调中检查，防止节点切换后残留调用写入错误节点
    */
   const handleFieldChange = useCallback((key: string, value: unknown) => {
+    isActuallyDirtyRef.current = true;
     setFormValues((prev) => {
       const next = { ...prev, [key]: value };
       // 延迟保存，合并多次快速变更
       safeSetTimeout(() => {
+        if (!isActuallyDirtyRef.current) return;
         onSave(next);
       }, 150);
       return next;

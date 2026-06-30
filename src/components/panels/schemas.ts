@@ -34,7 +34,7 @@ export const formFieldTypeSchema = z.enum(['text', 'file']);
 export const formFieldSchema = z.object({
   key: z.string(), // 允许空值，保存时过滤空行
   value: z.string(),
-  type: formFieldTypeSchema.optional(),
+  field_type: formFieldTypeSchema.optional(),
   file_path: z.string().optional(),
 });
 

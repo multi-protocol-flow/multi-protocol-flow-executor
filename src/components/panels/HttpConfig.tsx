@@ -318,7 +318,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
    * 添加 Form Field
    */
   const handleAddFormField = useCallback(() => {
-    formFields.append({ key: '', value: '', type: 'text' });
+    formFields.append({ key: '', value: '', field_type: 'text' });
   }, [formFields]);
 
   /**
@@ -428,8 +428,8 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           .filter(f => f.key.trim())
           .map(f => ({
             key: f.key,
-            value: f.type === 'file' ? (f.file_path || '') : f.value,
-            type: (f.type || 'text') as 'text' | 'file',
+            value: f.field_type === 'file' ? (f.file_path || '') : f.value,
+            type: (f.field_type || 'text') as 'text' | 'file',
           }));
         break;
       case 'binary':
@@ -929,7 +929,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
               </div>
             ) : (
               formFields.fields.map((field, index) => {
-                  const fieldType = watch(`form_fields.${index}.type`) || 'text';
+                  const fieldType = watch(`form_fields.${index}.field_type`) || 'text';
                   const isFileField = fieldType === 'file' && watchedBodyType === 'form-data';
                   const isFormData = watchedBodyType === 'form-data';
                   
@@ -947,7 +947,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                           <Select
                             value={fieldType}
                             onValueChange={(value) => {
-                              setValue(`form_fields.${index}.type`, value as 'text' | 'file', { shouldDirty: true });
+                              setValue(`form_fields.${index}.field_type`, value as 'text' | 'file', { shouldDirty: true });
                               if (value === 'file') {
                                 setValue(`form_fields.${index}.value`, '', { shouldDirty: true });
                               } else {
