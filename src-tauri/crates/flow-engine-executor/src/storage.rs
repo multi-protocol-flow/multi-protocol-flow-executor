@@ -1066,7 +1066,7 @@ fn has_mpf_files_recursive(dir: &Path) -> Result<bool, String> {
 /// `folder_path` 为相对于 `flows_dir` 的路径，如 "认证测试" 或 "API/登录"。
 pub fn create_folder(flows_dir: &Path, folder_path: &str) -> Result<FolderInfo, String> {
     if folder_path.is_empty() {
-        return Err("文件夹路径不能为空".to_string());
+        return Err("Folder path cannot be empty".to_string());
     }
 
     // 清理路径中的非法字符（每段单独清理）
@@ -1077,7 +1077,7 @@ pub fn create_folder(flows_dir: &Path, folder_path: &str) -> Result<FolderInfo, 
         .collect();
 
     if clean_parts.is_empty() {
-        return Err("文件夹路径不能为空".to_string());
+        return Err("Folder path cannot be empty".to_string());
     }
 
     let clean_path = clean_parts.join("/");
@@ -1108,7 +1108,7 @@ pub fn create_folder(flows_dir: &Path, folder_path: &str) -> Result<FolderInfo, 
 /// `folder_path` 为相对于 `flows_dir` 的路径。
 pub fn delete_folder(flows_dir: &Path, folder_path: &str) -> Result<(), String> {
     if folder_path.is_empty() {
-        return Err("文件夹路径不能为空".to_string());
+        return Err("Folder path cannot be empty".to_string());
     }
 
     let full_path = flows_dir.join(folder_path);
@@ -1147,10 +1147,10 @@ pub fn rename_folder(
     new_name: &str,
 ) -> Result<FolderInfo, String> {
     if folder_path.is_empty() {
-        return Err("文件夹路径不能为空".to_string());
+        return Err("Folder path cannot be empty".to_string());
     }
     if new_name.trim().is_empty() {
-        return Err("文件夹名称不能为空".to_string());
+        return Err("Folder name cannot be empty".to_string());
     }
 
     let clean_name = sanitize_filename(new_name.trim());
@@ -1280,7 +1280,7 @@ pub fn move_folder(
     target_folder_path: &str,
 ) -> Result<(), String> {
     if source_folder_path.is_empty() {
-        return Err("源文件夹路径不能为空".to_string());
+        return Err("Source folder path cannot be empty".to_string());
     }
 
     let source_full = flows_dir.join(source_folder_path);

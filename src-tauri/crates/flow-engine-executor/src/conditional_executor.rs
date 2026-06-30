@@ -502,7 +502,7 @@ impl ConditionalNodeExecutor {
     ) -> Result<serde_json::Value, String> {
         // 拒绝空的 field_path
         if field_path.is_empty() {
-            return Err("field_path 不能为空".to_string());
+            return Err("Field path is required".to_string());
         }
 
         // 格式判断逻辑
@@ -1888,7 +1888,7 @@ mod tests {
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "空 field_path 应该返回错误");
         let error = result.unwrap_err();
-        assert!(error.find("不能为空").is_some(), "错误信息应该包含 '不能为空': {}", error);
+        assert!(error.contains("required"), "错误信息应该包含 'required': {}", error);
     }
 
     #[tokio::test]

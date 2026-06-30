@@ -98,7 +98,7 @@ impl NodePlugin for ConditionalPlugin {
                     if fp.is_empty() {
                         errors.push(ValidationError {
                             field: "field_path".into(),
-                            message: "字段路径不能为空".into(),
+                            message: "Field path is required".into(),
                         });
                     }
                 }
@@ -127,7 +127,7 @@ impl NodePlugin for ConditionalPlugin {
                 if is_empty {
                     errors.push(ValidationError {
                         field: "advanced_expression".into(),
-                        message: "高级表达式不能为空".into(),
+                        message: "Advanced expression is required".into(),
                     });
                 }
             }

@@ -109,7 +109,7 @@ impl NodePlugin for ProxyPlugin {
                 let proxy_url = config
                     .proxy_url
                     .as_deref()
-                    .ok_or_else(|| "代理地址不能为空".to_string())?;
+                    .ok_or_else(|| "Proxy address is required".to_string())?;
 
                 // 字符串解析 proxy_url（格式: scheme://[user:pass@]host:port）
                 let (host, port) = parse_proxy_url(proxy_url)?;
