@@ -112,7 +112,7 @@ impl NodeExecutor for DbQueryNodeExecutor {
         // 获取连接 UUID
         let connection_uuid = db_config.connection_uuid.clone();
         if connection_uuid.is_empty() {
-            let error_msg = "connection_uuid 不能为空".to_string();
+            let error_msg = "Connection UUID is required".to_string();
 
             // 检查 on_error 策略
             if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -161,7 +161,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                 }
             }
             None => {
-                let error_msg = "SQL 语句不能为空".to_string();
+                let error_msg = "SQL statement is required".to_string();
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {

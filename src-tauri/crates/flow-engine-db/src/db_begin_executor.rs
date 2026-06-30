@@ -51,7 +51,7 @@ impl NodeExecutor for DbBeginExecutor {
 
         // 2. 验证 connection_uuid
         if config.connection_uuid.is_empty() {
-            let error_msg = "connection_uuid 不能为空".to_string();
+            let error_msg = "Connection UUID is required".to_string();
 
             // 检查 on_error 策略
             if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {

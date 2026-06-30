@@ -181,7 +181,7 @@ impl NodePlugin for DbConnectPlugin {
         if !has_conn_str && !has_host {
             errors.push(ValidationError {
                 field: "connection_string".into(),
-                message: "连接字符串或主机地址不能为空".into(),
+                message: "Connection string or host address is required".into(),
             });
         }
         errors
@@ -291,14 +291,14 @@ impl NodePlugin for DbQueryPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_uuid".into(),
-                message: "连接 UUID 不能为空".into(),
+                message: "Connection UUID is required".into(),
             }),
         }
         match config.get("sql").and_then(|v| v.as_str()) {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "sql".into(),
-                message: "SQL 语句不能为空".into(),
+                message: "SQL statement is required".into(),
             }),
         }
         errors
@@ -401,7 +401,7 @@ impl NodePlugin for DbBeginPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_uuid".into(),
-                message: "连接 UUID 不能为空".into(),
+                message: "Connection UUID is required".into(),
             }),
         }
         errors
@@ -501,7 +501,7 @@ impl NodePlugin for DbCommitPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_uuid".into(),
-                message: "连接 UUID 不能为空".into(),
+                message: "Connection UUID is required".into(),
             }),
         }
         errors
@@ -601,7 +601,7 @@ impl NodePlugin for DbRollbackPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_uuid".into(),
-                message: "连接 UUID 不能为空".into(),
+                message: "Connection UUID is required".into(),
             }),
         }
         errors
@@ -688,7 +688,7 @@ impl NodePlugin for DbClosePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_uuid".into(),
-                message: "连接 UUID 不能为空".into(),
+                message: "Connection UUID is required".into(),
             }),
         }
         errors

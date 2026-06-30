@@ -84,7 +84,7 @@ impl NodeExecutor for DbConnectExecutor {
 
         // 3. 验证 driver（必填字段）
         if config.driver.is_none() {
-            let error_msg = "driver 不能为空".to_string();
+            let error_msg = "Driver is required".to_string();
 
             // 检查 on_error 策略
             if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
