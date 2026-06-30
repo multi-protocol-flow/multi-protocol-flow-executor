@@ -110,7 +110,7 @@ impl NodePlugin for KafkaConnectPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "bootstrap_servers".into(),
-                message: "bootstrap_servers 不能为空".into(),
+                message: "Bootstrap servers is required".into(),
             }),
         }
 
@@ -229,7 +229,7 @@ impl NodePlugin for KafkaProducePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 
@@ -237,7 +237,7 @@ impl NodePlugin for KafkaProducePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "topic".into(),
-                message: "主题不能为空".into(),
+                message: "Topic is required".into(),
             }),
         }
 
@@ -357,7 +357,7 @@ impl NodePlugin for KafkaConsumePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 
@@ -365,7 +365,7 @@ impl NodePlugin for KafkaConsumePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "topic".into(),
-                message: "主题不能为空".into(),
+                message: "Topic is required".into(),
             }),
         }
 
@@ -485,7 +485,7 @@ impl NodePlugin for KafkaConsumeBatchPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 
@@ -493,7 +493,7 @@ impl NodePlugin for KafkaConsumeBatchPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "topic".into(),
-                message: "主题不能为空".into(),
+                message: "Topic is required".into(),
             }),
         }
 
@@ -612,7 +612,7 @@ impl NodePlugin for KafkaAdminPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 
@@ -620,7 +620,7 @@ impl NodePlugin for KafkaAdminPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "operation".into(),
-                message: "操作类型不能为空".into(),
+                message: "Operation type is required".into(),
             }),
         }
 
@@ -739,7 +739,7 @@ impl NodePlugin for KafkaSchemaRegistryPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 
@@ -747,7 +747,7 @@ impl NodePlugin for KafkaSchemaRegistryPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "operation".into(),
-                message: "操作类型不能为空".into(),
+                message: "Operation type is required".into(),
             }),
         }
 
@@ -842,7 +842,7 @@ impl NodePlugin for KafkaClosePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 

@@ -115,7 +115,7 @@ pub fn create_parser(config: &ParserConfig) -> Result<Box<dyn ProtocolParser>, S
             let delimiter = hex::decode(delimiter_hex)
                 .map_err(|e| format!("分隔符 hex 解码失败: {}", e))?;
             if delimiter.is_empty() {
-                return Err("分隔符不能为空".to_string());
+                return Err("Delimiter cannot be empty".to_string());
             }
             Ok(Box::new(DelimiterParser {
                 delimiter,
@@ -1173,7 +1173,7 @@ mod tests {
         let result = create_parser(&config);
         assert!(result.is_err());
         let err = result.err().expect("应返回错误");
-        assert!(err.contains("分隔符不能为空"));
+        assert!(err.contains("Delimiter cannot be empty"));
     }
 
     // === ParserConfig 序列化测试 ===

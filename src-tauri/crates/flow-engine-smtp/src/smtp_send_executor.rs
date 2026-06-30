@@ -223,7 +223,7 @@ impl NodeExecutor for SmtpSendExecutor {
         // 12. 基本参数校验
         if from.as_ref().is_none_or(|f| f.is_empty()) {
             let duration = start_time.elapsed();
-            let error_msg = "发件人地址不能为空";
+            let error_msg = "Sender address is required";
             log::error!(
                 "[SMTP] 发送失败: connection_id={}, error={}",
                 connection_id,
@@ -268,7 +268,7 @@ impl NodeExecutor for SmtpSendExecutor {
 
         if to.is_empty() {
             let duration = start_time.elapsed();
-            let error_msg = "收件人列表不能为空";
+            let error_msg = "Recipient list cannot be empty";
             log::error!(
                 "[SMTP] 发送失败: connection_id={}, error={}",
                 connection_id,
@@ -662,7 +662,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.unwrap();
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().unwrap().contains("发件人"));
+        assert!(data["error"].as_str().unwrap().contains("Sender"));
     }
 
     /// 测试：空收件人列表 → 走 false 端口

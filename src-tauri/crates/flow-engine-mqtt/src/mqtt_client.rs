@@ -139,13 +139,13 @@ fn parse_host_port(
                 .parse()
                 .map_err(|_| format!("无效的端口号: '{}'", port_str))?;
             if host.is_empty() {
-                return Err("主机名不能为空".to_string());
+                return Err("Hostname is required".to_string());
             }
             Ok((host.to_string(), port))
         }
         None => {
             if host_port.is_empty() {
-                return Err("主机名不能为空".to_string());
+                return Err("Hostname is required".to_string());
             }
             let default_port = match transport {
                 TransportType::Tcp | TransportType::Ws => 1883,

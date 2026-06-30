@@ -113,7 +113,7 @@ impl NodePlugin for MqttConnectPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "url".into(),
-                message: "URL 不能为空".into(),
+                message: "URL is required".into(),
             }),
         }
 
@@ -230,7 +230,7 @@ impl NodePlugin for MqttPublishPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 
@@ -238,7 +238,7 @@ impl NodePlugin for MqttPublishPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "topic".into(),
-                message: "主题不能为空".into(),
+                message: "Topic is required".into(),
             }),
         }
 
@@ -357,7 +357,7 @@ impl NodePlugin for MqttSubscribePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 
@@ -365,7 +365,7 @@ impl NodePlugin for MqttSubscribePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "topic".into(),
-                message: "主题不能为空".into(),
+                message: "Topic is required".into(),
             }),
         }
 
@@ -477,7 +477,7 @@ impl NodePlugin for MqttUnsubscribePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 
@@ -485,7 +485,7 @@ impl NodePlugin for MqttUnsubscribePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "topic".into(),
-                message: "主题不能为空".into(),
+                message: "Topic is required".into(),
             }),
         }
 
@@ -579,7 +579,7 @@ impl NodePlugin for MqttDisconnectPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 
@@ -695,7 +695,7 @@ impl NodePlugin for MqttWaitMessagePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 
@@ -703,7 +703,7 @@ impl NodePlugin for MqttWaitMessagePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "topic".into(),
-                message: "主题不能为空".into(),
+                message: "Topic is required".into(),
             }),
         }
 
@@ -822,7 +822,7 @@ impl NodePlugin for MqttRequestPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
 
@@ -830,7 +830,7 @@ impl NodePlugin for MqttRequestPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "request_topic".into(),
-                message: "请求主题不能为空".into(),
+                message: "Request topic is required".into(),
             }),
         }
 
@@ -838,7 +838,7 @@ impl NodePlugin for MqttRequestPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "response_topic".into(),
-                message: "响应主题不能为空".into(),
+                message: "Response topic is required".into(),
             }),
         }
 
