@@ -227,11 +227,11 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
 
       {/* 消费配置 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">消费配置</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaConsumeBatch.consumerConfig_sectionTitle()}</p>
 
         <div className="space-y-2">
           <Label htmlFor="topic" className="text-sm font-medium text-foreground">
-            主题 <span className="text-rose-500">*</span>
+            {getLL().panels.kafkaConsumeBatch.topic_label()} <span className="text-rose-500">*</span>
           </Label>
           <Input
             id="topic"
@@ -240,13 +240,13 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
             className="font-mono text-sm"
           />
           {errors.topic && (
-            <p className="text-xs text-rose-500">主题不能为空</p>
+            <p className="text-xs text-rose-500">{getLL().panels.kafkaConsumeBatch.error_topicRequired()}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="partition" className="text-sm font-medium text-foreground">
-            分区
+            {getLL().panels.kafkaConsumeBatch.partition_label()}
           </Label>
           <Input
             id="partition"
@@ -256,13 +256,13 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            设为 -1 订阅主题的所有分区
+            {getLL().panels.kafkaConsumeBatch.partition_help()}
           </p>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="offset" className="text-sm font-medium text-foreground">
-            起始偏移量
+            {getLL().panels.kafkaConsumeBatch.offset_label()}
           </Label>
           <Input
             id="offset"
@@ -274,7 +274,7 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">偏移重置策略</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaConsumeBatch.offsetReset_label()}</Label>
           <Select
             value={watch('offset_reset') || 'latest'}
             onValueChange={(value) => {
@@ -286,23 +286,23 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="earliest">earliest — 从最早消息开始</SelectItem>
-              <SelectItem value="latest">latest — 从最新消息开始</SelectItem>
+              <SelectItem value="earliest">{getLL().panels.kafkaConsumeBatch.earliest_option()}</SelectItem>
+              <SelectItem value="latest">{getLL().panels.kafkaConsumeBatch.latest_option()}</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            当消费者组无已提交偏移量时生效
+            {getLL().panels.kafkaConsumeBatch.offsetReset_help()}
           </p>
         </div>
       </div>
 
       {/* 消费者组 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">消费者组</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaConsumeBatch.consumerGroup_sectionTitle()}</p>
 
         <div className="space-y-2">
           <Label htmlFor="group_id" className="text-sm font-medium text-foreground">
-            消费者组 ID
+            {getLL().panels.kafkaConsumeBatch.groupId_label()}
           </Label>
           <Input
             id="group_id"
@@ -311,14 +311,14 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            同一消费者组内的消费者共同分担主题分区
+            {getLL().panels.kafkaConsumeBatch.groupId_help()}
           </p>
         </div>
 
         <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
           <div>
-            <Label className="text-sm font-medium text-foreground">自动提交偏移量</Label>
-            <p className="text-xs text-muted-foreground">自动周期性提交已消费的偏移量</p>
+            <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaConsumeBatch.autoCommit_label()}</Label>
+            <p className="text-xs text-muted-foreground">{getLL().panels.kafkaConsumeBatch.autoCommit_desc()}</p>
           </div>
           <Switch
             checked={watch('enable_auto_commit') ?? false}
@@ -332,10 +332,10 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
 
       {/* 反序列化 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">反序列化</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaConsumeBatch.deserialization_sectionTitle()}</p>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">反序列化格式</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaConsumeBatch.deserialization_label()}</Label>
           <Select
             value={deserializationFormat}
             onValueChange={(value) => {
@@ -350,7 +350,7 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
               <SelectItem value="json">JSON</SelectItem>
               <SelectItem value="avro">Avro</SelectItem>
               <SelectItem value="protobuf">Protobuf</SelectItem>
-              <SelectItem value="raw">Raw (原始字节)</SelectItem>
+              <SelectItem value="raw">{getLL().panels.kafkaConsumeBatch.raw_option()}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -365,7 +365,7 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
               className="h-8 text-xs font-mono"
             />
             <p className="text-xs text-muted-foreground">
-              Schema Registry 中的 Subject 名称
+              {getLL().panels.kafkaConsumeBatch.schemaSubject_help()}
             </p>
           </div>
         )}
@@ -387,7 +387,7 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            批量消费的最大消息数量，达到后自动停止
+            {getLL().panels.kafkaConsumeBatch.maxRecords_help()}
           </p>
         </div>
 
@@ -405,7 +405,7 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">批量策略</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaConsumeBatch.batchStrategy_label()}</Label>
           <Select
             value={watch('batch_strategy') || 'count_timeout'}
             onValueChange={(value) => {
@@ -417,13 +417,13 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="count_timeout">count_timeout — 消息数 + 超时</SelectItem>
-              <SelectItem value="count_only">count_only — 仅消息数</SelectItem>
-              <SelectItem value="timeout_only">timeout_only — 仅超时</SelectItem>
+              <SelectItem value="count_timeout">{getLL().panels.kafkaConsumeBatch.countTimeout_option()}</SelectItem>
+              <SelectItem value="count_only">{getLL().panels.kafkaConsumeBatch.countOnly_option()}</SelectItem>
+              <SelectItem value="timeout_only">{getLL().panels.kafkaConsumeBatch.timeoutOnly_option()}</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            控制批量消费的结束条件
+            {getLL().panels.kafkaConsumeBatch.batchStrategy_help()}
           </p>
         </div>
       </div>

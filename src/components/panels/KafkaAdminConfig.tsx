@@ -289,7 +289,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
           />
         )}
         {errors.connection_id && (
-          <p className="text-xs text-rose-500">连接 ID 不能为空</p>
+          <p className="text-xs text-rose-500">{getLL().panels.kafkaAdmin.error_connectionIdRequired()}</p>
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
