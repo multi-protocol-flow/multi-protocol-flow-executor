@@ -99,7 +99,7 @@ impl NodePlugin for AssertionPlugin {
                     if arr.is_empty() {
                         errors.push(ValidationError {
                             field: "assertions".to_string(),
-                            message: "断言列表不能为空".to_string(),
+                            message: "Assertion list is empty".to_string(),
                         });
                     } else {
                         for (i, assertion) in arr.iter().enumerate() {
@@ -111,7 +111,7 @@ impl NodePlugin for AssertionPlugin {
                             if target.is_empty() {
                                 errors.push(ValidationError {
                                     field: format!("assertions[{}].target", i),
-                                    message: "断言目标不能为空".to_string(),
+                                    message: "Assertion target is empty".to_string(),
                                 });
                             }
 
@@ -123,7 +123,7 @@ impl NodePlugin for AssertionPlugin {
                             if operator.is_empty() {
                                 errors.push(ValidationError {
                                     field: format!("assertions[{}].operator", i),
-                                    message: "断言操作符不能为空".to_string(),
+                                    message: "Assertion operator is empty".to_string(),
                                 });
                             }
                         }
@@ -132,7 +132,7 @@ impl NodePlugin for AssertionPlugin {
                 _ => {
                     errors.push(ValidationError {
                         field: "assertions".to_string(),
-                        message: "断言列表不能为空".to_string(),
+                        message: "Assertion list is empty".to_string(),
                     });
                 }
             }
@@ -143,7 +143,7 @@ impl NodePlugin for AssertionPlugin {
             if mode != "all" && mode != "any" {
                 errors.push(ValidationError {
                     field: "mode".to_string(),
-                    message: "断言模式必须是 'all' 或 'any'".to_string(),
+                    message: "Assertion mode must be 'all' or 'any'".to_string(),
                 });
             }
         }
@@ -153,7 +153,7 @@ impl NodePlugin for AssertionPlugin {
             if on_failure != "route_false" && on_failure != "throw" {
                 errors.push(ValidationError {
                     field: "on_failure".to_string(),
-                    message: "失败模式必须是 'route_false' 或 'throw'".to_string(),
+                    message: "Failure mode must be 'route_false' or 'throw'".to_string(),
                 });
             }
         }

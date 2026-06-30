@@ -138,7 +138,7 @@ impl NodePlugin for HttpPlugin {
             Some(url) if !url.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "url".into(),
-                message: "URL 不能为空".into(),
+                message: "URL is required".into(),
             }),
         }
 
@@ -149,7 +149,7 @@ impl NodePlugin for HttpPlugin {
             _ => errors.push(ValidationError {
                 field: "method".into(),
                 message: format!(
-                    "请求方法无效，有效值为: {}",
+                    "Invalid request method, valid values are: {}",
                     valid_methods.join(", ")
                 ),
             }),
@@ -160,7 +160,7 @@ impl NodePlugin for HttpPlugin {
             if timeout < 1000 || timeout > 300000 {
                 errors.push(ValidationError {
                     field: "timeout_ms".into(),
-                    message: "超时时间必须在 1000ms 到 300000ms 之间".into(),
+                    message: "Timeout must be between 1000ms and 300000ms".into(),
                 });
             }
         }
@@ -182,7 +182,7 @@ impl NodePlugin for HttpPlugin {
                 if body_missing {
                     errors.push(ValidationError {
                         field: "body".into(),
-                        message: "请求体类型非 none 时，请求体不能为空".into(),
+                        message: "Request body is required when body type is not 'none'".into(),
                     });
                 }
             }

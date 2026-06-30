@@ -242,13 +242,13 @@ mod tests {
     fn test_validation_error_serialization() {
         let error = ValidationError {
             field: "url".to_string(),
-            message: "URL 不能为空".to_string(),
+            message: "URL is required".to_string(),
         };
 
         let json = serde_json::to_string(&error).unwrap();
         let deserialized: ValidationError = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.field, "url");
-        assert_eq!(deserialized.message, "URL 不能为空");
+        assert_eq!(deserialized.message, "URL is required");
     }
 
     /// 测试 NodeMetadata 序列化

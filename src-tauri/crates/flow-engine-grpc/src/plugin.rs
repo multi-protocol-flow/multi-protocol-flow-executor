@@ -107,7 +107,7 @@ impl NodePlugin for GrpcConnectPlugin {
             Some(url) if !url.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "url".into(),
-                message: "URL 不能为空".into(),
+                message: "URL is required".into(),
             }),
         }
         errors
@@ -227,21 +227,21 @@ impl NodePlugin for GrpcCallPlugin {
             Some(id) if !id.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         match config.get("service_name").and_then(|v| v.as_str()) {
             Some(name) if !name.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "service_name".into(),
-                message: "服务名称不能为空".into(),
+                message: "Service name is required".into(),
             }),
         }
         match config.get("method_name").and_then(|v| v.as_str()) {
             Some(name) if !name.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "method_name".into(),
-                message: "方法名称不能为空".into(),
+                message: "Method name is required".into(),
             }),
         }
         errors
@@ -345,7 +345,7 @@ impl NodePlugin for GrpcClosePlugin {
             Some(id) if !id.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         errors
