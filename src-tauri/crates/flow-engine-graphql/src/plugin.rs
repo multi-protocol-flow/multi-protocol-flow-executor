@@ -104,7 +104,7 @@ impl NodePlugin for GraphqlConnectPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "endpoint".into(),
-                message: "Endpoint 不能为空".into(),
+                message: "Endpoint is required".into(),
             }),
         }
         errors
@@ -214,14 +214,14 @@ impl NodePlugin for GraphqlQueryPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         match config.get("query").and_then(|v| v.as_str()) {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "query".into(),
-                message: "查询语句不能为空".into(),
+                message: "Query is required".into(),
             }),
         }
         errors
@@ -331,14 +331,14 @@ impl NodePlugin for GraphqlSubscribePlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         match config.get("subscription").and_then(|v| v.as_str()) {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "subscription".into(),
-                message: "订阅语句不能为空".into(),
+                message: "Subscription is required".into(),
             }),
         }
         errors
@@ -446,7 +446,7 @@ impl NodePlugin for GraphqlIntrospectPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         errors
@@ -538,7 +538,7 @@ impl NodePlugin for GraphqlDisconnectPlugin {
             Some(s) if !s.is_empty() => {}
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
-                message: "连接 ID 不能为空".into(),
+                message: "Connection ID is required".into(),
             }),
         }
         errors
