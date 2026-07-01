@@ -1019,6 +1019,7 @@ impl DebuggableFlowExecutor {
                     node.name,
                     node.uuid
                 );
+                // 调试模式不应用超时，用户可能在断点处暂停、修改变量、查看数据
                 plugin.execute(node, context, connections, node_map).await
             }
             None => Err(format!("未注册的节点类型: {}", type_id)),

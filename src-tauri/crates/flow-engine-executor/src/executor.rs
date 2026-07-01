@@ -103,7 +103,10 @@ fn build_input_data_from_node_config(
 /// 不应再通过消息子串匹配判断错误类型。
 /// 所有协议执行器应在各自返回的 ErrorDetail 中设置正确的 ErrorCode。
 fn parse_error_to_detail(error: &str) -> ErrorDetail {
-    // 默认使用 Execution 类型；具体 ErrorKind 应由 ErrorCode 推导
+    // ErrorKind 现由 ErrorCode 通过 error_kind_hint() 推导，
+    // 不应再通过消息子串匹配判断错误类型。
+    // 所有协议执行器应在各自返回的 ErrorDetail 中设置正确的 ErrorCode。
+    // 执行器层超时错误由 execute_flow timeout 分支直接构建 ErrorDetail::new(ErrorKind::Timeout, ...)
     ErrorDetail::execution_error(error.to_string())
 }
 
@@ -115,6 +118,9 @@ const SUPPORTED_SINGLE_NODE_TYPES: &[&str] = &[
     "ws_connect", "sse_connect", "grpc_connect", "mcp_connect",
     "graphql_connect", "tcp_connect",
 ];
+
+/// Fallback timeout (30s) when node has no configured timeout
+const FALLBACK_TIMEOUT_MS: u64 = 30_000;
 
 /// Flow executor
 pub struct FlowExecutor {
@@ -370,26 +376,64 @@ impl FlowExecutor {
             // 用于计算节点执行期间的变量变更
             let variables_before = context.variables.get_merged_variables();
 
-            // 执行当前节点（支持取消中断）
-            let node_result = if context.cancel_receiver.is_some() {
-                // 有取消接收器时，使用 tokio::select! 监听取消信号
-                let mut rx = context.cancel_receiver.clone().unwrap();
-                tokio::select! {
-                    result = self.execute_node(node, &mut context, &flow.connections, &node_map) => {
-                        Some(result)
-                    }
-                    _ = rx.changed() => {
-                        log::info!(
-                            "[流程 {}] 节点 {} 执行期间收到取消信号",
-                            context.flow_uuid,
-                            node.name
-                        );
-                        None
+            // 执行当前节点（支持取消中断 + 超时控制）
+            let node_timeout_ms = node.data.execution_timeout_ms()
+                .map(|ms| std::cmp::min(ms, 3600000)); // Cap at 1 hour
+            let node_result = match (context.cancel_receiver.is_some(), node_timeout_ms) {
+                (true, Some(ms)) => {
+                    // 有取消接收器 + 超时：在 select 中同时监听取消和超时
+                    let Some(mut rx) = context.cancel_receiver.clone() else {
+                        unreachable!("cancel_receiver.is_some() was just checked")
+                    };
+                    let timeout_dur = std::time::Duration::from_millis(ms);
+                    let execute = self.execute_node(node, &mut context, &flow.connections, &node_map);
+                    let wrapped = tokio::time::timeout(timeout_dur, execute);
+                    tokio::select! {
+                        result = wrapped => {
+                            match result {
+                                Ok(inner) => Some(inner),
+                                Err(_) => {
+                                    log::info!("[流程 {}] 节点 {} 执行超时 ({}ms)", context.flow_uuid, node.name, ms);
+                                    Some(Err(format!("节点执行超时 ({}ms)", ms)))
+                                }
+                            }
+                        }
+                        _ = rx.changed() => {
+                            log::info!("[流程 {}] 节点 {} 执行期间收到取消信号", context.flow_uuid, node.name);
+                            None
+                        }
                     }
                 }
-            } else {
-                // 无取消接收器，直接执行
-                Some(self.execute_node(node, &mut context, &flow.connections, &node_map).await)
+                (true, None) => {
+                    // 有取消接收器但无超时：使用 tokio::select! 只监听取消信号
+                    let Some(mut rx) = context.cancel_receiver.clone() else {
+                        unreachable!("cancel_receiver.is_some() was just checked")
+                    };
+                    tokio::select! {
+                        result = self.execute_node(node, &mut context, &flow.connections, &node_map) => {
+                            Some(result)
+                        }
+                        _ = rx.changed() => {
+                            log::info!("[流程 {}] 节点 {} 执行期间收到取消信号", context.flow_uuid, node.name);
+                            None
+                        }
+                    }
+                }
+                (false, Some(ms)) => {
+                    // 无取消接收器但有超时
+                    let timeout_dur = std::time::Duration::from_millis(ms);
+                    match tokio::time::timeout(timeout_dur, self.execute_node(node, &mut context, &flow.connections, &node_map)).await {
+                        Ok(result) => Some(result),
+                        Err(_) => {
+                            log::info!("[流程 {}] 节点 {} 执行超时 ({}ms)", context.flow_uuid, node.name, ms);
+                            Some(Err(format!("节点执行超时 ({}ms)", ms)))
+                        }
+                    }
+                }
+                (false, None) => {
+                    // 无取消接收器且无超时：直接执行
+                    Some(self.execute_node(node, &mut context, &flow.connections, &node_map).await)
+                }
             };
 
             // 取消中断：跳出循环生成取消报告
@@ -1139,10 +1183,13 @@ impl FlowExecutor {
         let node_map: std::collections::HashMap<String, &Node> =
             [(node.uuid.clone(), node)].into_iter().collect();
 
-        // 6. Execute with 30s timeout
+        // 6. Execute with timeout (node-specific or fallback 30s)
         let empty_connections: Vec<flow_engine_core::connection::Connection> = vec![];
         let execute_future = plugin.execute(node, &mut context, &empty_connections, &node_map);
-        let timeout_duration = std::time::Duration::from_secs(30);
+        let timeout_duration = node.data.execution_timeout_ms()
+            .map(|ms| std::time::Duration::from_millis(std::cmp::min(ms, 3600000)))
+            .unwrap_or(std::time::Duration::from_millis(FALLBACK_TIMEOUT_MS));
+        let timeout_ms = timeout_duration.as_millis();
 
         let result = tokio::time::timeout(timeout_duration, execute_future).await;
 
@@ -1209,10 +1256,11 @@ impl FlowExecutor {
             }
             Err(_elapsed) => {
                 // Timeout
+                let error_msg = format!("节点执行超时 ({}ms)", timeout_ms);
                 ExecutionResult {
                     success: false,
                     data: None,
-                    error: Some(format!("Execution timed out after 30s for node type: {}", type_id)),
+                    error: Some(error_msg.clone()),
                     executed_count: 0,
                     node_reports: vec![flow_engine_core::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
@@ -1225,9 +1273,10 @@ impl FlowExecutor {
                         input_data: None,
                         output_data: None,
                         used_port_id: None,
-                        error: Some(flow_engine_core::error::ErrorDetail::execution_error(
-                            format!("Execution timed out after 30s for node type: {}", type_id)
-                        )),
+                        error: Some(flow_engine_core::error::ErrorDetail::new(
+                            flow_engine_core::error::ErrorKind::Timeout,
+                            error_msg,
+                        ).with_error_code_typed(flow_engine_core::error::ErrorCode::E_TIMEOUT)),
                         resolved_config: None,
                         variable_changes: None,
                         skip_reason: None,

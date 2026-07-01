@@ -4146,6 +4146,72 @@ impl NodeData {
         }
     }
 
+    /// 获取节点执行超时时间（毫秒）
+    ///
+    /// 返回节点执行器应该等待节点完成的最长时间。
+    /// 执行器层使用此值作为 `tokio::time::timeout` 的安全网。
+    /// 返回 `None` 表示不施加超时，依赖协议插件自身的超时机制。
+    pub fn execution_timeout_ms(&self) -> Option<u64> {
+        match self {
+            NodeData::Http(cfg) => cfg.timeout_ms,
+            NodeData::Script(cfg) => Some(cfg.timeout_ms),
+            NodeData::GrpcConnect(cfg) => Some(cfg.connect_timeout_ms),
+            NodeData::GrpcCall(cfg) => Some(cfg.timeout_ms),
+            NodeData::SseConnect(cfg) => Some(cfg.timeout_ms),
+            NodeData::SseListen(cfg) => Some(cfg.timeout_ms),
+            NodeData::MqttWaitMessage(cfg) => cfg.timeout_ms,
+            NodeData::MqttRequest(cfg) => cfg.timeout_ms,
+            NodeData::TcpConnect(cfg) => Some(cfg.connect_timeout_ms),
+            NodeData::TcpSend(cfg) => Some(cfg.send_timeout_ms),
+            NodeData::TcpReceive(cfg) => Some(cfg.receive_timeout_ms),
+            NodeData::TcpClose(cfg) => Some(cfg.close_timeout_ms),
+            NodeData::UdpSendTo(cfg) => Some(cfg.send_timeout_ms),
+            NodeData::UdpRecvFrom(cfg) => Some(cfg.receive_timeout_ms),
+            NodeData::WsConnect(cfg) => Some(cfg.connect_timeout_ms),
+            NodeData::SmtpSend(cfg) => Some(cfg.timeout_ms),
+            NodeData::ImapConnect(cfg) => Some(cfg.connect_timeout_ms),
+            NodeData::ImapIdle(cfg) => Some(cfg.timeout_seconds * 1000),
+            // DbConnect - connect_timeout_ms: Option<u64>
+            NodeData::DbConnect(cfg) => cfg.connect_timeout_ms,
+            // DbQuery - timeout_ms: Option<u64>
+            NodeData::DbQuery(cfg) => cfg.timeout_ms,
+            // MqttConnect - connect_timeout_ms: Option<u64>
+            NodeData::MqttConnect(cfg) => cfg.connect_timeout_ms,
+            // KafkaConnect - connect_timeout_ms: Option<u64>
+            NodeData::KafkaConnect(cfg) => cfg.connect_timeout_ms,
+            // KafkaProduce - ack_timeout_ms: Option<u64>
+            NodeData::KafkaProduce(cfg) => cfg.ack_timeout_ms,
+            // KafkaConsume - poll_timeout_ms: Option<u64>
+            NodeData::KafkaConsume(cfg) => cfg.poll_timeout_ms,
+            // KafkaConsumeBatch - poll_timeout_ms: Option<u64>
+            NodeData::KafkaConsumeBatch(cfg) => cfg.poll_timeout_ms,
+            // GraphqlConnect - connection_timeout_ms: u64
+            NodeData::GraphqlConnect(cfg) => Some(cfg.connection_timeout_ms),
+            // GraphqlQuery - timeout_ms: u64
+            NodeData::GraphqlQuery(cfg) => Some(cfg.timeout_ms),
+            // GraphqlSubscribe - timeout_ms: u64
+            NodeData::GraphqlSubscribe(cfg) => Some(cfg.timeout_ms),
+            // GraphqlIntrospect - timeout_ms: u64
+            NodeData::GraphqlIntrospect(cfg) => Some(cfg.timeout_ms),
+            // AmqpConnect - connection_timeout_ms: u64
+            NodeData::AmqpConnect(cfg) => Some(cfg.connection_timeout_ms),
+            // AmqpConsume - timeout_ms: u64
+            NodeData::AmqpConsume(cfg) => Some(cfg.timeout_ms),
+            // Amqp10Receive - timeout_ms: u64
+            NodeData::Amqp10Receive(cfg) => Some(cfg.timeout_ms),
+            // SmtpConnect - connect_timeout_ms: u64
+            NodeData::SmtpConnect(cfg) => Some(cfg.connect_timeout_ms),
+            // RedisConnect - connect_timeout_ms: u64
+            NodeData::RedisConnect(cfg) => Some(cfg.connect_timeout_ms),
+            // WsSendCollect - send_timeout_ms: u64
+            NodeData::WsSendCollect(cfg) => Some(cfg.send_timeout_ms),
+            // WsClose - close_timeout_ms: u64
+            NodeData::WsClose(cfg) => Some(cfg.close_timeout_ms),
+            // 其他节点类型没有明确的"整体执行超时"语义
+            _ => None,
+        }
+    }
+
     /// 创建空的 Entry 节点配置
     pub fn entry() -> Self {
         Self::Entry(EntryConfig::default())
