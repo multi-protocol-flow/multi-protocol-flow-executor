@@ -6,6 +6,7 @@
 
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
+use crate::error::ErrorDetail;
 use crate::node::Node;
 use async_trait::async_trait;
 use serde_json::{Map, Value};
@@ -154,12 +155,12 @@ pub trait NodeExecutor: Send + Sync {
     /// - `Ok((next_node_ids, output_data))`: 执行成功
     ///   - `next_node_ids`: 下一个要执行的节点 UUID 列表（空则终止当前分支）
     ///   - `output_data`: 节点输出数据
-    /// - `Err(msg)`: 执行失败
+    /// - `Err(error_detail)`: 执行失败，包含结构化错误信息
     async fn execute(
         &self,
         node: &Node,
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String>;
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail>;
 }

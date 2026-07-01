@@ -1,6 +1,7 @@
 //! gRPC 提供者抽象 trait
 
 use async_trait::async_trait;
+use crate::error::ErrorDetail;
 use crate::traits::DebugEventSender;
 use std::sync::Arc;
 

@@ -5,6 +5,7 @@
 
 use crate::plugin::{NodeMetadata, NodePlugin};
 use std::collections::HashMap;
+use crate::error::ErrorDetail;
 use std::sync::Arc;
 
 /// 节点插件注册表
@@ -125,7 +126,7 @@ mod tests {
             _context: &mut ExecutionContext,
             _connections: &[Connection],
             _node_map: &HashMap<String, &Node>,
-        ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+        ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
             Ok((vec![], None))
         }
     }

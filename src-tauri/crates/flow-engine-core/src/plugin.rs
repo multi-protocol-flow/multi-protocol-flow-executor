@@ -4,6 +4,8 @@
 // 各协议 crate（http/ws/db/script/assertion）在 flow-engine-core 中实现此 trait，
 // 由 NodeRegistry 统一注册管理。
 
+use crate::error::ErrorDetail;
+
 /// 端口定义（给前端用的端口描述）
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PortDef {
@@ -129,14 +131,14 @@ pub trait NodePlugin: Send + Sync {
     ///
     /// # 返回
     /// - `Ok((next_node_ids, output_data))`: 执行成功
-    /// - `Err(msg)`: 执行失败
+    /// - `Err(error_detail)`: 执行失败，包含结构化错误信息
     async fn execute(
         &self,
         node: &crate::node::Node,
         context: &mut crate::context::ExecutionContext,
         connections: &[crate::connection::Connection],
         node_map: &std::collections::HashMap<String, &crate::node::Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String>;
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail>;
 }
 
 #[cfg(test)]
