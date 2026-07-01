@@ -1,6 +1,6 @@
-//! mpe - Multi-Protocol Executor CLI 模块
+//! mpe - Multi-Protocol Executor CLI Module
 //!
-//! 流程引擎命令行工具，供统一入口 `main.rs` 调用。
+//! Flow engine command-line tool, invoked by the unified `main.rs` entry point.
 
 pub mod config;
 pub mod output;
@@ -17,26 +17,26 @@ use clap::{Parser, Subcommand};
 
 // ── CLI 错误类型 ──────────────────────────────────────────────────
 
-/// CLI 错误类型
+/// CLI error type
 #[derive(Debug)]
 pub enum CliError {
-    /// 配置错误
+    /// Configuration error
     Config(String),
-    /// 执行错误
+    /// Execution error
     Execution(String),
-    /// 参数错误
+    /// Invalid arguments error
     InvalidArgs(String),
-    /// IO 错误
+    /// I/O error
     Io(String),
 }
 
 impl std::fmt::Display for CliError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CliError::Config(msg) => write!(f, "配置错误: {}", msg),
-            CliError::Execution(msg) => write!(f, "执行错误: {}", msg),
-            CliError::InvalidArgs(msg) => write!(f, "参数错误: {}", msg),
-            CliError::Io(msg) => write!(f, "IO 错误: {}", msg),
+            CliError::Config(msg) => write!(f, "Configuration error: {}", msg),
+            CliError::Execution(msg) => write!(f, "Execution error: {}", msg),
+            CliError::InvalidArgs(msg) => write!(f, "Invalid arguments: {}", msg),
+            CliError::Io(msg) => write!(f, "I/O error: {}", msg),
         }
     }
 }
@@ -57,70 +57,70 @@ fn parse_var(s: &str) -> Result<(String, String), String> {
 
 // ── Clap 定义 ─────────────────────────────────────────────────────
 
-/// Multi-Protocol Executor — AI 可托管的流程引擎 CLI
+/// Multi-Protocol Executor — AI-ready flow engine CLI
 #[derive(Parser)]
-#[command(name = "mpe", version, about = "多协议流程编排与执行引擎")]
+#[command(name = "mpe", version, about = "Multi-Protocol Flow Orchestration & Execution Engine")]
 pub struct Cli {
-    /// 输出格式 (json 或 table)
+    /// Output format (json or table)
     #[arg(long, global = true, default_value = "json")]
     format: String,
 
-    /// CLI 子命令
+    /// CLI subcommands
     #[command(subcommand)]
     pub command: Commands,
 }
 
-/// CLI 子命令枚举
+/// CLI subcommand enumeration
 #[derive(Subcommand)]
 pub enum Commands {
-    /// 执行流程
+    /// Execute a flow
     Run {
-        /// 流程文件路径 (.mpe)
+        /// Flow file path (.mpe)
         #[arg(short, long)]
         flow: String,
-        /// 变量覆盖 (key=value)
+        /// Variable overrides (key=value)
         #[arg(long, value_name = "KEY=VALUE")]
         var: Vec<String>,
-        /// 启用 NDJSON 流式输出
+        /// Enable NDJSON streaming output
         #[arg(long)]
         stream: bool,
-        /// 不保存执行报告
+        /// Do not save execution report
         #[arg(long)]
         no_report: bool,
     },
-    /// 验证流程
+    /// Validate a flow
     Validate {
-        /// 流程文件路径 (.mpe)
+        /// Flow file path (.mpe)
         #[arg(short, long)]
         flow: String,
     },
-    /// 调试流程 (NDJSON 双向协议)
+    /// Debug a flow (NDJSON bidirectional protocol)
     Debug {
-        /// 流程文件路径 (.mpe)
+        /// Flow file path (.mpe)
         #[arg(short, long)]
         flow: String,
-        /// 断点节点 UUID
+        /// Breakpoint node UUID
         #[arg(long)]
         r#break: Vec<String>,
-        /// 变量覆盖 (key=value)
+        /// Variable overrides (key=value)
         #[arg(long, value_name = "KEY=VALUE")]
         var: Vec<String>,
     },
-    /// 压力测试
+    /// Stress testing
     Stress {
-        /// 压力测试子命令
+        /// Stress testing subcommand
         #[command(subcommand)]
         command: StressCommands,
     },
-    /// 流程管理
+    /// Flow management
     Flow {
-        /// 流程管理子命令
+        /// Flow management subcommand
         #[command(subcommand)]
         command: FlowCommands,
     },
-    /// 报告管理
+    /// Report management
     Report {
-        /// 报告管理子命令
+        /// Report management subcommand
         #[command(subcommand)]
         command: ReportCommands,
     },
@@ -140,211 +140,211 @@ pub enum Commands {
     },
 }
 
-/// 压力测试子命令枚举
+/// Stress testing subcommand enumeration
 #[derive(Subcommand)]
 pub enum StressCommands {
-    /// 执行压力测试
+    /// Run stress test
     Run {
-        /// 流程文件路径 (.mpe)
+        /// Flow file path (.mpe)
         #[arg(short, long)]
         flow: String,
-        /// 并发用户数
+        /// Number of concurrent users
         #[arg(short, long, default_value_t = 50)]
         concurrent_users: u32,
-        /// 预热时间/秒
+        /// Ramp-up time (seconds)
         #[arg(short, long, default_value_t = 10)]
         ramp_up: u32,
-        /// 持续时间/秒
+        /// Duration (seconds)
         #[arg(short, long, default_value_t = 60)]
         duration: u32,
-        /// 输出报告文件路径
+        /// Output report file path
         #[arg(short, long)]
         output: Option<String>,
     },
-    /// 压测报告管理
+    /// Stress report management
     Report {
-        /// 压测报告子命令
+        /// Stress report subcommand
         #[command(subcommand)]
         command: StressReportCommands,
     },
 }
 
-/// 压测报告子命令枚举
+/// Stress report subcommand enumeration
 #[derive(Subcommand)]
 pub enum StressReportCommands {
-    /// 列出压测报告
+    /// List stress reports
     List,
-    /// 查看压测报告
+    /// View stress report
     Show {
-        /// 报告文件路径
+        /// Report file path
         file_path: String,
     },
-    /// 删除压测报告
+    /// Delete stress report
     Delete {
-        /// 报告文件路径
+        /// Report file path
         file_path: String,
     },
 }
 
-/// 流程管理子命令枚举
+/// Flow management subcommand enumeration
 #[derive(Subcommand)]
 pub enum FlowCommands {
-    /// 列出流程
+    /// List flows
     List {
-        /// 搜索关键词
+        /// Search keyword
         #[arg(long)]
         search: Option<String>,
-        /// 排序方式 (name/date)
+        /// Sort order (name/date)
         #[arg(long, default_value = "date")]
         sort: String,
     },
-    /// 查看流程详情
+    /// Show flow details
     Show {
-        /// 流程 UUID 或文件路径
+        /// Flow UUID or file path
         uuid_or_path: String,
     },
-    /// 创建流程
+    /// Create a flow
     Create {
-        /// 流程名称
+        /// Flow name
         #[arg(long)]
         name: String,
     },
-    /// 复制流程
+    /// Copy a flow
     Copy {
-        /// 流程 UUID
+        /// Flow UUID
         uuid: String,
     },
-    /// 删除流程
+    /// Delete a flow
     Delete {
-        /// 流程 UUID
+        /// Flow UUID
         uuid: String,
     },
-    /// 导入流程
+    /// Import a flow
     Import {
-        /// 流程文件路径
+        /// Flow file path
         #[arg(short, long)]
         flow: String,
-        /// 流程名称
+        /// Flow name
         #[arg(long)]
         name: String,
     },
-    /// 编辑流程
+    /// Edit a flow
     Edit {
-        /// 流程编辑子命令
+        /// Flow editing subcommand
         #[command(subcommand)]
         command: FlowEditCommands,
     },
 }
 
-/// 流程编辑子命令枚举
+/// Flow editing subcommand enumeration
 #[derive(Subcommand)]
 pub enum FlowEditCommands {
-    /// 添加节点
+    /// Add a node
     NodeAdd {
-        /// 流程 UUID
+        /// Flow UUID
         #[arg(long)]
         flow: String,
-        /// 节点类型
+        /// Node type
         #[arg(long)]
         r#type: String,
-        /// 节点名称
+        /// Node name
         #[arg(long)]
         name: String,
-        /// 节点配置 (JSON 字符串)
+        /// Node configuration (JSON string)
         #[arg(long)]
         config: Option<String>,
     },
-    /// 移除节点
+    /// Remove a node
     NodeRemove {
-        /// 流程 UUID
+        /// Flow UUID
         #[arg(long)]
         flow: String,
-        /// 节点 UUID
+        /// Node UUID
         #[arg(long)]
         node: String,
     },
-    /// 更新节点
+    /// Update a node
     NodeUpdate {
-        /// 流程 UUID
+        /// Flow UUID
         #[arg(long)]
         flow: String,
-        /// 节点 UUID
+        /// Node UUID
         #[arg(long)]
         node: String,
-        /// 节点配置 (JSON 字符串)
+        /// Node configuration (JSON string)
         #[arg(long)]
         config: Option<String>,
     },
-    /// 添加连接
+    /// Add a connection
     ConnectionAdd {
-        /// 流程 UUID
+        /// Flow UUID
         #[arg(long)]
         flow: String,
-        /// 源节点 UUID
+        /// Source node UUID
         #[arg(long)]
         source: String,
-        /// 目标节点 UUID
+        /// Target node UUID
         #[arg(long)]
         target: String,
-        /// 源端口
+        /// Source port
 #[arg(long, default_value = "out")]
         source_port: String,
-        /// 目标端口（固定为 "in"）
+        /// Target port (fixed to "in")
         #[arg(long, default_value = "in")]
         target_port: String,
     },
-    /// 移除连接
+    /// Remove a connection
     ConnectionRemove {
-        /// 流程 UUID
+        /// Flow UUID
         #[arg(long)]
         flow: String,
-        /// 连接 ID
+        /// Connection ID
         #[arg(long)]
         connection: String,
     },
-    /// 设置变量
+    /// Set a variable
     VariableSet {
-        /// 流程 UUID
+        /// Flow UUID
         #[arg(long)]
         flow: String,
-        /// 变量名
+        /// Variable name
         #[arg(long)]
         key: String,
-        /// 变量值
+        /// Variable value
         #[arg(long)]
         value: String,
     },
-    /// 移除变量
+    /// Remove a variable
     VariableRemove {
-        /// 流程 UUID
+        /// Flow UUID
         #[arg(long)]
         flow: String,
-        /// 变量名
+        /// Variable name
         #[arg(long)]
         key: String,
     },
 }
 
-/// 报告管理子命令枚举
+/// Report management subcommand enumeration
 #[derive(Subcommand)]
 pub enum ReportCommands {
-    /// 列出报告
+    /// List reports
     List,
-    /// 查看报告
+    /// View report
     Show {
-        /// 报告 UUID
+        /// Report UUID
         uuid: String,
     },
-    /// 删除报告
+    /// Delete report
     Delete {
-        /// 报告 UUID
+        /// Report UUID
         uuid: String,
     },
 }
 
 // ── CLI 入口 ──────────────────────────────────────────────────────
 
-/// 配置日志：同时输出到控制台和文件
+/// Configure logging: output to both console and file
 fn setup_logging() {
     // 获取日志目录
     let log_dir = flow_engine::storage::get_data_dir()
@@ -387,11 +387,11 @@ fn setup_logging() {
 
     // 日志初始化失败不影响 CLI 执行
     if result.is_ok() {
-        log::info!("日志已初始化: {:?}", log_file);
+        log::info!("Log initialized: {:?}", log_file);
     }
 }
 
-/// CLI 异步主逻辑
+/// CLI asynchronous main logic
 async fn async_main() -> Result<(), CliError> {
     let cli = Cli::parse();
 
@@ -428,12 +428,12 @@ async fn async_main() -> Result<(), CliError> {
     }
 }
 
-/// CLI 主入口（同步，返回退出码）
+/// CLI main entry point (synchronous, returns exit code)
 ///
-/// 供 `main.rs` 统一入口调用。返回进程退出码：
-/// - 0: 成功
-/// - 1: 执行错误
-/// - 2: 参数错误
+/// Called by the unified `main.rs` entry point. Returns process exit code:
+/// - 0: Success
+/// - 1: Execution error
+/// - 2: Invalid arguments
 pub fn run_cli() -> i32 {
     setup_logging();
 

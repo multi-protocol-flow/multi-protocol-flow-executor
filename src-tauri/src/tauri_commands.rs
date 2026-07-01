@@ -101,7 +101,7 @@ impl GrpcCancelSessionManager {
         let guard = self.grpc_manager.lock().map_err(|e| e.to_string())?;
         match guard.as_ref() {
             Some(manager) => manager.cancel_stream(connection_id, call_id),
-            None => Err("没有活跃的执行会话".to_string()),
+            None => Err("No active execution session".to_string()),
         }
     }
 }
@@ -243,7 +243,7 @@ pub fn cancel_flow(state: State<'_, ExecutionSessionManager>) -> Result<(), Stri
             let _ = tx.send(true);
             Ok(())
         }
-        None => Err("没有活跃的执行会话".to_string()),
+        None => Err("No active execution session".to_string()),
     }
 }
 
@@ -271,7 +271,7 @@ pub async fn execute_single_node(
         return Err(format!("Unsupported node type for single-node execution: {}", type_id));
     }
 
-    log::info!("[单节点] 执行: type={}, name={}, uuid={}", type_id, node.name, node.uuid);
+    log::info!("[SingleNode] Execute: type={}, name={}, uuid={}", type_id, node.name, node.uuid);
 
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
@@ -296,7 +296,7 @@ pub async fn execute_single_node(
         *guard = None;
     }
 
-    log::info!("[单节点] 完成: type={}, success={}", type_id, result.success);
+    log::info!("[SingleNode] Complete: type={}, success={}", type_id, result.success);
 
     result.node_reports
         .into_iter()
@@ -399,7 +399,7 @@ use flow_engine::db::{
 #[tauri::command]
 pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionResult {
     log::info!(
-        "[数据库] 测试连接: id={}, name={}, driver={}",
+        "[Database] Test connection: id={}, name={}, driver={}",
         connection.id,
         connection.name,
         connection.driver,
@@ -410,36 +410,36 @@ pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionRes
         DbDriver::Postgres => {
             match PostgresConnection::from_config(&connection).await {
                 Ok(p) => {
-                    log::info!("[数据库] PostgreSQL 连接池创建成功: id={}", connection.id);
+                    log::info!("[Database] PostgreSQL connection pool created: id={}", connection.id);
                     Arc::new(p) as Arc<dyn DatabasePool>
                 }
                 Err(e) => {
-                    log::error!("[数据库] PostgreSQL 连接池创建失败: id={}, error={}", connection.id, e);
-                    return TestDbConnectionResult::failure(format!("PostgreSQL 连接失败: {}", e));
+                    log::error!("[Database] PostgreSQL connection pool creation failed: id={}, error={}", connection.id, e);
+                    return TestDbConnectionResult::failure(format!("PostgreSQL connection failed: {}", e));
                 }
             }
         }
         DbDriver::Mysql => {
             match MySqlConnection::from_config(&connection).await {
                 Ok(p) => {
-                    log::info!("[数据库] MySQL 连接池创建成功: id={}", connection.id);
+                    log::info!("[Database] MySQL connection pool created: id={}", connection.id);
                     Arc::new(p) as Arc<dyn DatabasePool>
                 }
                 Err(e) => {
-                    log::error!("[数据库] MySQL 连接池创建失败: id={}, error={}", connection.id, e);
-                    return TestDbConnectionResult::failure(format!("MySQL 连接失败: {}", e));
+                    log::error!("[Database] MySQL connection pool creation failed: id={}, error={}", connection.id, e);
+                    return TestDbConnectionResult::failure(format!("MySQL connection failed: {}", e));
                 }
             }
         }
         DbDriver::Sqlite => {
             match SqliteConnection::from_config(&connection).await {
                 Ok(p) => {
-                    log::info!("[数据库] SQLite 连接池创建成功: id={}", connection.id);
+                    log::info!("[Database] SQLite connection pool created: id={}", connection.id);
                     Arc::new(p) as Arc<dyn DatabasePool>
                 }
                 Err(e) => {
-                    log::error!("[数据库] SQLite 连接池创建失败: id={}, error={}", connection.id, e);
-                    return TestDbConnectionResult::failure(format!("SQLite 连接失败: {}", e));
+                    log::error!("[Database] SQLite connection pool creation failed: id={}, error={}", connection.id, e);
+                    return TestDbConnectionResult::failure(format!("SQLite connection failed: {}", e));
                 }
             }
         }
@@ -451,12 +451,12 @@ pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionRes
     // 执行连接测试
     match pool.test_connection().await {
         Ok(()) => {
-            log::info!("[数据库] 连接测试成功: id={}", connection.id);
+            log::info!("[Database] Connection test succeeded: id={}", connection.id);
             pool.close().await;
             TestDbConnectionResult::success()
         }
         Err(e) => {
-            log::error!("[数据库] 连接测试失败: id={}, error={}", connection.id, e);
+            log::error!("[Database] Connection test failed: id={}, error={}", connection.id, e);
             pool.close().await;
             TestDbConnectionResult::failure(e)
         }
@@ -534,7 +534,7 @@ pub async fn grpc_discover_services(
     let reflection_metadata = input.reflection_metadata.unwrap_or_default();
 
     log::info!(
-        "[gRPC] 发现服务: url={}, reflection={}, proto_files={}, metadata_count={}",
+        "[gRPC] Discover services: url={}, reflection={}, proto_files={}, metadata_count={}",
         input.url,
         enable_reflection,
         proto_files.len(),
@@ -559,12 +559,12 @@ pub async fn grpc_discover_services(
         // 通过解析 Proto 文件发现
         grpc_connection_manager::discover_services_via_proto(&proto_files)
     } else {
-        Err("未提供 proto 文件且未启用 Server Reflection".to_string())
+        Err("No proto files provided and Server Reflection not enabled".to_string())
     };
 
     match result {
         Ok(services) => {
-            log::info!("[gRPC] 服务发现成功: 发现 {} 个服务", services.len());
+            log::info!("[gRPC] Service discovery succeeded: found {} services", services.len());
             GrpcDiscoverServicesOutput {
                 success: true,
                 services,
@@ -572,7 +572,7 @@ pub async fn grpc_discover_services(
             }
         }
         Err(e) => {
-            log::error!("[gRPC] 服务发现失败: {}", e);
+            log::error!("[gRPC] Service discovery failed: {}", e);
             GrpcDiscoverServicesOutput {
                 success: false,
                 services: vec![],
@@ -626,11 +626,11 @@ pub struct GrpcScanProtoDirectoryOutput {
 pub async fn grpc_scan_proto_directory(
     dir_path: String,
 ) -> GrpcScanProtoDirectoryOutput {
-    log::info!("[gRPC] 扫描 Proto 目录: {}", dir_path);
+    log::info!("[gRPC] Scan Proto directory: {}", dir_path);
 
     match proto_parser::discover_proto_files_in_dir(&dir_path) {
         Ok((files, import_path)) => {
-            log::info!("[gRPC] 扫描完成: 发现 {} 个 proto 文件", files.len());
+            log::info!("[gRPC] Scan complete: found {} proto files", files.len());
             GrpcScanProtoDirectoryOutput {
                 success: true,
                 files: files
@@ -642,7 +642,7 @@ pub async fn grpc_scan_proto_directory(
             }
         }
         Err(e) => {
-            log::error!("[gRPC] 扫描目录失败: {}", e);
+            log::error!("[gRPC] Directory scan failed: {}", e);
             GrpcScanProtoDirectoryOutput {
                 success: false,
                 files: vec![],
@@ -674,7 +674,7 @@ pub struct GrpcReadProtoFilesOutput {
 pub async fn grpc_read_proto_files(
     file_paths: Vec<String>,
 ) -> GrpcReadProtoFilesOutput {
-    log::info!("[gRPC] 读取 {} 个 Proto 文件", file_paths.len());
+    log::info!("[gRPC] Reading {} Proto files", file_paths.len());
 
     let mut files = Vec::new();
     for file_path in &file_paths {
@@ -691,17 +691,17 @@ pub async fn grpc_read_proto_files(
                 });
             }
             Err(e) => {
-                log::error!("[gRPC] 读取文件失败: {} - {}", file_path, e);
+                log::error!("[gRPC] Failed to read file: {} - {}", file_path, e);
                 return GrpcReadProtoFilesOutput {
                     success: false,
                     files: vec![],
-                    error: Some(format!("读取文件 {} 失败: {}", file_path, e)),
+                    error: Some(format!("Failed to read file {}: {}", file_path, e)),
                 };
             }
         }
     }
 
-    log::info!("[gRPC] 成功读取 {} 个 Proto 文件", files.len());
+    log::info!("[gRPC] Successfully read {} Proto files", files.len());
     GrpcReadProtoFilesOutput {
         success: true,
         files,
@@ -730,13 +730,13 @@ pub struct GrpcParseDescriptorSetOutput {
 pub async fn grpc_parse_descriptor_set(
     file_path: String,
 ) -> GrpcParseDescriptorSetOutput {
-    log::info!("[gRPC] 解析 Descriptor Set 文件: {}", file_path);
+    log::info!("[gRPC] Parse Descriptor Set file: {}", file_path);
 
     // 读取文件内容
     let data = match std::fs::read(&file_path) {
         Ok(data) => data,
         Err(e) => {
-            let err_msg = format!("读取文件失败: {}", e);
+            let err_msg = format!("Failed to read file: {}", e);
             log::error!("[gRPC] {}", err_msg);
             return GrpcParseDescriptorSetOutput {
                 success: false,
@@ -781,7 +781,7 @@ pub async fn grpc_parse_descriptor_set(
         .collect();
 
     log::info!(
-        "[gRPC] Descriptor Set 解析成功: 发现 {} 个服务",
+        "[gRPC] Descriptor Set parsed successfully: {} services found",
         grpc_services.len()
     );
 
@@ -820,7 +820,7 @@ pub async fn grpc_channelz_info(
     connection_id: String,
     grpc_state: State<'_, GrpcCancelSessionManager>,
 ) -> Result<GrpcChannelzOutput, String> {
-    log::info!("[gRPC Channelz] 查询连接状态: connection_id={}", connection_id);
+    log::info!("[gRPC Channelz] Query connection state: connection_id={}", connection_id);
 
     // 从取消会话管理器获取 channelz_manager（克隆 Arc 以避免跨 await 持有锁）
     let channelz_manager = {
@@ -841,7 +841,7 @@ pub async fn grpc_channelz_info(
                     return Ok(GrpcChannelzOutput {
                         success: false,
                         info: None,
-                        error: Some(format!("连接 '{}' 不存在（可能尚未执行流程）", connection_id)),
+                        error: Some(format!("Connection '{}' does not exist (flow may not have been executed yet)", connection_id)),
                     });
                 }
             }
@@ -849,7 +849,7 @@ pub async fn grpc_channelz_info(
             match m.get_channelz_info(&connection_id).await {
                 Ok(info) => {
                     log::info!(
-                        "[gRPC Channelz] 连接状态: state={}, uptime={}s, active_calls={}",
+                        "[gRPC Channelz] Connection state: state={}, uptime={}s, active_calls={}",
                         info.state,
                         info.uptime_secs,
                         info.active_calls
@@ -861,7 +861,7 @@ pub async fn grpc_channelz_info(
                     })
                 }
                 Err(e) => {
-                    log::error!("[gRPC Channelz] 查询失败: {}", e);
+                    log::error!("[gRPC Channelz] Query failed: {}", e);
                     Ok(GrpcChannelzOutput {
                         success: false,
                         info: None,
@@ -873,7 +873,7 @@ pub async fn grpc_channelz_info(
         None => Ok(GrpcChannelzOutput {
             success: false,
             info: None,
-            error: Some("没有活跃的执行会话".to_string()),
+            error: Some("No active execution session".to_string()),
         }),
     }
 }
@@ -947,7 +947,7 @@ pub async fn grpc_validate_request(
     input: GrpcValidateRequestInput,
 ) -> GrpcValidateRequestOutput {
     log::info!(
-        "[gRPC] 验证请求 JSON: message_name={}, proto_files={}",
+        "[gRPC] Validate request JSON: message_name={}, proto_files={}",
         input.message_name,
         input.proto_files.as_ref().map(|f| f.len()).unwrap_or(0)
     );
@@ -958,7 +958,7 @@ pub async fn grpc_validate_request(
             return GrpcValidateRequestOutput {
                 success: false,
                 result: None,
-                error: Some("未提供 proto 文件，无法验证".to_string()),
+                error: Some("No proto files provided, cannot validate".to_string()),
             };
         }
     };
@@ -975,7 +975,7 @@ pub async fn grpc_validate_request(
     let pool = match proto_parser::parse_proto_files(&files) {
         Ok(pool) => pool,
         Err(e) => {
-            let err_msg = format!("解析 proto 文件失败: {}", e);
+            let err_msg = format!("Failed to parse proto file: {}", e);
             log::error!("[gRPC] {}", err_msg);
             return GrpcValidateRequestOutput {
                 success: false,
@@ -988,8 +988,8 @@ pub async fn grpc_validate_request(
     // 执行验证
     match proto_parser::validate_request_json(&pool, &input.message_name, &input.json) {
         Ok(result) => {
-            log::info!(
-                "[gRPC] 验证完成: valid={}, errors={}",
+    log::info!(
+        "[gRPC] Validation complete: valid={}, errors={}",
                 result.valid,
                 result.errors.len()
             );
@@ -1000,7 +1000,7 @@ pub async fn grpc_validate_request(
             }
         }
         Err(e) => {
-            log::error!("[gRPC] 验证失败: {}", e);
+            log::error!("[gRPC] Validation failed: {}", e);
             GrpcValidateRequestOutput {
                 success: false,
                 result: None,
@@ -1019,7 +1019,7 @@ pub async fn grpc_validate_request(
 pub async fn grpc_generate_request_skeleton(
     input: GrpcGenerateRequestSkeletonInput,
 ) -> GrpcGenerateRequestSkeletonOutput {    log::info!(
-        "[gRPC] 生成请求骨架: service={}, method={}, proto_files={}",
+        "[gRPC] Generate request skeleton: service={}, method={}, proto_files={}",
         input.service_name,
         input.method_name,
         input.proto_files.len()
@@ -1039,7 +1039,7 @@ pub async fn grpc_generate_request_skeleton(
     let pool = match proto_parser::parse_proto_files(&files) {
         Ok(pool) => pool,
         Err(e) => {
-            let err_msg = format!("解析 proto 文件失败: {}", e);
+            let err_msg = format!("Failed to parse proto file: {}", e);
             log::error!("[gRPC] {}", err_msg);
             return GrpcGenerateRequestSkeletonOutput {
                 success: false,
@@ -1053,7 +1053,7 @@ pub async fn grpc_generate_request_skeleton(
     let service = match pool.get_service_by_name(&input.service_name) {
         Some(svc) => svc,
         None => {
-            let err_msg = format!("未找到服务: {}", input.service_name);
+            let err_msg = format!("Service not found: {}", input.service_name);
             log::error!("[gRPC] {}", err_msg);
             return GrpcGenerateRequestSkeletonOutput {
                 success: false,
@@ -1067,8 +1067,8 @@ pub async fn grpc_generate_request_skeleton(
         Some(m) => m,
         None => {
             let err_msg = format!(
-                "服务 {} 中未找到方法: {}",
-                input.service_name, input.method_name
+                "Method {} not found in service {}",
+                input.method_name, input.service_name
             );
             log::error!("[gRPC] {}", err_msg);
             return GrpcGenerateRequestSkeletonOutput {
@@ -1085,7 +1085,7 @@ pub async fn grpc_generate_request_skeleton(
     let skeleton_str = serde_json::to_string_pretty(&skeleton).unwrap_or_else(|_| "{}".to_string());
 
     log::info!(
-        "[gRPC] 骨架生成成功: {}",
+        "[gRPC] Skeleton generated successfully: {}",
         skeleton_str.chars().take(100).collect::<String>()
     );
 
@@ -1144,7 +1144,7 @@ pub async fn grpc_generate_request_skeleton_from_reflection(
     let reflection_metadata = input.reflection_metadata.unwrap_or_default();
 
     log::info!(
-        "[gRPC] 通过 Reflection 生成请求骨架: url={}, service={}, method={}",
+        "[gRPC] Generate request skeleton via Reflection: url={}, service={}, method={}",
         input.url,
         input.service_name,
         input.method_name
@@ -1168,7 +1168,7 @@ pub async fn grpc_generate_request_skeleton_from_reflection(
     match result {
         Ok(skeleton) => {
             log::info!(
-                "[gRPC] Reflection 骨架生成成功: {}",
+                "[gRPC] Reflection skeleton generated successfully: {}",
                 skeleton.chars().take(100).collect::<String>()
             );
             GrpcGenerateRequestSkeletonOutput {
@@ -1178,7 +1178,7 @@ pub async fn grpc_generate_request_skeleton_from_reflection(
             }
         }
         Err(e) => {
-            log::error!("[gRPC] Reflection 骨架生成失败: {}", e);
+            log::error!("[gRPC] Reflection skeleton generation failed: {}", e);
             GrpcGenerateRequestSkeletonOutput {
                 success: false,
                 skeleton: None,
@@ -1403,7 +1403,7 @@ pub async fn mcp_discover_tools(
     };
 
     log::info!(
-        "[MCP] 发现工具: url={}, protocol_version={}, transport={}",
+        "[MCP] Discover tools: url={}, protocol_version={}, transport={}",
         input.url,
         input.protocol_version.as_deref().unwrap_or("default"),
         match transport {
@@ -1438,7 +1438,7 @@ pub async fn mcp_discover_tools(
             let _ = manager.close(&conn_info.connection_id).await;
 
             log::info!(
-                "[MCP] 工具发现成功: 发现 {} 个工具, {} 个资源, {} 个提示词",
+                "[MCP] Tool discovery succeeded: found {} tools, {} resources, {} prompts",
                 conn_info.tools.len(),
                 conn_info.resources.len(),
                 conn_info.prompts.len()
@@ -1474,7 +1474,7 @@ pub async fn mcp_discover_tools(
             }
         }
         Err(e) => {
-            log::error!("[MCP] 工具发现失败: {}", e);
+            log::error!("[MCP] Tool discovery failed: {}", e);
             McpDiscoverToolsOutput {
                 success: false,
                 tools: vec![],
@@ -1543,7 +1543,7 @@ pub async fn mqtt_test_connection(
     input: MqttTestConnectionInput,
 ) -> MqttTestConnectionOutput {
     log::info!(
-        "[MQTT] 测试连接: url={}, client_id={}",
+        "[MQTT] Test connection: url={}, client_id={}",
         input.url,
         input.client_id.as_deref().unwrap_or("auto-generated")
     );
@@ -1578,8 +1578,8 @@ pub async fn mqtt_test_connection(
             let _ = manager.disconnect("test", &disconnect_config).await;
 
             log::info!(
-                "[MQTT] 连接测试{}",
-                if output.success { "成功" } else { "失败" }
+                "[MQTT] Connection test {}",
+                if output.success { "succeeded" } else { "failed" }
             );
 
             MqttTestConnectionOutput {
@@ -1589,7 +1589,7 @@ pub async fn mqtt_test_connection(
             }
         }
         Err(e) => {
-            log::error!("[MQTT] 连接测试失败: {}", e);
+            log::error!("[MQTT] Connection test failed: {}", e);
             MqttTestConnectionOutput {
                 success: false,
                 broker_info: None,
@@ -1611,11 +1611,11 @@ pub async fn mqtt_test_connection(
 pub async fn sse_test_connection(url: String) -> Result<bool, String> {
     // URL 格式验证
     if url.is_empty() {
-        return Err("URL 不能为空".to_string());
+        return Err("URL must not be empty".to_string());
     }
     // 基本 URL 格式验证
     if !url.starts_with("http://") && !url.starts_with("https://") {
-        return Err("URL 必须以 http:// 或 https:// 开头".to_string());
+        return Err("URL must start with http:// or https://".to_string());
     }
     Ok(true)
 }
@@ -1632,11 +1632,11 @@ pub async fn sse_test_connection(url: String) -> Result<bool, String> {
 pub async fn amqp_test_connection(url: String) -> Result<bool, String> {
     // URL 格式验证
     if url.is_empty() {
-        return Err("URL 不能为空".to_string());
+        return Err("URL must not be empty".to_string());
     }
     // 基本 URL 格式验证（支持 amqp:// 和 amqps://）
     if !url.starts_with("amqp://") && !url.starts_with("amqps://") {
-        return Err("URL 必须以 amqp:// 或 amqps:// 开头".to_string());
+        return Err("URL must start with amqp:// or amqps://".to_string());
     }
     Ok(true)
 }
@@ -1658,10 +1658,10 @@ pub async fn test_redis_connection(
     use std::time::Duration;
 
     if host.is_empty() {
-        return Err("服务器地址不能为空".to_string());
+        return Err("Server address must not be empty".to_string());
     }
     if port == 0 {
-        return Err("端口号无效".to_string());
+        return Err("Invalid port number".to_string());
     }
 
     // 使用 ConnectionInfo 避免 URL 特殊字符解析问题
@@ -1676,7 +1676,7 @@ pub async fn test_redis_connection(
         },
     };
     let client = redis::Client::open(connection_info)
-        .map_err(|e| format!("Redis 客户端创建失败: {}", e))?;
+        .map_err(|e| format!("Redis client creation failed: {}", e))?;
 
     let config = redis::aio::ConnectionManagerConfig::new()
         .set_connection_timeout(Duration::from_secs(5))
@@ -1684,7 +1684,7 @@ pub async fn test_redis_connection(
 
     let mut manager = redis::aio::ConnectionManager::new_with_config(client, config)
         .await
-        .map_err(|e| format!("Redis 连接失败: {}", e))?;
+        .map_err(|e| format!("Redis connection failed: {}", e))?;
 
     // 选库
     if db_index != 0 {
@@ -1692,17 +1692,17 @@ pub async fn test_redis_connection(
             .arg(db_index)
             .query_async::<()>(&mut manager)
             .await
-            .map_err(|e| format!("Redis SELECT {} 失败: {}", db_index, e))?;
+            .map_err(|e| format!("Redis SELECT {} failed: {}", db_index, e))?;
     }
 
     // PING 验证
     let pong: String = redis::cmd("PING")
         .query_async(&mut manager)
         .await
-        .map_err(|e| format!("Redis PING 失败: {}", e))?;
+        .map_err(|e| format!("Redis PING failed: {}", e))?;
 
     log::info!(
-        "[Redis] 连接测试成功: {}:{}, db={}, PING={}",
+        "[Redis] Connection test succeeded: {}:{}, db={}, PING={}",
         host, port, db_index, pong
     );
 
@@ -1749,7 +1749,7 @@ pub async fn test_smtp_connection(
 ) -> SmtpTestConnectionOutput {
     use flow_engine::email_types::{SmtpConfig, TlsMode, EmailAuthConfig};
 
-    log::info!("[SMTP] 测试连接: {}:{}", input.host, input.port);
+    log::info!("[SMTP] Test connection: {}:{}", input.host, input.port);
 
     let tls_mode = match input.tls_mode.as_str() {
         "starttls" => TlsMode::StartTls,
@@ -1767,7 +1767,7 @@ pub async fn test_smtp_connection(
                 Err(e) => {
                     return SmtpTestConnectionOutput {
                         success: false,
-                        error: Some(format!("加密密码失败: {}", e)),
+                        error: Some(format!("Password encryption failed: {}", e)),
                     };
                 }
             }
@@ -1785,21 +1785,21 @@ pub async fn test_smtp_connection(
     let manager = flow_engine::smtp_connection_manager::SmtpConnectionManager::new();
     match manager.test_connection(&config).await {
         Ok(true) => {
-            log::info!("[SMTP] 连接测试成功");
+            log::info!("[SMTP] Connection test succeeded");
             SmtpTestConnectionOutput {
                 success: true,
                 error: None,
             }
         }
         Ok(false) => {
-            log::warn!("[SMTP] 连接测试失败");
+            log::warn!("[SMTP] Connection test failed");
             SmtpTestConnectionOutput {
                 success: false,
-                error: Some("连接测试失败".to_string()),
+                error: Some("Connection test failed".to_string()),
             }
         }
         Err(e) => {
-            log::error!("[SMTP] 连接测试失败: {}", e);
+            log::error!("[SMTP] Connection test failed: {}", e);
             SmtpTestConnectionOutput {
                 success: false,
                 error: Some(e),
@@ -1844,7 +1844,7 @@ pub async fn test_imap_connection(
 ) -> ImapTestConnectionOutput {
     use flow_engine::email_types::{ImapConfig, TlsMode, EmailAuthConfig};
 
-    log::info!("[IMAP] 测试连接: {}:{}", input.host, input.port);
+    log::info!("[IMAP] Test connection: {}:{}", input.host, input.port);
 
     let tls_mode = match input.tls_mode.as_str() {
         "starttls" => TlsMode::StartTls,
@@ -1862,7 +1862,7 @@ pub async fn test_imap_connection(
                 Err(e) => {
                     return ImapTestConnectionOutput {
                         success: false,
-                        error: Some(format!("加密密码失败: {}", e)),
+                        error: Some(format!("Password encryption failed: {}", e)),
                     };
                 }
             }
@@ -1880,21 +1880,21 @@ pub async fn test_imap_connection(
     let manager = flow_engine::imap_connection_manager::ImapConnectionManager::new();
     match manager.test_connection(&config).await {
         Ok(true) => {
-            log::info!("[IMAP] 连接测试成功");
+            log::info!("[IMAP] Connection test succeeded");
             ImapTestConnectionOutput {
                 success: true,
                 error: None,
             }
         }
         Ok(false) => {
-            log::warn!("[IMAP] 连接测试失败");
+            log::warn!("[IMAP] Connection test failed");
             ImapTestConnectionOutput {
                 success: false,
-                error: Some("连接测试失败".to_string()),
+                error: Some("Connection test failed".to_string()),
             }
         }
         Err(e) => {
-            log::error!("[IMAP] 连接测试失败: {}", e);
+            log::error!("[IMAP] Connection test failed: {}", e);
             ImapTestConnectionOutput {
                 success: false,
                 error: Some(e),
@@ -1944,7 +1944,7 @@ pub async fn email_oauth2_authorize(
     input: EmailOAuth2AuthorizeInput,
 ) -> EmailOAuth2AuthorizeOutput {
     log::info!(
-        "[OAuth2] 开始授权流程: provider={}, client_id={}",
+        "[OAuth2] Start authorization flow: provider={}, client_id={}",
         input.provider,
         input.client_id
     );
@@ -1958,7 +1958,7 @@ pub async fn email_oauth2_authorize(
             return EmailOAuth2AuthorizeOutput {
                 success: false,
                 encrypted_tokens: None,
-                error: Some(format!("不支持的服务商: {}", input.provider)),
+                error: Some(format!("Unsupported provider: {}", input.provider)),
             };
         }
     };
@@ -2001,7 +2001,7 @@ pub async fn email_oauth2_authorize(
 
     // 使用 tauri-plugin-opener 打开浏览器
     if let Err(e) = tauri_plugin_opener::open_url(&auth_url, None::<&str>) {
-        log::warn!("[OAuth2] 打开浏览器失败: {}，请手动打开以下链接:\n{}", e, auth_url);
+        log::warn!("[OAuth2] Failed to open browser: {}, please manually open the following link:\n{}", e, auth_url);
     }
 
     // 4. 等待回调
@@ -2018,7 +2018,7 @@ pub async fn email_oauth2_authorize(
             return EmailOAuth2AuthorizeOutput {
                 success: false,
                 encrypted_tokens: None,
-                error: Some(format!("监听任务失败: {}", e)),
+                error: Some(format!("Listener task failed: {}", e)),
             };
         }
     };
@@ -2089,7 +2089,7 @@ pub struct EmailOAuth2RefreshOutput {
 pub async fn email_oauth2_refresh(
     input: EmailOAuth2RefreshInput,
 ) -> EmailOAuth2RefreshOutput {
-    log::info!("[OAuth2] 刷新 token: provider={}", input.provider);
+    log::info!("[OAuth2] Refresh token: provider={}", input.provider);
 
     let provider = match input.provider.as_str() {
         "gmail" => flow_engine::email_types::EmailProvider::Gmail,
@@ -2099,7 +2099,7 @@ pub async fn email_oauth2_refresh(
             return EmailOAuth2RefreshOutput {
                 success: false,
                 encrypted_tokens: None,
-                error: Some(format!("不支持的服务商: {}", input.provider)),
+                error: Some(format!("Unsupported provider: {}", input.provider)),
             };
         }
     };
@@ -2123,7 +2123,7 @@ pub async fn email_oauth2_refresh(
             return EmailOAuth2RefreshOutput {
                 success: false,
                 encrypted_tokens: None,
-                error: Some("没有 refresh_token，无法刷新。请重新授权。".to_string()),
+                error: Some("No refresh token, cannot refresh. Please re-authorize.".to_string()),
             };
         }
     };
@@ -2215,7 +2215,7 @@ pub struct EmailOAuth2RevokeOutput {
 pub async fn email_oauth2_revoke(
     input: EmailOAuth2RevokeInput,
 ) -> EmailOAuth2RevokeOutput {
-    log::info!("[OAuth2] 撤销授权: provider={}", input.provider);
+    log::info!("[OAuth2] Revoke authorization: provider={}", input.provider);
 
     // 解密 Token 获取 access_token
     let tokens = match flow_engine::oauth2::load_tokens_decrypted(&input.encrypted_tokens) {
@@ -2239,18 +2239,18 @@ pub async fn email_oauth2_revoke(
         let client = reqwest::Client::new();
         match client.post(url).form(&[("token", tokens.access_token.as_str())]).send().await {
             Ok(resp) if resp.status().is_success() => {
-                log::info!("[OAuth2] Token 撤销成功");
+                log::info!("[OAuth2] Token revoked successfully");
             }
             Ok(resp) => {
-                log::warn!("[OAuth2] 撤销请求返回非成功状态: {}", resp.status());
+                log::warn!("[OAuth2] Revoke request returned non-success status: {}", resp.status());
                 // 不阻塞——即使撤销请求失败，Token 也会从本地移除
             }
             Err(e) => {
-                log::warn!("[OAuth2] 撤销请求失败: {}", e);
+                log::warn!("[OAuth2] Revoke request failed: {}", e);
             }
         }
     } else {
-        log::info!("[OAuth2] {} 无标准撤销端点，仅清除本地 Token", input.provider);
+        log::info!("[OAuth2] {} has no standard revoke endpoint, only clearing local Token", input.provider);
     }
 
     EmailOAuth2RevokeOutput {
@@ -2500,7 +2500,7 @@ fn indent(text: &str, spaces: usize) -> String {
 pub async fn graphql_introspect_schema(
     input: GraphqlIntrospectInput,
 ) -> GraphqlIntrospectOutput {
-    log::info!("[GraphQL] 内省请求: endpoint={}", input.endpoint);
+    log::info!("[GraphQL] Introspect request: endpoint={}", input.endpoint);
 
     // URL 格式验证
     if input.endpoint.is_empty() {
@@ -2508,7 +2508,7 @@ pub async fn graphql_introspect_schema(
             success: false,
             schema: None,
             query_templates: None,
-            error: Some("端点 URL 不能为空".to_string()),
+            error: Some("Endpoint URL must not be empty".to_string()),
         };
     }
     if !input.endpoint.starts_with("http://") && !input.endpoint.starts_with("https://") {
@@ -2516,7 +2516,7 @@ pub async fn graphql_introspect_schema(
             success: false,
             schema: None,
             query_templates: None,
-            error: Some("端点 URL 必须以 http:// 或 https:// 开头".to_string()),
+            error: Some("Endpoint URL must start with http:// or https://".to_string()),
         };
     }
 
@@ -2558,7 +2558,7 @@ pub async fn graphql_introspect_schema(
         .redirect(reqwest::redirect::Policy::none())
         .timeout(std::time::Duration::from_secs(10))
         .build()
-        .map_err(|e| format!("创建 HTTP 客户端失败: {}", e));
+        .map_err(|e| format!("Failed to create HTTP client: {}", e));
 
     let client = match client {
         Ok(c) => c,
@@ -2609,7 +2609,7 @@ pub async fn graphql_introspect_schema(
                     }
                     result = Some(GraphqlIntrospectOutput {
                         success: false, schema: None, query_templates: None,
-                        error: Some(format!("重定向无 Location 头: {}", status)),
+                        error: Some(format!("Redirect without Location header: {}", status)),
                     });
                     break;
                 }
@@ -2621,7 +2621,7 @@ pub async fn graphql_introspect_schema(
                             if let Some(errors) = body.get("errors") {
                                 result = Some(GraphqlIntrospectOutput {
                                     success: false, schema: None, query_templates: None,
-                                    error: Some(format!("GraphQL 错误: {}", errors)),
+                                    error: Some(format!("GraphQL error: {}", errors)),
                                 });
                             } else {
                                 let schema = body.get("data").cloned().unwrap_or(body);
@@ -2636,14 +2636,14 @@ pub async fn graphql_introspect_schema(
                         } else {
                             result = Some(GraphqlIntrospectOutput {
                                 success: false, schema: None, query_templates: None,
-                                error: Some(format!("HTTP 错误: {}", status)),
+                                error: Some(format!("HTTP error: {}", status)),
                             });
                         }
                     }
                     Err(e) => {
                         result = Some(GraphqlIntrospectOutput {
                             success: false, schema: None, query_templates: None,
-                            error: Some(format!("解析响应失败: {}", e)),
+                            error: Some(format!("Failed to parse response: {}", e)),
                         });
                     }
                 }
@@ -2652,7 +2652,7 @@ pub async fn graphql_introspect_schema(
             Err(e) => {
                 result = Some(GraphqlIntrospectOutput {
                     success: false, schema: None, query_templates: None,
-                    error: Some(format!("请求失败: {}", e)),
+                    error: Some(format!("Request failed: {}", e)),
                 });
                 break;
             }
@@ -2661,7 +2661,7 @@ pub async fn graphql_introspect_schema(
 
     result.unwrap_or_else(|| GraphqlIntrospectOutput {
         success: false, schema: None, query_templates: None,
-        error: Some("重定向次数过多".to_string()),
+        error: Some("Too many redirects".to_string()),
     })
 }
 
@@ -2805,7 +2805,7 @@ pub async fn kafka_test_connection(
     input: KafkaTestConnectionInput,
 ) -> KafkaTestConnectionOutput {
     log::info!(
-        "[Kafka] 测试连接: bootstrap_servers={}",
+        "[Kafka] Test connection: bootstrap_servers={}",
         input.bootstrap_servers
     );
 
@@ -2847,7 +2847,7 @@ pub async fn kafka_test_connection(
             match admin_result {
                 Ok(admin_output) => {
                     log::info!(
-                        "[Kafka] 连接测试成功，获取到 {} 个 Broker",
+                        "[Kafka] Connection test succeeded, got {} brokers",
                         admin_output.brokers.len()
                     );
                     KafkaTestConnectionOutput {
@@ -2857,17 +2857,17 @@ pub async fn kafka_test_connection(
                     }
                 }
                 Err(e) => {
-                    log::warn!("[Kafka] 连接成功但获取 Broker 信息失败: {}", e);
+                    log::warn!("[Kafka] Connected but failed to get broker info: {}", e);
                     KafkaTestConnectionOutput {
                         success: true,
                         broker_info: None,
-                        error: Some(format!("连接成功但获取 Broker 信息失败: {}", e)),
+                        error: Some(format!("Connected but failed to get broker info: {}", e)),
                     }
                 }
             }
         }
         Err(e) => {
-            log::error!("[Kafka] 连接测试失败: {}", e);
+            log::error!("[Kafka] Connection test failed: {}", e);
             KafkaTestConnectionOutput {
                 success: false,
                 broker_info: None,
@@ -2886,7 +2886,7 @@ pub async fn kafka_list_topics(
     input: KafkaListTopicsInput,
 ) -> KafkaListTopicsOutput {
     log::info!(
-        "[Kafka] 列出 Topic: bootstrap_servers={}",
+        "[Kafka] List topics: bootstrap_servers={}",
         input.bootstrap_servers
     );
 
@@ -2925,7 +2925,7 @@ pub async fn kafka_list_topics(
             match admin_result {
                 Ok(admin_output) => {
                     log::info!(
-                        "[Kafka] 列出 Topic 成功，共 {} 个",
+                        "[Kafka] List topics succeeded, total {} topics",
                         admin_output.topics.len()
                     );
                     KafkaListTopicsOutput {
@@ -2935,7 +2935,7 @@ pub async fn kafka_list_topics(
                     }
                 }
                 Err(e) => {
-                    log::error!("[Kafka] 列出 Topic 失败: {}", e);
+                    log::error!("[Kafka] List topics failed: {}", e);
                     KafkaListTopicsOutput {
                         success: false,
                         topics: None,
@@ -2945,7 +2945,7 @@ pub async fn kafka_list_topics(
             }
         }
         Err(e) => {
-            log::error!("[Kafka] 连接失败: {}", e);
+            log::error!("[Kafka] Connection failed: {}", e);
             KafkaListTopicsOutput {
                 success: false,
                 topics: None,
@@ -2964,7 +2964,7 @@ pub async fn kafka_list_consumer_groups(
     input: KafkaListConsumerGroupsInput,
 ) -> KafkaListConsumerGroupsOutput {
     log::info!(
-        "[Kafka] 列出 Consumer Group: bootstrap_servers={}",
+        "[Kafka] List consumer groups: bootstrap_servers={}",
         input.bootstrap_servers
     );
 
@@ -3003,7 +3003,7 @@ pub async fn kafka_list_consumer_groups(
             match admin_result {
                 Ok(admin_output) => {
                     log::info!(
-                        "[Kafka] 列出 Consumer Group 成功，共 {} 个",
+                        "[Kafka] List consumer groups succeeded, total {} groups",
                         admin_output.consumer_groups.len()
                     );
                     KafkaListConsumerGroupsOutput {
@@ -3013,7 +3013,7 @@ pub async fn kafka_list_consumer_groups(
                     }
                 }
                 Err(e) => {
-                    log::error!("[Kafka] 列出 Consumer Group 失败: {}", e);
+                    log::error!("[Kafka] List consumer groups failed: {}", e);
                     KafkaListConsumerGroupsOutput {
                         success: false,
                         consumer_groups: None,
@@ -3023,7 +3023,7 @@ pub async fn kafka_list_consumer_groups(
             }
         }
         Err(e) => {
-            log::error!("[Kafka] 连接失败: {}", e);
+            log::error!("[Kafka] Connection failed: {}", e);
             KafkaListConsumerGroupsOutput {
                 success: false,
                 consumer_groups: None,
@@ -3042,7 +3042,7 @@ pub async fn kafka_discover_schema(
     input: KafkaDiscoverSchemaInput,
 ) -> KafkaDiscoverSchemaOutput {
     log::info!(
-        "[Kafka] 发现 Schema: schema_registry_url={}",
+        "[Kafka] Discover schema: schema_registry_url={}",
         input.schema_registry_url
     );
 
@@ -3081,7 +3081,7 @@ pub async fn kafka_discover_schema(
             match sr_result {
                 Ok(sr_output) => {
                     log::info!(
-                        "[Kafka] 发现 Schema 成功，共 {} 个 Subject",
+                        "[Kafka] Discover schema succeeded, total {} subjects",
                         sr_output.subjects.len()
                     );
                     KafkaDiscoverSchemaOutput {
@@ -3091,7 +3091,7 @@ pub async fn kafka_discover_schema(
                     }
                 }
                 Err(e) => {
-                    log::error!("[Kafka] 发现 Schema 失败: {}", e);
+                    log::error!("[Kafka] Discover schema failed: {}", e);
                     KafkaDiscoverSchemaOutput {
                         success: false,
                         subjects: None,
@@ -3101,7 +3101,7 @@ pub async fn kafka_discover_schema(
             }
         }
         Err(e) => {
-            log::error!("[Kafka] 连接失败: {}", e);
+            log::error!("[Kafka] Connection failed: {}", e);
             KafkaDiscoverSchemaOutput {
                 success: false,
                 subjects: None,
@@ -3121,7 +3121,7 @@ pub fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
     app.path()
         .app_data_dir()
         .map(|p| p.to_string_lossy().to_string())
-        .map_err(|e| format!("获取应用数据目录失败: {}", e))
+        .map_err(|e| format!("Failed to get app data directory: {}", e))
 }
 
 /// 在文件管理器中打开目录
@@ -3130,7 +3130,7 @@ pub async fn open_directory(app: tauri::AppHandle, path: String) -> Result<(), S
     use tauri_plugin_opener::OpenerExt;
     app.opener()
         .open_path(&path, None::<String>)
-        .map_err(|e| format!("打开目录失败: {}", e))
+        .map_err(|e| format!("Failed to open directory: {}", e))
 }
 
 /// 保存 CSV 模板文件到应用数据目录下的 templates 子目录
@@ -3144,16 +3144,16 @@ pub fn save_csv_template(
     let app_data_dir = app
         .path()
         .app_data_dir()
-        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
     let templates_dir = app_data_dir.join("templates");
     std::fs::create_dir_all(&templates_dir)
-        .map_err(|e| format!("创建模板目录失败: {}", e))?;
+        .map_err(|e| format!("Failed to create template directory: {}", e))?;
     let file_path = templates_dir.join(&filename);
     // 写入 UTF-8 BOM + 内容，确保 Excel 正确识别中文编码
     let bom = "\u{FEFF}";
     let bytes = format!("{}{}", bom, content);
     std::fs::write(&file_path, bytes.as_bytes())
-        .map_err(|e| format!("写入模板文件失败: {}", e))?;
+        .map_err(|e| format!("Failed to write template file: {}", e))?;
     Ok(file_path.to_string_lossy().to_string())
 }
 
@@ -3239,7 +3239,7 @@ pub async fn start_debug(
     // 检查是否已有调试会话
     let mut manager = state.lock().await;
     if manager.command_sender.is_some() {
-        return Err("已有调试会话正在运行".to_string());
+        return Err("A debug session is already running".to_string());
     }
 
     // 创建命令通道
@@ -3303,10 +3303,10 @@ pub async fn send_debug_command(
     if let Some(sender) = &manager.command_sender {
         sender
             .send(command)
-            .map_err(|e| format!("发送调试命令失败: {}", e))?;
+            .map_err(|e| format!("Failed to send debug command: {}", e))?;
         Ok(())
     } else {
-        Err("没有正在运行的调试会话".to_string())
+        Err("No running debug session".to_string())
     }
 }
 
@@ -3325,7 +3325,7 @@ pub async fn end_debug(
         manager.command_sender = None;
         Ok(())
     } else {
-        Err("没有正在运行的调试会话".to_string())
+        Err("No running debug session".to_string())
     }
 }
 
@@ -3355,7 +3355,7 @@ pub async fn force_end_debug(
     }
     
     manager.command_sender = None;
-    log::info!("[调试] 强制结束调试会话");
+    log::info!("[Debug] Force end debug session");
     Ok(())
 }
 
@@ -3618,7 +3618,7 @@ pub async fn execute_flow_with_dataset(
     let app_data_dir = app
         .path()
         .app_data_dir()
-        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
 
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
@@ -3693,7 +3693,7 @@ pub fn cancel_dataset_execution(
             let _ = tx.send(true);
             Ok(())
         }
-        None => Err("没有活跃的数据驱动执行会话".to_string()),
+        None => Err("No active data-driven execution session".to_string()),
     }
 }
 
@@ -3712,7 +3712,7 @@ pub fn list_dataset_reports(
     let mut summaries: Vec<serde_json::Value> = Vec::new();
 
     let entries = std::fs::read_dir(reports_path)
-        .map_err(|e| format!("读取报告目录失败: {}", e))?;
+        .map_err(|e| format!("Failed to read report directory: {}", e))?;
 
     for entry in entries {
         let entry = match entry {
@@ -3780,13 +3780,13 @@ pub fn load_dataset_report(
         .join("summary.json");
 
     if !summary_path.exists() {
-        return Err(format!("报告不存在: {}", report_id));
+        return Err(format!("Report not found: {}", report_id));
     }
 
     let content = std::fs::read_to_string(&summary_path)
-        .map_err(|e| format!("读取报告失败: {}", e))?;
+        .map_err(|e| format!("Failed to read report: {}", e))?;
 
-    serde_json::from_str(&content).map_err(|e| format!("解析报告失败: {}", e))
+    serde_json::from_str(&content).map_err(|e| format!("Failed to parse report: {}", e))
 }
 
 /// 加载失败行详情
@@ -3808,10 +3808,10 @@ pub fn load_dataset_row_detail(
     }
 
     let content = std::fs::read_to_string(&row_path)
-        .map_err(|e| format!("读取行详情失败: {}", e))?;
+        .map_err(|e| format!("Failed to read row details: {}", e))?;
 
     let value: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("解析行详情失败: {}", e))?;
+        .map_err(|e| format!("Failed to parse row details: {}", e))?;
 
     Ok(Some(value))
 }
@@ -3828,11 +3828,11 @@ pub fn delete_dataset_report(
         .join(format!("dataset_{}", report_id));
 
     if !report_dir.exists() {
-        return Err(format!("报告不存在: {}", report_id));
+        return Err(format!("Report not found: {}", report_id));
     }
 
     std::fs::remove_dir_all(&report_dir)
-        .map_err(|e| format!("删除报告失败: {}", e))
+        .map_err(|e| format!("Failed to delete report: {}", e))
 }
 
 /// 保存数据集报告
@@ -3850,13 +3850,13 @@ pub fn save_dataset_report(
     use flow_engine::report::FlowExecutionReport;
 
     let parsed_report: DatasetExecutionReport =
-        serde_json::from_value(report).map_err(|e| format!("解析报告失败: {}", e))?;
+        serde_json::from_value(report).map_err(|e| format!("Failed to parse report: {}", e))?;
 
     // save_report expects app_data_dir (parent of reports/)，所以去掉末尾的 "reports" 组件
     let reports_path = std::path::Path::new(&reports_dir);
     let app_data_dir = reports_path
         .parent()
-        .ok_or_else(|| "无法获取报告目录的父目录".to_string())?;
+        .ok_or_else(|| "Cannot get parent directory of report directory".to_string())?;
 
     let failed_details: HashMap<u32, FlowExecutionReport> = HashMap::new();
     flow_engine::dataset_executor::save_report(&parsed_report, app_data_dir, &failed_details)
@@ -3881,13 +3881,13 @@ mod tests {
     #[test]
     fn test_create_flow() {
         let input = CreateFlowCommandInput {
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
         };
 
         let output = create_flow(input);
 
         // 验证流程创建成功
-        assert_eq!(output.flow.name, "测试流程");
+        assert_eq!(output.flow.name, "Test Flow");
 
         // 验证流程有唯一 ID
         assert!(!output.flow.uuid.is_empty());
@@ -3899,7 +3899,7 @@ mod tests {
         assert_eq!(output.flow.nodes[0].node_type, "entry");
 
         // 验证开始节点名称
-        assert_eq!(output.flow.nodes[0].name, "开始");
+        assert_eq!(output.flow.nodes[0].name, "Start");
 
         // 验证开始节点 ID 格式
         assert!(output.flow.nodes[0].uuid.starts_with("start-"));
@@ -3912,10 +3912,10 @@ mod tests {
     #[test]
     fn test_unique_flow_ids() {
         let input1 = CreateFlowCommandInput {
-            name: "流程1".to_string(),
+            name: "Flow 1".to_string(),
         };
         let input2 = CreateFlowCommandInput {
-            name: "流程2".to_string(),
+            name: "Flow 2".to_string(),
         };
 
         let output1 = create_flow(input1);
@@ -3935,7 +3935,7 @@ mod tests {
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "开始".to_string(),
+            name: "Start".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -3946,7 +3946,7 @@ mod tests {
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -3964,7 +3964,7 @@ mod tests {
 
         let flow = Flow {
             uuid: flow_id.clone(),
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
@@ -3997,7 +3997,7 @@ mod tests {
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "开始".to_string(),
+            name: "Start".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -4007,7 +4007,7 @@ mod tests {
 
         let flow = Flow {
             uuid: flow_id.clone(),
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node],
             connections: vec![],
@@ -4033,7 +4033,7 @@ mod tests {
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
             node_type: "http".to_string(),
-            name: "HTTP 请求".to_string(),
+            name: "HTTP Request".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
@@ -4043,7 +4043,7 @@ mod tests {
 
         let flow = Flow {
             uuid: flow_id.clone(),
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
             description: None,
             nodes: vec![http_node],
             connections: vec![],
@@ -4073,7 +4073,7 @@ mod tests {
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "开始".to_string(),
+            name: "Start".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -4083,7 +4083,7 @@ mod tests {
 
         let flow = Flow {
             uuid: flow_id.clone(),
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node],
             connections: vec![],
@@ -4124,7 +4124,7 @@ mod tests {
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "开始".to_string(),
+            name: "Start".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -4134,7 +4134,7 @@ mod tests {
 
         let flow = Flow {
             uuid: flow_id.clone(),
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node],
             connections: vec![],
@@ -4170,7 +4170,7 @@ mod tests {
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "开始".to_string(),
+            name: "Start".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -4181,7 +4181,7 @@ mod tests {
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
             node_type: "http".to_string(),
-            name: "HTTP 请求".to_string(),
+            name: "HTTP Request".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
@@ -4191,7 +4191,7 @@ mod tests {
 
         let flow = Flow {
             uuid: flow_id.clone(),
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
@@ -4227,7 +4227,7 @@ mod tests {
     #[test]
     fn test_create_flow_generates_unique_uuid() {
         let input = CreateFlowCommandInput {
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
         };
 
         let output = create_flow(input);
@@ -4253,7 +4253,7 @@ mod tests {
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "开始".to_string(),
+            name: "Start".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -4264,7 +4264,7 @@ mod tests {
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -4283,7 +4283,7 @@ mod tests {
 
         let flow = Flow {
             uuid: flow_id.clone(),
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
@@ -4307,7 +4307,7 @@ mod tests {
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
             node_type: "http".to_string(),
-            name: "HTTP 请求".to_string(),
+            name: "HTTP Request".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
@@ -4317,7 +4317,7 @@ mod tests {
 
         let flow = Flow {
             uuid: flow_id.clone(),
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
             description: None,
             nodes: vec![http_node],
             connections: vec![],
@@ -4348,7 +4348,7 @@ mod tests {
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "开始".to_string(),
+            name: "Start".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -4358,7 +4358,7 @@ mod tests {
 
         let flow = Flow {
             uuid: flow_id.clone(),
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node],
             connections: vec![],
