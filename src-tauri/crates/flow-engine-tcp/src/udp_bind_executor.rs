@@ -43,7 +43,7 @@ impl NodeExecutor for UdpBindExecutor {
             NodeData::UdpBind(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 UdpBindConfig: {}",
+                    "Node data type is not UdpBindConfig: {}",
                     node.uuid
                 ))
             }
@@ -51,9 +51,9 @@ impl NodeExecutor for UdpBindExecutor {
 
         // 2. 变量替换 local_addr
         let local_addr = replace_variables(&config.local_addr, context).map_err(|e| {
-            let error_msg = format!("本地地址变量替换失败: {}", e);
+            let error_msg = format!("Local address variable replacement failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -64,7 +64,7 @@ impl NodeExecutor for UdpBindExecutor {
 
         // 3. 日志：开始绑定
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: udp_bind, 目标: {}:{}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: udp_bind, Target: {}:{}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -75,7 +75,7 @@ impl NodeExecutor for UdpBindExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("UDP Bind 节点 {} 开始执行", node.name),
+                message: format!("UDP Bind node {} started execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .map(|d| d.as_millis() as u64)
@@ -109,7 +109,7 @@ impl NodeExecutor for UdpBindExecutor {
         match bind_result {
             Ok(()) => {
                 log::info!(
-                    "[UDP] 绑定成功: uuid={}, addr={}:{}",
+                    "[UDP] Bind successful: uuid={}, addr={}:{}",
                     node.uuid,
                     local_addr,
                     config.local_port
@@ -133,7 +133,7 @@ impl NodeExecutor for UdpBindExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "UDP 绑定成功 {}:{} ({}ms)",
+                            "UDP bind successful {}:{} ({}ms)",
                             local_addr,
                             config.local_port,
                             total_ms
@@ -155,7 +155,7 @@ impl NodeExecutor for UdpBindExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[UDP] 绑定失败: uuid={}, addr={}:{}, error={}",
+                    "[UDP] Bind failed: uuid={}, addr={}:{}, error={}",
                     node.uuid,
                     local_addr,
                     config.local_port,
@@ -166,7 +166,7 @@ impl NodeExecutor for UdpBindExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("UDP 绑定失败: {}", e),
+                        message: format!("UDP bind failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .map(|d| d.as_millis() as u64)

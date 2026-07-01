@@ -113,7 +113,7 @@ pub fn create_parser(config: &ParserConfig) -> Result<Box<dyn ProtocolParser>, S
             keep_delimiter,
         } => {
             let delimiter = hex::decode(delimiter_hex)
-                .map_err(|e| format!("分隔符 hex 解码失败: {}", e))?;
+                .map_err(|e| format!("Delimiter hex decoding failed: {}", e))?;
             if delimiter.is_empty() {
                 return Err("Delimiter cannot be empty".to_string());
             }
@@ -152,41 +152,41 @@ fn read_uint(bytes: &[u8], byte_order: &str) -> Result<u64, String> {
             2 => Ok(u16::from_be_bytes(
                 bytes
                     .try_into()
-                    .map_err(|_| "2 字节读取失败".to_string())?,
+                    .map_err(|_| "Failed to read 2 bytes".to_string())?,
             ) as u64),
             4 => Ok(u32::from_be_bytes(
                 bytes
                     .try_into()
-                    .map_err(|_| "4 字节读取失败".to_string())?,
+                    .map_err(|_| "Failed to read 4 bytes".to_string())?,
             ) as u64),
             8 => Ok(u64::from_be_bytes(
                 bytes
                     .try_into()
-                    .map_err(|_| "8 字节读取失败".to_string())?,
+                    .map_err(|_| "Failed to read 8 bytes".to_string())?,
             )),
-            _ => Err(format!("不支持的字节数: {}", bytes.len())),
+            _ => Err(format!("Unsupported byte count: {}", bytes.len())),
         },
         "little" => match bytes.len() {
             1 => Ok(bytes[0] as u64),
             2 => Ok(u16::from_le_bytes(
                 bytes
                     .try_into()
-                    .map_err(|_| "2 字节读取失败".to_string())?,
+                    .map_err(|_| "Failed to read 2 bytes".to_string())?,
             ) as u64),
             4 => Ok(u32::from_le_bytes(
                 bytes
                     .try_into()
-                    .map_err(|_| "4 字节读取失败".to_string())?,
+                    .map_err(|_| "Failed to read 4 bytes".to_string())?,
             ) as u64),
             8 => Ok(u64::from_le_bytes(
                 bytes
                     .try_into()
-                    .map_err(|_| "8 字节读取失败".to_string())?,
+                    .map_err(|_| "Failed to read 8 bytes".to_string())?,
             )),
-            _ => Err(format!("不支持的字节数: {}", bytes.len())),
+            _ => Err(format!("Unsupported byte count: {}", bytes.len())),
         },
         _ => Err(format!(
-            "不支持的字节序: {}（支持 'big' 或 'little'）",
+            "Unsupported byte order: {} (supported: 'big' or 'little')",
             byte_order
         )),
     }
@@ -216,7 +216,7 @@ fn write_uint(value: u64, num_bytes: u8, byte_order: &str) -> Result<Vec<u8>, St
                 Ok((value as u32).to_be_bytes().to_vec())
             }
             8 => Ok(value.to_be_bytes().to_vec()),
-            _ => Err(format!("不支持的字节数: {}", num_bytes)),
+            _ => Err(format!("Unsupported byte count: {}", num_bytes)),
         },
         "little" => match num_bytes {
             1 => {
@@ -238,10 +238,10 @@ fn write_uint(value: u64, num_bytes: u8, byte_order: &str) -> Result<Vec<u8>, St
                 Ok((value as u32).to_le_bytes().to_vec())
             }
             8 => Ok(value.to_le_bytes().to_vec()),
-            _ => Err(format!("不支持的字节数: {}", num_bytes)),
+            _ => Err(format!("Unsupported byte count: {}", num_bytes)),
         },
         _ => Err(format!(
-            "不支持的字节序: {}（支持 'big' 或 'little'）",
+            "Unsupported byte order: {} (supported: 'big' or 'little')",
             byte_order
         )),
     }
@@ -263,13 +263,13 @@ pub struct LengthPrefixParser {
 impl ProtocolParser for LengthPrefixParser {
     fn parse(&self, data: &[u8]) -> Result<ParsedMessage, String> {
         if data.is_empty() {
-            return Err("数据为空，无法解析长度前缀".to_string());
+            return Err("Data is empty, cannot parse length prefix".to_string());
         }
 
         let prefix_len = self.prefix_bytes as usize;
         if data.len() < prefix_len {
             return Err(format!(
-                "数据长度 {} 小于前缀字节数 {}",
+                "Data length {} is less than prefix byte count {}",
                 data.len(),
                 prefix_len
             ));
@@ -282,7 +282,7 @@ impl ProtocolParser for LengthPrefixParser {
         let payload_len = if self.includes_self {
             if raw_length < prefix_len as u64 {
                 return Err(format!(
-                    "长度值 {} 小于前缀自身长度 {}（includes_self=true 时长度应包含前缀）",
+                    "Length value {} is less than prefix length {} (when includes_self=true, length should include prefix)",
                     raw_length, prefix_len
                 ));
             }
@@ -294,7 +294,7 @@ impl ProtocolParser for LengthPrefixParser {
         let total_needed = prefix_len + payload_len;
         if data.len() < total_needed {
             return Err(format!(
-                "数据截断：需要 {} 字节（前缀 {} + 载荷 {}），实际 {} 字节",
+                "Data truncated: need {} bytes (prefix {} + payload {}), actual {} bytes",
                 total_needed,
                 prefix_len,
                 payload_len,
@@ -354,14 +354,14 @@ pub struct DelimiterParser {
 impl ProtocolParser for DelimiterParser {
     fn parse(&self, data: &[u8]) -> Result<ParsedMessage, String> {
         if data.is_empty() {
-            return Err("数据为空，无法查找分隔符".to_string());
+            return Err("Data is empty, cannot find delimiter".to_string());
         }
 
         // 查找第一个分隔符位置
         let pos = find_delimiter(data, &self.delimiter);
         if pos.is_none() {
             return Err(format!(
-                "未找到分隔符 {}",
+                "Delimiter {} not found",
                 hex::encode(&self.delimiter)
             ));
         }
@@ -432,7 +432,7 @@ pub struct TlvParser {
 impl ProtocolParser for TlvParser {
     fn parse(&self, data: &[u8]) -> Result<ParsedMessage, String> {
         if data.is_empty() {
-            return Err("数据为空，无法解析 TLV".to_string());
+            return Err("Data is empty, cannot parse TLV".to_string());
         }
 
         let tag_len = self.tag_bytes as usize;
@@ -468,7 +468,7 @@ impl ProtocolParser for TlvParser {
             let value_offset = offset + header_len;
             if value_offset + value_len > data.len() {
                 return Err(format!(
-                    "TLV 条目 {} 数据截断：tag={} 需要值长度 {}，剩余 {} 字节",
+                    "TLV entry {} data truncated: tag={} needs value length {}, remaining {} bytes",
                     index,
                     tag_value,
                     value_len,
@@ -711,7 +711,7 @@ mod tests {
 
         let result = parser.parse(&data);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("数据截断"));
+        assert!(result.unwrap_err().contains("Data truncated"));
     }
 
     #[test]
@@ -724,7 +724,7 @@ mod tests {
 
         let result = parser.parse(&[]);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("数据为空"));
+        assert!(result.unwrap_err().contains("Data is empty"));
     }
 
     #[test]
@@ -737,7 +737,7 @@ mod tests {
 
         let result = parser.parse(&[0x00, 0x01]);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("小于前缀字节数"));
+        assert!(result.unwrap_err().contains("less than prefix byte count"));
     }
 
     // === DelimiterParser 测试 ===
@@ -810,7 +810,7 @@ mod tests {
 
         let result = parser.parse(&data);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("未找到分隔符"));
+        assert!(result.unwrap_err().contains("Delimiter"));
     }
 
     #[test]
@@ -958,7 +958,7 @@ mod tests {
 
         let result = parser.parse(&data);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("数据截断"));
+        assert!(result.unwrap_err().contains("Data truncated"));
     }
 
     #[test]
@@ -971,7 +971,7 @@ mod tests {
 
         let result = parser.parse(&[]);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("数据为空"));
+        assert!(result.unwrap_err().contains("Data is empty"));
     }
 
     #[test]
@@ -1160,7 +1160,7 @@ mod tests {
         let result = create_parser(&config);
         assert!(result.is_err());
         let err = result.err().expect("应返回错误");
-        assert!(err.contains("hex 解码失败"));
+        assert!(err.contains("hex decoding failed"));
     }
 
     #[test]
@@ -1251,6 +1251,6 @@ mod tests {
 
         let result = parser.parse(&data);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("小于前缀自身长度"));
+        assert!(result.unwrap_err().contains("less than prefix length"));
     }
 }

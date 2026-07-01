@@ -19,7 +19,7 @@ impl NodePlugin for AssertionPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "断言"
+        "Assertion"
     }
 
     fn category(&self) -> &str {
@@ -38,12 +38,12 @@ impl NodePlugin for AssertionPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "通过".into(),
+                label: "Passed".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]

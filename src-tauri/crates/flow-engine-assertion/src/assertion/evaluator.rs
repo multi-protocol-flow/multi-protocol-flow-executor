@@ -50,7 +50,7 @@ impl AssertionEvaluator {
         let result = input.query(path).map_err(|e| {
             ErrorDetail::new(
                 ErrorKind::ConditionSyntax,
-                format!("无效的 JSONPath 语法 '{}': {}", path, e),
+                format!("Invalid JSONPath syntax '{}': {}", path, e),
             )
         })?;
 
@@ -155,7 +155,7 @@ impl AssertionEvaluator {
                 if result
                     .error
                     .as_ref()
-                    .is_some_and(|e| e.contains("无效的 JSONPath 语法"))
+                    .is_some_and(|e| e.contains("Invalid JSONPath syntax"))
                 {
                     has_fatal_error = true;
                 }
@@ -357,7 +357,7 @@ mod tests {
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert_eq!(error.error_kind, ErrorKind::ConditionSyntax);
-        assert!(error.message.contains("无效的 JSONPath 语法"));
+        assert!(error.message.contains("Invalid JSONPath syntax"));
     }
 
     #[test]
@@ -474,7 +474,7 @@ mod tests {
 
         assert!(!result.passed);
         assert!(result.error.is_some());
-        assert!(result.error.unwrap().contains("无效的 JSONPath 语法"));
+        assert!(result.error.unwrap().contains("Invalid JSONPath syntax"));
     }
 
     // ========================================================================

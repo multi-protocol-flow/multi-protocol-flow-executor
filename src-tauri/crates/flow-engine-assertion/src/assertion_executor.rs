@@ -40,7 +40,7 @@ impl AssertionNodeExecutor {
         if let Some(sender) = &context.debug_event_sender {
             if let Err(e) = sender.send_event(event) {
                 log::warn!(
-                    "[流程 {}] 发送调试事件失败: {}",
+                    "[Flow {}] Failed to send debug event: {}",
                     context.flow_uuid,
                     e
                 );
@@ -60,7 +60,7 @@ impl NodeExecutor for AssertionNodeExecutor {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         let start_time = Instant::now();
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: assertion",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: assertion",
             context.flow_uuid,
             node.uuid,
             node.name
@@ -70,7 +70,7 @@ impl NodeExecutor for AssertionNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("断言节点 {} 开始执行", node.name),
+                message: format!("Assertion node {} started execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
@@ -85,9 +85,9 @@ impl NodeExecutor for AssertionNodeExecutor {
         let assertion_config = match &node.data {
             NodeData::Assertion(config) => config.clone(),
             _ => {
-                let error_msg = format!("节点数据类型不是 AssertionConfig: {}", node.uuid);
+                let error_msg = format!("Node data type is not AssertionConfig: {}", node.uuid);
                 log::error!(
-                    "[流程 {}] [错误] 节点UUID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeUUID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -110,7 +110,7 @@ impl NodeExecutor for AssertionNodeExecutor {
                 .and_then(|r| r.output_data.clone())
                 .unwrap_or_else(|| {
                     log::warn!(
-                        "[流程 {}] 节点UUID: {}, 未找到指定来源节点 {} 的输出数据，使用空对象",
+                        "[Flow {}] NodeUUID: {}, Source node {} output not found, using empty object",
                         context.flow_uuid,
                         node.uuid,
                         source_node_id
@@ -145,13 +145,13 @@ impl NodeExecutor for AssertionNodeExecutor {
         // 4. 空断言列表或全禁用断言：Pass + warning
         if enabled_count == 0 {
             let warning_msg = if merged_config.assertions.is_empty() {
-                "断言列表为空，自动通过"
+                "Assertion list is empty, auto passed"
             } else {
-                "所有断言已禁用，自动通过"
+                "All assertions disabled, auto passed"
             };
 
             log::warn!(
-                "[流程 {}] [警告] 节点UUID: {}, 节点名称: {}, {}",
+                "[Flow {}] [Warning] NodeUUID: {}, NodeName: {}, {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -161,7 +161,7 @@ impl NodeExecutor for AssertionNodeExecutor {
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Warn,
-                    message: format!("断言节点 {}: {}", node.name, warning_msg),
+                    message: format!("Assertion node {}: {}", node.name, warning_msg),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap_or_default()
@@ -203,7 +203,7 @@ impl NodeExecutor for AssertionNodeExecutor {
             let next_node_ids = self.find_next_nodes(connections, &node.uuid, true);
 
             log::info!(
-                "[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 结果: passed, 端口: true",
+                "[Flow {}] [Complete] NodeUUID: {}, Duration: {}ms, Result: passed, Port: true",
                 context.flow_uuid,
                 node.uuid,
                 start_time.elapsed().as_millis()
@@ -220,8 +220,8 @@ impl NodeExecutor for AssertionNodeExecutor {
 
         // 发送断言结果日志
         let result_msg = format!(
-            "断言结果: {} (通过 {}/{})",
-            if passed { "通过" } else { "失败" },
+            "Assertion result: {} (passed {}/{})",
+            if passed { "Passed" } else { "Failed" },
             assertion_output.passed_count,
             assertion_output.total
         );
@@ -233,7 +233,7 @@ impl NodeExecutor for AssertionNodeExecutor {
                 } else {
                     LogLevel::Warn
                 },
-                message: format!("断言节点 {}: {}", node.name, result_msg),
+                message: format!("Assertion node {}: {}", node.name, result_msg),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
@@ -265,7 +265,7 @@ impl NodeExecutor for AssertionNodeExecutor {
                     // 抛出错误
                     let error_msg = self.build_failure_message(&assertion_output);
                     log::error!(
-                        "[流程 {}] [错误] 节点UUID: {}, 节点名称: {}, 断言失败: {}",
+                        "[Flow {}] [Error] NodeUUID: {}, NodeName: {}, Assertion failed: {}",
                         context.flow_uuid,
                         node.uuid,
                         node.name,
@@ -275,7 +275,7 @@ impl NodeExecutor for AssertionNodeExecutor {
                     context
                         .emit_log(LogEvent {
                             level: LogLevel::Error,
-                            message: format!("断言节点 {} 失败: {}", node.name, error_msg),
+                            message: format!("Assertion node {} failed: {}", node.name, error_msg),
                             timestamp: std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
                                 .unwrap_or_default()
@@ -291,7 +291,7 @@ impl NodeExecutor for AssertionNodeExecutor {
                 OnFailureMode::RouteFalse => {
                     // 路由到 false 端口
                     log::info!(
-                        "[流程 {}] [路由] 节点UUID: {}, 断言失败，路由到 false 端口",
+                        "[Flow {}] [Route] NodeUUID: {}, Assertion failed, routing to false port",
                         context.flow_uuid,
                         node.uuid
                     );
@@ -307,7 +307,7 @@ impl NodeExecutor for AssertionNodeExecutor {
 
         let duration_ms = start_time.elapsed().as_millis();
         log::info!(
-            "[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 结果: {}, 端口: {}",
+            "[Flow {}] [Complete] NodeUUID: {}, Duration: {}ms, Result: {}, Port: {}",
             context.flow_uuid,
             node.uuid,
             duration_ms,
@@ -329,10 +329,10 @@ impl AssertionNodeExecutor {
         // 1. 先添加预设断言（如果存在）
         if let Some(preset_name) = &config.preset {
             if let Some(preset_assertions) = get_preset(preset_name) {
-                log::info!("[断言] 加载预设: {}", preset_name);
+                log::info!("[Assertion] Loaded preset: {}", preset_name);
                 merged_assertions.extend(preset_assertions);
             } else {
-                log::warn!("[断言] 预设不存在: {}", preset_name);
+                log::warn!("[Assertion] Preset not found: {}", preset_name);
             }
         }
 
@@ -371,7 +371,7 @@ impl AssertionNodeExecutor {
     fn build_failure_message(&self, output: &AssertionOutput) -> String {
         if output.failed_assertions.is_empty() {
             return format!(
-                "断言失败 (模式: all, 通过 {}/{})",
+                "Assertion failed (mode: all, passed {}/{})",
                 output.passed_count, output.total
             );
         }
@@ -389,7 +389,7 @@ impl AssertionNodeExecutor {
                     format!("{}[{}] {}", desc, r.id, error)
                 } else {
                     format!(
-                        "{}[{}] {} {} {} (实际: {})",
+                        "{}[{}] {} {} {} (actual: {})",
                         desc,
                         r.id,
                         r.target,
@@ -402,7 +402,7 @@ impl AssertionNodeExecutor {
             .collect();
 
         format!(
-            "断言失败 (模式: {}, 通过 {}/{}): {}",
+            "Assertion failed (mode: {}, passed {}/{}): {}",
             if output.passed_count > 0 {
                 "any"
             } else {
@@ -944,7 +944,7 @@ mod tests {
 
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.find("断言失败").is_some());
+        assert!(error.find("Assertion failed").is_some());
     }
 
     // ========================================================================

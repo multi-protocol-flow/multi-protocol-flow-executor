@@ -322,7 +322,7 @@ impl TcpConnectionManager {
                 // 设置 NoDelay（禁用 Nagle 算法）
                 if no_delay {
                     tcp_stream.set_nodelay(true).map_err(|e| {
-                        let error_msg = format!("设置 NoDelay 失败: {}", e);
+                        let error_msg = format!("Setting NoDelay failed: {}", e);
                         self.update_connection_error(&uuid, &error_msg);
                         error_msg
                     })?;
@@ -335,7 +335,7 @@ impl TcpConnectionManager {
                         .with_time(std::time::Duration::from_secs(ka.idle_secs))
                         .with_interval(std::time::Duration::from_secs(ka.interval_secs));
                     socket.set_tcp_keepalive(&keepalive_cfg).map_err(|e| {
-                        let error_msg = format!("设置 Keepalive 失败: {}", e);
+                        let error_msg = format!("Setting Keepalive failed: {}", e);
                         self.update_connection_error(&uuid, &error_msg);
                         error_msg
                     })?;
@@ -355,7 +355,7 @@ impl TcpConnectionManager {
                     let server_name = match rustls::pki_types::ServerName::try_from(host.clone()) {
                         Ok(name) => name,
                         Err(e) => {
-                            let error_msg = format!("无效的 TLS 服务器名 '{}': {}", host, e);
+                            let error_msg = format!("Invalid TLS server name '{}': {}", host, e);
                             self.update_connection_error(&uuid, &error_msg);
                             return Err(error_msg);
                         }
@@ -367,7 +367,7 @@ impl TcpConnectionManager {
                             Ok((Box::new(r) as BoxedReader, Box::new(w) as BoxedWriter))
                         }
                         Err(e) => {
-                            let error_msg = format!("TLS 握手失败: {}", e);
+                            let error_msg = format!("TLS handshake failed: {}", e);
                             self.update_connection_error(&uuid, &error_msg);
                             Err(error_msg)
                         }
@@ -381,13 +381,13 @@ impl TcpConnectionManager {
                     Ok((read_half, write_half)) => {
                         // 7. 更新连接状态
                         let mut connections = self.connections.lock().map_err(|e| {
-                            format!("获取连接锁失败: {}", e)
+                            format!("Failed to acquire connection lock: {}", e)
                         })?;
 
                         if let Some(conn) = connections.get_mut(&uuid) {
                             conn.set_stream(read_half, write_half);
                             log::info!(
-                                "[TCP{}] 连接成功: uuid={}, addr={}, no_delay={}, keepalive={}, custom_ca={}",
+                                "[TCP{}] Connection successful: uuid={}, addr={}, no_delay={}, keepalive={}, custom_ca={}",
                                 if use_tls { "+TLS" } else { "" },
                                 uuid,
                                 addr,
@@ -402,13 +402,13 @@ impl TcpConnectionManager {
                 }
             }
             Ok(Err(e)) => {
-                let error_msg = format!("TCP 连接失败 ({}): {}", addr, e);
+                let error_msg = format!("TCP connection failed ({}): {}", addr, e);
                 self.update_connection_error(&uuid, &error_msg);
                 Err(error_msg)
             }
             Err(_) => {
                 let error_msg = format!(
-                    "TCP 连接超时 ({}ms): {}",
+                    "TCP connection timeout ({}ms): {}",
                     connect_timeout_ms, addr
                 );
                 self.update_connection_error(&uuid, &error_msg);
@@ -476,7 +476,7 @@ impl TcpProvider for TcpConnectionManager {
                     let server_name = match rustls::pki_types::ServerName::try_from(host.clone()) {
                         Ok(name) => name,
                         Err(e) => {
-                            let error_msg = format!("无效的 TLS 服务器名 '{}': {}", host, e);
+                            let error_msg = format!("Invalid TLS server name '{}': {}", host, e);
                             self.update_connection_error(&uuid, &error_msg);
                             return Err(error_msg);
                         }
@@ -488,7 +488,7 @@ impl TcpProvider for TcpConnectionManager {
                             Ok((Box::new(r) as BoxedReader, Box::new(w) as BoxedWriter))
                         }
                         Err(e) => {
-                            let error_msg = format!("TLS 握手失败: {}", e);
+                            let error_msg = format!("TLS handshake failed: {}", e);
                             self.update_connection_error(&uuid, &error_msg);
                             Err(error_msg)
                         }
@@ -503,13 +503,13 @@ impl TcpProvider for TcpConnectionManager {
                     Ok((read_half, write_half)) => {
                         // 6. 更新连接状态
                         let mut connections = self.connections.lock().map_err(|e| {
-                            format!("获取连接锁失败: {}", e)
+                            format!("Failed to acquire connection lock: {}", e)
                         })?;
 
                         if let Some(conn) = connections.get_mut(&uuid) {
                             conn.set_stream(read_half, write_half);
                             log::info!(
-                                "[TCP{}] 连接成功: uuid={}, addr={}",
+                                "[TCP{}] Connection successful: uuid={}, addr={}",
                                 if use_tls { "+TLS" } else { "" },
                                 uuid,
                                 addr
@@ -522,14 +522,14 @@ impl TcpProvider for TcpConnectionManager {
             }
             Ok(Err(e)) => {
                 // 连接失败（网络错误、拒绝连接等）
-                let error_msg = format!("TCP 连接失败 ({}): {}", addr, e);
+                let error_msg = format!("TCP connection failed ({}): {}", addr, e);
                 self.update_connection_error(&uuid, &error_msg);
                 Err(error_msg)
             }
             Err(_) => {
                 // 连接超时
                 let error_msg = format!(
-                    "TCP 连接超时 ({}ms): {}",
+                    "TCP connection timeout ({}ms): {}",
                     connect_timeout_ms, addr
                 );
                 self.update_connection_error(&uuid, &error_msg);
@@ -550,18 +550,18 @@ impl TcpProvider for TcpConnectionManager {
         // 1. 获取写入端（克隆后释放锁）
         let write_half = {
             let conns = self.connections.lock().map_err(|e| {
-                format!("获取连接锁失败: {}", e)
+                format!("Failed to acquire connection lock: {}", e)
             })?;
             let conn = conns
                 .get(uuid)
-                .ok_or_else(|| format!("TCP 连接 '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("TCP connection '{}' not found", uuid))?;
 
             if !conn.is_connected() {
-                return Err(format!("TCP 连接 '{}' 未处于已连接状态", uuid));
+                return Err(format!("TCP connection '{}' is not in connected state", uuid));
             }
 
             conn.get_write_half()
-                .ok_or_else(|| format!("TCP 连接 '{}' 写入端不可用", uuid))?
+                .ok_or_else(|| format!("TCP connection '{}' write half unavailable", uuid))?
         }; // 锁在此释放
 
         // 2. 带超时发送数据
@@ -579,20 +579,20 @@ impl TcpProvider for TcpConnectionManager {
                     }
                 }
                 log::debug!(
-                    "[TCP] 发送成功: uuid={}, bytes={}",
+                    "[TCP] Send successful: uuid={}, bytes={}",
                     uuid,
                     data.len()
                 );
                 Ok(())
             }
             Ok(Err(e)) => {
-                let error_msg = format!("TCP 发送失败 ({}): {}", uuid, e);
+                let error_msg = format!("TCP send failed ({}): {}", uuid, e);
                 self.update_connection_error(uuid, &error_msg);
                 Err(error_msg)
             }
             Err(_) => {
                 let error_msg = format!(
-                    "TCP 发送超时 ({}ms): uuid={}",
+                    "TCP send timeout ({}ms): uuid={}",
                     send_timeout_ms, uuid
                 );
                 self.update_connection_error(uuid, &error_msg);
@@ -613,18 +613,18 @@ impl TcpProvider for TcpConnectionManager {
         // 1. 获取读取端（克隆后释放锁）
         let read_half = {
             let conns = self.connections.lock().map_err(|e| {
-                format!("获取连接锁失败: {}", e)
+                format!("Failed to acquire connection lock: {}", e)
             })?;
             let conn = conns
                 .get(uuid)
-                .ok_or_else(|| format!("TCP 连接 '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("TCP connection '{}' not found", uuid))?;
 
             if !conn.is_connected() {
-                return Err(format!("TCP 连接 '{}' 未处于已连接状态", uuid));
+                return Err(format!("TCP connection '{}' is not in connected state", uuid));
             }
 
             conn.get_read_half()
-                .ok_or_else(|| format!("TCP 连接 '{}' 读取端不可用", uuid))?
+                .ok_or_else(|| format!("TCP connection '{}' read half unavailable", uuid))?
         }; // 锁在此释放
 
         // 2. 带超时读取数据
@@ -639,8 +639,8 @@ impl TcpProvider for TcpConnectionManager {
         match read_result {
             Ok(Ok(0)) => {
                 // 连接已关闭（EOF）
-                log::info!("[TCP] 连接已关闭（EOF）: uuid={}", uuid);
-                self.update_connection_error(uuid, "连接已关闭（对端关闭了连接）");
+                log::info!("[TCP] Connection closed (EOF): uuid={}", uuid);
+                self.update_connection_error(uuid, "Connection closed (peer closed the connection)");
                 Ok(None)
             }
             Ok(Ok(n)) => {
@@ -653,21 +653,21 @@ impl TcpProvider for TcpConnectionManager {
                     }
                 }
                 log::debug!(
-                    "[TCP] 接收成功: uuid={}, bytes={}",
+                    "[TCP] Receive successful: uuid={}, bytes={}",
                     uuid,
                     n
                 );
                 Ok(Some(buf))
             }
             Ok(Err(e)) => {
-                let error_msg = format!("TCP 接收失败 ({}): {}", uuid, e);
+                let error_msg = format!("TCP receive failed ({}): {}", uuid, e);
                 self.update_connection_error(uuid, &error_msg);
                 Err(error_msg)
             }
             Err(_) => {
                 // 超时，返回 None（表示在超时时间内没有数据可读）
                 log::debug!(
-                    "[TCP] 接收超时 ({}ms): uuid={}",
+                    "[TCP] Receive timeout ({}ms): uuid={}",
                     receive_timeout_ms,
                     uuid
                 );
@@ -689,10 +689,10 @@ impl TcpProvider for TcpConnectionManager {
             let mut conns = self
                 .connections
                 .lock()
-                .map_err(|e| format!("获取连接锁失败: {}", e))?;
+                .map_err(|e| format!("Failed to acquire connection lock: {}", e))?;
             conns
                 .remove(uuid)
-                .ok_or_else(|| format!("TCP 连接 '{}' 不存在", uuid))?
+                .ok_or_else(|| format!("TCP connection '{}' not found", uuid))?
         }; // 锁在此释放
 
         // 尝试优雅关闭写入端
@@ -702,7 +702,7 @@ impl TcpProvider for TcpConnectionManager {
             let _ = writer.shutdown().await;
         }
 
-        log::info!("[TCP] 连接已关闭: uuid={}", uuid);
+        log::info!("[TCP] Connection closed: uuid={}", uuid);
         Ok(())
     }
 
@@ -808,9 +808,9 @@ mod tests {
             FramingConfig::default(),
         );
 
-        conn.set_error("连接被拒绝".to_string());
+        conn.set_error("Connection refused".to_string());
         assert_eq!(conn.status, ConnectionStatus::Error);
-        assert_eq!(conn.last_error, Some("连接被拒绝".to_string()));
+        assert_eq!(conn.last_error, Some("Connection refused".to_string()));
         assert!(!conn.is_connected());
     }
 
@@ -875,7 +875,7 @@ mod tests {
         let result = manager
             .connect(
                 "uuid-tls-fail".to_string(),
-                "TLS握手失败测试".to_string(),
+                "TLS handshake failure test".to_string(),
                 "127.0.0.1".to_string(),
                 server_port,
                 true, // use_tls
@@ -916,7 +916,7 @@ mod tests {
         let result = manager
             .connect(
                 "uuid-tls-skip".to_string(),
-                "TLS跳过验证握手失败".to_string(),
+                "TLS skip verify handshake failure".to_string(),
                 "127.0.0.1".to_string(),
                 server_port,
                 true, // use_tls
@@ -945,7 +945,7 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.expect_err("应返回连接不存在错误");
-        assert!(err.contains("不存在"));
+        assert!(err.contains("not found"));
     }
 
     /// 测试对不存在连接接收数据
@@ -956,7 +956,7 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.expect_err("应返回连接不存在错误");
-        assert!(err.contains("不存在"));
+        assert!(err.contains("not found"));
     }
 
     /// 测试关闭不存在的连接
@@ -967,7 +967,7 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.expect_err("应返回连接不存在错误");
-        assert!(err.contains("不存在"));
+        assert!(err.contains("not found"));
     }
 
     /// 测试 TCP 连接池生命周期：连接 → 发送 → 接收 → 关闭
@@ -1073,7 +1073,7 @@ mod tests {
 
         assert!(result.is_err(), "连接应失败");
         let err = result.expect_err("连接应失败");
-        assert!(err.contains("连接失败"));
+        assert!(err.contains("connection failed"));
 
         // 验证连接池中有错误状态的连接
         let status = manager.get_status("refused-1");

@@ -46,7 +46,7 @@ impl NodeExecutor for TcpReceiveExecutor {
             NodeData::TcpReceive(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 TcpReceiveConfig: {}",
+                    "Node data type is not TcpReceiveConfig: {}",
                     node.uuid
                 ))
             }
@@ -54,9 +54,9 @@ impl NodeExecutor for TcpReceiveExecutor {
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("Connection ID variable replacement failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -67,7 +67,7 @@ impl NodeExecutor for TcpReceiveExecutor {
 
         // 3. 日志：开始执行
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: tcp_receive, 连接ID: {}, 超时: {}ms",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: tcp_receive, ConnectionID: {}, Timeout: {}ms",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -79,7 +79,7 @@ impl NodeExecutor for TcpReceiveExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "TCP Receive 节点 {} 开始执行 (连接: {}, 超时: {}ms)",
+                    "TCP Receive node {} started execution (connection: {}, timeout: {}ms)",
                     node.name, connection_id, config.receive_timeout_ms
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -103,7 +103,7 @@ impl NodeExecutor for TcpReceiveExecutor {
         match receive_result {
             Ok(Some(data)) => {
                 log::info!(
-                    "[TCP] 接收数据成功: connection_id={}, bytes={}",
+                    "[TCP] Data received successfully: connection_id={}, bytes={}",
                     connection_id,
                     data.len()
                 );
@@ -132,7 +132,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "TCP Receive 完成 (接收: {} 字节, 总计: {}ms)",
+                            "TCP Receive completed (received: {} bytes, total: {}ms)",
                             data.len(),
                             total_ms
                         ),
@@ -153,7 +153,7 @@ impl NodeExecutor for TcpReceiveExecutor {
             Ok(None) => {
                 // 超时无数据，仍算成功但标记
                 log::debug!(
-                    "[TCP] 接收超时无数据: connection_id={}",
+                    "[TCP] Receive timeout, no data: connection_id={}",
                     connection_id
                 );
 
@@ -161,7 +161,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                     "success": true,
                     "connection_id": connection_id,
                     "received": null,
-                    "received_text_preview": "未收到数据（超时）",
+                    "received_text_preview": "No data received (timeout)",
                     "timing": {
                         "receive_ms": total_ms,
                         "total_ms": total_ms,
@@ -172,7 +172,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "TCP Receive 超时无数据 (总计: {}ms)",
+                            "TCP Receive timeout, no data (total: {}ms)",
                             total_ms
                         ),
                         timestamp: std::time::SystemTime::now()
@@ -195,7 +195,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                 }
 
                 log::error!(
-                    "[TCP] 接收数据失败: connection_id={}, error={}",
+                    "[TCP] Receive data failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
@@ -214,7 +214,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("TCP Receive 失败: {}", e),
+                        message: format!("TCP Receive failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .expect("系统时间错误")
@@ -473,7 +473,7 @@ mod tests {
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
         assert!(data["received"].is_null());
-        assert_eq!(data["received_text_preview"], "未收到数据（超时）");
+        assert_eq!(data["received_text_preview"], "No data received (timeout)");
     }
 
     // ========================================================================
@@ -497,7 +497,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().expect("应有错误信息").contains("连接不存在"));
+        assert!(data["error"].as_str().expect("should have error message").contains("not found"));
     }
 
     // ========================================================================

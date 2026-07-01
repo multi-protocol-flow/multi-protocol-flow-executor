@@ -13,7 +13,7 @@ pub fn encode_to_base64(data: &[u8]) -> String {
 pub fn decode_from_base64(encoded: &str) -> Result<Vec<u8>, String> {
     BASE64
         .decode(encoded)
-        .map_err(|e| format!("Base64 解码失败: {}", e))
+        .map_err(|e| format!("Base64 decoding failed: {}", e))
 }
 
 /// 尝试 UTF-8 解码（用于 `text_preview`）
@@ -129,7 +129,7 @@ mod tests {
     fn test_decode_from_base64_invalid() {
         let result = decode_from_base64("!!!invalid!!!");
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Base64 解码失败"));
+        assert!(result.unwrap_err().contains("Base64 decoding failed"));
     }
 
     #[test]

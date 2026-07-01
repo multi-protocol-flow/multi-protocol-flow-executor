@@ -162,9 +162,9 @@ pub fn create_tls_connector_with_ca(
         let mut cursor = std::io::Cursor::new(pem_bytes);
         let certs: Vec<_> = rustls_pemfile::certs(&mut cursor)
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| format!("解析 CA 证书 PEM 失败: {}", e))?;
+            .map_err(|e| format!("Failed to parse CA certificate PEM: {}", e))?;
         for cert in certs {
-            root_store.add(cert).map_err(|e| format!("添加 CA 证书失败: {}", e))?;
+            root_store.add(cert).map_err(|e| format!("Failed to add CA certificate: {}", e))?;
         }
     }
 

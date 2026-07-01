@@ -33,12 +33,12 @@ impl UdpSendToExecutor {
     fn decode_user_data(data: &str, encoding: &str) -> Result<Vec<u8>, String> {
         match encoding {
             "text" => Ok(data.as_bytes().to_vec()),
-            "hex" => hex::decode(data).map_err(|e| format!("Hex 解码失败: {}", e)),
+            "hex" => hex::decode(data).map_err(|e| format!("Hex decoding failed: {}", e)),
             "base64" => BASE64
                 .decode(data)
-                .map_err(|e| format!("Base64 解码失败: {}", e)),
+                .map_err(|e| format!("Base64 decoding failed: {}", e)),
             other => Err(format!(
-                "不支持的数据编码方式: '{}'（支持 text/hex/base64）",
+                "Unsupported data encoding: '{}' (supported: text/hex/base64)",
                 other
             )),
         }
@@ -59,14 +59,14 @@ impl NodeExecutor for UdpSendToExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::UdpSendTo(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 UdpSendToConfig: {}", node.uuid)),
+            _ => return Err(format!("Node data type is not UdpSendToConfig: {}", node.uuid)),
         };
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("Connection ID variable replacement failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -77,9 +77,9 @@ impl NodeExecutor for UdpSendToExecutor {
 
         // 3. 变量替换 data
         let data_str = replace_variables(&config.data, context).map_err(|e| {
-            let error_msg = format!("数据变量替换失败: {}", e);
+            let error_msg = format!("Data variable replacement failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -90,9 +90,9 @@ impl NodeExecutor for UdpSendToExecutor {
 
         // 4. 变量替换 target_addr
         let target_addr = replace_variables(&config.target_addr, context).map_err(|e| {
-            let error_msg = format!("目标地址变量替换失败: {}", e);
+            let error_msg = format!("Target address variable replacement failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -103,7 +103,7 @@ impl NodeExecutor for UdpSendToExecutor {
 
         // 5. 日志：开始执行
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: udp_send_to, 连接ID: {}, 目标: {}:{}, 数据编码: {}, 数据长度: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: udp_send_to, ConnectionID: {}, Target: {}:{}, DataEncoding: {}, DataLength: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -118,7 +118,7 @@ impl NodeExecutor for UdpSendToExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "UDP SendTo 节点 {} 开始执行 (连接: {}, 目标: {}:{}, 编码: {})",
+                    "UDP SendTo node {} started execution (connection: {}, target: {}:{}, encoding: {})",
                     node.name, connection_id, target_addr, config.target_port, config.data_encoding
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -146,7 +146,7 @@ impl NodeExecutor for UdpSendToExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("数据解码失败: {}", e),
+                        message: format!("Data decoding failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .expect("系统时间错误")
@@ -179,7 +179,7 @@ impl NodeExecutor for UdpSendToExecutor {
         match send_result {
             Ok(()) => {
                 log::info!(
-                    "[UDP] 数据发送成功: connection_id={}, target={}:{}, bytes={}",
+                    "[UDP] Data sent successfully: connection_id={}, target={}:{}, bytes={}",
                     connection_id,
                     target_addr,
                     config.target_port,
@@ -210,7 +210,7 @@ impl NodeExecutor for UdpSendToExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "UDP SendTo 完成 (发送: {}ms, 总计: {}ms)",
+                            "UDP SendTo completed (send: {}ms, total: {}ms)",
                             send_duration_ms, total_ms
                         ),
                         timestamp: std::time::SystemTime::now()
@@ -229,7 +229,7 @@ impl NodeExecutor for UdpSendToExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[UDP] 数据发送失败: connection_id={}, error={}",
+                    "[UDP] Data send failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
@@ -239,7 +239,7 @@ impl NodeExecutor for UdpSendToExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("UDP 发送失败: {}", e),
+                        message: format!("UDP send failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .expect("系统时间错误")
@@ -582,7 +582,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().expect("应有错误信息").contains("不存在"));
+        assert!(data["error"].as_str().expect("should have error message").contains("not found"));
     }
 
     // ========================================================================
@@ -681,7 +681,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().expect("应有错误").contains("不支持"));
+        assert!(data["error"].as_str().expect("should have error").contains("Unsupported"));
     }
 
     // ========================================================================
@@ -778,7 +778,7 @@ mod tests {
     fn test_decode_user_data_invalid_encoding() {
         let result = UdpSendToExecutor::decode_user_data("test", "json");
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不支持"));
+        assert!(result.unwrap_err().contains("Unsupported"));
     }
 
     #[test]

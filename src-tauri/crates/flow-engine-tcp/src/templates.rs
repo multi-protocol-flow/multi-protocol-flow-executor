@@ -50,7 +50,7 @@ pub fn builtin_templates() -> Vec<ProtocolTemplate> {
         ProtocolTemplate {
             id: "redis_resp".to_string(),
             name: "Redis RESP".to_string(),
-            description: "Redis 序列化协议 (REdis Serialization Protocol)，基于 \\r\\n 分隔的文本协议".to_string(),
+            description:             "Redis Serialization Protocol (REdis Serialization Protocol), based on \\r\\n delimited text protocol".to_string(),
             category: "cache".to_string(),
             framing_config: serde_json::json!({
                 "mode": { "delimiter": { "delimiter": "\r\n" } },
@@ -65,13 +65,13 @@ pub fn builtin_templates() -> Vec<ProtocolTemplate> {
             field_descriptions: vec![
                 FieldDescription {
                     name: "type_prefix".to_string(),
-                    description: "类型前缀：+ (简单字符串)、- (错误)、: (整数)、$ (批量字符串)、* (数组)".to_string(),
+                    description:                     "Type prefix: + (simple string), - (error), : (integer), $ (bulk string), * (array)".to_string(),
                     offset: Some(0),
                     length: Some(1),
                 },
                 FieldDescription {
                     name: "data".to_string(),
-                    description: " RESP 数据内容，直至 \\r\\n 结束".to_string(),
+                    description:                     " RESP data content, terminated by \\r\\n".to_string(),
                     offset: Some(1),
                     length: None,
                 },
@@ -82,7 +82,7 @@ pub fn builtin_templates() -> Vec<ProtocolTemplate> {
         ProtocolTemplate {
             id: "custom_tlv".to_string(),
             name: "Custom TLV".to_string(),
-            description: "自定义 TLV (Tag-Length-Value) 二进制协议，Tag 1 字节 + Length 2 字节 + Value".to_string(),
+            description:             "Custom TLV (Tag-Length-Value) binary protocol, Tag 1 byte + Length 2 bytes + Value".to_string(),
             category: "binary".to_string(),
             framing_config: serde_json::json!({
                 "mode": { "length_prefix": { "prefix_bytes": 2 } },
@@ -98,19 +98,19 @@ pub fn builtin_templates() -> Vec<ProtocolTemplate> {
             field_descriptions: vec![
                 FieldDescription {
                     name: "tag".to_string(),
-                    description: "类型标签，1 字节标识数据类型".to_string(),
+                    description:                     "Type tag, 1 byte identifying data type".to_string(),
                     offset: Some(0),
                     length: Some(1),
                 },
                 FieldDescription {
                     name: "length".to_string(),
-                    description: "数据长度，2 字节大端序无符号整数".to_string(),
+                    description:                     "Data length, 2-byte big-endian unsigned integer".to_string(),
                     offset: Some(1),
                     length: Some(2),
                 },
                 FieldDescription {
                     name: "value".to_string(),
-                    description: "实际数据内容，长度由 length 字段指定".to_string(),
+                    description:                     "Actual data content, length specified by the length field".to_string(),
                     offset: Some(3),
                     length: None,
                 },
@@ -121,7 +121,7 @@ pub fn builtin_templates() -> Vec<ProtocolTemplate> {
         ProtocolTemplate {
             id: "fixed_header".to_string(),
             name: "Fixed Header".to_string(),
-            description: "固定魔数头 + 4 字节长度前缀的二进制协议".to_string(),
+            description:             "Fixed magic header + 4-byte length prefix binary protocol".to_string(),
             category: "binary".to_string(),
             framing_config: serde_json::json!({
                 "mode": { "length_prefix": { "prefix_bytes": 4 } },
@@ -137,25 +137,25 @@ pub fn builtin_templates() -> Vec<ProtocolTemplate> {
             field_descriptions: vec![
                 FieldDescription {
                     name: "magic".to_string(),
-                    description: "魔数标识，用于验证协议类型".to_string(),
+                    description:                     "Magic identifier for protocol type validation".to_string(),
                     offset: Some(0),
                     length: Some(4),
                 },
                 FieldDescription {
                     name: "version".to_string(),
-                    description: "协议版本号，2 字节大端序".to_string(),
+                    description:                     "Protocol version, 2-byte big-endian".to_string(),
                     offset: Some(4),
                     length: Some(2),
                 },
                 FieldDescription {
                     name: "length".to_string(),
-                    description: "载荷长度，4 字节大端序".to_string(),
+                    description:                     "Payload length, 4-byte big-endian".to_string(),
                     offset: Some(6),
                     length: Some(4),
                 },
                 FieldDescription {
                     name: "payload".to_string(),
-                    description: "实际载荷数据".to_string(),
+                    description:                     "Actual payload data".to_string(),
                     offset: Some(10),
                     length: None,
                 },
@@ -166,7 +166,7 @@ pub fn builtin_templates() -> Vec<ProtocolTemplate> {
         ProtocolTemplate {
             id: "http_like".to_string(),
             name: "HTTP-like".to_string(),
-            description: "类 HTTP 文本协议，使用 \\r\\n\\r\\n 分隔头部和正文".to_string(),
+            description:             "HTTP-like text protocol, using \\r\\n\\r\\n to separate headers and body".to_string(),
             category: "text".to_string(),
             framing_config: serde_json::json!({
                 "mode": { "delimiter": { "delimiter": "\r\n\r\n" } },
@@ -182,19 +182,19 @@ pub fn builtin_templates() -> Vec<ProtocolTemplate> {
             field_descriptions: vec![
                 FieldDescription {
                     name: "request_line".to_string(),
-                    description: "请求行：方法 + 路径 + 版本".to_string(),
+                    description:                     "Request line: method + path + version".to_string(),
                     offset: Some(0),
                     length: None,
                 },
                 FieldDescription {
                     name: "headers".to_string(),
-                    description: "头部字段，每行一个 Key: Value 对，以 \\r\\n 结尾".to_string(),
+                    description:                     "Header fields, one Key: Value pair per line, terminated by \\r\\n".to_string(),
                     offset: None,
                     length: None,
                 },
                 FieldDescription {
                     name: "body".to_string(),
-                    description: "正文内容（如存在），位于 \\r\\n\\r\\n 之后".to_string(),
+                    description:                     "Body content (if present), located after \\r\\n\\r\\n".to_string(),
                     offset: None,
                     length: None,
                 },
@@ -205,7 +205,7 @@ pub fn builtin_templates() -> Vec<ProtocolTemplate> {
         ProtocolTemplate {
             id: "blank".to_string(),
             name: "Blank".to_string(),
-            description: "空白模板，所有参数均为默认值，用户可自由定制".to_string(),
+            description:             "Blank template, all parameters at default values, freely customizable".to_string(),
             category: "custom".to_string(),
             framing_config: serde_json::json!({
                 "mode": { "length_prefix": { "prefix_bytes": 4 } },
@@ -227,12 +227,12 @@ pub fn get_template(id: &str) -> Option<ProtocolTemplate> {
 
 /// 从 JSON 加载模板
 pub fn load_template(json: &str) -> Result<ProtocolTemplate, String> {
-    serde_json::from_str(json).map_err(|e| format!("模板 JSON 解析失败: {}", e))
+    serde_json::from_str(json).map_err(|e| format!("Template JSON parsing failed: {}", e))
 }
 
 /// 导出模板为 JSON
 pub fn export_template(template: &ProtocolTemplate) -> Result<String, String> {
-    serde_json::to_string_pretty(template).map_err(|e| format!("模板 JSON 序列化失败: {}", e))
+    serde_json::to_string_pretty(template).map_err(|e| format!("Template JSON serialization failed: {}", e))
 }
 
 #[cfg(test)]
@@ -403,8 +403,8 @@ mod tests {
     fn test_load_template_invalid_json() {
         let result = load_template("not json at all");
         assert!(result.is_err());
-        let err = result.err().expect("应返回错误");
-        assert!(err.contains("解析失败"), "错误信息应包含'解析失败'，实际: {}", err);
+        let err = result.err().expect("should return error");
+        assert!(err.contains("Parsing failed"), "error should contain 'Parsing failed', actual: {}", err);
     }
 
     #[test]

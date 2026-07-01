@@ -41,14 +41,14 @@ impl NodeExecutor for UdpCloseExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::UdpClose(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 UdpCloseConfig: {}", node.uuid)),
+            _ => return Err(format!("Node data type is not UdpCloseConfig: {}", node.uuid)),
         };
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("Connection ID variable replacement failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -59,7 +59,7 @@ impl NodeExecutor for UdpCloseExecutor {
 
         // 3. 日志：开始关闭
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: udp_close, 连接ID: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: udp_close, ConnectionID: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -69,7 +69,7 @@ impl NodeExecutor for UdpCloseExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("UDP Close 节点 {} 开始执行", node.name),
+                message: format!("UDP Close node {} started execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .expect("系统时间错误")
@@ -85,7 +85,7 @@ impl NodeExecutor for UdpCloseExecutor {
 
         match close_result {
             Ok(()) => {
-                log::info!("[UDP] Socket 关闭成功: connection_id={}", connection_id);
+                log::info!("[UDP] Socket closed successfully: connection_id={}", connection_id);
 
                 // 5. 构建输出数据
                 let duration = start_time.elapsed();
@@ -103,7 +103,7 @@ impl NodeExecutor for UdpCloseExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "UDP Socket 关闭成功 ({}ms)",
+                            "UDP socket closed successfully ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
@@ -129,7 +129,7 @@ impl NodeExecutor for UdpCloseExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[UDP] Socket 关闭失败: connection_id={}, error={}",
+                    "[UDP] Socket close failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
@@ -138,7 +138,7 @@ impl NodeExecutor for UdpCloseExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("UDP Socket 关闭失败: {}", e),
+                        message: format!("UDP socket close failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .expect("系统时间错误")

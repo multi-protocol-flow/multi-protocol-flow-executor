@@ -32,21 +32,21 @@ impl TcpFramingEngine {
                 writer
                     .write_all(&prefix)
                     .await
-                    .map_err(|e| format!("发送长度前缀失败: {}", e))?;
+                    .map_err(|e| format!("Failed to send length prefix: {}", e))?;
                 writer
                     .write_all(data)
                     .await
-                    .map_err(|e| format!("发送数据失败: {}", e))?;
+                    .map_err(|e| format!("Failed to send data: {}", e))?;
             }
             TcpFramingMode::Delimiter { delimiter } => {
                 writer
                     .write_all(data)
                     .await
-                    .map_err(|e| format!("发送数据失败: {}", e))?;
+                    .map_err(|e| format!("Failed to send data: {}", e))?;
                 writer
                     .write_all(delimiter.as_bytes())
                     .await
-                    .map_err(|e| format!("发送分隔符失败: {}", e))?;
+                    .map_err(|e| format!("Failed to send delimiter: {}", e))?;
             }
             TcpFramingMode::FixedLength { length } => {
                 let payload = if data.len() >= *length {
@@ -55,7 +55,7 @@ impl TcpFramingEngine {
                 } else {
                     // 不足则补零
                     return Err(format!(
-                        "数据长度 {} 小于固定帧长度 {}",
+                        "Data length {} is less than fixed frame length {}",
                         data.len(),
                         length
                     ));
@@ -63,21 +63,21 @@ impl TcpFramingEngine {
                 writer
                     .write_all(payload)
                     .await
-                    .map_err(|e| format!("发送固定长度数据失败: {}", e))?;
+                    .map_err(|e| format!("Failed to send fixed-length data: {}", e))?;
             }
             TcpFramingMode::Timeout { .. } | TcpFramingMode::Manual => {
                 // 超时模式和手动模式：直接发送原始数据
                 writer
                     .write_all(data)
                     .await
-                    .map_err(|e| format!("发送数据失败: {}", e))?;
+                    .map_err(|e| format!("Failed to send data: {}", e))?;
             }
         }
 
         writer
             .flush()
             .await
-            .map_err(|e| format!("刷新写入缓冲区失败: {}", e))?;
+            .map_err(|e| format!("Failed to flush write buffer: {}", e))?;
         Ok(())
     }
 
@@ -102,7 +102,7 @@ impl TcpFramingEngine {
             TcpFramingMode::FixedLength { length } => {
                 if data.len() < *length {
                     return Err(format!(
-                        "数据长度 {} 小于固定帧长度 {}",
+                        "Data length {} is less than fixed frame length {}",
                         data.len(),
                         length
                     ));
@@ -152,7 +152,7 @@ fn encode_length_prefix(len: usize, prefix_bytes: u8) -> Result<Vec<u8>, String>
         1 => {
             if len > u8::MAX as usize {
                 return Err(format!(
-                    "数据长度 {} 超出 1 字节前缀最大值 {}",
+                    "Data length {} exceeds maximum for 1-byte prefix {}",
                     len,
                     u8::MAX
                 ));
@@ -162,7 +162,7 @@ fn encode_length_prefix(len: usize, prefix_bytes: u8) -> Result<Vec<u8>, String>
         2 => {
             if len > u16::MAX as usize {
                 return Err(format!(
-                    "数据长度 {} 超出 2 字节前缀最大值 {}",
+                    "Data length {} exceeds maximum for 2-byte prefix {}",
                     len,
                     u16::MAX
                 ));
@@ -172,7 +172,7 @@ fn encode_length_prefix(len: usize, prefix_bytes: u8) -> Result<Vec<u8>, String>
         4 => {
             if len > u32::MAX as usize {
                 return Err(format!(
-                    "数据长度 {} 超出 4 字节前缀最大值 {}",
+                    "Data length {} exceeds maximum for 4-byte prefix {}",
                     len,
                     u32::MAX
                 ));
@@ -180,7 +180,7 @@ fn encode_length_prefix(len: usize, prefix_bytes: u8) -> Result<Vec<u8>, String>
             Ok((len as u32).to_be_bytes().to_vec())
         }
         8 => Ok((len as u64).to_be_bytes().to_vec()),
-        _ => Err(format!("不支持的前缀字节数: {}（支持 1/2/4/8）", prefix_bytes)),
+        _ => Err(format!("Unsupported prefix byte count: {} (supported: 1/2/4/8)", prefix_bytes)),
     }
 }
 
@@ -194,12 +194,12 @@ async fn read_length_prefixed<R: AsyncReadExt + Unpin>(
     reader
         .read_exact(&mut prefix_buf)
         .await
-        .map_err(|e| format!("读取长度前缀失败: {}", e))?;
+        .map_err(|e| format!("Failed to read length prefix: {}", e))?;
 
     let payload_len = decode_length_prefix(&prefix_buf)?;
     if payload_len > max_frame_size {
         return Err(format!(
-            "消息长度 {} 超出最大帧大小 {}",
+            "Message length {} exceeds maximum frame size {}",
             payload_len, max_frame_size
         ));
     }
@@ -208,7 +208,7 @@ async fn read_length_prefixed<R: AsyncReadExt + Unpin>(
     reader
         .read_exact(&mut payload)
         .await
-        .map_err(|e| format!("读取消息体失败: {}", e))?;
+        .map_err(|e| format!("Failed to read message body: {}", e))?;
 
     Ok(payload)
 }
@@ -220,19 +220,19 @@ fn decode_length_prefix(prefix: &[u8]) -> Result<usize, String> {
         2 => Ok(u16::from_be_bytes(
             prefix
                 .try_into()
-                .map_err(|_| "2 字节前缀解析失败".to_string())?,
+                .map_err(|_| "Failed to parse 2-byte prefix".to_string())?,
         ) as usize),
         4 => Ok(u32::from_be_bytes(
             prefix
                 .try_into()
-                .map_err(|_| "4 字节前缀解析失败".to_string())?,
+                .map_err(|_| "Failed to parse 4-byte prefix".to_string())?,
         ) as usize),
         8 => Ok(u64::from_be_bytes(
             prefix
                 .try_into()
-                .map_err(|_| "8 字节前缀解析失败".to_string())?,
+                .map_err(|_| "Failed to parse 8-byte prefix".to_string())?,
         ) as usize),
-        _ => Err(format!("不支持的前缀长度: {}", prefix.len())),
+        _ => Err(format!("Unsupported prefix length: {}", prefix.len())),
     }
 }
 
@@ -256,7 +256,7 @@ async fn read_delimited<R: AsyncReadExt + Unpin>(
 
                 if buf.len() > max_frame_size {
                     return Err(format!(
-                        "消息大小 {} 超出最大帧大小 {}",
+                        "Message size {} exceeds maximum frame size {}",
                         buf.len(),
                         max_frame_size
                     ));
@@ -272,7 +272,7 @@ async fn read_delimited<R: AsyncReadExt + Unpin>(
                     }
                 }
             }
-            Err(e) => return Err(format!("读取数据失败: {}", e)),
+            Err(e) => return Err(format!("Failed to read data: {}", e)),
         }
     }
 
@@ -287,7 +287,7 @@ async fn read_fixed_length<R: AsyncReadExt + Unpin>(
 ) -> Result<Vec<u8>, String> {
     if length > max_frame_size {
         return Err(format!(
-            "固定帧长度 {} 超出最大帧大小 {}",
+            "Fixed frame length {} exceeds maximum frame size {}",
             length, max_frame_size
         ));
     }
@@ -296,7 +296,7 @@ async fn read_fixed_length<R: AsyncReadExt + Unpin>(
     reader
         .read_exact(&mut buf)
         .await
-        .map_err(|e| format!("读取固定长度数据失败: {}", e))?;
+        .map_err(|e| format!("Failed to read fixed-length data: {}", e))?;
 
     Ok(buf)
 }
@@ -318,13 +318,13 @@ async fn read_until_timeout<R: AsyncReadExt + Unpin>(
                     buf.extend_from_slice(&tmp[..n]);
                     if buf.len() > max_frame_size {
                         return Err(format!(
-                            "消息大小 {} 超出最大帧大小 {}",
+                            "Message size {} exceeds maximum frame size {}",
                             buf.len(),
                             max_frame_size
                         ));
                     }
                 }
-                Err(e) => return Err(format!("读取数据失败: {}", e)),
+                Err(e) => return Err(format!("Failed to read data: {}", e)),
             }
         }
         Ok(())

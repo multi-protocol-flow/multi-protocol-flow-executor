@@ -43,7 +43,7 @@ impl NodeExecutor for TcpConnectExecutor {
             NodeData::TcpConnect(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 TcpConnectConfig: {}",
+                    "Node data type is not TcpConnectConfig: {}",
                     node.uuid
                 ))
             }
@@ -51,9 +51,9 @@ impl NodeExecutor for TcpConnectExecutor {
 
         // 2. 变量替换 host
         let host = replace_variables(&config.host, context).map_err(|e| {
-            let error_msg = format!("Host 变量替换失败: {}", e);
+            let error_msg = format!("Host variable replacement failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -64,7 +64,7 @@ impl NodeExecutor for TcpConnectExecutor {
 
         // 3. 日志：开始连接
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: tcp_connect, 目标: {}:{}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: tcp_connect, Target: {}:{}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -75,7 +75,7 @@ impl NodeExecutor for TcpConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("TCP 连接节点 {} 开始执行", node.name),
+                message: format!("TCP Connect node {} started execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .map(|d| d.as_millis() as u64)
@@ -110,7 +110,7 @@ impl NodeExecutor for TcpConnectExecutor {
         match connect_result {
             Ok(()) => {
                 log::info!(
-                    "[TCP] 连接成功: uuid={}, host={}, port={}",
+                    "[TCP] Connection successful: uuid={}, host={}, port={}",
                     node.uuid,
                     host,
                     config.port
@@ -135,7 +135,7 @@ impl NodeExecutor for TcpConnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "TCP 连接成功 {}:{} ({}ms)",
+                            "TCP connection successful {}:{} ({}ms)",
                             host,
                             config.port,
                             total_ms
@@ -157,7 +157,7 @@ impl NodeExecutor for TcpConnectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[TCP] 连接失败: uuid={}, host={}, port={}, error={}",
+                    "[TCP] Connection failed: uuid={}, host={}, port={}, error={}",
                     node.uuid,
                     host,
                     config.port,
@@ -168,7 +168,7 @@ impl NodeExecutor for TcpConnectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("TCP 连接失败: {}", e),
+                        message: format!("TCP connection failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .map(|d| d.as_millis() as u64)
@@ -426,8 +426,8 @@ mod tests {
         assert_eq!(data["host"], "192.168.1.1");
         assert_eq!(data["port"], 9999);
         assert!(data.get("error").is_some());
-        let error = data["error"].as_str().expect("error 应为字符串");
-        assert!(error.find("连接失败").is_some());
+            let error = data["error"].as_str().expect("error should be a string");
+        assert!(error.find("connection failed").is_some());
     }
 
     #[tokio::test]

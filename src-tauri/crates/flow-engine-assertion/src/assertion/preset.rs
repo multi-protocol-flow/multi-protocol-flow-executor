@@ -43,23 +43,23 @@ impl AssertionPreset {
         vec![
             PresetInfo {
                 name: "http_success".to_string(),
-                description: "HTTP 成功响应 (2xx)".to_string(),
+                description: "HTTP success response (2xx)".to_string(),
             },
             PresetInfo {
                 name: "http_client_error".to_string(),
-                description: "HTTP 客户端错误 (4xx)".to_string(),
+                description: "HTTP client error (4xx)".to_string(),
             },
             PresetInfo {
                 name: "http_server_error".to_string(),
-                description: "HTTP 服务器错误 (5xx)".to_string(),
+                description: "HTTP server error (5xx)".to_string(),
             },
             PresetInfo {
                 name: "json_response".to_string(),
-                description: "JSON 响应 (Content-Type 包含 application/json)".to_string(),
+                description: "JSON response (Content-Type contains application/json)".to_string(),
             },
             PresetInfo {
                 name: "response_fast".to_string(),
-                description: "快速响应 (响应时间 < 500ms)".to_string(),
+                description: "Fast response (response time < 500ms)".to_string(),
             },
         ]
     }
@@ -68,7 +68,7 @@ impl AssertionPreset {
     fn http_success() -> Vec<Assertion> {
         vec![Assertion {
             id: "preset_http_success_status".to_string(),
-            description: Some("HTTP 状态码应为 2xx (200-299)".to_string()),
+            description: Some("HTTP status code should be 2xx (200-299)".to_string()),
             target: "$.status".to_string(),
             operator: AssertionOperator::Between,
             expected: json!([200, 299]),
@@ -80,7 +80,7 @@ impl AssertionPreset {
     fn http_client_error() -> Vec<Assertion> {
         vec![Assertion {
             id: "preset_http_client_error_status".to_string(),
-            description: Some("HTTP 状态码应为 4xx (400-499)".to_string()),
+            description: Some("HTTP status code should be 4xx (400-499)".to_string()),
             target: "$.status".to_string(),
             operator: AssertionOperator::Between,
             expected: json!([400, 499]),
@@ -92,7 +92,7 @@ impl AssertionPreset {
     fn http_server_error() -> Vec<Assertion> {
         vec![Assertion {
             id: "preset_http_server_error_status".to_string(),
-            description: Some("HTTP 状态码应为 5xx (500-599)".to_string()),
+            description: Some("HTTP status code should be 5xx (500-599)".to_string()),
             target: "$.status".to_string(),
             operator: AssertionOperator::Between,
             expected: json!([500, 599]),
@@ -104,7 +104,7 @@ impl AssertionPreset {
     fn json_response() -> Vec<Assertion> {
         vec![Assertion {
             id: "preset_json_response_content_type".to_string(),
-            description: Some("Content-Type 应包含 application/json".to_string()),
+            description: Some("Content-Type should contain application/json".to_string()),
             target: "$.headers[\"Content-Type\"]".to_string(),
             operator: AssertionOperator::Contains,
             expected: json!("application/json"),
@@ -116,7 +116,7 @@ impl AssertionPreset {
     fn response_fast() -> Vec<Assertion> {
         vec![Assertion {
             id: "preset_response_fast_time".to_string(),
-            description: Some("响应时间应小于 500ms".to_string()),
+            description: Some("Response time should be less than 500ms".to_string()),
             target: "$.response_time".to_string(),
             operator: AssertionOperator::Lt,
             expected: json!(500),

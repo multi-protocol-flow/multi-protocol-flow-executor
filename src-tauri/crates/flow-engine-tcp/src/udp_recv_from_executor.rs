@@ -45,7 +45,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
             NodeData::UdpRecvFrom(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 UdpRecvFromConfig: {}",
+                    "Node data type is not UdpRecvFromConfig: {}",
                     node.uuid
                 ))
             }
@@ -53,9 +53,9 @@ impl NodeExecutor for UdpRecvFromExecutor {
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("Connection ID variable replacement failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -66,7 +66,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
 
         // 3. 日志：开始接收
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: udp_recv_from, 连接ID: {}, 超时: {}ms",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: udp_recv_from, ConnectionID: {}, Timeout: {}ms",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -78,7 +78,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "UDP RecvFrom 节点 {} 开始执行 (连接: {}, 超时: {}ms)",
+                    "UDP RecvFrom node {} started execution (connection: {}, timeout: {}ms)",
                     node.name, connection_id, config.receive_timeout_ms
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -102,7 +102,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
         match recv_result {
             Ok(Some((data, source_addr, source_port))) => {
                 log::info!(
-                    "[UDP] 接收成功: connection_id={}, from={}:{}, bytes={}",
+                    "[UDP] Receive successful: connection_id={}, from={}:{}, bytes={}",
                     connection_id,
                     source_addr,
                     source_port,
@@ -134,7 +134,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "UDP RecvFrom 完成 (接收: {} 字节, {}ms)",
+                            "UDP RecvFrom completed (received: {} bytes, {}ms)",
                             data.len(),
                             total_ms
                         ),
@@ -154,7 +154,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
             }
             Ok(None) => {
                 // 超时无数据，走 false 端口
-                let error_msg = format!("接收超时 ({}ms)", config.receive_timeout_ms);
+                let error_msg = format!("Receive timeout ({}ms)", config.receive_timeout_ms);
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -162,7 +162,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                 }
 
                 log::debug!(
-                    "[UDP] 接收超时: connection_id={}, timeout={}ms",
+                    "[UDP] Receive timeout: connection_id={}, timeout={}ms",
                     connection_id,
                     config.receive_timeout_ms
                 );
@@ -204,7 +204,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                 }
 
                 log::error!(
-                    "[UDP] 接收失败: connection_id={}, error={}",
+                    "[UDP] Receive failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
@@ -214,7 +214,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("UDP 接收失败: {}", e),
+                        message: format!("UDP receive failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .expect("系统时间错误")
@@ -454,7 +454,7 @@ mod tests {
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
         assert!(data["received"].is_null());
-        assert!(data["error"].as_str().expect("应有错误").contains("超时"));
+        assert!(data["error"].as_str().expect("should have error").contains("timeout"));
     }
 
     // ========================================================================
@@ -478,7 +478,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().expect("应有错误").contains("不存在"));
+        assert!(data["error"].as_str().expect("should have error").contains("not found"));
     }
 
     // ========================================================================

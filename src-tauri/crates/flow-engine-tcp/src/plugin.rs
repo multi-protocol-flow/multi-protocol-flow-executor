@@ -23,7 +23,7 @@ impl NodePlugin for TcpConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "TCP 连接"
+        "TCP Connect"
     }
 
     fn category(&self) -> &str {
@@ -42,12 +42,12 @@ impl NodePlugin for TcpConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -158,7 +158,7 @@ impl NodePlugin for TcpConnectPlugin {
             NodeData::TcpConnect(cfg) => cfg.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 TcpConnectConfig: {}",
+                    "Node data type is not TcpConnectConfig: {}",
                     node.uuid
                 ))
             }
@@ -166,12 +166,12 @@ impl NodePlugin for TcpConnectPlugin {
 
         // 2. 变量替换 host
         let host = replace_variables(&config.host, context).map_err(|e| {
-            format!("Host 变量替换失败: {}", e)
+            format!("Host variable replacement failed: {}", e)
         })?;
 
         // 3. 日志：开始连接
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: tcp_connect, 目标: {}:{}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: tcp_connect, Target: {}:{}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -260,7 +260,7 @@ impl NodePlugin for TcpSendPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "TCP 发送"
+        "TCP Send"
     }
 
     fn category(&self) -> &str {
@@ -279,12 +279,12 @@ impl NodePlugin for TcpSendPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "发送成功".into(),
+                label: "Send Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "发送失败".into(),
+                label: "Send Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -376,7 +376,7 @@ impl NodePlugin for TcpReceivePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "TCP 接收"
+        "TCP Receive"
     }
 
     fn category(&self) -> &str {
@@ -395,12 +395,12 @@ impl NodePlugin for TcpReceivePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "接收成功".into(),
+                label: "Receive Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "接收失败".into(),
+                label: "Receive Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -497,7 +497,7 @@ impl NodePlugin for TcpClosePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "TCP 关闭"
+        "TCP Close"
     }
 
     fn category(&self) -> &str {
@@ -516,12 +516,12 @@ impl NodePlugin for TcpClosePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -621,7 +621,7 @@ impl NodePlugin for UdpBindPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "UDP 绑定"
+        "UDP Bind"
     }
 
     fn category(&self) -> &str {
@@ -640,12 +640,12 @@ impl NodePlugin for UdpBindPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -743,7 +743,7 @@ impl NodePlugin for UdpSendToPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "UDP 发送"
+        "UDP Send"
     }
 
     fn category(&self) -> &str {
@@ -762,12 +762,12 @@ impl NodePlugin for UdpSendToPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "发送成功".into(),
+                label: "Send Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "发送失败".into(),
+                label: "Send Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -875,7 +875,7 @@ impl NodePlugin for UdpRecvFromPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "UDP 接收"
+        "UDP Receive"
     }
 
     fn category(&self) -> &str {
@@ -894,12 +894,12 @@ impl NodePlugin for UdpRecvFromPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "接收成功".into(),
+                label: "Receive Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "接收失败".into(),
+                label: "Receive Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -992,7 +992,7 @@ impl NodePlugin for UdpClosePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "UDP 关闭"
+        "UDP Close"
     }
 
     fn category(&self) -> &str {
@@ -1011,12 +1011,12 @@ impl NodePlugin for UdpClosePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -1112,7 +1112,7 @@ mod tests {
     fn test_tcp_connect_plugin_metadata() {
         let plugin = TcpConnectPlugin;
         assert_eq!(plugin.type_id(), "tcp_connect");
-        assert_eq!(plugin.display_name(), "TCP 连接");
+        assert_eq!(plugin.display_name(), "TCP Connect");
         assert_eq!(plugin.category(), "tcp");
         assert_eq!(plugin.icon(), "cable");
         assert_eq!(plugin.color(), "#10B981");
@@ -1122,9 +1122,9 @@ mod tests {
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[0].label, "成功");
+        assert_eq!(ports[0].label, "Success");
         assert_eq!(ports[1].id, "false");
-        assert_eq!(ports[1].label, "失败");
+        assert_eq!(ports[1].label, "Failure");
     }
 
     #[test]
@@ -1205,7 +1205,7 @@ mod tests {
     fn test_tcp_send_plugin_metadata() {
         let plugin = TcpSendPlugin;
         assert_eq!(plugin.type_id(), "tcp_send");
-        assert_eq!(plugin.display_name(), "TCP 发送");
+        assert_eq!(plugin.display_name(), "TCP Send");
         assert_eq!(plugin.category(), "tcp");
         assert_eq!(plugin.icon(), "send");
         assert_eq!(plugin.color(), "#10B981");
@@ -1215,9 +1215,9 @@ mod tests {
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[0].label, "发送成功");
+        assert_eq!(ports[0].label, "Send Success");
         assert_eq!(ports[1].id, "false");
-        assert_eq!(ports[1].label, "发送失败");
+        assert_eq!(ports[1].label, "Send Failure");
     }
 
     #[test]
@@ -1299,7 +1299,7 @@ mod tests {
     fn test_tcp_receive_plugin_metadata() {
         let plugin = TcpReceivePlugin;
         assert_eq!(plugin.type_id(), "tcp_receive");
-        assert_eq!(plugin.display_name(), "TCP 接收");
+        assert_eq!(plugin.display_name(), "TCP Receive");
         assert_eq!(plugin.category(), "tcp");
         assert_eq!(plugin.icon(), "download");
         assert_eq!(plugin.color(), "#10B981");
@@ -1309,9 +1309,9 @@ mod tests {
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[0].label, "接收成功");
+        assert_eq!(ports[0].label, "Receive Success");
         assert_eq!(ports[1].id, "false");
-        assert_eq!(ports[1].label, "接收失败");
+        assert_eq!(ports[1].label, "Receive Failure");
     }
 
     #[test]
@@ -1360,7 +1360,7 @@ mod tests {
     fn test_tcp_close_plugin_metadata() {
         let plugin = TcpClosePlugin;
         assert_eq!(plugin.type_id(), "tcp_close");
-        assert_eq!(plugin.display_name(), "TCP 关闭");
+        assert_eq!(plugin.display_name(), "TCP Close");
         assert_eq!(plugin.category(), "tcp");
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#10B981");
@@ -1370,9 +1370,9 @@ mod tests {
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[0].label, "成功");
+        assert_eq!(ports[0].label, "Success");
         assert_eq!(ports[1].id, "false");
-        assert_eq!(ports[1].label, "失败");
+        assert_eq!(ports[1].label, "Failure");
     }
 
     #[test]
@@ -1430,7 +1430,7 @@ mod tests {
     fn test_udp_bind_plugin_metadata() {
         let plugin = UdpBindPlugin;
         assert_eq!(plugin.type_id(), "udp_bind");
-        assert_eq!(plugin.display_name(), "UDP 绑定");
+        assert_eq!(plugin.display_name(), "UDP Bind");
         assert_eq!(plugin.category(), "udp");
         assert_eq!(plugin.icon(), "radio");
         assert_eq!(plugin.color(), "#F97316");
@@ -1440,9 +1440,9 @@ mod tests {
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[0].label, "成功");
+        assert_eq!(ports[0].label, "Success");
         assert_eq!(ports[1].id, "false");
-        assert_eq!(ports[1].label, "失败");
+        assert_eq!(ports[1].label, "Failure");
     }
 
     #[test]
@@ -1495,7 +1495,7 @@ mod tests {
     fn test_udp_send_to_plugin_metadata() {
         let plugin = UdpSendToPlugin;
         assert_eq!(plugin.type_id(), "udp_send_to");
-        assert_eq!(plugin.display_name(), "UDP 发送");
+        assert_eq!(plugin.display_name(), "UDP Send");
         assert_eq!(plugin.category(), "udp");
         assert_eq!(plugin.icon(), "arrow-up-right");
         assert_eq!(plugin.color(), "#F97316");
@@ -1505,9 +1505,9 @@ mod tests {
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[0].label, "发送成功");
+        assert_eq!(ports[0].label, "Send Success");
         assert_eq!(ports[1].id, "false");
-        assert_eq!(ports[1].label, "发送失败");
+        assert_eq!(ports[1].label, "Send Failure");
     }
 
     #[test]
@@ -1561,7 +1561,7 @@ mod tests {
     fn test_udp_recv_from_plugin_metadata() {
         let plugin = UdpRecvFromPlugin;
         assert_eq!(plugin.type_id(), "udp_recv_from");
-        assert_eq!(plugin.display_name(), "UDP 接收");
+        assert_eq!(plugin.display_name(), "UDP Receive");
         assert_eq!(plugin.category(), "udp");
         assert_eq!(plugin.icon(), "arrow-down-left");
         assert_eq!(plugin.color(), "#F97316");
@@ -1571,9 +1571,9 @@ mod tests {
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[0].label, "接收成功");
+        assert_eq!(ports[0].label, "Receive Success");
         assert_eq!(ports[1].id, "false");
-        assert_eq!(ports[1].label, "接收失败");
+        assert_eq!(ports[1].label, "Receive Failure");
     }
 
     #[test]

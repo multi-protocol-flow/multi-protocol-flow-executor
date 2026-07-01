@@ -205,7 +205,7 @@ impl UdpSocketManager {
         // 1. 解析绑定地址
         let addr: std::net::SocketAddr = format!("{}:{}", local_addr, local_port)
             .parse()
-            .map_err(|e| format!("地址解析失败 ({}:{}): {}", local_addr, local_port, e))?;
+            .map_err(|e| format!("Address parsing failed ({}:{}): {}", local_addr, local_port, e))?;
 
         // 2. 使用 socket2 创建 socket（支持 pre-bind 选项）
         let domain = if addr.is_ipv6() {
@@ -214,19 +214,19 @@ impl UdpSocketManager {
             Domain::IPV4
         };
         let socket = Socket::new(domain, Type::DGRAM, Some(Protocol::UDP))
-            .map_err(|e| format!("创建 UDP Socket 失败: {}", e))?;
+            .map_err(|e| format!("Failed to create UDP socket: {}", e))?;
 
         // 3. reuse_addr 在 bind 之前设置
         if reuse_addr {
             socket
                 .set_reuse_address(true)
-                .map_err(|e| format!("设置地址复用失败: {}", e))?;
+                .map_err(|e| format!("Failed to set address reuse: {}", e))?;
         }
 
         // 4. 绑定
         socket
             .bind(&addr.into())
-            .map_err(|e| format!("UDP 绑定失败 ({}): {}", addr, e))?;
+            .map_err(|e| format!("UDP bind failed ({}): {}", addr, e))?;
 
         // 5. 转换为 std::net::UdpSocket
         let std_socket: std::net::UdpSocket = socket.into();
@@ -235,38 +235,38 @@ impl UdpSocketManager {
         if broadcast {
             std_socket
                 .set_broadcast(true)
-                .map_err(|e| format!("设置广播失败: {}", e))?;
+                .map_err(|e| format!("Failed to set broadcast: {}", e))?;
         }
 
         // 7. 设置多播选项（bind 之后）
         if let Some(ref group_str) = multicast_group {
             let group: std::net::Ipv4Addr = group_str
                 .parse()
-                .map_err(|e| format!("多播组地址无效 '{}': {}", group_str, e))?;
+                .map_err(|e| format!("Invalid multicast group address '{}': {}", group_str, e))?;
             let iface: std::net::Ipv4Addr = match &multicast_interface {
                 Some(ref iface_str) => iface_str
                     .parse()
-                    .map_err(|e| format!("接口地址无效 '{}': {}", iface_str, e))?,
+                    .map_err(|e| format!("Invalid interface address '{}': {}", iface_str, e))?,
                 None => std::net::Ipv4Addr::UNSPECIFIED,
             };
             std_socket
                 .join_multicast_v4(&group, &iface)
-                .map_err(|e| format!("加入多播组失败 ({}): {}", group_str, e))?;
+                .map_err(|e| format!("Failed to join multicast group ({}): {}", group_str, e))?;
         }
         if let Some(ttl) = multicast_ttl {
             std_socket
                 .set_multicast_ttl_v4(ttl)
-                .map_err(|e| format!("设置多播 TTL 失败: {}", e))?;
+                .map_err(|e| format!("Failed to set multicast TTL: {}", e))?;
         }
         if let Some(loopback) = multicast_loop {
             std_socket
                 .set_multicast_loop_v4(loopback)
-                .map_err(|e| format!("设置多播环回失败: {}", e))?;
+                .map_err(|e| format!("Failed to set multicast loopback: {}", e))?;
         }
 
         // 8. 转换为 tokio::net::UdpSocket
         let socket = UdpSocket::from_std(std_socket)
-            .map_err(|e| format!("转换 tokio UdpSocket 失败: {}", e))?;
+            .map_err(|e| format!("Failed to convert to tokio UdpSocket: {}", e))?;
 
         // 9. 获取实际绑定的地址和端口（端口 0 时自动分配）
         let actual_local_addr = socket
@@ -289,7 +289,7 @@ impl UdpSocketManager {
         }
 
         log::info!(
-            "[UDP] 绑定成功: uuid={}, addr={}, reuse_addr={}, broadcast={}, multicast_group={:?}",
+            "[UDP] Bind successful: uuid={}, addr={}, reuse_addr={}, broadcast={}, multicast_group={:?}",
             uuid,
             addr,
             reuse_addr,
@@ -343,14 +343,14 @@ impl UdpProvider for UdpSocketManager {
         // 1. 获取 Socket 引用（克隆后释放锁）
         let socket_arc = {
             let sockets = self.sockets.lock().map_err(|e| {
-                format!("获取 Socket 锁失败: {}", e)
+                format!("Failed to acquire socket lock: {}", e)
             })?;
             let sock = sockets
                 .get(uuid)
-                .ok_or_else(|| format!("UDP Socket '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("UDP socket '{}' not found", uuid))?;
 
             if !sock.is_bound() {
-                return Err(format!("UDP Socket '{}' 未处于已绑定状态", uuid));
+                return Err(format!("UDP socket '{}' is not in bound state", uuid));
             }
 
             sock.get_socket()
@@ -366,7 +366,7 @@ impl UdpProvider for UdpSocketManager {
         match send_result {
             Ok(Ok(bytes_sent)) => {
                 log::debug!(
-                    "[UDP] 发送成功: uuid={}, target={}, bytes={}/{}",
+                    "[UDP] Send successful: uuid={}, target={}, bytes={}/{}",
                     uuid,
                     target,
                     bytes_sent,
@@ -375,13 +375,13 @@ impl UdpProvider for UdpSocketManager {
                 Ok(())
             }
             Ok(Err(e)) => {
-                let error_msg = format!("UDP 发送失败 ({} → {}): {}", uuid, target, e);
+                let error_msg = format!("UDP send failed ({} → {}): {}", uuid, target, e);
                 self.update_socket_error(uuid, &error_msg);
                 Err(error_msg)
             }
             Err(_) => {
                 let error_msg = format!(
-                    "UDP 发送超时 ({}ms): uuid={}, target={}",
+                    "UDP send timeout ({}ms): uuid={}, target={}",
                     send_timeout_ms, uuid, target
                 );
                 self.update_socket_error(uuid, &error_msg);
@@ -402,14 +402,14 @@ impl UdpProvider for UdpSocketManager {
         // 1. 获取 Socket 引用（克隆后释放锁）
         let socket_arc = {
             let sockets = self.sockets.lock().map_err(|e| {
-                format!("获取 Socket 锁失败: {}", e)
+                format!("Failed to acquire socket lock: {}", e)
             })?;
             let sock = sockets
                 .get(uuid)
-                .ok_or_else(|| format!("UDP Socket '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("UDP socket '{}' not found", uuid))?;
 
             if !sock.is_bound() {
-                return Err(format!("UDP Socket '{}' 未处于已绑定状态", uuid));
+                return Err(format!("UDP socket '{}' is not in bound state", uuid));
             }
 
             sock.get_socket()
@@ -431,7 +431,7 @@ impl UdpProvider for UdpSocketManager {
                 let sender_addr = addr.ip().to_string();
                 let sender_port = addr.port();
                 log::debug!(
-                    "[UDP] 接收成功: uuid={}, from={}:{}, bytes={}",
+                    "[UDP] Receive successful: uuid={}, from={}:{}, bytes={}",
                     uuid,
                     sender_addr,
                     sender_port,
@@ -440,14 +440,14 @@ impl UdpProvider for UdpSocketManager {
                 Ok(Some((buf, sender_addr, sender_port)))
             }
             Ok(Err(e)) => {
-                let error_msg = format!("UDP 接收失败 ({}): {}", uuid, e);
+                let error_msg = format!("UDP receive failed ({}): {}", uuid, e);
                 self.update_socket_error(uuid, &error_msg);
                 Err(error_msg)
             }
             Err(_) => {
                 // 超时，返回 None（表示在超时时间内没有数据可读）
                 log::debug!(
-                    "[UDP] 接收超时 ({}ms): uuid={}",
+                    "[UDP] Receive timeout ({}ms): uuid={}",
                     receive_timeout_ms,
                     uuid
                 );
@@ -468,10 +468,10 @@ impl UdpProvider for UdpSocketManager {
                 .map_err(|e| format!("获取 Socket 锁失败: {}", e))?;
             sockets
                 .remove(uuid)
-                .ok_or_else(|| format!("UDP Socket '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("UDP socket '{}' not found", uuid))?;
         }
 
-        log::info!("[UDP] Socket 已关闭: uuid={}", uuid);
+        log::info!("[UDP] Socket closed: uuid={}", uuid);
         Ok(())
     }
 
@@ -540,17 +540,17 @@ mod tests {
             .send_to("non-existent", vec![1, 2, 3], "127.0.0.1".to_string(), 9999, 1000)
             .await;
         assert!(send_result.is_err());
-        assert!(send_result.unwrap_err().contains("不存在"));
+        assert!(send_result.unwrap_err().contains("not found"));
 
         // 从不存在的 socket 接收
         let recv_result = manager.recv_from("non-existent", 1000).await;
         assert!(recv_result.is_err());
-        assert!(recv_result.unwrap_err().contains("不存在"));
+        assert!(recv_result.unwrap_err().contains("not found"));
 
         // 关闭不存在的 socket
         let close_result = manager.close("non-existent").await;
         assert!(close_result.is_err());
-        assert!(close_result.unwrap_err().contains("不存在"));
+        assert!(close_result.unwrap_err().contains("not found"));
     }
 
     /// 测试 UDP 接收超时
@@ -828,7 +828,7 @@ mod tests {
         let err_msg = result.unwrap_err();
         // 无效地址可能在解析阶段失败，也可能在 bind 阶段失败
         assert!(
-            err_msg.contains("绑定失败") || err_msg.contains("地址解析失败"),
+            err_msg.contains("bind failed") || err_msg.contains("Address parsing failed"),
             "错误信息应包含失败原因，实际: {}",
             err_msg
         );

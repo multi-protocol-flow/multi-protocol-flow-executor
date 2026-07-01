@@ -82,9 +82,9 @@ fn extract_number(value: &Value, name: &str) -> Result<f64, String> {
     match value {
         Value::Number(n) => n
             .as_f64()
-            .ok_or_else(|| format!("{} 不是有效的数字: {}", name, value)),
+            .ok_or_else(|| format!("{} is not a valid number: {}", name, value)),
         _ => Err(format!(
-            "{} 不是数字类型，实际类型: {}",
+            "{} is not a numeric type, actual type: {}",
             name,
             get_json_type(value)
         )),
@@ -139,7 +139,7 @@ fn evaluate_contains(actual: &Value, expected: &Value) -> Result<bool, String> {
         Value::String(s) => {
             let expected_str = extract_string(expected).ok_or_else(|| {
                 format!(
-                    "expected 不是字符串类型，实际类型: {}",
+                    "expected is not a string type, actual type: {}",
                     get_json_type(expected)
                 )
             })?;
@@ -147,7 +147,7 @@ fn evaluate_contains(actual: &Value, expected: &Value) -> Result<bool, String> {
         }
         Value::Array(arr) => Ok(arr.contains(expected)),
         _ => Err(format!(
-            "actual 不是字符串或数组类型，实际类型: {}",
+            "actual is not a string or array type, actual type: {}",
             get_json_type(actual)
         )),
     }
@@ -159,7 +159,7 @@ fn evaluate_not_contains(actual: &Value, expected: &Value) -> Result<bool, Strin
         Value::String(s) => {
             let expected_str = extract_string(expected).ok_or_else(|| {
                 format!(
-                    "expected 不是字符串类型，实际类型: {}",
+                    "expected is not a string type, actual type: {}",
                     get_json_type(expected)
                 )
             })?;
@@ -167,7 +167,7 @@ fn evaluate_not_contains(actual: &Value, expected: &Value) -> Result<bool, Strin
         }
         Value::Array(arr) => Ok(!arr.contains(expected)),
         _ => Err(format!(
-            "actual 不是字符串或数组类型，实际类型: {}",
+            "actual is not a string or array type, actual type: {}",
             get_json_type(actual)
         )),
     }
@@ -183,7 +183,7 @@ fn evaluate_matches(actual: &Value, expected: &Value) -> Result<bool, String> {
         Value::String(s) => s.clone(),
         _ => {
             return Err(format!(
-                "actual 不是字符串类型，实际类型: {}",
+                "actual is not a string type, actual type: {}",
                 get_json_type(actual)
             ))
         }
@@ -193,15 +193,15 @@ fn evaluate_matches(actual: &Value, expected: &Value) -> Result<bool, String> {
         Value::String(s) => s,
         _ => {
             return Err(format!(
-                "expected 必须是字符串类型的正则表达式，实际类型: {}",
+                "expected must be a string regex pattern, actual type: {}",
                 get_json_type(expected)
             ))
         }
     };
 
-    // 编译正则表达式
+    // Compile regex pattern
     let regex =
-        regex::Regex::new(pattern).map_err(|e| format!("无效的正则表达式 '{}': {}", pattern, e))?;
+        regex::Regex::new(pattern).map_err(|e| format!("Invalid regex pattern '{}': {}", pattern, e))?;
 
     // 使用超时保护防止 ReDoS 攻击
     // 对于简单字符串匹配，直接检查；对于复杂模式，使用超时
@@ -212,7 +212,7 @@ fn evaluate_matches(actual: &Value, expected: &Value) -> Result<bool, String> {
     if let Some(_mat) = regex.find_iter(&actual_str).next() {
         if start.elapsed() > timeout {
             return Err(format!(
-                "正则匹配超时（超过 100ms），可能存在 ReDoS 攻击: {}",
+                "Regex match timed out (exceeded 100ms), possible ReDoS attack: {}",
                 pattern
             ));
         }
@@ -245,7 +245,7 @@ fn evaluate_in(actual: &Value, expected: &Value) -> Result<bool, String> {
     match expected {
         Value::Array(arr) => Ok(arr.contains(actual)),
         _ => Err(format!(
-            "expected 必须是数组类型，实际类型: {}",
+            "expected must be an array type, actual type: {}",
             get_json_type(expected)
         )),
     }
@@ -256,7 +256,7 @@ fn evaluate_not_in(actual: &Value, expected: &Value) -> Result<bool, String> {
     match expected {
         Value::Array(arr) => Ok(!arr.contains(actual)),
         _ => Err(format!(
-            "expected 必须是数组类型，实际类型: {}",
+            "expected must be an array type, actual type: {}",
             get_json_type(expected)
         )),
     }
@@ -272,7 +272,7 @@ fn evaluate_type_is(actual: &Value, expected: &Value) -> Result<bool, String> {
         Value::String(s) => s.as_str(),
         _ => {
             return Err(format!(
-                "expected 必须是字符串类型，实际类型: {}",
+                "expected must be a string type, actual type: {}",
                 get_json_type(expected)
             ))
         }
@@ -280,13 +280,13 @@ fn evaluate_type_is(actual: &Value, expected: &Value) -> Result<bool, String> {
 
     let actual_type = get_json_type(actual);
 
-    // 支持的类型: string, number, boolean, array, object, null
+    // Supported types: string, number, boolean, array, object, null
     match expected_type {
         "string" | "number" | "boolean" | "array" | "object" | "null" => {
             Ok(actual_type == expected_type)
         }
         _ => Err(format!(
-            "不支持的类型检查: '{}'，支持的类型: string, number, boolean, array, object, null",
+            "Unsupported type check: '{}', supported types: string, number, boolean, array, object, null",
             expected_type
         )),
     }
@@ -304,13 +304,13 @@ fn evaluate_between(actual: &Value, expected: &Value) -> Result<bool, String> {
         Value::Array(arr) if arr.len() == 2 => arr,
         Value::Array(arr) => {
             return Err(format!(
-                "expected 必须是包含 2 个元素的数组 [min, max]，实际长度: {}",
+                "expected must be an array of 2 elements [min, max], actual length: {}",
                 arr.len()
             ))
         }
         _ => {
             return Err(format!(
-                "expected 必须是数组类型 [min, max]，实际类型: {}",
+                "expected must be an array type [min, max], actual type: {}",
                 get_json_type(expected)
             ))
         }
@@ -454,7 +454,7 @@ mod tests {
     fn test_gt_type_mismatch() {
         let result = evaluate_operator(&AssertionOperator::Gt, &json!("200"), &json!(100));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不是数字类型"));
+        assert!(result.unwrap_err().contains("is not a numeric type"));
     }
 
     // ========================================================================
@@ -556,7 +556,7 @@ mod tests {
     fn test_contains_type_mismatch() {
         let result = evaluate_operator(&AssertionOperator::Contains, &json!(123), &json!("foo"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不是字符串或数组类型"));
+        assert!(result.unwrap_err().contains("is not a string or array type"));
     }
 
     // ========================================================================
@@ -645,7 +645,7 @@ mod tests {
             &json!("^[invalid"),
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("无效的正则表达式"));
+        assert!(result.unwrap_err().contains("Invalid regex pattern"));
     }
 
     #[test]
@@ -653,14 +653,14 @@ mod tests {
         let result =
             evaluate_operator(&AssertionOperator::Matches, &json!(123), &json!("^[0-9]+$"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("actual 不是字符串类型"));
+        assert!(result.unwrap_err().contains("actual is not a string type"));
     }
 
     #[test]
     fn test_matches_expected_not_string() {
         let result = evaluate_operator(&AssertionOperator::Matches, &json!("test"), &json!(123));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("必须是字符串类型的正则表达式"));
+        assert!(result.unwrap_err().contains("must be a string regex pattern"));
     }
 
     // ========================================================================
@@ -743,7 +743,7 @@ mod tests {
     fn test_in_expected_not_array() {
         let result = evaluate_operator(&AssertionOperator::In, &json!("apple"), &json!("apple"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("expected 必须是数组类型"));
+        assert!(result.unwrap_err().contains("expected must be an array type"));
     }
 
     // ========================================================================
@@ -843,14 +843,14 @@ mod tests {
             &json!("invalid"),
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不支持的类型检查"));
+        assert!(result.unwrap_err().contains("Unsupported type check"));
     }
 
     #[test]
     fn test_type_is_expected_not_string() {
         let result = evaluate_operator(&AssertionOperator::TypeIs, &json!("hello"), &json!(123));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("expected 必须是字符串类型"));
+        assert!(result.unwrap_err().contains("expected must be a string type"));
     }
 
     // ========================================================================
@@ -904,21 +904,21 @@ mod tests {
     fn test_between_expected_not_array() {
         let result = evaluate_operator(&AssertionOperator::Between, &json!(50), &json!(0));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("expected 必须是数组类型"));
+        assert!(result.unwrap_err().contains("expected must be an array type"));
     }
 
     #[test]
     fn test_between_array_wrong_length() {
         let result = evaluate_operator(&AssertionOperator::Between, &json!(50), &json!([0]));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("包含 2 个元素的数组"));
+        assert!(result.unwrap_err().contains("array of 2 elements"));
     }
 
     #[test]
     fn test_between_actual_not_number() {
         let result = evaluate_operator(&AssertionOperator::Between, &json!("50"), &json!([0, 100]));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不是数字类型"));
+        assert!(result.unwrap_err().contains("is not a numeric type"));
     }
 
     #[test]

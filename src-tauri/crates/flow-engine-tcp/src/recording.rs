@@ -76,7 +76,7 @@ impl TcpRecording {
     /// 超过 64KB 的条目数据会额外保存到 `{id}_{entry_index}.bin` 文件中。
     pub fn save_to_file(&self, dir: &Path) -> Result<(), String> {
         // 确保目录存在
-        std::fs::create_dir_all(dir).map_err(|e| format!("创建目录失败: {}", e))?;
+        std::fs::create_dir_all(dir).map_err(|e| format!("Failed to create directory: {}", e))?;
 
         let json_path = dir.join(format!("{}.json", self.id));
 
@@ -87,13 +87,13 @@ impl TcpRecording {
                 // 解码 base64 数据
                 let raw_data = BASE64
                     .decode(&entry.data_base64)
-                    .map_err(|e| format!("Base64 解码失败 (entry {}): {}", i, e))?;
+                    .map_err(|e| format!("Base64 decoding failed (entry {}): {}", i, e))?;
 
                 // 写入 .bin 文件
                 let bin_filename = format!("{}_{}.bin", self.id, i);
                 let bin_path = dir.join(&bin_filename);
                 std::fs::write(&bin_path, &raw_data)
-                    .map_err(|e| format!("写入 .bin 文件失败: {}", e))?;
+                    .map_err(|e| format!("Failed to write .bin file: {}", e))?;
 
                 // 更新条目：引用外部文件，清空内嵌数据
                 entry.external_bin_path = Some(bin_filename);
@@ -103,10 +103,10 @@ impl TcpRecording {
 
         // 序列化为 JSON
         let json_str = serde_json::to_string_pretty(&saveable)
-            .map_err(|e| format!("JSON 序列化失败: {}", e))?;
+            .map_err(|e| format!("JSON serialization failed: {}", e))?;
 
         std::fs::write(&json_path, json_str)
-            .map_err(|e| format!("写入 JSON 文件失败: {}", e))?;
+            .map_err(|e| format!("Failed to write JSON file: {}", e))?;
 
         Ok(())
     }
@@ -116,19 +116,19 @@ impl TcpRecording {
     /// 从 JSON 文件加载录制数据。如果有外部 .bin 文件，会自动合并数据。
     pub fn load_from_file(path: &Path) -> Result<Self, String> {
         let json_str = std::fs::read_to_string(path)
-            .map_err(|e| format!("读取 JSON 文件失败: {}", e))?;
+            .map_err(|e| format!("Failed to read JSON file: {}", e))?;
 
         let mut recording: TcpRecording = serde_json::from_str(&json_str)
-            .map_err(|e| format!("JSON 反序列化失败: {}", e))?;
+            .map_err(|e| format!("JSON deserialization failed: {}", e))?;
 
         // 合并外部 .bin 文件数据
-        let dir = path.parent().ok_or_else(|| "无法获取文件所在目录".to_string())?;
+        let dir = path.parent().ok_or_else(|| "Unable to get file directory".to_string())?;
 
         for entry in recording.entries.iter_mut() {
             if let Some(ref bin_filename) = entry.external_bin_path {
                 let bin_path = dir.join(bin_filename);
                 let raw_data = std::fs::read(&bin_path)
-                    .map_err(|e| format!("读取 .bin 文件失败 ({}): {}", bin_filename, e))?;
+                    .map_err(|e| format!("Failed to read .bin file ({}): {}", bin_filename, e))?;
 
                 entry.data_base64 = BASE64.encode(&raw_data);
                 entry.external_bin_path = None; // 加载后不再标记为外部
@@ -158,7 +158,7 @@ impl TcpRecording {
     pub fn decode_entry_data(entry: &RecordingEntry) -> Result<Vec<u8>, String> {
         BASE64
             .decode(&entry.data_base64)
-            .map_err(|e| format!("Base64 解码失败: {}", e))
+            .map_err(|e| format!("Base64 decoding failed: {}", e))
     }
 }
 
