@@ -674,7 +674,15 @@ impl FlowExecutor {
 
                     // === 容错模式错误处理 ===
                     // ErrorKind 由 ErrorCode 通过 error_kind_hint() 推导
-                    let error_detail = parse_error_to_detail(&error);
+                    // 执行器层超时由 execute_flow 直接检测并构建 ErrorKind::Timeout，不经过 parse_error_to_detail
+                    let error_detail = if error.starts_with("节点执行超时") {
+                        flow_engine_core::error::ErrorDetail::new(
+                            flow_engine_core::error::ErrorKind::Timeout,
+                            error.clone(),
+                        ).with_error_code_typed(flow_engine_core::error::ErrorCode::E_TIMEOUT)
+                    } else {
+                        parse_error_to_detail(&error)
+                    };
                     
                     // 查找节点插件用于后续 registry 查询
                     let type_id = node.data.type_name();
