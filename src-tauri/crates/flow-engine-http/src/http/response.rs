@@ -68,7 +68,7 @@ impl HttpResponse {
 
         let (status, status_text, headers) = Self::parse_headers(header_str)?;
 
-        log::debug!("响应状态: {} {}", status, status_text);
+        log::debug!("Response status: {} {}", status, status_text);
 
         // 确定响应体长度
         let body_length = Self::get_body_length(&headers);
@@ -104,7 +104,7 @@ impl HttpResponse {
         }
 
         timing.mark_download_complete();
-        log::debug!("响应体大小: {} bytes", body.len());
+        log::debug!("Response body size: {} bytes", body.len());
 
         Ok(Self {
             status,
@@ -133,15 +133,15 @@ impl HttpResponse {
         // 解析状态行
         let status_line = lines
             .next()
-            .ok_or_else(|| HttpError::InvalidHeader("空响应".into()))?;
+            .ok_or_else(|| HttpError::InvalidHeader("Empty response".into()))?;
         let mut parts = status_line.split_whitespace();
         let _version = parts
             .next()
-            .ok_or_else(|| HttpError::InvalidHeader("缺少 HTTP 版本".into()))?;
+            .ok_or_else(|| HttpError::InvalidHeader("Missing HTTP version".into()))?;
         let status: u16 = parts
             .next()
             .and_then(|s| s.parse().ok())
-            .ok_or_else(|| HttpError::InvalidHeader("无效的状态码".into()))?;
+            .ok_or_else(|| HttpError::InvalidHeader("Invalid status code".into()))?;
         let status_text = parts.collect::<Vec<_>>().join(" ");
 
         // 解析头部
@@ -181,7 +181,7 @@ impl HttpResponse {
     /// 解析响应体为 JSON
     pub fn body_json(&self) -> Result<serde_json::Value, serde_json::Error> {
         let text = self.body_text().map_err(|e| {
-            serde_json::from_str::<serde_json::Value>(&format!("无效的 UTF-8: {}", e))
+            serde_json::from_str::<serde_json::Value>(&format!("Invalid UTF-8: {}", e))
                 .unwrap_err()
         })?;
         serde_json::from_str(&text)

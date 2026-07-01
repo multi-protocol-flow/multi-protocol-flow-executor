@@ -20,7 +20,7 @@ impl NodePlugin for HttpPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "HTTP 请求"
+        "HTTP Request"
     }
 
     fn category(&self) -> &str {
@@ -39,12 +39,12 @@ impl NodePlugin for HttpPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -97,31 +97,31 @@ impl NodePlugin for HttpPlugin {
                 "url": {
                     "type": "string",
                     "title": "URL",
-                    "description": "请求 URL，支持变量引用 {{variable}}"
+                    "description": "Request URL, supports variable references {{variable}}"
                 },
                 "method": {
                     "type": "string",
-                    "title": "请求方法",
+                    "title": "Request Method",
                     "enum": ["get", "post", "put", "delete", "patch", "head", "options"]
                 },
                 "headers": {
                     "type": "object",
-                    "title": "请求头",
+                    "title": "Headers",
                     "additionalProperties": { "type": "string" }
                 },
                 "body_type": {
                     "type": "string",
-                    "title": "请求体类型",
+                    "title": "Body Type",
                     "enum": ["none", "body", "form-data", "x-www-form-urlencoded", "binary"],
                     "default": "none"
                 },
                 "body": {
                     "type": "string",
-                    "title": "请求体"
+                    "title": "Request Body"
                 },
                 "timeout_ms": {
                     "type": "integer",
-                    "title": "超时时间（毫秒）",
+                    "title": "Timeout (ms)",
                     "minimum": 1000,
                     "maximum": 300000,
                     "default": 30000

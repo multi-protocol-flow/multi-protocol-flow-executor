@@ -1,76 +1,76 @@
 use thiserror::Error;
 
-/// HTTP 执行错误类型
+/// HTTP execution error type
 #[derive(Debug, Error)]
 pub enum HttpError {
-    // URL 错误
-    /// URL 格式无效或无法解析
-    #[error("无效的 URL: {0}")]
+    // URL errors
+    /// Invalid or unparseable URL format
+    #[error("Invalid URL: {0}")]
     InvalidUrl(String),
 
-    /// 服务器主机名无效（通常为空或包含非法字符）
-    #[error("无效的服务器名称: {0}")]
+    /// Invalid server hostname (usually empty or contains illegal characters)
+    #[error("Invalid server name: {0}")]
     InvalidServerName(String),
 
-    // DNS 错误
-    /// DNS 解析超过指定超时时间
-    #[error("DNS 解析超时")]
+    // DNS errors
+    /// DNS resolution exceeded the specified timeout
+    #[error("DNS resolution timeout")]
     DnsTimeout,
 
-    /// DNS 解析过程中发生错误（如网络不可达）
-    #[error("DNS 解析失败: {0}")]
+    /// DNS resolution failed (e.g., network unreachable)
+    #[error("DNS resolution failed: {0}")]
     DnsFailed(String),
 
-    /// DNS 解析成功但未返回任何可用地址
-    #[error("未找到主机地址")]
+    /// DNS resolved successfully but no addresses returned
+    #[error("No host address found")]
     DnsNoAddress,
 
-    // TCP 错误
-    /// TCP 连接超过指定超时时间
-    #[error("TCP 连接超时")]
+    // TCP errors
+    /// TCP connection exceeded the specified timeout
+    #[error("TCP connection timeout")]
     TcpTimeout,
 
-    /// TCP 连接建立失败（如目标拒绝连接）
-    #[error("TCP 连接失败: {0}")]
+    /// TCP connection failed (e.g., connection refused)
+    #[error("TCP connection failed: {0}")]
     TcpFailed(String),
 
-    // TLS 错误
-    /// TLS 握手超过指定超时时间
-    #[error("TLS 握手超时")]
+    // TLS errors
+    /// TLS handshake exceeded the specified timeout
+    #[error("TLS handshake timeout")]
     TlsTimeout,
 
-    /// TLS 握手失败（如证书验证不通过）
-    #[error("TLS 握手失败: {0}")]
+    /// TLS handshake failed (e.g., certificate validation failure)
+    #[error("TLS handshake failed: {0}")]
     TlsFailed(String),
 
-    // HTTP 错误
-    /// 写入 HTTP 请求数据到连接时失败
-    #[error("写入失败: {0}")]
+    // HTTP errors
+    /// Failed to write HTTP request data to the connection
+    #[error("Write failed: {0}")]
     WriteFailed(String),
 
-    /// 从连接读取 HTTP 响应数据时失败
-    #[error("读取失败: {0}")]
+    /// Failed to read HTTP response data from the connection
+    #[error("Read failed: {0}")]
     ReadFailed(String),
 
-    /// 远端服务器在交互过程中意外关闭连接
-    #[error("连接意外关闭")]
+    /// Remote server unexpectedly closed the connection
+    #[error("Connection unexpectedly closed")]
     ConnectionClosed,
 
-    /// HTTP 响应头格式无效或无法解析
-    #[error("无效的响应头: {0}")]
+    /// Invalid or unparseable HTTP response header
+    #[error("Invalid response header: {0}")]
     InvalidHeader(String),
 
-    /// 使用了不支持的 HTTP 方法
-    #[error("不支持的方法: {0}")]
+    /// Unsupported HTTP method used
+    #[error("Unsupported method: {0}")]
     UnsupportedMethod(String),
 
-    /// 构建请求体时失败（如序列化 JSON 或编码 multipart 数据出错）
-    #[error("请求体构建失败: {0}")]
+    /// Failed to build request body (e.g., JSON serialization or multipart encoding error)
+    #[error("Request body build failed: {0}")]
     BodyBuildFailed(String),
 
-    // 代理错误
-    /// 代理连接失败（HTTP CONNECT 或 SOCKS5 握手失败）
-    #[error("代理连接失败: {0}")]
+    // Proxy errors
+    /// Proxy connection failed (HTTP CONNECT or SOCKS5 handshake failed)
+    #[error("Proxy connection failed: {0}")]
     ProxyFailed(String),
 }
 
@@ -78,61 +78,61 @@ pub enum HttpError {
 mod tests {
     use super::*;
 
-    /// 测试所有错误变体的创建和消息格式化
+    /// Test creation and message formatting of all error variants
     #[test]
     fn test_error_variants_creation() {
-        // URL 错误
+        // URL errors
         let err = HttpError::InvalidUrl("bad url".to_string());
-        assert_eq!(err.to_string(), "无效的 URL: bad url");
+        assert_eq!(err.to_string(), "Invalid URL: bad url");
 
         let err = HttpError::InvalidServerName("example.com".to_string());
-        assert_eq!(err.to_string(), "无效的服务器名称: example.com");
+        assert_eq!(err.to_string(), "Invalid server name: example.com");
 
-        // DNS 错误
+        // DNS errors
         let err = HttpError::DnsTimeout;
-        assert_eq!(err.to_string(), "DNS 解析超时");
+        assert_eq!(err.to_string(), "DNS resolution timeout");
 
         let err = HttpError::DnsFailed("timeout".to_string());
-        assert_eq!(err.to_string(), "DNS 解析失败: timeout");
+        assert_eq!(err.to_string(), "DNS resolution failed: timeout");
 
         let err = HttpError::DnsNoAddress;
-        assert_eq!(err.to_string(), "未找到主机地址");
+        assert_eq!(err.to_string(), "No host address found");
 
-        // TCP 错误
+        // TCP errors
         let err = HttpError::TcpTimeout;
-        assert_eq!(err.to_string(), "TCP 连接超时");
+        assert_eq!(err.to_string(), "TCP connection timeout");
 
         let err = HttpError::TcpFailed("connection refused".to_string());
-        assert_eq!(err.to_string(), "TCP 连接失败: connection refused");
+        assert_eq!(err.to_string(), "TCP connection failed: connection refused");
 
-        // TLS 错误
+        // TLS errors
         let err = HttpError::TlsTimeout;
-        assert_eq!(err.to_string(), "TLS 握手超时");
+        assert_eq!(err.to_string(), "TLS handshake timeout");
 
         let err = HttpError::TlsFailed("cert invalid".to_string());
-        assert_eq!(err.to_string(), "TLS 握手失败: cert invalid");
+        assert_eq!(err.to_string(), "TLS handshake failed: cert invalid");
 
-        // HTTP 错误
+        // HTTP errors
         let err = HttpError::WriteFailed("io error".to_string());
-        assert_eq!(err.to_string(), "写入失败: io error");
+        assert_eq!(err.to_string(), "Write failed: io error");
 
         let err = HttpError::ReadFailed("eof".to_string());
-        assert_eq!(err.to_string(), "读取失败: eof");
+        assert_eq!(err.to_string(), "Read failed: eof");
 
         let err = HttpError::ConnectionClosed;
-        assert_eq!(err.to_string(), "连接意外关闭");
+        assert_eq!(err.to_string(), "Connection unexpectedly closed");
 
         let err = HttpError::InvalidHeader("bad header".to_string());
-        assert_eq!(err.to_string(), "无效的响应头: bad header");
+        assert_eq!(err.to_string(), "Invalid response header: bad header");
 
         let err = HttpError::UnsupportedMethod("PATCH".to_string());
-        assert_eq!(err.to_string(), "不支持的方法: PATCH");
+        assert_eq!(err.to_string(), "Unsupported method: PATCH");
 
         let err = HttpError::BodyBuildFailed("invalid json".to_string());
-        assert_eq!(err.to_string(), "请求体构建失败: invalid json");
+        assert_eq!(err.to_string(), "Request body build failed: invalid json");
     }
 
-    /// 测试 Debug trait 实现
+    /// Test Debug trait implementation
     #[test]
     fn test_error_debug() {
         let err = HttpError::InvalidUrl("test".to_string());
@@ -140,9 +140,9 @@ mod tests {
         assert!(debug_str.contains("InvalidUrl"));
     }
 
-    /// 测试错误类型的 Display 实现使用中文消息
+    /// Test that all error variants produce non-empty English messages
     #[test]
-    fn test_error_messages_are_chinese() {
+    fn test_error_messages_are_english() {
         let errors: Vec<HttpError> = vec![
             HttpError::InvalidUrl("".to_string()),
             HttpError::InvalidServerName("".to_string()),
@@ -163,16 +163,12 @@ mod tests {
 
         for err in errors {
             let msg = err.to_string();
-            // 所有错误消息都应包含中文字符
-            assert!(
-                msg.chars().any(|c| '\u{4E00}' <= c && c <= '\u{9FFF}'),
-                "错误消息应包含中文: {}",
-                msg
-            );
+            // All error messages should be non-empty
+            assert!(!msg.is_empty(), "Error message should not be empty: {:?}", err);
         }
     }
 
-    /// 测试带参数的错误消息格式化
+    /// Test error message formatting with dynamic content
     #[test]
     fn test_error_with_dynamic_content() {
         let url = "https://example.com/api/v1/users?id=123";

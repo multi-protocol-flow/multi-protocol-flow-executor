@@ -185,36 +185,36 @@ fn build_custom_tls_config(options: &TlsOptions) -> Result<rustls::ClientConfig,
 
     if let Some(ca_path) = &options.ca_cert_path {
         let ca_bytes = std::fs::read(ca_path)
-            .map_err(|e| format!("读取 CA 证书失败 ({}): {}", ca_path, e))?;
+            .map_err(|e| format!("Failed to read CA certificate ({}): {}", ca_path, e))?;
         let mut cursor = std::io::Cursor::new(&ca_bytes[..]);
         let certs: Vec<_> = rustls_pemfile::certs(&mut cursor)
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| format!("解析 CA 证书 PEM 失败: {}", e))?;
+            .map_err(|e| format!("Failed to parse CA certificate PEM: {}", e))?;
         for cert in certs {
-            root_store.add(cert).map_err(|e| format!("添加 CA 证书失败: {}", e))?;
+            root_store.add(cert).map_err(|e| format!("Failed to add CA certificate: {}", e))?;
         }
     }
 
     let has_client_cert = options.client_cert_path.is_some() && options.client_key_path.is_some();
     if has_client_cert {
-        let cert_path = options.client_cert_path.as_ref().ok_or("客户端证书路径未设置")?;
-        let key_path = options.client_key_path.as_ref().ok_or("客户端私钥路径未设置")?;
+        let cert_path = options.client_cert_path.as_ref().ok_or("Client certificate path not set")?;
+        let key_path = options.client_key_path.as_ref().ok_or("Client private key path not set")?;
         let cert_bytes = std::fs::read(cert_path)
-            .map_err(|e| format!("读取客户端证书失败 ({}): {}", cert_path, e))?;
+            .map_err(|e| format!("Failed to read client certificate ({}): {}", cert_path, e))?;
         let mut cert_cursor = std::io::Cursor::new(&cert_bytes[..]);
         let client_certs: Vec<_> = rustls_pemfile::certs(&mut cert_cursor)
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| format!("解析客户端证书 PEM 失败: {}", e))?;
+            .map_err(|e| format!("Failed to parse client certificate PEM: {}", e))?;
         let key_bytes = std::fs::read(key_path)
-            .map_err(|e| format!("读取客户端私钥失败 ({}): {}", key_path, e))?;
+            .map_err(|e| format!("Failed to read client private key ({}): {}", key_path, e))?;
         let mut key_cursor = std::io::Cursor::new(&key_bytes[..]);
         let client_key = rustls_pemfile::private_key(&mut key_cursor)
-            .map_err(|e| format!("解析客户端私钥 PEM 失败: {}", e))?
-            .ok_or_else(|| "客户端私钥文件为空".to_string())?;
+            .map_err(|e| format!("Failed to parse client private key PEM: {}", e))?
+            .ok_or_else(|| "Client private key file is empty".to_string())?;
         let config = rustls::ClientConfig::builder()
             .with_root_certificates(root_store)
             .with_client_auth_cert(client_certs, client_key)
-            .map_err(|e| format!("配置客户端证书失败: {}", e))?;
+            .map_err(|e| format!("Failed to configure client certificate: {}", e))?;
         Ok(config)
     } else {
         let config = rustls::ClientConfig::builder()
@@ -282,7 +282,7 @@ impl Service<Uri> for TimingConnector {
             // 提取主机和端口
             let host = uri
                 .host()
-                .ok_or_else(|| HttpError::InvalidUrl("缺少主机名".into()))?
+                .ok_or_else(|| HttpError::InvalidUrl("Missing hostname".into()))?
                 .to_string();
 
             let port = uri.port_u16().unwrap_or(
@@ -292,7 +292,7 @@ impl Service<Uri> for TimingConnector {
             let is_https = uri.scheme_str() == Some("https");
 
             log::debug!(
-                "开始建立连接: {}://{}:{}{}",
+                "Starting connection: {}://{}:{}{}",
                 if is_https { "https" } else { "http" },
                 host,
                 port,
@@ -323,17 +323,17 @@ impl Service<Uri> for TimingConnector {
                 {
                     let mut timing = timing
                         .lock()
-                        .map_err(|_| HttpError::DnsFailed("计时锁获取失败".into()))?;
+                        .map_err(|_| HttpError::DnsFailed("Failed to acquire timing lock".into()))?;
                     timing.mark_dns_resolved();
                 }
-                log::debug!("DNS 解析完成，共 {} 个地址: {:?}", addrs.len(), addrs);
+                log::debug!("DNS resolution complete, {} addresses: {:?}", addrs.len(), addrs);
 
                 // 直连：TCP 连接 — 依次尝试所有地址
                 let stream = {
                     let mut last_err = None;
                     let mut connected = None;
                     for addr in &addrs {
-                        log::debug!("尝试连接: {}", addr);
+                        log::debug!("Trying connection: {}", addr);
                         match tokio::time::timeout(
                             std::time::Duration::from_millis(timeout_ms),
                             TcpStream::connect(addr),
@@ -345,14 +345,14 @@ impl Service<Uri> for TimingConnector {
                                 break;
                             }
                             Ok(Err(e)) => {
-                                log::debug!("连接 {} 失败: {}", addr, e);
+                                log::debug!("Connection {} failed: {}", addr, e);
                                 last_err = Some(e);
                             }
                             Err(_) => {
-                                log::debug!("连接 {} 超时", addr);
+                                log::debug!("Connection {} timed out", addr);
                                 last_err = Some(std::io::Error::new(
                                     std::io::ErrorKind::TimedOut,
-                                    format!("连接 {} 超时", addr),
+                                    format!("Connection {} timed out", addr),
                                 ));
                             }
                         }
@@ -360,7 +360,7 @@ impl Service<Uri> for TimingConnector {
                     connected.ok_or_else(|| {
                         let msg = last_err
                             .map(|e| e.to_string())
-                            .unwrap_or_else(|| "所有地址连接失败".to_string());
+                            .unwrap_or_else(|| "All addresses failed to connect".to_string());
                         HttpError::TcpFailed(msg)
                     })?
                 };
@@ -371,10 +371,10 @@ impl Service<Uri> for TimingConnector {
             {
                 let mut timing = timing
                     .lock()
-                    .map_err(|_| HttpError::TcpFailed("计时锁获取失败".into()))?;
+                    .map_err(|_| HttpError::TcpFailed("Failed to acquire timing lock".into()))?;
                 timing.mark_tcp_connected();
             }
-            log::debug!("TCP 连接完成");
+            log::debug!("TCP connection established");
 
             // TLS 握手（HTTPS）
             if is_https {
@@ -405,11 +405,11 @@ impl Service<Uri> for TimingConnector {
                 {
                     let mut timing = timing
                         .lock()
-                        .map_err(|_| HttpError::TlsFailed("计时锁获取失败".into()))?;
+                        .map_err(|_| HttpError::TlsFailed("Failed to acquire timing lock".into()))?;
                     timing.mark_tls_handshaked();
                 }
                 log::debug!(
-                    "TLS 握手完成, ALPN: {:?}",
+                    "TLS handshake complete, ALPN: {:?}",
                     alpn.map(|b| String::from_utf8_lossy(b).to_string())
                 );
 
@@ -484,7 +484,7 @@ impl HttpConnector {
         let parsed = url::Url::parse(url).map_err(|e| HttpError::InvalidUrl(e.to_string()))?;
         let host = parsed
             .host_str()
-            .ok_or_else(|| HttpError::InvalidUrl("缺少主机名".into()))?
+            .ok_or_else(|| HttpError::InvalidUrl("Missing hostname".into()))?
             .to_string();
         let port = parsed.port().unwrap_or(if parsed.scheme() == "https" {
             443
@@ -494,7 +494,7 @@ impl HttpConnector {
         let is_https = parsed.scheme() == "https";
 
         log::debug!(
-            "开始建立连接: {}://{}:{}",
+            "Starting connection: {}://{}:{}",
             if is_https { "https" } else { "http" },
             host,
             port
@@ -515,14 +515,14 @@ impl HttpConnector {
         }
 
         timing.mark_dns_resolved();
-        log::debug!("DNS 解析完成，共 {} 个地址: {:?}", addrs.len(), addrs);
+        log::debug!("DNS resolution complete, {} addresses: {:?}", addrs.len(), addrs);
 
         // 3. TCP 连接 — 依次尝试所有解析地址
         let tcp_stream = {
             let mut last_err = None;
             let mut connected = None;
             for addr in &addrs {
-                log::debug!("尝试连接: {}", addr);
+                log::debug!("Trying connection: {}", addr);
                 match tokio::time::timeout(
                     std::time::Duration::from_millis(self.timeout_ms),
                     TcpStream::connect(addr),
@@ -534,14 +534,14 @@ impl HttpConnector {
                         break;
                     }
                     Ok(Err(e)) => {
-                        log::debug!("连接 {} 失败: {}", addr, e);
+                        log::debug!("Connection {} failed: {}", addr, e);
                         last_err = Some(e);
                     }
                     Err(_) => {
-                        log::debug!("连接 {} 超时", addr);
+                        log::debug!("Connection {} timed out", addr);
                         last_err = Some(std::io::Error::new(
                             std::io::ErrorKind::TimedOut,
-                            format!("连接 {} 超时", addr),
+                            format!("Connection {} timed out", addr),
                         ));
                     }
                 }
@@ -549,13 +549,13 @@ impl HttpConnector {
             connected.ok_or_else(|| {
                 let msg = last_err
                     .map(|e| e.to_string())
-                    .unwrap_or_else(|| "所有地址连接失败".to_string());
+                    .unwrap_or_else(|| "All addresses failed to connect".to_string());
                 HttpError::TcpFailed(msg)
             })?
         };
 
         timing.mark_tcp_connected();
-        log::debug!("TCP 连接完成");
+        log::debug!("TCP connection established");
 
         // 4. TLS 握手（HTTPS）
         if is_https {
@@ -579,7 +579,7 @@ impl HttpConnector {
             .map_err(|e| HttpError::TlsFailed(e.to_string()))?;
 
             timing.mark_tls_handshaked();
-            log::debug!("TLS 握手完成");
+            log::debug!("TLS handshake complete");
 
             Ok(LegacyConnection::Https(Box::new(tls_stream)))
         } else {

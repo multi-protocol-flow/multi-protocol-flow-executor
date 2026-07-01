@@ -27,18 +27,18 @@ pub fn build_connect_request(host: &str, port: u16, auth_header: Option<&str>) -
 /// 解析 CONNECT 代理响应
 pub fn parse_connect_response(response_bytes: &[u8]) -> Result<(), String> {
     let response_str = std::str::from_utf8(response_bytes)
-        .map_err(|e| format!("代理响应非 UTF-8: {}", e))?;
+        .map_err(|e| format!("Proxy response is not UTF-8: {}", e))?;
 
     let first_line = response_str
         .lines()
         .next()
-        .ok_or_else(|| "代理响应为空".to_string())?;
+        .ok_or_else(|| "Proxy response is empty".to_string())?;
 
-    // 检查 "HTTP/1.x 200" 响应
+    // Check for "HTTP/1.x 200" response
     if first_line.contains("200") {
         Ok(())
     } else {
-        Err(format!("代理连接失败: {}", first_line))
+        Err(format!("Proxy connection failed: {}", first_line))
     }
 }
 
@@ -70,7 +70,7 @@ pub async fn connect_via_proxy(
     timeout_ms: u64,
 ) -> Result<TcpStream, String> {
     match proxy_state.mode {
-        ProxyMode::Clear => Err("代理模式为 Clear，不应调用 connect_via_proxy".to_string()),
+        ProxyMode::Clear => Err("Proxy mode is Clear, connect_via_proxy should not be called".to_string()),
         ProxyMode::Http => {
             connect_via_http_proxy(proxy_state, target_host, target_port, timeout_ms).await
         }
@@ -96,10 +96,10 @@ async fn connect_via_http_proxy(
     let proxy_addr = format!("{}:{}", proxy_state.host, proxy_state.port);
 
     log::debug!(
-        "通过 HTTP 代理 {} 连接到 {}:{}",
-        proxy_addr,
+        "Connecting to {}:{} via HTTP proxy {}",
         target_host,
-        target_port
+        target_port,
+        proxy_addr
     );
 
     // TCP 连接到代理服务器
@@ -108,8 +108,8 @@ async fn connect_via_http_proxy(
         TcpStream::connect(&proxy_addr),
     )
     .await
-    .map_err(|_| format!("连接 HTTP 代理超时 ({}ms): {}", timeout_ms, proxy_addr))?
-    .map_err(|e| format!("连接 HTTP 代理失败 ({}): {}", proxy_addr, e))?;
+    .map_err(|_| format!("HTTP proxy connection timeout ({}ms): {}", timeout_ms, proxy_addr))?
+    .map_err(|e| format!("HTTP proxy connection failed ({}): {}", proxy_addr, e))?;
 
     // 构造认证头
     let auth_header = match (&proxy_state.username, &proxy_state.password) {
@@ -127,29 +127,29 @@ async fn connect_via_http_proxy(
     stream
         .write_all(&connect_req)
         .await
-        .map_err(|e| format!("发送 CONNECT 请求失败: {}", e))?;
+        .map_err(|e| format!("Failed to send CONNECT request: {}", e))?;
     stream
         .flush()
         .await
-        .map_err(|e| format!("刷新 CONNECT 请求失败: {}", e))?;
+        .map_err(|e| format!("Failed to flush CONNECT request: {}", e))?;
 
     // 读取代理响应（读到 \r\n\r\n 为止）
     let mut response_buf = vec![0u8; 4096];
     let mut total_read = 0usize;
     loop {
         if total_read >= response_buf.len() {
-            return Err("代理响应过大，超出缓冲区".to_string());
+            return Err("Proxy response too large, exceeded buffer".to_string());
         }
         let n = tokio::time::timeout(
             std::time::Duration::from_millis(timeout_ms),
             stream.read(&mut response_buf[total_read..]),
         )
         .await
-        .map_err(|_| "读取代理响应超时".to_string())?
-        .map_err(|e| format!("读取代理响应失败: {}", e))?;
+        .map_err(|_| "Proxy response read timeout".to_string())?
+        .map_err(|e| format!("Failed to read proxy response: {}", e))?;
 
         if n == 0 {
-            return Err("代理关闭连接，未返回响应".to_string());
+            return Err("Proxy closed connection, no response received".to_string());
         }
 
         total_read += n;
@@ -165,7 +165,7 @@ async fn connect_via_http_proxy(
     parse_connect_response(&response_buf[..total_read])?;
 
     log::debug!(
-        "HTTP 代理 CONNECT 隧道建立成功: {}:{} via {}",
+        "HTTP proxy CONNECT tunnel established: {}:{} via {}",
         target_host,
         target_port,
         proxy_addr
@@ -187,10 +187,10 @@ async fn connect_via_socks5_proxy(
     let proxy_addr = format!("{}:{}", proxy_state.host, proxy_state.port);
 
     log::debug!(
-        "通过 SOCKS5 代理 {} 连接到 {}:{}",
-        proxy_addr,
+        "Connecting to {}:{} via SOCKS5 proxy {}",
         target_host,
-        target_port
+        target_port,
+        proxy_addr
     );
 
     let socks5_stream = tokio::time::timeout(
@@ -200,19 +200,19 @@ async fn connect_via_socks5_proxy(
     .await
     .map_err(|_| {
         format!(
-            "SOCKS5 代理连接超时 ({}ms): {}",
+            "SOCKS5 proxy connection timeout ({}ms): {}",
             timeout_ms, proxy_addr
         )
     })?
     .map_err(|e| {
         format!(
-            "SOCKS5 代理连接失败 ({} -> {}:{}): {}",
+            "SOCKS5 proxy connection failed ({} -> {}:{}): {}",
             proxy_addr, target_host, target_port, e
         )
     })?;
 
     log::debug!(
-        "SOCKS5 代理隧道建立成功: {}:{} via {}",
+        "SOCKS5 proxy tunnel established: {}:{} via {}",
         target_host,
         target_port,
         proxy_addr
@@ -237,7 +237,7 @@ async fn connect_socks5(
                 pass,
             )
             .await
-            .map_err(|e| format!("SOCKS5 认证连接失败: {}", e))?;
+            .map_err(|e| format!("SOCKS5 authenticated connection failed: {}", e))?;
             Ok(output.into_inner())
         }
         _ => {
@@ -247,7 +247,7 @@ async fn connect_socks5(
                 (target_host, target_port),
             )
             .await
-            .map_err(|e| format!("SOCKS5 连接失败: {}", e))?;
+            .map_err(|e| format!("SOCKS5 connection failed: {}", e))?;
             Ok(output.into_inner())
         }
     }

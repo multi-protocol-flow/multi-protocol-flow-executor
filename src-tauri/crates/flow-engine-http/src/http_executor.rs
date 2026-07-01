@@ -60,41 +60,41 @@ impl NodeExecutor for HttpNodeExecutor {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         // 执行前日志
         let start_time = Instant::now();
-        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: http", context.flow_uuid, node.uuid, node.name);
+        log::info!("[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: http", context.flow_uuid, node.uuid, node.name);
 
-        // 发送执行开始日志到前端
+        // Send execution start log to frontend
         context.emit_log(LogEvent {
             level: LogLevel::Info,
-            message: format!("HTTP 节点 {} 开始执行", node.name),
+            message: format!("HTTP node {} execution started", node.name),
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("system time error")
                 .as_millis() as u64,
             node_uuid: Some(node.uuid.clone()),
             node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone(),
         }).await;
-        // 从Node的data字段提取HttpConfig
+        // Extract HttpConfig from Node's data field
         let http_config = match &node.data {
             flow_engine_core::node_config::NodeData::Http(config) => config.clone(),
             _ => {
-                let error_msg = format!("节点数据类型不是HttpConfig: {}", node.uuid);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                let error_msg = format!("Node data type is not HttpConfig: {}", node.uuid);
+                log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                 return Err(error_msg);
             }
         };
 
-        // 使用replace_variables替换URL
+        // Replace variables in URL
         let mut url = flow_engine_core::executor::replace_variables(&http_config.url, context)
             .map_err(|e| {
-                let error_msg = format!("URL变量替换失败: {}", e);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                let error_msg = format!("URL variable replacement failed: {}", e);
+                log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                 error_msg
             })?;
 
-        // HTTP请求日志
+        // HTTP request log
         let method_str = format!("{:?}", http_config.method).to_uppercase();
-        log::info!("[流程 {}] [HTTP请求] URL: {}, 方法: {}", context.flow_uuid, url, method_str);
+        log::info!("[Flow {}] [HTTP Request] URL: {}, Method: {}", context.flow_uuid, url, method_str);
 
         // 发送HTTP请求日志到前端
         context.emit_log(LogEvent {
@@ -102,7 +102,7 @@ impl NodeExecutor for HttpNodeExecutor {
             message: format!("HTTP {} {}", method_str, url),
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("system time error")
                 .as_millis() as u64,
             node_uuid: Some(node.uuid.clone()),
             node_name: Some(node.name.clone()),
@@ -196,18 +196,18 @@ impl NodeExecutor for HttpNodeExecutor {
         let mut headers: HashMap<String, String> = HashMap::new();
         if let Some(config_headers) = &http_config.headers {
             for (key, value) in config_headers {
-                // 替换 header key 中的变量
+                // Replace variables in header key
                 let replaced_key = flow_engine_core::executor::replace_variables(key, context)
                     .map_err(|e| {
-                        let error_msg = format!("请求头 key 变量替换失败 ({}): {}", key, e);
-                        log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                        let error_msg = format!("Request header key variable replacement failed ({}): {}", key, e);
+                        log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                         error_msg
                     })?;
-                // 替换 header value 中的变量
+                // Replace variables in header value
                 let replaced_value = flow_engine_core::executor::replace_variables(value, context)
                     .map_err(|e| {
-                        let error_msg = format!("请求头 value 变量替换失败 ({}): {}", key, e);
-                        log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                        let error_msg = format!("Request header value variable replacement failed ({}): {}", key, e);
+                        log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                         error_msg
                     })?;
                 headers.insert(replaced_key.clone(), replaced_value.clone());
@@ -222,9 +222,9 @@ impl NodeExecutor for HttpNodeExecutor {
                 flow_engine_core::node_config::HttpAuthType::Basic => {
                     if let (Some(username), Some(password)) = (&auth.username, &auth.password) {
                         let replaced_user = flow_engine_core::executor::replace_variables(username, context)
-                            .map_err(|e| format!("认证用户名变量替换失败: {}", e))?;
+                            .map_err(|e| format!("Auth username variable replacement failed: {}", e))?;
                         let replaced_pass = flow_engine_core::executor::replace_variables(password, context)
-                            .map_err(|e| format!("认证密码变量替换失败: {}", e))?;
+                            .map_err(|e| format!("Auth password variable replacement failed: {}", e))?;
                         let credentials = base64::engine::general_purpose::STANDARD
                             .encode(format!("{}:{}", replaced_user, replaced_pass));
                         headers.insert("Authorization".to_string(), format!("Basic {}", credentials));
@@ -234,7 +234,7 @@ impl NodeExecutor for HttpNodeExecutor {
                 flow_engine_core::node_config::HttpAuthType::Bearer => {
                     if let Some(token) = &auth.token {
                         let replaced = flow_engine_core::executor::replace_variables(token, context)
-                            .map_err(|e| format!("Bearer Token 变量替换失败: {}", e))?;
+                            .map_err(|e| format!("Bearer Token variable replacement failed: {}", e))?;
                         headers.insert("Authorization".to_string(), format!("Bearer {}", replaced));
                         sent_headers.insert("Authorization".to_string(), "[Bearer Token]".to_string());
                     }
@@ -242,9 +242,9 @@ impl NodeExecutor for HttpNodeExecutor {
                 flow_engine_core::node_config::HttpAuthType::ApiKeyHeader => {
                     if let (Some(name), Some(value)) = (&auth.api_key_name, &auth.api_key_value) {
                         let rn = flow_engine_core::executor::replace_variables(name, context)
-                            .map_err(|e| format!("API Key 名称变量替换失败: {}", e))?;
+                            .map_err(|e| format!("API Key name variable replacement failed: {}", e))?;
                         let rv = flow_engine_core::executor::replace_variables(value, context)
-                            .map_err(|e| format!("API Key 值变量替换失败: {}", e))?;
+                            .map_err(|e| format!("API Key value variable replacement failed: {}", e))?;
                         headers.insert(rn.clone(), rv);
                         sent_headers.insert(rn, "[API Key]".to_string());
                     }
@@ -252,15 +252,15 @@ impl NodeExecutor for HttpNodeExecutor {
                 flow_engine_core::node_config::HttpAuthType::ApiKeyQuery => {
                     if let (Some(name), Some(value)) = (&auth.api_key_name, &auth.api_key_value) {
                         let rn = flow_engine_core::executor::replace_variables(name, context)
-                            .map_err(|e| format!("API Key 名称变量替换失败: {}", e))?;
+                            .map_err(|e| format!("API Key name variable replacement failed: {}", e))?;
                         let rv = flow_engine_core::executor::replace_variables(value, context)
-                            .map_err(|e| format!("API Key 值变量替换失败: {}", e))?;
+                            .map_err(|e| format!("API Key value variable replacement failed: {}", e))?;
                         let sep = if url.contains('?') { "&" } else { "?" };
                         url = format!("{}{}{}={}", url, sep, rn, rv);
                     }
                 }
                 flow_engine_core::node_config::HttpAuthType::Digest => {
-                    log::warn!("[流程 {}] [HTTP] Digest 认证暂不支持", context.flow_uuid);
+                    log::warn!("[Flow {}] [HTTP] Digest authentication is not supported yet", context.flow_uuid);
                 }
             }
         }
@@ -281,15 +281,15 @@ impl NodeExecutor for HttpNodeExecutor {
         // 构建请求体
         let body: BodyType = match http_config.body_type {
             flow_engine_core::node_config::HttpBodyType::None => {
-                log::info!("[流程 {}] [HTTP] body_type=none, 不添加请求体", context.flow_uuid);
+                log::info!("[Flow {}] [HTTP] body_type=none, no request body added", context.flow_uuid);
                 BodyType::None
             }
             flow_engine_core::node_config::HttpBodyType::Body => {
                 if let Some(body_content) = &http_config.body {
                     let replaced_body = flow_engine_core::executor::replace_variables(body_content, context)
                         .map_err(|e| {
-                            let error_msg = format!("请求体变量替换失败: {}", e);
-                            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", 
+                            let error_msg = format!("Request body variable replacement failed: {}", e);
+                            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", 
                                 context.flow_uuid, node.uuid, node.name, error_msg);
                             error_msg
                         })?;
@@ -299,15 +299,15 @@ impl NodeExecutor for HttpNodeExecutor {
                         let content_type_str = content_type_to_string(&http_config.content_type);
                         headers.insert("Content-Type".to_string(), content_type_str.to_string());
                         sent_headers.insert("Content-Type".to_string(), content_type_str.to_string());
-                        log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: {}", 
+                        log::info!("[Flow {}] [HTTP] Auto-set Content-Type: {}", 
                             context.flow_uuid, content_type_str);
                     }
                     
                     request_body_json = Some(replaced_body.clone().into());
-                    log::info!("[流程 {}] [HTTP] body_type=body, 请求体已添加", context.flow_uuid);
+                    log::info!("[Flow {}] [HTTP] body_type=body, request body added", context.flow_uuid);
                     BodyType::raw(replaced_body.into_bytes())
                 } else {
-                    log::info!("[流程 {}] [HTTP] body_type=body, 但 body 字段为空，跳过", context.flow_uuid);
+                    log::info!("[Flow {}] [HTTP] body_type=body, but body field is empty, skipping", context.flow_uuid);
                     BodyType::None
                 }
             }
@@ -321,9 +321,9 @@ impl NodeExecutor for HttpNodeExecutor {
                         match field.field_type {
                             flow_engine_core::node_config::FormFieldType::Text => {
                                 let replaced_key = flow_engine_core::executor::replace_variables(&field.key, context)
-                                    .map_err(|e| format!("表单字段 key 变量替换失败: {}", e))?;
+                                    .map_err(|e| format!("Form field key variable replacement failed: {}", e))?;
                                 let replaced_value = flow_engine_core::executor::replace_variables(&field.value, context)
-                                    .map_err(|e| format!("表单字段 value 变量替换失败: {}", e))?;
+                                    .map_err(|e| format!("Form field value variable replacement failed: {}", e))?;
                                 
                                 multipart = multipart.text(replaced_key, replaced_value);
                                 text_field_count += 1;
@@ -331,16 +331,16 @@ impl NodeExecutor for HttpNodeExecutor {
                             flow_engine_core::node_config::FormFieldType::File => {
                                 if let Some(file_path) = &field.file_path {
                                     let replaced_path = flow_engine_core::executor::replace_variables(file_path, context)
-                                        .map_err(|e| format!("文件路径变量替换失败: {}", e))?;
+                                        .map_err(|e| format!("File path variable replacement failed: {}", e))?;
                                     
                                     let resolved_path = context.resolve_file_path(&replaced_path);
                                     
-                                    log::info!("[流程 {}] [HTTP] 读取表单文件: {:?}", context.flow_uuid, resolved_path);
+                                    log::info!("[Flow {}] [HTTP] Reading form file: {:?}", context.flow_uuid, resolved_path);
                                     
                                     let file_content = tokio::fs::read(&resolved_path).await
                                         .map_err(|e| {
-                                            let error_msg = format!("读取文件失败 ({}): {}", resolved_path.display(), e);
-                                            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", 
+                                            let error_msg = format!("Failed to read file ({}): {}", resolved_path.display(), e);
+                                            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", 
                                                 context.flow_uuid, node.uuid, node.name, error_msg);
                                             error_msg
                                         })?;
@@ -354,7 +354,7 @@ impl NodeExecutor for HttpNodeExecutor {
                                         .unwrap_or("upload");
                                     
                                     let replaced_key = flow_engine_core::executor::replace_variables(&field.key, context)
-                                        .map_err(|e| format!("表单字段 key 变量替换失败: {}", e))?;
+                                        .map_err(|e| format!("Form field key variable replacement failed: {}", e))?;
                                     
                                     multipart = multipart.file(
                                         replaced_key,
@@ -364,7 +364,7 @@ impl NodeExecutor for HttpNodeExecutor {
                                     );
                                     file_field_count += 1;
                                 } else {
-                                    log::warn!("[流程 {}] [HTTP] 文件字段 '{}' 缺少 file_path，跳过", 
+                                    log::warn!("[Flow {}] [HTTP] File field '{}' has no file_path, skipping", 
                                         context.flow_uuid, field.key);
                                 }
                             }
@@ -373,7 +373,7 @@ impl NodeExecutor for HttpNodeExecutor {
                     
                     if !user_set_content_type {
                         sent_headers.insert("Content-Type".to_string(), "multipart/form-data (boundary auto-generated)".to_string());
-                        log::info!("[流程 {}] [HTTP] 将自动设置 Content-Type: multipart/form-data", context.flow_uuid);
+                        log::info!("[Flow {}] [HTTP] Will auto-set Content-Type: multipart/form-data", context.flow_uuid);
                     }
                     
                     // 记录 form-data 字段元数据
@@ -400,11 +400,11 @@ impl NodeExecutor for HttpNodeExecutor {
                         "fields": fields_metadata
                     }));
                     
-                    log::info!("[流程 {}] [HTTP] body_type=form-data, {} 个文本字段, {} 个文件字段", 
+                    log::info!("[Flow {}] [HTTP] body_type=form-data, {} text fields, {} file fields", 
                         context.flow_uuid, text_field_count, file_field_count);
                     BodyType::multipart(multipart)
                 } else {
-                    log::warn!("[流程 {}] [HTTP] body_type=form-data, 但 form_fields 为空", context.flow_uuid);
+                    log::warn!("[Flow {}] [HTTP] body_type=form-data, but form_fields is empty", context.flow_uuid);
                     BodyType::None
                 }
             }
@@ -425,7 +425,7 @@ impl NodeExecutor for HttpNodeExecutor {
                     if !user_set_content_type {
                         headers.insert("Content-Type".to_string(), "application/x-www-form-urlencoded".to_string());
                         sent_headers.insert("Content-Type".to_string(), "application/x-www-form-urlencoded".to_string());
-                        log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: application/x-www-form-urlencoded", context.flow_uuid);
+                        log::info!("[Flow {}] [HTTP] Auto-set Content-Type: application/x-www-form-urlencoded", context.flow_uuid);
                     }
                     
                     let fields_metadata: Vec<serde_json::Value> = form_data.iter().map(|(k, v)| {
@@ -439,10 +439,10 @@ impl NodeExecutor for HttpNodeExecutor {
                         "fields": fields_metadata
                     }));
                     
-                    log::info!("[流程 {}] [HTTP] body_type=x-www-form-urlencoded, {} fields", context.flow_uuid, form_data.len());
+                    log::info!("[Flow {}] [HTTP] body_type=x-www-form-urlencoded, {} fields", context.flow_uuid, form_data.len());
                     BodyType::urlencoded(form_data)
                 } else {
-                    log::warn!("[流程 {}] [HTTP] body_type=x-www-form-urlencoded, but form_fields is empty", context.flow_uuid);
+                    log::warn!("[Flow {}] [HTTP] body_type=x-www-form-urlencoded, but form_fields is empty", context.flow_uuid);
                     BodyType::None
                 }
             }
@@ -450,27 +450,27 @@ impl NodeExecutor for HttpNodeExecutor {
                 if let Some(file_path) = &http_config.file_path {
                     let resolved_path = context.resolve_file_path(file_path);
                     
-                    log::info!("[流程 {}] [HTTP] body_type=binary, 读取文件: {:?}", context.flow_uuid, resolved_path);
+                    log::info!("[Flow {}] [HTTP] body_type=binary, reading file: {:?}", context.flow_uuid, resolved_path);
                     
                     let file_content = match tokio::fs::read(&resolved_path).await {
                         Ok(content) => content,
                         Err(e) => {
-                            let error_msg = format!("读取文件失败 ({}): {}", resolved_path.display(), e);
-                            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", 
+                            let error_msg = format!("Failed to read file ({}): {}", resolved_path.display(), e);
+                            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", 
                                 context.flow_uuid, node.uuid, node.name, error_msg);
                             return Err(error_msg);
                         }
                     };
                     
                     if file_content.len() > 10 * 1024 * 1024 {
-                        log::warn!("[流程 {}] [HTTP] 文件较大 ({} bytes), 可能占用较多内存", 
+                        log::warn!("[Flow {}] [HTTP] Large file ({} bytes), may use significant memory", 
                             context.flow_uuid, file_content.len());
                     }
                     
                     if !user_set_content_type {
                         headers.insert("Content-Type".to_string(), "application/octet-stream".to_string());
                         sent_headers.insert("Content-Type".to_string(), "application/octet-stream".to_string());
-                        log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: application/octet-stream", context.flow_uuid);
+                        log::info!("[Flow {}] [HTTP] Auto-set Content-Type: application/octet-stream", context.flow_uuid);
                     }
                     
                     let file_size = file_content.len();
@@ -479,11 +479,11 @@ impl NodeExecutor for HttpNodeExecutor {
                         "path": file_path,
                         "size": file_size
                     }));
-                    log::info!("[流程 {}] [HTTP] body_type=binary, 文件大小: {} bytes", context.flow_uuid, file_size);
+                    log::info!("[Flow {}] [HTTP] body_type=binary, file size: {} bytes", context.flow_uuid, file_size);
                     BodyType::raw(file_content)
                 } else {
-                    let error_msg = "body_type=binary 但 file_path 为空".to_string();
-                    log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", 
+                    let error_msg = "body_type=binary but file_path is empty".to_string();
+                    log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", 
                         context.flow_uuid, node.uuid, node.name, error_msg);
                     return Err(error_msg);
                 }
@@ -533,7 +533,7 @@ impl NodeExecutor for HttpNodeExecutor {
                     let status = res.response.status;
                     if retry_statuses.contains(&status) && actual_retry_count < retry_max {
                         actual_retry_count += 1;
-                        log::info!("[流程 {}] [HTTP] 重试 {}/{}, 状态码: {}",
+                        log::info!("[Flow {}] [HTTP] Retry {}/{}, status code: {}",
                             context.flow_uuid, actual_retry_count, retry_max, status);
                         if retry_delay > 0 {
                             tokio::time::sleep(std::time::Duration::from_millis(retry_delay)).await;
@@ -545,26 +545,26 @@ impl NodeExecutor for HttpNodeExecutor {
                 Ok(Err(e)) => {
                     if actual_retry_count < retry_max {
                         actual_retry_count += 1;
-                        log::info!("[流程 {}] [HTTP] 网络错误重试 {}/{}: {}",
+                        log::info!("[Flow {}] [HTTP] Network error retry {}/{}: {}",
                             context.flow_uuid, actual_retry_count, retry_max, e);
                         if retry_delay > 0 {
                             tokio::time::sleep(std::time::Duration::from_millis(retry_delay)).await;
                         }
                         continue;
                     }
-                    break Err(format!("HTTP请求失败: {}", e));
+                    break Err(format!("HTTP request failed: {}", e));
                 }
                 Err(_elapsed) => {
                     if actual_retry_count < retry_max {
                         actual_retry_count += 1;
-                        log::info!("[流程 {}] [HTTP] 超时重试 {}/{}",
+                        log::info!("[Flow {}] [HTTP] Timeout retry {}/{}",
                             context.flow_uuid, actual_retry_count, retry_max);
                         if retry_delay > 0 {
                             tokio::time::sleep(std::time::Duration::from_millis(retry_delay)).await;
                         }
                         continue;
                     }
-                    break Err(format!("HTTP请求超时 ({}ms)", timeout_ms));
+                    break Err(format!("HTTP request timeout ({}ms)", timeout_ms));
                 }
             }
         };
@@ -573,21 +573,21 @@ impl NodeExecutor for HttpNodeExecutor {
         let http_result = match http_result {
             Ok(res) => res,
             Err(error_msg) => {
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-                // 发送错误日志到前端
+                log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                // Send error log to frontend
                 context.emit_log(LogEvent {
                     level: LogLevel::Error,
                     message: error_msg.clone(),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间错误")
+                        .expect("system time error")
                         .as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
                 }).await;
                 
-                // 错误：构建失败输出，走 false 端口
+                // Error: build failure output, route to false port
                 let output_data = serde_json::json!({
                     "success": false,
                     "status": serde_json::Value::Null,
@@ -619,21 +619,21 @@ impl NodeExecutor for HttpNodeExecutor {
         let status_code = http_result.response.status;
         let http_duration_ms = http_start_time.elapsed().as_millis();
 
-        // HTTP响应日志
+        // HTTP response log
         log::info!(
-            "[流程 {}] [HTTP响应] 状态码: {}, 耗时: {}ms",
+            "[Flow {}] [HTTP Response] Status code: {}, Duration: {}ms",
             context.flow_uuid,
             status_code,
             http_duration_ms
         );
 
-        // 发送HTTP响应日志到前端
+        // Send HTTP response log to frontend
         context.emit_log(LogEvent {
             level: LogLevel::Info,
             message: format!("HTTP {} ({}ms)", status_code, http_duration_ms),
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("system time error")
                 .as_millis() as u64,
             node_uuid: Some(node.uuid.clone()),
             node_name: Some(node.name.clone()),
@@ -665,37 +665,37 @@ impl NodeExecutor for HttpNodeExecutor {
 
         // 获取响应体
         let body_text = String::from_utf8(http_result.response.body.clone())
-            .unwrap_or_else(|e| format!("无效的 UTF-8: {}", e));
+            .unwrap_or_else(|e| format!("Invalid UTF-8: {}", e));
 
-        // 解析响应体为JSON（如果Content-Type是application/json）
+        // Parse response body as JSON (if Content-Type is application/json)
         let body_json = if is_json {
             serde_json::from_str(&body_text)
                 .unwrap_or_else(|e| {
-                    log::warn!("[流程 {}] [警告] 节点ID: {}, 节点名称: {}, JSON解析失败: {}", context.flow_uuid, node.uuid, node.name, e);
+                    log::warn!("[Flow {}] [Warning] NodeID: {}, NodeName: {}, JSON parse failed: {}", context.flow_uuid, node.uuid, node.name, e);
                     serde_json::Value::String(body_text)
                 })
         } else {
             serde_json::Value::String(body_text)
         };
 
-        // 判断是否成功（2xx 状态码）
+        // Determine success (2xx status codes)
         let is_success = (200..300).contains(&status_code);
         let port_id = if is_success { "true" } else { "false" };
         
-        // 非2xx 状态码日志
+        // Non-2xx status code log
         if !is_success {
             let error_msg = format!(
-                "HTTP请求失败，状态码: {}",
+                "HTTP request failed, status code: {}",
                 status_code
             );
-            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-            // 发送HTTP状态码错误日志到前端
+            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+            // Send HTTP status code error log to frontend
             context.emit_log(LogEvent {
                 level: LogLevel::Error,
-                message: format!("HTTP 请求失败: {}", error_msg),
+                message: format!("HTTP request failed: {}", error_msg),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -725,19 +725,19 @@ impl NodeExecutor for HttpNodeExecutor {
             "timing": timing
         });
 
-        // 计算总执行时间
+        // Calculate total execution time
         let _duration_ms = start_time.elapsed().as_millis();
 
-        // 执行后日志
-        log::info!("[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 端口: {}", context.flow_uuid, node.uuid, _duration_ms, port_id);
+        // Post-execution log
+        log::info!("[Flow {}] [Complete] NodeUUID: {}, Duration: {}ms, Port: {}", context.flow_uuid, node.uuid, _duration_ms, port_id);
 
-        // 发送执行完成日志到前端
+        // Send execution completion log to frontend
         context.emit_log(LogEvent {
             level: LogLevel::Info,
-            message: format!("HTTP 节点 {} 完成 ({})", node.name, if is_success { "成功" } else { "失败" }),
+            message: format!("HTTP node {} completed ({})", node.name, if is_success { "Success" } else { "Failure" }),
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("system time error")
                 .as_millis() as u64,
             node_uuid: Some(node.uuid.clone()),
             node_name: Some(node.name.clone()),

@@ -117,7 +117,7 @@ impl HttpResponse {
     /// 解析响应体为 JSON
     pub fn body_json(&self) -> Result<serde_json::Value, serde_json::Error> {
         let text = self.body_text().map_err(|e| {
-            serde_json::from_str::<serde_json::Value>(&format!("无效的 UTF-8: {}", e))
+            serde_json::from_str::<serde_json::Value>(&format!("Invalid UTF-8: {}", e))
                 .unwrap_err()
         })?;
         serde_json::from_str(&text)
@@ -249,12 +249,12 @@ impl HttpClient {
 
             // 解析并规范化 URL（自动编码特殊字符）
             let parsed_url = url::Url::parse(&current_url)
-                .map_err(|e| HttpError::InvalidUrl(format!("无效的 URL: {}", e)))?;
+                .map_err(|e| HttpError::InvalidUrl(format!("Invalid URL: {}", e)))?;
             let normalized_url = parsed_url.to_string();
 
             let uri: http::Uri = normalized_url
                 .parse()
-                .map_err(|e| HttpError::InvalidUrl(format!("无效的 URI: {}", e)))?;
+                .map_err(|e| HttpError::InvalidUrl(format!("Invalid URI: {}", e)))?;
 
             let mut builder = Request::builder().method(method).uri(uri);
 
@@ -330,7 +330,7 @@ impl HttpClient {
                 }
             };
 
-            log::debug!("发送请求: {} {}", current_method, current_url);
+            log::debug!("Sending request: {} {}", current_method, current_url);
 
             // 发送请求
             let response = client.request(request).await.map_err(|e| {
@@ -357,7 +357,7 @@ impl HttpClient {
             {
                 let mut t = timing
                     .lock()
-                    .map_err(|_| HttpError::ReadFailed("计时锁获取失败".into()))?;
+                    .map_err(|_| HttpError::ReadFailed("Failed to acquire timing lock".into()))?;
                 t.mark_first_byte();
             }
 
@@ -369,7 +369,7 @@ impl HttpClient {
                 .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
                 .collect();
 
-            log::debug!("响应状态: {}", status);
+            log::debug!("Response status: {}", status);
 
             // 处理 Set-Cookie（所有响应包括重定向中间响应都捕获，记录来源域用于 domain 匹配）
             if let Some(ref jar) = self.cookie_jar {
@@ -389,7 +389,7 @@ impl HttpClient {
             {
                 let mut t = timing
                     .lock()
-                    .map_err(|_| HttpError::ReadFailed("计时锁获取失败".into()))?;
+                    .map_err(|_| HttpError::ReadFailed("Failed to acquire timing lock".into()))?;
                 t.mark_download_complete();
             }
 
@@ -408,13 +408,13 @@ impl HttpClient {
                         location.clone()
                     } else {
                         let base = url::Url::parse(&current_url)
-                            .map_err(|e| HttpError::InvalidUrl(format!("重定向 URL 解析失败: {}", e)))?;
+                            .map_err(|e| HttpError::InvalidUrl(format!("Redirect URL parse failed: {}", e)))?;
                         base.join(location)
                             .map(|u| u.to_string())
                             .unwrap_or_else(|_| location.clone())
                     };
 
-                    log::debug!("重定向 ({}) -> {}", status, resolved_url);
+                    log::debug!("Redirect ({}) -> {}", status, resolved_url);
 
                     redirect_history.push(RedirectEntry {
                         status,
@@ -442,18 +442,18 @@ impl HttpClient {
                 .map(|s| s.as_str());
             let body = decompress_body(&body_bytes, content_encoding);
 
-            log::debug!("响应体大小: {} bytes (解压后)", body.len());
+            log::debug!("Response body size: {} bytes (decompressed)", body.len());
 
             // 计算计时数据
             let timing_data = {
                 let t = timing
                     .lock()
-                    .map_err(|_| HttpError::ReadFailed("计时锁获取失败".into()))?;
+                    .map_err(|_| HttpError::ReadFailed("Failed to acquire timing lock".into()))?;
                 t.calculate()
             };
 
             log::debug!(
-                "计时: DNS={:?}ms, TCP={:?}ms, TLS={:?}ms, TTFB={:?}ms, Download={:?}ms",
+                "Timing: DNS={:?}ms, TCP={:?}ms, TLS={:?}ms, TTFB={:?}ms, Download={:?}ms",
                 timing_data.dns_ms,
                 timing_data.connect_ms,
                 timing_data.tls_ms,
@@ -535,7 +535,7 @@ impl LegacyHttpClient {
 
         let request_bytes = builder.build();
 
-        log::debug!("发送请求: {} {}", config.method, config.url);
+        log::debug!("Sending request: {} {}", config.method, config.url);
 
         // 3. 发送请求
         use tokio::io::AsyncWriteExt;
@@ -562,7 +562,7 @@ impl LegacyHttpClient {
             }
         }
 
-        log::debug!("请求已发送，等待响应...");
+        log::debug!("Request sent, waiting for response...");
 
         // 4. 读取响应
         let response = match &mut connection {
@@ -577,7 +577,7 @@ impl LegacyHttpClient {
         let timing_data = timing.calculate();
 
         log::debug!(
-            "响应接收完成: 状态 {}, 大小 {} bytes",
+            "Response received: Status {}, Size {} bytes",
             response.status,
             response.body.len()
         );
