@@ -1,6 +1,7 @@
 // Entry 节点执行器 - EntryNodeExecutor 实现
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
@@ -51,7 +52,7 @@ impl NodeExecutor for EntryNodeExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<Value>), String> {
+    ) -> Result<(Vec<String>, Option<Value>), ErrorDetail> {
         // 记录开始时间
         let start_time = tokio::time::Instant::now();
 

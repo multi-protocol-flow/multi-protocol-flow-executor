@@ -1,6 +1,7 @@
 // 条件分支节点插件 — NodePlugin 实现
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
@@ -144,7 +145,7 @@ impl NodePlugin for ConditionalPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let executor = crate::conditional_executor::ConditionalNodeExecutor::new();
         executor.execute(node, context, connections, node_map).await
     }

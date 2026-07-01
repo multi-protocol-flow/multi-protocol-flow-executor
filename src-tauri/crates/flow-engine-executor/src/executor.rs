@@ -3,7 +3,7 @@
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::{ExecutionContext, VariableStorage};
 use flow_engine_core::flow::Flow;
-use flow_engine_core::error::{ErrorDetail, ErrorKind};
+use flow_engine_core::error::{ErrorCode, ErrorDetail, ErrorKind};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::{ExecutionErrorStrategy, Node};
 use crate::provider_builder::ProviderBuilderExt;
@@ -95,19 +95,6 @@ fn build_input_data_from_node_config(
             }
         }
     }
-}
-
-/// 从字符串错误创建 ErrorDetail
-///
-/// ErrorKind 现由 ErrorCode 通过 error_kind_hint() 推导，
-/// 不应再通过消息子串匹配判断错误类型。
-/// 所有协议执行器应在各自返回的 ErrorDetail 中设置正确的 ErrorCode。
-fn parse_error_to_detail(error: &str) -> ErrorDetail {
-    // ErrorKind 现由 ErrorCode 通过 error_kind_hint() 推导，
-    // 不应再通过消息子串匹配判断错误类型。
-    // 所有协议执行器应在各自返回的 ErrorDetail 中设置正确的 ErrorCode。
-    // 执行器层超时错误由 execute_flow timeout 分支直接构建 ErrorDetail::new(ErrorKind::Timeout, ...)
-    ErrorDetail::execution_error(error.to_string())
 }
 
 /// Node types that can be executed standalone via `execute_single_node`
@@ -394,7 +381,7 @@ impl FlowExecutor {
                                 Ok(inner) => Some(inner),
                                 Err(_) => {
                                     log::info!("[流程 {}] 节点 {} 执行超时 ({}ms)", context.flow_uuid, node.name, ms);
-                                    Some(Err(format!("节点执行超时 ({}ms)", ms)))
+                                    Some(Err(ErrorDetail::new(ErrorKind::Timeout, format!("节点执行超时 ({}ms)", ms)).with_error_code_typed(ErrorCode::E_TIMEOUT)))
                                 }
                             }
                         }
@@ -426,7 +413,7 @@ impl FlowExecutor {
                         Ok(result) => Some(result),
                         Err(_) => {
                             log::info!("[流程 {}] 节点 {} 执行超时 ({}ms)", context.flow_uuid, node.name, ms);
-                            Some(Err(format!("节点执行超时 ({}ms)", ms)))
+                            Some(Err(ErrorDetail::new(ErrorKind::Timeout, format!("节点执行超时 ({}ms)", ms)).with_error_code_typed(ErrorCode::E_TIMEOUT)))
                         }
                     }
                 }
@@ -624,7 +611,7 @@ impl FlowExecutor {
 
                     // 检查是否是条件节点返回 false 的情况
                     if node.node_type == node_types::CONDITIONAL
-                        && error == "条件评估为false，停止执行"
+                        && error.message == "条件评估为false，停止执行"
                     {
                         log::info!(
                             "[流程 {}] 条件节点 {} 评估为 false，停止流程",
@@ -672,17 +659,8 @@ impl FlowExecutor {
                         break;
                     }
 
-                    // === 容错模式错误处理 ===
-                    // ErrorKind 由 ErrorCode 通过 error_kind_hint() 推导
-                    // 执行器层超时由 execute_flow 直接检测并构建 ErrorKind::Timeout，不经过 parse_error_to_detail
-                    let error_detail = if error.starts_with("节点执行超时") {
-                        flow_engine_core::error::ErrorDetail::new(
-                            flow_engine_core::error::ErrorKind::Timeout,
-                            error.clone(),
-                        ).with_error_code_typed(flow_engine_core::error::ErrorCode::E_TIMEOUT)
-                    } else {
-                        parse_error_to_detail(&error)
-                    };
+                    // 错误已由协议执行器构造为 ErrorDetail，直接传递
+                    let error_detail = error;
                     
                     // 查找节点插件用于后续 registry 查询
                     let type_id = node.data.type_name();
@@ -873,7 +851,7 @@ impl FlowExecutor {
                         return ExecutionResult {
                             success: false,
                             data: None,
-                            error: Some(error.clone()),
+                            error: Some(error_detail.message.clone()),
                             executed_count,
                             node_reports,
                             flow_report: Some(flow_report),
@@ -1072,7 +1050,7 @@ impl FlowExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         // 发送节点开始日志
         context.emit_log(LogEvent {
             level: LogLevel::Info,
@@ -1098,7 +1076,7 @@ impl FlowExecutor {
                 );
                 plugin.execute(node, context, connections, node_map).await
             }
-            None => Err(format!("未注册的节点类型: {}", type_id)),
+            None => Err(ErrorDetail::execution_error(format!("未注册的节点类型: {}", type_id))),
         }
     }
 
@@ -1235,12 +1213,13 @@ impl FlowExecutor {
                     flow_report: None,
                 }
             }
-            Ok(Err(err_msg)) => {
+            Ok(Err(err_detail)) => {
                 // Plugin execution returned error
+                let err_msg = err_detail.message.clone();
                 ExecutionResult {
                     success: false,
                     data: None,
-                    error: Some(err_msg.clone()),
+                    error: Some(err_msg),
                     executed_count: 0,
                     node_reports: vec![flow_engine_core::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
@@ -1253,7 +1232,7 @@ impl FlowExecutor {
                         input_data: None,
                         output_data: None,
                         used_port_id: None,
-                        error: Some(flow_engine_core::error::ErrorDetail::execution_error(err_msg)),
+                        error: Some(err_detail),
                         resolved_config: None,
                         variable_changes: None,
                         skip_reason: None,

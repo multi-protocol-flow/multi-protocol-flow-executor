@@ -1,6 +1,7 @@
 // 变量提取节点执行器 — 从上游输出中提取变量写入执行上下文
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
@@ -21,11 +22,11 @@ impl NodeExecutor for VariableExtractorExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::VariableExtractor(c) => c,
-            _ => return Err("节点配置不是 VariableExtractorConfig".to_string()),
+            _ => return Err(ErrorDetail::execution_error("节点配置不是 VariableExtractorConfig".to_string())),
         };
 
         // 2. 获取上游输出数据
@@ -36,13 +37,13 @@ impl NodeExecutor for VariableExtractorExecutor {
                 .iter()
                 .find(|r| r.node_uuid == *source_node_id)
                 .and_then(|r| r.output_data.clone())
-                .ok_or_else(|| format!("未找到节点 {} 的执行结果", source_node_id))?
+                .ok_or_else(|| ErrorDetail::execution_error(format!("未找到节点 {} 的执行结果", source_node_id)))?
         } else {
             // 从 last_node_output 读取
             context
                 .last_node_output
                 .clone()
-                .ok_or("没有上游节点输出可提取".to_string())?
+                .ok_or_else(|| ErrorDetail::execution_error("没有上游节点输出可提取".to_string()))?
         };
 
         // 3. 应用输出映射，将提取的值写入上下文变量

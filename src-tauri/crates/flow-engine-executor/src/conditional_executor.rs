@@ -106,7 +106,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         // 执行前日志
         let start_time = Instant::now();
         log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: conditional", context.flow_uuid, node.uuid, node.name);
@@ -130,7 +130,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
             _ => {
                 let error_msg = format!("节点数据类型不是ConditionalConfig: {}", node.uuid);
                 log::error!("[流程 {}] [错误] 节点UUID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-                return Err(error_msg);
+                return Err(ErrorDetail::execution_error(error_msg));
             }
         };
 
@@ -175,22 +175,20 @@ impl NodeExecutor for ConditionalNodeExecutor {
 
                 // 获取 field_path 和 operator
                 let field_path = conditional_config.field_path.as_ref().ok_or_else(|| {
-                    let error = ErrorDetail::new(
+                    ErrorDetail::new(
                         ErrorKind::ConditionSyntax,
                         "简单条件缺少 field_path".to_string(),
-                    );
-                    error.message
+                    )
                 })?;
                 let operator = conditional_config.operator.as_ref().ok_or_else(|| {
-                    let error = ErrorDetail::new(
+                    ErrorDetail::new(
                         ErrorKind::ConditionSyntax,
                         "简单条件缺少 operator".to_string(),
-                    );
-                    error.message
+                    )
                 })?;
 
                 // 提取字段值（使用解析后的数据源用于 jsonpath 提取）
-                let actual_value = self.extract_field_value(&variables, resolved_output.as_ref(), field_path)?;
+                let actual_value = self.extract_field_value(&variables, resolved_output.as_ref(), field_path).map_err(ErrorDetail::execution_error)?;
 
                 // 格式化期望值用于显示（直接使用原始值）
                 let expected_value_display = conditional_config.expected_value.as_ref()
@@ -240,7 +238,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     &conditional_config,
                     &variables,
                     resolved_output.as_ref(),
-                )?;
+                ).map_err(ErrorDetail::execution_error)?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
 
                 // 发送日志：表达式详情
@@ -283,7 +281,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     &conditional_config,
                     &json!(context.variables.get_merged_variables()),
                     resolved_output.as_ref(),
-                )?;
+                ).map_err(ErrorDetail::execution_error)?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Advanced, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
 
                 // 发送日志：表达式详情

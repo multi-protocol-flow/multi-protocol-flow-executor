@@ -1,6 +1,7 @@
 // 代理设置节点插件 — NodePlugin 实现
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::{ExecutionContext, ProxyState};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::{NodeData, ProxyConfig, ProxyMode};
@@ -88,10 +89,10 @@ impl NodePlugin for ProxyPlugin {
         context: &mut ExecutionContext,
         _connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let config = match &node.data {
             NodeData::Proxy(c) => c,
-            _ => return Err("代理节点配置类型不匹配".to_string()),
+            _ => return Err(ErrorDetail::execution_error("代理节点配置类型不匹配".to_string())),
         };
 
         match &config.mode {
@@ -109,10 +110,10 @@ impl NodePlugin for ProxyPlugin {
                 let proxy_url = config
                     .proxy_url
                     .as_deref()
-                    .ok_or_else(|| "Proxy address is required".to_string())?;
+                    .ok_or_else(|| ErrorDetail::execution_error("Proxy address is required".to_string()))?;
 
                 // 字符串解析 proxy_url（格式: scheme://[user:pass@]host:port）
-                let (host, port) = parse_proxy_url(proxy_url)?;
+                let (host, port) = parse_proxy_url(proxy_url).map_err(ErrorDetail::execution_error)?;
 
                 let state = Arc::new(ProxyState {
                     mode: config.mode.clone(),

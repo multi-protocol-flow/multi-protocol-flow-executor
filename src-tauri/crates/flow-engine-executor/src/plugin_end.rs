@@ -1,6 +1,7 @@
 // 结束节点插件 — NodePlugin 实现
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef};
@@ -60,7 +61,7 @@ impl NodePlugin for EndPlugin {
         _context: &mut ExecutionContext,
         _connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         Ok((vec![], None))
     }
 }

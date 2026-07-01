@@ -3,6 +3,7 @@
 //! 支持断点、单步执行、变量查看等调试功能
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::{ExecutionContext, VariableStorage};
 use crate::debug::{
     DebugCommand, DebugEvent, DebugSessionState, DebugStatus, EndReason, ExecutionStackEntry,
@@ -669,7 +670,7 @@ impl DebuggableFlowExecutor {
                         node_end_ms,
                         None,
                         false,
-                        Some(error.clone()),
+                        Some(error.message.clone()),
                         used_port_id,
                         effective_resolved_config,
                         if variable_changes.is_empty() { None } else { Some(variable_changes.clone()) },
@@ -726,7 +727,7 @@ impl DebuggableFlowExecutor {
                     // 没有 false 端口连接或 on_error=AbortFlow，结束调试
                     // 发送错误事件
                     if let Err(e) = event_sender.send(DebugEvent::Error {
-                        message: error.clone(),
+                        message: error.message.clone(),
                     }) {
                         log::error!("[调试 {}] 发送 Error 事件失败: {}", context.flow_uuid, e);
                     }
@@ -737,7 +738,7 @@ impl DebuggableFlowExecutor {
                     let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
                     if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                         reason: EndReason::Error {
-                            message: error,
+                            message: error.message,
                         },
                         report: Some(report),
                         execution_stack: debug_state.execution_stack.clone(),
@@ -993,7 +994,7 @@ impl DebuggableFlowExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         // 发送节点开始日志
         context
             .emit_log(LogEvent {
@@ -1022,7 +1023,7 @@ impl DebuggableFlowExecutor {
                 // 调试模式不应用超时，用户可能在断点处暂停、修改变量、查看数据
                 plugin.execute(node, context, connections, node_map).await
             }
-            None => Err(format!("未注册的节点类型: {}", type_id)),
+            None => Err(ErrorDetail::execution_error(format!("未注册的节点类型: {}", type_id))),
         }
     }
 
