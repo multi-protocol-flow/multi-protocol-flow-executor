@@ -3,6 +3,7 @@
 // 实现 WebSocket 消息发送、采集响应和变量映射功能。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
@@ -45,13 +46,13 @@ impl NodeExecutor for WsSendCollectExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::WsSendCollect(config) => config.clone(),
-            _ => return Err(format!("Node data type is not WsSendCollectConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not WsSendCollectConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换 connection_id 和 message
@@ -64,7 +65,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let message = replace_variables(&config.message, context).map_err(|e| {
@@ -76,7 +77,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. Log: start sending
@@ -118,7 +119,7 @@ impl NodeExecutor for WsSendCollectExecutor {
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", error_msg));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                 }
 
                 log::error!(
@@ -150,7 +151,7 @@ impl NodeExecutor for WsSendCollectExecutor {
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", error_msg));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                 }
 
                 log::error!("[WebSocket] Connection not found: uuid={}", connection_id);
@@ -310,13 +311,13 @@ impl NodeExecutor for WsSendCollectExecutor {
                             log::error!(
                                 "[WebSocket] Response collection failed: connection_id={}, error={}",
                                 connection_id,
-                                e
+                                e.message
                             );
 
                             context
                                 .emit_log(LogEvent {
                                     level: LogLevel::Error,
-                                    message: format!("Collect response failed: {}", e),
+                                    message: format!("Collect response failed: {}", e.message),
                                     timestamp: std::time::SystemTime::now()
                                         .duration_since(std::time::UNIX_EPOCH)
                                         .expect("system time error")
@@ -379,7 +380,7 @@ impl NodeExecutor for WsSendCollectExecutor {
             Err(e) => {
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
                 log::error!(
@@ -436,24 +437,24 @@ impl WsSendCollectExecutor {
         config: &WsSendCollectConfig,
         context: &mut ExecutionContext,
         node: &Node,
-    ) -> Result<CollectResult, String> {
+    ) -> Result<CollectResult, ErrorDetail> {
         match config.collect_mode {
             WsCollectMode::FirstMatch => {
                 // 取消检查
                 if context.is_cancelled() {
-                    return Err("Flow cancelled".to_string());
+                    return Err(ErrorDetail::execution_error("Flow cancelled".to_string()));
                 }
 
                 // 使用 tokio::select! 监听取消信号
                 let result = if let Some(mut rx) = context.cancel_receiver.clone() {
                     tokio::select! {
-                        res = self.ws_manager.receive(connection_id, config.collect_timeout_ms) => res?,
+                        res = self.ws_manager.receive(connection_id, config.collect_timeout_ms) => res.map_err(|e| ErrorDetail::execution_error(e))?,
                         _ = rx.changed() => {
-                            return Err("Flow cancelled".to_string());
+                            return Err(ErrorDetail::execution_error("Flow cancelled".to_string()));
                         }
                     }
                 } else {
-                    self.ws_manager.receive(connection_id, config.collect_timeout_ms).await?
+                    self.ws_manager.receive(connection_id, config.collect_timeout_ms).await.map_err(|e| ErrorDetail::execution_error(e))?
                 };
 
                 if let Some(message) = result {
@@ -525,7 +526,7 @@ impl WsSendCollectExecutor {
                         loop {
                             // 取消检查
                             if context.is_cancelled() {
-                                return Err("Flow cancelled".to_string());
+                                return Err(ErrorDetail::execution_error("Flow cancelled".to_string()));
                             }
 
                             let elapsed = start.elapsed().as_millis() as u64;
@@ -537,13 +538,13 @@ impl WsSendCollectExecutor {
                             // 使用 tokio::select! 监听取消信号
                             let result = if let Some(mut rx) = context.cancel_receiver.clone() {
                                 tokio::select! {
-                                    res = self.ws_manager.receive(connection_id, remaining.min(5000)) => res?,
+                                    res = self.ws_manager.receive(connection_id, remaining.min(5000)) => res.map_err(|e| ErrorDetail::execution_error(e))?,
                                     _ = rx.changed() => {
-                                        return Err("Flow cancelled".to_string());
+                                        return Err(ErrorDetail::execution_error("Flow cancelled".to_string()));
                                     }
                                 }
                             } else {
-                                self.ws_manager.receive(connection_id, remaining.min(5000)).await?
+                                self.ws_manager.receive(connection_id, remaining.min(5000)).await.map_err(|e| ErrorDetail::execution_error(e))?
                             };
 
                             if let Some(message) = result {
@@ -657,7 +658,7 @@ impl WsSendCollectExecutor {
                             })
                             .await;
 
-                        Err(error_msg)
+                        Err(ErrorDetail::execution_error(error_msg))
                     }
                     None => {
                         let error_msg = "Condition match mode requires collect_condition to be configured".to_string();
@@ -680,7 +681,7 @@ impl WsSendCollectExecutor {
                             })
                             .await;
 
-                        Err(error_msg)
+                        Err(ErrorDetail::execution_error(error_msg))
                     }
                 }
             }
@@ -693,19 +694,19 @@ impl WsSendCollectExecutor {
                 while start.elapsed().as_millis() < duration_ms as u128 {
                     // 取消检查
                     if context.is_cancelled() {
-                        return Err("Flow cancelled".to_string());
+                        return Err(ErrorDetail::execution_error("Flow cancelled".to_string()));
                     }
 
                     // 使用 tokio::select! 监听取消信号
                     let result = if let Some(mut rx) = context.cancel_receiver.clone() {
                         tokio::select! {
-                            res = self.ws_manager.receive(connection_id, 1000) => res?,
+                            res = self.ws_manager.receive(connection_id, 1000) => res.map_err(|e| ErrorDetail::execution_error(e))?,
                             _ = rx.changed() => {
-                                return Err("Flow cancelled".to_string());
+                                return Err(ErrorDetail::execution_error("Flow cancelled".to_string()));
                             }
                         }
                     } else {
-                        self.ws_manager.receive(connection_id, 1000).await?
+                        self.ws_manager.receive(connection_id, 1000).await.map_err(|e| ErrorDetail::execution_error(e))?
                     };
                     if let Some(message) = result {
                         log::debug!(
@@ -783,7 +784,7 @@ impl WsSendCollectExecutor {
         url: Option<&str>,
         send_duration_ms: u64,
         collect_response_duration_ms: Option<u64>,
-    ) -> Result<Option<serde_json::Value>, String> {
+    ) -> Result<Option<serde_json::Value>, ErrorDetail> {
         // 构建发送的消息数据
         let sent_data = json!({
             "data": sent_message,

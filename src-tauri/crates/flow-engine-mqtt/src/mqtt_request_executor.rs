@@ -7,6 +7,7 @@
 //! 本执行器负责配置解析、变量替换、correlation_data 自动生成及输出构建。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -40,17 +41,17 @@ impl NodeExecutor for MqttRequestExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::MqttRequest(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not MqttRequestConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -65,7 +66,7 @@ impl NodeExecutor for MqttRequestExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?;
 
         let request_topic =
@@ -78,7 +79,7 @@ impl NodeExecutor for MqttRequestExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?;
 
         let response_topic =
@@ -91,7 +92,7 @@ impl NodeExecutor for MqttRequestExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?;
 
         let resolved_payload = match &config.payload {
@@ -104,7 +105,7 @@ impl NodeExecutor for MqttRequestExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -119,7 +120,7 @@ impl NodeExecutor for MqttRequestExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             // 3. 自动生成 correlation_data（UUID）
             None => Some(uuid::Uuid::new_v4().to_string()),
@@ -358,7 +359,7 @@ fn route_to_true(
     node: &Node,
     connections: &[Connection],
     output_data: serde_json::Value,
-) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     let filtered: Vec<String> = connections
         .iter()
         .filter(|conn| {
@@ -381,7 +382,7 @@ fn route_to_false(
     node: &Node,
     connections: &[Connection],
     output_data: serde_json::Value,
-) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     // 检查 on_error 策略
     if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
         let error_msg = output_data
@@ -389,7 +390,7 @@ fn route_to_false(
             .and_then(|v| v.as_str())
             .unwrap_or("节点执行失败 (AbortFlow)")
             .to_string();
-        return Err(error_msg);
+        return Err(ErrorDetail::execution_error(error_msg));
     }
 
     let filtered: Vec<String> = connections

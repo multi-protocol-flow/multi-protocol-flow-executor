@@ -3,6 +3,7 @@
 //! 实现 GraphQL 连接建立、变量替换和输出构建功能。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -36,17 +37,17 @@ impl NodeExecutor for GraphqlConnectExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::GraphqlConnect(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 GraphqlConnectConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -60,12 +61,12 @@ impl NodeExecutor for GraphqlConnectExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let ws_endpoint = match &config.ws_endpoint {
             Some(ws) => Some(replace_variables(ws, context).map_err(|e| {
-                format!("ws_endpoint 变量替换失败: {}", e)
+                ErrorDetail::execution_error(format!("ws_endpoint 变量替换失败: {}", e))
             })?),
             None => None,
         };
@@ -76,7 +77,7 @@ impl NodeExecutor for GraphqlConnectExecutor {
                 let mut replaced = HashMap::new();
                 for (k, v) in h {
                     let rv = replace_variables(v, context)
-                        .map_err(|e| format!("Header '{}' 变量替换失败: {}", k, e))?;
+                        .map_err(|e| ErrorDetail::execution_error(format!("Header '{}' 变量替换失败: {}", k, e)))?;
                     replaced.insert(k.clone(), rv);
                 }
                 Some(replaced)
@@ -214,7 +215,7 @@ impl NodeExecutor for GraphqlConnectExecutor {
                         .as_deref()
                         .unwrap_or("GraphQL 连接失败")
                         .to_string();
-                    return Err(error_msg);
+                    return Err(ErrorDetail::execution_error(error_msg));
                 }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids: Vec<String> = {
@@ -278,7 +279,7 @@ impl NodeExecutor for GraphqlConnectExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 返回 false 端口

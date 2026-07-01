@@ -4,6 +4,7 @@
 //! 断开始终走 "out" 端口（失败不阻塞流程）。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -36,17 +37,17 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::Amqp10Disconnect(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 Amqp10DisconnectConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -54,7 +55,7 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
             let error_msg = format!("connection_id 变量替换失败: {}", e);
             log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始断开

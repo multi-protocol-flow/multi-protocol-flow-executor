@@ -7,6 +7,7 @@
 //! 仅在 `management` feature 启用时编译。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -40,7 +41,7 @@ impl NodeExecutor for AmqpManagementExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
@@ -64,12 +65,12 @@ impl NodeExecutor for AmqpManagementExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let action = replace_variables(&config.action, context).map_err(|e| {
             let error_msg = format!("action 变量替换失败: {}", e);
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let vhost = config
@@ -77,14 +78,14 @@ impl NodeExecutor for AmqpManagementExecutor {
             .as_deref()
             .map(|v| replace_variables(v, context))
             .transpose()
-            .map_err(|e| format!("vhost 变量替换失败: {}", e))?;
+            .map_err(|e| ErrorDetail::execution_error(format!("vhost 变量替换失败: {}", e)))?;
 
         let queue_name = config
             .queue_name
             .as_deref()
             .map(|v| replace_variables(v, context))
             .transpose()
-            .map_err(|e| format!("queue_name 变量替换失败: {}", e))?;
+            .map_err(|e| ErrorDetail::execution_error(format!("queue_name 变量替换失败: {}", e)))?;
 
         let replaced_config = AmqpManagementConfig {
             management_url,

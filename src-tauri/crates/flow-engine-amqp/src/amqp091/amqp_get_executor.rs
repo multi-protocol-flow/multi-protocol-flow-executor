@@ -3,6 +3,7 @@
 //! 实现 AMQP 0-9-1 拉模式获取（`basic_get`），获取单条消息或返回队列为空。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -36,17 +37,17 @@ impl NodeExecutor for AmqpGetExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::AmqpGet(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 AmqpGetConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -60,7 +61,7 @@ impl NodeExecutor for AmqpGetExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始获取
@@ -231,7 +232,7 @@ impl NodeExecutor for AmqpGetExecutor {
                 // 返回 false 端口
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("AMQP get 失败: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("AMQP get 失败: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");

@@ -7,6 +7,7 @@
 // 输出端口: "true"（成功）/ "false"（失败）
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -39,17 +40,17 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::KafkaConsumeBatch(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not KafkaConsumeBatchConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -76,7 +77,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
@@ -88,7 +89,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let group_id = match &config.group_id {
@@ -101,7 +102,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -224,7 +225,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                         .and_then(|v| v.as_str())
                         .unwrap_or("Kafka 批量消费失败")
                         .to_string();
-                    return Err(error_msg);
+                    return Err(ErrorDetail::execution_error(error_msg));
                 }
                 let port = if success { "true" } else { "false" };
                 let next_node_ids = resolve_port_connections(connections, &node.uuid, port);
@@ -268,7 +269,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 let next_node_ids = resolve_port_connections(connections, &node.uuid, "false");

@@ -6,6 +6,7 @@
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
@@ -193,7 +194,7 @@ impl NodePlugin for DbConnectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let db_manager = get_db_manager(context);
         let executor = crate::db_connect_executor::DbConnectExecutor::new(db_manager);
         executor
@@ -310,7 +311,7 @@ impl NodePlugin for DbQueryPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let db_manager = get_db_manager(context);
         // 注意：DbQueryNodeExecutor 使用 with_db_manager() 构造器
         let executor = crate::db_query_executor::DbQueryNodeExecutor::with_db_manager(db_manager);
@@ -413,7 +414,7 @@ impl NodePlugin for DbBeginPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let db_manager = get_db_manager(context);
         let executor = crate::db_begin_executor::DbBeginExecutor::new(db_manager);
         executor
@@ -513,7 +514,7 @@ impl NodePlugin for DbCommitPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let db_manager = get_db_manager(context);
         let executor = crate::db_commit_executor::DbCommitExecutor::new(db_manager);
         executor
@@ -613,7 +614,7 @@ impl NodePlugin for DbRollbackPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let db_manager = get_db_manager(context);
         let executor = crate::db_rollback_executor::DbRollbackExecutor::new(db_manager);
         executor
@@ -700,7 +701,7 @@ impl NodePlugin for DbClosePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let db_manager = get_db_manager(context);
         let executor = crate::db_close_executor::DbCloseExecutor::new(db_manager);
         executor

@@ -5,6 +5,7 @@
 //! 支持 payload 编码（text/json/hex/base64 → Vec<u8>）。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -41,14 +42,14 @@ impl MqttPublishExecutor {
 /// - "json" → 校验 JSON 合法性后取 UTF-8 字节
 /// - "hex" → 十六进制解码（自动去除 0x 前缀）
 /// - "base64" → Base64 解码
-fn encode_payload(payload: &str, format: Option<&str>) -> Result<Vec<u8>, String> {
+fn encode_payload(payload: &str, format: Option<&str>) -> Result<Vec<u8>, ErrorDetail> {
     let fmt = format.unwrap_or("text");
     match fmt {
         "text" => Ok(payload.as_bytes().to_vec()),
         "json" => {
             // 校验 JSON 合法性
             let _: serde_json::Value =
-                serde_json::from_str(payload).map_err(|e| format!("JSON 格式无效: {}", e))?;
+                serde_json::from_str(payload).map_err(|e| ErrorDetail::execution_error(format!("JSON 格式无效: {}", e)))?;
             Ok(payload.as_bytes().to_vec())
         }
         "hex" => {
@@ -56,33 +57,33 @@ fn encode_payload(payload: &str, format: Option<&str>) -> Result<Vec<u8>, String
             hex_to_bytes(cleaned)
         }
         "base64" => base64_to_bytes(payload),
-        _ => Err(format!("不支持的 payload_format: '{}'", fmt)),
+        _ => Err(ErrorDetail::execution_error(format!("不支持的 payload_format: '{}'", fmt))),
     }
 }
 
 /// 十六进制字符串 → 字节
-fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
+fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, ErrorDetail> {
     let cleaned: String = hex.chars().filter(|c| !c.is_whitespace()).collect();
     if cleaned.is_empty() {
         return Ok(Vec::new());
     }
     if !cleaned.len().is_multiple_of(2) {
-        return Err(format!(
+        return Err(ErrorDetail::execution_error(format!(
             "十六进制字符串长度必须为偶数，当前长度: {}",
             cleaned.len()
-        ));
+        )));
     }
     (0..cleaned.len())
         .step_by(2)
         .map(|i| {
             u8::from_str_radix(&cleaned[i..i + 2], 16)
-                .map_err(|e| format!("十六进制解码失败（位置 {}）: {}", i, e))
+                .map_err(|e| ErrorDetail::execution_error(format!("十六进制解码失败（位置 {}）: {}", i, e)))
         })
         .collect()
 }
 
 /// Base64 字符串 → 字节
-fn base64_to_bytes(input: &str) -> Result<Vec<u8>, String> {
+fn base64_to_bytes(input: &str) -> Result<Vec<u8>, ErrorDetail> {
     // 手动实现 Base64 解码，避免引入额外依赖
     let trimmed = input.trim();
     let trimmed = trimmed.trim_end_matches('=');
@@ -108,7 +109,7 @@ fn base64_to_bytes(input: &str) -> Result<Vec<u8>, String> {
         } else if ch == '/' {
             63
         } else {
-            return Err(format!("Base64 解码失败: 非法字符 '{}'", ch));
+            return Err(ErrorDetail::execution_error(format!("Base64 解码失败: 非法字符 '{}'", ch)));
         };
 
         byte_acc = (byte_acc << 6) | val;
@@ -132,17 +133,17 @@ impl NodeExecutor for MqttPublishExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::MqttPublish(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not MqttPublishConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -157,7 +158,7 @@ impl NodeExecutor for MqttPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
@@ -169,7 +170,7 @@ impl NodeExecutor for MqttPublishExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let resolved_payload = match &config.payload {
@@ -182,7 +183,7 @@ impl NodeExecutor for MqttPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -225,13 +226,13 @@ impl NodeExecutor for MqttPublishExecutor {
                     "[MQTT] Payload 编码失败: connection_id={}, topic={}, error={}",
                     connection_id,
                     topic,
-                    e
+                    e.message
                 );
 
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MQTT Payload 编码失败: {}", e),
+                        message: format!("MQTT Payload 编码失败: {}", e.message),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .expect("System time error")
@@ -416,7 +417,7 @@ fn route_to_true(
     node: &Node,
     connections: &[Connection],
     output_data: serde_json::Value,
-) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     let filtered: Vec<String> = connections
         .iter()
         .filter(|conn| {
@@ -439,7 +440,7 @@ fn route_to_false(
     node: &Node,
     connections: &[Connection],
     output_data: serde_json::Value,
-) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     // 检查 on_error 策略
     if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
         let error_msg = output_data
@@ -447,7 +448,7 @@ fn route_to_false(
             .and_then(|v| v.as_str())
             .unwrap_or("节点执行失败 (AbortFlow)")
             .to_string();
-        return Err(error_msg);
+        return Err(ErrorDetail::execution_error(error_msg));
     }
 
     let filtered: Vec<String> = connections

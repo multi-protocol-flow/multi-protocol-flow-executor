@@ -3,6 +3,7 @@
 // 实现 MCP 连接建立、变量替换和服务发现功能。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
@@ -36,13 +37,13 @@ impl NodeExecutor for McpConnectExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::McpConnect(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 McpConnectConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 McpConnectConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换（URL 和 Stdio 的 command/args 都需要替换）
@@ -55,13 +56,13 @@ impl NodeExecutor for McpConnectExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // Stdio 模式下替换 command 和 args 中的变量
         let command = match &config.command {
             Some(cmd) => Some(replace_variables(cmd, context).map_err(|e| {
-                format!("command 变量替换失败: {}", e)
+                ErrorDetail::execution_error(format!("command 变量替换失败: {}", e))
             })?),
             None => None,
         };
@@ -70,7 +71,7 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = Vec::new();
                 for arg in arg_list {
                     replaced.push(replace_variables(arg, context).map_err(|e| {
-                        format!("args 变量替换失败: {}", e)
+                        ErrorDetail::execution_error(format!("args 变量替换失败: {}", e))
                     })?);
                 }
                 Some(replaced)
@@ -121,10 +122,10 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = HashMap::new();
                 for (key, value) in h {
                     let replaced_key = replace_variables(key, context).map_err(|e| {
-                        format!("headers key 变量替换失败: {}", e)
+                        ErrorDetail::execution_error(format!("headers key 变量替换失败: {}", e))
                     })?;
                     let replaced_value = replace_variables(value, context).map_err(|e| {
-                        format!("headers value 变量替换失败: {}", e)
+                        ErrorDetail::execution_error(format!("headers value 变量替换失败: {}", e))
                     })?;
                     replaced.insert(replaced_key, replaced_value);
                 }
@@ -138,10 +139,10 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = HashMap::new();
                 for (key, value) in h {
                     let replaced_key = replace_variables(key, context).map_err(|e| {
-                        format!("custom_headers key 变量替换失败: {}", e)
+                        ErrorDetail::execution_error(format!("custom_headers key 变量替换失败: {}", e))
                     })?;
                     let replaced_value = replace_variables(value, context).map_err(|e| {
-                        format!("custom_headers value 变量替换失败: {}", e)
+                        ErrorDetail::execution_error(format!("custom_headers value 变量替换失败: {}", e))
                     })?;
                     replaced.insert(replaced_key, replaced_value);
                 }
@@ -155,10 +156,10 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = HashMap::new();
                 for (key, value) in e {
                     let replaced_key = replace_variables(key, context).map_err(|e| {
-                        format!("env key 变量替换失败: {}", e)
+                        ErrorDetail::execution_error(format!("env key 变量替换失败: {}", e))
                     })?;
                     let replaced_value = replace_variables(value, context).map_err(|e| {
-                        format!("env value 变量替换失败: {}", e)
+                        ErrorDetail::execution_error(format!("env value 变量替换失败: {}", e))
                     })?;
                     replaced.insert(replaced_key, replaced_value);
                 }
@@ -334,7 +335,7 @@ impl NodeExecutor for McpConnectExecutor {
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
                 // 返回 false 端口

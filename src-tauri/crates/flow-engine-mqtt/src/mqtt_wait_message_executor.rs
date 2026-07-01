@@ -5,6 +5,7 @@
 //! 超时或无匹配消息时路由到 false 端口。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -38,27 +39,27 @@ impl NodeExecutor for MqttWaitMessageExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取 MqttWaitMessageConfig
         let config = match &node.data {
             NodeData::MqttWaitMessage(cfg) => cfg.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not MqttWaitMessageConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
         // 2. 变量替换：connection_id 和 topic
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            format!("connection_id variable substitution failed: {}", e)
+            ErrorDetail::execution_error(format!("connection_id variable substitution failed: {}", e))
         })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
-            format!("topic variable substitution failed: {}", e)
+            ErrorDetail::execution_error(format!("topic variable substitution failed: {}", e))
         })?;
 
         // 3. 日志：开始等待
@@ -218,7 +219,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                             .and_then(|v| v.as_str())
                             .unwrap_or("Wait message timed out or no match")
                             .to_string();
-                        return Err(error_msg);
+                        return Err(ErrorDetail::execution_error(error_msg));
                     }
 
                     let next_node_ids: Vec<String> = {
@@ -288,7 +289,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 失败时走 false 端口

@@ -4,6 +4,7 @@
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -111,13 +112,13 @@ impl NodeExecutor for TcpSendExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::TcpSend(config) => config.clone(),
-            _ => return Err(format!("Node data type is not TcpSendConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not TcpSendConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换 connection_id
@@ -130,7 +131,7 @@ impl NodeExecutor for TcpSendExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 变量替换 data（仅对 text 编码有意义，hex/base64 可能包含 {{ 但通常不需要替换）
@@ -143,7 +144,7 @@ impl NodeExecutor for TcpSendExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 4. 日志：开始执行
@@ -180,7 +181,7 @@ impl NodeExecutor for TcpSendExecutor {
             Err(e) => {
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
                 let total_ms = start_time.elapsed().as_millis() as u64;
@@ -217,7 +218,7 @@ impl NodeExecutor for TcpSendExecutor {
             Err(e) => {
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
                 let total_ms = start_time.elapsed().as_millis() as u64;
@@ -409,7 +410,7 @@ impl NodeExecutor for TcpSendExecutor {
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
                 let error_output =
@@ -447,7 +448,7 @@ fn route_to_false_port(
     node: &Node,
     connections: &[Connection],
     output_data: Option<serde_json::Value>,
-) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     let next_node_ids = route_to_port(node, connections, "false");
     Ok((next_node_ids, output_data))
 }

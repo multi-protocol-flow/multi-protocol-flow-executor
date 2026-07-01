@@ -1,6 +1,7 @@
 //! Redis 命令执行器
 
 use async_trait::async_trait;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::connection::Connection;
 use flow_engine_core::executor::{NodeExecutor, replace_variables};
@@ -38,22 +39,22 @@ impl NodeExecutor for RedisCommandExecutor {
         context: &mut ExecutionContext,
         _connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         let config = match &node.data {
             NodeData::RedisCommand(config) => config.clone(),
-            _ => return Err("[E_REDIS_COMMAND] Node data is not RedisCommandConfig".to_string()),
+            _ => return Err(ErrorDetail::execution_error("[E_REDIS_COMMAND] Node data is not RedisCommandConfig".to_string())),
         };
 
         // 变量替换
-        let connection_id = replace_variables(&config.connection_id, context)?;
-        let command = replace_variables(&config.command, context)?;
+        let connection_id = replace_variables(&config.connection_id, context).map_err(ErrorDetail::execution_error)?;
+        let command = replace_variables(&config.command, context).map_err(ErrorDetail::execution_error)?;
         let args: Vec<String> = config
             .args
             .iter()
             .map(|a| replace_variables(a, context))
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, String>>().map_err(|e: String| ErrorDetail::execution_error(e))?;
 
         context
             .emit_log(LogEvent {
@@ -73,7 +74,7 @@ impl NodeExecutor for RedisCommandExecutor {
             Err(e) => {
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("[E_REDIS_COMMAND] Redis command execution failed: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("[E_REDIS_COMMAND] Redis command execution failed: {}", e)));
                 }
                 let elapsed = start_time.elapsed().as_millis() as u64;
                 let error_output = json!({

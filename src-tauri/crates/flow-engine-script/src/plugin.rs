@@ -3,6 +3,7 @@
 //! 实现 `NodePlugin` trait，提供脚本节点的元数据、配置、端口路由和执行能力。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
@@ -135,7 +136,7 @@ impl NodePlugin for ScriptPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let executor = crate::script_executor::ScriptNodeExecutor::new();
         executor
             .execute(node, context, connections, node_map)

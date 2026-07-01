@@ -4,6 +4,7 @@
 //! 参照 `mqtt_publish_executor.rs` 模式实现。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -37,17 +38,17 @@ impl NodeExecutor for KafkaProduceExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::KafkaProduce(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not KafkaProduceConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -62,7 +63,7 @@ impl NodeExecutor for KafkaProduceExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
@@ -74,12 +75,12 @@ impl NodeExecutor for KafkaProduceExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let key = match &config.key {
             Some(k) => Some(replace_variables(k, context).map_err(|e| {
-                format!("消息键变量替换失败: {}", e)
+                ErrorDetail::execution_error(format!("消息键变量替换失败: {}", e))
             })?),
             None => None,
         };
@@ -94,7 +95,7 @@ impl NodeExecutor for KafkaProduceExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -229,7 +230,7 @@ impl NodeExecutor for KafkaProduceExecutor {
                         .as_deref()
                         .unwrap_or("Kafka 生产失败")
                         .to_string();
-                    return Err(error_msg);
+                    return Err(ErrorDetail::execution_error(error_msg));
                 }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = route_to_port(node, connections, port);
@@ -276,7 +277,7 @@ impl NodeExecutor for KafkaProduceExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 let next_node_ids = route_to_port(node, connections, "false");

@@ -3,6 +3,7 @@
 //! 实现 AMQP 1.0 通过 Sender Link 发送消息功能。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -36,17 +37,17 @@ impl NodeExecutor for Amqp10SendExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::Amqp10Send(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 Amqp10SendConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -57,7 +58,7 @@ impl NodeExecutor for Amqp10SendExecutor {
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid, node.uuid, node.name, error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let address = replace_variables(&config.address, context).map_err(|e| {
@@ -66,7 +67,7 @@ impl NodeExecutor for Amqp10SendExecutor {
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid, node.uuid, node.name, error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let message_body = match &config.message_body {
@@ -76,7 +77,7 @@ impl NodeExecutor for Amqp10SendExecutor {
                     "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                     context.flow_uuid, node.uuid, node.name, error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -185,7 +186,7 @@ impl NodeExecutor for Amqp10SendExecutor {
 
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("AMQP 1.0 send 失败: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("AMQP 1.0 send 失败: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");

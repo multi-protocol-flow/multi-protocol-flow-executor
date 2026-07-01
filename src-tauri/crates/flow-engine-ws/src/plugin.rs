@@ -8,6 +8,7 @@
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef};
@@ -111,7 +112,7 @@ impl NodePlugin for WsConnectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let ws_manager = context
             .get_provider::<crate::websocket_manager::WebSocketConnectionManager>("ws")
             .unwrap_or_else(|| Arc::new(crate::websocket_manager::WebSocketConnectionManager::new()));
@@ -215,7 +216,7 @@ impl NodePlugin for WsSendCollectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let ws_manager = context
             .get_provider::<crate::websocket_manager::WebSocketConnectionManager>("ws")
             .unwrap_or_else(|| Arc::new(crate::websocket_manager::WebSocketConnectionManager::new()));
@@ -309,7 +310,7 @@ impl NodePlugin for WsClosePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let ws_manager = context
             .get_provider::<crate::websocket_manager::WebSocketConnectionManager>("ws")
             .unwrap_or_else(|| Arc::new(crate::websocket_manager::WebSocketConnectionManager::new()));

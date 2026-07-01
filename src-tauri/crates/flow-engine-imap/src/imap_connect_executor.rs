@@ -3,6 +3,7 @@
 //! 实现 IMAP 连接建立、variable substitution和输出构建功能。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::email_types::{EmailAuthConfig, ImapConfig, TlsMode};
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
@@ -37,13 +38,13 @@ impl ImapConnectExecutor {
     }
 
     /// 将 JSON Value 格式的 auth 配置解析为 `EmailAuthConfig`
-    fn parse_auth(auth_value: &serde_json::Value) -> Result<Option<EmailAuthConfig>, String> {
+    fn parse_auth(auth_value: &serde_json::Value) -> Result<Option<EmailAuthConfig>, ErrorDetail> {
         if auth_value.is_null() {
             return Ok(None);
         }
         let auth: EmailAuthConfig =
             serde_json::from_value(auth_value.clone())
-                .map_err(|e| format!("[E_IMAP_CONNECTION] auth config parsefailed: {}", e))?;
+                .map_err(|e| ErrorDetail::execution_error(format!("[E_IMAP_CONNECTION] auth config parsefailed: {}", e)))?;
         Ok(Some(auth))
     }
 
@@ -83,13 +84,13 @@ impl NodeExecutor for ImapConnectExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::ImapConnect(config) => config.clone(),
-            _ => return Err(format!("[E_IMAP_CONNECTION] Node data is not ImapConnectConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("[E_IMAP_CONNECTION] Node data is not ImapConnectConfig: {}", node.uuid))),
         };
 
         // 2. variable substitution（host）
@@ -99,7 +100,7 @@ impl NodeExecutor for ImapConnectExecutor {
                 "[Flow {}] [Error] nodeID: {}, nodeName: {}, error: {}",
                 context.flow_uuid, node.uuid, node.name, error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 解析 TLS 模式
@@ -248,7 +249,7 @@ impl NodeExecutor for ImapConnectExecutor {
 
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("IMAP connect failed: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("IMAP connect failed: {}", e)));
                 }
 
                 let next_node_ids =

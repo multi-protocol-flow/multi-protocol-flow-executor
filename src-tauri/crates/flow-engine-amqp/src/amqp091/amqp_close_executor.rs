@@ -5,6 +5,7 @@
 //! 共享模式下 close 为 no-op。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -37,17 +38,17 @@ impl NodeExecutor for AmqpCloseExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::AmqpClose(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 AmqpCloseConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -61,7 +62,7 @@ impl NodeExecutor for AmqpCloseExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始关闭

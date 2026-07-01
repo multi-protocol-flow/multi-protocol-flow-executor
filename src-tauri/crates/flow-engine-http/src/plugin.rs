@@ -4,6 +4,7 @@
 // 执行委托给 HttpNodeExecutor。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
@@ -197,7 +198,7 @@ impl NodePlugin for HttpPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let executor = crate::http_executor::HttpNodeExecutor::new();
         executor
             .execute(node, context, connections, node_map)

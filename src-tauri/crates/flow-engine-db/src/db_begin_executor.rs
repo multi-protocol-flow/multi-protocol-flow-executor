@@ -4,6 +4,7 @@
 // Wave 2: 与执行器集成
 
 use std::str::FromStr;
+use flow_engine_core::error::ErrorDetail;
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -40,13 +41,13 @@ impl NodeExecutor for DbBeginExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::DbBegin(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 DbBeginConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 DbBeginConfig: {}", node.uuid))),
         };
 
         // 2. 验证 connection_uuid
@@ -55,7 +56,7 @@ impl NodeExecutor for DbBeginExecutor {
 
             // 检查 on_error 策略
             if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                return Err(format!("Flow aborted: {}", error_msg));
+                return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
             }
 
             log::error!(
@@ -127,7 +128,7 @@ impl NodeExecutor for DbBeginExecutor {
 
                     // 检查 on_error 策略
                     if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                        return Err(format!("Flow aborted: {}", error_msg));
+                        return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                     }
 
                     // 返回 false 端口
@@ -190,7 +191,7 @@ impl NodeExecutor for DbBeginExecutor {
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", error_msg));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                 }
 
                 // 事务开始失败

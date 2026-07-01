@@ -74,7 +74,7 @@ impl NodeExecutor for ScriptNodeExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         // 发送执行开始日志
         context
             .emit_log(LogEvent {
@@ -100,7 +100,7 @@ impl NodeExecutor for ScriptNodeExecutor {
         // 1. 获取配置
         let config = match &node.data {
             NodeData::Script(config) => config.clone(),
-            _ => return Err("节点配置类型不匹配，期望 ScriptNodeConfig".to_string()),
+            _ => return Err(ErrorDetail::execution_error("节点配置类型不匹配，期望 ScriptNodeConfig".to_string())),
         };
 
         // 2. 准备脚本上下文数据（在主线程提取，避免跨线程问题）
@@ -137,7 +137,7 @@ impl NodeExecutor for ScriptNodeExecutor {
         // ScriptExecutionContext 使用 Rc<RefCell>（非 Send），必须在闭包内创建
         let result = tokio::task::spawn_blocking(move || {
             // 创建 QuickJS Runtime 并设置内存/超时限制
-            let rt = JsRuntime::new().map_err(|e| format!("创建 JS Runtime 失败: {}", e))?;
+            let rt = JsRuntime::new().map_err(|e| ErrorDetail::execution_error(format!("创建 JS Runtime 失败: {}", e)))?;
             rt.set_memory_limit((memory_limit_mb * 1024 * 1024) as usize);
 
             // 设置超时中断处理器
@@ -146,7 +146,7 @@ impl NodeExecutor for ScriptNodeExecutor {
             })));
 
             // 创建 JS Context
-            let ctx = JsContext::full(&rt).map_err(|e| format!("创建 JS Context 失败: {}", e))?;
+            let ctx = JsContext::full(&rt).map_err(|e| ErrorDetail::execution_error(format!("创建 JS Context 失败: {}", e)))?;
 
             ctx.with(|ctx| {
                 // 构建脚本执行上下文（在闭包内创建，因为使用 Rc<RefCell>）
@@ -177,13 +177,13 @@ impl NodeExecutor for ScriptNodeExecutor {
                 // 注册全部 fn.* API
                 script_ctx
                     .register_all_apis(&ctx)
-                    .map_err(|e| format!("注册脚本 API 失败: {}", e))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("注册脚本 API 失败: {}", e)))?;
 
                 // 执行脚本
                 let _: () = ctx
                     .eval(script.as_bytes())
                     .catch(&ctx)
-                    .map_err(|e| format!("脚本执行错误: {}", e))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("脚本执行错误: {}", e)))?;
 
                 // 收集执行结果
                 let result_vars = script_ctx.variables.borrow().clone();
@@ -195,7 +195,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                 let stop_message = script_ctx.stop_message.borrow().clone();
                 let test_results = script_ctx.test_results.borrow().clone();
 
-                Ok::<_, String>(ScriptExecutionResult {
+                Ok::<_, ErrorDetail>(ScriptExecutionResult {
                     variables: result_vars,
                     logs,
                     should_skip,
@@ -318,7 +318,7 @@ impl NodeExecutor for ScriptNodeExecutor {
             Ok(Ok(Err(e))) => {
                 // 脚本执行错误
                 self.handle_error(
-                    ErrorDetail::new(ErrorKind::ScriptRuntime, e),
+                    e,
                     &config,
                     context,
                     node,
@@ -475,7 +475,7 @@ impl ScriptNodeExecutor {
         context: &mut ExecutionContext,
         node: &Node,
         connections: &[Connection],
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         log::error!(
             "[流程 {}] 脚本节点 {} 执行错误: {}",
             context.flow_uuid,
@@ -501,7 +501,7 @@ impl ScriptNodeExecutor {
         match config.on_error {
             ScriptErrorStrategy::Fatal => {
                 // 致命错误，终止流程
-                Err(error.message)
+                Err(ErrorDetail::execution_error(error.message))
             }
             ScriptErrorStrategy::Recoverable => {
                 // 可恢复错误，路由到 false 端口

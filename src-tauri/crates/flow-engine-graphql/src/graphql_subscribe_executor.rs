@@ -4,6 +4,7 @@
 //! 支持变量替换、操作名称指定、最大事件数和超时配置。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 
 use flow_engine_core::connection::Connection;
@@ -62,17 +63,17 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = std::time::Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::GraphqlSubscribe(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 GraphqlSubscribeConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -86,13 +87,13 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let operation_name = match &config.operation_name {
             Some(op_name) => {
                 let replaced = replace_variables(op_name, context)
-                    .map_err(|e| format!("operation_name 变量替换失败: {}", e))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("operation_name 变量替换失败: {}", e)))?;
                 Some(replaced)
             }
             None => None,
@@ -103,7 +104,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
             Some(vars) => {
                 let vars_str = serde_json::to_string(vars).unwrap_or_default();
                 let replaced_str = replace_variables(&vars_str, context)
-                    .map_err(|e| format!("variables 变量替换失败: {}", e))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("variables 变量替换失败: {}", e)))?;
                 let replaced_vars: serde_json::Value =
                     serde_json::from_str(&replaced_str).unwrap_or_else(|_| vars.clone());
                 Some(replaced_vars)
@@ -249,7 +250,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                         .as_deref()
                         .unwrap_or("GraphQL 订阅失败")
                         .to_string();
-                    return Err(error_msg);
+                    return Err(ErrorDetail::execution_error(error_msg));
                 }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = Self::resolve_port_targets(&node.uuid, port, connections);
@@ -301,7 +302,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 走 false 端口

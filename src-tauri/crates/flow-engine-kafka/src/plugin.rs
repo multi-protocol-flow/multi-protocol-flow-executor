@@ -12,6 +12,7 @@
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
@@ -123,7 +124,7 @@ impl NodePlugin for KafkaConnectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let kafka_manager = context
             .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
             .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
@@ -250,7 +251,7 @@ impl NodePlugin for KafkaProducePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let kafka_manager = context
             .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
             .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
@@ -378,7 +379,7 @@ impl NodePlugin for KafkaConsumePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let kafka_manager = context
             .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
             .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
@@ -506,7 +507,7 @@ impl NodePlugin for KafkaConsumeBatchPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let kafka_manager = context
             .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
             .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
@@ -633,7 +634,7 @@ impl NodePlugin for KafkaAdminPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let kafka_manager = context
             .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
             .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
@@ -760,7 +761,7 @@ impl NodePlugin for KafkaSchemaRegistryPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let kafka_manager = context
             .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
             .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
@@ -855,7 +856,7 @@ impl NodePlugin for KafkaClosePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let kafka_manager = context
             .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
             .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));

@@ -3,6 +3,7 @@
 //! 实现 AMQP 1.0 确认（ack）已接收消息的功能。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -36,17 +37,17 @@ impl NodeExecutor for Amqp10AcceptExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::Amqp10Accept(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 Amqp10AcceptConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -54,7 +55,7 @@ impl NodeExecutor for Amqp10AcceptExecutor {
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
             let error_msg = format!("connection_id 变量替换失败: {}", e);
             log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始确认
@@ -104,7 +105,7 @@ impl NodeExecutor for Amqp10AcceptExecutor {
 
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("AMQP 1.0 accept 失败: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("AMQP 1.0 accept 失败: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");

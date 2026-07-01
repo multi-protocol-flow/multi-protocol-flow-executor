@@ -4,6 +4,7 @@
 // 支持 reuse_addr/broadcast/multicast 等高级选项。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -35,17 +36,17 @@ impl NodeExecutor for UdpBindExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::UdpBind(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not UdpBindConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -59,7 +60,7 @@ impl NodeExecutor for UdpBindExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始绑定
@@ -193,7 +194,7 @@ impl NodeExecutor for UdpBindExecutor {
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
                 // 返回 false 端口

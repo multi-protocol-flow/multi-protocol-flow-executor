@@ -4,6 +4,7 @@
 // 成功路由到 "true" 端口，失败路由到 "false" 端口。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -36,17 +37,17 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::MqttUnsubscribe(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not MqttUnsubscribeConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -60,7 +61,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
@@ -72,7 +73,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始取消订阅
@@ -210,7 +211,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 失败时走 false 端口

@@ -1,6 +1,7 @@
 //! IMAP 搜索messages节点执行器
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -40,16 +41,16 @@ impl ImapSearchExecutor {
 impl NodeExecutor for ImapSearchExecutor {
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
         let config = match &node.data {
             NodeData::ImapSearch(c) => c.clone(),
-            _ => return Err(format!("[E_IMAP_SEARCH] Node data is not ImapSearchConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("[E_IMAP_SEARCH] Node data is not ImapSearchConfig: {}", node.uuid))),
         };
-        let connection_id = replace_variables(&config.connection_id, context)?;
-        let criteria = replace_variables(&config.criteria, context)?;
+        let connection_id = replace_variables(&config.connection_id, context).map_err(ErrorDetail::execution_error)?;
+        let criteria = replace_variables(&config.criteria, context).map_err(ErrorDetail::execution_error)?;
         let mailbox = match &config.mailbox {
-            Some(m) => Some(replace_variables(m, context)?),
+            Some(m) => Some(replace_variables(m, context).map_err(ErrorDetail::execution_error)?),
             None => None,
         };
         log::info!("[Flow {}] [Start] nodeID: {}, type: imap_search", context.flow_uuid, node.uuid);
@@ -88,7 +89,7 @@ impl NodeExecutor for ImapSearchExecutor {
                     "timing": { "search_ms": duration.as_millis() as u64, "total_ms": duration.as_millis() as u64 }, "error": e });
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("IMAP search failed: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("IMAP search failed: {}", e)));
                 }
 
                 Ok((Self::resolve_next_nodes(&node.uuid, "false", connections), Some(err_out)))

@@ -1,6 +1,7 @@
 //! IMAP 列出邮箱节点执行器
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -38,15 +39,15 @@ impl ImapListExecutor {
 impl NodeExecutor for ImapListExecutor {
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
         let config = match &node.data {
             NodeData::ImapList(c) => c.clone(),
-            _ => return Err(format!("[E_IMAP_FETCH] Node data is not ImapListConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("[E_IMAP_FETCH] Node data is not ImapListConfig: {}", node.uuid))),
         };
-        let connection_id = replace_variables(&config.connection_id, context)?;
-        let reference_name = replace_variables(&config.reference_name, context)?;
-        let pattern = replace_variables(&config.pattern, context)?;
+        let connection_id = replace_variables(&config.connection_id, context).map_err(ErrorDetail::execution_error)?;
+        let reference_name = replace_variables(&config.reference_name, context).map_err(ErrorDetail::execution_error)?;
+        let pattern = replace_variables(&config.pattern, context).map_err(ErrorDetail::execution_error)?;
 
         log::info!("[Flow {}] [Start] nodeID: {}, type: imap_list", context.flow_uuid, node.uuid);
         context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP List 节点 {} started execution", node.name),
@@ -82,7 +83,7 @@ impl NodeExecutor for ImapListExecutor {
                     "timing": { "list_ms": duration.as_millis() as u64, "total_ms": duration.as_millis() as u64 }, "error": e });
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("IMAP list failed: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("IMAP list failed: {}", e)));
                 }
 
                 Ok((Self::resolve_next_nodes(&node.uuid, "false", connections), Some(err_out)))

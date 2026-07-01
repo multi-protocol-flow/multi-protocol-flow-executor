@@ -3,6 +3,7 @@
 //! 实现 MQTT 连接建立、变量替换和输出构建功能。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -35,13 +36,13 @@ impl NodeExecutor for MqttConnectExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::MqttConnect(config) => config.clone(),
-            _ => return Err(format!("Node data type is not MqttConnectConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not MqttConnectConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换（url, client_id, username, password）
@@ -54,26 +55,26 @@ impl NodeExecutor for MqttConnectExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let client_id = match &config.client_id {
             Some(id) => Some(replace_variables(id, context).map_err(|e| {
-                format!("client_id variable substitution failed: {}", e)
+                ErrorDetail::execution_error(format!("client_id variable substitution failed: {}", e))
             })?),
             None => None,
         };
 
         let username = match &config.username {
             Some(u) => Some(replace_variables(u, context).map_err(|e| {
-                format!("username variable substitution failed: {}", e)
+                ErrorDetail::execution_error(format!("username variable substitution failed: {}", e))
             })?),
             None => None,
         };
 
         let password = match &config.password {
             Some(p) => Some(replace_variables(p, context).map_err(|e| {
-                format!("password variable substitution failed: {}", e)
+                ErrorDetail::execution_error(format!("password variable substitution failed: {}", e))
             })?),
             None => None,
         };
@@ -214,7 +215,7 @@ impl NodeExecutor for MqttConnectExecutor {
                         .as_deref()
                         .unwrap_or("MQTT 连接失败")
                         .to_string();
-                    return Err(error_msg);
+                    return Err(ErrorDetail::execution_error(error_msg));
                 }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids: Vec<String> = {
@@ -281,7 +282,7 @@ impl NodeExecutor for MqttConnectExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 返回 false 端口

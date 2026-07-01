@@ -4,6 +4,7 @@
 // 从已有的 tcp_connect 连接中接收数据，支持超时配置和帧定界。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -38,17 +39,17 @@ impl NodeExecutor for TcpReceiveExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::TcpReceive(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not TcpReceiveConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -62,7 +63,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始执行
@@ -191,7 +192,7 @@ impl NodeExecutor for TcpReceiveExecutor {
             Err(e) => {
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
                 log::error!(
@@ -256,7 +257,7 @@ fn route_to_false_port(
     node: &Node,
     connections: &[Connection],
     output_data: Option<serde_json::Value>,
-) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     let next_node_ids = route_to_port(node, connections, "false");
     Ok((next_node_ids, output_data))
 }

@@ -8,6 +8,7 @@
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
@@ -114,7 +115,7 @@ impl NodePlugin for SseConnectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let sse_manager = context
             .get_provider::<crate::sse_connection_manager::SseConnectionManager>("sse")
             .unwrap_or_else(|| Arc::new(crate::sse_connection_manager::SseConnectionManager::new()));
@@ -226,7 +227,7 @@ impl NodePlugin for SseListenPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let sse_manager = context
             .get_provider::<crate::sse_connection_manager::SseConnectionManager>("sse")
             .unwrap_or_else(|| Arc::new(crate::sse_connection_manager::SseConnectionManager::new()));
@@ -318,7 +319,7 @@ impl NodePlugin for SseDisconnectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let sse_manager = context
             .get_provider::<crate::sse_connection_manager::SseConnectionManager>("sse")
             .unwrap_or_else(|| Arc::new(crate::sse_connection_manager::SseConnectionManager::new()));

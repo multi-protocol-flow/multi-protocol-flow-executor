@@ -3,6 +3,7 @@
 // 执行 SQL 查询并返回结果，支持参数化查询和多种获取模式。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use crate::db::traits::DatabasePool;
 use flow_engine_core::executor::{NodeExecutor, replace_variables};
@@ -68,7 +69,7 @@ impl NodeExecutor for DbQueryNodeExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         log::info!(
@@ -105,7 +106,7 @@ impl NodeExecutor for DbQueryNodeExecutor {
                     node.name,
                     error_msg
                 );
-                return Err(error_msg);
+                return Err(ErrorDetail::execution_error(error_msg));
             }
         };
 
@@ -116,7 +117,7 @@ impl NodeExecutor for DbQueryNodeExecutor {
 
             // 检查 on_error 策略
             if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                return Err(format!("Flow aborted: {}", error_msg));
+                return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
             }
 
             log::error!(
@@ -143,7 +144,7 @@ impl NodeExecutor for DbQueryNodeExecutor {
 
                         // 检查 on_error 策略
 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                            return Err(format!("Flow aborted: {}", error_msg));
+                            return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                         }
 
                         log::error!(
@@ -165,7 +166,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", error_msg));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                 }
 
                 log::error!(
@@ -221,7 +222,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
 
                             // 检查 on_error 策略
                             if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                                return Err(format!("Flow aborted: {}", error_msg));
+                                return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                             }
 
                             log::error!(
@@ -256,7 +257,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
 
                     // 检查 on_error 策略
                     if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                        return Err(format!("Flow aborted: {}", error_msg));
+                        return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                     }
 
                     log::error!(
@@ -297,7 +298,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                         node.uuid,
                         node.name
                     );
-                    return Err("流程已取消".to_string());
+                    return Err(ErrorDetail::execution_error("流程已取消".to_string()));
                 }
             }
         } else {
@@ -336,7 +337,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", error_msg));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                 }
 
                 // 返回失败输出，走 false 端口

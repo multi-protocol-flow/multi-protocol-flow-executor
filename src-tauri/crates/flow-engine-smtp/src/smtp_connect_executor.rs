@@ -3,6 +3,7 @@
 //! 实现 SMTP 连接建立、变量替换和输出构建功能。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::email_types::{EmailAuthConfig, SmtpConfig, TlsMode};
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
@@ -37,13 +38,13 @@ impl SmtpConnectExecutor {
     }
 
     /// 将 JSON Value 格式的 auth 配置解析为 `EmailAuthConfig`
-    fn parse_auth(auth_value: &serde_json::Value) -> Result<Option<EmailAuthConfig>, String> {
+    fn parse_auth(auth_value: &serde_json::Value) -> Result<Option<EmailAuthConfig>, ErrorDetail> {
         if auth_value.is_null() {
             return Ok(None);
         }
         let auth: EmailAuthConfig =
             serde_json::from_value(auth_value.clone())
-                .map_err(|e| format!("解析认证配置失败: {}", e))?;
+                .map_err(|e| ErrorDetail::execution_error(format!("解析认证配置失败: {}", e)))?;
         Ok(Some(auth))
     }
 
@@ -83,13 +84,13 @@ impl NodeExecutor for SmtpConnectExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::SmtpConnect(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 SmtpConnectConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 SmtpConnectConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换（host）
@@ -102,7 +103,7 @@ impl NodeExecutor for SmtpConnectExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 解析 TLS 模式
@@ -265,7 +266,7 @@ impl NodeExecutor for SmtpConnectExecutor {
 
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("SMTP connect 失败: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("SMTP connect 失败: {}", e)));
                 }
 
                 // 返回 false 端口

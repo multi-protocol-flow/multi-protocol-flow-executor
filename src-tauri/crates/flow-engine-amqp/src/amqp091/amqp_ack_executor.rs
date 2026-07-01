@@ -5,6 +5,7 @@
 //! 成功走 true 端口，失败走 false 端口。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -38,17 +39,17 @@ impl NodeExecutor for AmqpAckExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::AmqpAck(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 AmqpAckConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -63,7 +64,7 @@ impl NodeExecutor for AmqpAckExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?;
 
         let action = replace_variables(&config.action, context).map_err(|e| {
@@ -75,7 +76,7 @@ impl NodeExecutor for AmqpAckExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 验证 action 值
@@ -91,7 +92,7 @@ impl NodeExecutor for AmqpAckExecutor {
                 node.name,
                 error_msg
             );
-            return Err(error_msg);
+            return Err(ErrorDetail::execution_error(error_msg));
         }
 
         // 4. 日志：开始执行
@@ -262,7 +263,7 @@ impl NodeExecutor for AmqpAckExecutor {
                 // 返回 false 端口
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("AMQP ack 失败: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("AMQP ack 失败: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");

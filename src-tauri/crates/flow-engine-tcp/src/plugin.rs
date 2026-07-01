@@ -7,6 +7,7 @@
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
@@ -147,7 +148,7 @@ impl NodePlugin for TcpConnectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         use flow_engine_core::executor::replace_variables;
         use flow_engine_core::node_config::NodeData;
 
@@ -157,16 +158,16 @@ impl NodePlugin for TcpConnectPlugin {
         let config = match &node.data {
             NodeData::TcpConnect(cfg) => cfg.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not TcpConnectConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
         // 2. 变量替换 host
         let host = replace_variables(&config.host, context).map_err(|e| {
-            format!("Host variable replacement failed: {}", e)
+            ErrorDetail::execution_error(format!("Host variable replacement failed: {}", e))
         })?;
 
         // 3. 日志：开始连接
@@ -358,7 +359,7 @@ impl NodePlugin for TcpSendPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let tcp_manager = context
             .get_provider::<crate::tcp_connection_manager::TcpConnectionManager>("tcp")
             .unwrap_or_else(|| Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()));
@@ -473,7 +474,7 @@ impl NodePlugin for TcpReceivePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let tcp_manager = context
             .get_provider::<crate::tcp_connection_manager::TcpConnectionManager>("tcp")
             .unwrap_or_else(|| Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()));
@@ -583,7 +584,7 @@ impl NodePlugin for TcpClosePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let tcp_manager = context
             .get_provider::<crate::tcp_connection_manager::TcpConnectionManager>("tcp")
             .unwrap_or_else(|| Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()));
@@ -722,7 +723,7 @@ impl NodePlugin for UdpBindPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let udp_manager = context
             .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
             .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));
@@ -854,7 +855,7 @@ impl NodePlugin for UdpSendToPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let udp_manager = context
             .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
             .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));
@@ -971,7 +972,7 @@ impl NodePlugin for UdpRecvFromPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let udp_manager = context
             .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
             .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));
@@ -1076,7 +1077,7 @@ impl NodePlugin for UdpClosePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let udp_manager = context
             .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
             .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));

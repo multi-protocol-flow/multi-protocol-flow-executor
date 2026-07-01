@@ -4,6 +4,7 @@
 //! 参照 `mqtt_subscribe_executor.rs` 模式实现。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -37,7 +38,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 检查取消信号
@@ -53,26 +54,26 @@ impl NodeExecutor for KafkaConsumeExecutor {
         let config = match &node.data {
             NodeData::KafkaConsume(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not KafkaConsumeConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
         // 3. 变量替换: connection_id, topic, group_id
         let connection_id =
             replace_variables(&config.connection_id, context).map_err(|e| {
-                format!("connection_id 变量替换失败: {}", e)
+                ErrorDetail::execution_error(format!("connection_id 变量替换失败: {}", e))
             })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
-            format!("主题变量替换失败: {}", e)
+            ErrorDetail::execution_error(format!("主题变量替换失败: {}", e))
         })?;
 
         let group_id = match &config.group_id {
             Some(gid) => Some(replace_variables(gid, context).map_err(|e| {
-                format!("group_id 变量替换失败: {}", e)
+                ErrorDetail::execution_error(format!("group_id 变量替换失败: {}", e))
             })?),
             None => None,
         };
@@ -225,7 +226,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
                         .as_deref()
                         .unwrap_or("Kafka 消费失败")
                         .to_string();
-                    return Err(error_msg);
+                    return Err(ErrorDetail::execution_error(error_msg));
                 }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = route_to_port(node, connections, port);
@@ -274,7 +275,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 let next_node_ids = route_to_port(node, connections, "false");

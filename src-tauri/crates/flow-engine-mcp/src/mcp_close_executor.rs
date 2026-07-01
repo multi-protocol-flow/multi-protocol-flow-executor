@@ -4,6 +4,7 @@
 // 关闭始终走 "out" 端口（失败不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
@@ -36,13 +37,13 @@ impl NodeExecutor for McpCloseExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::McpClose(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 McpCloseConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 McpCloseConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换 connection_id
@@ -55,7 +56,7 @@ impl NodeExecutor for McpCloseExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始关闭

@@ -4,6 +4,7 @@
 //! 订阅 topic → 等待消息收集（max_messages + collect_timeout_ms）→ 返回收集到的消息列表。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -67,27 +68,27 @@ impl NodeExecutor for MqttSubscribeExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取 MqttSubscribeConfig
         let config = match &node.data {
             NodeData::MqttSubscribe(cfg) => cfg.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not MqttSubscribeConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
         // 2. 变量替换：connection_id 和 topic
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            format!("connection_id variable substitution failed: {}", e)
+            ErrorDetail::execution_error(format!("connection_id variable substitution failed: {}", e))
         })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
-            format!("topic variable substitution failed: {}", e)
+            ErrorDetail::execution_error(format!("topic variable substitution failed: {}", e))
         })?;
 
         // 3. 构建共享订阅 topic
@@ -272,7 +273,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 失败时走 false 端口

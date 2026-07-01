@@ -8,6 +8,7 @@
 //! - 调试事件发送
 
 use crate::assertion::evaluator::AssertionEvaluator;
+use flow_engine_core::error::ErrorDetail;
 use crate::assertion::preset::get_preset;
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -57,7 +58,7 @@ impl NodeExecutor for AssertionNodeExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
         log::info!(
             "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: assertion",
@@ -93,7 +94,7 @@ impl NodeExecutor for AssertionNodeExecutor {
                     node.name,
                     error_msg
                 );
-                return Err(error_msg);
+                return Err(ErrorDetail::execution_error(error_msg));
             }
         };
 
@@ -286,7 +287,7 @@ impl NodeExecutor for AssertionNodeExecutor {
                         })
                         .await;
 
-                    return Err(error_msg);
+                    return Err(ErrorDetail::execution_error(error_msg));
                 }
                 OnFailureMode::RouteFalse => {
                     // 路由到 false 端口
@@ -547,7 +548,7 @@ mod tests {
         fn send_event(&self, event: DebugEvent) -> Result<(), String> {
             self.sender
                 .send(event)
-                .map_err(|e| format!("Failed to send debug event: {}", e))
+                .map_err(|e| ErrorDetail::execution_error(format!("Failed to send debug event: {}", e)))
         }
     }
 

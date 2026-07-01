@@ -4,6 +4,7 @@
 // 变量替换和统一输出映射功能。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -36,13 +37,13 @@ impl NodeExecutor for KafkaAdminExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let mut config = match &node.data {
             NodeData::KafkaAdmin(config) => config.clone(),
-            _ => return Err(format!("Node data type is not KafkaAdminConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not KafkaAdminConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换 connection_id
@@ -55,7 +56,7 @@ impl NodeExecutor for KafkaAdminExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 变量替换 topic_name
@@ -69,7 +70,7 @@ impl NodeExecutor for KafkaAdminExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?);
         }
 
@@ -84,7 +85,7 @@ impl NodeExecutor for KafkaAdminExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?);
         }
 
@@ -135,7 +136,7 @@ impl NodeExecutor for KafkaAdminExecutor {
 
                 // 7. 构建输出数据
                 let output_data = serde_json::to_value(&output)
-                    .map_err(|e| format!("Failed to serialize admin operation output: {}", e))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("Failed to serialize admin operation output: {}", e)))?;
 
                 // 8. 日志：执行完成
                 let log_level = if output.success {
@@ -182,7 +183,7 @@ impl NodeExecutor for KafkaAdminExecutor {
                         .as_deref()
                         .unwrap_or("Kafka 管理操作失败")
                         .to_string();
-                    return Err(error_msg);
+                    return Err(ErrorDetail::execution_error(error_msg));
                 }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids: Vec<String> = connections
@@ -232,7 +233,7 @@ impl NodeExecutor for KafkaAdminExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 异常走 false 端口

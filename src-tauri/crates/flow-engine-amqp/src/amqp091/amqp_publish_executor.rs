@@ -3,6 +3,7 @@
 //! 实现 AMQP 0-9-1 消息发布功能，支持 14 种消息属性和 3 种确认模式（none/confirm/transaction）。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -36,17 +37,17 @@ impl NodeExecutor for AmqpPublishExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::AmqpPublish(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 AmqpPublishConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -62,7 +63,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -77,7 +78,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -92,7 +93,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -107,7 +108,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -122,7 +123,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -137,7 +138,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -152,7 +153,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -167,7 +168,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -182,7 +183,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -197,7 +198,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -212,7 +213,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -233,7 +234,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                                     node.name,
                                     error_msg
                                 );
-                                error_msg
+                                ErrorDetail::execution_error(error_msg)
                             })?;
                             json!(s_replaced)
                         }
@@ -439,7 +440,7 @@ impl NodeExecutor for AmqpPublishExecutor {
 
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("AMQP publish 失败: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("AMQP publish 失败: {}", e)));
                 }
 
                 // 返回 false 端口

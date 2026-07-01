@@ -4,6 +4,7 @@
 //! 成功收到事件路由到 true 端口，超时或无事件路由到 false 端口。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -37,28 +38,28 @@ impl NodeExecutor for SseListenExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取 SseListenConfig
         let config = match &node.data {
             NodeData::SseListen(cfg) => cfg.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 SseListenConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
         // 2. 变量替换：connection_id 和 event_filter
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            format!("connection_id 变量替换失败: {}", e)
+            ErrorDetail::execution_error(format!("connection_id 变量替换失败: {}", e))
         })?;
 
         let event_filter = match &config.event_filter {
             Some(filter) => Some(replace_variables(filter, context).map_err(|e| {
-                format!("event_filter 变量替换失败: {}", e)
+                ErrorDetail::execution_error(format!("event_filter 变量替换失败: {}", e))
             })?),
             None => None,
         };
@@ -149,7 +150,7 @@ impl NodeExecutor for SseListenExecutor {
                             .and_then(|v| v.as_str())
                             .unwrap_or("SSE 监听无事件或失败")
                             .to_string();
-                        return Err(error_msg);
+                        return Err(ErrorDetail::execution_error(error_msg));
                     }
                 }
                 let (port, is_success) = if output.success && event_count > 0 {
@@ -270,7 +271,7 @@ impl NodeExecutor for SseListenExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 失败时走 false 端口

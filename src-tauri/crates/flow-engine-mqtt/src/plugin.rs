@@ -11,6 +11,7 @@
 // 以及 MqttPluginGroup 批量注册辅助。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
@@ -126,7 +127,7 @@ impl NodePlugin for MqttConnectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
             .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
@@ -251,7 +252,7 @@ impl NodePlugin for MqttPublishPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
             .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
@@ -378,7 +379,7 @@ impl NodePlugin for MqttSubscribePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
             .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
@@ -498,7 +499,7 @@ impl NodePlugin for MqttUnsubscribePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
             .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
@@ -592,7 +593,7 @@ impl NodePlugin for MqttDisconnectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
             .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
@@ -716,7 +717,7 @@ impl NodePlugin for MqttWaitMessagePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
             .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
@@ -851,7 +852,7 @@ impl NodePlugin for MqttRequestPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
             .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));

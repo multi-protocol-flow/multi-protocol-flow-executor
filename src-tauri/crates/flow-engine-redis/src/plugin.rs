@@ -1,6 +1,7 @@
 //! Redis 节点插件注册
 
 use async_trait::async_trait;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::PortDef;
@@ -115,7 +116,7 @@ impl NodePlugin for RedisConnectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let redis_manager = context
             .get_provider::<crate::redis_connection_manager::RedisConnectionManager>("redis")
             .unwrap_or_else(|| Arc::new(crate::redis_connection_manager::RedisConnectionManager::new()));
@@ -231,7 +232,7 @@ impl NodePlugin for RedisCommandPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let redis_manager = context
             .get_provider::<crate::redis_connection_manager::RedisConnectionManager>("redis")
             .unwrap_or_else(|| Arc::new(crate::redis_connection_manager::RedisConnectionManager::new()));
@@ -320,7 +321,7 @@ impl NodePlugin for RedisClosePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let redis_manager = context
             .get_provider::<crate::redis_connection_manager::RedisConnectionManager>("redis")
             .unwrap_or_else(|| Arc::new(crate::redis_connection_manager::RedisConnectionManager::new()));

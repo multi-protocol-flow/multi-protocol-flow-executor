@@ -5,6 +5,7 @@
 //! 从配置中提取收件人、正文等信息，执行变量替换，委托给 SmtpProvider::send()。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -38,17 +39,17 @@ impl NodeExecutor for SmtpSendExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::SmtpSend(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 SmtpSendConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -63,7 +64,7 @@ impl NodeExecutor for SmtpSendExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?;
 
         // 3. 变量替换: from
@@ -77,7 +78,7 @@ impl NodeExecutor for SmtpSendExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?),
             None => None,
         };
@@ -97,7 +98,7 @@ impl NodeExecutor for SmtpSendExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?;
 
         // 5. 变量替换: cc (数组)
@@ -115,7 +116,7 @@ impl NodeExecutor for SmtpSendExecutor {
                         node.name,
                         error_msg
                     );
-                    error_msg
+                    ErrorDetail::execution_error(error_msg)
                 })?,
             None => vec![],
         };
@@ -135,7 +136,7 @@ impl NodeExecutor for SmtpSendExecutor {
                         node.name,
                         error_msg
                     );
-                    error_msg
+                    ErrorDetail::execution_error(error_msg)
                 })?,
             None => vec![],
         };
@@ -151,7 +152,7 @@ impl NodeExecutor for SmtpSendExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?,
             None => String::new(),
         };
@@ -167,7 +168,7 @@ impl NodeExecutor for SmtpSendExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?,
             None => String::new(),
         };
@@ -183,7 +184,7 @@ impl NodeExecutor for SmtpSendExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?,
             None => String::new(),
         };
@@ -456,7 +457,7 @@ impl NodeExecutor for SmtpSendExecutor {
 
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("SMTP send 失败: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("SMTP send 失败: {}", e)));
                 }
 
                 route_to_false(node, connections, error_output)
@@ -474,7 +475,7 @@ fn route_to_true(
     node: &Node,
     connections: &[Connection],
     output_data: serde_json::Value,
-) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     let filtered: Vec<String> = connections
         .iter()
         .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "true")
@@ -495,7 +496,7 @@ fn route_to_false(
     node: &Node,
     connections: &[Connection],
     output_data: serde_json::Value,
-) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     let filtered: Vec<String> = connections
         .iter()
         .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "false")

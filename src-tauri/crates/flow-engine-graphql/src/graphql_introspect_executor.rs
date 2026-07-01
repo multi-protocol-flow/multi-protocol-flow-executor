@@ -4,6 +4,7 @@
 //! 解析响应为 Schema 数据，并可选生成基本的查询/变更模板。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 
 use flow_engine_core::connection::Connection;
@@ -64,17 +65,17 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = std::time::Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::GraphqlIntrospect(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 GraphqlIntrospectConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -88,7 +89,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始探索
@@ -228,7 +229,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                         .as_deref()
                         .unwrap_or("GraphQL 内省查询失败")
                         .to_string();
-                    return Err(error_msg);
+                    return Err(ErrorDetail::execution_error(error_msg));
                 }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = Self::resolve_port_targets(&node.uuid, port, connections);
@@ -279,7 +280,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 走 false 端口

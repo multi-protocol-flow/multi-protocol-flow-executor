@@ -23,6 +23,7 @@
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
@@ -129,7 +130,7 @@ impl NodePlugin for AmqpConnectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -220,7 +221,7 @@ impl NodePlugin for AmqpClosePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -338,7 +339,7 @@ impl NodePlugin for AmqpExchangeDeclarePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -452,7 +453,7 @@ impl NodePlugin for AmqpExchangeDeletePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -563,7 +564,7 @@ impl NodePlugin for AmqpQueueDeclarePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -677,7 +678,7 @@ impl NodePlugin for AmqpQueueDeletePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -801,7 +802,7 @@ impl NodePlugin for AmqpQueueBindPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -915,7 +916,7 @@ impl NodePlugin for AmqpPublishPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -1034,7 +1035,7 @@ impl NodePlugin for AmqpConsumePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -1149,7 +1150,7 @@ impl NodePlugin for AmqpGetPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -1259,7 +1260,7 @@ impl NodePlugin for AmqpAckPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -1374,7 +1375,7 @@ impl NodePlugin for AmqpManagementPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -1448,7 +1449,7 @@ impl NodePlugin for Amqp10ConnectPlugin {
 
     async fn execute(
         &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -1522,7 +1523,7 @@ impl NodePlugin for Amqp10SendPlugin {
 
     async fn execute(
         &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -1598,7 +1599,7 @@ impl NodePlugin for Amqp10ReceivePlugin {
 
     async fn execute(
         &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -1665,7 +1666,7 @@ impl NodePlugin for Amqp10AcceptPlugin {
 
     async fn execute(
         &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -1732,7 +1733,7 @@ impl NodePlugin for Amqp10RejectPlugin {
 
     async fn execute(
         &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
@@ -1788,7 +1789,7 @@ impl NodePlugin for Amqp10DisconnectPlugin {
 
     async fn execute(
         &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
             .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));

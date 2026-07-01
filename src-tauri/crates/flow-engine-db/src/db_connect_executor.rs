@@ -5,6 +5,7 @@
 // Wave 5: SQLite/MySQL/PostgreSQL 支持
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use crate::db::pool::MockPool;
 use crate::db::sqlite::SqliteConnection;
@@ -42,13 +43,13 @@ impl NodeExecutor for DbConnectExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let node_config = match &node.data {
             NodeData::DbConnect(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 DbConnectConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 DbConnectConfig: {}", node.uuid))),
         };
 
         // 2. 使用节点配置直接作为连接配置
@@ -58,7 +59,7 @@ impl NodeExecutor for DbConnectExecutor {
         let pool_key = node.uuid.clone();
 
         // 2.75 变量替换：对连接字段中的 {{variable}} 进行运行时替换
-        let replace_opt = |val: &Option<String>, label: &str| -> Result<Option<String>, String> {
+        let replace_opt = |val: &Option<String>, label: &str| -> Result<Option<String>, ErrorDetail> {
             match val {
                 Some(v) if v.contains("{{") => {
                     match flow_engine_core::executor::replace_variables(v, context) {
@@ -66,7 +67,7 @@ impl NodeExecutor for DbConnectExecutor {
                         Err(e) => {
                             let err_msg = format!("{} 变量替换失败: {}", label, e);
                             log::error!("[流程 {}] [错误] 节点ID: {}, 错误: {}", context.flow_uuid, node.uuid, err_msg);
-                            Err(err_msg)
+                            Err(ErrorDetail::execution_error(err_msg))
                         }
                     }
                 }
@@ -88,7 +89,7 @@ impl NodeExecutor for DbConnectExecutor {
 
             // 检查 on_error 策略
             if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                return Err(format!("Flow aborted: {}", error_msg));
+                return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
             }
 
             log::error!(
@@ -180,7 +181,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                         // 检查 on_error 策略
                         if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                            return Err(format!("Flow aborted: {}", error_msg));
+                            return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                         }
 
                         log::error!(
@@ -260,7 +261,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                         // 检查 on_error 策略
                         if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                            return Err(format!("Flow aborted: {}", error_msg));
+                            return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                         }
 
                         log::error!(
@@ -337,7 +338,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                         // 检查 on_error 策略
                         if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                            return Err(format!("Flow aborted: {}", error_msg));
+                            return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                         }
 
                         log::error!(
@@ -478,7 +479,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                         // 检查 on_error 策略
                         if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                            return Err(format!("Flow aborted: {}", error_msg));
+                            return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                         }
 
                         // 测试查询失败
@@ -524,7 +525,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", error_msg));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                 }
 
                 // 连接池创建失败
@@ -659,7 +660,7 @@ impl DbConnectExecutor {
         _config: &DbConnectConfig,
         _output_data: &serde_json::Value,
         _context: &mut ExecutionContext,
-    ) -> Result<(), String> {
+    ) -> Result<(), ErrorDetail> {
         // 注意：DbConnectConfig 目前没有 output_mappings 字段
         // 如果需要，可以在 DbConnectConfig 中添加
         // 这里预留接口，暂不实现

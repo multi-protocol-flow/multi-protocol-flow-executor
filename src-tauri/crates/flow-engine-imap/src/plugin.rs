@@ -17,6 +17,7 @@
 // 以及 ImapPluginGroup 批量注册辅助。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
@@ -110,7 +111,7 @@ impl NodePlugin for ImapConnectPlugin {
 
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_connect_executor::ImapConnectExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -161,7 +162,7 @@ impl NodePlugin for ImapSelectPlugin {
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_select_executor::ImapSelectExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -211,7 +212,7 @@ impl NodePlugin for ImapSearchPlugin {
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_search_executor::ImapSearchExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -261,7 +262,7 @@ impl NodePlugin for ImapFetchPlugin {
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_fetch_executor::ImapFetchExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -317,7 +318,7 @@ impl NodePlugin for ImapStoreFlagsPlugin {
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_store_flags_executor::ImapStoreFlagsExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -373,7 +374,7 @@ impl NodePlugin for ImapCopyPlugin {
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_copy_executor::ImapCopyExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -429,7 +430,7 @@ impl NodePlugin for ImapMovePlugin {
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_move_executor::ImapMoveExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -473,7 +474,7 @@ impl NodePlugin for ImapExpungePlugin {
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_expunge_executor::ImapExpungeExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -517,7 +518,7 @@ impl NodePlugin for ImapListPlugin {
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_list_executor::ImapListExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -567,7 +568,7 @@ impl NodePlugin for ImapFolderCreatePlugin {
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_folder_create_executor::ImapFolderCreateExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -617,7 +618,7 @@ impl NodePlugin for ImapFolderDeletePlugin {
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_folder_delete_executor::ImapFolderDeleteExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -661,7 +662,7 @@ impl NodePlugin for ImapIdlePlugin {
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_idle_executor::ImapIdleExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await
@@ -715,7 +716,7 @@ impl NodePlugin for ImapClosePlugin {
 
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
         let executor = crate::imap_close_executor::ImapCloseExecutor::new(mgr);
         executor.execute(node, context, connections, node_map).await

@@ -9,6 +9,7 @@
 // 以及 McpPluginGroup 批量注册辅助。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
@@ -145,7 +146,7 @@ impl NodePlugin for McpConnectPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mcp_manager = context
             .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
             .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
@@ -260,7 +261,7 @@ impl NodePlugin for McpCallToolPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mcp_manager = context
             .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
             .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
@@ -373,7 +374,7 @@ impl NodePlugin for McpReadResourcePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mcp_manager = context
             .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
             .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
@@ -461,7 +462,7 @@ impl NodePlugin for McpClosePlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mcp_manager = context
             .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
             .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
@@ -576,7 +577,7 @@ impl NodePlugin for McpGetPromptPlugin {
         context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mcp_manager = context
             .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
             .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));

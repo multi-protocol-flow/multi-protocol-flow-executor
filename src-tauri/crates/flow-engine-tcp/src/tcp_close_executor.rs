@@ -3,6 +3,7 @@
 // 实现 TCP 连接关闭功能。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -35,13 +36,13 @@ impl NodeExecutor for TcpCloseExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::TcpClose(config) => config.clone(),
-            _ => return Err(format!("Node data type is not TcpCloseConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not TcpCloseConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换 connection_id
@@ -54,7 +55,7 @@ impl NodeExecutor for TcpCloseExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始关闭
@@ -174,7 +175,7 @@ impl NodeExecutor for TcpCloseExecutor {
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
                 // 关闭失败走 false 端口

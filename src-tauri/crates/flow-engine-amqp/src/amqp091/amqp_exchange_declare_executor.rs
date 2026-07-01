@@ -4,6 +4,7 @@
 //! 成功路由到 true 端口，失败路由到 false 端口。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -37,17 +38,17 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::AmqpExchangeDeclare(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "节点数据类型不是 AmqpExchangeDeclareConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -61,7 +62,7 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         let exchange = replace_variables(&config.exchange, context).map_err(|e| {
@@ -73,7 +74,7 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 变量替换（arguments 中的值）
@@ -83,7 +84,7 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
                 for (k, v) in args {
                     if let Some(s) = v.as_str() {
                         let replaced = replace_variables(s, context).map_err(|e| {
-                            format!("arguments[{}] 变量替换失败: {}", k, e)
+                            ErrorDetail::execution_error(format!("arguments[{}] 变量替换失败: {}", k, e))
                         })?;
                         resolved.insert(k.clone(), json!(replaced));
                     } else {
@@ -266,7 +267,7 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
 
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("AMQP exchange_declare 失败: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("AMQP exchange_declare 失败: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");

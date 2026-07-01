@@ -4,6 +4,7 @@
 //! 参照 `mqtt_connect_executor.rs` 模式实现。
 
 use std::collections::HashMap;
+use flow_engine_core::error::ErrorDetail;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -37,17 +38,17 @@ impl NodeExecutor for KafkaConnectExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::KafkaConnect(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not KafkaConnectConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -62,26 +63,26 @@ impl NodeExecutor for KafkaConnectExecutor {
                     node.name,
                     error_msg
                 );
-                error_msg
+                ErrorDetail::execution_error(error_msg)
             })?;
 
         let client_id = match &config.client_id {
             Some(id) => Some(replace_variables(id, context).map_err(|e| {
-                format!("client_id 变量替换失败: {}", e)
+                ErrorDetail::execution_error(format!("client_id 变量替换失败: {}", e))
             })?),
             None => None,
         };
 
         let sasl_username = match &config.sasl_username {
             Some(u) => Some(replace_variables(u, context).map_err(|e| {
-                format!("sasl_username 变量替换失败: {}", e)
+                ErrorDetail::execution_error(format!("sasl_username 变量替换失败: {}", e))
             })?),
             None => None,
         };
 
         let sasl_password = match &config.sasl_password {
             Some(p) => Some(replace_variables(p, context).map_err(|e| {
-                format!("sasl_password 变量替换失败: {}", e)
+                ErrorDetail::execution_error(format!("sasl_password 变量替换失败: {}", e))
             })?),
             None => None,
         };
@@ -212,7 +213,7 @@ impl NodeExecutor for KafkaConnectExecutor {
                         .as_deref()
                         .unwrap_or("Kafka 连接失败")
                         .to_string();
-                    return Err(error_msg);
+                    return Err(ErrorDetail::execution_error(error_msg));
                 }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = route_to_port(node, connections, port);
@@ -259,7 +260,7 @@ impl NodeExecutor for KafkaConnectExecutor {
                 if !node.on_error.as_ref().map_or(true, |s| {
                     *s == ExecutionErrorStrategy::RouteToFalse
                 }) {
-                    return Err(e);
+                    return Err(ErrorDetail::execution_error(e));
                 }
 
                 let next_node_ids = route_to_port(node, connections, "false");

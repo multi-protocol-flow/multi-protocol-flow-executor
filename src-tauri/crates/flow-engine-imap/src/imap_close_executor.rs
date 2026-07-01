@@ -3,6 +3,7 @@
 //! 断开 IMAP 连接，始终走 "out" 端口（失败不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -32,13 +33,13 @@ impl ImapCloseExecutor {
 impl NodeExecutor for ImapCloseExecutor {
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
         let config = match &node.data {
             NodeData::ImapClose(c) => c.clone(),
-            _ => return Err(format!("[E_IMAP_CONNECTION] Node data is not ImapCloseConfig: {}", node.uuid)),
+            _ => return Err(ErrorDetail::execution_error(format!("[E_IMAP_CONNECTION] Node data is not ImapCloseConfig: {}", node.uuid))),
         };
-        let connection_id = replace_variables(&config.connection_id, context)?;
+        let connection_id = replace_variables(&config.connection_id, context).map_err(ErrorDetail::execution_error)?;
 
         log::info!("[Flow {}] [Start] nodeID: {}, type: imap_close", context.flow_uuid, node.uuid);
         context.emit_log(LogEvent { level: LogLevel::Info,                 message: format!("IMAP Close node {} started execution", node.name),

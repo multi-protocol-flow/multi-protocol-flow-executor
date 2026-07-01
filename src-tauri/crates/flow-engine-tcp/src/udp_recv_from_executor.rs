@@ -3,6 +3,7 @@
 // 实现 UDP 数据接收和统一输出构建功能。
 
 use flow_engine_core::connection::Connection;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
@@ -37,17 +38,17 @@ impl NodeExecutor for UdpRecvFromExecutor {
         context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let start_time = Instant::now();
 
         // 1. 提取配置
         let config = match &node.data {
             NodeData::UdpRecvFrom(config) => config.clone(),
             _ => {
-                return Err(format!(
+                return Err(ErrorDetail::execution_error(format!(
                     "Node data type is not UdpRecvFromConfig: {}",
                     node.uuid
-                ))
+                )))
             }
         };
 
@@ -61,7 +62,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                 node.name,
                 error_msg
             );
-            error_msg
+            ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始接收
@@ -158,7 +159,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", error_msg));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                 }
 
                 log::debug!(
@@ -200,7 +201,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
             Err(e) => {
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Flow aborted: {}", e));
+                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
                 log::error!(
