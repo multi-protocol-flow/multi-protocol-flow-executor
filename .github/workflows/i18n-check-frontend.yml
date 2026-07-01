@@ -1,0 +1,80 @@
+name: i18n Check — Frontend
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  i18n-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for hardcoded Chinese text in viewer components
+        id: check-viewers
+        run: |
+          echo "::group::Viewer components"
+          # Scan viewer components for Chinese characters, excluding getLL() lines
+          RESULTS=$(rg --include '*.{tsx,ts}' '[\u4e00-\u9fff]' src/components/execution/viewers/ | rg -v 'getLL\(' || true)
+          if [ -n "$RESULTS" ]; then
+            echo "$RESULTS"
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "No hardcoded Chinese text found in viewers."
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+          fi
+          echo "::endgroup::"
+
+      - name: Check for hardcoded Chinese text in UI components
+        id: check-ui
+        run: |
+          echo "::group::UI components"
+          # Scan UI components for Chinese characters, excluding getLL() lines
+          # Exclude nodeHelpRegistry.ts which has intentional bilingual content
+          RESULTS=$(rg --include '*.{tsx,ts}' '[\u4e00-\u9fff]' src/components/ui/ | rg -v 'getLL\(' || true)
+          if [ -n "$RESULTS" ]; then
+            echo "$RESULTS"
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "No hardcoded Chinese text found in UI components."
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+          fi
+          echo "::endgroup::"
+
+      - name: Check for hardcoded Chinese text in canvas node components
+        id: check-canvas
+        run: |
+          echo "::group::Canvas node components"
+          RESULTS=$(rg --include '*.{tsx,ts}' '[\u4e00-\u9fff]' src/components/canvas/ | rg -v 'getLL\(' || true)
+          if [ -n "$RESULTS" ]; then
+            echo "$RESULTS"
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "No hardcoded Chinese text found in canvas components."
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+          fi
+          echo "::endgroup::"
+
+      - name: Summary
+        run: |
+          VIEWER_ISSUES="${{ steps.check-viewers.outputs.has_issues }}"
+          UI_ISSUES="${{ steps.check-ui.outputs.has_issues }}"
+          CANVAS_ISSUES="${{ steps.check-canvas.outputs.has_issues }}"
+
+          echo "## i18n Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$VIEWER_ISSUES" = "false" ] && [ "$UI_ISSUES" = "false" ] && [ "$CANVAS_ISSUES" = "false" ]; then
+            echo "✅ No hardcoded Chinese text found in any scanned directory." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Hardcoded Chinese text detected — review the logs above." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Directory | Issues |" >> $GITHUB_STEP_SUMMARY
+            echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Viewers | $VIEWER_ISSUES |" >> $GITHUB_STEP_SUMMARY
+            echo "| UI Components | $UI_ISSUES |" >> $GITHUB_STEP_SUMMARY
+            echo "| Canvas Components | $CANVAS_ISSUES |" >> $GITHUB_STEP_SUMMARY
+          fi

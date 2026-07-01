@@ -1,0 +1,59 @@
+name: "i18n Check — Backend"
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  i18n-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Check for Chinese text in Rust backend code
+        id: check
+        run: |
+          # Search for Chinese characters in src-tauri/ Rust source files,
+          # excluding target/, .git/, test files, and /// doc comments.
+          # Use || true so the pipeline doesn't fail on rg exit code 1 (no matches).
+          rg \
+            -g '*.rs' \
+            -g '!target/' \
+            -g '!.git/' \
+            -g '!**/tests/' \
+            '[\u4e00-\u9fff]' \
+            src-tauri/ \
+          | rg -v '^\s*///' \
+          > /tmp/i18n-issues.txt || true
+
+          if [ -s /tmp/i18n-issues.txt ]; then
+            echo "⚠️  Chinese text detected in backend Rust code:"
+            cat /tmp/i18n-issues.txt
+            echo "has_issues=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "✅ No Chinese text found in backend Rust code."
+            echo "has_issues=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Append findings to issues.md
+        if: steps.check.outputs.has_issues == 'true'
+        run: |
+          mkdir -p .omo/notepads/i18n-localization-plan
+          {
+            echo ""
+            echo "## $(date -u +'%Y-%m-%d %H:%M:%S UTC') — i18n Check Workflow"
+            echo ""
+            cat /tmp/i18n-issues.txt
+          } >> .omo/notepads/i18n-localization-plan/issues.md
+
+      - name: Fail if Chinese text detected
+        if: steps.check.outputs.has_issues == 'true'
+        run: |
+          echo "❌ FAIL: Chinese text found in backend Rust code. See above for details."
+          exit 1
