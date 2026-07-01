@@ -245,8 +245,9 @@ interface VariableGroupProps {
 }
 
 function VariableGroup({ nodeId, nodeLabel, variables, onSelect }: VariableGroupProps) {
+  const LL = getLL();
   // 生成显示名称：优先使用 nodeLabel，否则截取 UUID
-  const displayName = nodeLabel ?? `节点 ${nodeId.slice(0, 8)}...`;
+  const displayName = nodeLabel ?? LL.flow.variable_node_prefix({ id: nodeId.slice(0, 8) + '...' });
 
   return (
     <div className="px-1">

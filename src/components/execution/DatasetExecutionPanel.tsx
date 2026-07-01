@@ -74,18 +74,21 @@ function generateCsvTemplate(flow: {
 
   if (variableNames.length === 0) {
     // 没有初始变量时，提供一个通用模板示例
+    const LL = getLL();
+    const t = (idx: number) => LL.execution.dataset.template_example_prefix({ index: idx });
     return [
-      'name,value,description',
-      '示例1,值1,说明1',
-      '示例2,值2,说明2',
-      '示例3,值3,说明3',
+      LL.execution.dataset.template_header_no_vars(),
+      `${t(1)},${t(1)},${t(1)}`,
+      `${t(2)},${t(2)},${t(2)}`,
+      `${t(3)},${t(3)},${t(3)}`,
     ].join('\n');
   }
 
   // 用变量名作为列头，生成 3 行示例占位数据
   const header = variableNames.join(',');
+  const LL = getLL();
   const rows = Array.from({ length: 3 }, (_, i) =>
-    variableNames.map(() => `示例${i + 1}`).join(',')
+    variableNames.map(() => LL.execution.dataset.template_example_prefix({ index: i + 1 })).join(',')
   );
   return [header, ...rows].join('\n');
 }
@@ -104,12 +107,13 @@ async function downloadCsvTemplate(content: string, filename: string): Promise<s
 
 /** 格式化毫秒为可读时间 */
 function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
+  const LL = getLL();
+  if (ms < 1000) return LL.execution.dataset.duration_ms({ ms });
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}秒`;
+  if (seconds < 60) return LL.execution.dataset.duration_sec({ seconds });
   const minutes = Math.floor(seconds / 60);
   const remainSeconds = seconds % 60;
-  return `${minutes}分${remainSeconds}秒`;
+  return LL.execution.dataset.duration_min_sec({ minutes, seconds: remainSeconds });
 }
 
 /** 从 Entry 节点获取关联的 CSV 路径 */
@@ -163,7 +167,7 @@ function FileSelectionArea({
               {csvPath.split(/[\\/]/).pop()}
             </p>
             <p className="text-xs text-muted-foreground">
-              {csvInfo.row_count}{ll.execution.dataset.label_row()} × {csvInfo.column_names.length} 列 · {csvInfo.detected_encoding}
+              {csvInfo.row_count}{ll.execution.dataset.label_row()} × {csvInfo.column_names.length}{ll.execution.dataset.label_column()} · {csvInfo.detected_encoding}
             </p>
           </div>
           <Button
@@ -458,7 +462,8 @@ export function DatasetExecutionPanel({
     try {
       const content = generateCsvTemplate(flow);
       const flowName = flow.name.replace(/[/\\?%*:|"<>]/g, '_');
-      const filename = `${flowName}_数据模板.csv`;
+      const ll = getLL();
+      const filename = `${flowName}${ll.execution.dataset.template_file_suffix()}.csv`;
       const savedPath = await downloadCsvTemplate(content, filename);
       // 获取目录路径（去掉文件名）
       const dirPath = savedPath.replace(/[/\\][^/\\]+$/, '');

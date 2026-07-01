@@ -5,6 +5,7 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useCallback, useRef, useEffect, type ReactNode, type KeyboardEvent, type MouseEvent } from 'react';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface CollapsiblePanelProps {
   /** 面板标题 */
@@ -59,6 +60,7 @@ export function CollapsiblePanel({
   collapsedHeight = COLLAPSED_HEIGHT,
   style,
 }: CollapsiblePanelProps) {
+  const LL = getLL();
   const [isDragging, setIsDragging] = useState(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
@@ -169,7 +171,7 @@ export function CollapsiblePanel({
         onClick={handleHeaderClick}
         onKeyDown={handleKeyDown}
         aria-expanded={!isCollapsed}
-        aria-label={isCollapsed ? `展开 ${title}` : `折叠 ${title}`}
+        aria-label={isCollapsed ? LL.common.collapse_panel_aria({ title }) : LL.common.expand_panel_aria({ title })}
       >
         <div className="flex items-center gap-1.5">
           {isCollapsed ? (

@@ -141,12 +141,12 @@ export function ExecuteButton() {
       {isExecuting ? (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="relative z-10">执行中</span>
+          <span className="relative z-10">{ll.execution.panel.executing()}</span>
         </>
       ) : (
         <>
           <Zap className="w-4 h-4" />
-          <span className="relative z-10">执行流程</span>
+          <span className="relative z-10">{ll.flow.execute_flow()}</span>
           <Play className="w-3 h-3 ml-1 opacity-70" />
         </>
       )}
