@@ -313,7 +313,7 @@ function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
               {output?.host
                 ? `${output.host}:${output?.port ?? ''}`
-                : <span className="text-muted-foreground italic">未配置地址</span>}
+                : <span className="text-muted-foreground italic">{ll.viewer.tcp.no_address_configured()}</span>}
             </code>
           </div>
 
@@ -326,7 +326,7 @@ function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
             )}
             {output?.connection_id && (
               <Badge variant="outline" className="font-mono text-xs">
-                连接 ID: {output.connection_id}
+                {ll.viewer.tcp.label_connection_id()}: {output.connection_id}
               </Badge>
             )}
           </div>
@@ -352,7 +352,7 @@ function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
           {/* 连接 ID */}
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.viewer.tcp.label_connection_id()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -371,7 +371,7 @@ function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <span className="text-xs font-mono text-teal-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           }
         >
@@ -420,17 +420,17 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
           <div className="flex flex-wrap gap-2">
             {sentData?.encoding && (
               <Badge variant="outline" className="font-mono text-xs">
-                编码: {sentData.encoding}
+                {ll.viewer.tcp.label_encoding()}: {sentData.encoding}
               </Badge>
             )}
             {sentData?.framing && (
               <Badge variant="outline" className="font-mono text-xs">
-                分帧: {sentData.framing}
+                {ll.viewer.tcp.label_framing()}: {sentData.framing}
               </Badge>
             )}
             {output?.connection_id && (
               <Badge variant="outline" className="font-mono text-xs">
-                连接: {output.connection_id}
+                {ll.viewer.tcp.label_connection()}: {output.connection_id}
               </Badge>
             )}
           </div>
@@ -438,7 +438,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
           {/* 发送内容 */}
           {sentData?.data && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">数据内容</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.viewer.tcp.label_data_content()}</div>
               <div className="bg-muted rounded p-2">
                 <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-60 overflow-auto">
                   {sentData.data}
@@ -466,7 +466,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
             <div className="flex flex-wrap gap-2">
               {receivedData.encoding && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  编码: {receivedData.encoding}
+                  {ll.viewer.tcp.label_encoding()}: {receivedData.encoding}
                 </Badge>
               )}
             </div>
@@ -474,7 +474,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
             {/* 文本预览 */}
             {receivedData.text_preview && (
               <div>
-                <div className="text-xs font-medium text-muted-foreground mb-1.5">文本预览</div>
+                <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.viewer.tcp.label_text_preview()}</div>
                 <div className="bg-muted rounded p-2">
                   <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-60 overflow-auto">
                     {receivedData.text_preview}
@@ -486,7 +486,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
             {/* Hex 预览 */}
             {receivedData.data && (
               <div>
-                <div className="text-xs font-medium text-muted-foreground mb-1.5">Hex 预览</div>
+                <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.viewer.tcp.label_hex_preview()}</div>
                 <HexViewer data={dataToBytes(receivedData.data)} height={300} />
               </div>
             )}
@@ -521,7 +521,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-teal-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           )}
         >
@@ -556,7 +556,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
             <RecordingViewer recording={recording} />
           ) : (
             <p className="text-sm text-muted-foreground">
-              共 {recording.entries.length} 条录制，时长 {recording.duration_ms}ms
+              {ll.viewer.tcp.recording_summary({ count: recording.entries.length, duration: recording.duration_ms })}
             </p>
           )}
         </CollapsibleSection>
@@ -598,12 +598,12 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
             <ProtocolBadge protocol="TCP" />
             {receivedData?.encoding && (
               <Badge variant="outline" className="font-mono text-xs">
-                编码: {receivedData.encoding}
+                {ll.viewer.tcp.label_encoding()}: {receivedData.encoding}
               </Badge>
             )}
             {output?.connection_id && (
               <Badge variant="outline" className="font-mono text-xs">
-                连接: {output.connection_id}
+                {ll.viewer.tcp.label_connection()}: {output.connection_id}
               </Badge>
             )}
           </div>
@@ -611,7 +611,7 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
           {/* 文本预览 */}
           {textPreview && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">文本预览</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.viewer.tcp.label_text_preview()}</div>
               <div className="bg-muted rounded p-2">
                 <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-60 overflow-auto">
                   {textPreview}
@@ -623,14 +623,14 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
           {/* Hex 预览 */}
           {receivedData?.data && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">Hex 预览</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.viewer.tcp.label_hex_preview()}</div>
               <HexViewer data={dataToBytes(receivedData.data)} height={300} />
             </div>
           )}
 
           {/* 无数据提示（超时等场景） */}
           {(!receivedData?.data && !textPreview) && (
-            <p className="text-sm text-muted-foreground italic">无接收数据</p>
+            <p className="text-sm text-muted-foreground italic">{ll.viewer.tcp.no_received_data()}</p>
           )}
         </div>
       </CollapsibleSection>
@@ -647,8 +647,8 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? receivedData
-                  ? `TCP 数据接收成功 (${receivedData.size ?? 0} bytes)`
-                  : 'TCP 接收完成（超时无数据）'
+                  ? ll.viewer.tcp.receive_success_with_size({ size: receivedData.size ?? 0 })
+                  : ll.viewer.tcp.receive_timeout_no_data()
                 : output?.error ?? ll.viewer.tcp.status_receive_failed()}
             </span>
           </div>
@@ -664,7 +664,7 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-teal-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           )}
         >
@@ -698,7 +698,7 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
             <RecordingViewer recording={recording} />
           ) : (
             <p className="text-sm text-muted-foreground">
-              共 {recording.entries.length} 条录制，时长 {recording.duration_ms}ms
+              {ll.viewer.tcp.recording_summary({ count: recording.entries.length, duration: recording.duration_ms })}
             </p>
           )}
         </CollapsibleSection>
@@ -731,7 +731,7 @@ function TcpCloseSection({ report }: { report: NodeExecutionReport }) {
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
               {output?.connection_id
                 ? output.connection_id
-                : <span className="text-muted-foreground italic">未指定连接 ID</span>}
+                : <span className="text-muted-foreground italic">{ll.viewer.tcp.no_connection_id()}</span>}
             </code>
           </div>
         </div>
@@ -764,7 +764,7 @@ function TcpCloseSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <span className="text-xs font-mono text-teal-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           }
         >
@@ -805,7 +805,7 @@ function UdpBindSection({ report }: { report: NodeExecutionReport }) {
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
               {output?.local_addr
                 ? `${output.local_addr}:${output?.local_port ?? ''}`
-                : <span className="text-muted-foreground italic">未配置地址</span>}
+                : <span className="text-muted-foreground italic">{ll.viewer.tcp.no_address_configured()}</span>}
             </code>
           </div>
 
@@ -813,7 +813,7 @@ function UdpBindSection({ report }: { report: NodeExecutionReport }) {
           {output?.connection_id && (
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="font-mono text-xs">
-                连接 ID: {output.connection_id}
+                {ll.viewer.tcp.label_connection_id()}: {output.connection_id}
               </Badge>
             </div>
           )}
@@ -831,7 +831,7 @@ function UdpBindSection({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_bound()} failText={ll.viewer.tcp.status_bind_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `UDP 绑定成功 (${output?.local_addr ?? ''}:${output?.local_port ?? ''})`
+                ? ll.viewer.tcp.udp_bind_success_addr({ addr: `${output?.local_addr ?? ''}:${output?.local_port ?? ''}` })
                 : output?.error ?? ll.viewer.tcp.bind_success()}
             </span>
           </div>
@@ -839,7 +839,7 @@ function UdpBindSection({ report }: { report: NodeExecutionReport }) {
           {/* 连接 ID */}
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.viewer.tcp.label_connection_id()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -858,7 +858,7 @@ function UdpBindSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <span className="text-xs font-mono text-orange-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           }
         >
@@ -907,7 +907,7 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
                 → {sentData.target}
               </code>
             ) : (
-              <span className="text-sm text-muted-foreground italic">未指定目标地址</span>
+              <span className="text-sm text-muted-foreground italic">{ll.viewer.tcp.no_target_address()}</span>
             )}
           </div>
 
@@ -915,12 +915,12 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
           <div className="flex flex-wrap gap-2">
             {sentData?.encoding && (
               <Badge variant="outline" className="font-mono text-xs">
-                编码: {sentData.encoding}
+                {ll.viewer.tcp.label_encoding()}: {sentData.encoding}
               </Badge>
             )}
             {output?.connection_id && (
               <Badge variant="outline" className="font-mono text-xs">
-                连接: {output.connection_id}
+                {ll.viewer.tcp.label_connection()}: {output.connection_id}
               </Badge>
             )}
           </div>
@@ -928,7 +928,7 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
           {/* 发送内容 */}
           {sentData?.data && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">数据内容</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.viewer.tcp.label_data_content()}</div>
               <div className="bg-muted rounded p-2">
                 <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-60 overflow-auto">
                   {sentData.data}
@@ -968,7 +968,7 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <span className="text-xs font-mono text-orange-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           }
         >
@@ -1022,7 +1022,7 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
                 ← {sourceAddr}
               </code>
             ) : (
-              <span className="text-sm text-muted-foreground italic">未知来源</span>
+              <span className="text-sm text-muted-foreground italic">{ll.viewer.tcp.unknown_source()}</span>
             )}
           </div>
 
@@ -1030,12 +1030,12 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
           <div className="flex flex-wrap gap-2">
             {receivedData?.encoding && (
               <Badge variant="outline" className="font-mono text-xs">
-                编码: {receivedData.encoding}
+                {ll.viewer.tcp.label_encoding()}: {receivedData.encoding}
               </Badge>
             )}
             {output?.connection_id && (
               <Badge variant="outline" className="font-mono text-xs">
-                连接: {output.connection_id}
+                {ll.viewer.tcp.label_connection()}: {output.connection_id}
               </Badge>
             )}
           </div>
@@ -1043,14 +1043,14 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
           {/* Hex 预览 */}
           {receivedData?.data && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">Hex 预览</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.viewer.tcp.label_hex_preview()}</div>
               <HexViewer data={dataToBytes(receivedData.data)} height={300} />
             </div>
           )}
 
           {/* 无数据提示 */}
           {(!receivedData?.data) && (
-            <p className="text-sm text-muted-foreground italic">无接收数据</p>
+            <p className="text-sm text-muted-foreground italic">{ll.viewer.tcp.no_received_data()}</p>
           )}
         </div>
       </CollapsibleSection>
@@ -1066,7 +1066,9 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_received()} failText={ll.viewer.tcp.status_receive_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `UDP 数据包接收成功${sourceAddr ? ` (来自 ${sourceAddr})` : ''}`
+                ? sourceAddr
+                  ? ll.viewer.tcp.udp_recv_success_from({ source: sourceAddr })
+                  : ll.viewer.tcp.udp_recv_success()
                 : output?.error ?? ll.viewer.tcp.status_receive_failed()}
             </span>
           </div>
@@ -1082,7 +1084,7 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <span className="text-xs font-mono text-orange-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           }
         >
@@ -1122,7 +1124,7 @@ function UdpCloseSection({ report }: { report: NodeExecutionReport }) {
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
               {output?.connection_id
                 ? output.connection_id
-                : <span className="text-muted-foreground italic">未指定连接 ID</span>}
+                : <span className="text-muted-foreground italic">{ll.viewer.tcp.no_connection_id()}</span>}
             </code>
           </div>
         </div>
@@ -1139,7 +1141,7 @@ function UdpCloseSection({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_closed()} failText={ll.viewer.tcp.status_close_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'UDP 连接已成功关闭'
+                ? ll.viewer.tcp.udp_close_success()
                 : output?.error ?? ll.viewer.tcp.close_error()}
             </span>
           </div>
@@ -1155,7 +1157,7 @@ function UdpCloseSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <span className="text-xs font-mono text-orange-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           }
         >

@@ -145,10 +145,10 @@ function getCollectModeLabel(collectMode: string | undefined, ll: ReturnType<typ
 function getMatchTypeLabel(matchType: string | undefined, ll: ReturnType<typeof getLL>): string {
   const llViewers = ll.execution.viewers;
   switch (matchType) {
-    case 'json_path': return 'JSONPath';
+    case 'json_path': return llViewers.ws_match_type_jsonpath();
     case 'regex': return llViewers.ws_match_type_regex();
     case 'expression': return llViewers.ws_match_type_expression();
-    default: return 'JSONPath';
+    default: return llViewers.ws_match_type_jsonpath();
   }
 }
 
@@ -342,9 +342,9 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
               {sentData.type === 'binary' ? (
                 <div className="rounded-md border border-orange-200 dark:border-orange-800 overflow-hidden">
                   <div className="px-2 py-1 bg-orange-50 dark:bg-orange-950/50 border-b border-orange-200 dark:border-orange-800 flex items-center gap-2">
-                    <span className="text-[10px] font-mono font-medium text-orange-600 dark:text-orange-400">Binary Hex View</span>
+                    <span className="text-[10px] font-mono font-medium text-orange-600 dark:text-orange-400">{ll.execution.viewers.ws_binary_hex_view()}</span>
                     <span className="text-[10px] text-orange-500 dark:text-orange-500">
-                      {dataToBytes(sentData.data).length} bytes
+                      {ll.execution.viewers.ws_hex_view_bytes({ count: dataToBytes(sentData.data).length })}
                     </span>
                   </div>
                   <HexViewer data={dataToBytes(sentData.data)} height={180} readOnly />
@@ -415,8 +415,8 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
                   {msg.type === 'binary' ? (
                     <div className="rounded border border-orange-200 dark:border-orange-800 overflow-hidden">
                       <div className="px-2 py-0.5 bg-orange-50 dark:bg-orange-950/50 border-b border-orange-200 dark:border-orange-800 flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-orange-600 dark:text-orange-400">Binary Hex View</span>
-                        <span className="text-[10px] text-orange-500">{dataToBytes(msg.data).length} bytes</span>
+                        <span className="text-[10px] font-mono text-orange-600 dark:text-orange-400">{ll.execution.viewers.ws_binary_hex_view()}</span>
+                        <span className="text-[10px] text-orange-500">{ll.execution.viewers.ws_hex_view_bytes({ count: dataToBytes(msg.data).length })}</span>
                       </div>
                       <HexViewer data={dataToBytes(msg.data)} height={120} readOnly />
                     </div>
@@ -464,9 +464,9 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
               {messageData.type === 'binary' ? (
                 <div className="rounded-md border border-orange-200 dark:border-orange-800 overflow-hidden">
                   <div className="px-2 py-1 bg-orange-50 dark:bg-orange-950/50 border-b border-orange-200 dark:border-orange-800 flex items-center gap-2">
-                    <span className="text-[10px] font-mono font-medium text-orange-600 dark:text-orange-400">Binary Hex View</span>
+                    <span className="text-[10px] font-mono font-medium text-orange-600 dark:text-orange-400">{ll.execution.viewers.ws_binary_hex_view()}</span>
                     <span className="text-[10px] text-orange-500 dark:text-orange-500">
-                      {dataToBytes(messageData.data).length} bytes
+                      {ll.execution.viewers.ws_hex_view_bytes({ count: dataToBytes(messageData.data).length })}
                     </span>
                   </div>
                   <HexViewer data={dataToBytes(messageData.data)} height={200} readOnly />

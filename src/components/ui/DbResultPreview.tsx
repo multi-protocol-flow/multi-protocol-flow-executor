@@ -189,7 +189,7 @@ export function DbResultPreview({
           {data.timing_ms !== undefined && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="w-3.5 h-3.5" />
-              <span>{data.timing_ms}ms</span>
+              <span>{getLL().panels.db_timing_ms({ time: data.timing_ms })}</span>
             </div>
           )}
           
@@ -237,7 +237,7 @@ export function DbResultPreview({
             </TabsTrigger>
             <TabsTrigger value="json" className="h-6 px-2.5 text-xs">
               <Braces className="w-3.5 h-3.5 mr-1" />
-              JSON
+              {getLL().panels.db_json_view()}
             </TabsTrigger>
           </TabsList>
 

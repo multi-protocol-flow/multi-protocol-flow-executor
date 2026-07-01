@@ -247,7 +247,7 @@ function SseConnectView({ report }: { report: NodeExecutionReport }) {
 
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.viewer.sse.label_connection_id()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -308,14 +308,14 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <SseBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {(output?.request?.connection_id || output?.connection_id) || <span className="text-muted-foreground italic">未指定连接 ID</span>}
+              {(output?.request?.connection_id || output?.connection_id) || <span className="text-muted-foreground italic">{ll.viewer.sse.no_connection_id()}</span>}
             </code>
           </div>
 
           {output?.event_filter && (
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="font-mono text-xs">
-                过滤器: {output.event_filter}
+                {ll.viewer.sse.label_filter()}: {output.event_filter}
               </Badge>
             </div>
           )}
@@ -418,7 +418,7 @@ function SseDisconnectView({ report }: { report: NodeExecutionReport }) {
 
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.viewer.sse.label_connection_id()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>

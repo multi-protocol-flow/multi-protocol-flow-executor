@@ -117,7 +117,7 @@ export const WsCloseViewer = memo(function WsCloseViewer({ report }: WsCloseView
         <div className="space-y-2">
           {url ? (
             <div className="flex items-start gap-2">
-              <span className="text-xs font-medium text-muted-foreground shrink-0">URL</span>
+              <span className="text-xs font-medium text-muted-foreground shrink-0">{ll.execution.viewers.url_label()}</span>
               <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
                 {url}
               </code>

@@ -201,7 +201,7 @@ function RedisConnectView({ report }: { report: NodeExecutionReport }) {
           {/* 连接 ID */}
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.viewer.redis.label_connection_id()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -222,17 +222,17 @@ function RedisConnectView({ report }: { report: NodeExecutionReport }) {
           <div className="flex flex-wrap gap-2">
             {output.server_info.host && (
               <Badge variant="outline" className="font-mono text-xs">
-                主机: {output.server_info.host}
+                {ll.viewer.redis.label_host()}: {output.server_info.host}
               </Badge>
             )}
             {output.server_info.port !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                端口: {output.server_info.port}
+                {ll.viewer.redis.label_port()}: {output.server_info.port}
               </Badge>
             )}
             {output.server_info.version && (
               <Badge variant="outline" className="font-mono text-xs">
-                版本: {output.server_info.version}
+                {ll.viewer.redis.label_version()}: {output.server_info.version}
               </Badge>
             )}
             {output.server_info.db_index !== undefined && (
@@ -293,7 +293,7 @@ function RedisCommandView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <RedisBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {output?.command || <span className="text-muted-foreground italic">未执行命令</span>}
+              {output?.command || <span className="text-muted-foreground italic">{ll.viewer.redis.no_command_executed()}</span>}
             </code>
           </div>
 
@@ -301,7 +301,7 @@ function RedisCommandView({ report }: { report: NodeExecutionReport }) {
           {output?.result_type && (
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="font-mono text-xs">
-                类型: {output.result_type}
+                {ll.viewer.redis.label_type()}: {output.result_type}
               </Badge>
             </div>
           )}
@@ -400,7 +400,7 @@ function RedisCloseView({ report }: { report: NodeExecutionReport }) {
           {/* 连接 ID */}
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.viewer.redis.label_connection_id()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
