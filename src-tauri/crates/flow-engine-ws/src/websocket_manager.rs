@@ -452,7 +452,7 @@ impl WebSocketConnectionManager {
                     }
 
                     log::info!(
-                        "[WebSocket{}] 连接成功: uuid={}, url={}",
+                        "[WebSocket{}] Connection established: uuid={}, url={}",
                         if use_tls { "+TLS" } else { "" },
                         uuid,
                         url
@@ -610,20 +610,20 @@ impl WebSocketConnectionManager {
             let mut receiver_guard = receiver.lock().await;
             match timeout(close_timeout, receiver_guard.next()).await {
                 Ok(Some(Ok(WebSocketMessage::Close(_)))) => {
-                    log::info!("[WebSocket] 收到服务器关闭确认: uuid={}", uuid);
+                    log::info!("[WebSocket] Server close acknowledgment received: uuid={}", uuid);
                 }
                 Ok(Some(Ok(_))) => {
-                    // 收到其他消息，忽略
+                    // Other message received, ignore
                 }
                 Ok(Some(Err(e))) => {
-                    log::warn!("[WebSocket] 等待关闭确认时出错: {}", e);
+                    log::warn!("[WebSocket] Error while waiting for close acknowledgment: {}", e);
                 }
                 Ok(None) => {
-                    // 流已结束
+                    // Stream ended
                 }
                 Err(_) => {
                     log::warn!(
-                        "[WebSocket] 等待关闭确认超时 ({}ms): uuid={}",
+                        "[WebSocket] Close acknowledgment timeout ({}ms): uuid={}",
                         wait_close_timeout_ms,
                         uuid
                     );
@@ -644,7 +644,7 @@ impl WebSocketConnectionManager {
             }
         }
 
-        log::info!("[WebSocket] 连接已关闭: uuid={}, code={}", uuid, close_code);
+        log::info!("[WebSocket] Connection closed: uuid={}, code={}", uuid, close_code);
         Ok(())
     }
 
@@ -705,7 +705,7 @@ impl WebSocketConnectionManager {
 
         match timeout(send_timeout, sender_guard.send(ws_message)).await {
             Ok(Ok(())) => {
-                log::debug!("[WebSocket] 消息发送成功: uuid={}", uuid);
+                log::debug!("[WebSocket] Message sent successfully: uuid={}", uuid);
                 Ok(())
             }
             Ok(Err(e)) => {
@@ -776,7 +776,7 @@ impl WebSocketConnectionManager {
             let elapsed = start.elapsed();
             if elapsed >= total_timeout {
                 log::debug!(
-                    "[WebSocket] 接收超时 ({}ms): uuid={}",
+                    "[WebSocket] Receive timeout ({}ms): uuid={}",
                     receive_timeout_ms,
                     uuid
                 );
@@ -790,21 +790,21 @@ impl WebSocketConnectionManager {
                 Ok(Some(Ok(message))) => {
                     match message {
                         WebSocketMessage::Text(text) => {
-                            log::debug!("[WebSocket] 收到文本消息: uuid={}", uuid);
+                            log::debug!("[WebSocket] Text message received: uuid={}", uuid);
                             return Ok(Some(text.to_string()));
                         }
                         WebSocketMessage::Binary(data) => {
                             log::debug!(
-                                "[WebSocket] 收到二进制消息: uuid={}, len={}",
+                                "[WebSocket] Binary message received: uuid={}, len={}",
                                 uuid,
                                 data.len()
                             );
                             return Ok(Some(bytes_to_hex(&data)));
                         }
                         WebSocketMessage::Ping(data) => {
-                            // 自动响应 Ping：发送 Pong 并继续读取下一条消息
+                            // Auto-respond to Ping: send Pong and continue reading next message
                             log::debug!(
-                                "[WebSocket] 收到 Ping，自动响应 Pong: uuid={}",
+                                "[WebSocket] Ping received, auto-responding with Pong: uuid={}",
                                 uuid
                             );
                             if let Some(sender) = &sender {
@@ -812,19 +812,19 @@ impl WebSocketConnectionManager {
                                 let pong = WebSocketMessage::Pong(data);
                                 if let Err(e) = sender_guard.send(pong).await {
                                     log::warn!(
-                                        "[WebSocket] 发送 Pong 失败: uuid={}, error={}",
+                                        "[WebSocket] Failed to send Pong: uuid={}, error={}",
                                         uuid,
                                         e
                                     );
                                 }
                             }
-                            // 释放 receiver 锁，继续读取下一条消息
+                            // Release receiver lock and continue reading next message
                             drop(receiver_guard);
                             continue;
                         }
                         WebSocketMessage::Pong(_) => {
-                            // 更新 last_pong_received 时间戳
-                            log::debug!("[WebSocket] 收到 Pong，更新时间戳: uuid={}", uuid);
+                            // Update last_pong_received timestamp
+                            log::debug!("[WebSocket] Pong received, updating timestamp: uuid={}", uuid);
                             if let Ok(mut conns) = self.connections.lock() {
                                 if let Some(conn) = conns.get_mut(uuid) {
                                     conn.last_pong_received = Some(std::time::Instant::now());
@@ -835,16 +835,16 @@ impl WebSocketConnectionManager {
                         }
                         WebSocketMessage::Close(frame) => {
                             log::info!(
-                                "[WebSocket] 收到 Close 帧: uuid={}, frame={:?}",
+                                "[WebSocket] Close frame received: uuid={}, frame={:?}",
                                 uuid,
                                 frame
                             );
-                            // 更新连接状态
+                            // Update connection status
                             self.update_status(uuid, ConnectionStatus::Closed)?;
                             return Ok(None);
                         }
                         WebSocketMessage::Frame(_) => {
-                            // 原始帧，通常不会直接处理
+                            // Raw frame, usually not handled directly
                             return Ok(None);
                         }
                     }
@@ -855,15 +855,15 @@ impl WebSocketConnectionManager {
                     return Err(error_msg);
                 }
                 Ok(None) => {
-                    // 流已结束
-                    log::info!("[WebSocket] 流已结束: uuid={}", uuid);
+                    // Stream ended
+                    log::info!("[WebSocket] Stream ended: uuid={}", uuid);
                     self.update_status(uuid, ConnectionStatus::Closed)?;
                     return Ok(None);
                 }
                 Err(_) => {
-                    // 超时未收到消息
+                    // Timeout - no message received
                     log::debug!(
-                        "[WebSocket] 接收超时 ({}ms): uuid={}",
+                        "[WebSocket] Receive timeout ({}ms): uuid={}",
                         receive_timeout_ms,
                         uuid
                     );
@@ -913,7 +913,7 @@ impl WebSocketConnectionManager {
             (receiver, sender)
         };
 
-        // 2. 使用非常短的超时（1ms）非阻塞地读取所有待处理消息
+        // 2. Use a very short timeout (1ms) to non-blockingly read all pending messages
         let mut drained_count = 0;
         let drain_timeout = Duration::from_millis(1);
         let mut receiver_guard = receiver.lock().await;
@@ -921,11 +921,11 @@ impl WebSocketConnectionManager {
         loop {
             match timeout(drain_timeout, receiver_guard.next()).await {
                 Ok(Some(Ok(message))) => {
-                    // 记录被清空的消息（用于调试）
+                    // Log discarded messages (for debugging)
                     match &message {
                         WebSocketMessage::Text(text) => {
                             log::debug!(
-                                "[WebSocket] drain_pending_messages: 清空文本消息 uuid={}, len={}, preview={}",
+                                "[WebSocket] drain_pending_messages: Discarding text message uuid={}, len={}, preview={}",
                                 uuid,
                                 text.len(),
                                 &text.chars().take(50).collect::<String>()
@@ -933,15 +933,15 @@ impl WebSocketConnectionManager {
                         }
                         WebSocketMessage::Binary(data) => {
                             log::debug!(
-                                "[WebSocket] drain_pending_messages: 清空二进制消息 uuid={}, len={}",
+                                "[WebSocket] drain_pending_messages: Discarding binary message uuid={}, len={}",
                                 uuid,
                                 data.len()
                             );
                         }
                         WebSocketMessage::Ping(data) => {
-                            // 收到 Ping 时自动回复 Pong
+                            // Auto-reply to Ping with Pong
                             log::debug!(
-                                "[WebSocket] drain_pending_messages: 收到 Ping，自动回复 Pong uuid={}",
+                                "[WebSocket] drain_pending_messages: Ping received, auto-replying with Pong uuid={}",
                                 uuid
                             );
                             if let Some(sender) = &sender {
@@ -949,7 +949,7 @@ impl WebSocketConnectionManager {
                                 let pong = WebSocketMessage::Pong(data.clone());
                                 if let Err(e) = sender_guard.send(pong).await {
                                     log::warn!(
-                                        "[WebSocket] drain_pending_messages: 发送 Pong 失败 uuid={}, error={}",
+                                        "[WebSocket] drain_pending_messages: Failed to send Pong uuid={}, error={}",
                                         uuid,
                                         e
                                     );
@@ -957,9 +957,9 @@ impl WebSocketConnectionManager {
                             }
                         }
                         WebSocketMessage::Pong(_) => {
-                            // 更新 last_pong_received 时间戳
+                            // Update last_pong_received timestamp
                             log::debug!(
-                                "[WebSocket] drain_pending_messages: 收到 Pong，更新时间戳 uuid={}",
+                                "[WebSocket] drain_pending_messages: Pong received, updating timestamp uuid={}",
                                 uuid
                             );
                             if let Ok(mut conns) = self.connections.lock() {
@@ -969,40 +969,40 @@ impl WebSocketConnectionManager {
                             }
                         }
                         WebSocketMessage::Close(_) => {
-                            // 收到 Close 帧，更新状态并退出
+                            // Close frame received, update status and exit
                             log::info!(
-                                "[WebSocket] drain_pending_messages: 收到 Close 帧 uuid={}",
+                                "[WebSocket] drain_pending_messages: Close frame received uuid={}",
                                 uuid
                             );
                             self.update_status(uuid, ConnectionStatus::Closed)?;
                             break;
                         }
                         WebSocketMessage::Frame(_) => {
-                            // 原始帧，忽略
+                            // Raw frame, ignore
                         }
                     }
                     drained_count += 1;
-                    // 继续尝试读取更多消息
+                    // Try to read more messages
                 }
                 Ok(Some(Err(e))) => {
                     log::warn!(
-                        "[WebSocket] drain_pending_messages: 读取消息出错 uuid={}, error={}",
+                        "[WebSocket] drain_pending_messages: Error reading message uuid={}, error={}",
                         uuid,
                         e
                     );
-                    // 出错时停止清空
+                    // Stop draining on error
                     break;
                 }
                 Ok(None) => {
-                    // 流已结束
+                    // Stream ended
                     log::debug!(
-                        "[WebSocket] drain_pending_messages: 流已结束 uuid={}",
+                        "[WebSocket] drain_pending_messages: Stream ended uuid={}",
                         uuid
                     );
                     break;
                 }
                 Err(_) => {
-                    // 超时，没有更多待处理消息
+                    // Timeout, no more pending messages
                     break;
                 }
             }
@@ -1010,7 +1010,7 @@ impl WebSocketConnectionManager {
 
         if drained_count > 0 {
             log::info!(
-                "[WebSocket] drain_pending_messages: 清空了 {} 条待处理消息 uuid={}",
+                "[WebSocket] drain_pending_messages: Discarded {} pending message(s) uuid={}",
                 drained_count,
                 uuid
             );

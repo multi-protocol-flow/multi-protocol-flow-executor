@@ -49,7 +49,7 @@ impl NodeExecutor for WsCloseExecutor {
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
             let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -58,9 +58,9 @@ impl NodeExecutor for WsCloseExecutor {
             error_msg
         })?;
 
-        // 3. 日志：开始关闭
+        // 3. Log: start closing
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: ws_close, 连接ID: {}, 关闭码: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: ws_close, ConnectionID: {}, CloseCode: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -99,7 +99,7 @@ impl NodeExecutor for WsCloseExecutor {
         match close_result {
             Ok(()) => {
                 log::info!(
-                    "[WebSocket] 连接关闭成功: connection_id={}, code={}",
+                    "[WebSocket] Connection closed successfully: connection_id={}, code={}",
                     connection_id,
                     config.close_code
                 );
@@ -170,7 +170,7 @@ impl NodeExecutor for WsCloseExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[WebSocket] 连接关闭失败: connection_id={}, error={}",
+                    "[WebSocket] Connection close failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );

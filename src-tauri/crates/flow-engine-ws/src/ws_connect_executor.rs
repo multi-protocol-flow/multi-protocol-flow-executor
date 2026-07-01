@@ -58,7 +58,7 @@ impl NodeExecutor for WsConnectExecutor {
         let url = replace_variables(&config.url, context).map_err(|e| {
             let error_msg = format!("URL variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -67,9 +67,9 @@ impl NodeExecutor for WsConnectExecutor {
             error_msg
         })?;
 
-        // 3. 日志：开始连接
+        // 3. Log: start connecting
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: ws_connect, URL: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: ws_connect, URL: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -112,7 +112,7 @@ impl NodeExecutor for WsConnectExecutor {
         match connect_result {
             Ok(()) => {
                 log::info!(
-                    "[WebSocket] 连接成功: uuid={}, url={}",
+                    "[WebSocket] Connection established: uuid={}, url={}",
                     node.uuid,
                     url
                 );
@@ -153,12 +153,12 @@ impl NodeExecutor for WsConnectExecutor {
                             }
                         }
                         Err(e) => {
-                            log::error!(
-                                "[WebSocket] 采集消息出错: uuid={}, error={}",
-                                node.uuid,
-                                e
-                            );
-                            (true, CollectResult { collected: vec![], matched_index: None }) // 出错也视为超时
+                        log::error!(
+                            "[WebSocket] Collect message error: uuid={}, error={}",
+                            node.uuid,
+                            e
+                        );
+                        (true, CollectResult { collected: vec![], matched_index: None }) // error also treated as timeout
                         }
                     }
                 } else {
@@ -222,7 +222,7 @@ impl NodeExecutor for WsConnectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[WebSocket] 连接失败: uuid={}, error={}",
+                    "[WebSocket] Connection failed: uuid={}, error={}",
                     node.uuid,
                     e
                 );
@@ -322,12 +322,12 @@ impl WsConnectExecutor {
                 match receive_result {
                     Ok(Some(message)) => {
                         log::info!(
-                            "[WebSocket] 收到初始消息: uuid={}, len={}",
+                            "[WebSocket] Initial message received: uuid={}, len={}",
                             node.uuid,
                             message.len()
                         );
 
-                        // 记录消息到 WebSocket 消息流
+                        // Record message to WebSocket message stream
                         let ws_message = WsMessage::new(
                             MessageDirection::Received,
                             MessageContent::Text {
@@ -336,13 +336,13 @@ impl WsConnectExecutor {
                         );
                         if let Err(e) = context.push_ws_message(&node.uuid, ws_message).await {
                             log::warn!(
-                                "[WebSocket] 记录消息失败: uuid={}, error={}",
+                                "[WebSocket] Failed to record message: uuid={}, error={}",
                                 node.uuid,
                                 e
                             );
                         }
 
-                        // 发送日志
+                        // Send log
                         context
                             .emit_log(LogEvent {
                                 level: LogLevel::Info,
@@ -364,7 +364,7 @@ impl WsConnectExecutor {
                     }
                     Ok(None) => {
                         log::info!(
-                            "[WebSocket] 采集消息超时: uuid={}",
+                            "[WebSocket] Collect message timeout: uuid={}",
                             node.uuid
                         );
                         Ok(CollectResult {
@@ -390,7 +390,7 @@ impl WsConnectExecutor {
                             let elapsed = start.elapsed().as_millis() as u64;
                             if elapsed >= timeout_ms {
                                 log::info!(
-                                    "[WebSocket] 采集条件超时: uuid={}",
+                                    "[WebSocket] Collect condition timeout: uuid={}",
                                     node.uuid
                                 );
                                 return Ok(CollectResult { collected, matched_index: None });
@@ -418,7 +418,7 @@ impl WsConnectExecutor {
                                     );
                                     if let Err(e) = context.push_ws_message(&node.uuid, ws_message).await {
                                         log::warn!(
-                                            "[WebSocket] 记录消息失败: uuid={}, error={}",
+                                            "[WebSocket] Failed to record message: uuid={}, error={}",
                                             node.uuid,
                                             e
                                         );
@@ -429,7 +429,7 @@ impl WsConnectExecutor {
 
                                     if self.ws_manager.match_message(&message, condition)? {
                                         log::info!(
-                                            "[WebSocket] 消息匹配成功: uuid={}",
+                                            "[WebSocket] Message matched: uuid={}",
                                             node.uuid
                                         );
 
@@ -462,7 +462,7 @@ impl WsConnectExecutor {
                         condition.match_type
                         );
                         log::error!(
-                            "[WebSocket] 条件匹配配置错误: uuid={}, expression 为空",
+                            "[WebSocket] Condition match config error: uuid={}, expression is empty",
                             node.uuid
                         );
 
@@ -485,7 +485,7 @@ impl WsConnectExecutor {
                     None => {
                         let error_msg = "Condition match mode requires collect_condition to be configured".to_string();
                         log::error!(
-                            "[WebSocket] 条件匹配配置错误: uuid={}, collect_condition 为 None",
+                            "[WebSocket] Condition match config error: uuid={}, collect_condition is None",
                             node.uuid
                         );
 
@@ -530,12 +530,12 @@ impl WsConnectExecutor {
                     };
                     if let Ok(Some(message)) = receive_result {
                         log::debug!(
-                            "[WebSocket] 收到消息（DurationCollect模式）: uuid={}, len={}",
+                            "[WebSocket] Message received (DurationCollect mode): uuid={}, len={}",
                             node.uuid,
                             message.len()
                         );
 
-                        // 记录消息到 WebSocket 消息流
+                        // Record message to WebSocket message stream
                         let ws_message = WsMessage::new(
                             MessageDirection::Received,
                             MessageContent::Text {
@@ -544,7 +544,7 @@ impl WsConnectExecutor {
                         );
                         if let Err(e) = context.push_ws_message(&node.uuid, ws_message).await {
                             log::warn!(
-                                "[WebSocket] 记录消息失败: uuid={}, error={}",
+                                "[WebSocket] Failed to record message: uuid={}, error={}",
                                 node.uuid,
                                 e
                             );
@@ -556,12 +556,12 @@ impl WsConnectExecutor {
 
                 if collected.is_empty() {
                     log::info!(
-                        "[WebSocket] DurationCollect 模式完成，未收到消息: uuid={}",
+                        "[WebSocket] DurationCollect mode completed, no messages received: uuid={}",
                         node.uuid
                     );
                 } else {
                     log::info!(
-                        "[WebSocket] DurationCollect 模式完成，返回最后一条消息: uuid={}",
+                        "[WebSocket] DurationCollect mode completed, returning last message: uuid={}",
                         node.uuid
                     );
                 }

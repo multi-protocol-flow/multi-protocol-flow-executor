@@ -24,7 +24,7 @@ impl NodePlugin for WsConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "WebSocket 连接"
+        "WebSocket Connect"
     }
 
     fn category(&self) -> &str {
@@ -43,12 +43,12 @@ impl NodePlugin for WsConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "连接成功".into(),
+                label: "Connected".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "连接失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -132,7 +132,7 @@ impl NodePlugin for WsSendCollectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "WebSocket 发送采集"
+        "WebSocket Send & Collect"
     }
 
     fn category(&self) -> &str {
@@ -151,12 +151,12 @@ impl NodePlugin for WsSendCollectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -236,7 +236,7 @@ impl NodePlugin for WsClosePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "WebSocket 关闭"
+        "WebSocket Close"
     }
 
     fn category(&self) -> &str {
@@ -255,12 +255,12 @@ impl NodePlugin for WsClosePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failure".into(),
                 position: "bottom".into(),
             },
         ]

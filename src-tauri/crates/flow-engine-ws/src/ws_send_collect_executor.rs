@@ -58,7 +58,7 @@ impl NodeExecutor for WsSendCollectExecutor {
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
             let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -70,7 +70,7 @@ impl NodeExecutor for WsSendCollectExecutor {
         let message = replace_variables(&config.message, context).map_err(|e| {
             let error_msg = format!("Message variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -79,9 +79,9 @@ impl NodeExecutor for WsSendCollectExecutor {
             error_msg
         })?;
 
-        // 3. 日志：开始发送
+        // 3. Log: start sending
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: ws_send_collect, 连接ID: {}, 消息长度: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: ws_send_collect, ConnectionID: {}, MessageLength: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -122,7 +122,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                 }
 
                 log::error!(
-                    "[WebSocket] 连接状态错误: uuid={}, status={}",
+                    "[WebSocket] Connection status error: uuid={}, status={}",
                     connection_id,
                     status
                 );
@@ -153,7 +153,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                     return Err(format!("Flow aborted: {}", error_msg));
                 }
 
-                log::error!("[WebSocket] 连接不存在: uuid={}", connection_id);
+                log::error!("[WebSocket] Connection not found: uuid={}", connection_id);
 
                 context
                     .emit_log(LogEvent {
@@ -203,7 +203,7 @@ impl NodeExecutor for WsSendCollectExecutor {
             
             if current_owner.as_ref() != Some(&node.uuid) {
                 log::info!(
-                    "[WebSocket] 转移连接所有权: connection_id={}, from={:?}, to={}",
+                    "[WebSocket] Transferring connection ownership: connection_id={}, from={:?}, to={}",
                     connection_id,
                     current_owner,
                     node.uuid
@@ -218,12 +218,12 @@ impl NodeExecutor for WsSendCollectExecutor {
             }
         }
 
-        // 5. 清空发送前的待处理消息（必须在 send 之前，避免吞掉服务器的快速响应）
+        // 5. Drain pending messages before sending (must be before send to avoid swallowing fast server responses)
         match self.ws_manager.drain_pending_messages(&connection_id).await {
             Ok(drained_count) => {
                 if drained_count > 0 {
                     log::info!(
-                        "[WebSocket] 清空了 {} 条发送前的待处理消息: connection_id={}",
+                        "[WebSocket] Discarded {} pre-send pending message(s): connection_id={}",
                         drained_count,
                         connection_id
                     );
@@ -231,7 +231,7 @@ impl NodeExecutor for WsSendCollectExecutor {
             }
             Err(e) => {
                 log::warn!(
-                    "[WebSocket] 清空待处理消息失败（继续执行）: connection_id={}, error={}",
+                    "[WebSocket] Failed to drain pending messages (continuing): connection_id={}, error={}",
                     connection_id,
                     e
                 );
@@ -251,12 +251,12 @@ impl NodeExecutor for WsSendCollectExecutor {
         let (port, output_data) = match send_result {
             Ok(()) => {
                 log::info!(
-                    "[WebSocket] 消息发送成功: connection_id={}, len={}",
+                    "[WebSocket] Message sent successfully: connection_id={}, len={}",
                     connection_id,
                     message.len()
                 );
 
-                // 记录发送的消息到 ws_streams
+                // Record sent message to ws_streams
                 {
                     let sent_content = if is_binary {
                         MessageContent::Binary {
@@ -270,13 +270,13 @@ impl NodeExecutor for WsSendCollectExecutor {
                     let sent_msg = WsMessage::new(MessageDirection::Sent, sent_content.clone());
                     if let Err(e) = context.push_ws_message(&connection_id, sent_msg.clone()).await {
                         log::warn!(
-                            "[WebSocket] 记录发送消息失败（继续执行）: connection_id={}, error={}",
+                            "[WebSocket] Failed to record sent message (continuing): connection_id={}, error={}",
                             connection_id,
                             e
                         );
                     }
 
-                    // 发送调试事件：WsMessageSent
+                    // Send debug event: WsMessageSent
                     if let Some(sender) = &context.debug_event_sender {
                         let _ = sender.send_event(DebugEvent::WsMessageSent {
                             connection_id: connection_id.clone(),
@@ -293,14 +293,14 @@ impl NodeExecutor for WsSendCollectExecutor {
                         Ok(result) => {
                             if result.matched_index.is_some() {
                                 log::info!(
-                                    "[WebSocket] 采集响应成功: connection_id={}, 消息数={}",
+                                    "[WebSocket] Response collection succeeded: connection_id={}, message_count={}",
                                     connection_id,
                                     result.collected.len()
                                 );
                                 (false, result)
                             } else {
                                 log::warn!(
-                                    "[WebSocket] 采集响应超时: connection_id={}",
+                                    "[WebSocket] Response collection timeout: connection_id={}",
                                     connection_id
                                 );
                                 (true, result)
@@ -308,7 +308,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                         }
                         Err(e) => {
                             log::error!(
-                                "[WebSocket] 采集响应失败: connection_id={}, error={}",
+                                "[WebSocket] Response collection failed: connection_id={}, error={}",
                                 connection_id,
                                 e
                             );
@@ -327,7 +327,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                                 })
                                 .await;
 
-                            // 采集失败也算超时，但仍然返回 true 端口
+                            // Collect failure is also treated as timeout, but still returns true port
                             (true, CollectResult { collected: vec![], matched_index: None })
                         }
                     }
@@ -383,7 +383,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                 }
 
                 log::error!(
-                    "[WebSocket] 消息发送失败: connection_id={}, error={}",
+                    "[WebSocket] Message send failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
@@ -458,12 +458,12 @@ impl WsSendCollectExecutor {
 
                 if let Some(message) = result {
                     log::info!(
-                        "[WebSocket] 收到响应消息: connection_id={}, len={}",
+                        "[WebSocket] Response message received: connection_id={}, len={}",
                         connection_id,
                         message.len()
                     );
 
-                    // 记录收到的消息到 ws_streams
+                    // Record received message to ws_streams
                     {
                         let received_msg = WsMessage::new(
                             MessageDirection::Received,
@@ -473,13 +473,13 @@ impl WsSendCollectExecutor {
                         );
                         if let Err(e) = context.push_ws_message(connection_id, received_msg.clone()).await {
                             log::warn!(
-                                "[WebSocket] 记录接收消息失败（继续执行）: connection_id={}, error={}",
+                                "[WebSocket] Failed to record received message (continuing): connection_id={}, error={}",
                                 connection_id,
                                 e
                             );
                         }
 
-                        // 发送调试事件：WsMessageReceived
+                        // Send debug event: WsMessageReceived
                         if let Some(sender) = &context.debug_event_sender {
                             let _ = sender.send_event(DebugEvent::WsMessageReceived {
                                 connection_id: connection_id.to_string(),
@@ -557,7 +557,7 @@ impl WsSendCollectExecutor {
                                     );
                                     if let Err(e) = context.push_ws_message(connection_id, received_msg.clone()).await {
                                         log::warn!(
-                                            "[WebSocket] 记录接收消息失败（继续执行）: connection_id={}, error={}",
+                                            "[WebSocket] Failed to record received message (continuing): connection_id={}, error={}",
                                             connection_id,
                                             e
                                         );
@@ -580,7 +580,7 @@ impl WsSendCollectExecutor {
                                 match self.ws_manager.match_message(&message, condition) {
                                     Ok(true) => {
                                         log::info!(
-                                            "[WebSocket] 响应匹配成功: connection_id={}",
+                                            "[WebSocket] Response matched: connection_id={}",
                                             connection_id
                                         );
 
@@ -601,17 +601,17 @@ impl WsSendCollectExecutor {
                                         return Ok(CollectResult { collected, matched_index: Some(msg_index) });
                                     }
                                     Ok(false) => {
-                                        // 消息不匹配条件，继续等待下一条
+                                        // Message doesn't match condition, continue waiting
                                         log::debug!(
-                                            "[WebSocket] 消息不匹配条件，继续等待: connection_id={}, 消息={}",
+                                            "[WebSocket] Message does not match condition, continuing to wait: connection_id={}, message={}",
                                             connection_id,
                                             &message[..message.len().min(200)]
                                         );
                                     }
                                     Err(e) => {
-                                        // 匹配过程出错（如表达式语法错误），记录日志但继续等待
+                                        // Match error (e.g. expression syntax error), log but continue waiting
                                         log::warn!(
-                                            "[WebSocket] 条件匹配出错（继续等待）: connection_id={}, error={}",
+                                            "[WebSocket] Condition match error (continuing to wait): connection_id={}, error={}",
                                             connection_id,
                                             e
                                         );
@@ -639,7 +639,7 @@ impl WsSendCollectExecutor {
                         condition.match_type
                         );
                         log::error!(
-                            "[WebSocket] 条件匹配配置错误: connection_id={}, expression 为空",
+                            "[WebSocket] Condition match config error: connection_id={}, expression is empty",
                             connection_id
                         );
 
@@ -662,7 +662,7 @@ impl WsSendCollectExecutor {
                     None => {
                         let error_msg = "Condition match mode requires collect_condition to be configured".to_string();
                         log::error!(
-                            "[WebSocket] 条件匹配配置错误: connection_id={}, collect_condition 为 None",
+                            "[WebSocket] Condition match config error: connection_id={}, collect_condition is None",
                             connection_id
                         );
 
@@ -709,12 +709,12 @@ impl WsSendCollectExecutor {
                     };
                     if let Some(message) = result {
                         log::debug!(
-                            "[WebSocket] 收到消息（DurationCollect模式）: connection_id={}, len={}",
+                            "[WebSocket] Message received (DurationCollect mode): connection_id={}, len={}",
                             connection_id,
                             message.len()
                         );
 
-                        // 记录收到的消息到 ws_streams
+                        // Record received message to ws_streams
                         {
                             let received_msg = WsMessage::new(
                                 MessageDirection::Received,
@@ -731,7 +731,7 @@ impl WsSendCollectExecutor {
                             }
                             if let Err(e) = context.push_ws_message(connection_id, received_msg).await {
                                 log::warn!(
-                                    "[WebSocket] 记录接收消息失败（继续执行）: connection_id={}, error={}",
+                                    "[WebSocket] Failed to record received message (continuing): connection_id={}, error={}",
                                     connection_id,
                                     e
                                 );
