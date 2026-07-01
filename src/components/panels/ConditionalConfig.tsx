@@ -301,7 +301,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             <div className="text-xs text-muted-foreground space-y-1">
               <p>{ll.fieldPathHelpTitle()}</p>
               <ul className="ml-3 list-disc space-y-0.5">
-                <li><code className="rounded bg-muted px-1">{"{{变量名}}"}</code>{" "}{ll.fieldPathFormatVariable()}</li>
+                <li><code className="rounded bg-muted px-1">{"{{"}{ll.fieldPathVarSyntax()}{"}}"}</code>{" "}{ll.fieldPathFormatVariable()}</li>
                 <li><code className="rounded bg-muted px-1">$.json.path</code>{" "}{ll.fieldPathFormatJsonPath()}</li>
               </ul>
             </div>
@@ -432,7 +432,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               <p className="mb-1 font-medium text-amber-600">{ll.notesTitle()}</p>
               <ul className="ml-3 list-disc space-y-0.5">
                 <li>{ll.noteStringQuote()}</li>
-                <li>{ll.noteNestedField()}（自动展开，等同于 <code className="rounded bg-muted px-1">$.body.data.token</code>）</li>
+                <li>{ll.noteNestedField()}{ll.noteAutoExpandPrefix()}<code className="rounded bg-muted px-1">$.body.data.token</code>{ll.noteAutoExpandSuffix()}</li>
               </ul>
             </div>
           </div>

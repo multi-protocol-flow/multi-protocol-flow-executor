@@ -295,7 +295,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
         <div className="space-y-3">
           <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaSchemaRegistry.schemaSubject()}</p>
           <div className="space-y-2">
-            <Label htmlFor="schema_definition" className="text-sm font-medium text-foreground">Schema 内容</Label>
+            <Label htmlFor="schema_definition" className="text-sm font-medium text-foreground">{getLL().panels.kafkaSchemaRegistry.schemaDefinition_label()}</Label>
             <textarea
               id="schema_definition"
               {...register('schema_definition')}
@@ -310,7 +310,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
       {/* Schema 类型 */}
       {showSchemaType && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Schema 类型</p>
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaSchemaRegistry.schemaType_sectionTitle()}</p>
           <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaSchemaRegistry.schemaType()}</Label>
             <Select
@@ -336,7 +336,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
       {/* 兼容性级别 */}
       {showCompatibilityLevel && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">兼容性检查</p>
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaSchemaRegistry.compatCheck_sectionTitle()}</p>
           <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaSchemaRegistry.compatLevel_label()}</Label>
             <Select

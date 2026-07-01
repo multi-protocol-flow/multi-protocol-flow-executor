@@ -23,6 +23,8 @@ const en_US_common: Partial<Translation['common']> = {
   space_drag: 'Space + Drag',
   ctrl_scroll: 'Ctrl+Scroll',
   ctrl_zoom: 'Ctrl + - / =',
+  collapse_panel_aria: 'Collapse {title}',
+  expand_panel_aria: 'Expand {title}',
 };
 
 export default en_US_common;

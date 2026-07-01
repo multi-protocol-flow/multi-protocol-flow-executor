@@ -24,6 +24,8 @@ const zh_CN_common: Partial<BaseTranslation> = {
   space_drag: 'Space + 拖拽',
   ctrl_scroll: 'Ctrl+滚轮',
   ctrl_zoom: 'Ctrl + - / =',
+  collapse_panel_aria: '折叠{title}',
+  expand_panel_aria: '展开{title}',
 };
 
 export default zh_CN_common;

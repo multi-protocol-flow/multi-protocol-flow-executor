@@ -99,6 +99,16 @@ type RootTranslation = {
 		 * C​t​r​l​ ​+​ ​-​ ​/​ ​=
 		 */
 		ctrl_zoom: string
+		/**
+		 * 折​叠​{​t​i​t​l​e​}
+		 * @param {unknown} title
+		 */
+		collapse_panel_aria: RequiredParams<'title'>
+		/**
+		 * 展​开​{​t​i​t​l​e​}
+		 * @param {unknown} title
+		 */
+		expand_panel_aria: RequiredParams<'title'>
 	}
 	nodes: {
 		/**
@@ -2507,6 +2517,18 @@ type RootTranslation = {
 			 * 多​条​件​组​合​：
 			 */
 			varRefComposite: string
+			/**
+			 * 变​量​名
+			 */
+			fieldPathVarSyntax: string
+			/**
+			 * （​自​动​展​开​，​等​同​于​ 
+			 */
+			noteAutoExpandPrefix: string
+			/**
+			 * ）
+			 */
+			noteAutoExpandSuffix: string
 			/**
 			 * �​�​ ​数​据​来​源​（​按​优​先​级​从​高​到​低​）​：
 			 */
@@ -9502,6 +9524,15 @@ type RootTranslation = {
 		 */
 		db_table_view: string
 		/**
+		 * J​S​O​N
+		 */
+		db_json_view: string
+		/**
+		 * {​t​i​m​e​}​m​s
+		 * @param {unknown} time
+		 */
+		db_timing_ms: RequiredParams<'time'>
+		/**
 		 * 查​询​成​功​，​{​c​o​u​n​t​}​ ​行​受​影​响
 		 * @param {unknown} count
 		 */
@@ -11107,6 +11138,10 @@ type RootTranslation = {
 			 */
 			type_label_single: string
 			/**
+			 * U​R​L
+			 */
+			url_label: string
+			/**
 			 * 未​配​置​ ​U​R​L
 			 */
 			config_url: string
@@ -11487,6 +11522,10 @@ type RootTranslation = {
 			 */
 			ws_match_type_label: string
 			/**
+			 * J​S​O​N​P​a​t​h
+			 */
+			ws_match_type_jsonpath: string
+			/**
 			 * 正​则​表​达​式
 			 */
 			ws_match_type_regex: string
@@ -11494,6 +11533,15 @@ type RootTranslation = {
 			 * 表​达​式
 			 */
 			ws_match_type_expression: string
+			/**
+			 * H​e​x​ ​视​图
+			 */
+			ws_binary_hex_view: string
+			/**
+			 * {​c​o​u​n​t​}​ ​字​节
+			 * @param {unknown} count
+			 */
+			ws_hex_view_bytes: RequiredParams<'count'>
 			/**
 			 * 采​集​超​时​:
 			 */
@@ -11979,9 +12027,42 @@ type RootTranslation = {
 			 */
 			label_row: string
 			/**
+			 * 列
+			 */
+			label_column: string
+			/**
 			 * 总​行​数
 			 */
 			total_rows: string
+			/**
+			 * {​m​s​}​m​s
+			 * @param {unknown} ms
+			 */
+			duration_ms: RequiredParams<'ms'>
+			/**
+			 * {​s​e​c​o​n​d​s​}​秒
+			 * @param {unknown} seconds
+			 */
+			duration_sec: RequiredParams<'seconds'>
+			/**
+			 * {​m​i​n​u​t​e​s​}​分​{​s​e​c​o​n​d​s​}​秒
+			 * @param {unknown} minutes
+			 * @param {unknown} seconds
+			 */
+			duration_min_sec: RequiredParams<'minutes' | 'seconds'>
+			/**
+			 * _​数​据​模​板
+			 */
+			template_file_suffix: string
+			/**
+			 * 示​例​{​i​n​d​e​x​}
+			 * @param {unknown} index
+			 */
+			template_example_prefix: RequiredParams<'index'>
+			/**
+			 * n​a​m​e​,​v​a​l​u​e​,​d​e​s​c​r​i​p​t​i​o​n
+			 */
+			template_header_no_vars: string
 			/**
 			 * C​S​V​ ​文​件
 			 */
@@ -14828,6 +14909,11 @@ type RootTranslation = {
 			 * 服​务​器​处​理
 			 */
 			timing_server: string
+			/**
+			 * 总​计​ ​{​m​s​}​m​s
+			 * @param {unknown} ms
+			 */
+			total_duration_ms: RequiredParams<'ms'>
 		}
 		amqp: {
 			/**
@@ -15537,6 +15623,79 @@ type RootTranslation = {
 			 * @param {unknown} target
 			 */
 			udp_sent_to: RequiredParams<'target'>
+			/**
+			 * 连​接​ ​I​D
+			 */
+			label_connection_id: string
+			/**
+			 * 分​帧
+			 */
+			label_framing: string
+			/**
+			 * 连​接
+			 */
+			label_connection: string
+			/**
+			 * 数​据​内​容
+			 */
+			label_data_content: string
+			/**
+			 * 文​本​预​览
+			 */
+			label_text_preview: string
+			/**
+			 * 未​配​置​地​址
+			 */
+			no_address_configured: string
+			/**
+			 * 未​指​定​连​接​ ​I​D
+			 */
+			no_connection_id: string
+			/**
+			 * 未​指​定​目​标​地​址
+			 */
+			no_target_address: string
+			/**
+			 * 无​接​收​数​据
+			 */
+			no_received_data: string
+			/**
+			 * 未​知​来​源
+			 */
+			unknown_source: string
+			/**
+			 * T​C​P​ ​数​据​接​收​成​功​ ​(​{​s​i​z​e​}​ ​b​y​t​e​s​)
+			 * @param {unknown} size
+			 */
+			receive_success_with_size: RequiredParams<'size'>
+			/**
+			 * T​C​P​ ​接​收​完​成​（​超​时​无​数​据​）
+			 */
+			receive_timeout_no_data: string
+			/**
+			 * U​D​P​ ​绑​定​成​功​ ​(​{​a​d​d​r​}​)
+			 * @param {unknown} addr
+			 */
+			udp_bind_success_addr: RequiredParams<'addr'>
+			/**
+			 * U​D​P​ ​数​据​包​接​收​成​功
+			 */
+			udp_recv_success: string
+			/**
+			 * U​D​P​ ​数​据​包​接​收​成​功​ ​(​来​自​ ​{​s​o​u​r​c​e​}​)
+			 * @param {unknown} source
+			 */
+			udp_recv_success_from: RequiredParams<'source'>
+			/**
+			 * U​D​P​ ​连​接​已​成​功​关​闭
+			 */
+			udp_close_success: string
+			/**
+			 * 共​ ​{​c​o​u​n​t​}​ ​条​录​制​，​时​长​ ​{​d​u​r​a​t​i​o​n​}​m​s
+			 * @param {unknown} count
+			 * @param {unknown} duration
+			 */
+			recording_summary: RequiredParams<'count' | 'duration'>
 		}
 		mcp: {
 			/**
@@ -16121,6 +16280,30 @@ type RootTranslation = {
 			 * 数​据​库​索​引
 			 */
 			label_db_index: string
+			/**
+			 * 连​接​ ​I​D
+			 */
+			label_connection_id: string
+			/**
+			 * 主​机
+			 */
+			label_host: string
+			/**
+			 * 端​口
+			 */
+			label_port: string
+			/**
+			 * 版​本
+			 */
+			label_version: string
+			/**
+			 * 类​型
+			 */
+			label_type: string
+			/**
+			 * 未​执​行​命​令
+			 */
+			no_command_executed: string
 			/**
 			 * 未​知​ ​R​e​d​i​s​ ​节​点​类​型​:​ ​{​t​y​p​e​}
 			 * @param {unknown} type
@@ -16995,6 +17178,18 @@ type RootTranslation = {
 			 * @param {unknown} type
 			 */
 			unknown_node_type: RequiredParams<'type'>
+			/**
+			 * 连​接​ ​I​D
+			 */
+			label_connection_id: string
+			/**
+			 * 未​指​定​连​接​ ​I​D
+			 */
+			no_connection_id: string
+			/**
+			 * 过​滤​器
+			 */
+			label_filter: string
 		}
 		email: {
 			/**
@@ -18939,6 +19134,14 @@ export type TranslationFunctions = {
 		 * Ctrl + - / =
 		 */
 		ctrl_zoom: () => LocalizedString
+		/**
+		 * 折叠{title}
+		 */
+		collapse_panel_aria: (arg: { title: unknown }) => LocalizedString
+		/**
+		 * 展开{title}
+		 */
+		expand_panel_aria: (arg: { title: unknown }) => LocalizedString
 	}
 	nodes: {
 		/**
@@ -21334,6 +21537,18 @@ export type TranslationFunctions = {
 			 * 多条件组合：
 			 */
 			varRefComposite: () => LocalizedString
+			/**
+			 * 变量名
+			 */
+			fieldPathVarSyntax: () => LocalizedString
+			/**
+			 * （自动展开，等同于 
+			 */
+			noteAutoExpandPrefix: () => LocalizedString
+			/**
+			 * ）
+			 */
+			noteAutoExpandSuffix: () => LocalizedString
 			/**
 			 * 📋 数据来源（按优先级从高到低）：
 			 */
@@ -28292,6 +28507,14 @@ export type TranslationFunctions = {
 		 */
 		db_table_view: () => LocalizedString
 		/**
+		 * JSON
+		 */
+		db_json_view: () => LocalizedString
+		/**
+		 * {time}ms
+		 */
+		db_timing_ms: (arg: { time: unknown }) => LocalizedString
+		/**
 		 * 查询成功，{count} 行受影响
 		 */
 		db_query_success_affected: (arg: { count: unknown }) => LocalizedString
@@ -29865,6 +30088,10 @@ export type TranslationFunctions = {
 			 */
 			type_label_single: () => LocalizedString
 			/**
+			 * URL
+			 */
+			url_label: () => LocalizedString
+			/**
 			 * 未配置 URL
 			 */
 			config_url: () => LocalizedString
@@ -30241,6 +30468,10 @@ export type TranslationFunctions = {
 			 */
 			ws_match_type_label: () => LocalizedString
 			/**
+			 * JSONPath
+			 */
+			ws_match_type_jsonpath: () => LocalizedString
+			/**
 			 * 正则表达式
 			 */
 			ws_match_type_regex: () => LocalizedString
@@ -30248,6 +30479,14 @@ export type TranslationFunctions = {
 			 * 表达式
 			 */
 			ws_match_type_expression: () => LocalizedString
+			/**
+			 * Hex 视图
+			 */
+			ws_binary_hex_view: () => LocalizedString
+			/**
+			 * {count} 字节
+			 */
+			ws_hex_view_bytes: (arg: { count: unknown }) => LocalizedString
 			/**
 			 * 采集超时:
 			 */
@@ -30731,9 +30970,37 @@ export type TranslationFunctions = {
 			 */
 			label_row: () => LocalizedString
 			/**
+			 * 列
+			 */
+			label_column: () => LocalizedString
+			/**
 			 * 总行数
 			 */
 			total_rows: () => LocalizedString
+			/**
+			 * {ms}ms
+			 */
+			duration_ms: (arg: { ms: unknown }) => LocalizedString
+			/**
+			 * {seconds}秒
+			 */
+			duration_sec: (arg: { seconds: unknown }) => LocalizedString
+			/**
+			 * {minutes}分{seconds}秒
+			 */
+			duration_min_sec: (arg: { minutes: unknown, seconds: unknown }) => LocalizedString
+			/**
+			 * _数据模板
+			 */
+			template_file_suffix: () => LocalizedString
+			/**
+			 * 示例{index}
+			 */
+			template_example_prefix: (arg: { index: unknown }) => LocalizedString
+			/**
+			 * name,value,description
+			 */
+			template_header_no_vars: () => LocalizedString
 			/**
 			 * CSV 文件
 			 */
@@ -33546,6 +33813,10 @@ export type TranslationFunctions = {
 			 * 服务器处理
 			 */
 			timing_server: () => LocalizedString
+			/**
+			 * 总计 {ms}ms
+			 */
+			total_duration_ms: (arg: { ms: unknown }) => LocalizedString
 		}
 		amqp: {
 			/**
@@ -34242,6 +34513,74 @@ export type TranslationFunctions = {
 			 * UDP 数据包已发送至 {target}
 			 */
 			udp_sent_to: (arg: { target: unknown }) => LocalizedString
+			/**
+			 * 连接 ID
+			 */
+			label_connection_id: () => LocalizedString
+			/**
+			 * 分帧
+			 */
+			label_framing: () => LocalizedString
+			/**
+			 * 连接
+			 */
+			label_connection: () => LocalizedString
+			/**
+			 * 数据内容
+			 */
+			label_data_content: () => LocalizedString
+			/**
+			 * 文本预览
+			 */
+			label_text_preview: () => LocalizedString
+			/**
+			 * 未配置地址
+			 */
+			no_address_configured: () => LocalizedString
+			/**
+			 * 未指定连接 ID
+			 */
+			no_connection_id: () => LocalizedString
+			/**
+			 * 未指定目标地址
+			 */
+			no_target_address: () => LocalizedString
+			/**
+			 * 无接收数据
+			 */
+			no_received_data: () => LocalizedString
+			/**
+			 * 未知来源
+			 */
+			unknown_source: () => LocalizedString
+			/**
+			 * TCP 数据接收成功 ({size} bytes)
+			 */
+			receive_success_with_size: (arg: { size: unknown }) => LocalizedString
+			/**
+			 * TCP 接收完成（超时无数据）
+			 */
+			receive_timeout_no_data: () => LocalizedString
+			/**
+			 * UDP 绑定成功 ({addr})
+			 */
+			udp_bind_success_addr: (arg: { addr: unknown }) => LocalizedString
+			/**
+			 * UDP 数据包接收成功
+			 */
+			udp_recv_success: () => LocalizedString
+			/**
+			 * UDP 数据包接收成功 (来自 {source})
+			 */
+			udp_recv_success_from: (arg: { source: unknown }) => LocalizedString
+			/**
+			 * UDP 连接已成功关闭
+			 */
+			udp_close_success: () => LocalizedString
+			/**
+			 * 共 {count} 条录制，时长 {duration}ms
+			 */
+			recording_summary: (arg: { count: unknown, duration: unknown }) => LocalizedString
 		}
 		mcp: {
 			/**
@@ -34820,6 +35159,30 @@ export type TranslationFunctions = {
 			 * 数据库索引
 			 */
 			label_db_index: () => LocalizedString
+			/**
+			 * 连接 ID
+			 */
+			label_connection_id: () => LocalizedString
+			/**
+			 * 主机
+			 */
+			label_host: () => LocalizedString
+			/**
+			 * 端口
+			 */
+			label_port: () => LocalizedString
+			/**
+			 * 版本
+			 */
+			label_version: () => LocalizedString
+			/**
+			 * 类型
+			 */
+			label_type: () => LocalizedString
+			/**
+			 * 未执行命令
+			 */
+			no_command_executed: () => LocalizedString
 			/**
 			 * 未知 Redis 节点类型: {type}
 			 */
@@ -35674,6 +36037,18 @@ export type TranslationFunctions = {
 			 * 未知 SSE 节点类型: {type}
 			 */
 			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+			/**
+			 * 连接 ID
+			 */
+			label_connection_id: () => LocalizedString
+			/**
+			 * 未指定连接 ID
+			 */
+			no_connection_id: () => LocalizedString
+			/**
+			 * 过滤器
+			 */
+			label_filter: () => LocalizedString
 		}
 		email: {
 			/**

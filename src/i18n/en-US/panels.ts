@@ -500,6 +500,9 @@
     varRefDirect: 'Use variable name directly, no {{}} or $. needed',
     varRefNested: 'Nested fields supported:',
     varRefComposite: 'Multi-condition combinations:',
+    fieldPathVarSyntax: 'variableName',
+    noteAutoExpandPrefix: ' (auto-expanded, equivalent to ',
+    noteAutoExpandSuffix: ')',
     dataSourceTitle: 'Data Sources (priority from high to low):',
     dataSourceUpstream: 'Upstream node output — auto-injected raw output from previous protocol node (e.g. HTTP response status, body), highest priority',
     dataSourceVariable: 'Variable pool — variables set via output variable mapping, lower priority',
@@ -2402,6 +2405,8 @@
   db_rows_affected: 'row(s) affected',
   db_truncated_warning: 'Results truncated',
   db_table_view: 'Table',
+  db_json_view: 'JSON',
+  db_timing_ms: '{time}ms',
   db_query_success_affected: 'Query succeeded, {count} row(s) affected',
   db_query_empty_result: 'Query returned empty result',
 };

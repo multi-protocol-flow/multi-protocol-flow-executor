@@ -502,6 +502,9 @@ const zh_CN_panels: BaseTranslation = {
     varRefDirect: '直接使用变量名，无需 {{}} 或 \$.',
     varRefNested: '支持嵌套字段：',
     varRefComposite: '多条件组合：',
+    fieldPathVarSyntax: '变量名',
+    noteAutoExpandPrefix: '（自动展开，等同于 ',
+    noteAutoExpandSuffix: '）',
     dataSourceTitle: '📋 数据来源（按优先级从高到低）：',
     dataSourceUpstream: '上游节点输出 — 自动注入上一个协议节点的原始输出（如 HTTP 响应的 status、body 等），优先级最高',
     dataSourceVariable: '变量池 — 通过输出变量映射设置的变量，优先级较低',
@@ -2387,6 +2390,8 @@ const zh_CN_panels: BaseTranslation = {
   db_rows_affected: '行受影响',
   db_truncated_warning: '结果已截断',
   db_table_view: '表格',
+  db_json_view: 'JSON',
+  db_timing_ms: '{time}ms',
   db_query_success_affected: '查询成功，{count} 行受影响',
   db_query_empty_result: '查询返回空结果',
 };
