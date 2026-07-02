@@ -1,8 +1,11 @@
 /**
  * Entry 节点配置组件
- * 支持初始变量配置 + CSV 数据集关联
+ * 支持 CSV 数据集关联
+ *
+ * 注意：初始变量已统一到流程级 initial_variables + 环境管理，
+ * Entry 节点不再独立管理变量。
  */
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PlayCircle, Plus, Trash2, Variable, FileText, AlertTriangle, Table, Bell } from 'lucide-react';
+import { PlayCircle, Plus, Trash2, FileText, AlertTriangle, Table, Bell } from 'lucide-react';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { datasetService } from '@/services/dataset';
 import type { EntryConfig as EntryConfigType } from '@/types';
@@ -39,7 +42,6 @@ interface EntryConfigProps {
 function toFormData(data: EntryConfigType): EntryConfigFormData {
   return {
     type: 'entry',
-    initial_variables: data.initial_variables || [],
     dataset_path: data.dataset_path,
     dataset_encoding: data.dataset_encoding,
   };
@@ -49,61 +51,23 @@ function toFormData(data: EntryConfigType): EntryConfigFormData {
  * 将表单数据转换为 EntryConfigType
  */
 function fromFormData(formData: EntryConfigFormData): EntryConfigType {
-  const result: EntryConfigType = {
+  return {
     type: 'entry',
-    initial_variables: formData.initial_variables && formData.initial_variables.length > 0
-      ? formData.initial_variables
-      : undefined,
     dataset_path: formData.dataset_path || undefined,
     dataset_encoding: formData.dataset_encoding || undefined,
   };
-  return result;
-}
-
-/**
- * 将 JSON 值转换为字符串（用于显示）
- */
-function valueToString(value: unknown): string {
-  if (value == null) return '';
-  if (typeof value === 'string') return value;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
-
-/**
- * 将字符串解析为 JSON 值
- */
-function stringToValue(str: string): unknown {
-  if (!str.trim()) return '';
-  try {
-    return JSON.parse(str);
-  } catch {
-    return str;
-  }
 }
 
 export function EntryConfig({ data, onSave }: EntryConfigProps) {
   const {
-    register,
     handleSubmit,
-    control,
-    watch,
-    setValue,
     getValues,
     reset,
-    formState: { errors, isDirty },
+    formState: { isDirty },
   } = useForm<EntryConfigFormData>({
     resolver: zodResolver(entryConfigSchema),
     defaultValues: toFormData(data),
     mode: 'onBlur',
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'initial_variables' as never,
   });
 
   // 当外部数据变化时，重置表单
@@ -183,32 +147,6 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
     return () => { window.removeEventListener('flush-config-panel', handleFlush); };
   }, [saveData]);
 
-  /**
-   * {getLL().panels.entryNode.addVariable()}
-   */
-  const handleAddVariable = useCallback(() => {
-    append({ name: '', value: '', description: '' });
-  }, [append]);
-
-  /**
-   * 删除变量
-   */
-  const handleRemoveVariable = useCallback((index: number) => {
-    remove(index);
-    setTimeout(saveData, 100);
-  }, [remove, saveData]);
-
-  /**
-   * 处理变量值变更（转换为 JSON）
-   */
-  const handleValueChange = useCallback((index: number, valueString: string) => {
-    const value = stringToValue(valueString);
-    setValue(`initial_variables.${index}.value`, value, { shouldDirty: true });
-  }, [setValue]);
-
-  // 监听所有变量名，用于唯一性检查
-  const variables = watch('initial_variables') || [];
-
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* 主说明卡片 */}
@@ -222,111 +160,6 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
             {getLL().panels.entryNode.description()}
           </p>
         </div>
-      </div>
-
-      {/* 初始变量配置 */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Variable className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium text-foreground">{getLL().panels.entryNode.initialVariables()}</Label>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleAddVariable}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <Plus className="h-3 w-3" />
-            {getLL().panels.entryNode.addVariable()}
-          </Button>
-        </div>
-
-        {/* 变量列表 */}
-        <div className="space-y-2">
-          {fields.length === 0 ? (
-            <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">{getLL().panels.entryNode.noVariables()}</p>
-              <p className="mt-1 text-xs text-muted-foreground/60">
-                {getLL().panels.entryNode.addVariableHint()}
-              </p>
-            </div>
-          ) : (
-            fields.map((field, index) => {
-              const nameError = errors.initial_variables?.[index]?.name;
-              const valueString = valueToString(variables[index]?.value);
-              
-              // 检查变量名是否重复
-              const currentName = variables[index]?.name || '';
-              const duplicateNames = variables
-                .map((v, i) => (v.name && i !== index && v.name === currentName ? i : -1))
-                .filter(i => i !== -1);
-              const hasDuplicate = duplicateNames.length > 0 && currentName.trim() !== '';
-              
-              return (
-                <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">
-                  {/* 第一行：变量名 + 删除按钮 */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <Input
-                        {...register(`initial_variables.${index}.name`)}
-                        placeholder={getLL().panels.entryNode.variableNamePlaceholder()}
-                        className={`h-8 font-mono text-xs ${nameError || hasDuplicate ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveVariable(index)}
-                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-violet-500"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  
-                  {/* 错误提示 */}
-                  {nameError && (
-                    <p className="text-xs text-rose-500">{nameError.message}</p>
-                  )}
-                  {hasDuplicate && !nameError && (
-                    <p className="text-xs text-rose-500">{getLL().panels.entryNode.variableDuplicate()}</p>
-                  )}
-                  
-                  {/* 第二行：默认值 */}
-                  <div>
-                    <Input
-                      value={valueString}
-                      onChange={(e) => handleValueChange(index, e.target.value)}
-                      onBlur={handleBlur}
-                      placeholder={getLL().panels.entryNode.variableValuePlaceholder()}
-                      className="h-8 font-mono text-xs"
-                    />
-                  </div>
-                  
-                  {/* 第三行：说明 */}
-                  <div>
-                    <Input
-                      {...register(`initial_variables.${index}.description`)}
-                      placeholder={getLL().panels.entryNode.variableDescPlaceholder()}
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* 提示信息 */}
-        {fields.length > 0 && (
-          <div className="rounded-md bg-muted/30 p-2">
-            <p className="text-xs text-muted-foreground whitespace-normal break-words">
-              {getLL().panels.entryNode.variableRules()}
-            </p>
-          </div>
-        )}
       </div>
 
       {/* 流程钩子配置 */}

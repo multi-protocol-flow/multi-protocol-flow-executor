@@ -1524,31 +1524,21 @@ mod tests {
         );
     }
 
-    /// 测试正常执行入口节点时初始变量被注入
+    /// 测试流程级默认变量被正确注入
     ///
-    /// 对比测试：正常执行入口节点时，初始变量应该被注入
+    /// 验证流程级 initial_variables 在执行开始时已被注入到上下文中
     #[tokio::test]
     async fn test_execute_entry_node_with_initial_variables() {
-        use flow_engine_core::node_config::EntryConfig;
-        use flow_engine_core::variable::InitialVariable;
-
-        // 创建一个有初始变量的入口节点
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::Entry(EntryConfig { initial_variables: vec![
-                InitialVariable {
-                    name: "test_var".to_string(),
-                    value: json!("initial_value"),
-                    description: None,
-                },
-            ], dataset_path: None, dataset_encoding: None, hooks: None }),
+            data: NodeData::entry(),
             ports: None,
-            has_breakpoint: Some(true), // 设置断点，以便暂停
-        on_error: None,
+            has_breakpoint: Some(true),
+            on_error: None,
         };
 
         let second_node = Node {
@@ -1558,8 +1548,8 @@ mod tests {
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-            has_breakpoint: Some(true), // 第二个节点也设置断点
-        on_error: None,
+            has_breakpoint: Some(true),
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1570,7 +1560,21 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试执行入口节点".to_string(), description: None, nodes: vec![start_node.clone(), second_node.clone()], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: Some({
+                let mut m = std::collections::HashMap::new();
+                m.insert("test_var".to_string(), json!("initial_value"));
+                m
+            }),
+            environments: vec![],
+            active_environment: None,
+            name: "测试执行入口节点".to_string(),
+            description: None,
+            nodes: vec![start_node.clone(), second_node.clone()],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1585,7 +1589,7 @@ mod tests {
                 .start_debug(
                     &flow_clone,
                     None,
-                    vec![start_node_uuid, second_node_uuid], // 两个节点都有断点
+                    vec![start_node_uuid, second_node_uuid],
                     None,
                     event_sender,
                     command_receiver,
@@ -1631,11 +1635,11 @@ mod tests {
         // 【关键断言1】验证暂停了两次（入口节点和第二个节点）
         assert_eq!(paused_count, 2, "应该暂停两次");
 
-        // 【关键断言2】验证在第二个节点暂停时，test_var 变量已存在（因为正常执行了入口节点）
+        // 【关键断言2】验证在第二个节点暂停时，test_var 变量已存在（流程级变量在执行开始时注入）
         if let Some(vars) = second_node_variables {
             assert!(
                 vars.contains_key("test_var"),
-                "在第二个节点暂停时，初始变量 'test_var' 应该已存在（入口节点已执行），但变量池为: {:?}",
+                "在第二个节点暂停时，流程级默认变量 'test_var' 应该已存在，但变量池为: {:?}",
                 vars
             );
         }
@@ -1643,7 +1647,7 @@ mod tests {
         // 【关键断言3】验证最终状态中 test_var 变量存在
         assert!(
             final_state.variables.contains_key("test_var"),
-            "正常执行入口节点后，初始变量 'test_var' 应该存在，但变量池为: {:?}",
+            "流程级默认变量 'test_var' 应该存在，但变量池为: {:?}",
             final_state.variables
         );
 
@@ -1655,31 +1659,23 @@ mod tests {
         );
     }
 
-    /// 测试跳过入口节点时初始变量不被注入
+    /// 测试跳过入口节点时流程级默认变量仍然存在
     ///
-    /// Bug 场景：入口节点有 initial_variables，用户点击"跳过"后，初始变量不应该被注入到上下文中
+    /// 流程级 initial_variables 在执行开始时已注入上下文，即使跳过 Entry 节点也依然存在
     #[tokio::test]
     async fn test_skip_entry_node_no_initial_variables() {
-        use flow_engine_core::node_config::EntryConfig;
-        use flow_engine_core::variable::InitialVariable;
-
-        // 创建一个有初始变量的入口节点
         let flow_id = Uuid::new_v4().to_string();
+
+        // 创建入口节点（流程级变量通过 Flow.initial_variables 设置）
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::Entry(EntryConfig { initial_variables: vec![
-                InitialVariable {
-                    name: "test_var".to_string(),
-                    value: json!("initial_value"),
-                    description: None,
-                },
-            ], dataset_path: None, dataset_encoding: None, hooks: None }),
+            data: NodeData::entry(),
             ports: None,
-            has_breakpoint: Some(true), // 设置断点，以便暂停
-        on_error: None,
+            has_breakpoint: Some(true),
+            on_error: None,
         };
 
         let second_node = Node {
@@ -1690,7 +1686,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1701,7 +1697,21 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试跳过入口节点".to_string(), description: None, nodes: vec![start_node.clone(), second_node.clone()], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: Some({
+                let mut m = std::collections::HashMap::new();
+                m.insert("test_var".to_string(), json!("initial_value"));
+                m
+            }),
+            environments: vec![],
+            active_environment: None,
+            name: "测试跳过入口节点".to_string(),
+            description: None,
+            nodes: vec![start_node.clone(), second_node.clone()],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1730,16 +1740,14 @@ mod tests {
                 Some(event) = event_receiver.recv() => {
                     match event {
                         DebugEvent::PausedAtNode { node_uuid, variables, .. } => {
-                            // 如果是第一个节点（断点暂停），记录变量并发送 SkipNode 命令
                             if node_uuid == start_node.uuid {
                                 paused_variables = Some(variables);
-                                // 【关键】不提供 simulated_output，模拟真实场景
+                                // 发送 SkipNode 命令
                                 let _ = command_sender.send(DebugCommand::SkipNode {
                                     selected_port: Some("output".to_string()),
-                                    simulated_output: None, // 不提供模拟输出
+                                    simulated_output: None,
                                 });
                             } else if node_uuid == second_node.uuid {
-                                // 如果是第二个节点，发送继续命令
                                 let _ = command_sender.send(DebugCommand::Continue);
                             }
                         }
@@ -1760,19 +1768,19 @@ mod tests {
         assert!(result.is_ok());
         let final_state = result.unwrap();
 
-        // 【关键断言1】验证入口节点在暂停时变量为空（因为还没执行）
+        // 【关键断言1】验证入口节点在暂停时 test_var 已经存在（流程级变量在执行开始时注入）
         if let Some(vars) = paused_variables {
             assert!(
-                !vars.contains_key("test_var"),
-                "入口节点暂停时，初始变量不应该已经被注入，但发现了: {:?}",
+                vars.contains_key("test_var"),
+                "入口节点暂停时，流程级默认变量 'test_var' 应该已存在，但变量池为: {:?}",
                 vars
             );
         }
 
-        // 【关键断言2】验证最终状态中 test_var 变量不存在（因为跳过了节点）
+        // 【关键断言2】验证最终状态中 test_var 变量仍然存在（流程级变量不依赖 Entry 节点执行）
         assert!(
-            !final_state.variables.contains_key("test_var"),
-            "跳过入口节点后，初始变量 'test_var' 不应该存在，但发现了: {:?}",
+            final_state.variables.contains_key("test_var"),
+            "流程级默认变量 'test_var' 应该始终存在，但变量池为: {:?}",
             final_state.variables
         );
 
@@ -1800,26 +1808,16 @@ mod tests {
     /// Bug 场景：入口节点没有后续连接，用户点击"跳过"后，应该结束流程而不是执行入口节点
     #[tokio::test]
     async fn test_skip_entry_node_no_next_node() {
-        use flow_engine_core::node_config::EntryConfig;
-        use flow_engine_core::variable::InitialVariable;
-
-        // 创建一个有初始变量但没有后续连接的入口节点
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::Entry(EntryConfig { initial_variables: vec![
-                InitialVariable {
-                    name: "test_var".to_string(),
-                    value: json!("initial_value"),
-                    description: None,
-                },
-            ], dataset_path: None, dataset_encoding: None, hooks: None }),
+            data: NodeData::entry(),
             ports: None,
-            has_breakpoint: Some(true), // 设置断点，以便暂停
-        on_error: None,
+            has_breakpoint: Some(true),
+            on_error: None,
         };
 
         let flow = Flow {
@@ -1828,7 +1826,7 @@ mod tests {
             name: "测试跳过没有后续节点的入口节点".to_string(),
             description: None,
             nodes: vec![start_node.clone()],
-            connections: vec![], // 没有连接
+            connections: vec![],
             environments: vec![],
             active_environment: None,
             hooks: None,
@@ -1860,7 +1858,6 @@ mod tests {
                 Some(event) = event_receiver.recv() => {
                     match event {
                         DebugEvent::PausedAtNode { node_uuid, .. } => {
-                            // 入口节点暂停时，发送 SkipNode 命令
                             if node_uuid == start_node.uuid {
                                 let _ = command_sender.send(DebugCommand::SkipNode {
                                     selected_port: Some("output".to_string()),
@@ -1885,12 +1882,9 @@ mod tests {
         assert!(result.is_ok());
         let final_state = result.unwrap();
 
-        // 【关键断言1】验证最终状态中 test_var 变量不存在（因为跳过了节点，没有执行）
-        assert!(
-            !final_state.variables.contains_key("test_var"),
-            "跳过入口节点后，初始变量 'test_var' 不应该存在，但发现了: {:?}",
-            final_state.variables
-        );
+        // 【关键断言1】验证最终状态中没有来自 Entry 的额外变量（flow.initial_variables 为 None）
+        // 注意：流程级 initial_variables 不依赖 Entry 节点执行，但本例中未设置任何 flow.initial_variables
+        // 跳过入口节点不应产生任何副作用
 
         // 【关键断言2】验证堆栈中只有一个入口节点条目
         assert_eq!(

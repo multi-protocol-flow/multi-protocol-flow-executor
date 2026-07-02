@@ -44,17 +44,21 @@ pub struct Flow {
 }
 
 impl Flow {
-    /// 获取当前激活环境的变量
+    /// 获取当前激活的变量集（合并后）
     ///
-    /// 如果设置了 `active_environment` 且存在匹配的环境，返回该环境的变量；
-    /// 否则返回 `initial_variables`。
+    /// 以 `initial_variables` 为基础，如果设置了 `active_environment` 且存在匹配的环境，
+    /// 则将该环境的变量覆盖在 `initial_variables` 之上（环境变量优先）。
+    /// 当环境未定义某个 key 时，仍从 `initial_variables` 获取。
     pub fn get_active_variables(&self) -> Option<HashMap<String, serde_json::Value>> {
+        let base = self.initial_variables.clone().unwrap_or_default();
         if let Some(ref env_name) = self.active_environment {
             if let Some(env) = self.environments.iter().find(|e| e.name == *env_name) {
-                return Some(env.variables.clone());
+                let mut merged = base;
+                merged.extend(env.variables.clone());
+                return Some(merged);
             }
         }
-        self.initial_variables.clone()
+        if base.is_empty() { None } else { Some(base) }
     }
 }
 
@@ -304,6 +308,43 @@ mod tests {
 
         let vars = flow.get_active_variables().unwrap();
         assert_eq!(vars.get("key"), Some(&json!("fallback")));
+    }
+
+    #[test]
+    fn test_flow_get_active_variables_merge_with_environment() {
+        // 环境变量作为覆盖层叠在 initial_variables 之上
+        let flow = Flow {
+            uuid: "test-merge".to_string(),
+            name: "Merge".to_string(),
+            description: None,
+            initial_variables: Some({
+                let mut vars = HashMap::new();
+                vars.insert("base_url".to_string(), json!("https://default.com"));
+                vars.insert("timeout".to_string(), json!(30000));
+                vars
+            }),
+            environments: vec![
+                EnvironmentSet {
+                    name: "dev".to_string(),
+                    variables: {
+                        let mut vars = HashMap::new();
+                        vars.insert("base_url".to_string(), json!("https://dev.com"));
+                        vars
+                    },
+                },
+            ],
+            active_environment: Some("dev".to_string()),
+            nodes: vec![],
+            connections: vec![],
+            hooks: None,
+        };
+
+        let vars = flow.get_active_variables().unwrap();
+        // 环境变量覆盖同名 key
+        assert_eq!(vars.get("base_url"), Some(&json!("https://dev.com")), "环境变量应覆盖 initial_variables");
+        // 环境未定义的 key 从 initial_variables 补充
+        assert_eq!(vars.get("timeout"), Some(&json!(30000)), "环境未定义的变量应从 initial_variables 补充");
+        assert_eq!(vars.len(), 2, "合并后应有 2 个变量");
     }
 
     #[test]

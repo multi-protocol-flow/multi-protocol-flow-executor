@@ -129,11 +129,13 @@ function getEntryDatasetPath(flow: {
 /** 从 Entry 节点获取初始变量名列表 */
 function getEntryVariableNames(flow: {
   nodes: { type: string; data: NodeData }[];
+  initial_variables?: Record<string, unknown>;
 }): string[] {
-  const entryNode = flow.nodes.find((n) => n.type === 'entry');
-  if (!entryNode) return [];
-  const data = entryNode.data as EntryConfig;
-  return (data.initial_variables ?? []).map((v) => v.name);
+  // 变量已统一到流程级 initial_variables（环境管理 -> 默认变量）
+  if (flow.initial_variables) {
+    return Object.keys(flow.initial_variables);
+  }
+  return [];
 }
 
 // ============================================================================

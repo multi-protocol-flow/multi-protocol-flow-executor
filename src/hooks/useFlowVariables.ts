@@ -5,10 +5,7 @@
 import { useMemo } from 'react';
 import { useFlowStore } from '@/stores';
 import type { Variable } from '@/types/variable';
-import {
-  isEntryConfig,
-  isVariableExtractorConfig,
-} from '@/types/node';
+import { isVariableExtractorConfig } from '@/types/node';
 /** 流程变量提取结果 */
 export interface FlowVariablesResult {
   /** 所有可用变量（合并所有来源） */
@@ -23,10 +20,9 @@ export interface FlowVariablesResult {
  * 从流程中提取所有可用变量
  *
  * 来源：
- * 1. Entry 节点的 initial_variables
- * 2. 协议节点的 output_mappings（HTTP、WS、DB、变量提取）
- * 3. 流程级别的 initial_variables
- * 4. 激活环境的变量
+ * 1. 变量提取节点的 output_mappings
+ * 2. 流程级别的 initial_variables
+ * 3. 激活环境的变量
  */
 export function useFlowVariables(): FlowVariablesResult {
   const flow = useFlowStore((state) => state.flow);
@@ -38,21 +34,7 @@ export function useFlowVariables(): FlowVariablesResult {
 
     const vars: Variable[] = [];
 
-    // 1. Entry 节点的 initial_variables
-    flow.nodes.forEach((node) => {
-      if (isEntryConfig(node.data) && node.data.initial_variables) {
-        node.data.initial_variables.forEach((iv) => {
-          vars.push({
-            name: iv.name,
-            value: iv.value,
-            sourceNodeUuid: node.uuid,
-            description: iv.description,
-          });
-        });
-      }
-    });
-
-    // 2. 变量提取节点的 output_mappings
+    // 1. 变量提取节点的 output_mappings
     flow.nodes.forEach((node) => {
       const data = node.data;
       const mappings = isVariableExtractorConfig(data) ? data.output_mappings : null;
@@ -69,7 +51,7 @@ export function useFlowVariables(): FlowVariablesResult {
       }
     });
 
-    // 3. 流程级别的 initial_variables
+    // 2. 流程级别的 initial_variables
     if (flow.initial_variables) {
       Object.entries(flow.initial_variables).forEach(([key, value]) => {
         vars.push({
@@ -81,7 +63,7 @@ export function useFlowVariables(): FlowVariablesResult {
       });
     }
 
-    // 4. 激活环境的变量
+    // 3. 激活环境的变量
     if (flow.active_environment && flow.environments) {
       const env = flow.environments.find(
         (e) => e.name === flow.active_environment

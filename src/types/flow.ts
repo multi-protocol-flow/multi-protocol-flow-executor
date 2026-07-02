@@ -42,17 +42,19 @@ export interface Flow {
 }
 
 /**
- * 获取当前激活环境的变量
+ * 获取当前激活的变量集（合并后）
  *
- * 如果设置了 active_environment 且存在匹配的环境，返回该环境的变量；
- * 否则返回 initial_variables。
+ * 以 initial_variables 为基础，如果设置了 active_environment 且存在匹配的环境，
+ * 则将该环境的变量覆盖在 initial_variables 之上（环境变量优先）。
+ * 当环境未定义某个 key 时，仍从 initial_variables 获取。
  */
 export function getActiveVariables(flow: Flow): Record<string, unknown> | undefined {
+  const base = { ...(flow.initial_variables ?? {}) };
   if (flow.active_environment && flow.environments) {
     const env = flow.environments.find((e) => e.name === flow.active_environment);
     if (env) {
-      return env.variables;
+      return { ...base, ...env.variables };
     }
   }
-  return flow.initial_variables;
+  return Object.keys(base).length > 0 ? base : undefined;
 }

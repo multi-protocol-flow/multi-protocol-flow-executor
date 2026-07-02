@@ -1,7 +1,6 @@
 // 节点配置模块 - 强类型节点配置定义
 
 use crate::traits::{FramingConfig, GrpcServiceInfo, GraphqlQueryTemplate, TcpFramingMode};
-use crate::variable::InitialVariable;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -13,9 +12,6 @@ use std::collections::HashMap;
 /// 入口节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct EntryConfig {
-    /// 初始变量列表
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub initial_variables: Vec<InitialVariable>,
     /// 关联的 CSV 文件路径
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dataset_path: Option<String>,
@@ -4484,7 +4480,7 @@ mod tests {
         // 测试 EntryConfig 默认值
         let config = EntryConfig::default();
         let json = serde_json::to_string(&config).unwrap();
-        assert_eq!(json, "{}"); // initial_variables 为空时跳过序列化
+        assert_eq!(json, "{}");
     }
 
     #[test]
@@ -5356,39 +5352,32 @@ mod tests {
     // ========================================================================
 
     #[test]
-    fn test_entry_config_backward_compat_without_dataset_fields() {
-        // 旧格式 JSON（无 dataset_path/dataset_encoding）应正常反序列化
-        let json = r#"{"initial_variables":[]}"#;
+    fn test_entry_config_backward_compat_empty() {
+        // 空 JSON 应正常反序列化
+        let json = r#"{}"#;
         let config: EntryConfig = serde_json::from_str(json).unwrap();
-        assert!(config.initial_variables.is_empty());
         assert_eq!(config.dataset_path, None);
         assert_eq!(config.dataset_encoding, None);
     }
 
     #[test]
     fn test_entry_config_with_dataset_fields() {
-        // 新格式 JSON（含 dataset_path/dataset_encoding）应正常反序列化
-        let json = r#"{"initial_variables":[],"dataset_path":"/path/file.csv","dataset_encoding":"utf-8"}"#;
+        let json = r#"{"dataset_path":"/path/file.csv","dataset_encoding":"utf-8"}"#;
         let config: EntryConfig = serde_json::from_str(json).unwrap();
-        assert!(config.initial_variables.is_empty());
         assert_eq!(config.dataset_path, Some("/path/file.csv".to_string()));
         assert_eq!(config.dataset_encoding, Some("utf-8".to_string()));
     }
 
     #[test]
-    fn test_entry_config_default_dataset_fields_none() {
-        // Default 应将新字段设为 None
+    fn test_entry_config_default_fields_none() {
         let config = EntryConfig::default();
-        assert!(config.initial_variables.is_empty());
         assert_eq!(config.dataset_path, None);
         assert_eq!(config.dataset_encoding, None);
     }
 
     #[test]
     fn test_entry_config_skip_serializing_none_dataset() {
-        // dataset_path/dataset_encoding 为 None 时不应出现在序列化输出中
         let config = EntryConfig {
-            initial_variables: vec![],
             dataset_path: None,
             dataset_encoding: None,
             hooks: None,
@@ -5400,9 +5389,7 @@ mod tests {
 
     #[test]
     fn test_entry_config_serializes_dataset_fields_when_set() {
-        // dataset_path/dataset_encoding 有值时应出现在序列化输出中
         let config = EntryConfig {
-            initial_variables: vec![],
             dataset_path: Some("/data/test.csv".to_string()),
             dataset_encoding: Some("gbk".to_string()),
             hooks: None,
@@ -5416,12 +5403,10 @@ mod tests {
 
     #[test]
     fn test_entry_config_only_dataset_path() {
-        // 仅设置 dataset_path，不设置 dataset_encoding
         let json = r#"{"dataset_path":"/path/data.csv"}"#;
         let config: EntryConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.dataset_path, Some("/path/data.csv".to_string()));
         assert_eq!(config.dataset_encoding, None);
-        assert!(config.initial_variables.is_empty());
     }
 
     // ========================================================================

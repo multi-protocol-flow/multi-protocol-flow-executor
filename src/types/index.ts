@@ -305,7 +305,7 @@ export type {
 } from './settings';
 
 // 变量类型
-export type { Variable, VariablePool, OutputMapping, InitialVariable } from './variable';
+export type { Variable, VariablePool, OutputMapping } from './variable';
 
 // 数据库类型
 export type { DbDriver, DbFetchMode, DbIsolationLevel } from './database';

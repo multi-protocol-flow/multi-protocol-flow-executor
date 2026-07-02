@@ -73,10 +73,10 @@ export function EnvironmentSelector() {
                 'py-1',
               )}
             >
-              {/* 默认变量 — 点击打开管理对话框 */}
+              {/* 默认变量 — 点击切换为不使用环境 */}
               <button
                 type="button"
-                onClick={() => { setActiveEnvironment(null); setShowDropdown(false); openEnvironmentManagerDialog(); }}
+                onClick={() => { setActiveEnvironment(null); setShowDropdown(false); }}
                 className={cn(
                   'w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors cursor-pointer',
                   !activeEnv && 'text-violet-600 font-medium',

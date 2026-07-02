@@ -179,22 +179,6 @@ export const OPERATOR_OPTIONS = [
 // ============================================================================
 // Entry 配置 Schema
 // ============================================================================
-
-/**
- * 初始变量 Schema
- */
-export const initialVariableSchema = z.object({
-  name: z.string()
-    .min(1, getLL().validation.variable_name_required())
-    .max(64, getLL().validation.variable_name_max())
-    .regex(/^[a-zA-Z0-9_]+$/, getLL().validation.variable_name_regex()),
-  value: z.unknown(),
-  description: z.string().optional(),
-});
-
-export type InitialVariableFormData = z.infer<typeof initialVariableSchema>;
-
-// ============================================================================
 // Hook 钩子 Schema
 // ============================================================================
 
@@ -249,25 +233,13 @@ const hooksSchema = z.array(flowHookSchema).max(10, getLL().validation.hooks_max
  */
 export const entryConfigSchema = z.object({
   type: z.literal('entry'),
-  initial_variables: z.array(initialVariableSchema).optional(),
   /** 关联的 CSV 文件路径 */
   dataset_path: z.string().optional(),
   /** CSV 编码（不设置=自动检测） */
   dataset_encoding: z.string().optional(),
   /** 流程钩子配置 */
   hooks: hooksSchema,
-}).refine(
-  (data) => {
-    if (!data.initial_variables) return true;
-    const names = data.initial_variables.map(v => v.name);
-    const uniqueNames = new Set(names);
-    return names.length === uniqueNames.size;
-  },
-  {
-    message: getLL().validation.variable_name_unique(),
-    path: ['initial_variables'],
-  }
-);
+});
 
 export type EntryConfigFormData = z.infer<typeof entryConfigSchema>;
 

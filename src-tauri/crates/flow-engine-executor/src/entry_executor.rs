@@ -6,7 +6,6 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::node_config::NodeData;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -78,17 +77,6 @@ impl NodeExecutor for EntryNodeExecutor {
             node.uuid,
             node.name
         );
-
-        // 处理初始变量
-        if let NodeData::Entry(entry_config) = &node.data {
-            for initial_var in &entry_config.initial_variables {
-                context.variables.set_variable(
-                    initial_var.name.clone(),
-                    initial_var.value.clone(),
-                    node.uuid.clone(),
-                );
-            }
-        }
 
         // Entry 节点立即传递，不执行任何逻辑（<1ms 执行时间）
         // 查找下一个节点

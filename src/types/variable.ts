@@ -37,14 +37,4 @@ export interface OutputMapping {
   description?: string;
 }
 
-/**
- * 初始变量配置
- */
-export interface InitialVariable {
-  /** 变量名 */
-  name: string;
-  /** 变量值 */
-  value: unknown;
-  /** 变量说明（可选） */
-  description?: string;
-}
+

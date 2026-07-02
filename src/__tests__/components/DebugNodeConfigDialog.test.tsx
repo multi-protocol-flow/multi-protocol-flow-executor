@@ -83,7 +83,6 @@ describe('DebugNodeConfigDialog', () => {
 
   const entryNodeData: NodeData = {
     type: 'entry',
-    initial_variables: [],
   };
 
   const conditionalNodeData: NodeData = {

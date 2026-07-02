@@ -2126,28 +2126,35 @@ mod tests {
     /// 验证 runtime_variables 在 Entry 节点执行后注入，覆盖同名变量
     #[tokio::test]
     async fn test_runtime_variables_override_entry() {
-        use flow_engine_core::node_config::EntryConfig;
-        use flow_engine_core::variable::InitialVariable;
-
         let flow_id = Uuid::new_v4().to_string();
 
-        // 创建带 initial_variables 的 Entry 节点
+        // 创建带流程级默认变量的流程
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::Entry(EntryConfig { initial_variables: vec![InitialVariable {
-                name: "host".to_string(),
-                value: json!("default.com"),
-                description: None,
-            }], dataset_path: None, dataset_encoding: None, hooks: None }),
+            data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id, initial_variables: None, environments: vec![], active_environment: None, name: "runtime_variables 覆盖测试".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: flow_id,
+            initial_variables: Some({
+                let mut m = std::collections::HashMap::new();
+                m.insert("host".to_string(), json!("default.com"));
+                m
+            }),
+            environments: vec![],
+            active_environment: None,
+            name: "runtime_variables 覆盖测试".to_string(),
+            description: None,
+            nodes: vec![start_node],
+            connections: vec![],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let runtime_vars = json!({
@@ -2163,39 +2170,46 @@ mod tests {
         let report = result.flow_report.expect("应有报告");
         let final_vars = report.final_variables.expect("应有 final_variables");
 
-        // runtime_variables 应覆盖 Entry 的 initial_variables
-        assert_eq!(final_vars["host"], json!("override.com"), "runtime_variables 应覆盖 Entry 节点的 host 变量");
+        // runtime_variables 应覆盖流程级默认变量
+        assert_eq!(final_vars["host"], json!("override.com"), "runtime_variables 应覆盖流程级默认变量的 host 变量");
         // runtime_variables 新增的变量也应该存在
         assert_eq!(final_vars["extra"], json!("added"), "runtime_variables 新增变量应存在");
     }
 
     /// 测试 runtime_variables=None 不改变行为
     ///
-    /// 验证不传 runtime_variables 时，Entry 节点的 initial_variables 正常工作
+    /// 验证不传 runtime_variables 时，流程级默认变量正常工作
     #[tokio::test]
     async fn test_runtime_variables_none_no_change() {
-        use flow_engine_core::node_config::EntryConfig;
-        use flow_engine_core::variable::InitialVariable;
-
         let flow_id = Uuid::new_v4().to_string();
 
-        // 创建带 initial_variables 的 Entry 节点
+        // 创建带流程级默认变量的流程
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
             node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::Entry(EntryConfig { initial_variables: vec![InitialVariable {
-                name: "host".to_string(),
-                value: json!("default.com"),
-                description: None,
-            }], dataset_path: None, dataset_encoding: None, hooks: None }),
+            data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id, initial_variables: None, environments: vec![], active_environment: None, name: "runtime_variables None 测试".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: flow_id,
+            initial_variables: Some({
+                let mut m = std::collections::HashMap::new();
+                m.insert("host".to_string(), json!("default.com"));
+                m
+            }),
+            environments: vec![],
+            active_environment: None,
+            name: "runtime_variables None 测试".to_string(),
+            description: None,
+            nodes: vec![start_node],
+            connections: vec![],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -2204,8 +2218,8 @@ mod tests {
         let report = result.flow_report.expect("应有报告");
         let final_vars = report.final_variables.expect("应有 final_variables");
 
-        // 不传 runtime_variables 时，Entry 节点的 initial_variables 保持不变
-        assert_eq!(final_vars["host"], json!("default.com"), "不传 runtime_variables 时 host 应保持 Entry 节点的默认值");
+        // 不传 runtime_variables 时，流程级默认变量保持不变
+        assert_eq!(final_vars["host"], json!("default.com"), "不传 runtime_variables 时 host 应保持流程级默认变量的值");
     }
 
     // ============================================================================

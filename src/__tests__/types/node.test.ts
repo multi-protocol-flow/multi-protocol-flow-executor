@@ -445,8 +445,7 @@ describe('类型守卫类型缩窄', () => {
       // TypeScript 应该识别 data 为 EntryConfig
       expect(data.type).toBe('entry');
       // 可选字段应该可以访问
-      const vars = data.initial_variables;
-      expect(vars).toBeUndefined();
+      expect(data.dataset_path).toBeUndefined();
     }
   });
 

@@ -16,9 +16,6 @@ describe('VariablePanel', () => {
       position: { x: 0, y: 0 },
       data: {
         type: 'entry',
-        initial_variables: [
-          { name: 'api_base', value: 'https://api.example.com', description: 'API地址' },
-        ],
       },
     },
     {
@@ -40,6 +37,9 @@ describe('VariablePanel', () => {
     name: '测试流程',
     nodes: mockNodes,
     connections: [],
+    initial_variables: {
+      api_base: 'https://api.example.com',
+    },
   };
 
   it('renders variable panel with groups', () => {
@@ -49,7 +49,7 @@ describe('VariablePanel', () => {
     expect(screen.getByText('HTTP请求')).toBeInTheDocument();
   });
 
-  it('displays initial variables from Entry node', async () => {
+  it('displays initial variables from flow level', async () => {
     const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     // 先展开分组
@@ -73,7 +73,7 @@ describe('VariablePanel', () => {
 
   it('shows total variable count', () => {
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
-    // Entry 有 1 个变量，HTTP 有 1 个变量，共 2 个
+    // flow.initial_variables 有 1 个变量，HTTP 有 1 个变量，共 2 个
     expect(screen.getByText('2 个变量')).toBeInTheDocument();
   });
 
@@ -165,7 +165,7 @@ describe('VariablePanel', () => {
     const expandAllBtn = screen.getByText('全部展开');
     await user.click(expandAllBtn);
     
-    expect(screen.getByText('API地址')).toBeInTheDocument();
+    expect(screen.getByText('流程初始变量')).toBeInTheDocument();
     expect(screen.getByText('状态码')).toBeInTheDocument();
   });
 
@@ -198,9 +198,10 @@ describe('VariablePanel', () => {
     expect(screen.getByText('1 个变量')).toBeInTheDocument();
   });
 
-  it('handles Entry node without initial_variables', () => {
+  it('handles flow without initial_variables or variable extractors', () => {
     const flowWithoutVars: Flow = {
       ...mockFlow,
+      initial_variables: undefined,
       nodes: [
         {
           uuid: 'entry-2',
@@ -255,18 +256,14 @@ describe('VariablePanel', () => {
     const longValue = 'a'.repeat(100);
     const flowWithLongValue: Flow = {
       ...mockFlow,
+      initial_variables: { long_var: longValue },
       nodes: [
         {
           uuid: 'entry-3',
           type: 'entry',
           name: '长值入口',
           position: { x: 0, y: 0 },
-          data: {
-            type: 'entry',
-            initial_variables: [
-              { name: 'long_var', value: longValue },
-            ],
-          },
+          data: { type: 'entry' },
         },
       ],
     };

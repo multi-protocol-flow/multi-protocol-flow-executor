@@ -7,7 +7,7 @@ import { Search, ChevronDown, ChevronRight, Variable as VariableIcon } from 'luc
 import { Input } from '@/components/ui/input';
 import type { Flow, Node } from '@/types';
 import type { Variable } from '@/types/variable';
-import { isEntryConfig, isVariableExtractorConfig } from '@/types/node';
+import { isVariableExtractorConfig } from '@/types/node';
 import { getLL } from '@/i18n/i18n-lazy';
 
 interface VariablePanelProps {
@@ -42,18 +42,6 @@ export function extractVariableGroups(flow: Flow): VariableGroup[] {
   // 遍历所有节点提取变量
   flow.nodes.forEach(node => {
     const variables: Variable[] = [];
-
-    // Entry 节点：提取 initial_variables
-    if (isEntryConfig(node.data) && node.data.initial_variables) {
-      node.data.initial_variables.forEach(iv => {
-        variables.push({
-          name: iv.name,
-          value: iv.value,
-          sourceNodeUuid: node.uuid,
-          description: iv.description,
-        });
-      });
-    }
 
     // 变量提取节点：提取 output_mappings
     if (isVariableExtractorConfig(node.data) && node.data.output_mappings) {

@@ -3,7 +3,7 @@
  * 与后端 src-tauri/src/node.rs 和 src-tauri/src/node_config.rs 中的结构体对齐
  */
 
-import type { OutputMapping, InitialVariable } from './variable';
+import type { OutputMapping } from './variable';
 
 import type { Port } from './port';
 
@@ -260,8 +260,6 @@ export type ExpectedValueType = 'number' | 'string' | 'boolean' | 'null';
  */
 export interface EntryConfig {
   type: 'entry';
-  /** 初始变量列表 */
-  initial_variables?: InitialVariable[];
   /** 关联的 CSV 文件路径 */
   dataset_path?: string;
   /** CSV 编码（不设置=自动检测） */

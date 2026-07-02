@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Variable, VariablePool, OutputMapping, InitialVariable } from '@/types/variable';
+import type { Variable, VariablePool, OutputMapping } from '@/types/variable';
 
 describe('Variable Types', () => {
   describe('Variable', () => {
@@ -94,31 +94,4 @@ describe('Variable Types', () => {
     });
   });
 
-  describe('InitialVariable', () => {
-    it('should create a valid InitialVariable with required fields', () => {
-      const initial: InitialVariable = {
-        name: 'api_base_url',
-        value: 'https://api.example.com',
-      };
-      expect(initial.name).toBe('api_base_url');
-      expect(initial.value).toBe('https://api.example.com');
-    });
-
-    it('should create a valid InitialVariable with optional description', () => {
-      const initial: InitialVariable = {
-        name: 'timeout',
-        value: 30000,
-        description: 'Request timeout in milliseconds',
-      };
-      expect(initial.description).toBe('Request timeout in milliseconds');
-    });
-
-    it('should have undefined description when not specified', () => {
-      const initial: InitialVariable = {
-        name: 'api_key',
-        value: 'secret-key-123',
-      };
-      expect(initial.description).toBeUndefined();
-    });
-  });
 });

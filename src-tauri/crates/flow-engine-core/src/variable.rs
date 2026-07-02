@@ -38,18 +38,6 @@ pub struct OutputMapping {
     pub description: Option<String>,
 }
 
-/// 初始变量配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct InitialVariable {
-    /// 变量名
-    pub name: String,
-    /// 变量值
-    pub value: Value,
-    /// 变量说明（可选）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-}
-
 // ============================================================================
 // 单元测试
 // ============================================================================
@@ -165,22 +153,6 @@ mod tests {
         assert_eq!(deserialized.source, "status");
         assert_eq!(deserialized.target, "http_status");
         assert_eq!(deserialized.description, Some("HTTP状态码映射".to_string()));
-    }
-
-    #[test]
-    fn test_initial_variable() {
-        let initial_var = InitialVariable {
-            name: "api_base".to_string(),
-            value: json!("https://api.example.com"),
-            description: Some("API基础URL".to_string()),
-        };
-
-        let json_str = serde_json::to_string(&initial_var).expect("序列化失败");
-        let deserialized: InitialVariable = serde_json::from_str(&json_str).expect("反序列化失败");
-
-        assert_eq!(deserialized.name, "api_base");
-        assert_eq!(deserialized.value, json!("https://api.example.com"));
-        assert_eq!(deserialized.description, Some("API基础URL".to_string()));
     }
 
     #[test]
