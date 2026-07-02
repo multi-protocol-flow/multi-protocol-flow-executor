@@ -41,6 +41,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
                 data: NodeData::entry(),
                 ports: None,
                 has_breakpoint: None,
+                on_error: None,
             },
             // WsConnect 节点
             Node {
@@ -61,6 +62,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
                 }),
                 ports: None,
                 has_breakpoint: None,
+                on_error: None,
             },
             // WsSendCollect 节点
             Node {
@@ -80,6 +82,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
                 }),
                 ports: None,
                 has_breakpoint: None,
+                on_error: None,
             },
             // WsClose 节点
             Node {
@@ -95,6 +98,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
                 }),
                 ports: None,
                 has_breakpoint: None,
+                on_error: None,
             },
         ],
         connections: vec![

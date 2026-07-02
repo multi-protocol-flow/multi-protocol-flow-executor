@@ -30,6 +30,7 @@ async fn test_variable_tracking_new_variable() {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let end_node = Node {
@@ -40,6 +41,7 @@ async fn test_variable_tracking_new_variable() {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let connection = Connection {
@@ -91,6 +93,7 @@ async fn test_execution_path_tracking() {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let end_node = Node {
@@ -101,6 +104,7 @@ async fn test_execution_path_tracking() {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let connection = Connection {
@@ -149,6 +153,7 @@ async fn test_variable_snapshots() {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let end_node = Node {
@@ -159,6 +164,7 @@ async fn test_variable_snapshots() {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let connection = Connection {
@@ -220,6 +226,7 @@ async fn test_variable_snapshots_empty_initial() {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let flow = Flow {
@@ -264,6 +271,7 @@ async fn test_single_node_execution_path() {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let flow = Flow {
@@ -303,6 +311,7 @@ async fn test_skipped_nodes_default_empty() {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let flow = Flow {
@@ -339,6 +348,7 @@ async fn test_all_nodes_have_resolved_config() {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let end_node = Node {
@@ -349,6 +359,7 @@ async fn test_all_nodes_have_resolved_config() {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let connection = Connection {
