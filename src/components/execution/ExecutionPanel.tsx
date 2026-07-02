@@ -175,6 +175,8 @@ export function ExecutionPanel() {
   const [detailTab, setDetailTab] = useState<DetailTab>('output');
   const nodeListRef = useRef<HTMLDivElement>(null);
   const prevCompletedCountRef = useRef(0);
+  /** 用户是否手动选择了非当前运行节点，此时暂停自动跟踪当前执行节点 */
+  const autoTrackingRef = useRef(true);
 
   // ===== 调试开始时自动打开底部面板 =====
   useEffect(() => {
@@ -182,6 +184,13 @@ export function ExecutionPanel() {
       useUIStore.getState().setExecutionPanelOpen(true);
     }
   }, [isDebugging]);
+
+  // ===== 新执行开始时重置为自动跟踪模式 =====
+  useEffect(() => {
+    if (isExecuting) {
+      autoTrackingRef.current = true;
+    }
+  }, [isExecuting]);
 
   // ===== 有序节点列表（仅显示实际执行路径上的节点） =====
   const orderedNodes = useMemo(() => {
@@ -210,15 +219,16 @@ export function ExecutionPanel() {
     return [];
   }, [nodes, report, isExecuting, nodeReportsMap, currentNodeUuid]);
 
-  // ===== 自动选中正在运行的节点 =====
+  // ===== 自动选中正在运行的节点（用户手动选择后暂停跟踪） =====
   useEffect(() => {
-    if (currentNodeUuid) {
+    if (currentNodeUuid && autoTrackingRef.current) {
       setSelectedNodeUuid(currentNodeUuid);
     }
   }, [currentNodeUuid]);
 
-  // ===== 自动滚动节点列表 =====
+  // ===== 自动滚动节点列表（用户手动选择后暂停跟踪） =====
   useEffect(() => {
+    if (!autoTrackingRef.current) return;
     if (
       completedNodeCount > prevCompletedCountRef.current ||
       currentNodeUuid
@@ -355,6 +365,12 @@ return (
                         setSelectedNodeUuid(node.uuid);
                         useFlowStore.getState().selectNode(node.uuid);
                         useFlowStore.getState().focusOnNode(node.uuid);
+                      }
+                      // 点击当前运行节点 → 恢复自动跟踪；点击其他节点 → 暂停自动跟踪
+                      if (node.uuid === currentNodeUuid) {
+                        autoTrackingRef.current = true;
+                      } else {
+                        autoTrackingRef.current = false;
                       }
                     }}
                   />
