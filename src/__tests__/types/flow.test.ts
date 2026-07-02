@@ -240,7 +240,7 @@ describe('ErrorDetail 类型序列化测试', () => {
   it('应该正确序列化 ErrorDetail', () => {
     const error: ErrorDetail = {
       error_kind: 'execution',
-      error_code: 'EXEC001',
+      error_code: 'E_EXECUTION_ERROR',
       message: '执行失败',
       stack_trace: 'at line 42',
       context: { node_uuid: 'node-001' },
@@ -250,7 +250,7 @@ describe('ErrorDetail 类型序列化测试', () => {
     const deserialized: ErrorDetail = JSON.parse(json);
 
     expect(deserialized.error_kind).toBe('execution');
-    expect(deserialized.error_code).toBe('EXEC001');
+    expect(deserialized.error_code).toBe('E_EXECUTION_ERROR');
     expect(deserialized.message).toBe('执行失败');
     expect(deserialized.stack_trace).toBe('at line 42');
   });

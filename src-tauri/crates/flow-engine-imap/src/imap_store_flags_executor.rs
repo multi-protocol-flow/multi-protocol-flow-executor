@@ -35,7 +35,7 @@ impl ImapStoreFlagsExecutor {
     }
 
     fn current_timestamp() -> u64 {
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("system time went backwards").as_millis() as u64
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64
     }
 }
 
@@ -147,7 +147,7 @@ mod tests {
                 connection_id: "conn-1".to_string(), uids: "1".to_string(),
                 operation: "add".to_string(), flags: vec!["\\Seen".to_string()],
             }),
-            ports: None, has_breakpoint: None,
+            ports: None, has_breakpoint: None, on_error: None,
         }
     }
 
@@ -156,12 +156,8 @@ mod tests {
             flow_uuid: "test-flow".to_string(), current_node_uuid: None,
             variables: VariableStorage::new(), node_reports: vec![],
             flow_trigger_time: 0, log_sender: None, flow_file_path: None,
-            ws_manager: None, ws_connection_urls: HashMap::new(),
+            ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None, grpc_manager: None, mcp_manager: None,
-            tcp_manager: None, udp_manager: None, mqtt_manager: None,
-            kafka_manager: None, sse_manager: None, graphql_manager: None,
-            amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None,
             last_node_output: None, debug_event_sender: None,
             execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(),
         }
@@ -188,11 +184,11 @@ mod tests {
             uuid: "test-wrong".to_string(), node_type: "http".to_string(),
             name: "wrong-type".to_string(), position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
-            ports: None, has_breakpoint: None,
+            ports: None, has_breakpoint: None, on_error: None,
         };
         let mut context = create_context();
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("ImapStoreFlagsConfig"));
+        assert!(result.unwrap_err().message.contains("ImapStoreFlagsConfig"));
     }
 }

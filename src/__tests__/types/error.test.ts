@@ -98,14 +98,14 @@ describe('Error Types', () => {
     it('should create a valid ErrorDetail with all optional fields', () => {
       const errorDetail: ErrorDetail = {
         error_kind: 'configuration',
-        error_code: 'CFG_001',
+        error_code: 'E_CONFIG_ERROR',
         message: 'Invalid node configuration',
         stack_trace: 'at NodeExecutor.execute...',
         context: { nodeId: 'node-123', config: { url: '' } },
       };
 
       expect(errorDetail.error_kind).toBe('configuration');
-      expect(errorDetail.error_code).toBe('CFG_001');
+      expect(errorDetail.error_code).toBe('E_CONFIG_ERROR');
       expect(errorDetail.message).toBe('Invalid node configuration');
       expect(errorDetail.stack_trace).toBe('at NodeExecutor.execute...');
       expect(errorDetail.context).toEqual({ nodeId: 'node-123', config: { url: '' } });

@@ -158,6 +158,12 @@ impl ErrorDetail {
     }
 }
 
+impl std::fmt::Display for ErrorDetail {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
 /// 错误类型枚举（决定错误处理策略，同时标识具体错误类型）
 ///
 /// 错误分为两类：

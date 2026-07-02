@@ -5,7 +5,6 @@
 
 use crate::plugin::{NodeMetadata, NodePlugin};
 use std::collections::HashMap;
-use crate::error::ErrorDetail;
 use std::sync::Arc;
 
 /// 节点插件注册表
@@ -75,6 +74,7 @@ mod tests {
     use super::*;
     use crate::connection::Connection;
     use crate::context::ExecutionContext;
+    use crate::error::ErrorDetail;
     use crate::node::Node;
     use async_trait::async_trait;
     use std::collections::HashMap;

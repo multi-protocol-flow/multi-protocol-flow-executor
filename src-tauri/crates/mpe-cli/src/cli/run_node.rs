@@ -66,10 +66,18 @@ pub async fn execute(
     });
 
     if result.success {
-        println!("{}", serde_json::to_string_pretty(&output_data).unwrap());
+        if let Ok(json) = serde_json::to_string_pretty(&output_data) {
+            println!("{}", json);
+        } else {
+            eprintln!("Warning: failed to serialize output data");
+        }
         Ok(())
     } else {
-        eprintln!("{}", serde_json::to_string_pretty(&output_data).unwrap());
+        if let Ok(json) = serde_json::to_string_pretty(&output_data) {
+            eprintln!("{}", json);
+        } else {
+            eprintln!("Warning: failed to serialize output data");
+        }
         Err(CliError::Execution(
             result.error.unwrap_or_else(|| "Execution failed".to_string())
         ))
@@ -77,6 +85,7 @@ pub async fn execute(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use flow_engine::node_config::NodeData;
 

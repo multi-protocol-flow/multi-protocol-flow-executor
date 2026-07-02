@@ -36,7 +36,7 @@ pub async fn execute_flow(
     // 发送流程开始事件
     let start_timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .expect("系统时间错误")
+        .unwrap_or_default()
         .as_millis() as u64;
 
     if let Some(ref sender) = log_sender {
@@ -77,7 +77,7 @@ pub async fn execute_flow(
     // 发送流程结束事件
     let end_timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .expect("系统时间错误")
+        .unwrap_or_default()
         .as_millis() as u64;
 
     if let Some(sender) = log_sender {

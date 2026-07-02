@@ -48,6 +48,75 @@ export type ErrorKind =
   | 'script_assertion' // 脚本断言失败
   | 'script_abort'; // 用户调用 fn.flow.abort()
 
+/**
+ * 错误代码枚举（用于 i18n 翻译和程序化处理）
+ * 与后端 flow-engine-core/src/error.rs 的 ErrorCode 枚举对齐
+ */
+export type ErrorCode =
+  // General
+  | 'E_CONFIG_ERROR'
+  | 'E_CONDITION_SYNTAX'
+  | 'E_EXECUTION_ERROR'
+  | 'E_TIMEOUT'
+  | 'E_CONDITION_EVALUATION'
+  | 'E_UNKNOWN'
+  | 'E_CANCELLED'
+  | 'E_PARSE'
+  | 'E_ASSERTION'
+  | 'E_SCRIPT_ABORT'
+  // Connection
+  | 'E_CONN_TIMEOUT'
+  | 'E_CONN_REFUSED'
+  | 'E_CONN_CLOSED'
+  // Validation
+  | 'E_VAL_PORT_DUPLICATE'
+  | 'E_VAL_CYCLE_DETECTED'
+  | 'E_VAL_MISSING_ENTRY'
+  | 'E_VAL_DUPLICATE_NODE_ID'
+  | 'E_VAL_CONN_NODE_NOT_FOUND'
+  | 'E_VAL_PORT_NOT_FOUND'
+  | 'E_VAL_NODE_UNREACHABLE'
+  | 'E_VAL_UNKNOWN_FIELD'
+  | 'E_VAL_MISSING_REQUIRED_FIELD'
+  | 'E_VAL_TYPE_MISMATCH'
+  | 'E_VAL_UNKNOWN_NODE_TYPE'
+  // HTTP
+  | 'E_HTTP_REQUEST_FAILED'
+  | 'E_HTTP_STATUS_ERROR'
+  | 'E_HTTP_INVALID_URL'
+  // WebSocket
+  | 'E_WS_CONNECTION' | 'E_WS_TIMEOUT' | 'E_WS_MESSAGE' | 'E_WS_CLOSE' | 'E_WS_PROTOCOL'
+  // Database
+  | 'E_DB_CONNECTION' | 'E_DB_QUERY' | 'E_DB_TIMEOUT'
+  // Script
+  | 'E_SCRIPT_SYNTAX' | 'E_SCRIPT_RUNTIME' | 'E_SCRIPT_TIMEOUT' | 'E_SCRIPT_ASSERTION'
+  // gRPC
+  | 'E_GRPC_CONNECTION' | 'E_GRPC_TIMEOUT' | 'E_GRPC_MESSAGE' | 'E_GRPC_STATUS' | 'E_GRPC_CLOSE'
+  // MCP
+  | 'E_MCP_CONNECTION' | 'E_MCP_TOOL_CALL' | 'E_MCP_RESOURCE_READ' | 'E_MCP_NOT_CONNECTED'
+  // TCP
+  | 'E_TCP_CONNECTION' | 'E_TCP_TIMEOUT' | 'E_TCP_SEND' | 'E_TCP_RECEIVE' | 'E_TCP_CLOSE'
+  // UDP
+  | 'E_UDP_BIND' | 'E_UDP_SEND' | 'E_UDP_RECEIVE' | 'E_UDP_CLOSE'
+  // SSE
+  | 'E_SSE_CONNECTION' | 'E_SSE_TIMEOUT' | 'E_SSE_EVENT'
+  // GraphQL
+  | 'E_GRAPHQL_CONNECTION' | 'E_GRAPHQL_QUERY' | 'E_GRAPHQL_SUBSCRIPTION'
+  | 'E_GRAPHQL_INTROSPECTION' | 'E_GRAPHQL_CLOSE'
+  // AMQP
+  | 'E_AMQP_CONNECTION' | 'E_AMQP_CHANNEL' | 'E_AMQP_PUBLISH' | 'E_AMQP_CONSUME'
+  | 'E_AMQP_QUEUE' | 'E_AMQP_EXCHANGE' | 'E_AMQP_ACK' | 'E_AMQP_MANAGEMENT' | 'E_AMQP_PROTOCOL'
+  // Redis
+  | 'E_REDIS_CONNECTION' | 'E_REDIS_COMMAND' | 'E_REDIS_TIMEOUT' | 'E_REDIS_AUTH'
+  // SMTP
+  | 'E_SMTP_CONNECTION' | 'E_SMTP_SEND' | 'E_SMTP_AUTH' | 'E_SMTP_TIMEOUT'
+  // IMAP
+  | 'E_IMAP_CONNECTION' | 'E_IMAP_FETCH' | 'E_IMAP_SEARCH' | 'E_IMAP_AUTH'
+  | 'E_IMAP_STORE' | 'E_IMAP_TIMEOUT'
+  // Non-protocol
+  | 'E_VARIABLE_EXTRACTOR_FAILED'
+  | 'E_PROXY_FAILED';
+
 // ============================================================================
 // 错误详情结构体
 // ============================================================================
@@ -62,7 +131,9 @@ export interface ErrorDetail {
   /** 错误类型（决定错误处理策略，同时标识具体错误类型） */
   error_kind: ErrorKind;
   /** 错误代码（可选，用于程序化处理） */
-  error_code?: string;
+  error_code?: ErrorCode;
+  /** i18n 翻译参数（可选，用于前端显示） */
+  i18n_args?: Record<string, string>;
   /** 错误消息（人类可读） */
   message: string;
   /** 堆栈跟踪（可选） */

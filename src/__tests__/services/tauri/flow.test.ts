@@ -148,7 +148,7 @@ describe('Tauri IPC flow.ts 服务', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(IpcError);
         expect((error as IpcError).command).toBe('create_flow');
-        expect((error as IpcError).message).toContain('未知错误');
+        expect((error as IpcError).message).toContain('Unknown error');
       }
     });
   });
@@ -256,7 +256,7 @@ describe('Tauri IPC flow.ts 服务', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(IpcError);
         expect((error as IpcError).command).toBe('execute_flow');
-        expect((error as IpcError).message).toContain('未知错误');
+        expect((error as IpcError).message).toContain('Unknown error');
       }
     });
 

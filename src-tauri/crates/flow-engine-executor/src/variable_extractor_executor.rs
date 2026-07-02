@@ -174,7 +174,7 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(
-            err.contains("没有上游节点输出可提取"),
+            err.message.contains("没有上游节点输出可提取"),
             "错误信息应提示无上游输出: {}",
             err
         );
@@ -203,7 +203,7 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(
-            err.contains("未找到节点 nonexistent 的执行结果"),
+            err.message.contains("未找到节点 nonexistent 的执行结果"),
             "错误信息应提示节点未找到: {}",
             err
         );

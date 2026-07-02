@@ -134,7 +134,7 @@ describe('Tauri IPC 调试服务', () => {
         expect.fail('应该抛出错误');
       } catch (error) {
         expect(error).toBeInstanceOf(IpcError);
-        expect((error as Error).message).toContain('未知错误');
+        expect((error as Error).message).toContain('Unknown error');
       }
     });
 

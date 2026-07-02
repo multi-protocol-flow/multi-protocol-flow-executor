@@ -1339,7 +1339,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "类型不匹配应该返回错误");
-        assert!(result.unwrap_err().contains("actual不是数字类型"), "错误信息应该包含 actual不是数字类型");
+        assert!(result.unwrap_err().message.contains("actual不是数字类型"), "错误信息应该包含 actual不是数字类型");
     }
 
     #[tokio::test]
@@ -1362,7 +1362,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "语法错误应该返回错误");
-        assert!(result.unwrap_err().contains("评估表达式"), "错误信息应该包含 评估表达式");
+        assert!(result.unwrap_err().message.contains("评估表达式"), "错误信息应该包含 评估表达式");
     }
 
     #[tokio::test]
@@ -1384,7 +1384,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "缺少field_path应该返回错误");
-        assert!(result.unwrap_err().contains("简单条件缺少 field_path"), "错误信息应该包含 简单条件缺少 field_path");
+        assert!(result.unwrap_err().message.contains("简单条件缺少 field_path"), "错误信息应该包含 简单条件缺少 field_path");
     }
 
     #[tokio::test]
@@ -1406,7 +1406,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "缺少operator应该返回错误");
-        assert!(result.unwrap_err().contains("简单条件缺少 operator"), "错误信息应该包含 简单条件缺少 operator");
+        assert!(result.unwrap_err().message.contains("简单条件缺少 operator"), "错误信息应该包含 简单条件缺少 operator");
     }
 
     #[tokio::test]
@@ -1428,7 +1428,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "缺少advanced_expression应该返回错误");
-        assert!(result.unwrap_err().contains("缺少advanced_expression"), "错误信息应该包含 缺少advanced_expression");
+        assert!(result.unwrap_err().message.contains("缺少advanced_expression"), "错误信息应该包含 缺少advanced_expression");
     }
 
     #[tokio::test]
@@ -1779,7 +1779,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "变量不存在应该返回错误");
-        assert!(result.unwrap_err().contains("不存在"), "错误信息应该包含 '不存在'");
+        assert!(result.unwrap_err().message.contains("不存在"), "错误信息应该包含 '不存在'");
     }
 
     #[tokio::test]
@@ -1864,7 +1864,7 @@ mod tests {
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "旧语法应该返回错误");
         let error = result.unwrap_err();
-        assert!(error.find("不支持的语法").is_some(), "错误信息应该包含 '不支持的语法': {}", error);
+        assert!(error.message.find("不支持的语法").is_some(), "错误信息应该包含 '不支持的语法': {}", error);
     }
 
     #[tokio::test]
@@ -1886,7 +1886,7 @@ mod tests {
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "空 field_path 应该返回错误");
         let error = result.unwrap_err();
-        assert!(error.contains("required"), "错误信息应该包含 'required': {}", error);
+        assert!(error.message.contains("required"), "错误信息应该包含 'required': {}", error);
     }
 
     #[tokio::test]
@@ -2356,6 +2356,6 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "两边都找不到应报错");
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().message.contains("不存在"));
     }
 }

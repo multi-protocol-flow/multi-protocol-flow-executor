@@ -265,7 +265,7 @@ export type { Flow, EnvironmentSet } from './flow';
 export { getActiveVariables } from './flow';
 
 // 错误类型
-export type { ErrorKind, ErrorDetail } from './error';
+export type { ErrorKind, ErrorCode, ErrorDetail } from './error';
 export { isFatalError } from './error';
 
 // 报告类型

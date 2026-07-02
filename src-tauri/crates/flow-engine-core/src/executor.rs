@@ -27,7 +27,7 @@ use std::collections::HashMap;
 /// - 严格模式：变量不存在时返回错误
 /// - 不支持索引访问（如 `items[0]`）和函数调用
 pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<String, String> {
-    let re = regex::Regex::new(r"\{\{([^}]+)\}\}").map_err(|e| format!("正则表达式错误: {}", e))?;
+    let re = regex::Regex::new(r"\{\{([^}]+)\}\}").map_err(|e| format!("Regex error: {}", e))?;
     let mut result = template.to_string();
 
     for cap in re.captures_iter(template) {
@@ -36,12 +36,12 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
 
         // 检查是否包含索引访问（不支持）
         if variable_path.contains('[') {
-            return Err(format!("不支持索引访问: {}", variable_path));
+            return Err(format!("Index access not supported: {}", variable_path));
         }
 
         // 检查是否包含函数调用（不支持）
         if variable_path.contains('(') {
-            return Err(format!("不支持函数调用: {}", variable_path));
+            return Err(format!("Function calls not supported: {}", variable_path));
         }
 
         // 按点分割路径
@@ -53,7 +53,7 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
         let mut current_path = String::new();
 
         if current_value.is_none() {
-            return Err(format!("未找到变量: {}", variable_path));
+            return Err(format!("Variable not found: {}", variable_path));
         }
 
         for part in &path_parts[1..] {
@@ -67,11 +67,11 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
                     if let Some(value) = map.get(*part) {
                         current_value = Some(value);
                     } else {
-                        return Err(format!("未找到变量: {}", current_path));
+                        return Err(format!("Variable not found: {}", current_path));
                     }
                 }
                 _ => {
-                    return Err(format!("变量路径 '{}' 不是对象类型", current_path));
+                    return Err(format!("Variable path '{}' is not an object type", current_path));
                 }
             }
         }
@@ -84,12 +84,12 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
             Some(serde_json::Value::Null) => "null".to_string(),
             Some(serde_json::Value::Array(_) | serde_json::Value::Object(_)) => {
                 return Err(format!(
-                    "变量 '{}' 不支持直接替换（复杂类型）",
+                    "Variable '{}' does not support direct replacement (complex type)",
                     variable_path
                 ));
             }
             None => {
-                return Err(format!("变量 '{}' 为空", variable_path));
+                return Err(format!("Variable '{}' is null/empty", variable_path));
             }
         };
 
