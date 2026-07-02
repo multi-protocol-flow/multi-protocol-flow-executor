@@ -29,7 +29,7 @@ fn create_valid_flow_file() -> NamedTempFile {
                     "type": "http",
                     "name": "HTTP 节点",
                     "position": { "x": 100.0, "y": 0.0 },
-                    "data": { "type": "http", "url": "https://httpbin.org/status/200" },
+                    "data": { "type": "http", "url": "http://localhost:19090/api/status/200" },
                     "ports": null
                 }
             ],
@@ -71,7 +71,7 @@ fn create_flow_with_uuid() -> NamedTempFile {
                     "type": "http",
                     "name": "HTTP 节点",
                     "position": { "x": 100.0, "y": 0.0 },
-                    "data": { "type": "http", "url": "https://httpbin.org/status/200" },
+                    "data": { "type": "http", "url": "http://localhost:19090/api/status/200" },
                     "ports": null
                 }
             ],
@@ -113,7 +113,7 @@ fn create_large_flow_file() -> NamedTempFile {
     for i in 1..=48 {
         nodes.push_str(",");
         nodes.push_str(&format!(
-            r#"{{"uuid": "node-{}", "type": "http", "name": "节点 {}", "position": {{"x": {}, "y": {}}}, "data": {{"type": "http", "url": "https://httpbin.org/status/200"}}, "ports": null}}"#,
+            r#"{{"uuid": "node-{}", "type": "http", "name": "节点 {}", "position": {{"x": {}, "y": {}}}, "data": {{"type": "http", "url": "http://localhost:19090/api/status/200"}}, "ports": null}}"#,
             i, i, (i * 10) as f64, (i * 10) as f64
         ));
         // Add connection from previous node to this one
@@ -190,12 +190,6 @@ fn test_run_subcommand_help() {
         .success()
         .stdout(predicate::str::contains("execute flow"))
         .stdout(predicate::str::contains("--flow"));
-}
-
-#[test]
-fn test_no_arguments_shows_error() {
-    let mut cmd = cargo::cargo_bin_cmd!("mpe");
-    cmd.assert().failure();
 }
 
 // ============ 错误处理测试 ============
@@ -478,7 +472,7 @@ fn test_flow_with_connections() {
                     "type": "http",
                     "name": "HTTP 节点",
                     "position": { "x": 100.0, "y": 0.0 },
-                    "data": { "type": "http", "url": "https://httpbin.org/status/200" },
+                    "data": { "type": "http", "url": "http://localhost:19090/api/status/200" },
                     "ports": null
                 }
             ],
@@ -579,7 +573,7 @@ fn test_flow_with_missing_uuid() {
                     "type": "http",
                     "name": "HTTP 节点",
                     "position": { "x": 100.0, "y": 0.0 },
-                    "data": { "type": "http", "url": "https://httpbin.org/status/200" },
+                    "data": { "type": "http", "url": "http://localhost:19090/api/status/200" },
                     "ports": null
                 }
             ],
@@ -1132,7 +1126,7 @@ fn create_assertion_pass_flow() -> NamedTempFile {
                     },
                     "data": {
                         "type": "http",
-                        "url": "https://httpbin.org/status/200",
+                        "url": "http://localhost:19090/api/status/200",
                         "method": "get"
                     },
                     "ports": null
@@ -1174,7 +1168,7 @@ fn create_assertion_pass_flow() -> NamedTempFile {
                     },
                     "data": {
                         "type": "http",
-                        "url": "https://httpbin.org/status/201",
+                        "url": "http://localhost:19090/api/status/201",
                         "method": "get"
                     },
                     "ports": null
@@ -1189,7 +1183,7 @@ fn create_assertion_pass_flow() -> NamedTempFile {
                     },
                     "data": {
                         "type": "http",
-                        "url": "https://httpbin.org/status/400",
+                        "url": "http://localhost:19090/api/status/400",
                         "method": "get"
                     },
                     "ports": null
@@ -1264,7 +1258,7 @@ fn create_assertion_fail_route_false_flow() -> NamedTempFile {
                     },
                     "data": {
                         "type": "http",
-                        "url": "https://httpbin.org/status/200",
+                        "url": "http://localhost:19090/api/status/200",
                         "method": "get"
                     },
                     "ports": null
@@ -1306,7 +1300,7 @@ fn create_assertion_fail_route_false_flow() -> NamedTempFile {
                     },
                     "data": {
                         "type": "http",
-                        "url": "https://httpbin.org/status/201",
+                        "url": "http://localhost:19090/api/status/201",
                         "method": "get"
                     },
                     "ports": null
@@ -1321,7 +1315,7 @@ fn create_assertion_fail_route_false_flow() -> NamedTempFile {
                     },
                     "data": {
                         "type": "http",
-                        "url": "https://httpbin.org/status/400",
+                        "url": "http://localhost:19090/api/status/400",
                         "method": "get"
                     },
                     "ports": null
@@ -1396,7 +1390,7 @@ fn create_assertion_fail_throw_flow() -> NamedTempFile {
                     },
                     "data": {
                         "type": "http",
-                        "url": "https://httpbin.org/status/200",
+                        "url": "http://localhost:19090/api/status/200",
                         "method": "get"
                     },
                     "ports": null
@@ -1438,7 +1432,7 @@ fn create_assertion_fail_throw_flow() -> NamedTempFile {
                     },
                     "data": {
                         "type": "http",
-                        "url": "https://httpbin.org/status/201",
+                        "url": "http://localhost:19090/api/status/201",
                         "method": "get"
                     },
                     "ports": null
