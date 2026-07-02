@@ -9,9 +9,8 @@ import {
   Code2,
   GitBranch,
   AlertCircle,
-  AlertTriangle,
 } from 'lucide-react';
-import type { NodeExecutionReport, ErrorDetail } from '@/types';
+import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -31,19 +30,6 @@ interface ConditionalOutputData {
   field_value?: unknown;
   result?: boolean;
   error?: string;
-}
-
-/**
- * 条件配置数据结构（从 resolved_config 提取）
- */
-interface ConditionalConfigData {
-  type?: string;
-  condition_type?: string;
-  field_path?: string;
-  operator?: string;
-  expected_value?: unknown;
-  advanced_expression?: string;
-  expected_value_type?: string;
 }
 
 /**
@@ -108,216 +94,28 @@ function ValueDisplay({ label, value }: ValueDisplayProps) {
   );
 }
 
-/**
- * 错误类型映射为中文
- */
-function getErrorKindLabel(errorKind: string): string {
-  const ll = getLL();
-  const labels: Record<string, string> = {
-    'condition_syntax': ll.viewer.common.error_kind_condition_syntax(),
-    'condition_evaluation': ll.viewer.common.error_kind_condition_evaluation(),
-    'configuration': ll.viewer.common.error_kind_configuration(),
-    'execution': ll.viewer.common.error_kind_execution(),
-    'connection': ll.viewer.common.error_kind_connection(),
-    'timeout': ll.viewer.common.error_kind_timeout(),
-    'validation': ll.viewer.common.error_kind_validation(),
-    'parse': ll.viewer.common.error_kind_parse(),
-  };
-  return labels[errorKind] || errorKind;
-}
-
-/**
- * 操作符映射为显示符号
- */
-function getOperatorDisplay(operator?: string): string {
-  if (!operator) return '-';
-  const operators: Record<string, string> = {
-    'equal': '==',
-    'not_equal': '!=',
-    'greater': '>',
-    'greater_or_equal': '>=',
-    'less': '<',
-    'less_or_equal': '<=',
-    'contains': 'contains',
-    'starts_with': 'startsWith',
-    'ends_with': 'endsWith',
-    'exists': 'exists',
-  };
-  return operators[operator] || operator;
-}
-
-/**
- * 错误卡片组件
- */
-function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: ConditionalConfigData }) {
-  return (
-    <div className="rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 overflow-hidden">
-      {/* 错误头部 */}
-      <div className="p-3 bg-red-100/50 dark:bg-red-900/30 border-b border-red-200 dark:border-red-800">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-red-600" />
-          <Badge className="font-mono text-xs bg-red-200 text-red-800 border-red-300">
-            {getErrorKindLabel(error.error_kind)}
-          </Badge>
-          {error.error_code && (
-            <Badge variant="outline" className="font-mono text-xs text-red-600 border-red-300">
-              {error.error_code}
-            </Badge>
-          )}
-        </div>
-      </div>
-      
-      {/* 错误消息 */}
-      <div className="p-3 border-b border-red-200 dark:border-red-800">
-        <p className="text-sm text-red-700 dark:text-red-300 font-medium">{error.message}</p>
-      </div>
-
-      {/* 原始条件配置 */}
-      {configData && (
-        <div className="p-3 bg-red-50/50 dark:bg-red-950/30">
-          <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-2">{getLL().execution.viewers.raw_data()}:</div>
-          <div className="space-y-1.5 text-sm">
-            {configData.condition_type && (
-              <div className="flex gap-2">
-                <span className="text-muted-foreground shrink-0">{getLL().execution.viewers.condition_result()}:</span>
-                <span className="font-mono text-red-700 dark:text-red-300">
-                  {configData.condition_type === 'simple' ? getLL().viewer.cond.label_simple_condition() : getLL().viewer.cond.label_advanced_expression()}
-                </span>
-              </div>
-            )}
-            {configData.condition_type === 'simple' && (
-              <>
-                {configData.field_path && (
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground shrink-0">字段路径:</span>
-                    <code className="font-mono text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-1 rounded text-xs">
-                      {configData.field_path}
-                    </code>
-                  </div>
-                )}
-                {configData.operator && (
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground shrink-0">操作符:</span>
-                    <span className="font-mono text-red-700 dark:text-red-300">
-                      {getOperatorDisplay(configData.operator)}
-                    </span>
-                  </div>
-                )}
-                {configData.expected_value !== undefined && (
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground shrink-0">期望值:</span>
-                    <code className="font-mono text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-1 rounded text-xs">
-                      {typeof configData.expected_value === 'object' 
-                        ? JSON.stringify(configData.expected_value) 
-                        : String(configData.expected_value)}
-                    </code>
-                  </div>
-                )}
-                {configData.expected_value_type && (
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground shrink-0">期望值类型:</span>
-                    <span className="font-mono text-red-700 dark:text-red-300">
-                      {configData.expected_value_type}
-                    </span>
-                  </div>
-                )}
-              </>
-            )}
-            {configData.condition_type === 'advanced' && configData.advanced_expression && (
-              <div className="flex flex-col gap-1">
-                <span className="text-muted-foreground">高级表达式:</span>
-                <code className="font-mono text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded text-xs whitespace-pre-wrap">
-                  {configData.advanced_expression}
-                </code>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 堆栈跟踪 */}
-      {error.stack_trace && (
-        <details className="border-t border-red-200 dark:border-red-800">
-          <summary className="p-2 text-xs text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/30">
-            {getLL().execution.viewers.stack_trace()}
-          </summary>
-          <pre className="p-2 text-xs text-red-600 dark:text-red-400 bg-red-100/50 dark:bg-red-900/30 overflow-x-auto max-h-32">
-            {error.stack_trace}
-          </pre>
-        </details>
-      )}
-    </div>
-  );
-}
-
 export const ConditionalViewer = memo(function ConditionalViewer({ report }: ConditionalViewerProps) {
   const ll = getLL();
   // 从 output_data 提取 Conditional 数据
   const outputData = report.output_data as ConditionalOutputData | undefined;
-  
-  // 从 resolved_config 提取原始条件配置（始终包含节点配置）
-  const configData = report.resolved_config as ConditionalConfigData | undefined;
   
   const expression = outputData?.expression;
   const evaluatedValue = outputData?.evaluated_value;
   const fieldValue = outputData?.field_value;
   const result = outputData?.result;
 
-  // 节点级错误（从 report.error 读取）
-  const nodeError = report.error;
-  
   // output_data 中的错误（向后兼容）
   const outputError = outputData?.error;
 
   // 判断是否有错误：
   // 1. report.status 为 failed
-  // 2. 存在节点级错误 (report.error 不为 null/undefined)
-  // 3. output_data 中明确标记 success: false
-  // 4. output_data 中有 error 字段
-  const hasError = report.status === 'failed' 
-    || nodeError != null  // 使用 != null 同时检查 null 和 undefined
-    || outputData?.success === false 
+  // 2. output_data 中明确标记 success: false
+  // 3. output_data 中有 error 字段
+  const hasError = report.status === 'failed'
+    || outputData?.success === false
     || Boolean(outputError);
 
-  // 如果有节点级错误，显示错误卡片（优先级最高）
-  if (nodeError) {
-    return (
-      <div className="space-y-3">
-        <ErrorCard error={nodeError} configData={configData} />
-        
-        {/* 如果有 output_data，也显示评估信息（可能部分可用） */}
-        {outputData && (expression || fieldValue !== undefined) && (
-          <>
-            {expression && (
-              <CollapsibleSection
-                title={ll.execution.viewers.condition_expression()}
-                icon={<Code2 className="w-4 h-4" />}
-                defaultOpen={false}
-              >
-                <div className="bg-muted rounded p-2 font-mono text-sm text-foreground">
-                  {expression}
-                </div>
-              </CollapsibleSection>
-            )}
-            {fieldValue !== undefined && (
-              <CollapsibleSection
-                title={ll.execution.viewers.eval_value()}
-                icon={<GitBranch className="w-4 h-4" />}
-                defaultOpen={false}
-              >
-                <ValueDisplay label="字段值 (field_value)" value={fieldValue} />
-              </CollapsibleSection>
-            )}
-          </>
-        )}
-
-        {/* 变量变更 */}
-        <VariableChangesCard changes={report.variable_changes} />
-      </div>
-    );
-  }
-
-  // 正常情况：显示完整的条件评估信息
+  // 显示条件评估信息
   return (
     <div className="space-y-3">
       {/* 条件表达式 */}

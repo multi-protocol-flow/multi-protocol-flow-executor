@@ -20,6 +20,7 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { NODE_TYPE_NAMES, NODE_TYPE_COLORS } from './constants';
 import { RawJsonViewer } from './viewers/RawJsonViewer';
 import { getViewerComponent } from '@/lib/viewerRegistry';
+import { ErrorSection } from './viewers/ErrorSection';
 
 interface NodeExecutionDetailsProps {
   report: NodeExecutionReport;
@@ -155,7 +156,13 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
           {/* Tab 内容区域 */}
           <div className="p-4 text-sm overflow-hidden">
             {activeTab === 'structured' ? (
-              <NodeViewerSelector report={report} />
+              <div className="space-y-3">
+                {/* 节点级错误展示（在 viewer 上方，覆盖所有节点类型） */}
+                {report.error && report.status === 'failed' && (
+                  <ErrorSection error={report.error} />
+                )}
+                <NodeViewerSelector report={report} />
+              </div>
             ) : (
               /* 原始 JSON 视图 */
               <div className="min-w-0">

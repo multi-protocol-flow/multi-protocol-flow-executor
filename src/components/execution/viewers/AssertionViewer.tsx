@@ -11,7 +11,7 @@ import {
   AlertTriangle,
   FileCheck,
 } from 'lucide-react';
-import type { NodeExecutionReport, ErrorDetail } from '@/types';
+import type { NodeExecutionReport } from '@/types';
 import type { AssertionOutput, AssertionResult, AssertionNodeConfig } from '@/types/node';
 import { Badge } from '@/components/ui/badge';
 import { VariableChangesCard } from './VariableChangesCard';
@@ -177,91 +177,12 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
   );
 }
 
-/**
- * 错误卡片组件
- */
-function ErrorCard({ error }: { error: ErrorDetail }) {
-  return (
-    <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 overflow-hidden">
-      {/* 错误头部 */}
-      <div className="p-3 bg-red-100/50 dark:bg-red-900/30 border-b border-red-200 dark:border-red-800">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-          <Badge className="font-mono text-xs bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700">
-            {getLL().execution.viewers.execution_failed()}
-          </Badge>
-          {error.error_code && (
-            <Badge variant="outline" className="font-mono text-xs text-red-600 dark:text-red-400 border-red-300 dark:border-red-700">
-              {error.error_code}
-            </Badge>
-          )}
-        </div>
-      </div>
-      
-      {/* 错误消息 */}
-      <div className="p-3">
-        <p className="text-sm text-red-700 dark:text-red-300 font-medium">{error.message}</p>
-      </div>
-
-      {/* 堆栈跟踪 */}
-      {error.stack_trace && (
-        <details className="border-t border-red-200 dark:border-red-800">
-          <summary className="p-2 text-xs text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/30">
-            {getLL().execution.viewers.stack_trace()}
-          </summary>
-          <pre className="p-2 text-xs text-red-600 dark:text-red-300 bg-red-100/50 dark:bg-red-900/30 overflow-x-auto max-h-32">
-            {error.stack_trace}
-          </pre>
-        </details>
-      )}
-    </div>
-  );
-}
-
 export const AssertionViewer = memo(function AssertionViewer({ report }: AssertionViewerProps) {
   // 从 output_data 提取 Assertion 数据
   const outputData = report.output_data as AssertionOutput | undefined;
   
   // 从 resolved_config 提取断言配置
   const configData = report.resolved_config as AssertionNodeConfig | undefined;
-
-  // 节点级错误（从 report.error 读取）
-  const nodeError = report.error;
-
-  // 如果有节点级错误，显示错误卡片
-  if (nodeError) {
-    return (
-      <div className="space-y-3">
-        <ErrorCard error={nodeError} />
-        
-        {/* 如果有 output_data，也显示部分信息 */}
-        {outputData && (
-          <CollapsibleSection
-            title={getLL().execution.viewers.assertion_result()}
-            icon={<FileCheck className="w-4 h-4" />}
-            defaultOpen={false}
-          >
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                <Badge className="font-mono text-sm px-3 py-1 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40">
-                  {getLL().execution.viewers.execution_failed()}
-                </Badge>
-              </div>
-              {outputData.total !== undefined && (
-                <div className="text-sm text-muted-foreground">
-                  共 {outputData.total} 条断言，通过 {outputData.passed_count} 条
-                </div>
-              )}
-            </div>
-          </CollapsibleSection>
-        )}
-
-        {/* 变量变更 */}
-        <VariableChangesCard changes={report.variable_changes} />
-      </div>
-    );
-  }
 
   // 无数据情况
   if (!outputData) {
