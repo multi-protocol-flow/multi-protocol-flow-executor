@@ -762,7 +762,7 @@ pub async fn grpc_parse_descriptor_set(
 
     // 提取服务信息
     let services = proto_parser::list_services(&pool);
-    let message_definitions = proto_parser::get_message_definitions(&pool);
+    let message_definitions = Arc::new(proto_parser::get_message_definitions(&pool));
     let grpc_services: Vec<GrpcServiceInfo> = services
         .into_iter()
         .map(|s| GrpcServiceInfo {

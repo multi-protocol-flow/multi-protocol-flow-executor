@@ -4,6 +4,7 @@
 //! 支持 v1 和 v1alpha 两种反射协议，优先使用 v1，Failed时回退到 v1alpha。
 
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use flow_engine_core::traits::{GrpcMethodInfo, GrpcServiceInfo};
 use tonic::metadata::{MetadataKey, MetadataValue};
@@ -757,7 +758,7 @@ pub async fn discover_services_via_reflection(
 
     // 4. 提取服务信息
     let services = proto_parser::list_services(&pool);
-    let message_definitions = proto_parser::get_message_definitions(&pool);
+    let message_definitions = Arc::new(proto_parser::get_message_definitions(&pool));
     Ok(services
         .into_iter()
         .map(|s| GrpcServiceInfo {
@@ -853,7 +854,7 @@ pub fn discover_services_via_proto(
         .map_err(|e| format!("解析 proto 文件Failed: {}", e))?;
 
     let services = proto_parser::list_services(&pool);
-    let message_definitions = proto_parser::get_message_definitions(&pool);
+    let message_definitions = Arc::new(proto_parser::get_message_definitions(&pool));
     Ok(services
         .into_iter()
         .map(|s| GrpcServiceInfo {

@@ -305,7 +305,7 @@ impl GrpcProvider for GrpcConnectionManager {
 
         // 4. 提取服务信息
         let services = proto_parser::list_services(&pool);
-        let message_definitions = proto_parser::get_message_definitions(&pool);
+        let message_definitions = Arc::new(proto_parser::get_message_definitions(&pool));
         let grpc_services: Vec<GrpcServiceInfo> = services
             .into_iter()
             .map(|s| GrpcServiceInfo {
@@ -932,7 +932,7 @@ impl GrpcProvider for GrpcConnectionManager {
         let conns = self.connections.read().ok()?;
         let conn = conns.get(connection_id)?;
         let services = proto_parser::list_services(&conn.descriptor_pool);
-        let message_definitions = proto_parser::get_message_definitions(&conn.descriptor_pool);
+        let message_definitions = Arc::new(proto_parser::get_message_definitions(&conn.descriptor_pool));
         Some(
             services
                 .into_iter()

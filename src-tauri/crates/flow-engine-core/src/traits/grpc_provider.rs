@@ -65,60 +65,112 @@ pub struct GrpcStreamingResult {
 /// gRPC 枚举值
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GrpcEnumValue {
+    /// 枚举值名称
     pub name: String,
+    /// 枚举值编号
     pub number: i32,
 }
 
 /// gRPC oneof 分组
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GrpcOneofInfo {
+    /// oneof 组名
     pub name: String,
+    /// 属于该 oneof 组的字段编号列表
     pub field_numbers: Vec<u32>,
 }
 
 /// gRPC 消息定义
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GrpcMessageInfo {
+    /// 消息全名（如 "package.MessageName"）
     pub full_name: String,
+    /// 字段列表
     pub fields: Vec<GrpcFieldInfo>,
+    /// oneof 分组列表
     pub oneof_groups: Vec<GrpcOneofInfo>,
+    /// 是否为 Well-Known Type（google.protobuf.*）
     pub is_wkt: bool,
+    /// 保留字段编号范围
     pub reserved_ranges: Vec<(u32, u32)>,
+    /// 保留字段名称
     pub reserved_names: Vec<String>,
 }
 
 /// gRPC 字段信息
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GrpcFieldInfo {
+    /// 字段名
     pub name: String,
+    /// 字段编号
     pub number: u32,
+    /// 类型分类标识（如 "string", "int32", "MESSAGE", "ENUM"）
     pub type_kind: String,
+    /// 类型显示名（如 "string", "map<string, int32>"）
     pub type_display: String,
+    /// 消息/枚举类型的全名（仅 type_kind 为 MESSAGE/ENUM 时存在）
     #[serde(default)]
     pub type_full_name: Option<String>,
+    /// 字段 cardinality（"optional" / "required" / "repeated"）
     pub label: String,
+    /// 是否为 map 类型
     #[serde(default)]
     pub is_map: bool,
+    /// map 的 key 类型（仅 is_map=true 时存在）
     #[serde(default)]
     pub map_key_type: Option<String>,
+    /// map 的 value 类型（仅 is_map=true 时存在）
     #[serde(default)]
     pub map_value_type: Option<String>,
+    /// 枚举值列表（仅 type_kind 为 ENUM 时非空）
     #[serde(default)]
     pub enum_values: Vec<GrpcEnumValue>,
+    /// 嵌套消息定义（仅 type_kind 为 MESSAGE 时存在）
     #[serde(default)]
     pub nested_message: Option<Box<GrpcMessageInfo>>,
 }
 
 /// gRPC 服务信息（service + method 列表）
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GrpcServiceInfo {
     /// 服务全名（如 "package.ServiceName"）
     pub service_name: String,
     /// 方法列表
     pub methods: Vec<GrpcMethodInfo>,
     /// Flat map of all message definitions keyed by full_name (e.g. "package.MessageName")
-    #[serde(default)]
-    pub message_definitions: std::collections::HashMap<String, GrpcMessageInfo>,
+    ///
+    /// Wrapped in `Arc` to share the same definition map across all services
+    /// from the same gRPC connection, avoiding N deep-copies for N services.
+    pub message_definitions: std::sync::Arc<std::collections::HashMap<String, GrpcMessageInfo>>,
+}
+
+impl serde::Serialize for GrpcServiceInfo {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("GrpcServiceInfo", 3)?;
+        state.serialize_field("service_name", &self.service_name)?;
+        state.serialize_field("methods", &self.methods)?;
+        state.serialize_field("message_definitions", self.message_definitions.as_ref())?;
+        state.end()
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for GrpcServiceInfo {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(serde::Deserialize)]
+        struct GrpcServiceInfoHelper {
+            service_name: String,
+            methods: Vec<GrpcMethodInfo>,
+            #[serde(default)]
+            message_definitions: std::collections::HashMap<String, GrpcMessageInfo>,
+        }
+        let helper = GrpcServiceInfoHelper::deserialize(deserializer)?;
+        Ok(GrpcServiceInfo {
+            service_name: helper.service_name,
+            methods: helper.methods,
+            message_definitions: std::sync::Arc::new(helper.message_definitions),
+        })
+    }
 }
 
 /// gRPC 方法信息
@@ -590,7 +642,7 @@ mod tests {
                 is_server_streaming: false,
                 is_client_streaming: false,
             }],
-            message_definitions: defs,
+            message_definitions: Arc::new(defs),
         };
         let json = serde_json::to_string(&info).expect("serialize");
         let deserialized: GrpcServiceInfo = serde_json::from_str(&json).expect("deserialize");
