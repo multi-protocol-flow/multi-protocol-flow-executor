@@ -665,6 +665,51 @@ export interface GrpcErrorDetail {
 }
 
 /**
+ * gRPC 枚举值
+ */
+export interface GrpcEnumValue {
+  name: string;
+  number: number;
+}
+
+/**
+ * gRPC oneof 分组
+ */
+export interface GrpcOneofInfo {
+  name: string;
+  field_numbers: number[];
+}
+
+/**
+ * gRPC 消息定义（包含字段列表）
+ */
+export interface GrpcMessageInfo {
+  full_name: string;
+  fields: GrpcFieldInfo[];
+  oneof_groups: GrpcOneofInfo[];
+  is_wkt: boolean;
+  reserved_ranges?: [number, number][];
+  reserved_names?: string[];
+}
+
+/**
+ * gRPC 字段信息
+ */
+export interface GrpcFieldInfo {
+  name: string;
+  number: number;
+  type_kind: string;
+  type_display: string;
+  type_full_name?: string;
+  label: string;
+  is_map: boolean;
+  map_key_type?: string;
+  map_value_type?: string;
+  enum_values?: GrpcEnumValue[];
+  nested_message?: GrpcMessageInfo;
+}
+
+/**
  * gRPC 方法信息（从 Server Reflection 或 Proto 解析得到）
  */
 export interface GrpcMethodInfo {
@@ -688,6 +733,8 @@ export interface GrpcServiceInfo {
   service_name: string;
   /** 方法列表 */
   methods: GrpcMethodInfo[];
+  /** Flat map of all message definitions keyed by full_name */
+  message_definitions?: Record<string, GrpcMessageInfo>;
 }
 
 /**

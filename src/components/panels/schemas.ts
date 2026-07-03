@@ -3,6 +3,7 @@
  */
 import { z } from 'zod';
 import { getLL } from '@/i18n/i18n-lazy';
+import type { GrpcFieldInfo, GrpcMessageInfo } from '@/types/node';
 
 // ============================================================================
 // HTTP 配置 Schema
@@ -590,12 +591,78 @@ export const grpcMethodInfoSchema = z.object({
 
 export type GrpcMethodInfoFormData = z.infer<typeof grpcMethodInfoSchema>;
 
+// ============================================================================
+// gRPC Message Definition Schemas
+// ============================================================================
+
+/**
+ * gRPC 枚举值 Schema
+ */
+export const grpcEnumValueSchema = z.object({
+  name: z.string(),
+  number: z.number(),
+});
+
+export type GrpcEnumValueFormData = z.infer<typeof grpcEnumValueSchema>;
+
+/**
+ * gRPC oneof 分组 Schema
+ */
+export const grpcOneofInfoSchema = z.object({
+  name: z.string(),
+  field_numbers: z.array(z.number()),
+});
+
+export type GrpcOneofInfoFormData = z.infer<typeof grpcOneofInfoSchema>;
+
+/**
+ * gRPC 字段信息 Schema
+ * （递归类型：nested_message 引用 GrpcMessageInfo，
+ *  使用 z.lazy() 包裹整个 schema 以支持递归引用）
+ */
+export const grpcFieldInfoSchema: z.ZodType<GrpcFieldInfo> = z.lazy(() =>
+  z.object({
+    name: z.string(),
+    number: z.number(),
+    type_kind: z.string(),
+    type_display: z.string(),
+    type_full_name: z.string().optional(),
+    label: z.string(),
+    is_map: z.boolean(),
+    map_key_type: z.string().optional(),
+    map_value_type: z.string().optional(),
+    enum_values: z.array(grpcEnumValueSchema).optional(),
+    nested_message: grpcMessageInfoSchema.optional(),
+  })
+);
+
+export type GrpcFieldInfoFormData = z.infer<typeof grpcFieldInfoSchema>;
+
+/**
+ * gRPC 消息定义 Schema
+ * （递归类型：fields 中的 GrpcFieldInfo 可能引用其它 GrpcMessageInfo，
+ *  使用 z.lazy() 包裹整个 schema 以支持递归引用）
+ */
+export const grpcMessageInfoSchema: z.ZodType<GrpcMessageInfo> = z.lazy(() =>
+  z.object({
+    full_name: z.string(),
+    fields: z.array(grpcFieldInfoSchema),
+    oneof_groups: z.array(grpcOneofInfoSchema),
+    is_wkt: z.boolean(),
+    reserved_ranges: z.array(z.tuple([z.number(), z.number()])).optional(),
+    reserved_names: z.array(z.string()).optional(),
+  })
+);
+
+export type GrpcMessageInfoFormData = z.infer<typeof grpcMessageInfoSchema>;
+
 /**
  * gRPC 服务信息 Schema
  */
 export const grpcServiceInfoSchema = z.object({
   service_name: z.string(),
   methods: z.array(grpcMethodInfoSchema),
+  message_definitions: z.custom<Record<string, GrpcMessageInfo>>().optional(),
 });
 
 export type GrpcServiceInfoFormData = z.infer<typeof grpcServiceInfoSchema>;
