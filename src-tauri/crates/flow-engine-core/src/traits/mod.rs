@@ -48,8 +48,9 @@ pub use graphql_provider::{
 };
 pub use hook_executor::{HookExecutor, NoopHookExecutor};
 pub use grpc_provider::{
-    GrpcConnectionInfo, GrpcErrorDetail, GrpcMethodInfo, GrpcPattern, GrpcProvider,
-    GrpcServiceInfo, GrpcStreamMessage, GrpcStreamingResult, GrpcTimingInfo, HealthCheckResponse,
+    GrpcConnectionInfo, GrpcEnumValue, GrpcErrorDetail, GrpcFieldInfo, GrpcMessageInfo,
+    GrpcMethodInfo, GrpcOneofInfo, GrpcPattern, GrpcProvider, GrpcServiceInfo, GrpcStreamMessage,
+    GrpcStreamingResult, GrpcTimingInfo, HealthCheckResponse,
 };
 pub use imap_provider::{
     ImapCloseOutput, ImapConnectOutput, ImapConnectionInfo, ImapCopyOutput, ImapExpungeOutput,

@@ -62,6 +62,53 @@ pub struct GrpcStreamingResult {
     pub cancelled: bool,
 }
 
+/// gRPC 枚举值
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct GrpcEnumValue {
+    pub name: String,
+    pub number: i32,
+}
+
+/// gRPC oneof 分组
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct GrpcOneofInfo {
+    pub name: String,
+    pub field_numbers: Vec<u32>,
+}
+
+/// gRPC 消息定义
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct GrpcMessageInfo {
+    pub full_name: String,
+    pub fields: Vec<GrpcFieldInfo>,
+    pub oneof_groups: Vec<GrpcOneofInfo>,
+    pub is_wkt: bool,
+    pub reserved_ranges: Vec<(u32, u32)>,
+    pub reserved_names: Vec<String>,
+}
+
+/// gRPC 字段信息
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct GrpcFieldInfo {
+    pub name: String,
+    pub number: u32,
+    pub type_kind: String,
+    pub type_display: String,
+    #[serde(default)]
+    pub type_full_name: Option<String>,
+    pub label: String,
+    #[serde(default)]
+    pub is_map: bool,
+    #[serde(default)]
+    pub map_key_type: Option<String>,
+    #[serde(default)]
+    pub map_value_type: Option<String>,
+    #[serde(default)]
+    pub enum_values: Vec<GrpcEnumValue>,
+    #[serde(default)]
+    pub nested_message: Option<Box<GrpcMessageInfo>>,
+}
+
 /// gRPC 服务信息（service + method 列表）
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GrpcServiceInfo {
@@ -69,6 +116,9 @@ pub struct GrpcServiceInfo {
     pub service_name: String,
     /// 方法列表
     pub methods: Vec<GrpcMethodInfo>,
+    /// Flat map of all message definitions keyed by full_name (e.g. "package.MessageName")
+    #[serde(default)]
+    pub message_definitions: std::collections::HashMap<String, GrpcMessageInfo>,
 }
 
 /// gRPC 方法信息
@@ -344,5 +394,208 @@ mod tests {
         assert_eq!(deserialized.status, 0);
         assert_eq!(deserialized.sent_count, 3);
         assert_eq!(deserialized.received_count, 1);
+    }
+
+    #[test]
+    fn test_grpc_enum_value_serde() {
+        let ev = GrpcEnumValue {
+            name: "VALUE_A".to_string(),
+            number: 0,
+        };
+        let json = serde_json::to_string(&ev).expect("serialize");
+        let deserialized: GrpcEnumValue = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(ev, deserialized);
+
+        // verify field names
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("parse");
+        assert_eq!(parsed["name"], "VALUE_A");
+        assert_eq!(parsed["number"], 0);
+    }
+
+    #[test]
+    fn test_grpc_oneof_info_serde() {
+        let oneof = GrpcOneofInfo {
+            name: "result".to_string(),
+            field_numbers: vec![1, 2, 3],
+        };
+        let json = serde_json::to_string(&oneof).expect("serialize");
+        let deserialized: GrpcOneofInfo = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(oneof, deserialized);
+    }
+
+    #[test]
+    fn test_grpc_field_info_serde_roundtrip() {
+        let field = GrpcFieldInfo {
+            name: "name".to_string(),
+            number: 1,
+            type_kind: "STRING".to_string(),
+            type_display: "string".to_string(),
+            type_full_name: None,
+            label: "optional".to_string(),
+            is_map: false,
+            map_key_type: None,
+            map_value_type: None,
+            enum_values: vec![],
+            nested_message: None,
+        };
+        let json = serde_json::to_string(&field).expect("serialize");
+        let deserialized: GrpcFieldInfo = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(field, deserialized);
+    }
+
+    #[test]
+    fn test_grpc_field_info_with_nested_message() {
+        let inner = GrpcMessageInfo {
+            full_name: "Inner".to_string(),
+            fields: vec![GrpcFieldInfo {
+                name: "val".to_string(),
+                number: 1,
+                type_kind: "INT32".to_string(),
+                type_display: "int32".to_string(),
+                type_full_name: None,
+                label: "optional".to_string(),
+                is_map: false,
+                map_key_type: None,
+                map_value_type: None,
+                enum_values: vec![],
+                nested_message: None,
+            }],
+            oneof_groups: vec![],
+            is_wkt: false,
+            reserved_ranges: vec![],
+            reserved_names: vec![],
+        };
+        let outer = GrpcFieldInfo {
+            name: "payload".to_string(),
+            number: 2,
+            type_kind: "MESSAGE".to_string(),
+            type_display: "Inner".to_string(),
+            type_full_name: Some("pkg.Inner".to_string()),
+            label: "optional".to_string(),
+            is_map: false,
+            map_key_type: None,
+            map_value_type: None,
+            enum_values: vec![],
+            nested_message: Some(Box::new(inner)),
+        };
+        let json = serde_json::to_string(&outer).expect("serialize");
+        let deserialized: GrpcFieldInfo = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(outer, deserialized);
+        assert!(deserialized.nested_message.is_some());
+    }
+
+    #[test]
+    fn test_grpc_message_info_serde_roundtrip() {
+        let msg = GrpcMessageInfo {
+            full_name: "pkg.MyMessage".to_string(),
+            fields: vec![
+                GrpcFieldInfo {
+                    name: "id".to_string(),
+                    number: 1,
+                    type_kind: "INT32".to_string(),
+                    type_display: "int32".to_string(),
+                    type_full_name: None,
+                    label: "optional".to_string(),
+                    is_map: false,
+                    map_key_type: None,
+                    map_value_type: None,
+                    enum_values: vec![],
+                    nested_message: None,
+                },
+                GrpcFieldInfo {
+                    name: "kind".to_string(),
+                    number: 2,
+                    type_kind: "ENUM".to_string(),
+                    type_display: "MyEnum".to_string(),
+                    type_full_name: Some("pkg.MyEnum".to_string()),
+                    label: "optional".to_string(),
+                    is_map: false,
+                    map_key_type: None,
+                    map_value_type: None,
+                    enum_values: vec![
+                        GrpcEnumValue { name: "TYPE_A".to_string(), number: 0 },
+                        GrpcEnumValue { name: "TYPE_B".to_string(), number: 1 },
+                    ],
+                    nested_message: None,
+                },
+            ],
+            oneof_groups: vec![GrpcOneofInfo {
+                name: "test_oneof".to_string(),
+                field_numbers: vec![1, 2],
+            }],
+            is_wkt: false,
+            reserved_ranges: vec![(1000, 2000)],
+            reserved_names: vec!["deprecated".to_string()],
+        };
+        let json = serde_json::to_string(&msg).expect("serialize");
+        let deserialized: GrpcMessageInfo = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(msg, deserialized);
+        assert_eq!(deserialized.full_name, "pkg.MyMessage");
+        assert_eq!(deserialized.fields.len(), 2);
+        assert_eq!(deserialized.oneof_groups.len(), 1);
+        assert_eq!(deserialized.reserved_ranges, vec![(1000, 2000)]);
+    }
+
+    #[test]
+    fn test_grpc_service_info_backward_compat() {
+        // Old JSON without message_definitions should deserialize to empty HashMap
+        let old_json = r#"{
+            "service_name": "pkg.MyService",
+            "methods": [
+                {
+                    "method_name": "DoSomething",
+                    "input_type": "pkg.Input",
+                    "output_type": "pkg.Output",
+                    "is_server_streaming": false
+                }
+            ]
+        }"#;
+        let info: GrpcServiceInfo = serde_json::from_str(old_json).expect("backward compat deserialize");
+        assert_eq!(info.service_name, "pkg.MyService");
+        assert_eq!(info.methods.len(), 1);
+        assert!(info.message_definitions.is_empty(), "missing message_definitions should default to empty map");
+    }
+
+    #[test]
+    fn test_grpc_service_info_with_message_definitions() {
+        let msg = GrpcMessageInfo {
+            full_name: "pkg.Input".to_string(),
+            fields: vec![GrpcFieldInfo {
+                name: "id".to_string(),
+                number: 1,
+                type_kind: "INT32".to_string(),
+                type_display: "int32".to_string(),
+                type_full_name: None,
+                label: "optional".to_string(),
+                is_map: false,
+                map_key_type: None,
+                map_value_type: None,
+                enum_values: vec![],
+                nested_message: None,
+            }],
+            oneof_groups: vec![],
+            is_wkt: false,
+            reserved_ranges: vec![],
+            reserved_names: vec![],
+        };
+        let mut defs = std::collections::HashMap::new();
+        defs.insert("pkg.Input".to_string(), msg);
+
+        let info = GrpcServiceInfo {
+            service_name: "pkg.MyService".to_string(),
+            methods: vec![GrpcMethodInfo {
+                method_name: "DoSomething".to_string(),
+                input_type: "pkg.Input".to_string(),
+                output_type: "pkg.Output".to_string(),
+                is_server_streaming: false,
+                is_client_streaming: false,
+            }],
+            message_definitions: defs,
+        };
+        let json = serde_json::to_string(&info).expect("serialize");
+        let deserialized: GrpcServiceInfo = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(info, deserialized);
+        assert_eq!(deserialized.message_definitions.len(), 1);
+        assert!(deserialized.message_definitions.contains_key("pkg.Input"));
     }
 }
