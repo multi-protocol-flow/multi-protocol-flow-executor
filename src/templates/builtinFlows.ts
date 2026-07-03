@@ -36,12 +36,12 @@ export interface FlowTemplate {
 /** HTTP POST with JSON Body */
 const HTTP_POST_FLOW: Flow = {
   uuid: 'template-http-post',
-  name: 'HTTP POST 请求',
+  name: 'HTTP POST Request',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-http-post-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-http-post-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'http-post-request-001', type: 'http', name: 'POST 数据', position: { x: 250, y: 0 },
+      uuid: 'http-post-request-001', type: 'http', name: 'POST Data', position: { x: 250, y: 0 },
       data: { type: 'http', url: 'https://httpbin.org/post', method: 'post', body_type: 'body', content_type: 'json', body: '{"title":"foo","body":"bar","userId":1}' }
     },
   ],
@@ -53,20 +53,20 @@ const HTTP_POST_FLOW: Flow = {
 /** Database SQLite Query */
 const DB_SQLITE_FLOW: Flow = {
   uuid: 'template-db-sqlite',
-  name: 'SQLite 数据库查询',
+  name: 'SQLite Database Query',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-db-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-db-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'db-connect-001', type: 'db_connect', name: '连接数据库', position: { x: 250, y: 0 },
+      uuid: 'db-connect-001', type: 'db_connect', name: 'Connect Database', position: { x: 250, y: 0 },
       data: { type: 'db_connect', driver: 'sqlite', connection_string: ':memory:' }
     },
     {
-      uuid: 'db-query-001', type: 'db_query', name: '执行查询', position: { x: 500, y: 0 },
+      uuid: 'db-query-001', type: 'db_query', name: 'Execute Query', position: { x: 500, y: 0 },
       data: { type: 'db_query', connection_uuid: 'db-connect-001', sql: 'SELECT 1 as result;' }
     },
     {
-      uuid: 'db-close-001', type: 'db_close', name: '关闭连接', position: { x: 750, y: 0 },
+      uuid: 'db-close-001', type: 'db_close', name: 'Close Connection', position: { x: 750, y: 0 },
       data: { type: 'db_close', connection_uuid: 'db-connect-001' }
     },
   ],
@@ -80,20 +80,20 @@ const DB_SQLITE_FLOW: Flow = {
 /** TCP Connect/Send/Close */
 const TCP_SEND_FLOW: Flow = {
   uuid: 'template-tcp-send',
-  name: 'TCP 发送消息',
+  name: 'TCP Send Message',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-tcp-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-tcp-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'tcp-connect-001', type: 'tcp_connect', name: 'TCP 连接', position: { x: 250, y: 0 },
+      uuid: 'tcp-connect-001', type: 'tcp_connect', name: 'TCP Connect', position: { x: 250, y: 0 },
       data: { type: 'tcp_connect', host: 'example.com', port: 80, connect_timeout_ms: 5000 }
     },
     {
-      uuid: 'tcp-send-001', type: 'tcp_send', name: '发送数据', position: { x: 500, y: 0 },
+      uuid: 'tcp-send-001', type: 'tcp_send', name: 'Send Data', position: { x: 500, y: 0 },
       data: { type: 'tcp_send', connection_id: 'tcp-connect-001', data: 'Hello TCP Server', send_timeout_ms: 5000 }
     },
     {
-      uuid: 'tcp-close-001', type: 'tcp_close', name: '关闭连接', position: { x: 750, y: 0 },
+      uuid: 'tcp-close-001', type: 'tcp_close', name: 'Close Connection', position: { x: 750, y: 0 },
       data: { type: 'tcp_close', connection_id: 'tcp-connect-001' }
     },
   ],
@@ -107,20 +107,20 @@ const TCP_SEND_FLOW: Flow = {
 /** UDP Bind/Send/Close */
 const UDP_SEND_FLOW: Flow = {
   uuid: 'template-udp-send',
-  name: 'UDP 发送消息',
+  name: 'UDP Send Message',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-udp-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-udp-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'udp-bind-001', type: 'udp_bind', name: '绑定端口', position: { x: 250, y: 0 },
+      uuid: 'udp-bind-001', type: 'udp_bind', name: 'Bind Port', position: { x: 250, y: 0 },
       data: { type: 'udp_bind', local_port: 0 }
     },
     {
-      uuid: 'udp-send-001', type: 'udp_send_to', name: '发送数据', position: { x: 500, y: 0 },
+      uuid: 'udp-send-001', type: 'udp_send_to', name: 'Send Data', position: { x: 500, y: 0 },
       data: { type: 'udp_send_to', connection_id: 'udp-bind-001', data: 'Hello UDP', target_addr: '127.0.0.1', target_port: 9999 }
     },
     {
-      uuid: 'udp-close-001', type: 'udp_close', name: '关闭', position: { x: 750, y: 0 },
+      uuid: 'udp-close-001', type: 'udp_close', name: 'Close', position: { x: 750, y: 0 },
       data: { type: 'udp_close', connection_id: 'udp-bind-001' }
     },
   ],
@@ -134,20 +134,20 @@ const UDP_SEND_FLOW: Flow = {
 /** Kafka Produce Message */
 const KAFKA_PRODUCE_FLOW: Flow = {
   uuid: 'template-kafka-produce',
-  name: 'Kafka 生产消息',
+  name: 'Kafka Produce Message',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-kafka-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-kafka-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'kafka-connect-001', type: 'kafka_connect', name: '连接 Kafka', position: { x: 250, y: 0 },
+      uuid: 'kafka-connect-001', type: 'kafka_connect', name: 'Connect Kafka', position: { x: 250, y: 0 },
       data: { type: 'kafka_connect', bootstrap_servers: 'localhost:9092', client_id: 'mpe-client' }
     },
     {
-      uuid: 'kafka-produce-001', type: 'kafka_produce', name: '发送消息', position: { x: 500, y: 0 },
+      uuid: 'kafka-produce-001', type: 'kafka_produce', name: 'Send Message', position: { x: 500, y: 0 },
       data: { type: 'kafka_produce', connection_id: 'kafka-connect-001', topic: 'test-topic', key: 'key-1', value: '{"message":"Hello Kafka"}' }
     },
     {
-      uuid: 'kafka-close-001', type: 'kafka_close', name: '关闭连接', position: { x: 750, y: 0 },
+      uuid: 'kafka-close-001', type: 'kafka_close', name: 'Close Connection', position: { x: 750, y: 0 },
       data: { type: 'kafka_close', connection_id: 'kafka-connect-001' }
     },
   ],
@@ -161,28 +161,28 @@ const KAFKA_PRODUCE_FLOW: Flow = {
 /** AMQP Publish/Consume */
 const AMQP_FLOW: Flow = {
   uuid: 'template-amqp',
-  name: 'AMQP 发布/消费',
+  name: 'AMQP Publish/Consume',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-amqp-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-amqp-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'amqp-connect-001', type: 'amqp_connect', name: '连接 Broker', position: { x: 250, y: 0 },
+      uuid: 'amqp-connect-001', type: 'amqp_connect', name: 'Connect Broker', position: { x: 250, y: 0 },
       data: { type: 'amqp_connect', url: 'amqp://guest:guest@localhost:5672/%2f' }
     },
     {
-      uuid: 'amqp-declare-001', type: 'amqp_exchange_declare', name: '声明 Exchange', position: { x: 500, y: 0 },
+      uuid: 'amqp-declare-001', type: 'amqp_exchange_declare', name: 'Declare Exchange', position: { x: 500, y: 0 },
       data: { type: 'amqp_exchange_declare', connection_id: 'amqp-connect-001', exchange: 'test.exchange', exchange_type: 'direct', durable: false, auto_delete: true }
     },
     {
-      uuid: 'amqp-publish-001', type: 'amqp_publish', name: '发布消息', position: { x: 750, y: 0 },
+      uuid: 'amqp-publish-001', type: 'amqp_publish', name: 'Publish Message', position: { x: 750, y: 0 },
       data: { type: 'amqp_publish', connection_id: 'amqp-connect-001', exchange: 'test.exchange', routing_key: 'test.key', body: '{"msg":"Hello AMQP"}', body_type: 'json' }
     },
     {
-      uuid: 'amqp-consume-001', type: 'amqp_consume', name: '消费消息', position: { x: 1000, y: 0 },
+      uuid: 'amqp-consume-001', type: 'amqp_consume', name: 'Consume Message', position: { x: 1000, y: 0 },
       data: { type: 'amqp_consume', connection_id: 'amqp-connect-001', queue: 'test.queue', ack_mode: 'auto', max_messages: 1, timeout_ms: 5000 }
     },
     {
-      uuid: 'amqp-close-001', type: 'amqp_close', name: '关闭连接', position: { x: 1250, y: 0 },
+      uuid: 'amqp-close-001', type: 'amqp_close', name: 'Close Connection', position: { x: 1250, y: 0 },
       data: { type: 'amqp_close', connection_id: 'amqp-connect-001' }
     },
   ],
@@ -198,20 +198,20 @@ const AMQP_FLOW: Flow = {
 /** GraphQL Query */
 const GRAPHQL_QUERY_FLOW: Flow = {
   uuid: 'template-graphql',
-  name: 'GraphQL 查询',
+  name: 'GraphQL Query',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-gql-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-gql-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'gql-connect-001', type: 'graphql_connect', name: '连接 GraphQL', position: { x: 250, y: 0 },
+      uuid: 'gql-connect-001', type: 'graphql_connect', name: 'Connect GraphQL', position: { x: 250, y: 0 },
       data: { type: 'graphql_connect', endpoint: 'https://countries.trevorblades.com/graphql' }
     },
     {
-      uuid: 'gql-query-001', type: 'graphql_query', name: '查询数据', position: { x: 500, y: 0 },
+      uuid: 'gql-query-001', type: 'graphql_query', name: 'Query Data', position: { x: 500, y: 0 },
       data: { type: 'graphql_query', connection_id: 'gql-connect-001', query: '{ countries { name code } }', timeout_ms: 10000 }
     },
     {
-      uuid: 'gql-disconnect-001', type: 'graphql_disconnect', name: '断开连接', position: { x: 750, y: 0 },
+      uuid: 'gql-disconnect-001', type: 'graphql_disconnect', name: 'Disconnect', position: { x: 750, y: 0 },
       data: { type: 'graphql_disconnect', connection_id: 'gql-connect-001' }
     },
   ],
@@ -225,20 +225,20 @@ const GRAPHQL_QUERY_FLOW: Flow = {
 /** SMTP Send Email */
 const SMTP_SEND_FLOW: Flow = {
   uuid: 'template-smtp',
-  name: 'SMTP 发送邮件',
+  name: 'SMTP Send Email',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-smtp-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-smtp-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'smtp-connect-001', type: 'smtp_connect', name: '连接 SMTP', position: { x: 250, y: 0 },
+      uuid: 'smtp-connect-001', type: 'smtp_connect', name: 'Connect SMTP', position: { x: 250, y: 0 },
       data: { type: 'smtp_connect', host: 'smtp.example.com', port: 587, tls_mode: 'starttls', auth: { auth_type: 'plain', username: 'user@example.com', password: '' } }
     },
     {
-      uuid: 'smtp-send-001', type: 'smtp_send', name: '发送邮件', position: { x: 500, y: 0 },
+      uuid: 'smtp-send-001', type: 'smtp_send', name: 'Send Email', position: { x: 500, y: 0 },
       data: { type: 'smtp_send', connection_id: 'smtp-connect-001', from: 'user@example.com', to: ['recipient@example.com'], subject: 'Test Email', body: 'Hello from MPE!', body_type: 'text' }
     },
     {
-      uuid: 'smtp-close-001', type: 'smtp_disconnect', name: '断开连接', position: { x: 750, y: 0 },
+      uuid: 'smtp-close-001', type: 'smtp_disconnect', name: 'Disconnect', position: { x: 750, y: 0 },
       data: { type: 'smtp_disconnect', connection_id: 'smtp-connect-001' }
     },
   ],
@@ -252,20 +252,20 @@ const SMTP_SEND_FLOW: Flow = {
 /** SSE Connect/Listen */
 const SSE_FLOW: Flow = {
   uuid: 'template-sse',
-  name: 'SSE 连接监听',
+  name: 'SSE Connect/Listen',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-sse-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-sse-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'sse-connect-001', type: 'sse_connect', name: '连接 SSE', position: { x: 250, y: 0 },
+      uuid: 'sse-connect-001', type: 'sse_connect', name: 'Connect SSE', position: { x: 250, y: 0 },
       data: { type: 'sse_connect', url: 'https://example.com/sse', timeout_ms: 10000, auto_reconnect: true }
     },
     {
-      uuid: 'sse-listen-001', type: 'sse_listen', name: '监听事件', position: { x: 500, y: 0 },
+      uuid: 'sse-listen-001', type: 'sse_listen', name: 'Listen for Events', position: { x: 500, y: 0 },
       data: { type: 'sse_listen', connection_id: 'sse-connect-001', max_events: 5, timeout_ms: 30000 }
     },
     {
-      uuid: 'sse-close-001', type: 'sse_disconnect', name: '断开连接', position: { x: 750, y: 0 },
+      uuid: 'sse-close-001', type: 'sse_disconnect', name: 'Disconnect', position: { x: 750, y: 0 },
       data: { type: 'sse_disconnect', connection_id: 'sse-connect-001' }
     },
   ],
@@ -279,15 +279,15 @@ const SSE_FLOW: Flow = {
 /** Script Data Transform */
 const SCRIPT_TRANSFORM_FLOW: Flow = {
   uuid: 'template-script',
-  name: '脚本数据转换',
+  name: 'Script Data Transform',
   initial_variables: { input_data: '{"name":"Alice","age":30}' },
   nodes: [
-    { uuid: 'entry-script-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-script-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'script-process-001', type: 'script', name: '数据处理', position: { x: 250, y: 0 },
-      data: { type: 'script', script: 'const data = JSON.parse(fn.variables.get("input_data"));\ndata.greeting = `Hello, ${data.name}!`;\ndata.age_next_year = data.age + 1;\nfn.variables.set("output_data", JSON.stringify(data));\nfn.console.log("处理完成:", data);' }
+      uuid: 'script-process-001', type: 'script', name: 'Process Data', position: { x: 250, y: 0 },
+      data: { type: 'script', script: 'const data = JSON.parse(fn.variables.get("input_data"));\ndata.greeting = `Hello, ${data.name}!`;\ndata.age_next_year = data.age + 1;\nfn.variables.set("output_data", JSON.stringify(data));\nfn.console.log("Processing complete:", data);' }
     },
-    { uuid: 'end-script-001', type: 'end', name: '结束', position: { x: 500, y: 0 }, data: { type: 'end' } },
+    { uuid: 'end-script-001', type: 'end', name: 'End', position: { x: 500, y: 0 }, data: { type: 'end' } },
   ],
   connections: [
     { id: 'conn-script-1', source_node_uuid: 'entry-script-001', target_node_uuid: 'script-process-001', source_port_id: 'out', target_port_id: 'in' },
@@ -298,20 +298,20 @@ const SCRIPT_TRANSFORM_FLOW: Flow = {
 /** MCP Connect/CallTool */
 const MCP_FLOW: Flow = {
   uuid: 'template-mcp',
-  name: 'MCP 调用工具',
+  name: 'MCP Call Tool',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-mcp-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-mcp-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'mcp-connect-001', type: 'mcp_connect', name: '连接 MCP', position: { x: 250, y: 0 },
+      uuid: 'mcp-connect-001', type: 'mcp_connect', name: 'Connect MCP', position: { x: 250, y: 0 },
       data: { type: 'mcp_connect', server_command: 'npx', server_args: ['-y', '@modelcontextprotocol/server-everything'], transport_type: 'stdio' }
     },
     {
-      uuid: 'mcp-call-001', type: 'mcp_call_tool', name: '调用工具', position: { x: 500, y: 0 },
+      uuid: 'mcp-call-001', type: 'mcp_call_tool', name: 'Call Tool', position: { x: 500, y: 0 },
       data: { type: 'mcp_call_tool', connection_id: 'mcp-connect-001', tool_name: 'echo', arguments: { message: 'Hello MCP' } }
     },
     {
-      uuid: 'mcp-close-001', type: 'mcp_close', name: '关闭连接', position: { x: 750, y: 0 },
+      uuid: 'mcp-close-001', type: 'mcp_close', name: 'Close Connection', position: { x: 750, y: 0 },
       data: { type: 'mcp_close', connection_id: 'mcp-connect-001' }
     },
   ],
@@ -325,20 +325,20 @@ const MCP_FLOW: Flow = {
 /** IMAP Read Email */
 const IMAP_READ_FLOW: Flow = {
   uuid: 'template-imap',
-  name: 'IMAP 读取邮件',
+  name: 'IMAP Read Email',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-imap-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-imap-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'imap-connect-001', type: 'imap_connect', name: '连接 IMAP', position: { x: 250, y: 0 },
+      uuid: 'imap-connect-001', type: 'imap_connect', name: 'Connect IMAP', position: { x: 250, y: 0 },
       data: { type: 'imap_connect', host: 'imap.example.com', port: 993, tls: true, auth: { auth_type: 'plain', username: 'user@example.com', password: '' } }
     },
     {
-      uuid: 'imap-fetch-001', type: 'imap_fetch', name: '获取邮件', position: { x: 500, y: 0 },
+      uuid: 'imap-fetch-001', type: 'imap_fetch', name: 'Fetch Emails', position: { x: 500, y: 0 },
       data: { type: 'imap_fetch', connection_id: 'imap-connect-001', mailbox: 'INBOX', message_count: 5, fetch_attachments: false }
     },
     {
-      uuid: 'imap-close-001', type: 'imap_close', name: '关闭连接', position: { x: 750, y: 0 },
+      uuid: 'imap-close-001', type: 'imap_close', name: 'Close Connection', position: { x: 750, y: 0 },
       data: { type: 'imap_close', connection_id: 'imap-connect-001' }
     },
   ],
@@ -352,28 +352,28 @@ const IMAP_READ_FLOW: Flow = {
 /** Combination: HTTP → Conditional → SMTP Email */
 const HTTP_CONDITIONAL_EMAIL_FLOW: Flow = {
   uuid: 'template-http-conditional-email',
-  name: 'HTTP → 条件判断 → 邮件',
+  name: 'HTTP → Conditional → Email',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-hce-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-hce-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'hce-http-001', type: 'http', name: '检查服务状态', position: { x: 250, y: 0 },
+      uuid: 'hce-http-001', type: 'http', name: 'Check Service Status', position: { x: 250, y: 0 },
       data: { type: 'http', url: 'https://httpbin.org/status/200', method: 'get' }
     },
     {
-      uuid: 'hce-cond-001', type: 'conditional', name: '状态码=200?', position: { x: 500, y: 0 },
+      uuid: 'hce-cond-001', type: 'conditional', name: 'Status = 200?', position: { x: 500, y: 0 },
       data: { type: 'conditional', condition_type: 'simple', field_path: 'status', operator: 'equal', expected_value: 200 }
     },
     {
-      uuid: 'hce-smtp-001', type: 'smtp_connect', name: '连接 SMTP', position: { x: 750, y: 0 },
+      uuid: 'hce-smtp-001', type: 'smtp_connect', name: 'Connect SMTP', position: { x: 750, y: 0 },
       data: { type: 'smtp_connect', host: 'smtp.example.com', port: 587, tls_mode: 'starttls', auth: { auth_type: 'plain', username: 'alert@example.com', password: '' } }
     },
     {
-      uuid: 'hce-send-001', type: 'smtp_send', name: '发送告警', position: { x: 1000, y: 0 },
-      data: { type: 'smtp_send', connection_id: 'hce-smtp-001', from: 'alert@example.com', to: ['admin@example.com'], subject: '服务状态通知', body: '服务检查完成，状态码: {{status}}', body_type: 'text' }
+      uuid: 'hce-send-001', type: 'smtp_send', name: 'Send Alert', position: { x: 1000, y: 0 },
+      data: { type: 'smtp_send', connection_id: 'hce-smtp-001', from: 'alert@example.com', to: ['admin@example.com'], subject: 'Service Status Notification', body: 'Service check complete, status code: {{status}}', body_type: 'text' }
     },
     {
-      uuid: 'hce-close-001', type: 'smtp_disconnect', name: '断开 SMTP', position: { x: 1250, y: 0 },
+      uuid: 'hce-close-001', type: 'smtp_disconnect', name: 'Disconnect SMTP', position: { x: 1250, y: 0 },
       data: { type: 'smtp_disconnect', connection_id: 'hce-smtp-001' }
     },
   ],
@@ -389,32 +389,32 @@ const HTTP_CONDITIONAL_EMAIL_FLOW: Flow = {
 /** Combination: Kafka → Script → DB */
 const KAFKA_SCRIPT_DB_FLOW: Flow = {
   uuid: 'template-kafka-script-db',
-  name: 'Kafka → 脚本 → 数据库',
+  name: 'Kafka → Script → Database',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-ksdb-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-ksdb-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'ksdb-kafka-001', type: 'kafka_connect', name: '连接 Kafka', position: { x: 250, y: 0 },
+      uuid: 'ksdb-kafka-001', type: 'kafka_connect', name: 'Connect Kafka', position: { x: 250, y: 0 },
       data: { type: 'kafka_connect', bootstrap_servers: 'localhost:9092', client_id: 'mpe-consumer' }
     },
     {
-      uuid: 'ksdb-consume-001', type: 'kafka_consume', name: '消费消息', position: { x: 500, y: 0 },
+      uuid: 'ksdb-consume-001', type: 'kafka_consume', name: 'Consume Message', position: { x: 500, y: 0 },
       data: { type: 'kafka_consume', connection_id: 'ksdb-kafka-001', topic: 'input-topic', consumer_group: 'mpe-group', max_messages: 1, timeout_ms: 10000 }
     },
     {
-      uuid: 'ksdb-script-001', type: 'script', name: '转换数据', position: { x: 750, y: 0 },
-      data: { type: 'script', script: 'const raw = JSON.parse(fn.variables.get("last_node_output") || "{}");\nconst transformed = { id: raw.id, value: raw.data, processed_at: new Date().toISOString() };\nfn.variables.set("transformed", JSON.stringify(transformed));\nfn.console.log("转换结果:", transformed);' }
+      uuid: 'ksdb-script-001', type: 'script', name: 'Transform Data', position: { x: 750, y: 0 },
+      data: { type: 'script', script: 'const raw = JSON.parse(fn.variables.get("last_node_output") || "{}");\nconst transformed = { id: raw.id, value: raw.data, processed_at: new Date().toISOString() };\nfn.variables.set("transformed", JSON.stringify(transformed));\nfn.console.log("Transform result:", transformed);' }
     },
     {
-      uuid: 'ksdb-db-001', type: 'db_connect', name: '连接数据库', position: { x: 1000, y: 0 },
+      uuid: 'ksdb-db-001', type: 'db_connect', name: 'Connect Database', position: { x: 1000, y: 0 },
       data: { type: 'db_connect', driver: 'sqlite', connection_string: ':memory:' }
     },
     {
-      uuid: 'ksdb-query-001', type: 'db_query', name: '插入数据', position: { x: 1250, y: 0 },
+      uuid: 'ksdb-query-001', type: 'db_query', name: 'Insert Data', position: { x: 1250, y: 0 },
       data: { type: 'db_query', connection_uuid: 'ksdb-db-001', sql: 'SELECT 1 as inserted;' }
     },
     {
-      uuid: 'ksdb-close-001', type: 'db_close', name: '关闭连接', position: { x: 1500, y: 0 },
+      uuid: 'ksdb-close-001', type: 'db_close', name: 'Close Connection', position: { x: 1500, y: 0 },
       data: { type: 'db_close', connection_uuid: 'ksdb-db-001' }
     },
   ],
@@ -434,21 +434,21 @@ const MQTT_HTTP_WEBHOOK_FLOW: Flow = {
   name: 'MQTT → HTTP Webhook',
   initial_variables: {},
   nodes: [
-    { uuid: 'entry-mh-001', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'entry-mh-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'mh-mqtt-001', type: 'mqtt_connect', name: '连接 MQTT', position: { x: 250, y: 0 },
+      uuid: 'mh-mqtt-001', type: 'mqtt_connect', name: 'Connect MQTT', position: { x: 250, y: 0 },
       data: { type: 'mqtt_connect', url: 'mqtt://broker.emqx.io:1883', mqtt_version: '5.0', clean_session: true, keep_alive_secs: 60 }
     },
     {
-      uuid: 'mh-sub-001', type: 'mqtt_subscribe', name: '订阅主题', position: { x: 500, y: 0 },
+      uuid: 'mh-sub-001', type: 'mqtt_subscribe', name: 'Subscribe Topic', position: { x: 500, y: 0 },
       data: { type: 'mqtt_subscribe', connection_id: 'mh-mqtt-001', topic: 'test/webhook/#', qos: 0, max_messages: 1, collect_timeout_ms: 10000, output_mode: 'first' }
     },
     {
-      uuid: 'mh-http-001', type: 'http', name: '转发 Webhook', position: { x: 750, y: 0 },
+      uuid: 'mh-http-001', type: 'http', name: 'Forward Webhook', position: { x: 750, y: 0 },
       data: { type: 'http', url: 'https://httpbin.org/post', method: 'post', body_type: 'body', content_type: 'json', body: '{"source":"mqtt","payload":{{body}}}' }
     },
     {
-      uuid: 'mh-close-001', type: 'mqtt_disconnect', name: '断开 MQTT', position: { x: 1000, y: 0 },
+      uuid: 'mh-close-001', type: 'mqtt_disconnect', name: 'Disconnect MQTT', position: { x: 1000, y: 0 },
       data: { type: 'mqtt_disconnect', connection_id: 'mh-mqtt-001' }
     },
   ],
@@ -469,14 +469,14 @@ export const BUILTIN_FLOW_VERSION = 5;
 
 export const DEMO_FLOW: Flow = {
   uuid: 'demo-http-testing',
-  name: 'HTTP节点示例流程',
+  name: 'HTTP Node Example Flow',
   initial_variables: {},
   nodes: [
     // 节点 1: Entry 节点
     {
       uuid: 'entry-001',
       type: 'entry',
-      name: '入口',
+      name: 'Entry',
       position: { x: 0, y: 0 },
       data: { type: 'entry' }
     },
@@ -484,7 +484,7 @@ export const DEMO_FLOW: Flow = {
     {
       uuid: 'http-get-001',
       type: 'http',
-      name: 'HTTP GET 示例',
+      name: 'HTTP GET Example',
       position: { x: 250, y: 0 },
       data: {
         type: 'http',
@@ -496,7 +496,7 @@ export const DEMO_FLOW: Flow = {
     {
       uuid: 'conditional-001',
       type: 'conditional',
-      name: '检查状态码',
+      name: 'Check Status Code',
       position: { x: 500, y: 0 },
       data: {
         type: 'conditional',
@@ -510,7 +510,7 @@ export const DEMO_FLOW: Flow = {
     {
       uuid: 'http-post-001',
       type: 'http',
-      name: 'HTTP POST 示例',
+      name: 'HTTP POST Example',
       position: { x: 750, y: 0 },
       data: {
         type: 'http',
@@ -561,14 +561,14 @@ export const DEMO_FLOW: Flow = {
  */
 export const WS_DEMO_FLOW: Flow = {
   uuid: 'demo-ws-testing',
-  name: 'WebSocket节点示例流程',
+  name: 'WebSocket Node Example Flow',
   initial_variables: {},
   nodes: [
     // 节点 1: Entry 节点
     {
       uuid: 'entry-ws-001',
       type: 'entry',
-      name: '入口',
+      name: 'Entry',
       position: { x: 0, y: 0 },
       data: { type: 'entry' }
     },
@@ -576,7 +576,7 @@ export const WS_DEMO_FLOW: Flow = {
     {
       uuid: 'ws-connect-001',
       type: 'ws_connect',
-      name: '连接WebSocket',
+      name: 'Connect WebSocket',
       position: { x: 250, y: 0 },
       data: {
         type: 'ws_connect',
@@ -590,7 +590,7 @@ export const WS_DEMO_FLOW: Flow = {
     {
       uuid: 'ws-send-collect-001',
       type: 'ws_send_collect',
-      name: '发送消息并收集响应',
+      name: 'Send and Collect Response',
       position: { x: 500, y: 0 },
       data: {
         type: 'ws_send_collect',
@@ -607,7 +607,7 @@ export const WS_DEMO_FLOW: Flow = {
     {
       uuid: 'ws-close-001',
       type: 'ws_close',
-      name: '关闭连接',
+      name: 'Close Connection',
       position: { x: 750, y: 0 },
       data: {
         type: 'ws_close',
@@ -656,14 +656,14 @@ export const WS_DEMO_FLOW: Flow = {
  */
 export const GRPC_DEMO_FLOW: Flow = {
   uuid: 'demo-grpc-testing',
-  name: 'gRPC节点示例流程',
+  name: 'gRPC Node Example Flow',
   initial_variables: {},
   nodes: [
     // 节点 1: Entry 节点
     {
       uuid: 'entry-grpc-001',
       type: 'entry',
-      name: '入口',
+      name: 'Entry',
       position: { x: 0, y: 0 },
       data: { type: 'entry' }
     },
@@ -671,7 +671,7 @@ export const GRPC_DEMO_FLOW: Flow = {
     {
       uuid: 'grpc-connect-001',
       type: 'grpc_connect',
-      name: '连接gRPC服务',
+      name: 'Connect gRPC Service',
       position: { x: 250, y: 0 },
       data: {
         type: 'grpc_connect',
@@ -681,7 +681,7 @@ export const GRPC_DEMO_FLOW: Flow = {
         proto_files: [
           {
             path: 'example.proto',
-            content: '// 请替换为你的 Proto 文件内容\nsyntax = "proto3";\n\npackage example;\n\nservice ExampleService {\n  rpc GetData (GetDataRequest) returns (GetDataResponse);\n}\n\nmessage GetDataRequest {\n  string id = 1;\n}\n\nmessage GetDataResponse {\n  string result = 1;\n}'
+            content: '// Replace with your Proto file content\nsyntax = "proto3";\n\npackage example;\n\nservice ExampleService {\n  rpc GetData (GetDataRequest) returns (GetDataResponse);\n}\n\nmessage GetDataRequest {\n  string id = 1;\n}\n\nmessage GetDataResponse {\n  string result = 1;\n}'
           }
         ],
         connect_timeout_ms: 10000
@@ -691,7 +691,7 @@ export const GRPC_DEMO_FLOW: Flow = {
     {
       uuid: 'grpc-call-001',
       type: 'grpc_call',
-      name: '调用gRPC方法',
+      name: 'Call gRPC Method',
       position: { x: 500, y: 0 },
       data: {
         type: 'grpc_call',
@@ -706,7 +706,7 @@ export const GRPC_DEMO_FLOW: Flow = {
     {
       uuid: 'grpc-close-001',
       type: 'grpc_close',
-      name: '关闭连接',
+      name: 'Close Connection',
       position: { x: 750, y: 0 },
       data: {
         type: 'grpc_close',
@@ -752,7 +752,7 @@ export const GRPC_DEMO_FLOW: Flow = {
  */
 export const MQTT_BASIC_FLOW: Flow = {
   uuid: 'demo-mqtt-basic',
-  name: 'MQTT 基础连接测试',
+  name: 'MQTT Basic Connection Test',
   description: getLL().flow.mqtt_basic_desc(),
   initial_variables: { "timestamp": "" },
   nodes: [
@@ -760,7 +760,7 @@ export const MQTT_BASIC_FLOW: Flow = {
     {
       uuid: 'entry-mqtt-basic-001',
       type: 'entry',
-      name: '入口',
+      name: 'Entry',
       position: { x: 0, y: 0 },
       data: { type: 'entry' }
     },
@@ -768,7 +768,7 @@ export const MQTT_BASIC_FLOW: Flow = {
     {
       uuid: 'mqtt-connect-basic-001',
       type: 'mqtt_connect',
-      name: '连接 Broker',
+      name: 'Connect Broker',
       position: { x: 250, y: 0 },
       data: {
         type: 'mqtt_connect',
@@ -782,7 +782,7 @@ export const MQTT_BASIC_FLOW: Flow = {
     {
       uuid: 'mqtt-subscribe-basic-001',
       type: 'mqtt_subscribe',
-      name: '订阅主题',
+      name: 'Subscribe to Topic',
       position: { x: 500, y: 0 },
       data: {
         type: 'mqtt_subscribe',
@@ -798,7 +798,7 @@ export const MQTT_BASIC_FLOW: Flow = {
     {
       uuid: 'mqtt-publish-basic-001',
       type: 'mqtt_publish',
-      name: '发布测试消息',
+      name: 'Publish Test Message',
       position: { x: 750, y: 0 },
       data: {
         type: 'mqtt_publish',
@@ -813,7 +813,7 @@ export const MQTT_BASIC_FLOW: Flow = {
     {
       uuid: 'mqtt-disconnect-basic-001',
       type: 'mqtt_disconnect',
-      name: '断开连接',
+      name: 'Disconnect',
       position: { x: 1000, y: 0 },
       data: {
         type: 'mqtt_disconnect',
@@ -867,7 +867,7 @@ export const MQTT_BASIC_FLOW: Flow = {
  */
 export const MQTT_REQUEST_RESPONSE_FLOW: Flow = {
   uuid: 'demo-mqtt-request-response',
-  name: 'MQTT 请求/响应模式',
+  name: 'MQTT Request/Response Pattern',
   description: getLL().flow.mqtt_request_response_desc(),
   initial_variables: {},
   nodes: [
@@ -875,7 +875,7 @@ export const MQTT_REQUEST_RESPONSE_FLOW: Flow = {
     {
       uuid: 'entry-mqtt-rpc-001',
       type: 'entry',
-      name: '入口',
+      name: 'Entry',
       position: { x: 0, y: 0 },
       data: { type: 'entry' }
     },
@@ -883,7 +883,7 @@ export const MQTT_REQUEST_RESPONSE_FLOW: Flow = {
     {
       uuid: 'mqtt-connect-rpc-001',
       type: 'mqtt_connect',
-      name: '连接 Broker',
+      name: 'Connect Broker',
       position: { x: 250, y: 0 },
       data: {
         type: 'mqtt_connect',
@@ -895,7 +895,7 @@ export const MQTT_REQUEST_RESPONSE_FLOW: Flow = {
     {
       uuid: 'mqtt-request-rpc-001',
       type: 'mqtt_request',
-      name: '发送请求',
+      name: 'Send Request',
       position: { x: 500, y: 0 },
       data: {
         type: 'mqtt_request',
@@ -911,7 +911,7 @@ export const MQTT_REQUEST_RESPONSE_FLOW: Flow = {
     {
       uuid: 'mqtt-disconnect-rpc-001',
       type: 'mqtt_disconnect',
-      name: '断开连接',
+      name: 'Disconnect',
       position: { x: 750, y: 0 },
       data: {
         type: 'mqtt_disconnect',
@@ -959,18 +959,18 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
   // ── HTTP 模板 ──
   {
     id: 'template-http-get',
-    name: 'HTTP API 请求',
-    description: '演示 GET 请求和条件判断，发送请求后检查响应状态码',
+    name: 'HTTP API Request',
+    description: 'Demo GET request with conditional logic to check response status',
     category: 'http',
     icon: 'Globe',
-    tags: ['HTTP', '入门'],
+    tags: ['HTTP', 'Getting Started'],
     difficulty: 'beginner',
     flow: DEMO_FLOW,
   },
   {
     id: 'template-http-post',
-    name: 'HTTP POST 提交数据',
-    description: '向 API 发送 POST 请求，包含 JSON 请求体',
+    name: 'HTTP POST Submit',
+    description: 'Send POST request to an API with JSON body',
     category: 'http',
     icon: 'Globe',
     tags: ['HTTP', 'POST', 'JSON'],
@@ -980,30 +980,30 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
   // ── WebSocket 模板 ──
   {
     id: 'template-ws-echo',
-    name: 'WebSocket 回声测试',
-    description: '连接 WebSocket 回声服务器，发送消息并接收响应',
+    name: 'WebSocket Echo Test',
+    description: 'Connect to WebSocket echo server, send and receive messages',
     category: 'websocket',
     icon: 'Wifi',
-    tags: ['WebSocket', '入门'],
+    tags: ['WebSocket', 'Getting Started'],
     difficulty: 'beginner',
     flow: WS_DEMO_FLOW,
   },
   // ── 数据库模板 ──
   {
     id: 'template-db-sqlite',
-    name: 'SQLite 数据库查询',
-    description: '连接 SQLite 内存数据库，执行查询后关闭连接',
+    name: 'SQLite Database Query',
+    description: 'Connect to SQLite in-memory database, run a query, then close',
     category: 'database',
     icon: 'Database',
-    tags: ['数据库', 'SQLite', '查询'],
+    tags: ['Database', 'SQLite', 'Query'],
     difficulty: 'beginner',
     flow: DB_SQLITE_FLOW,
   },
   // ── gRPC 模板 ──
   {
     id: 'template-grpc-call',
-    name: 'gRPC 服务调用',
-    description: '连接 gRPC 服务并调用远程方法',
+    name: 'gRPC Service Call',
+    description: 'Connect to gRPC server and call a remote method',
     category: 'grpc',
     icon: 'Server',
     tags: ['gRPC', 'RPC'],
@@ -1013,40 +1013,40 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
   // ── MQTT 模板 ──
   {
     id: 'template-mqtt-basic',
-    name: 'MQTT 发布/订阅',
-    description: '连接 MQTT Broker，订阅主题并发布测试消息',
+    name: 'MQTT Publish/Subscribe',
+    description: 'Connect to MQTT broker, subscribe to topic, and publish test message',
     category: 'mqtt',
     icon: 'Zap',
-    tags: ['MQTT', 'IoT', '入门'],
+    tags: ['MQTT', 'IoT', 'Getting Started'],
     difficulty: 'beginner',
     flow: MQTT_BASIC_FLOW,
   },
   {
     id: 'template-mqtt-rpc',
-    name: 'MQTT 请求/响应',
-    description: '使用 MQTT 5.0 请求/响应模式实现 RPC 通信',
+    name: 'MQTT Request/Response',
+    description: 'Use MQTT 5.0 request/response pattern for RPC communication',
     category: 'mqtt',
     icon: 'MessageSquare',
-    tags: ['MQTT', 'RPC', '高级'],
+    tags: ['MQTT', 'RPC', 'Advanced'],
     difficulty: 'advanced',
     flow: MQTT_REQUEST_RESPONSE_FLOW,
   },
   // ── Kafka 模板 ──
   {
     id: 'template-kafka-produce',
-    name: 'Kafka 生产消息',
-    description: '连接 Kafka 服务器并发送消息到指定主题',
+    name: 'Kafka Produce Message',
+    description: 'Connect to Kafka server and send messages to a topic',
     category: 'kafka',
     icon: 'GitBranch',
-    tags: ['Kafka', '消息队列'],
+    tags: ['Kafka', 'Message Queue'],
     difficulty: 'intermediate',
     flow: KAFKA_PRODUCE_FLOW,
   },
   // ── AMQP 模板 ──
   {
     id: 'template-amqp',
-    name: 'AMQP 发布/消费',
-    description: '连接 AMQP Broker，声明 Exchange，发布并消费消息',
+  name: 'AMQP Publish/Consume',
+    description: 'Connect to AMQP broker, declare exchange, publish and consume messages',
     category: 'amqp',
     icon: 'Server',
     tags: ['AMQP', 'RabbitMQ'],
@@ -1056,8 +1056,8 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
   // ── GraphQL 模板 ──
   {
     id: 'template-graphql',
-    name: 'GraphQL 数据查询',
-    description: '连接 GraphQL 端点并执行查询操作',
+    name: 'GraphQL Data Query',
+    description: 'Connect to GraphQL endpoint and execute a query',
     category: 'graphql',
     icon: 'Code',
     tags: ['GraphQL', 'API'],
@@ -1067,63 +1067,63 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
   // ── IMAP 模板 ──
   {
     id: 'template-imap',
-    name: 'IMAP 读取邮件',
-    description: '连接 IMAP 服务器并读取收件箱中的邮件',
+    name: 'IMAP Read Email',
+    description: 'Connect to IMAP server and read emails from inbox',
     category: 'imap',
     icon: 'Mail',
-    tags: ['IMAP', '邮件'],
+    tags: ['IMAP', 'Email'],
     difficulty: 'intermediate',
     flow: IMAP_READ_FLOW,
   },
   // ── SMTP 模板 ──
   {
     id: 'template-smtp',
-    name: 'SMTP 发送邮件',
-    description: '通过 SMTP 服务器发送电子邮件',
+    name: 'SMTP Send Email',
+    description: 'Send emails via SMTP server',
     category: 'smtp',
     icon: 'Send',
-    tags: ['SMTP', '邮件'],
+    tags: ['SMTP', 'Email'],
     difficulty: 'intermediate',
     flow: SMTP_SEND_FLOW,
   },
   // ── SSE 模板 ──
   {
     id: 'template-sse',
-    name: 'SSE 事件监听',
-    description: '连接 SSE 端点并监听服务器推送事件',
+    name: 'SSE Event Listener',
+    description: 'Connect to SSE endpoint and listen for server-sent events',
     category: 'sse',
     icon: 'Radio',
-    tags: ['SSE', '推送'],
+    tags: ['SSE', 'Push'],
     difficulty: 'intermediate',
     flow: SSE_FLOW,
   },
   // ── TCP 模板 ──
   {
     id: 'template-tcp',
-    name: 'TCP 客户端通信',
-    description: '通过 TCP 协议连接服务器并发送数据',
+    name: 'TCP Client Communication',
+    description: 'Connect to server via TCP protocol and send data',
     category: 'tcp',
     icon: 'Network',
-    tags: ['TCP', '网络'],
+    tags: ['TCP', 'Networking'],
     difficulty: 'intermediate',
     flow: TCP_SEND_FLOW,
   },
   // ── UDP 模板 ──
   {
     id: 'template-udp',
-    name: 'UDP 数据包发送',
-    description: '绑定 UDP 端口并向目标地址发送数据包',
+    name: 'UDP Datagram Send',
+    description: 'Bind UDP port and send datagrams to target address',
     category: 'udp',
     icon: 'Radio',
-    tags: ['UDP', '网络'],
+    tags: ['UDP', 'Networking'],
     difficulty: 'intermediate',
     flow: UDP_SEND_FLOW,
   },
   // ── MCP 模板 ──
   {
     id: 'template-mcp',
-    name: 'MCP 调用工具',
-    description: '连接 MCP 服务器并调用工具，实现 AI 工具集成',
+    name: 'MCP Call Tool',
+    description: 'Connect to MCP server and call tools for AI integration',
     category: 'mcp',
     icon: 'Cpu',
     tags: ['MCP', 'AI'],
@@ -1133,42 +1133,42 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
   // ── 脚本模板 ──
   {
     id: 'template-script',
-    name: '脚本数据转换',
-    description: '使用 JavaScript 脚本对数据进行处理和转换',
+    name: 'Script Data Transform',
+    description: 'Use JavaScript scripts to process and transform data',
     category: 'script',
     icon: 'FileCode',
-    tags: ['脚本', '转换'],
+    tags: ['Script', 'Transform'],
     difficulty: 'intermediate',
     flow: SCRIPT_TRANSFORM_FLOW,
   },
   // ── 组合模板 ──
   {
     id: 'template-http-conditional-email',
-    name: 'HTTP → 条件 → 邮件',
-    description: '综合示例：检查 HTTP 服务状态，根据结果发送邮件通知',
+    name: 'HTTP → Condition → Email',
+    description: 'Comprehensive demo: Check HTTP service status, send email notification based on result',
     category: 'combination',
     icon: 'GitMerge',
-    tags: ['HTTP', '条件', '邮件', '组合'],
+    tags: ['HTTP', 'Condition', 'Email', 'Combination'],
     difficulty: 'advanced',
     flow: HTTP_CONDITIONAL_EMAIL_FLOW,
   },
   {
     id: 'template-kafka-script-db',
-    name: 'Kafka → 脚本 → 数据库',
-    description: '综合示例：从 Kafka 消费消息，脚本转换后存入数据库',
+    name: 'Kafka → Script → Database',
+    description: 'Comprehensive demo: Consume Kafka messages, transform with script, store in DB',
     category: 'combination',
     icon: 'GitMerge',
-    tags: ['Kafka', '脚本', '数据库', 'ETL'],
+    tags: ['Kafka', 'Script', 'Database', 'ETL'],
     difficulty: 'advanced',
     flow: KAFKA_SCRIPT_DB_FLOW,
   },
   {
     id: 'template-mqtt-http-webhook',
     name: 'MQTT → HTTP Webhook',
-    description: '综合示例：订阅 MQTT 主题，收到消息后通过 HTTP Webhook 转发',
+    description: 'Comprehensive demo: Subscribe to MQTT topic, forward messages via HTTP webhook',
     category: 'combination',
     icon: 'GitMerge',
-    tags: ['MQTT', 'HTTP', 'Webhook', '组合'],
+    tags: ['MQTT', 'HTTP', 'Webhook', 'Combination'],
     difficulty: 'advanced',
     flow: MQTT_HTTP_WEBHOOK_FLOW,
   },
