@@ -4483,6 +4483,53 @@ type RootTranslation = {
 			 * 测​试​连​接
 			 */
 			testConnectionLabel: string
+			/**
+			 * 请​求​结​构
+			 */
+			requestSchema: string
+			/**
+			 * 响​应​结​构
+			 */
+			responseSchema: string
+			/**
+			 * 展​开
+			 */
+			expandType: string
+			/**
+			 * 收​起
+			 */
+			collapseType: string
+			/**
+			 * 循​环​引​用
+			 */
+			circularReference: string
+			/**
+			 * (​空​消​息​)
+			 */
+			emptyMessage: string
+			/**
+			 * (​最​大​深​度​)
+			 */
+			maxDepth: string
+			/**
+			 * o​n​e​o​f​:​ ​{​g​r​o​u​p​}
+			 * @param {unknown} group
+			 */
+			oneofGroup: RequiredParams<'group'>
+			/**
+			 * 保​留​ ​{​r​a​n​g​e​s​}
+			 * @param {unknown} ranges
+			 */
+			reserved: RequiredParams<'ranges'>
+			/**
+			 * 保​留​字​段​名​ ​{​n​a​m​e​s​}
+			 * @param {unknown} names
+			 */
+			reservedNames: RequiredParams<'names'>
+			/**
+			 * (​定​义​不​可​用​)
+			 */
+			definitionsUnavailable: string
 		}
 		grpcCall: {
 			/**
@@ -23489,6 +23536,50 @@ export type TranslationFunctions = {
 			 * 测试连接
 			 */
 			testConnectionLabel: () => LocalizedString
+			/**
+			 * 请求结构
+			 */
+			requestSchema: () => LocalizedString
+			/**
+			 * 响应结构
+			 */
+			responseSchema: () => LocalizedString
+			/**
+			 * 展开
+			 */
+			expandType: () => LocalizedString
+			/**
+			 * 收起
+			 */
+			collapseType: () => LocalizedString
+			/**
+			 * 循环引用
+			 */
+			circularReference: () => LocalizedString
+			/**
+			 * (空消息)
+			 */
+			emptyMessage: () => LocalizedString
+			/**
+			 * (最大深度)
+			 */
+			maxDepth: () => LocalizedString
+			/**
+			 * oneof: {group}
+			 */
+			oneofGroup: (arg: { group: unknown }) => LocalizedString
+			/**
+			 * 保留 {ranges}
+			 */
+			reserved: (arg: { ranges: unknown }) => LocalizedString
+			/**
+			 * 保留字段名 {names}
+			 */
+			reservedNames: (arg: { names: unknown }) => LocalizedString
+			/**
+			 * (定义不可用)
+			 */
+			definitionsUnavailable: () => LocalizedString
 		}
 		grpcCall: {
 			/**
