@@ -257,6 +257,7 @@ mod tests {
                 connection_id: connection_id.to_string(),
                 topic: topic.to_string(),
             }),
+            on_error: None,
             ports: None,
             has_breakpoint: None,
         }
@@ -275,21 +276,8 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -334,6 +322,7 @@ mod tests {
             name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
+            on_error: None,
             ports: None,
             has_breakpoint: None,
         };
@@ -344,7 +333,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("MqttUnsubscribeConfig"));
+        assert!(result.unwrap_err().message.contains("MqttUnsubscribeConfig"));
     }
 
     /// 测试：变量替换 — connection_id 和 topic 中的变量应被正确替换

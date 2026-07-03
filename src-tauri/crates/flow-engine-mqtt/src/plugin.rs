@@ -902,8 +902,7 @@ mod tests {
         assert_eq!(plugin.icon(), "radio");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
+        
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -919,8 +918,7 @@ mod tests {
         assert_eq!(plugin.icon(), "send");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
+        
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -936,8 +934,7 @@ mod tests {
         assert_eq!(plugin.icon(), "arrow-down-to-line");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
+        
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -953,8 +950,7 @@ mod tests {
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        assert!(!plugin.supports_false_port());
-
+        
         let ports = plugin.ports();
         assert_eq!(ports.len(), 1);
         assert_eq!(ports[0].id, "out");
@@ -969,8 +965,7 @@ mod tests {
         assert_eq!(plugin.icon(), "timer");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
+        
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -986,8 +981,7 @@ mod tests {
         assert_eq!(plugin.icon(), "message-square");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
+        
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -1223,8 +1217,7 @@ mod tests {
         assert_eq!(plugin.icon(), "x-circle");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
+        
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
