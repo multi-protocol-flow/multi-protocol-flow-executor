@@ -10,7 +10,7 @@
 //!
 //! # 示例
 //! ```rust,no_run
-//! use flow_engine::http::{HttpClient, HttpRequestConfig, BodyType};
+//! use flow_engine_http::http::{HttpClient, HttpRequestConfig, BodyType};
 //! use std::collections::HashMap;
 //!
 //! #[tokio::main]
@@ -22,6 +22,9 @@
 //!         headers: HashMap::new(),
 //!         body: BodyType::None,
 //!         multipart_boundary: None,
+//!         accept_encoding: true,
+//!         follow_redirects: true,
+//!         max_redirects: 10,
 //!     };
 //!
 //!     let result = client.execute(&config).await?;
