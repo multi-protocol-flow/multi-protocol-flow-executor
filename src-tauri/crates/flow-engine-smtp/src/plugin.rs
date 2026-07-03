@@ -390,7 +390,7 @@ mod tests {
         assert_eq!(plugin.icon(), "mail");
         assert_eq!(plugin.color(), "#ea580c");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
+        assert!(plugin.ports().iter().any(|p| p.id == "false"));
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -409,7 +409,7 @@ mod tests {
         assert_eq!(plugin.icon(), "mail");
         assert_eq!(plugin.color(), "#ea580c");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
+        assert!(plugin.ports().iter().any(|p| p.id == "false"));
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -428,7 +428,7 @@ mod tests {
         assert_eq!(plugin.icon(), "mail");
         assert_eq!(plugin.color(), "#ea580c");
         assert!(plugin.is_protocol_node());
-        assert!(!plugin.supports_false_port());
+        assert!(plugin.ports().iter().all(|p| p.id != "false"));
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 1);
