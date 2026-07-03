@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 // gRPC 协议集成测试
 //
 // 测试 gRPC crate 的跨模块集成：
@@ -286,7 +288,6 @@ fn test_grpc_connect_plugin_full_metadata() {
     assert_eq!(plugin.icon(), "cable");
     assert_eq!(plugin.color(), "#8B5CF6");
     assert!(plugin.is_protocol_node());
-    assert!(plugin.supports_false_port());
 
     let ports = plugin.ports();
     assert_eq!(ports.len(), 2);
@@ -318,7 +319,6 @@ fn test_grpc_call_plugin_full_metadata() {
     assert_eq!(plugin.icon(), "phone-outgoing");
     assert_eq!(plugin.color(), "#8B5CF6");
     assert!(plugin.is_protocol_node());
-    assert!(plugin.supports_false_port());
 
     let ports = plugin.ports();
     assert_eq!(ports.len(), 2);
@@ -348,13 +348,14 @@ fn test_grpc_close_plugin_full_metadata() {
     assert_eq!(plugin.category(), "grpc");
     assert_eq!(plugin.icon(), "phone-off");
     assert_eq!(plugin.color(), "#8B5CF6");
-    assert!(plugin.supports_false_port());
-
     let ports = plugin.ports();
-    assert_eq!(ports.len(), 1);
-    assert_eq!(ports[0].id, "out");
-    assert_eq!(ports[0].label, "输出");
+    assert_eq!(ports.len(), 2);
+    assert_eq!(ports[0].id, "true");
+    assert_eq!(ports[0].label, "Success");
     assert_eq!(ports[0].position, "right");
+    assert_eq!(ports[1].id, "false");
+    assert_eq!(ports[1].label, "Failed");
+    assert_eq!(ports[1].position, "bottom");
 
     let config = plugin.default_config();
     assert!(config.is_object());
@@ -484,41 +485,15 @@ fn test_build_report_input_close() {
 
 /// 辅助：创建测试用 ExecutionContext
 fn create_test_context(flow_id: &str) -> flow_engine_core::context::ExecutionContext {
-    use flow_engine_core::context::VariableStorage;
-    use std::sync::Arc;
 
-    flow_engine_core::context::ExecutionContext {
-        flow_uuid: flow_id.to_string(),
-        current_node_uuid: None,
-        variables: VariableStorage::new(),
-        node_reports: vec![],
-        flow_trigger_time: std::time::SystemTime::now()
+
+    flow_engine_core::context::ExecutionContext::new(
+        flow_id.to_string(),
+        std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .expect("系统时间Error")
             .as_millis() as u64,
-        log_sender: None,
-        flow_file_path: None,
-        ws_manager: None,
-        ws_connection_urls: HashMap::new(),
-        ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-        db_manager: None,
-        last_node_output: None,
-        debug_event_sender: None,
-        execution_event_sender: None,
-        cancel_receiver: None,
-        grpc_manager: None,
-        providers: HashMap::new(),
-        mcp_manager: None,
-        tcp_manager: None,
-        udp_manager: None,
-        mqtt_manager: None,
-        kafka_manager: None,
-        sse_manager: None,
-        graphql_manager: None,
-        amqp_manager: None,
-        smtp_manager: None,
-        imap_manager: None,
-    }
+    )
 }
 
 #[tokio::test]
@@ -555,6 +530,7 @@ async fn test_connect_call_close_flow_wiring() {
         }),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let connect_executor = GrpcConnectExecutor::new(grpc_manager.clone());
@@ -589,6 +565,7 @@ async fn test_connect_call_close_flow_wiring() {
         }),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let call_executor = GrpcCallExecutor::new(grpc_manager.clone());
@@ -614,6 +591,7 @@ async fn test_connect_call_close_flow_wiring() {
         }),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let close_executor = GrpcCloseExecutor::new(grpc_manager.clone());
@@ -671,6 +649,7 @@ message PongResponse { string message = 1; }
         }),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let connect_executor = GrpcConnectExecutor::new(grpc_manager);
@@ -716,6 +695,7 @@ async fn test_plugin_execute_delegates_to_executor() {
         }),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     let mut context = create_test_context("plugin-flow");
@@ -755,6 +735,7 @@ async fn test_call_and_close_plugins_delegate() {
         }),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
     let mut ctx = create_test_context("test");
     let result = call_plugin
@@ -777,6 +758,7 @@ async fn test_call_and_close_plugins_delegate() {
         }),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
     let mut ctx2 = create_test_context("test");
     let result = close_plugin

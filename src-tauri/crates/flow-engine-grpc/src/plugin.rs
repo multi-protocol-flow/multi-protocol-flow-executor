@@ -398,7 +398,6 @@ mod tests {
         assert_eq!(plugin.icon(), "cable");
         assert_eq!(plugin.color(), "#8B5CF6");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -415,7 +414,6 @@ mod tests {
         assert_eq!(plugin.icon(), "phone-outgoing");
         assert_eq!(plugin.color(), "#8B5CF6");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -431,8 +429,6 @@ mod tests {
         assert_eq!(plugin.category(), "grpc");
         assert_eq!(plugin.icon(), "phone-off");
         assert_eq!(plugin.color(), "#8B5CF6");
-        assert!(plugin.supports_false_port());
-
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
