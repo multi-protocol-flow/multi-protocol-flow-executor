@@ -4,8 +4,8 @@
 // 支持 reuse_addr/broadcast/multicast 等高级选项。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -135,9 +135,7 @@ impl NodeExecutor for UdpBindExecutor {
                         level: LogLevel::Info,
                         message: format!(
                             "UDP bind successful {}:{} ({}ms)",
-                            local_addr,
-                            config.local_port,
-                            total_ms
+                            local_addr, config.local_port, total_ms
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
@@ -193,7 +191,11 @@ impl NodeExecutor for UdpBindExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -226,7 +228,6 @@ fn resolve_port_nodes(connections: &[Connection], node_uuid: &str, port_id: &str
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::UdpBindConfig;
 
@@ -253,6 +254,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -325,6 +327,7 @@ mod tests {
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -333,7 +336,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("UdpBindConfig"));
+        assert!(result.unwrap_err().message.contains("UdpBindConfig"));
     }
 
     #[tokio::test]
@@ -385,6 +388,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 

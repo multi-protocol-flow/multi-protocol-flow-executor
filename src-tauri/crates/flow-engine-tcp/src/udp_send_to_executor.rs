@@ -4,14 +4,14 @@
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::traits::UdpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -60,7 +60,12 @@ impl NodeExecutor for UdpSendToExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::UdpSendTo(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not UdpSendToConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not UdpSendToConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换 connection_id
@@ -137,7 +142,11 @@ impl NodeExecutor for UdpSendToExecutor {
             Ok(data) => data,
             Err(e) => {
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -252,7 +261,11 @@ impl NodeExecutor for UdpSendToExecutor {
                     .await;
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -285,11 +298,7 @@ fn build_error_output(
 }
 
 /// 路由到指定端口
-fn route_to_port(
-    node: &Node,
-    connections: &[Connection],
-    port: &str,
-) -> Vec<String> {
+fn route_to_port(node: &Node, connections: &[Connection], port: &str) -> Vec<String> {
     let filtered: Vec<String> = connections
         .iter()
         .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == port)
@@ -316,7 +325,6 @@ fn route_to_false_port(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::UdpSendToConfig;
     use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
@@ -422,6 +430,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -559,7 +568,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_udp_send_to_failure() {
-        let mock = Arc::new(MockUdpProvider::new_send_error("UDP Socket 'conn-closed' 不存在"));
+        let mock = Arc::new(MockUdpProvider::new_send_error(
+            "UDP Socket 'conn-closed' 不存在",
+        ));
         let executor = UdpSendToExecutor::new(mock.clone());
 
         let node = create_test_node(
@@ -583,7 +594,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().expect("should have error message").contains("not found"));
+        assert!(data["error"]
+            .as_str()
+            .expect("should have error message")
+            .contains("不存在"));
     }
 
     // ========================================================================
@@ -610,6 +624,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_context_with_udp("flow-var", mock.clone());
@@ -618,16 +633,12 @@ mod tests {
             json!("udp-connection-123"),
             String::new(),
         );
-        context.variables.set_variable(
-            "msg".to_string(),
-            json!("Hello"),
-            String::new(),
-        );
-        context.variables.set_variable(
-            "target".to_string(),
-            json!("10.0.0.1"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("msg".to_string(), json!("Hello"), String::new());
+        context
+            .variables
+            .set_variable("target".to_string(), json!("10.0.0.1"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -669,6 +680,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_context_with_udp("flow-enc", mock.clone());
@@ -682,7 +694,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().expect("should have error").contains("Unsupported"));
+        assert!(data["error"]
+            .as_str()
+            .expect("should have error")
+            .contains("Unsupported"));
     }
 
     // ========================================================================
@@ -739,6 +754,7 @@ mod tests {
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_context_with_udp("flow-wrong", mock.clone());
@@ -748,7 +764,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("UdpSendToConfig"));
+        assert!(result.unwrap_err().message.contains("UdpSendToConfig"));
     }
 
     // ========================================================================
@@ -763,15 +779,13 @@ mod tests {
 
     #[test]
     fn test_decode_user_data_hex() {
-        let result =
-            UdpSendToExecutor::decode_user_data("48656c6c6f", "hex").expect("应Success");
+        let result = UdpSendToExecutor::decode_user_data("48656c6c6f", "hex").expect("应Success");
         assert_eq!(result, b"Hello".to_vec());
     }
 
     #[test]
     fn test_decode_user_data_base64() {
-        let result =
-            UdpSendToExecutor::decode_user_data("SGVsbG8=", "base64").expect("应Success");
+        let result = UdpSendToExecutor::decode_user_data("SGVsbG8=", "base64").expect("应Success");
         assert_eq!(result, b"Hello".to_vec());
     }
 

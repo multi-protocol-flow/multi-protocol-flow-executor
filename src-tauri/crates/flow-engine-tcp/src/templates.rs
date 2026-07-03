@@ -232,7 +232,8 @@ pub fn load_template(json: &str) -> Result<ProtocolTemplate, String> {
 
 /// 导出模板为 JSON
 pub fn export_template(template: &ProtocolTemplate) -> Result<String, String> {
-    serde_json::to_string_pretty(template).map_err(|e| format!("Template JSON serialization failed: {}", e))
+    serde_json::to_string_pretty(template)
+        .map_err(|e| format!("Template JSON serialization failed: {}", e))
 }
 
 #[cfg(test)]
@@ -244,8 +245,16 @@ mod tests {
     #[test]
     fn test_builtin_templates_count() {
         let templates = builtin_templates();
-        assert!(templates.len() >= 3, "至少应有 3 个内置模板，实际 {}", templates.len());
-        assert!(templates.len() <= 5, "至多应有 5 个内置模板，实际 {}", templates.len());
+        assert!(
+            templates.len() >= 3,
+            "至少应有 3 个内置模板，实际 {}",
+            templates.len()
+        );
+        assert!(
+            templates.len() <= 5,
+            "至多应有 5 个内置模板，实际 {}",
+            templates.len()
+        );
     }
 
     #[test]
@@ -268,7 +277,11 @@ mod tests {
     #[test]
     fn test_builtin_templates_all_builtin_flag() {
         for template in builtin_templates() {
-            assert!(template.builtin, "内置模板 {} 的 builtin 应为 true", template.id);
+            assert!(
+                template.builtin,
+                "内置模板 {} 的 builtin 应为 true",
+                template.id
+            );
         }
     }
 
@@ -287,10 +300,7 @@ mod tests {
             if template.id == "blank" {
                 continue; // 空白模板允许无字段说明
             }
-            assert!(
-                !template.id.is_empty(),
-                "模板 ID 不应为空"
-            );
+            assert!(!template.id.is_empty(), "模板 ID 不应为空");
             assert!(
                 !template.name.is_empty(),
                 "模板 {} 名称不应为空",
@@ -404,7 +414,11 @@ mod tests {
         let result = load_template("not json at all");
         assert!(result.is_err());
         let err = result.err().expect("should return error");
-        assert!(err.contains("Parsing failed"), "error should contain 'Parsing failed', actual: {}", err);
+        assert!(
+            err.contains("parsing failed"),
+            "error should contain 'parsing failed', actual: {}",
+            err
+        );
     }
 
     #[test]

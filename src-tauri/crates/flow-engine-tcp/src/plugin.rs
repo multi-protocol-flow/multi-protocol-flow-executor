@@ -96,15 +96,16 @@ impl NodePlugin for TcpConnectPlugin {
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         // tls_ca_cert 脱敏：不输出完整证书内容，仅显示是否存在
-        let tls_ca_cert_desensitized = config.get("tls_ca_cert").and_then(|v| v.as_str()).map(|s| {
-            if s.len() > 20 {
-                format!("{}...{}", &s[..8], &s[s.len()-8..])
-            } else if s.is_empty() {
-                String::new()
-            } else {
-                "***".to_string()
-            }
-        });
+        let tls_ca_cert_desensitized =
+            config.get("tls_ca_cert").and_then(|v| v.as_str()).map(|s| {
+                if s.len() > 20 {
+                    format!("{}...{}", &s[..8], &s[s.len() - 8..])
+                } else if s.is_empty() {
+                    String::new()
+                } else {
+                    "***".to_string()
+                }
+            });
         Some(serde_json::json!({
             "host": config.get("host"),
             "port": config.get("port"),
@@ -119,13 +120,23 @@ impl NodePlugin for TcpConnectPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if !config.get("host").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("host")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "host".to_string(),
                 message: "host is required".to_string(),
             });
         }
-        if !config.get("port").and_then(|v| v.as_u64()).map(|p| p > 0).unwrap_or(false) {
+        if !config
+            .get("port")
+            .and_then(|v| v.as_u64())
+            .map(|p| p > 0)
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "port".to_string(),
                 message: "port must be greater than 0".to_string(),
@@ -338,13 +349,23 @@ impl NodePlugin for TcpSendPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "connection_id".to_string(),
                 message: "connection_id is required".to_string(),
             });
         }
-        if !config.get("data").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("data")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "data".to_string(),
                 message: "data is required".to_string(),
@@ -362,11 +383,11 @@ impl NodePlugin for TcpSendPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let tcp_manager = context
             .get_provider::<crate::tcp_connection_manager::TcpConnectionManager>("tcp")
-            .unwrap_or_else(|| Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()));
+            .unwrap_or_else(
+                || Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()),
+            );
         let executor = crate::tcp_send_executor::TcpSendExecutor::new(tcp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -451,7 +472,12 @@ impl NodePlugin for TcpReceivePlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "connection_id".to_string(),
                 message: "connection_id is required".to_string(),
@@ -477,11 +503,11 @@ impl NodePlugin for TcpReceivePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let tcp_manager = context
             .get_provider::<crate::tcp_connection_manager::TcpConnectionManager>("tcp")
-            .unwrap_or_else(|| Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()));
+            .unwrap_or_else(
+                || Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()),
+            );
         let executor = crate::tcp_receive_executor::TcpReceiveExecutor::new(tcp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -569,7 +595,12 @@ impl NodePlugin for TcpClosePlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "connection_id".to_string(),
                 message: "connection_id is required".to_string(),
@@ -587,11 +618,11 @@ impl NodePlugin for TcpClosePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let tcp_manager = context
             .get_provider::<crate::tcp_connection_manager::TcpConnectionManager>("tcp")
-            .unwrap_or_else(|| Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()));
+            .unwrap_or_else(
+                || Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()),
+            );
         let executor = crate::tcp_close_executor::TcpCloseExecutor::new(tcp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -702,13 +733,23 @@ impl NodePlugin for UdpBindPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if !config.get("local_addr").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("local_addr")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "local_addr".to_string(),
                 message: "local_addr is required".to_string(),
             });
         }
-        if !config.get("local_port").and_then(|v| v.as_u64()).map(|p| p > 0).unwrap_or(false) {
+        if !config
+            .get("local_port")
+            .and_then(|v| v.as_u64())
+            .map(|p| p > 0)
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "local_port".to_string(),
                 message: "local_port must be greater than 0".to_string(),
@@ -728,9 +769,7 @@ impl NodePlugin for UdpBindPlugin {
             .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
             .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));
         let executor = crate::udp_bind_executor::UdpBindExecutor::new(udp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -822,25 +861,45 @@ impl NodePlugin for UdpSendToPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "connection_id".to_string(),
                 message: "connection_id is required".to_string(),
             });
         }
-        if !config.get("data").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("data")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "data".to_string(),
                 message: "data is required".to_string(),
             });
         }
-        if !config.get("target_addr").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("target_addr")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "target_addr".to_string(),
                 message: "target_addr is required".to_string(),
             });
         }
-        if !config.get("target_port").and_then(|v| v.as_u64()).map(|p| p > 0).unwrap_or(false) {
+        if !config
+            .get("target_port")
+            .and_then(|v| v.as_u64())
+            .map(|p| p > 0)
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "target_port".to_string(),
                 message: "target_port must be greater than 0".to_string(),
@@ -860,9 +919,7 @@ impl NodePlugin for UdpSendToPlugin {
             .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
             .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));
         let executor = crate::udp_send_to_executor::UdpSendToExecutor::new(udp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -949,7 +1006,12 @@ impl NodePlugin for UdpRecvFromPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "connection_id".to_string(),
                 message: "connection_id is required".to_string(),
@@ -977,9 +1039,7 @@ impl NodePlugin for UdpRecvFromPlugin {
             .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
             .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));
         let executor = crate::udp_recv_from_executor::UdpRecvFromExecutor::new(udp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -1062,7 +1122,12 @@ impl NodePlugin for UdpClosePlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "connection_id".to_string(),
                 message: "connection_id is required".to_string(),
@@ -1082,9 +1147,7 @@ impl NodePlugin for UdpClosePlugin {
             .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
             .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));
         let executor = crate::udp_close_executor::UdpCloseExecutor::new(udp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -1118,8 +1181,6 @@ mod tests {
         assert_eq!(plugin.icon(), "cable");
         assert_eq!(plugin.color(), "#10B981");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -1144,10 +1205,7 @@ mod tests {
             plugin.resolve_port(&Some(serde_json::json!("string"))),
             "false"
         );
-        assert_eq!(
-            plugin.resolve_port(&Some(serde_json::json!({}))),
-            "false"
-        );
+        assert_eq!(plugin.resolve_port(&Some(serde_json::json!({}))), "false");
         assert_eq!(
             plugin.resolve_port(&Some(serde_json::json!({"success": null}))),
             "false"
@@ -1211,8 +1269,6 @@ mod tests {
         assert_eq!(plugin.icon(), "send");
         assert_eq!(plugin.color(), "#10B981");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -1280,10 +1336,7 @@ mod tests {
         );
 
         // 空 object → false
-        assert_eq!(
-            plugin.resolve_port(&Some(serde_json::json!({}))),
-            "false"
-        );
+        assert_eq!(plugin.resolve_port(&Some(serde_json::json!({}))), "false");
 
         // array → false
         assert_eq!(
@@ -1305,8 +1358,6 @@ mod tests {
         assert_eq!(plugin.icon(), "download");
         assert_eq!(plugin.color(), "#10B981");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -1366,8 +1417,6 @@ mod tests {
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#10B981");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -1392,10 +1441,7 @@ mod tests {
             plugin.resolve_port(&Some(serde_json::json!("string"))),
             "false"
         );
-        assert_eq!(
-            plugin.resolve_port(&Some(serde_json::json!({}))),
-            "false"
-        );
+        assert_eq!(plugin.resolve_port(&Some(serde_json::json!({}))), "false");
         assert_eq!(
             plugin.resolve_port(&Some(serde_json::json!({"success": null}))),
             "false"
@@ -1436,8 +1482,6 @@ mod tests {
         assert_eq!(plugin.icon(), "radio");
         assert_eq!(plugin.color(), "#F97316");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -1501,8 +1545,6 @@ mod tests {
         assert_eq!(plugin.icon(), "arrow-up-right");
         assert_eq!(plugin.color(), "#F97316");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -1567,8 +1609,6 @@ mod tests {
         assert_eq!(plugin.icon(), "arrow-down-left");
         assert_eq!(plugin.color(), "#F97316");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -1622,19 +1662,17 @@ mod tests {
     fn test_udp_close_plugin_metadata() {
         let plugin = UdpClosePlugin;
         assert_eq!(plugin.type_id(), "udp_close");
-        assert_eq!(plugin.display_name(), "UDP 关闭");
+        assert_eq!(plugin.display_name(), "UDP Close");
         assert_eq!(plugin.category(), "udp");
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#F97316");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
         assert_eq!(ports[0].label, "Success");
         assert_eq!(ports[1].id, "false");
-        assert_eq!(ports[1].label, "Failed");
+        assert_eq!(ports[1].label, "Failure");
     }
 
     #[test]

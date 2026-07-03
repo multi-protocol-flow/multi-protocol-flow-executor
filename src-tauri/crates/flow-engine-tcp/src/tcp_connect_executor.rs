@@ -3,14 +3,14 @@
 // 实现 TCP 连接建立和变量替换功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::traits::TcpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -137,9 +137,7 @@ impl NodeExecutor for TcpConnectExecutor {
                         level: LogLevel::Info,
                         message: format!(
                             "TCP connection successful {}:{} ({}ms)",
-                            host,
-                            config.port,
-                            total_ms
+                            host, config.port, total_ms
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
@@ -196,7 +194,11 @@ impl NodeExecutor for TcpConnectExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -229,10 +231,9 @@ fn resolve_port_nodes(connections: &[Connection], node_uuid: &str, port_id: &str
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::TcpConnectConfig;
-    use flow_engine_core::traits::{FramingConfig, KafkaProvider, SseProvider, GraphqlProvider, AmqpProvider};
+    use flow_engine_core::traits::FramingConfig;
     use std::sync::atomic::{AtomicBool, Ordering};
 
     // -----------------------------------------------------------------------
@@ -290,11 +291,7 @@ mod tests {
             Ok(None)
         }
 
-        async fn close(
-            &self,
-            _uuid: &str,
-            _close_timeout_ms: u64,
-        ) -> Result<(), String> {
+        async fn close(&self, _uuid: &str, _close_timeout_ms: u64) -> Result<(), String> {
             Ok(())
         }
 
@@ -338,43 +335,19 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
-        ExecutionContext {
-            flow_uuid: flow_id.to_string(),
-            current_node_uuid: None,
-            variables: VariableStorage::new(),
-            node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
+        ExecutionContext::new(
+            flow_id.to_string(),
+            std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|d| d.as_millis() as u64)
                 .unwrap_or(0),
-            log_sender: None,
-            flow_file_path: None,
-            ws_manager: None,
-            ws_connection_urls: HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
-            last_node_output: None,
-            debug_event_sender: None,
-            execution_event_sender: None,
-            cancel_receiver: None,
-            grpc_manager: None,
-            providers: HashMap::new(),
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None,
-        }
+        )
     }
 
     // -----------------------------------------------------------------------
@@ -427,7 +400,7 @@ mod tests {
         assert_eq!(data["host"], "192.168.1.1");
         assert_eq!(data["port"], 9999);
         assert!(data.get("error").is_some());
-            let error = data["error"].as_str().expect("error should be a string");
+        let error = data["error"].as_str().expect("error should be a string");
         assert!(error.find("connection failed").is_some());
     }
 
@@ -444,6 +417,7 @@ mod tests {
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -452,7 +426,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("TcpConnectConfig"));
+        assert!(result.unwrap_err().message.contains("TcpConnectConfig"));
     }
 
     #[tokio::test]

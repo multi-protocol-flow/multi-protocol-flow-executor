@@ -3,14 +3,14 @@
 // 实现 UDP 数据接收和统一输出构建功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::traits::UdpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -158,8 +158,15 @@ impl NodeExecutor for UdpRecvFromExecutor {
                 let error_msg = format!("Receive timeout ({}ms)", config.receive_timeout_ms);
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "Flow aborted: {}",
+                        error_msg
+                    )));
                 }
 
                 log::debug!(
@@ -200,7 +207,11 @@ impl NodeExecutor for UdpRecvFromExecutor {
             }
             Err(e) => {
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -245,11 +256,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
 }
 
 /// 路由到指定端口
-fn route_to_port(
-    node: &Node,
-    connections: &[Connection],
-    port: &str,
-) -> Vec<String> {
+fn route_to_port(node: &Node, connections: &[Connection], port: &str) -> Vec<String> {
     let filtered: Vec<String> = connections
         .iter()
         .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == port)
@@ -266,7 +273,7 @@ fn route_to_port(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
+
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::UdpRecvFromConfig;
     use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
@@ -373,6 +380,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -455,7 +463,10 @@ mod tests {
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
         assert!(data["received"].is_null());
-        assert!(data["error"].as_str().expect("should have error").contains("timeout"));
+        assert!(data["error"]
+            .as_str()
+            .expect("should have error")
+            .contains("timeout"));
     }
 
     // ========================================================================
@@ -464,7 +475,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_udp_recv_from_error() {
-        let mock = Arc::new(MockUdpProvider::new_recv_error("UDP Socket 'conn-err' 不存在"));
+        let mock = Arc::new(MockUdpProvider::new_recv_error(
+            "UDP Socket 'conn-err' 不存在",
+        ));
         let executor = UdpRecvFromExecutor::new(mock.clone());
 
         let node = create_test_node("node-3", "Failed测试", "conn-err", 5000);
@@ -479,7 +492,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().expect("should have error").contains("not found"));
+        assert!(data["error"]
+            .as_str()
+            .expect("should have error")
+            .contains("不存在"));
     }
 
     // ========================================================================
@@ -507,6 +523,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_context_with_udp("flow-var", mock.clone());
@@ -576,6 +593,7 @@ mod tests {
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_context_with_udp("flow-wrong", mock.clone());
@@ -585,6 +603,6 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("UdpRecvFromConfig"));
+        assert!(result.unwrap_err().message.contains("UdpRecvFromConfig"));
     }
 }

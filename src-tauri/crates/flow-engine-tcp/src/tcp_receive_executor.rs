@@ -4,14 +4,14 @@
 // 从已有的 tcp_connect 连接中接收数据，支持超时配置和帧定界。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::traits::TcpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -123,10 +123,9 @@ impl NodeExecutor for TcpReceiveExecutor {
                 });
 
                 // 添加 text_preview
-                output_data["received_text_preview"] =
-                    try_decode_text(&data)
-                        .map(serde_json::Value::String)
-                        .unwrap_or(serde_json::Value::Null);
+                output_data["received_text_preview"] = try_decode_text(&data)
+                    .map(serde_json::Value::String)
+                    .unwrap_or(serde_json::Value::Null);
 
                 // 6. 日志：完成
                 context
@@ -172,10 +171,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!(
-                            "TCP Receive timeout, no data (total: {}ms)",
-                            total_ms
-                        ),
+                        message: format!("TCP Receive timeout, no data (total: {}ms)", total_ms),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .expect("系统时间Error")
@@ -191,7 +187,11 @@ impl NodeExecutor for TcpReceiveExecutor {
             }
             Err(e) => {
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -234,11 +234,7 @@ impl NodeExecutor for TcpReceiveExecutor {
 }
 
 /// 路由到指定端口
-fn route_to_port(
-    node: &Node,
-    connections: &[Connection],
-    port: &str,
-) -> Vec<String> {
+fn route_to_port(node: &Node, connections: &[Connection], port: &str) -> Vec<String> {
     let filtered: Vec<String> = connections
         .iter()
         .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == port)
@@ -265,7 +261,6 @@ fn route_to_false_port(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::TcpReceiveConfig;
     use flow_engine_core::traits::{FramingConfig, TcpFramingMode};
@@ -295,43 +290,19 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
-        ExecutionContext {
-            flow_uuid: flow_id.to_string(),
-            current_node_uuid: None,
-            variables: VariableStorage::new(),
-            node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
+        ExecutionContext::new(
+            flow_id.to_string(),
+            std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .expect("系统时间Error")
                 .as_millis() as u64,
-            log_sender: None,
-            flow_file_path: None,
-            ws_manager: None,
-            ws_connection_urls: HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
-            last_node_output: None,
-            debug_event_sender: None,
-            execution_event_sender: None,
-            cancel_receiver: None,
-            grpc_manager: None,
-            providers: HashMap::new(),
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None,
-        }
+        )
     }
 
     // ========================================================================
@@ -370,21 +341,32 @@ mod tests {
     #[async_trait::async_trait]
     impl TcpProvider for MockTcpProvider {
         async fn connect(
-            &self, _uuid: String, _name: String, _host: String, _port: u16,
-            _use_tls: bool, _tls_skip_verify: bool, _connect_timeout_ms: u64,
+            &self,
+            _uuid: String,
+            _name: String,
+            _host: String,
+            _port: u16,
+            _use_tls: bool,
+            _tls_skip_verify: bool,
+            _connect_timeout_ms: u64,
             _framing_config: FramingConfig,
         ) -> Result<(), String> {
             Err("MockTcpProvider::connect 不应被调用".to_string())
         }
 
         async fn send(
-            &self, _uuid: &str, _data: Vec<u8>, _send_timeout_ms: u64,
+            &self,
+            _uuid: &str,
+            _data: Vec<u8>,
+            _send_timeout_ms: u64,
         ) -> Result<(), String> {
             Err("MockTcpProvider::send 不应被调用".to_string())
         }
 
         async fn receive(
-            &self, _uuid: &str, _receive_timeout_ms: u64,
+            &self,
+            _uuid: &str,
+            _receive_timeout_ms: u64,
         ) -> Result<Option<Vec<u8>>, String> {
             self.receive_count.fetch_add(1, AtomicOrdering::SeqCst);
             self.receive_result.lock().expect("锁不应Failed").clone()
@@ -498,7 +480,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().expect("should have error message").contains("not found"));
+        assert!(data["error"]
+            .as_str()
+            .expect("should have error message")
+            .contains("不存在"));
     }
 
     // ========================================================================
@@ -523,6 +508,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_context_with_tcp("flow-var", mock.clone());
@@ -614,6 +600,7 @@ mod tests {
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_context_with_tcp("flow-wrong", mock.clone());
@@ -623,7 +610,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("TcpReceiveConfig"));
+        assert!(result.unwrap_err().message.contains("TcpReceiveConfig"));
     }
 
     // ========================================================================

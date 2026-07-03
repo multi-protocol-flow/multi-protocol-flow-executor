@@ -3,14 +3,14 @@
 // 实现 TCP 连接关闭功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::traits::TcpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -42,7 +42,12 @@ impl NodeExecutor for TcpCloseExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::TcpClose(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not TcpCloseConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not TcpCloseConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换 connection_id
@@ -89,7 +94,10 @@ impl NodeExecutor for TcpCloseExecutor {
 
         match close_result {
             Ok(()) => {
-                log::info!("[TCP] Connection closed successfully: connection_id={}", connection_id);
+                log::info!(
+                    "[TCP] Connection closed successfully: connection_id={}",
+                    connection_id
+                );
 
                 // 5. 构建输出数据
                 let duration = start_time.elapsed();
@@ -174,7 +182,11 @@ impl NodeExecutor for TcpCloseExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -286,11 +298,15 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
     /// 创建执行上下文（带 TCP 管理器）
-    fn create_context<T: 'static + Send + Sync>(flow_id: &str, tcp_manager: Arc<T>) -> ExecutionContext {
+    fn create_context<T: 'static + Send + Sync>(
+        flow_id: &str,
+        tcp_manager: Arc<T>,
+    ) -> ExecutionContext {
         let mut ctx = ExecutionContext::new(flow_id.to_string(), 0);
         ctx.set_provider("tcp", tcp_manager);
         ctx
@@ -384,6 +400,7 @@ mod tests {
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
         let mut context = ExecutionContext::new("test-flow".to_string(), 0);
 
@@ -392,6 +409,6 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("TcpCloseConfig"));
+        assert!(result.unwrap_err().message.contains("TcpCloseConfig"));
     }
 }

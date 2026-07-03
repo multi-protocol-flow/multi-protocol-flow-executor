@@ -4,14 +4,14 @@
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::traits::TcpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -47,9 +47,7 @@ impl TcpSendExecutor {
     }
 
     /// 构建分帧描述字符串（用于输出 JSON）
-    fn framing_description(
-        framing_mode: &flow_engine_core::traits::TcpFramingMode,
-    ) -> String {
+    fn framing_description(framing_mode: &flow_engine_core::traits::TcpFramingMode) -> String {
         match framing_mode {
             flow_engine_core::traits::TcpFramingMode::LengthPrefix { prefix_bytes } => {
                 format!("LengthPrefix({})", prefix_bytes)
@@ -118,7 +116,12 @@ impl NodeExecutor for TcpSendExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::TcpSend(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not TcpSendConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not TcpSendConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换 connection_id
@@ -180,13 +183,16 @@ impl NodeExecutor for TcpSendExecutor {
             Ok(data) => data,
             Err(e) => {
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
                 let total_ms = start_time.elapsed().as_millis() as u64;
-                let error_output =
-                    Self::build_error_output(&connection_id, &e, None, total_ms);
+                let error_output = Self::build_error_output(&connection_id, &e, None, total_ms);
 
                 context
                     .emit_log(LogEvent {
@@ -217,13 +223,16 @@ impl NodeExecutor for TcpSendExecutor {
             Ok(data) => data,
             Err(e) => {
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
                 let total_ms = start_time.elapsed().as_millis() as u64;
-                let error_output =
-                    Self::build_error_output(&connection_id, &e, None, total_ms);
+                let error_output = Self::build_error_output(&connection_id, &e, None, total_ms);
 
                 context
                     .emit_log(LogEvent {
@@ -265,9 +274,7 @@ impl NodeExecutor for TcpSendExecutor {
                 // 如果 framing_config.mode 不是 Manual 且有 receive 超时配置，则尝试接收
                 // 这里简单地尝试一次 receive，如果超时则 received 为 null
                 let receive_timeout_ms = match &config.framing_mode {
-                    flow_engine_core::traits::TcpFramingMode::Timeout { timeout_ms } => {
-                        *timeout_ms
-                    }
+                    flow_engine_core::traits::TcpFramingMode::Timeout { timeout_ms } => *timeout_ms,
                     _ => 0, // 不自动接收
                 };
 
@@ -329,33 +336,44 @@ impl NodeExecutor for TcpSendExecutor {
                 if let Some(received) = &received_output {
                     if let Some(data_b64) = received.get("data").and_then(|d| d.as_str()) {
                         if let Ok(decoded) = crate::encoding::decode_from_base64(data_b64) {
-                            output_data["received_text_preview"] =
-                                try_decode_text(&decoded)
-                                    .map(serde_json::Value::String)
-                                    .unwrap_or(serde_json::Value::Null);
+                            output_data["received_text_preview"] = try_decode_text(&decoded)
+                                .map(serde_json::Value::String)
+                                .unwrap_or(serde_json::Value::Null);
 
                             // 如果配置了解析器，尝试解析接收到的数据
                             if let Some(ref parser_cfg_value) = config.parser_config {
-                                match serde_json::from_value::<crate::parser::ParserConfig>(parser_cfg_value.clone()) {
+                                match serde_json::from_value::<crate::parser::ParserConfig>(
+                                    parser_cfg_value.clone(),
+                                ) {
                                     Ok(parser_cfg) => {
                                         match crate::parser::create_parser(&parser_cfg) {
-                                            Ok(parser) => {
-                                                match parser.parse(&decoded) {
-                                                    Ok(parsed_msg) => {
-                                                        output_data["parsed"] = serde_json::to_value(&parsed_msg.fields).unwrap_or_default();
-                                                    }
-                                                    Err(e) => {
-                                                        output_data["parsed_error"] = serde_json::Value::String(format!("Parsing failed: {}", e));
-                                                    }
+                                            Ok(parser) => match parser.parse(&decoded) {
+                                                Ok(parsed_msg) => {
+                                                    output_data["parsed"] =
+                                                        serde_json::to_value(&parsed_msg.fields)
+                                                            .unwrap_or_default();
                                                 }
-                                            }
+                                                Err(e) => {
+                                                    output_data["parsed_error"] =
+                                                        serde_json::Value::String(format!(
+                                                            "Parsing failed: {}",
+                                                            e
+                                                        ));
+                                                }
+                                            },
                                             Err(e) => {
-                                                output_data["parsed_error"] = serde_json::Value::String(format!("Failed to create parser: {}", e));
+                                                output_data["parsed_error"] =
+                                                    serde_json::Value::String(format!(
+                                                        "Failed to create parser: {}",
+                                                        e
+                                                    ));
                                             }
                                         }
                                     }
                                     Err(e) => {
-                                        output_data["parsed_error"] = serde_json::Value::String(format!("Invalid parser configuration: {}", e));
+                                        output_data["parsed_error"] = serde_json::Value::String(
+                                            format!("Invalid parser configuration: {}", e),
+                                        );
                                     }
                                 }
                             }
@@ -409,7 +427,11 @@ impl NodeExecutor for TcpSendExecutor {
                     .await;
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -425,11 +447,7 @@ impl NodeExecutor for TcpSendExecutor {
 use flow_engine_core::traits::FramingConfig;
 
 /// 路由到指定端口
-fn route_to_port(
-    node: &Node,
-    connections: &[Connection],
-    port: &str,
-) -> Vec<String> {
+fn route_to_port(node: &Node, connections: &[Connection], port: &str) -> Vec<String> {
     let filtered: Vec<String> = connections
         .iter()
         .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == port)
@@ -456,8 +474,7 @@ fn route_to_false_port(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
-    use flow_engine_core::node::{NodePosition};
+    use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::TcpSendConfig;
     use flow_engine_core::traits::{FramingConfig, TcpFramingMode};
     use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
@@ -491,43 +508,19 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
-        ExecutionContext {
-            flow_uuid: flow_id.to_string(),
-            current_node_uuid: None,
-            variables: VariableStorage::new(),
-            node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
+        ExecutionContext::new(
+            flow_id.to_string(),
+            std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .expect("系统时间Error")
                 .as_millis() as u64,
-            log_sender: None,
-            flow_file_path: None,
-            ws_manager: None,
-            ws_connection_urls: HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
-            last_node_output: None,
-            debug_event_sender: None,
-            execution_event_sender: None,
-            cancel_receiver: None,
-            grpc_manager: None,
-            providers: HashMap::new(),
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None,
-        }
+        )
     }
 
     // ========================================================================
@@ -578,15 +571,24 @@ mod tests {
     #[async_trait::async_trait]
     impl TcpProvider for MockTcpProvider {
         async fn connect(
-            &self, _uuid: String, _name: String, _host: String, _port: u16,
-            _use_tls: bool, _tls_skip_verify: bool, _connect_timeout_ms: u64,
+            &self,
+            _uuid: String,
+            _name: String,
+            _host: String,
+            _port: u16,
+            _use_tls: bool,
+            _tls_skip_verify: bool,
+            _connect_timeout_ms: u64,
             _framing_config: FramingConfig,
         ) -> Result<(), String> {
             Err("MockTcpProvider::connect 不应被调用".to_string())
         }
 
         async fn send(
-            &self, _uuid: &str, data: Vec<u8>, _send_timeout_ms: u64,
+            &self,
+            _uuid: &str,
+            data: Vec<u8>,
+            _send_timeout_ms: u64,
         ) -> Result<(), String> {
             self.send_count.fetch_add(1, AtomicOrdering::SeqCst);
             *self.last_sent_data.lock().expect("锁不应Failed") = data;
@@ -594,7 +596,9 @@ mod tests {
         }
 
         async fn receive(
-            &self, _uuid: &str, _receive_timeout_ms: u64,
+            &self,
+            _uuid: &str,
+            _receive_timeout_ms: u64,
         ) -> Result<Option<Vec<u8>>, String> {
             self.receive_count.fetch_add(1, AtomicOrdering::SeqCst);
             self.receive_result.lock().expect("锁不应Failed").clone()
@@ -613,7 +617,10 @@ mod tests {
         }
     }
 
-    fn create_context_with_tcp<T: 'static + Send + Sync>(flow_id: &str, tcp_manager: Arc<T>) -> ExecutionContext {
+    fn create_context_with_tcp<T: 'static + Send + Sync>(
+        flow_id: &str,
+        tcp_manager: Arc<T>,
+    ) -> ExecutionContext {
         let mut ctx = create_context(flow_id);
         ctx.set_provider("tcp", tcp_manager);
         ctx
@@ -701,7 +708,9 @@ mod tests {
         assert_eq!(data["success"], true);
 
         // 验证 framing 描述包含 Delimiter
-        let framing = data["sent"]["framing"].as_str().expect("framing 应为字符串");
+        let framing = data["sent"]["framing"]
+            .as_str()
+            .expect("framing 应为字符串");
         assert!(framing.starts_with("Delimiter("));
 
         // 验证发送的数据是 "Hello\r\n" (5 + 2 = 7 字节)
@@ -788,7 +797,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_tcp_send_closed_connection() {
-        let mock = Arc::new(MockTcpProvider::new_send_error("TCP 连接 'conn-closed' 不存在"));
+        let mock = Arc::new(MockTcpProvider::new_send_error(
+            "TCP 连接 'conn-closed' 不存在",
+        ));
         let executor = TcpSendExecutor::new(mock.clone());
 
         let node = create_test_node(
@@ -811,7 +822,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().expect("should have error message").contains("not found"));
+        assert!(data["error"]
+            .as_str()
+            .expect("should have error message")
+            .contains("不存在"));
     }
 
     // ========================================================================
@@ -839,6 +853,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_context_with_tcp("flow-var", mock.clone());
@@ -847,11 +862,9 @@ mod tests {
             json!("tcp-connection-123"),
             String::new(),
         );
-        context.variables.set_variable(
-            "msg".to_string(),
-            json!("Hello"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("msg".to_string(), json!("Hello"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -893,6 +906,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_context_with_tcp("flow-enc", mock.clone());
@@ -906,7 +920,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().expect("should have error").contains("Unsupported"));
+        assert!(data["error"]
+            .as_str()
+            .expect("should have error")
+            .contains("Unsupported"));
     }
 
     // ========================================================================
@@ -938,7 +955,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().expect("should have error").contains("Hex"));
+        assert!(data["error"]
+            .as_str()
+            .expect("should have error")
+            .contains("Hex"));
     }
 
     // ========================================================================
@@ -1028,6 +1048,7 @@ mod tests {
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_context_with_tcp("flow-wrong", mock.clone());
@@ -1037,7 +1058,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("TcpSendConfig"));
+        assert!(result.unwrap_err().message.contains("TcpSendConfig"));
     }
 
     // ========================================================================
@@ -1046,7 +1067,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_tcp_send_timeout_mode_with_receive() {
-        let mock = Arc::new(MockTcpProvider::with_receive_data(b"Response data".to_vec()));
+        let mock = Arc::new(MockTcpProvider::with_receive_data(
+            b"Response data".to_vec(),
+        ));
         let executor = TcpSendExecutor::new(mock.clone());
 
         let node = create_test_node(
@@ -1124,7 +1147,8 @@ mod tests {
 
     #[test]
     fn test_framing_description_length_prefix() {
-        let desc = TcpSendExecutor::framing_description(&TcpFramingMode::LengthPrefix { prefix_bytes: 4 });
+        let desc =
+            TcpSendExecutor::framing_description(&TcpFramingMode::LengthPrefix { prefix_bytes: 4 });
         assert_eq!(desc, "LengthPrefix(4)");
     }
 
@@ -1138,13 +1162,15 @@ mod tests {
 
     #[test]
     fn test_framing_description_fixed_length() {
-        let desc = TcpSendExecutor::framing_description(&TcpFramingMode::FixedLength { length: 128 });
+        let desc =
+            TcpSendExecutor::framing_description(&TcpFramingMode::FixedLength { length: 128 });
         assert_eq!(desc, "FixedLength(128)");
     }
 
     #[test]
     fn test_framing_description_timeout() {
-        let desc = TcpSendExecutor::framing_description(&TcpFramingMode::Timeout { timeout_ms: 5000 });
+        let desc =
+            TcpSendExecutor::framing_description(&TcpFramingMode::Timeout { timeout_ms: 5000 });
         assert_eq!(desc, "Timeout(5000ms)");
     }
 

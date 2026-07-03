@@ -958,7 +958,7 @@ mod tests {
 
         let result = parser.parse(&data);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Data truncated"));
+        assert!(result.unwrap_err().contains("data truncated"));
     }
 
     #[test]
@@ -1187,8 +1187,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&config).expect("序列化应Success");
-        let deserialized: ParserConfig =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: ParserConfig = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(config, deserialized);
     }
 
@@ -1203,8 +1202,7 @@ mod tests {
         let json = serde_json::to_string(&config).expect("序列化应Success");
         assert!(json.contains("\"type\":\"tlv\""));
 
-        let deserialized: ParserConfig =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: ParserConfig = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(config, deserialized);
     }
 
