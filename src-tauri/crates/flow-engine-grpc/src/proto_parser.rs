@@ -519,25 +519,97 @@ fn json_type_name(value: &serde_json::Value) -> &'static str {
 ///
 /// Filters out synthetic map entry messages automatically.
 /// Marks Well-Known Types (google.protobuf.*) with is_wkt = true.
+/// Circular references between top-level messages are detected via a post-processing
+/// pass: any message-typed field whose type_full_name participates in a cycle gets
+/// its type_kind changed to "circular_ref" and nested_message cleared.
 pub fn get_message_definitions(
     pool: &DescriptorPool,
 ) -> HashMap<String, GrpcMessageInfo> {
     let mut definitions = HashMap::new();
     let mut visited = HashSet::new();
 
+    // Pass 1: extract all message info (shared visited catches cycles in nested expansions)
     for message in pool.all_messages() {
         let full_name = message.full_name().to_string();
-
-        // Skip synthetic map entry messages
         if message.is_map_entry() {
             continue;
         }
-
         let msg_info = extract_message_info(&message, &mut visited, pool);
         definitions.insert(full_name, msg_info);
     }
 
+    // Pass 2: detect cycles in the top-level definition graph.
+    // For each message-typed field, DFS-walk from the referenced message; if we ever
+    // reach back to the current message, it is a circular reference.
+    detect_top_level_cycles(&mut definitions);
+
     definitions
+}
+
+/// Post-processing: for each message-typed field in every definition, walk the
+/// dependency graph from the referenced type. If the walk reaches back to the
+/// current message, mark the field as `circular_ref` and clear its nested_message.
+fn detect_top_level_cycles(definitions: &mut HashMap<String, GrpcMessageInfo>) {
+    // Collect all (msg_name, field_idx) pairs that reference another definition
+    let mut edges: Vec<(String, String, usize)> = Vec::new();
+    for (msg_name, msg) in definitions.iter() {
+        for (i, field) in msg.fields.iter().enumerate() {
+            if field.type_kind == "message" {
+                if let Some(ref type_name) = field.type_full_name {
+                    if definitions.contains_key(type_name) {
+                        edges.push((msg_name.clone(), type_name.clone(), i));
+                    }
+                }
+            }
+        }
+    }
+
+    // For each edge, check if following references from the target leads back to source
+    for (src_name, ref_name, field_idx) in &edges {
+        let mut visited_local = HashSet::new();
+        if has_path_to(ref_name, src_name, definitions, &mut visited_local) {
+            if let Some(msg) = definitions.get_mut(src_name) {
+                if let Some(field) = msg.fields.get_mut(*field_idx) {
+                    field.type_kind = "circular_ref".to_string();
+                    field.nested_message = None;
+                }
+            }
+        }
+    }
+}
+
+/// DFS from `current` to `target` following message-typed field references.
+/// Returns `true` if `target` is reachable from `current`.
+///
+/// Both `"message"` and `"circular_ref"` fields are traversed:
+/// `"circular_ref"` edges (marked by the nested extraction pass) may be part
+/// of larger indirect cycles that need full resolution at the top level.
+fn has_path_to(
+    current: &str,
+    target: &str,
+    definitions: &HashMap<String, GrpcMessageInfo>,
+    visited: &mut HashSet<String>,
+) -> bool {
+    if current == target {
+        return true;
+    }
+    if !visited.insert(current.to_string()) {
+        return false;
+    }
+    if let Some(msg) = definitions.get(current) {
+        for field in &msg.fields {
+            if field.type_kind == "message" || field.type_kind == "circular_ref" {
+                if let Some(ref type_name) = field.type_full_name {
+                    if definitions.contains_key(type_name) {
+                        if has_path_to(type_name, target, definitions, visited) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    false
 }
 
 /// Build a GrpcMessageInfo from a prost-reflect MessageDescriptor
@@ -549,10 +621,17 @@ fn extract_message_info(
     let full_name = msg.full_name().to_string();
     let is_wkt = full_name.starts_with("google.protobuf.");
 
+    // Mark this message as visited so circular references can be detected
+    // during recursive field resolution. The entry is removed after fields
+    // are processed to keep visited scoped to the current chain.
+    visited.insert(full_name.clone());
+
     let fields: Vec<GrpcFieldInfo> = msg
         .fields()
         .map(|field| field_to_info(&field, visited, pool))
         .collect();
+
+    visited.remove(&full_name);
 
     let oneof_groups = get_oneof_info(msg);
     let reserved_ranges = get_reserved_ranges(msg);
@@ -701,10 +780,12 @@ fn resolve_field_type(
                 );
             }
 
-            // Recursively extract nested message
+            // Recursively extract nested message.
+            // extract_message_info manages visited insert/remove internally,
+            // so we only insert here to flag this type as "in-progress" and
+            // prevent sibling-field cycles; the remove is handled inside the call.
             visited.insert(msg_name.clone());
             let nested = extract_message_info(&msg_desc, visited, pool);
-            visited.remove(&msg_name);
 
             (
                 "message".to_string(),
