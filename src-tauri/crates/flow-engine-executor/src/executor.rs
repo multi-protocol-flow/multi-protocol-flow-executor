@@ -510,7 +510,11 @@ impl FlowExecutor {
                         input_data,
                         output_data: output_data.clone(),
                         used_port_id,
-                        error: None,
+                        // 从 output_data["error"] 提取错误信息
+                        // 协议执行器在 Ok 路径下通过 output_data["error"] 嵌入错误信息
+                        // （而非返回 Err），以保留 output_data 中的部分数据（如请求信息、时序）
+                        // 所有 16+ 个协议执行器遵循此约定
+                        error: extract_error_from_output(&output_data),
                         // 新增字段（Task 13）
                         resolved_config,
                         variable_changes: if variable_changes.is_empty() { None } else { Some(variable_changes) },
@@ -1274,6 +1278,47 @@ impl FlowExecutor {
             }
         }
     }
+}
+
+/// 从 output_data 中提取 error 信息。
+///
+/// 协议执行器在 Ok 路径下将错误信息作为字符串嵌入 output_data["error"]，
+/// 以在保留部分输出数据（如请求信息、时序）的同时传递错误信息。
+/// 此函数提取该错误并构建 ErrorDetail，同时通过文本匹配推测 ErrorKind。
+fn extract_error_from_output(output_data: &Option<serde_json::Value>) -> Option<ErrorDetail> {
+    let msg = output_data.as_ref()?.get("error")?;
+    let msg = match msg {
+        serde_json::Value::String(s) => s.clone(),
+        serde_json::Value::Null => return None,
+        other => other.to_string(),
+    };
+    if msg.is_empty() {
+        return None;
+    }
+
+    let msg_lower = msg.to_lowercase();
+
+    // 通过文本匹配推测 ErrorKind
+    let error_kind = if msg_lower.contains("timeout") || msg_lower.contains("timed out") {
+        ErrorKind::Timeout
+    } else if msg_lower.contains("connection") || msg_lower.contains("refused")
+        || msg_lower.contains("dns") || msg_lower.contains("resolve")
+        || msg_lower.contains("connect") || msg_lower.contains("closed")
+        || msg_lower.contains("aborted") || msg_lower.contains("sendrequest")
+        || msg_lower.contains("eof")
+    {
+        ErrorKind::Connection
+    } else if msg_lower.contains("parse") || msg_lower.contains("unexpected")
+        || msg_lower.contains("syntax")
+    {
+        ErrorKind::Parse
+    } else if msg_lower.contains("assert") || msg_lower.contains("expect") {
+        ErrorKind::Assertion
+    } else {
+        ErrorKind::Execution
+    };
+
+    Some(ErrorDetail::new(error_kind, msg))
 }
 
 #[cfg(test)]
@@ -2344,4 +2389,89 @@ mod tests {
         assert_eq!(result.executed_count, 1);
     }
 
+    // --- extract_error_from_output tests ---
+
+    #[test]
+    fn test_extract_error_string() {
+        let output = Some(serde_json::json!({"error": "connection refused"}));
+        let err = extract_error_from_output(&output);
+        assert!(err.is_some());
+        assert_eq!(err.unwrap().message, "connection refused");
+    }
+
+    #[test]
+    fn test_extract_error_non_string_object() {
+        let output = Some(serde_json::json!({"error": {"code": 500, "detail": "timeout"}}));
+        let err = extract_error_from_output(&output);
+        assert!(err.is_some());
+        assert!(err.unwrap().message.contains("500"));
+    }
+
+    #[test]
+    fn test_extract_error_null() {
+        let output = Some(serde_json::json!({"error": null}));
+        let err = extract_error_from_output(&output);
+        assert!(err.is_none());
+    }
+
+    #[test]
+    fn test_extract_error_empty_string() {
+        let output = Some(serde_json::json!({"error": ""}));
+        let err = extract_error_from_output(&output);
+        assert!(err.is_none());
+    }
+
+    #[test]
+    fn test_extract_error_missing_key() {
+        let output = Some(serde_json::json!({"success": true}));
+        let err = extract_error_from_output(&output);
+        assert!(err.is_none());
+    }
+
+    #[test]
+    fn test_extract_error_none_output() {
+        let output: Option<serde_json::Value> = None;
+        let err = extract_error_from_output(&output);
+        assert!(err.is_none());
+    }
+
+    #[test]
+    fn test_extract_error_kind_timeout() {
+        let output = Some(serde_json::json!({"error": "HTTP request timeout (30000ms)"}));
+        let err = extract_error_from_output(&output);
+        assert!(err.is_some());
+        assert_eq!(err.unwrap().error_kind, ErrorKind::Timeout);
+    }
+
+    #[test]
+    fn test_extract_error_kind_connection() {
+        let output = Some(serde_json::json!({"error": "tcp connection refused: 10.0.0.1:8080"}));
+        let err = extract_error_from_output(&output);
+        assert!(err.is_some());
+        assert_eq!(err.unwrap().error_kind, ErrorKind::Connection);
+    }
+
+    #[test]
+    fn test_extract_error_kind_connection_dns() {
+        let output = Some(serde_json::json!({"error": "dns resolution failed for example.com"}));
+        let err = extract_error_from_output(&output);
+        assert!(err.is_some());
+        assert_eq!(err.unwrap().error_kind, ErrorKind::Connection);
+    }
+
+    #[test]
+    fn test_extract_error_kind_fallback_execution() {
+        let output = Some(serde_json::json!({"error": "unknown protocol error occurred"}));
+        let err = extract_error_from_output(&output);
+        assert!(err.is_some());
+        assert_eq!(err.unwrap().error_kind, ErrorKind::Execution);
+    }
+
+    #[test]
+    fn test_extract_error_kind_parse() {
+        let output = Some(serde_json::json!({"error": "parse error: unexpected token at line 3"}));
+        let err = extract_error_from_output(&output);
+        assert!(err.is_some());
+        assert_eq!(err.unwrap().error_kind, ErrorKind::Parse);
+    }
 }

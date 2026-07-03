@@ -9,7 +9,6 @@ import {
   Send,
   MessageSquare,
   Clock,
-  AlertTriangle,
   Link,
   Timer,
   List,
@@ -157,7 +156,8 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
   const outputData = report.output_data as WsSendCollectOutput | undefined;
   const resolvedConfig = report.resolved_config as WsSendCollectConfig | undefined;
   
-  const hasError = outputData?.error || report.status === 'failed';
+  // ErrorSection (在 NodeExecutionDetails 中) 已经负责渲染结构化错误信息
+  const hasError = report.status === 'failed';
   const isTimedOut = outputData?.collect_timed_out === true;
 
   // 配置数据
@@ -183,17 +183,6 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
 
   return (
     <div className="space-y-3">
-      {/* 错误信息 */}
-      {hasError && outputData?.error && (
-        <div className="rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 p-3">
-          <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
-            <AlertTriangle className="w-4 h-4" />
-            <span className="font-medium text-sm">{getLL().execution.viewers.execution_failed()}</span>
-          </div>
-          <p className="text-red-600 dark:text-red-400 text-sm mt-1">{outputData.error}</p>
-        </div>
-      )}
-
       {/* 超时警告 */}
       {isTimedOut && !hasError && (
         <div className="rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 p-3">

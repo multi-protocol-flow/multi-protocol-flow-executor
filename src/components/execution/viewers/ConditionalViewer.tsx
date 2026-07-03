@@ -104,16 +104,8 @@ export const ConditionalViewer = memo(function ConditionalViewer({ report }: Con
   const fieldValue = outputData?.field_value;
   const result = outputData?.result;
 
-  // output_data 中的错误（向后兼容）
-  const outputError = outputData?.error;
-
-  // 判断是否有错误：
-  // 1. report.status 为 failed
-  // 2. output_data 中明确标记 success: false
-  // 3. output_data 中有 error 字段
-  const hasError = report.status === 'failed'
-    || outputData?.success === false
-    || Boolean(outputError);
+  // ErrorSection (在 NodeExecutionDetails 中) 已经负责渲染结构化错误信息
+  const hasError = report.status === 'failed';
 
   // 显示条件评估信息
   return (
@@ -152,19 +144,11 @@ export const ConditionalViewer = memo(function ConditionalViewer({ report }: Con
         defaultOpen={true}
       >
         {hasError ? (
-          // output_data 中的错误（向后兼容）
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600" />
-              <Badge className="font-mono text-sm px-3 py-1 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50">
-                {ll.execution.viewers.evaluation_failed()}
-              </Badge>
-            </div>
-            {outputError && (
-              <div className="bg-red-50 dark:bg-red-950/50 rounded p-2 text-sm text-red-700 dark:text-red-300">
-                {outputError}
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600" />
+            <Badge className="font-mono text-sm px-3 py-1 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50">
+              {ll.execution.viewers.evaluation_failed()}
+            </Badge>
           </div>
         ) : result !== undefined ? (
           // 正常结果
