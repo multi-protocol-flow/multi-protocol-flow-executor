@@ -288,23 +288,79 @@ mpe --help
 
 ## 🧪 测试
 
+> **测试文件分布：**
+>
+> | 位置 | 类型 | 说明 |
+> |------|------|------|
+> | 各 crate 源码 `mod tests` | 单元测试 | 业务代码内联的单测 |
+> | `src-tauri/tests/*.rs`（15个文件） | 集成测试 | 全流程、CLI、报告等端到端测试 |
+> | `src-tauri/crates/**/tests/*.rs` | 集成测试 | 各协议的集成测试（如 gRPC） |
+> | `tests/`（根目录） | 测试夹具 | JSON 流程文件、证书、测试服务 |
+
 ### 后端测试
 
 ```bash
 # 进入后端目录
 cd src-tauri
 
-# 运行所有测试
-cargo test
+# ── 全量测试 ─────────────────────────────────────────────────
+cargo test                        # 运行所有测试（单测 + 集成测试）
+cargo test -- --nocapture         # 显示 println 输出
+cargo test -- --test-threads=4    # 控制并行线程数
 
-# 运行测试并显示输出
-cargo test -- --nocapture
+# ── 只跑单元测试（跳过集成测试） ──────────────────────────────
+cargo test --lib                  # 所有 crate 的单测
 
-# 仅运行 CLI 测试
-cargo test cli_tests
+# ── 单 crate 测试 ────────────────────────────────────────────
+cargo test -p flow-engine-core --lib        # flow-engine-core 单测
+cargo test -p flow-engine-executor          # executor 全部测试
+cargo test -p flow-engine-http              # HTTP 协议全部测试
+cargo test -p flow-engine-assertion         # 断言全部测试
+cargo test -p flow-engine-ws                # WebSocket 全部测试
+cargo test -p flow-engine-db                # 数据库全部测试
+cargo test -p flow-engine-script            # 脚本全部测试
+cargo test -p flow-engine-grpc              # gRPC 全部测试
+cargo test -p flow-engine-mcp               # MCP 全部测试
+cargo test -p flow-engine-mqtt              # MQTT 全部测试
+cargo test -p flow-engine-kafka             # Kafka 全部测试
+cargo test -p flow-engine-sse               # SSE 全部测试
+cargo test -p flow-engine-graphql           # GraphQL 全部测试
+cargo test -p flow-engine-amqp              # AMQP 全部测试
+cargo test -p flow-engine-smtp              # SMTP 全部测试
+cargo test -p flow-engine-imap              # IMAP 全部测试
+cargo test -p flow-engine-tcp               # TCP/UDP 全部测试
+cargo test -p flow-engine-redis             # Redis 全部测试
+cargo test -p flow-engine-crypto            # 加密模块全部测试
+cargo test -p mpe-cli                       # CLI 全部测试
 
-# 仅运行属性测试
-cargo test proptest
+# ── 按测试名称过滤 ────────────────────────────────────────────
+cargo test cli_tests                # 仅 CLI 集成测试
+cargo test proptest                 # 仅属性测试
+cargo test variable                 # 变量相关测试
+cargo test report                   # 报告相关测试
+cargo test ws_debug                 # WebSocket 调试流测试
+cargo test http_executor            # HTTP 执行器测试
+cargo test assertion_executor       # 断言执行器测试
+cargo test dependency_test          # 依赖检测测试
+cargo test report_storage           # 报告存储测试
+
+# ── 按模块路径过滤（单测模块级） ──────────────────────────────
+cargo test -p flow-engine-core --lib variable::tests::  # core 变量模块单测
+cargo test -p flow-engine-core --lib node::tests::      # core 节点模块单测
+cargo test -p flow-engine-core --lib context::tests::   # core 上下文模块单测
+
+# ── 指定集成测试文件 ─────────────────────────────────────────
+cargo test --test integration                # 主集成测试
+cargo test --test cli_tests                  # CLI 集成测试
+cargo test --test dependency_test            # 依赖检测测试
+cargo test --test variable_tracking_test     # 变量追踪测试
+cargo test --test ws_debug_flow_test         # WS 调试流测试
+cargo test -p flow-engine-grpc --test grpc_integration  # gRPC 集成测试
+
+# ── 其他组合 ──────────────────────────────────────────────────
+cargo test --lib -- --nocapture              # 所有单测 + 打印输出
+cargo test -p flow-engine-core               # core 全部测试（含集成）
+cargo test --workspace                       # workspace 所有包的全部测试
 ```
 
 ### 前端测试
