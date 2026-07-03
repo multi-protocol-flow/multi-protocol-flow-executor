@@ -310,52 +310,52 @@ impl KafkaClient {
 mod tests {
     use super::*;
 
-    /// 验证 KafkaError 各变体的 Display 输出包含中文提示
+    /// 验证 KafkaError 各变体的 Display 输出
     #[test]
     fn test_kafka_error_display() {
         assert_eq!(
             KafkaError::ConnectionFailed("broker".into()).to_string(),
-            "connection failed: broker"
+            "Connection failed: broker"
         );
         assert_eq!(
             KafkaError::ProduceFailed("err".into()).to_string(),
-            "生产Failed: err"
+            "Produce failed: err"
         );
         assert_eq!(
             KafkaError::ConsumeFailed("err".into()).to_string(),
-            "消费Failed: err"
+            "Consume failed: err"
         );
         assert_eq!(
             KafkaError::AdminFailed("err".into()).to_string(),
-            "管理操作Failed: err"
+            "Admin operation failed: err"
         );
         assert_eq!(
             KafkaError::Timeout("30s".into()).to_string(),
-            "超时: 30s"
+            "Timeout: 30s"
         );
         assert_eq!(
             KafkaError::AuthFailed("bad token".into()).to_string(),
-            "认证Failed: bad token"
+            "Authentication failed: bad token"
         );
         assert_eq!(
             KafkaError::TopicNotFound("t1".into()).to_string(),
-            "主题不存在: t1"
+            "Topic not found: t1"
         );
         assert_eq!(
             KafkaError::ConfigError("missing".into()).to_string(),
-            "配置Error: missing"
+            "Configuration error: missing"
         );
         assert_eq!(
             KafkaError::SerializationFailed("json".into()).to_string(),
-            "序列化Failed: json"
+            "Serialization failed: json"
         );
         assert_eq!(
             KafkaError::DeserializationFailed("avro".into()).to_string(),
-            "反序列化Failed: avro"
+            "Deserialization failed: avro"
         );
         assert_eq!(
             KafkaError::Other("misc".into()).to_string(),
-            "其他: misc"
+            "Other error: misc"
         );
     }
 

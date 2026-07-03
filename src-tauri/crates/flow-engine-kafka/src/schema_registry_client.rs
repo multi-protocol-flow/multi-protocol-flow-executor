@@ -147,12 +147,21 @@ pub struct SchemaRegistryClient {
 }
 
 impl SchemaRegistryClient {
+    /// 确保 rustls 加密提供者已注册
+    ///
+    /// 当 `reqwest` 使用 `rustls-no-provider` feature 时，必须在构造 Client 之前初始化
+    /// 一个加密提供者（如 ring）。多次调用安全（install_default 幂等）。
+    fn ensure_crypto_provider() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    }
+
     /// 创建新的 Schema Registry 客户端
     ///
     /// # 参数
     /// - `base_url`: Schema Registry 地址（如 `http://localhost:8081`）
     /// - `auth`: 可选认证配置
     pub fn new(base_url: &str, auth: Option<SchemaRegistryAuth>) -> Result<Self, SchemaRegistryError> {
+        Self::ensure_crypto_provider();
         let client = reqwest::Client::builder()
             .build()
             .map_err(|e| SchemaRegistryError::HttpError(format!("Failed to create HTTP client: {e}")))?;
