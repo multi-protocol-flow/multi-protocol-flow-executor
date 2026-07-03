@@ -16,11 +16,12 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Cable, FileText, Info, Search, Loader2, ChevronDown, AlertTriangle, FolderOpen, Upload, FileUp, Activity, RefreshCw } from 'lucide-react';
-import type { GrpcConnectConfig as GrpcConnectConfigType, GrpcServiceInfo } from '@/types';
+import type { GrpcConnectConfig as GrpcConnectConfigType, GrpcServiceInfo, GrpcMessageInfo } from '@/types';
 import { discoverGrpcServices, scanProtoDirectory, parseDescriptorSet, readProtoFiles } from '@/services/tauri';
 import { grpcChannelzInfo, type ChannelzInfo } from '@/services/tauri/grpc';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
+import { MessageSchemaView } from './grpc/MessageSchemaView';
 
 interface GrpcConnectConfigProps {
   /** 当前节点数据 */
@@ -279,6 +280,19 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
   // 可折叠服务树的展开状态
   const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set());
 
+  // Track which (service_name, method_name, 'input'|'output') combos are expanded
+  const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
+
+  const toggleSchema = useCallback((serviceName: string, methodName: string, direction: 'input' | 'output') => {
+    const key = `${serviceName}::${methodName}::${direction}`;
+    setExpandedSchemas(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
   // 合并发现结果：优先使用最新的发现结果，否则使用已缓存的服务
   const displayServices = useMemo((): GrpcServiceInfo[] => {
     if (discoveryResult?.success && discoveryResult.services.length > 0) {
@@ -286,6 +300,12 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
     }
     return data.discovered_services || [];
   }, [discoveryResult, data.discovered_services]);
+
+  // Get message definitions from the first service (all services share the same map)
+  const messageDefinitions = useMemo(() => {
+    if (displayServices.length === 0) return {};
+    return displayServices[0].message_definitions ?? {};
+  }, [displayServices]);
 
   // 监听 URL 变化，清除{getLL().panels.grpcConnect.discoveredServices()}
   const currentUrl = watch('url');
@@ -355,6 +375,14 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
       setIsDiscovering(false);
     }
   }, [getValues, onSave]);
+
+  /** Check if a type name has a corresponding message definition */
+  const inputTypeDefined = useCallback(
+    (defs: Record<string, GrpcMessageInfo>, typeName: string): boolean => {
+      return !!defs[typeName];
+    },
+    [],
+  );
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
@@ -869,7 +897,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                 {getLL().panels.grpcConnect.servicesUnit({ count: displayServices.length })}
               </span>
             </div>
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin">
               {displayServices.map((service) => {
                 const isExpanded = expandedServices.has(service.service_name);
                 return (
@@ -900,28 +928,93 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                       </div>
                     </button>
                     {isExpanded && service.methods.length > 0 && (
-                      <div className="border-t bg-muted/20 px-3 py-2 space-y-1">
+                      <div className="border-t bg-muted/20 px-3 py-2 space-y-1 overflow-x-auto scrollbar-thin">
                         {service.methods.map((method) => (
-                          <div key={method.method_name} className="flex items-center gap-2 text-xs rounded px-2 py-1 bg-background/50">
-                            <code className="text-foreground font-mono">{method.method_name}</code>
-                            <span className="text-muted-foreground">→</span>
-                            <code className="text-muted-foreground font-mono text-[11px]">{method.output_type}</code>
-                            {method.is_server_streaming && method.is_client_streaming ? (
-                              <span className="inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-900/30 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:text-purple-300">
-                                {getLL().panels.grpcConnect.bidiStreaming()}
-                              </span>
-                            ) : method.is_server_streaming ? (
-                              <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
-                                {getLL().panels.grpcConnect.serverStreaming()}
-                              </span>
-                            ) : method.is_client_streaming ? (
-                              <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
-                                {getLL().panels.grpcConnect.clientStreaming()}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-300">
-                                {getLL().panels.grpcConnect.unary()}
-                              </span>
+                          <div key={method.method_name} className="flex flex-col min-w-0">
+                            {/* Method header row */}
+                            <div className="flex items-center gap-1.5 text-xs rounded px-2 py-1 bg-background/50 min-w-0">
+                              <code className="text-foreground font-mono font-medium whitespace-nowrap">{method.method_name}</code>
+                              <span className="text-muted-foreground shrink-0">→</span>
+
+                              {/* Clickable input type chip */}
+                              {inputTypeDefined(messageDefinitions, method.input_type) ? (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSchema(service.service_name, method.method_name, 'input')}
+                                  className="inline-flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors border border-violet-200/50 shrink-0"
+                                >
+                                  <ChevronDown className={cn(
+                                    "h-3 w-3 transition-transform",
+                                    expandedSchemas.has(`${service.service_name}::${method.method_name}::input`) && "rotate-180"
+                                  )} />
+                                  {method.input_type.split('.').pop() || method.input_type}
+                                </button>
+                              ) : (
+                                <code className="text-muted-foreground font-mono text-[11px] whitespace-nowrap">{method.input_type}</code>
+                              )}
+
+                              <span className="text-muted-foreground shrink-0">→</span>
+
+                              {/* Clickable output type chip */}
+                              {inputTypeDefined(messageDefinitions, method.output_type) ? (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSchema(service.service_name, method.method_name, 'output')}
+                                  className="inline-flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200/50 shrink-0"
+                                >
+                                  <ChevronDown className={cn(
+                                    "h-3 w-3 transition-transform",
+                                    expandedSchemas.has(`${service.service_name}::${method.method_name}::output`) && "rotate-180"
+                                  )} />
+                                  {method.output_type.split('.').pop() || method.output_type}
+                                </button>
+                              ) : (
+                                <code className="text-muted-foreground font-mono text-[11px] whitespace-nowrap">{method.output_type}</code>
+                              )}
+
+                              {method.is_server_streaming && method.is_client_streaming ? (
+                                <span className="inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-900/30 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:text-purple-300">
+                                  {getLL().panels.grpcConnect.bidiStreaming()}
+                                </span>
+                              ) : method.is_server_streaming ? (
+                                <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                  {getLL().panels.grpcConnect.serverStreaming()}
+                                </span>
+                              ) : method.is_client_streaming ? (
+                                <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                                  {getLL().panels.grpcConnect.clientStreaming()}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-300">
+                                  {getLL().panels.grpcConnect.unary()}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Expanded schema viewer for input type */}
+                            {expandedSchemas.has(`${service.service_name}::${method.method_name}::input`) && messageDefinitions[method.input_type] && (
+                              <div className="ml-4 mt-1 mb-1">
+                                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
+                                  {getLL().panels.grpcConnect.requestSchema()}
+                                </div>
+                                <MessageSchemaView
+                                  message={messageDefinitions[method.input_type]}
+                                  messageDefinitions={messageDefinitions}
+                                />
+                              </div>
+                            )}
+
+                            {/* Expanded schema viewer for output type */}
+                            {expandedSchemas.has(`${service.service_name}::${method.method_name}::output`) && messageDefinitions[method.output_type] && (
+                              <div className="ml-4 mt-1 mb-1">
+                                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
+                                  {getLL().panels.grpcConnect.responseSchema()}
+                                </div>
+                                <MessageSchemaView
+                                  message={messageDefinitions[method.output_type]}
+                                  messageDefinitions={messageDefinitions}
+                                />
+                              </div>
                             )}
                           </div>
                         ))}

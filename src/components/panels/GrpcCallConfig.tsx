@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Radio, Info, FileJson, CheckCircle2, XCircle, Loader2, FileText, Braces, Terminal, Copy, Check } from 'lucide-react';
+import { Plus, Trash2, Radio, Info, FileJson, CheckCircle2, XCircle, Loader2, FileText, Braces, Terminal, Copy, Check, ChevronDown } from 'lucide-react';
 import type { GrpcCallConfig as GrpcCallConfigType, GrpcServiceInfo, GrpcMethodInfo } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isGrpcConnectConfig } from '@/types/node';
@@ -25,6 +25,8 @@ import { parseProtoFiles, findMessageDescriptor } from '@/lib/protoFieldParser';
 import type { ProtoParseResult } from '@/lib/protoFieldParser';
 import { generateGrpcurlCommand, extractGrpcurlParamsFromConnectConfig } from '@/lib/grpcurlGenerator';
 import { getLL } from '@/i18n/i18n-lazy';
+import { MessageSchemaView } from './grpc/MessageSchemaView';
+import { cn } from '@/lib/utils';
 
 interface GrpcCallConfigProps {
   /** 当前节点数据 */
@@ -193,6 +195,28 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
   }, [watch('method_name'), discoveredMethods]);
 
   const isClientStreaming = selectedMethod?.is_client_streaming ?? false;
+
+  // 从已选连接中提取 message_definitions（用于展示请求/响应结构）
+  const messageDefinitions = useMemo(() => {
+    if (!flow || !currentConnectionId) return {};
+    const connectNode = flow.nodes.find(n => n.uuid === currentConnectionId);
+    if (!connectNode || !isGrpcConnectConfig(connectNode.data)) return {};
+    const services = connectNode.data.discovered_services;
+    if (!services || services.length === 0) return {};
+    return services[0].message_definitions ?? {};
+  }, [flow, currentConnectionId]);
+
+  // 可展开的 schema 状态
+  const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
+  const toggleSchema = useCallback((dir: 'input' | 'output') => {
+    const key = dir;
+    setExpandedSchemas(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   // 编辑模式：JSON（默认）| 表单
   const [editMode, setEditMode] = useState<'json' | 'form'>('json');
@@ -718,19 +742,77 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
                 ))}
               </SelectContent>
             </Select>
-            {/* 方法类型信息 */}
+            {/* 方法类型信息（可点击展开 schema） */}
             {watch('method_name') && (() => {
               const selected = discoveredMethods.find(m => m.method_name === watch('method_name'));
               if (!selected) return null;
+              const hasInputDef = !!messageDefinitions[selected.input_type];
+              const hasOutputDef = !!messageDefinitions[selected.output_type];
               return (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="font-mono text-emerald-700 bg-emerald-50 rounded px-1.5 py-0.5">
-                    {selected.input_type}
-                  </span>
-                  <span>→</span>
-                  <span className="font-mono text-blue-700 bg-blue-50 rounded px-1.5 py-0.5">
-                    {selected.output_type}
-                  </span>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {/* Input type chip */}
+                    {hasInputDef ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSchema('input')}
+                        className="inline-flex items-center gap-1 font-mono text-xs px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors border border-violet-200/50"
+                      >
+                        <ChevronDown className={cn(
+                          "h-3 w-3 transition-transform",
+                          expandedSchemas.has('input') && "rotate-180"
+                        )} />
+                        {selected.input_type.split('.').pop() || selected.input_type}
+                      </button>
+                    ) : (
+                      <span className="font-mono text-emerald-700 bg-emerald-50 rounded px-1.5 py-0.5">
+                        {selected.input_type}
+                      </span>
+                    )}
+                    <span>→</span>
+                    {/* Output type chip */}
+                    {hasOutputDef ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSchema('output')}
+                        className="inline-flex items-center gap-1 font-mono text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200/50"
+                      >
+                        <ChevronDown className={cn(
+                          "h-3 w-3 transition-transform",
+                          expandedSchemas.has('output') && "rotate-180"
+                        )} />
+                        {selected.output_type.split('.').pop() || selected.output_type}
+                      </button>
+                    ) : (
+                      <span className="font-mono text-blue-700 bg-blue-50 rounded px-1.5 py-0.5">
+                        {selected.output_type}
+                      </span>
+                    )}
+                  </div>
+                  {/* Expanded schema viewer for input type */}
+                  {expandedSchemas.has('input') && hasInputDef && (
+                    <div className="ml-1 mt-1">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
+                        {getLL().panels.grpcConnect.requestSchema()}
+                      </div>
+                      <MessageSchemaView
+                        message={messageDefinitions[selected.input_type]}
+                        messageDefinitions={messageDefinitions}
+                      />
+                    </div>
+                  )}
+                  {/* Expanded schema viewer for output type */}
+                  {expandedSchemas.has('output') && hasOutputDef && (
+                    <div className="ml-1 mt-1">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
+                        {getLL().panels.grpcConnect.responseSchema()}
+                      </div>
+                      <MessageSchemaView
+                        message={messageDefinitions[selected.output_type]}
+                        messageDefinitions={messageDefinitions}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })()}
