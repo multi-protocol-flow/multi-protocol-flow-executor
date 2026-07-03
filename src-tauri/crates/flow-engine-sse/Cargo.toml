@@ -17,6 +17,7 @@ thiserror = { workspace = true }
 chrono = { workspace = true }
 futures-util = { workspace = true }
 tokio-util = "0.7"
+rustls = { workspace = true, features = ["ring"] }
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [lints]

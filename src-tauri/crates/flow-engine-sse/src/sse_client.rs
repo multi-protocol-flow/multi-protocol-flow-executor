@@ -459,6 +459,9 @@ mod tests {
     /// 实际上 reqwest 的 bytes_stream 来自 Response，我们需要一个真正的 HTTP 服务
     /// 或者使用 mock。但为了避免复杂依赖，这里使用一个简单的内部 HTTP 服务器。
     async fn mock_response(body: &str) -> Response {
+        // 初始化 rustls crypto provider（在测试中 reqwest 需要）
+        let _ = rustls::crypto::ring::default_provider().install_default();
+
         // 使用 tokio::spawn 启动一个临时 HTTP 服务器
         let body_bytes = body.as_bytes().to_vec();
 
