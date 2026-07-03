@@ -658,7 +658,6 @@ mod tests {
     use super::*;
     use flow_engine_core::node::{NodePosition};
     use flow_engine_core::node_config::{WsConnectConfig, WsCollectCondition, WsMatchType};
-    use flow_engine_core::variable::OutputMapping;
     use crate::websocket_manager::WebSocketConnectionManager;
     use std::sync::Arc;
 
