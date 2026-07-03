@@ -4,7 +4,10 @@
 //! 通过 prost-reflect 的 DescriptorPool 实现动态消息解析和服务发现。
 
 use prost_reflect::{DescriptorPool, FieldDescriptor, Kind, MessageDescriptor};
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
+
+use flow_engine_core::traits::{GrpcEnumValue, GrpcFieldInfo, GrpcMessageInfo, GrpcOneofInfo};
 
 /// Proto 文件描述（用户上传）
 #[derive(Debug, Clone)]
@@ -502,6 +505,282 @@ fn json_type_name(value: &serde_json::Value) -> &'static str {
         serde_json::Value::Array(_) => "array",
         serde_json::Value::Object(_) => "object",
     }
+}
+
+// ============================================================================
+// Message Definition Extraction
+// ============================================================================
+
+/// Maximum recursion depth for nested message extraction (reserved for future use)
+#[allow(dead_code)]
+const MAX_SCHEMA_DEPTH: usize = 10;
+
+/// Extract all message definitions from a DescriptorPool into a flat HashMap
+/// keyed by message full_name (e.g. "package.MessageName").
+///
+/// The flat map avoids duplication when the same message type is referenced
+/// by multiple methods or services. Frontend uses the map for lazy expansion.
+///
+/// Filters out synthetic map entry messages automatically.
+/// Marks Well-Known Types (google.protobuf.*) with is_wkt = true.
+pub fn get_message_definitions(
+    pool: &DescriptorPool,
+) -> HashMap<String, GrpcMessageInfo> {
+    let mut definitions = HashMap::new();
+    let mut visited = HashSet::new();
+
+    for message in pool.all_messages() {
+        let full_name = message.full_name().to_string();
+
+        // Skip synthetic map entry messages
+        if message.is_map_entry() {
+            continue;
+        }
+
+        let msg_info = extract_message_info(&message, &mut visited, pool);
+        definitions.insert(full_name, msg_info);
+    }
+
+    definitions
+}
+
+/// Build a GrpcMessageInfo from a prost-reflect MessageDescriptor
+fn extract_message_info(
+    msg: &MessageDescriptor,
+    visited: &mut HashSet<String>,
+    pool: &DescriptorPool,
+) -> GrpcMessageInfo {
+    let full_name = msg.full_name().to_string();
+    let is_wkt = full_name.starts_with("google.protobuf.");
+
+    let fields: Vec<GrpcFieldInfo> = msg
+        .fields()
+        .map(|field| field_to_info(&field, visited, pool, 0))
+        .collect();
+
+    let oneof_groups = get_oneof_info(msg);
+    let reserved_ranges = get_reserved_ranges(msg);
+    let reserved_names = get_reserved_names(msg);
+
+    GrpcMessageInfo {
+        full_name,
+        fields,
+        oneof_groups,
+        is_wkt,
+        reserved_ranges,
+        reserved_names,
+    }
+}
+
+/// Convert a FieldDescriptor to GrpcFieldInfo
+fn field_to_info(
+    field: &FieldDescriptor,
+    visited: &mut HashSet<String>,
+    pool: &DescriptorPool,
+    _depth: usize,
+) -> GrpcFieldInfo {
+    let name = field.name().to_string();
+    let number = field.number();
+    let is_map = field.is_map();
+    let label = match field.cardinality() {
+        prost_reflect::Cardinality::Optional => "optional",
+        prost_reflect::Cardinality::Required => "required",
+        prost_reflect::Cardinality::Repeated => "repeated",
+    }
+    .to_string();
+
+    let (type_kind, type_display, type_full_name, enum_values, nested_message, map_key_type, map_value_type) =
+        resolve_field_type(field, visited, pool);
+
+    GrpcFieldInfo {
+        name,
+        number,
+        type_kind,
+        type_display,
+        type_full_name,
+        label,
+        is_map,
+        map_key_type,
+        map_value_type,
+        enum_values,
+        nested_message,
+    }
+}
+
+/// Resolve the type information for a field, handling all protobuf type categories
+fn resolve_field_type(
+    field: &FieldDescriptor,
+    visited: &mut HashSet<String>,
+    pool: &DescriptorPool,
+) -> (
+    String,
+    String,
+    Option<String>,
+    Vec<GrpcEnumValue>,
+    Option<Box<GrpcMessageInfo>>,
+    Option<String>,
+    Option<String>,
+) {
+    let label_prefix = match field.cardinality() {
+        prost_reflect::Cardinality::Repeated => "repeated ",
+        _ => "",
+    };
+
+    if field.is_map() {
+        let (map_key, map_value) = if let Kind::Message(entry_msg) = field.kind() {
+            let key_kind = entry_msg.map_entry_key_field().kind();
+            let val_kind = entry_msg.map_entry_value_field().kind();
+            (format_type_name(&key_kind), format_type_name(&val_kind))
+        } else {
+            (String::new(), String::new())
+        };
+        let display = format!("map<{}, {}>", map_key, map_value);
+        return (
+            "map".to_string(),
+            display,
+            None,
+            vec![],
+            None,
+            Some(map_key),
+            Some(map_value),
+        );
+    }
+
+    match field.kind() {
+        Kind::Double => type_result(label_prefix, "double"),
+        Kind::Float => type_result(label_prefix, "float"),
+        Kind::Int32 | Kind::Sint32 | Kind::Sfixed32 => type_result(label_prefix, "int32"),
+        Kind::Int64 | Kind::Sint64 | Kind::Sfixed64 => type_result(label_prefix, "int64"),
+        Kind::Uint32 | Kind::Fixed32 => type_result(label_prefix, "uint32"),
+        Kind::Uint64 | Kind::Fixed64 => type_result(label_prefix, "uint64"),
+        Kind::Bool => type_result(label_prefix, "bool"),
+        Kind::String => type_result(label_prefix, "string"),
+        Kind::Bytes => type_result(label_prefix, "bytes"),
+        Kind::Enum(enum_desc) => {
+            let enum_name = enum_desc.full_name().to_string();
+            let values: Vec<GrpcEnumValue> = enum_desc
+                .values()
+                .map(|v| GrpcEnumValue {
+                    name: v.name().to_string(),
+                    number: v.number(),
+                })
+                .collect();
+            let display = type_display(label_prefix, &enum_name);
+            (
+                "enum".to_string(),
+                display,
+                Some(enum_name),
+                values,
+                None,
+                None,
+                None,
+            )
+        }
+        Kind::Message(msg_desc) => {
+            let msg_name = msg_desc.full_name().to_string();
+            let display = type_display(label_prefix, &msg_name);
+
+            // Check if already visited (circular reference)
+            if visited.contains(&msg_name) {
+                return (
+                    "circular_ref".to_string(),
+                    display,
+                    Some(msg_name),
+                    vec![],
+                    None,
+                    None,
+                    None,
+                );
+            }
+
+            // Check if WKT - skip nested expansion for well-known types
+            if msg_name.starts_with("google.protobuf.") {
+                return (
+                    "message".to_string(),
+                    display,
+                    Some(msg_name),
+                    vec![],
+                    None,
+                    None,
+                    None,
+                );
+            }
+
+            // Recursively extract nested message
+            visited.insert(msg_name.clone());
+            let nested = extract_message_info(&msg_desc, visited, pool);
+            visited.remove(&msg_name);
+
+            (
+                "message".to_string(),
+                display,
+                Some(msg_name),
+                vec![],
+                Some(Box::new(nested)),
+                None,
+                None,
+            )
+        }
+    }
+}
+
+/// Helper: create a simple type result tuple for scalar types
+fn type_result(label_prefix: &str, type_name: &str) -> (String, String, Option<String>, Vec<GrpcEnumValue>, Option<Box<GrpcMessageInfo>>, Option<String>, Option<String>) {
+    (
+        type_name.to_string(),
+        type_display(label_prefix, type_name),
+        None,
+        vec![],
+        None,
+        None,
+        None,
+    )
+}
+
+/// Helper: type display string (with optional "repeated " prefix)
+fn type_display(prefix: &str, type_name: &str) -> String {
+    format!("{}{}", prefix, type_name)
+}
+
+/// Extract oneof groups from a message
+fn get_oneof_info(msg: &MessageDescriptor) -> Vec<GrpcOneofInfo> {
+    msg.oneofs()
+        .map(|oneof| GrpcOneofInfo {
+            name: oneof.name().to_string(),
+            field_numbers: oneof.fields().map(|f| f.number()).collect(),
+        })
+        .collect()
+}
+
+/// Extract reserved field ranges
+fn get_reserved_ranges(_msg: &MessageDescriptor) -> Vec<(u32, u32)> {
+    // prost-reflect doesn't have a direct reserved_ranges API.
+    // Return empty for now - the frontend handles absence.
+    vec![]
+}
+
+/// Extract reserved field names
+fn get_reserved_names(_msg: &MessageDescriptor) -> Vec<String> {
+    // Same as above
+    vec![]
+}
+
+/// Format a protobuf Kind into a type name string
+fn format_type_name(kind: &prost_reflect::Kind) -> String {
+    match kind {
+        Kind::Double => "double",
+        Kind::Float => "float",
+        Kind::Int32 | Kind::Sint32 | Kind::Sfixed32 => "int32",
+        Kind::Int64 | Kind::Sint64 | Kind::Sfixed64 => "int64",
+        Kind::Uint32 | Kind::Fixed32 => "uint32",
+        Kind::Uint64 | Kind::Fixed64 => "uint64",
+        Kind::Bool => "bool",
+        Kind::String => "string",
+        Kind::Bytes => "bytes",
+        Kind::Enum(desc) => desc.full_name(),
+        Kind::Message(desc) => desc.full_name(),
+    }
+    .to_string()
 }
 
 #[cfg(test)]
@@ -1085,5 +1364,468 @@ message User {
         let result3 = validate_request_json(&pool, "enumtest.User", r#"{"status": [1]}"#);
         assert!(result3.is_ok());
         assert!(!result3.expect("应返回验证结果").valid);
+    }
+
+    // ========================================================================
+    // get_message_definitions 测试
+    // ========================================================================
+
+    /// Comprehensive proto for message definition extraction tests
+    const TEST_DEFINITIONS_PROTO: &str = r#"
+syntax = "proto3";
+package testdef;
+
+import "google/protobuf/timestamp.proto";
+
+enum Priority {
+  PRIORITY_UNSPECIFIED = 0;
+  LOW = 1;
+  HIGH = 2;
+}
+
+message SimpleMessage {
+  string name = 1;
+  int32 age = 2;
+  bool active = 3;
+  double score = 4;
+  bytes data = 5;
+}
+
+message WithEnum {
+  Priority priority = 1;
+}
+
+message WithOneof {
+  string name = 1;
+  oneof payload {
+    string text_value = 2;
+    int32 number_value = 3;
+  }
+}
+
+message WithMap {
+  map<string, string> labels = 1;
+}
+
+message EmptyMessage {
+}
+
+message NestedOuter {
+  string id = 1;
+  message Inner {
+    string value = 1;
+    int32 count = 2;
+  }
+  Inner inner = 2;
+}
+
+message WithWkt {
+  google.protobuf.Timestamp created_at = 1;
+  string description = 2;
+}
+"#;
+
+    /// Circular reference proto
+    const TEST_CIRCULAR_PROTO: &str = r#"
+syntax = "proto3";
+package circref;
+
+message CircularA {
+  string name = 1;
+  CircularB b = 2;
+}
+
+message CircularB {
+  string name = 1;
+  CircularA a = 2;
+}
+"#;
+
+    /// Parse a proto string into a DescriptorPool
+    fn parse_defs_pool(proto: &str, filename: &str) -> DescriptorPool {
+        let files = vec![ProtoFile {
+            path: filename.to_string(),
+            content: proto.to_string(),
+        }];
+        parse_proto_files(&files)
+            .unwrap_or_else(|e| panic!("解析 proto '{}' 应Success: {}", filename, e))
+    }
+
+    /// Test basic scalar field types
+    #[test]
+    fn test_get_message_definitions_simple() {
+        let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
+        let defs = get_message_definitions(&pool);
+
+        let simple = defs
+            .get("testdef.SimpleMessage")
+            .expect("SimpleMessage should exist");
+        assert_eq!(simple.fields.len(), 5, "SimpleMessage should have 5 fields");
+        assert!(!simple.is_wkt, "SimpleMessage is not a WKT");
+
+        // Check name (string)
+        let name_f = simple.fields.iter().find(|f| f.name == "name").unwrap();
+        assert_eq!(name_f.number, 1);
+        assert_eq!(name_f.type_kind, "string");
+        assert_eq!(name_f.type_display, "string");
+        assert_eq!(name_f.label, "optional");
+        assert!(!name_f.is_map);
+
+        // Check age (int32)
+        let age_f = simple.fields.iter().find(|f| f.name == "age").unwrap();
+        assert_eq!(age_f.number, 2);
+        assert_eq!(age_f.type_kind, "int32");
+        assert_eq!(age_f.type_display, "int32");
+
+        // Check active (bool)
+        let active_f = simple.fields.iter().find(|f| f.name == "active").unwrap();
+        assert_eq!(active_f.number, 3);
+        assert_eq!(active_f.type_kind, "bool");
+
+        // Check score (double)
+        let score_f = simple.fields.iter().find(|f| f.name == "score").unwrap();
+        assert_eq!(score_f.number, 4);
+        assert_eq!(score_f.type_kind, "double");
+
+        // Check data (bytes)
+        let data_f = simple.fields.iter().find(|f| f.name == "data").unwrap();
+        assert_eq!(data_f.number, 5);
+        assert_eq!(data_f.type_kind, "bytes");
+    }
+
+    /// Test enum field extraction
+    #[test]
+    fn test_get_message_definitions_enum() {
+        let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
+        let defs = get_message_definitions(&pool);
+
+        let with_enum = defs
+            .get("testdef.WithEnum")
+            .expect("WithEnum should exist");
+        assert_eq!(with_enum.fields.len(), 1);
+
+        let color_f = &with_enum.fields[0];
+        assert_eq!(color_f.name, "priority");
+        assert_eq!(color_f.number, 1);
+        assert_eq!(color_f.type_kind, "enum");
+        assert_eq!(
+            color_f.type_full_name.as_deref(),
+            Some("testdef.Priority")
+        );
+        assert_eq!(color_f.enum_values.len(), 3, "Priority should have 3 values");
+        assert_eq!(color_f.enum_values[0].name, "PRIORITY_UNSPECIFIED");
+        assert_eq!(color_f.enum_values[0].number, 0);
+        assert_eq!(color_f.enum_values[1].name, "LOW");
+        assert_eq!(color_f.enum_values[1].number, 1);
+        assert_eq!(color_f.enum_values[2].name, "HIGH");
+        assert_eq!(color_f.enum_values[2].number, 2);
+        assert!(color_f.enum_values.iter().all(|v| !v.name.is_empty()));
+    }
+
+    /// Test oneof group extraction
+    #[test]
+    fn test_get_message_definitions_oneof() {
+        let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
+        let defs = get_message_definitions(&pool);
+
+        let with_oneof = defs
+            .get("testdef.WithOneof")
+            .expect("WithOneof should exist");
+        assert_eq!(with_oneof.oneof_groups.len(), 1, "Should have 1 oneof group");
+
+        let payload = &with_oneof.oneof_groups[0];
+        assert_eq!(payload.name, "payload");
+        // The oneof contains text_value (2) and number_value (3)
+        assert_eq!(payload.field_numbers.len(), 2);
+        assert!(payload.field_numbers.contains(&2));
+        assert!(payload.field_numbers.contains(&3));
+        // field 1 (name) should NOT be in the oneof
+        assert!(!payload.field_numbers.contains(&1));
+    }
+
+    /// Test map field extraction
+    #[test]
+    fn test_get_message_definitions_map() {
+        let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
+        let defs = get_message_definitions(&pool);
+
+        let with_map = defs
+            .get("testdef.WithMap")
+            .expect("WithMap should exist");
+        assert_eq!(with_map.fields.len(), 1);
+
+        let labels_f = &with_map.fields[0];
+        assert_eq!(labels_f.name, "labels");
+        assert!(labels_f.is_map, "labels should be a map field");
+        assert_eq!(labels_f.type_kind, "map");
+        assert_eq!(labels_f.type_display, "map<string, string>");
+        assert_eq!(
+            labels_f.map_key_type.as_deref(),
+            Some("string"),
+            "map key should be string"
+        );
+        assert_eq!(
+            labels_f.map_value_type.as_deref(),
+            Some("string"),
+            "map value should be string"
+        );
+        assert!(labels_f.enum_values.is_empty());
+        assert!(labels_f.nested_message.is_none());
+    }
+
+    /// Test WKT detection
+    #[test]
+    fn test_get_message_definitions_wkt() {
+        let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
+        let defs = get_message_definitions(&pool);
+
+        let with_wkt = defs
+            .get("testdef.WithWkt")
+            .expect("WithWkt should exist");
+        assert_eq!(with_wkt.fields.len(), 2, "WithWkt should have 2 fields");
+
+        // created_at field referencing google.protobuf.Timestamp
+        let ts_f = with_wkt
+            .fields
+            .iter()
+            .find(|f| f.name == "created_at")
+            .unwrap();
+        assert_eq!(ts_f.type_kind, "message", "WKT field should be 'message' type");
+        assert_eq!(
+            ts_f.type_full_name.as_deref(),
+            Some("google.protobuf.Timestamp"),
+            "should reference Timestamp"
+        );
+        // WKT fields should NOT have nested_message expanded
+        assert!(
+            ts_f.nested_message.is_none(),
+            "WKT should not be expanded as nested_message"
+        );
+
+        // description field
+        let desc_f = with_wkt
+            .fields
+            .iter()
+            .find(|f| f.name == "description")
+            .unwrap();
+        assert_eq!(desc_f.type_kind, "string");
+
+        // Verify that google.protobuf.Timestamp itself appears with is_wkt = true
+        let ts_msg = defs.get("google.protobuf.Timestamp");
+        assert!(ts_msg.is_some(), "Timestamp should exist in definitions");
+        assert!(
+            ts_msg.unwrap().is_wkt,
+            "google.protobuf.Timestamp should be marked is_wkt"
+        );
+    }
+
+    /// Test empty message extraction
+    #[test]
+    fn test_get_message_definitions_empty_message() {
+        let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
+        let defs = get_message_definitions(&pool);
+
+        let empty = defs
+            .get("testdef.EmptyMessage")
+            .expect("EmptyMessage should exist");
+        assert!(
+            empty.fields.is_empty(),
+            "EmptyMessage should have no fields"
+        );
+        assert!(
+            empty.oneof_groups.is_empty(),
+            "EmptyMessage should have no oneof groups"
+        );
+        assert!(!empty.is_wkt);
+    }
+
+    /// Test nested message extraction
+    #[test]
+    fn test_get_message_definitions_nested_message() {
+        let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
+        let defs = get_message_definitions(&pool);
+
+        let outer = defs
+            .get("testdef.NestedOuter")
+            .expect("NestedOuter should exist");
+        assert_eq!(outer.fields.len(), 2, "NestedOuter should have 2 fields");
+
+        // id field
+        let id_f = outer.fields.iter().find(|f| f.name == "id").unwrap();
+        assert_eq!(id_f.type_kind, "string");
+
+        // inner field referencing NestedOuter.Inner
+        let inner_f = outer
+            .fields
+            .iter()
+            .find(|f| f.name == "inner")
+            .unwrap();
+        assert_eq!(inner_f.type_kind, "message");
+        assert_eq!(
+            inner_f.type_full_name.as_deref(),
+            Some("testdef.NestedOuter.Inner")
+        );
+
+        // inner field should have nested_message with its fields
+        let nested = inner_f
+            .nested_message
+            .as_ref()
+            .expect("inner field should have nested_message");
+        assert_eq!(nested.full_name, "testdef.NestedOuter.Inner");
+        assert_eq!(nested.fields.len(), 2, "Inner should have 2 fields");
+        assert!(nested.fields.iter().any(|f| f.name == "value"));
+        assert!(nested.fields.iter().any(|f| f.name == "count"));
+
+        // The nested message should also be in the flat map
+        let inner_def = defs
+            .get("testdef.NestedOuter.Inner")
+            .expect("Inner should be in flat map too");
+        assert_eq!(inner_def.fields.len(), 2);
+    }
+
+    /// Test synthetic MapEntry filtering
+    #[test]
+    fn test_get_message_definitions_filters_synthetic() {
+        let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
+        let defs = get_message_definitions(&pool);
+
+        // Verify that WithMap is in definitions
+        assert!(
+            defs.contains_key("testdef.WithMap"),
+            "WithMap should be in definitions"
+        );
+
+        // Verify that no map entry messages are in definitions
+        for msg in pool.all_messages() {
+            if msg.is_map_entry() {
+                let name = msg.full_name();
+                assert!(
+                    !defs.contains_key(name),
+                    "Map entry '{}' should be filtered from definitions",
+                    name
+                );
+            }
+        }
+
+        // Specifically verify WithMap.LabelsEntry is filtered
+        let labels_entry_name = "testdef.WithMap.LabelsEntry";
+        assert!(
+            !defs.contains_key(labels_entry_name),
+            "LabelsEntry should be filtered"
+        );
+    }
+
+    /// Test circular reference handling — no infinite recursion
+    #[test]
+    fn test_get_message_definitions_circular_ref() {
+        let pool = parse_defs_pool(TEST_CIRCULAR_PROTO, "circular.proto");
+        let defs = get_message_definitions(&pool);
+
+        let circular_a = defs
+            .get("circref.CircularA")
+            .expect("CircularA should exist");
+        assert_eq!(circular_a.fields.len(), 2, "CircularA should have 2 fields");
+
+        // name field
+        let name_f = circular_a.fields.iter().find(|f| f.name == "name").unwrap();
+        assert_eq!(name_f.type_kind, "string");
+
+        // b field referencing CircularB — should be a circular_ref type
+        let b_f = circular_a.fields.iter().find(|f| f.name == "b").unwrap();
+        assert_eq!(
+            b_f.type_kind, "circular_ref",
+            "Field referencing CircularB should be marked as circular_ref"
+        );
+        assert_eq!(
+            b_f.type_full_name.as_deref(),
+            Some("circref.CircularB"),
+            "b field should reference CircularB"
+        );
+        // circular ref should NOT have nested_message expanded
+        assert!(
+            b_f.nested_message.is_none(),
+            "Circular ref should not have nested_message expanded"
+        );
+
+        // CircularB should exist in the flat map too
+        let circular_b = defs
+            .get("circref.CircularB")
+            .expect("CircularB should exist in definitions");
+        assert_eq!(circular_b.fields.len(), 2, "CircularB should have 2 fields");
+
+        // a field referencing CircularA — should be circular_ref type
+        let a_f = circular_b.fields.iter().find(|f| f.name == "a").unwrap();
+        assert_eq!(
+            a_f.type_kind, "circular_ref",
+            "Field referencing CircularA should be marked as circular_ref"
+        );
+        assert_eq!(
+            a_f.type_full_name.as_deref(),
+            Some("circref.CircularA"),
+            "a field should reference CircularA"
+        );
+        assert!(
+            a_f.nested_message.is_none(),
+            "Circular ref should not have nested_message expanded"
+        );
+    }
+
+    /// Test serde roundtrip for get_message_definitions output
+    #[test]
+    fn test_get_message_definitions_serde_roundtrip() {
+        let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
+        let defs = get_message_definitions(&pool);
+
+        // Verify the HashMap can be serialized to JSON
+        let json = serde_json::to_string(&defs).expect("Serialization should succeed");
+        assert!(!json.is_empty(), "Serialized JSON should not be empty");
+
+        // Verify the JSON can be deserialized back
+        let deserialized: std::collections::HashMap<String, GrpcMessageInfo> =
+            serde_json::from_str(&json).expect("Deserialization should succeed");
+
+        // Verify roundtrip preserved all keys
+        assert_eq!(
+            defs.len(),
+            deserialized.len(),
+            "Roundtrip should preserve number of message definitions"
+        );
+
+        // Verify roundtrip preserved key content for a few messages
+        for key in &["testdef.SimpleMessage", "testdef.WithEnum", "testdef.WithMap", "testdef.WithWkt"] {
+            let original = defs.get(*key).expect("Original should have key");
+            let restored = deserialized.get(*key).expect("Restored should have key");
+            assert_eq!(original.full_name, restored.full_name, "Roundtrip failed for {}", key);
+            assert_eq!(original.fields.len(), restored.fields.len(), "Field count mismatch for {}", key);
+            assert_eq!(original.is_wkt, restored.is_wkt, "is_wkt mismatch for {}", key);
+        }
+
+        // Verify WithMap has serde roundtrip for is_map + map_key_type + map_value_type
+        let wm_original = defs.get("testdef.WithMap").unwrap();
+        let wm_restored = deserialized.get("testdef.WithMap").unwrap();
+        assert_eq!(wm_original.fields[0].is_map, wm_restored.fields[0].is_map);
+        assert_eq!(
+            wm_original.fields[0].map_key_type,
+            wm_restored.fields[0].map_key_type
+        );
+        assert_eq!(
+            wm_original.fields[0].map_value_type,
+            wm_restored.fields[0].map_value_type
+        );
+
+        // Verify NestedOuter roundtrip maintains nested_message
+        let no_original = defs.get("testdef.NestedOuter").unwrap();
+        let no_restored = deserialized.get("testdef.NestedOuter").unwrap();
+        assert_eq!(
+            no_original.fields[1].nested_message.is_some(),
+            no_restored.fields[1].nested_message.is_some(),
+            "nested_message presence should survive roundtrip"
+        );
+        if let (Some(orig_inner), Some(restored_inner)) =
+            (&no_original.fields[1].nested_message, &no_restored.fields[1].nested_message)
+        {
+            assert_eq!(orig_inner.full_name, restored_inner.full_name);
+            assert_eq!(orig_inner.fields.len(), restored_inner.fields.len());
+        }
     }
 }
