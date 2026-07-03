@@ -6,6 +6,8 @@
 //! 3. 报告集成: 验证报告包含 ws_streams
 //! 4. 普通模式: 非调试模式执行，无调试事件，消息仍被记录
 
+use rustls::crypto::ring::default_provider;
+use std::sync::Once;
 use tokio::sync::mpsc;
 
 use flow_engine::connection::Connection;
@@ -16,6 +18,14 @@ use flow_engine::node::{Node, NodePosition};
 use flow_engine::node_config::{NodeData, WsConnectConfig, WsSendCollectConfig, WsCloseConfig, WsCollectMode, WsMessageType};
 use flow_engine::report::FlowExecutionReport;
 use flow_engine::ws_stream::{MessageContent, MessageDirection, WsMessage};
+
+/// Ensure rustls CryptoProvider is installed before any reqwest Client creation
+static CRYPTO_INIT: Once = Once::new();
+fn ensure_crypto_provider() {
+    CRYPTO_INIT.call_once(|| {
+        let _ = default_provider().install_default();
+    });
+}
 
 // ============================================================================
 // 辅助函数
@@ -140,6 +150,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
 /// - 调试事件正确发送
 #[tokio::test]
 async fn test_debug_flow_with_breakpoint() {
+    ensure_crypto_provider();
     let flow_uuid = "test-debug-breakpoint-001";
     let flow = create_basic_ws_flow(flow_uuid);
     

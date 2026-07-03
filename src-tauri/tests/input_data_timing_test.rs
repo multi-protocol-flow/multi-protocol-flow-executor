@@ -5,11 +5,21 @@
 //! - HTTP 节点：input_data = 请求配置（url, method, headers, body, body_type）
 //! - 变量相关数据通过 variable_changes 记录
 
+use rustls::crypto::ring::default_provider;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::Once;
 
 use flow_engine::command::ExecuteFlowCommandInput;
+
+/// Ensure rustls CryptoProvider is installed before any reqwest Client creation
+static CRYPTO_INIT: Once = Once::new();
+fn ensure_crypto_provider() {
+    CRYPTO_INIT.call_once(|| {
+        let _ = default_provider().install_default();
+    });
+}
 use flow_engine::connection::Connection;
 use flow_engine::flow::Flow;
 use flow_engine::node::{Node, NodePosition, Port, PortType};
@@ -22,6 +32,7 @@ use flow_engine::traits::NoopLogSender;
 /// 验证: Entry 节点的 input_data 应该是 None（无输入）
 #[tokio::test]
 async fn test_input_data_timing_basic() {
+    ensure_crypto_provider();
     // 创建 Entry 节点
     let entry_node = Node {
         uuid: "entry-1".to_string(),
@@ -88,6 +99,7 @@ async fn test_input_data_timing_basic() {
 ///       variable_changes 应该记录初始变量的设置
 #[tokio::test]
 async fn test_input_data_timing_with_initial_variables() {
+    ensure_crypto_provider();
     // 创建 Entry 节点（无初始变量）
     let entry_node = Node {
         uuid: "entry-2".to_string(),
@@ -157,10 +169,10 @@ async fn test_input_data_timing_with_initial_variables() {
 /// 验证: HTTP 节点的 input_data 应该是请求配置（url, method, headers, body, body_type）
 ///       不应该包含响应数据（status, body, headers 等）
 ///
-/// 注意：此测试需要外部 HTTP 服务，可能会失败
+/// 使用本地 echo 服务 (http://localhost:19090) 替代外部 httpbin
 #[tokio::test]
-#[ignore = "需要外部 HTTP 服务"]
 async fn test_input_data_timing_http_node() {
+    ensure_crypto_provider();
     // 创建 Entry 节点
     let entry_node = Node {
         uuid: "entry-3".to_string(),
@@ -179,14 +191,14 @@ async fn test_input_data_timing_http_node() {
         on_error: None,
     };
 
-    // 创建 HTTP 节点（使用变量引用）
+    // 创建 HTTP 节点
     let http_node = Node {
         uuid: "http-3".to_string(),
         node_type: "http".to_string(),
         name: "HTTP 请求".to_string(),
         position: NodePosition { x: 200.0, y: 0.0 },
         data: NodeData::Http(HttpConfig {
-            url: "https://httpbin.org/get".to_string(),
+            url: "http://localhost:19090/api/status".to_string(),
             method: HttpMethod::Get,
             ..Default::default()
         }),
@@ -222,7 +234,7 @@ async fn test_input_data_timing_http_node() {
 
     // 创建流程
     let mut initial_vars = HashMap::new();
-    initial_vars.insert("api_url".to_string(), json!("https://httpbin.org"));
+    initial_vars.insert("api_url".to_string(), json!("http://localhost:19090"));
 
     let flow = Flow {
         uuid: "flow-3".to_string(),

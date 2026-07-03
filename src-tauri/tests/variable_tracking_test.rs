@@ -12,14 +12,25 @@ use flow_engine::executor::FlowExecutor;
 use flow_engine::flow::Flow;
 use flow_engine::node::{Node, NodePosition};
 use flow_engine::node_config::NodeData;
+use rustls::crypto::ring::default_provider;
 use serde_json::json;
+use std::sync::Once;
 use uuid::Uuid;
+
+/// Ensure rustls CryptoProvider is installed before any reqwest Client creation
+static CRYPTO_INIT: Once = Once::new();
+fn ensure_crypto_provider() {
+    CRYPTO_INIT.call_once(|| {
+        let _ = default_provider().install_default();
+    });
+}
 
 /// 测试 Task 13: 变量追踪 - 新变量创建
 ///
 /// 验证节点输出数据创建新变量时，variable_changes 正确记录
 #[tokio::test]
 async fn test_variable_tracking_new_variable() {
+    ensure_crypto_provider();
     // 创建简单流程：Entry -> Entry（第二个节点模拟有输出）
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
@@ -84,6 +95,7 @@ async fn test_variable_tracking_new_variable() {
 /// 验证 execution_path 包含所有执行节点的 UUID，按执行顺序排列
 #[tokio::test]
 async fn test_execution_path_tracking() {
+    ensure_crypto_provider();
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "start-uuid-path".to_string(),
@@ -144,6 +156,7 @@ async fn test_execution_path_tracking() {
 /// 验证流程开始和结束时的变量状态被正确记录
 #[tokio::test]
 async fn test_variable_snapshots() {
+    ensure_crypto_provider();
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "start-snap".to_string(),
@@ -217,6 +230,7 @@ async fn test_variable_snapshots() {
 /// 验证没有初始变量时的行为
 #[tokio::test]
 async fn test_variable_snapshots_empty_initial() {
+    ensure_crypto_provider();
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "start-empty".to_string(),
@@ -262,6 +276,7 @@ async fn test_variable_snapshots_empty_initial() {
 /// 测试单节点流程的 execution_path
 #[tokio::test]
 async fn test_single_node_execution_path() {
+    ensure_crypto_provider();
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "single-node".to_string(),
@@ -302,6 +317,7 @@ async fn test_single_node_execution_path() {
 /// 当前实现中 skipped_nodes 需要特定条件才会填充
 #[tokio::test]
 async fn test_skipped_nodes_default_empty() {
+    ensure_crypto_provider();
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "start-skip".to_string(),
@@ -339,6 +355,7 @@ async fn test_skipped_nodes_default_empty() {
 /// 测试所有节点都有 resolved_config
 #[tokio::test]
 async fn test_all_nodes_have_resolved_config() {
+    ensure_crypto_provider();
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "start-resolved".to_string(),

@@ -1,15 +1,26 @@
 #![allow(missing_docs)]
 
 //! WebSocket dependency verification tests
-//! Ensures tokio-tungstenite with native-tls feature is correctly configured
+//! Ensures tokio-tungstenite with rustls TLS is correctly configured
 
 use futures_util::{SinkExt, StreamExt};
+use rustls::crypto::ring::default_provider;
+use std::sync::Once;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
+/// Ensure rustls CryptoProvider is installed before any TLS connections
+static CRYPTO_INIT: Once = Once::new();
+fn ensure_crypto_provider() {
+    CRYPTO_INIT.call_once(|| {
+        let _ = default_provider().install_default();
+    });
+}
+
 /// Verify WebSocket TLS support by connecting to a secure WebSocket server
-/// This test validates that the native-tls feature is working correctly
+/// This test validates that the rustls TLS backend is working correctly
 #[tokio::test]
 async fn test_websocket_tls_connection() {
+    ensure_crypto_provider();
     // Use a public WebSocket echo server with TLS
     let ws_url = "wss://echo.websocket.org";
 
