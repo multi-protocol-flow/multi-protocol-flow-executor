@@ -657,7 +657,7 @@ mod tests {
         let (_, output) = result.unwrap();
         let output = output.unwrap();
         assert_eq!(output["success"], false);
-        assert!(output["error"].as_str().unwrap().contains("connection_uuid"));
+        assert!(output["error"].as_str().unwrap().contains("Connection UUID is required"));
     }
 
     #[tokio::test]
