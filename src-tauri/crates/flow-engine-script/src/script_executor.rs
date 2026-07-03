@@ -746,7 +746,7 @@ mod tests {
 
         // 致命Error应该返回 Err
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Fatal error"));
+        assert!(result.unwrap_err().message.contains("Fatal error"));
     }
 
     #[tokio::test]
