@@ -511,10 +511,6 @@ fn json_type_name(value: &serde_json::Value) -> &'static str {
 // Message Definition Extraction
 // ============================================================================
 
-/// Maximum recursion depth for nested message extraction (reserved for future use)
-#[allow(dead_code)]
-const MAX_SCHEMA_DEPTH: usize = 10;
-
 /// Extract all message definitions from a DescriptorPool into a flat HashMap
 /// keyed by message full_name (e.g. "package.MessageName").
 ///
@@ -555,7 +551,7 @@ fn extract_message_info(
 
     let fields: Vec<GrpcFieldInfo> = msg
         .fields()
-        .map(|field| field_to_info(&field, visited, pool, 0))
+        .map(|field| field_to_info(&field, visited, pool))
         .collect();
 
     let oneof_groups = get_oneof_info(msg);
@@ -577,7 +573,6 @@ fn field_to_info(
     field: &FieldDescriptor,
     visited: &mut HashSet<String>,
     pool: &DescriptorPool,
-    _depth: usize,
 ) -> GrpcFieldInfo {
     let name = field.name().to_string();
     let number = field.number();
