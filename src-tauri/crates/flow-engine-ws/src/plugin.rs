@@ -89,11 +89,6 @@ impl NodePlugin for WsConnectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "url": config.get("url"),
@@ -193,11 +188,6 @@ impl NodePlugin for WsSendCollectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -290,10 +280,7 @@ impl NodePlugin for WsClosePlugin {
         }
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
+
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({

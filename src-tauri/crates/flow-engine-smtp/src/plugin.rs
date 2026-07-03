@@ -85,11 +85,6 @@ impl NodePlugin for SmtpConnectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "host": config.get("host"),
@@ -209,11 +204,6 @@ impl NodePlugin for SmtpSendPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -314,11 +304,6 @@ impl NodePlugin for SmtpDisconnectPlugin {
 
     fn is_protocol_node(&self) -> bool {
         true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        false
     }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {

@@ -89,11 +89,6 @@ impl NodePlugin for TcpConnectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         // tls_ca_cert 脱敏：不输出完整证书内容，仅显示是否存在
         let tls_ca_cert_desensitized =
@@ -333,11 +328,6 @@ impl NodePlugin for TcpSendPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -457,11 +447,6 @@ impl NodePlugin for TcpReceivePlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -578,11 +563,6 @@ impl NodePlugin for TcpClosePlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -716,11 +696,6 @@ impl NodePlugin for UdpBindPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "local_addr": config.get("local_addr"),
@@ -841,11 +816,6 @@ impl NodePlugin for UdpSendToPlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -991,11 +961,6 @@ impl NodePlugin for UdpRecvFromPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -1106,11 +1071,6 @@ impl NodePlugin for UdpClosePlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 

@@ -87,11 +87,6 @@ impl NodePlugin for GraphqlConnectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "endpoint": config.get("endpoint"),
@@ -194,11 +189,6 @@ impl NodePlugin for GraphqlQueryPlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -314,11 +304,6 @@ impl NodePlugin for GraphqlSubscribePlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "subscription": config.get("subscription"),
@@ -430,11 +415,6 @@ impl NodePlugin for GraphqlIntrospectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "endpoint": config.get("endpoint"),
@@ -520,11 +500,6 @@ impl NodePlugin for GraphqlDisconnectPlugin {
 
     fn is_protocol_node(&self) -> bool {
         true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        false
     }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {

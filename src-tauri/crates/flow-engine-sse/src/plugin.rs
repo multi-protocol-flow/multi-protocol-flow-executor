@@ -85,11 +85,6 @@ impl NodePlugin for SseConnectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "url": config.get("url"),
@@ -196,11 +191,6 @@ impl NodePlugin for SseListenPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -288,11 +278,6 @@ impl NodePlugin for SseDisconnectPlugin {
 
     fn is_protocol_node(&self) -> bool {
         true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        false
     }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {

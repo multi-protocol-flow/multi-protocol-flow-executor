@@ -91,11 +91,6 @@ impl NodePlugin for MqttConnectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "url": config.get("url"),
@@ -206,11 +201,6 @@ impl NodePlugin for MqttPublishPlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -336,11 +326,6 @@ impl NodePlugin for MqttSubscribePlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -459,11 +444,6 @@ impl NodePlugin for MqttUnsubscribePlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -560,11 +540,6 @@ impl NodePlugin for MqttDisconnectPlugin {
 
     fn is_protocol_node(&self) -> bool {
         true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        false
     }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
@@ -672,11 +647,6 @@ impl NodePlugin for MqttWaitMessagePlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -798,11 +768,6 @@ impl NodePlugin for MqttRequestPlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
