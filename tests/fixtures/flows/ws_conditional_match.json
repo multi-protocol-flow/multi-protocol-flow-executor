@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "ws-conditional-match-001",
-    "name": "WebSocket 条件匹配测试 - 正则匹配",
+    "name": "WebSocket Conditional Match Test - Regex Match",
     "initial_variables": null,
     "nodes": [
       {
         "uuid": "entry-ws-conditional",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "ws-connect-conditional",
         "type": "ws_connect",
-        "name": "WS 连接",
+        "name": "WS Connect",
         "position": {
           "x": 200,
           "y": 0
@@ -42,7 +42,7 @@
       {
         "uuid": "ws-send-wait-conditional",
         "type": "ws_send_collect",
-        "name": "WS 发送收集（正则匹配）",
+        "name": "WS Send Collect (Regex Match)",
         "position": {
           "x": 400,
           "y": 0
@@ -67,7 +67,7 @@
       {
         "uuid": "ws-close-conditional",
         "type": "ws_close",
-        "name": "WS 关闭",
+        "name": "WS Close",
         "position": {
           "x": 600,
           "y": 0
@@ -76,7 +76,7 @@
           "type": "ws_close",
           "connection_id": "ws-connect-conditional",
           "close_code": 1000,
-          "close_reason": "测试完成",
+          "close_reason": "Test complete",
           "close_timeout_ms": 5000
         },
         "ports": null

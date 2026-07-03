@@ -2,7 +2,7 @@
   "_version": 1,
   "flow": {
     "uuid": "ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-    "name": "变量替换流程 - Start → HTTP → End (带变量)",
+    "name": "Variable Replacement Flow - Start → HTTP → End (with Variables)",
     "initial_variables": {
       "api_url": "https://httpbin.org/get",
       "custom_header": "application/json",
@@ -12,7 +12,7 @@
       {
         "uuid": "start-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
         "type": "entry",
-        "name": "开始",
+        "name": "Start",
         "position": {
           "x": 0,
           "y": 0
@@ -25,7 +25,7 @@
       {
         "uuid": "http-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
         "type": "http",
-        "name": "HTTP请求(带变量)",
+        "name": "HTTP Request (with Variables)",
         "position": {
           "x": 200,
           "y": 0
@@ -45,7 +45,7 @@
       {
         "uuid": "end-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
         "type": "end",
-        "name": "结束",
+        "name": "End",
         "position": {
           "x": 400,
           "y": 0

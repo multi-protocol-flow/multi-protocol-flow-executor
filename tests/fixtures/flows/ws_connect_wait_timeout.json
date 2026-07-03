@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "ws-connect-wait-timeout-001",
-    "name": "WebSocket 连接收集超时测试 - Conditional 判断",
+    "name": "WebSocket Connect Collect Timeout Test - Conditional Check",
     "initial_variables": null,
     "nodes": [
       {
         "uuid": "entry-ws-timeout",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "ws-connect-timeout",
         "type": "ws_connect",
-        "name": "WS 连接（收集超时）",
+        "name": "WS Connect (Collect Timeout)",
         "position": {
           "x": 200,
           "y": 0
@@ -42,7 +42,7 @@
       {
         "uuid": "conditional-timeout-check",
         "type": "conditional",
-        "name": "超时判断",
+        "name": "Timeout Check",
         "position": {
           "x": 400,
           "y": 0
@@ -61,7 +61,7 @@
       {
         "uuid": "end-timeout-true",
         "type": "end",
-        "name": "超时结束",
+        "name": "Timeout End",
         "position": {
           "x": 600,
           "y": -100
@@ -74,7 +74,7 @@
       {
         "uuid": "end-timeout-false",
         "type": "end",
-        "name": "未超时结束",
+        "name": "No Timeout End",
         "position": {
           "x": 600,
           "y": 100

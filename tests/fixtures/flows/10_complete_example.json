@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "be5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b",
-    "name": "完整示例流程 - Start → HTTP → Conditional → End",
+    "name": "Complete Example Flow - Start → HTTP → Conditional → End",
     "initial_variables": null,
     "nodes": [
       {
         "uuid": "start-be5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b",
         "type": "entry",
-        "name": "开始",
+        "name": "Start",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "http-be5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b",
         "type": "http",
-        "name": "HTTP请求",
+        "name": "HTTP Request",
         "position": {
           "x": 200,
           "y": 0
@@ -38,7 +38,7 @@
       {
         "uuid": "conditional-be5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b",
         "type": "conditional",
-        "name": "条件判断",
+        "name": "Condition Check",
         "position": {
           "x": 400,
           "y": 0
@@ -55,7 +55,7 @@
       {
         "uuid": "end-be5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b",
         "type": "end",
-        "name": "结束",
+        "name": "End",
         "position": {
           "x": 600,
           "y": 0

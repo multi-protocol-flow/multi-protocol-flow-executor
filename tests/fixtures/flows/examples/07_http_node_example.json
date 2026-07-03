@@ -1,11 +1,11 @@
 {
   "uuid": "http-example-flow",
-  "name": "HTTP 节点示例",
+  "name": "HTTP Node Example",
   "nodes": [
     {
       "uuid": "start-001",
       "type": "entry",
-      "name": "开始",
+      "name": "Start",
       "position": { "x": 0.0, "y": 0.0 },
       "data": {
         "type": "entry"
@@ -15,7 +15,7 @@
     {
       "uuid": "http-001",
       "type": "http",
-      "name": "调用用户 API",
+      "name": "Call User API",
       "position": { "x": 100.0, "y": 0.0 },
       "data": {
         "type": "http",
@@ -32,7 +32,7 @@
     {
       "uuid": "end-001",
       "type": "end",
-      "name": "结束",
+      "name": "End",
       "position": { "x": 200.0, "y": 0.0 },
       "data": {
         "type": "end"

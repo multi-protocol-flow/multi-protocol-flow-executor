@@ -1,11 +1,11 @@
 {
   "uuid": "conditional-advanced-example-flow",
-  "name": "高级条件表达式示例",
+  "name": "Advanced Conditional Expression Example",
   "nodes": [
     {
       "uuid": "start-001",
       "type": "entry",
-      "name": "开始",
+      "name": "Start",
       "position": { "x": 0.0, "y": 0.0 },
       "data": {
         "type": "entry"
@@ -15,7 +15,7 @@
     {
       "uuid": "conditional-001",
       "type": "conditional",
-      "name": "复合条件判断",
+      "name": "Compound Condition Check",
       "position": { "x": 100.0, "y": 0.0 },
       "data": {
         "type": "conditional",
@@ -27,7 +27,7 @@
     {
       "uuid": "end-001",
       "type": "end",
-      "name": "结束",
+      "name": "End",
       "position": { "x": 200.0, "y": 0.0 },
       "data": {
         "type": "end"

@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "6ba7b812-9dad-11d1-80b4-00c04fd430c8",
-    "name": "无效流程 - 循环检测",
+    "name": "Invalid Flow - Loop Detection",
     "nodes": [
       {
         "uuid": "start-6ba7b812-9dad-11d1-80b4-00c04fd430c8",
         "type": "entry",
-        "name": "开始",
+        "name": "Start",
         "position": {
           "x": 0,
           "y": 0

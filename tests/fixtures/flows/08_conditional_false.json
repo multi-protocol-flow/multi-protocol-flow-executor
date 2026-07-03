@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "9c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f",
-    "name": "条件流程 - Start → Conditional (false) → End",
+    "name": "Conditional Flow - Start → Conditional (false) → End",
     "initial_variables": null,
     "nodes": [
       {
         "uuid": "start-9c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f",
         "type": "entry",
-        "name": "开始",
+        "name": "Start",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "conditional-9c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f",
         "type": "conditional",
-        "name": "条件判断(失败)",
+        "name": "Condition Check (Failure)",
         "position": {
           "x": 200,
           "y": 0
@@ -38,7 +38,7 @@
       {
         "uuid": "end-9c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f",
         "type": "end",
-        "name": "结束",
+        "name": "End",
         "position": {
           "x": 400,
           "y": 0

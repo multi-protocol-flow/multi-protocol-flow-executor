@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "assertion-flow-test-001",
-    "name": "断言节点测试流程",
+    "name": "Assertion Node Test Flow",
     "initial_variables": null,
     "nodes": [
       {
         "uuid": "entry-node",
         "type": "entry",
-        "name": "开始",
+        "name": "Start",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "http-node",
         "type": "http",
-        "name": "HTTP 请求",
+        "name": "HTTP Request",
         "position": {
           "x": 200,
           "y": 0
@@ -36,7 +36,7 @@
       {
         "uuid": "assertion-node",
         "type": "assertion",
-        "name": "断言状态码",
+        "name": "Assert Status Code",
         "position": {
           "x": 400,
           "y": 0
@@ -50,7 +50,7 @@
           "assertions": [
             {
               "id": "assert-status",
-              "description": "验证状态码为 200",
+              "description": "Verify status code is 200",
               "target": "$.status",
               "operator": "eq",
               "expected": 200,
@@ -63,7 +63,7 @@
       {
         "uuid": "true-branch-http",
         "type": "http",
-        "name": "True 分支标记",
+        "name": "True Branch Marker",
         "position": {
           "x": 600,
           "y": -100
@@ -78,7 +78,7 @@
       {
         "uuid": "false-branch-http",
         "type": "http",
-        "name": "False 分支标记",
+        "name": "False Branch Marker",
         "position": {
           "x": 600,
           "y": 100

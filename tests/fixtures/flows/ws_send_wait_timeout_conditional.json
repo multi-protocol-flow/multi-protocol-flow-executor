@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "ws-send-wait-timeout-conditional-001",
-    "name": "WebSocket 发送收集超时条件测试",
+    "name": "WebSocket Send Collect Timeout Condition Test",
     "initial_variables": null,
     "nodes": [
       {
         "uuid": "entry-send-wait-timeout",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "ws-connect-send-wait-timeout",
         "type": "ws_connect",
-        "name": "WS 连接",
+        "name": "WS Connect",
         "position": {
           "x": 200,
           "y": 0
@@ -42,7 +42,7 @@
       {
         "uuid": "ws-send-wait-timeout-test",
         "type": "ws_send_collect",
-        "name": "WS 发送收集（短超时）",
+        "name": "WS Send Collect (Short Timeout)",
         "position": {
           "x": 400,
           "y": 0
@@ -63,7 +63,7 @@
       {
         "uuid": "conditional-send-wait-timeout",
         "type": "conditional",
-        "name": "发送收集超时判断",
+        "name": "Send Collect Timeout Check",
         "position": {
           "x": 600,
           "y": 0
@@ -82,7 +82,7 @@
       {
         "uuid": "end-timeout-true-path",
         "type": "end",
-        "name": "超时路径结束",
+        "name": "Timeout Path End",
         "position": {
           "x": 800,
           "y": -100
@@ -95,7 +95,7 @@
       {
         "uuid": "end-timeout-false-path",
         "type": "end",
-        "name": "正常路径结束",
+        "name": "Normal Path End",
         "position": {
           "x": 800,
           "y": 100

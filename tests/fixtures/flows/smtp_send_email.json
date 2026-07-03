@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "smtp-send-email-001",
-    "name": "SMTP 发送邮件测试",
+    "name": "SMTP Send Email Test",
     "initial_variables": null,
     "nodes": [
       {
         "uuid": "entry-smtp",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "smtp-connect-001",
         "type": "smtp_connect",
-        "name": "SMTP 连接",
+        "name": "SMTP Connect",
         "position": {
           "x": 200,
           "y": 0
@@ -38,7 +38,7 @@
       {
         "uuid": "smtp-send-001",
         "type": "smtp_send",
-        "name": "发送邮件",
+        "name": "Send Email",
         "position": {
           "x": 400,
           "y": 0
@@ -50,9 +50,9 @@
           "to": [
             "recipient@example.com"
           ],
-          "subject": "测试邮件",
+          "subject": "Test Email",
           "body_type": "plain_text",
-          "body": "这是一封测试邮件",
+          "body": "This is a test email",
           "timeout_ms": 30000
         },
         "ports": null
@@ -60,7 +60,7 @@
       {
         "uuid": "smtp-disconnect-001",
         "type": "smtp_disconnect",
-        "name": "SMTP 断开",
+        "name": "SMTP Disconnect",
         "position": {
           "x": 600,
           "y": 0

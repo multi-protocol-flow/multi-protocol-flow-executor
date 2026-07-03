@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "imap-fetch-unread-001",
-    "name": "IMAP 获取未读邮件测试",
+    "name": "IMAP Fetch Unread Email Test",
     "initial_variables": null,
     "nodes": [
       {
         "uuid": "entry-imap",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "imap-connect-001",
         "type": "imap_connect",
-        "name": "IMAP 连接",
+        "name": "IMAP Connect",
         "position": {
           "x": 200,
           "y": 0
@@ -38,7 +38,7 @@
       {
         "uuid": "imap-select-001",
         "type": "imap_select",
-        "name": "选择收件箱",
+        "name": "Select Inbox",
         "position": {
           "x": 400,
           "y": 0
@@ -54,7 +54,7 @@
       {
         "uuid": "imap-search-001",
         "type": "imap_search",
-        "name": "搜索未读邮件",
+        "name": "Search Unread Emails",
         "position": {
           "x": 600,
           "y": 0
@@ -70,7 +70,7 @@
       {
         "uuid": "imap-fetch-001",
         "type": "imap_fetch",
-        "name": "获取邮件内容",
+        "name": "Fetch Email Content",
         "position": {
           "x": 800,
           "y": 0
@@ -88,7 +88,7 @@
       {
         "uuid": "imap-close-001",
         "type": "imap_close",
-        "name": "IMAP 关闭",
+        "name": "IMAP Close",
         "position": {
           "x": 1000,
           "y": 0

@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "ws-basic-connect-001",
-    "name": "WebSocket 基本连接测试 - Entry → WS Connect → WS Close",
+    "name": "WebSocket Basic Connection Test - Entry → WS Connect → WS Close",
     "initial_variables": null,
     "nodes": [
       {
         "uuid": "entry-ws-basic",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "ws-connect-basic",
         "type": "ws_connect",
-        "name": "WS 连接",
+        "name": "WS Connect",
         "position": {
           "x": 200,
           "y": 0
@@ -42,7 +42,7 @@
       {
         "uuid": "ws-close-basic",
         "type": "ws_close",
-        "name": "WS 关闭",
+        "name": "WS Close",
         "position": {
           "x": 400,
           "y": 0
@@ -51,7 +51,7 @@
           "type": "ws_close",
           "connection_id": "ws-connect-basic",
           "close_code": 1000,
-          "close_reason": "正常关闭",
+          "close_reason": "Normal closure",
           "close_timeout_ms": 5000
         },
         "ports": null
