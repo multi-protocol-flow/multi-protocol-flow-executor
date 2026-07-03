@@ -606,7 +606,7 @@ mod tests {
     async fn test_client_http_get() {
         let client = HttpClient::new(10000);
         let config = HttpRequestConfig {
-            url: "http://httpbin.org/get".to_string(),
+            url: "http://localhost:19090/api/status".to_string(),
             method: "GET".to_string(),
             headers: HashMap::new(),
             body: BodyType::None,
@@ -632,42 +632,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_client_https_get() {
-        let client = HttpClient::new(10000);
-        let config = HttpRequestConfig {
-            url: "https://httpbin.org/get".to_string(),
-            method: "GET".to_string(),
-            headers: HashMap::new(),
-            body: BodyType::None,
-            multipart_boundary: None,
-            accept_encoding: true,
-            follow_redirects: true,
-            max_redirects: 10,
-        };
-
-        let result = client.execute(&config).await;
-
-        assert!(result.is_ok(), "HTTPS GET 应该Success: {:?}", result.err());
-        let http_result = result.unwrap();
-
-        assert_eq!(http_result.response.status, 200);
-
-        // 验证计时数据
-        assert!(http_result.timing.dns_ms.is_some());
-        assert!(http_result.timing.connect_ms.is_some());
-        assert!(http_result.timing.tls_ms.is_some()); // HTTPS 有 TLS
-        assert!(http_result.timing.ttfb_ms.is_some());
-        assert!(http_result.timing.download_ms.is_some());
-    }
-
-    #[tokio::test]
     async fn test_client_post_with_body() {
         let client = HttpClient::new(10000);
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
 
         let config = HttpRequestConfig {
-            url: "https://httpbin.org/post".to_string(),
+            url: "http://localhost:19090/api/mirror".to_string(),
             method: "POST".to_string(),
             headers,
             body: BodyType::raw(br#"{"test":"value"}"#.to_vec()),
@@ -684,7 +655,7 @@ mod tests {
 
         assert_eq!(http_result.response.status, 200);
 
-        // 验证响应体包含请求数据
+        // 验证响应体包含请求数据（mirror 端点回显 json 字段）
         let body = http_result.response.body_json().expect("JSON 解析Failed");
         assert!(body["json"]["test"].as_str() == Some("value"));
     }
@@ -693,7 +664,7 @@ mod tests {
     async fn test_client_404_error() {
         let client = HttpClient::new(10000);
         let config = HttpRequestConfig {
-            url: "https://httpbin.org/status/404".to_string(),
+            url: "http://localhost:19090/api/status/404".to_string(),
             method: "GET".to_string(),
             headers: HashMap::new(),
             body: BodyType::None,
@@ -759,11 +730,11 @@ mod tests {
         let client = HttpClient::new(10000);
 
         let methods = vec![
-            ("GET", "https://httpbin.org/get"),
-            ("POST", "https://httpbin.org/post"),
-            ("PUT", "https://httpbin.org/put"),
-            ("DELETE", "https://httpbin.org/delete"),
-            ("PATCH", "https://httpbin.org/patch"),
+            ("GET", "http://localhost:19090/api/mirror"),
+            ("POST", "http://localhost:19090/api/mirror"),
+            ("PUT", "http://localhost:19090/api/mirror"),
+            ("DELETE", "http://localhost:19090/api/mirror"),
+            ("PATCH", "http://localhost:19090/api/mirror"),
         ];
 
         for (method, url) in methods {

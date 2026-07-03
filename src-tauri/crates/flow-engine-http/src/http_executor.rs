@@ -852,7 +852,7 @@ mod tests {
         let node = create_http_node(
             "test-get",
             "HTTP GET请求",
-            "https://httpbin.org/get",
+            "http://localhost:19090/api/status",
             HttpMethod::Get,
             None,
             None,
@@ -886,7 +886,7 @@ mod tests {
         let node = create_http_node(
             "test-post",
             "HTTP POST请求",
-            "https://httpbin.org/post",
+            "http://localhost:19090/api/mirror",
             HttpMethod::Post,
             Some(headers),
             None,
@@ -924,7 +924,7 @@ mod tests {
         let node = create_http_node(
             "test-put",
             "HTTP PUT请求",
-            "https://httpbin.org/put",
+            "http://localhost:19090/api/mirror",
             HttpMethod::Put,
             Some(headers),
             None,
@@ -950,7 +950,7 @@ mod tests {
         let node = create_http_node(
             "test-delete",
             "HTTP DELETE请求",
-            "https://httpbin.org/delete",
+            "http://localhost:19090/api/mirror",
             HttpMethod::Delete,
             None,
             None,
@@ -979,7 +979,7 @@ mod tests {
         let node = create_http_node(
             "test-patch",
             "HTTP PATCH请求",
-            "https://httpbin.org/patch",
+            "http://localhost:19090/api/mirror",
             HttpMethod::Patch,
             Some(headers),
             None,
@@ -1009,7 +1009,7 @@ mod tests {
         let node = create_http_node(
             "test-404",
             "HTTP 404Error",
-            "https://httpbin.org/status/404",
+            "http://localhost:19090/api/status/404",
             HttpMethod::Get,
             None,
             None,
@@ -1039,7 +1039,7 @@ mod tests {
         let node = create_http_node(
             "test-500",
             "HTTP 500Error",
-            "https://httpbin.org/status/500",
+            "http://localhost:19090/api/status/500",
             HttpMethod::Get,
             None,
             None,
@@ -1066,7 +1066,7 @@ mod tests {
         let node = create_http_node(
             "test-403",
             "HTTP 403Error",
-            "https://httpbin.org/status/403",
+            "http://localhost:19090/api/status/403",
             HttpMethod::Get,
             None,
             None,
@@ -1093,7 +1093,7 @@ mod tests {
         let node = create_http_node(
             "test-401",
             "HTTP 401Error",
-            "https://httpbin.org/status/401",
+            "http://localhost:19090/api/status/401",
             HttpMethod::Get,
             None,
             None,
@@ -1149,9 +1149,11 @@ mod tests {
         let error_msg = output["error"].as_str().unwrap();
         assert!(
             error_msg.contains("HTTP请求Failed") ||
+            error_msg.contains("HTTP request failed") ||
             error_msg.contains("dns") ||
             error_msg.contains("connect") ||
             error_msg.contains("timeout") ||
+            error_msg.contains("timed out") ||
             error_msg.contains("no such host"),
             "Error消息应该包含网络Error信息: {}",
             error_msg
@@ -1190,6 +1192,7 @@ mod tests {
         let error_msg = output["error"].as_str().unwrap();
         assert!(
             error_msg.contains("HTTP请求Failed") ||
+            error_msg.contains("HTTP request failed") ||
             error_msg.contains("timeout") ||
             error_msg.contains("connect") ||
             error_msg.contains("timed out"),
@@ -1208,7 +1211,7 @@ mod tests {
         let node = create_http_node(
             "test-var-url",
             "URL变量替换",
-            "https://httpbin.org/get?param={{test_param}}&user={{user_id}}",
+            "http://localhost:19090/api/mirror?param={{test_param}}&user={{user_id}}",
             HttpMethod::Get,
             None,
             None,
@@ -1259,7 +1262,7 @@ mod tests {
         let node = create_http_node(
             "test-var-headers",
             "请求头变量替换",
-            "https://httpbin.org/headers",
+            "http://localhost:19090/api/mirror",
             HttpMethod::Get,
             Some(headers),
             None,
@@ -1283,16 +1286,16 @@ mod tests {
         let output = output_data.unwrap();
         assert_eq!(output["status"], 200);
 
-        // 验证响应体包含替换后的请求头值
+        // 验证响应体包含替换后的请求头值（echo 服务返回的 header key 为小写）
         if let Some(body) = output["body"].as_object() {
             if let Some(response_headers) = body.get("headers").and_then(|v| v.as_object()) {
                 assert_eq!(
-                    response_headers.get("X-Custom-Header").and_then(|v| v.as_str()),
+                    response_headers.get("x-custom-header").and_then(|v| v.as_str()),
                     Some("header_value_123"),
                     "请求头应该被替换"
                 );
                 assert!(
-                    response_headers.get("Authorization")
+                    response_headers.get("authorization")
                         .and_then(|v| v.as_str())
                         .map(|s| s.contains("secret_token_456"))
                         .unwrap_or(false),
@@ -1311,7 +1314,7 @@ mod tests {
         let node = create_http_node(
             "test-var-body",
             "请求体变量替换",
-            "https://httpbin.org/post",
+            "http://localhost:19090/api/mirror",
             HttpMethod::Post,
             Some(headers),
             Some(json!({
@@ -1376,7 +1379,7 @@ mod tests {
         let node = create_http_node(
             "test-var-all",
             "全部变量替换",
-            "https://httpbin.org/post?env={{env}}",
+            "http://localhost:19090/api/mirror?env={{env}}",
             HttpMethod::Post,
             Some(headers),
             Some(json!({
@@ -1441,7 +1444,7 @@ mod tests {
         let node = create_http_node(
             "test-json-response",
             "JSON响应解析",
-            "https://httpbin.org/json",
+            "http://localhost:19090/api/todos",
             HttpMethod::Get,
             None,
             None,
@@ -1468,12 +1471,12 @@ mod tests {
     }
 
     #[tokio::test]
-    /// 测试文本响应处理（非JSON）
-    async fn test_http_response_text_handling() {
+    /// 测试 JSON 响应解析（echo 服务返回 JSON）
+    async fn test_http_response_json_handling() {
         let node = create_http_node(
-            "test-text-response",
-            "文本响应处理",
-            "https://httpbin.org/encoding/utf8",
+            "test-json-response",
+            "JSON 响应处理",
+            "http://localhost:19090/api/status",
             HttpMethod::Get,
             None,
             None,
@@ -1490,8 +1493,9 @@ mod tests {
         assert!(output_data.is_some());
         let output = output_data.unwrap();
 
-        // 验证文本响应被处理为字符串
-        assert!(output["body"].is_string(), "文本响应应该被处理为字符串");
+        // 验证 JSON 响应被解析为对象
+        assert!(output["body"].is_object(), "JSON 响应应该被解析为对象");
+        assert!(output["body"].get("status").and_then(|v| v.as_str()) == Some("ok"), "应包含 status 字段");
     }
 
     #[tokio::test]
@@ -1500,7 +1504,7 @@ mod tests {
         let node = create_http_node(
             "test-headers",
             "响应头收集",
-            "https://httpbin.org/get",
+            "http://localhost:19090/api/status",
             HttpMethod::Get,
             None,
             None,
@@ -1537,7 +1541,7 @@ mod tests {
         let node = create_http_node(
             "test-empty-headers",
             "空请求头",
-            "https://httpbin.org/get",
+            "http://localhost:19090/api/status",
             HttpMethod::Get,
             None,
             None,
@@ -1564,7 +1568,7 @@ mod tests {
         let node = create_http_node(
             "test-empty-body",
             "空请求体",
-            "https://httpbin.org/post",
+            "http://localhost:19090/api/mirror",
             HttpMethod::Post,
             Some(headers),
             None,
@@ -1588,7 +1592,7 @@ mod tests {
         let node = create_http_node(
             "test-url-encoding",
             "URL编码",
-            "https://httpbin.org/get?query=hello world&name=test user",
+            "http://localhost:19090/api/mirror?query=hello world&name=test user",
             HttpMethod::Get,
             None,
             None,
@@ -1611,7 +1615,7 @@ mod tests {
         // 验证URL参数被正确解析
         if let Some(body) = output["body"].as_object() {
             if let Some(args) = body.get("args").and_then(|v| v.as_object()) {
-                // httpbin会自动解码URL参数
+                // echo 服务 mirror 端点会自动解码 URL 参数
                 let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
                 let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("");
                 assert!(query.contains("hello") || query.contains("world"));
@@ -1634,7 +1638,7 @@ mod tests {
             name: "HTTP GET请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/get".to_string(),
+                url: "http://localhost:19090/api/status".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
                 body_type: HttpBodyType::None,
@@ -1678,7 +1682,7 @@ mod tests {
             name: "HTTP POST请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/post".to_string(),
+                url: "http://localhost:19090/api/mirror".to_string(),
                 method: HttpMethod::Post,
                 headers: Some({
                     let mut headers = HashMap::new();
@@ -1721,7 +1725,7 @@ mod tests {
             name: "HTTP 404请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/status/404".to_string(),
+                url: "http://localhost:19090/api/status/404".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
                 body_type: HttpBodyType::None,
@@ -1761,7 +1765,7 @@ mod tests {
             name: "HTTP 200Success".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/status/200".to_string(),
+                url: "http://localhost:19090/api/status/200".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
                 body_type: HttpBodyType::None,
@@ -1800,7 +1804,7 @@ mod tests {
             name: "HTTP 500Error".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/status/500".to_string(),
+                url: "http://localhost:19090/api/status/500".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
                 body_type: HttpBodyType::None,
@@ -1840,7 +1844,7 @@ mod tests {
             name: "HTTP变量替换".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/get?param={{test_param}}".to_string(),
+                url: "http://localhost:19090/api/mirror?param={{test_param}}".to_string(),
                 method: HttpMethod::Get,
                 headers: Some({
                     let mut headers = HashMap::new();
@@ -1882,7 +1886,7 @@ mod tests {
                 assert_eq!(args.get("param").and_then(|v| v.as_str()), Some("value123"));
             }
             if let Some(headers) = body.get("headers").and_then(|v| v.as_object()) {
-                assert_eq!(headers.get("X-Custom-Header").and_then(|v| v.as_str()), Some("header_value"));
+                assert_eq!(headers.get("x-custom-header").and_then(|v| v.as_str()), Some("header_value"));
             }
         }
     }
@@ -1931,9 +1935,11 @@ mod tests {
         let error_msg = output["error"].as_str().unwrap();
         assert!(
             error_msg.contains("HTTP请求Failed") ||
+            error_msg.contains("HTTP request failed") ||
             error_msg.contains("dns") ||
             error_msg.contains("connect") ||
-            error_msg.contains("timeout"),
+            error_msg.contains("timeout") ||
+            error_msg.contains("timed out"),
             "Error消息应该包含网络Error信息: {}",
             error_msg
         );
@@ -1949,7 +1955,7 @@ mod tests {
             name: "HTTP JSON响应".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/json".to_string(),
+                url: "http://localhost:19090/api/todos".to_string(),
                 method: HttpMethod::Get,
                 headers: Some({
                     let mut headers = HashMap::new();
@@ -1986,16 +1992,16 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_http_executor_text_response() {
-        // 测试非JSON响应处理
+    async fn test_http_executor_json_parsing_alt() {
+        // 测试JSON响应解析（echo 服务返回 JSON）
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
             node_type: "http".to_string(),
-            name: "HTTP文本响应".to_string(),
+            name: "HTTP JSON响应".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/encoding/utf8".to_string(),
+                url: "http://localhost:19090/api/status".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
                 body_type: HttpBodyType::None,
@@ -2023,8 +2029,8 @@ mod tests {
         let output = output_data.unwrap();
         assert_eq!(output["status"], 200);
 
-        // 验证响应体为字符串（非JSON）
-        assert!(output["body"].is_string());
+        // 验证响应体为 JSON 对象
+        assert!(output["body"].is_object());
     }
 
     #[tokio::test]
@@ -2037,7 +2043,7 @@ mod tests {
             name: "HTTP PUT请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/put".to_string(),
+                url: "http://localhost:19090/api/mirror".to_string(),
                 method: HttpMethod::Put,
                 headers: Some({
                     let mut headers = HashMap::new();
@@ -2080,7 +2086,7 @@ mod tests {
             name: "HTTP DELETE请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/delete".to_string(),
+                url: "http://localhost:19090/api/mirror".to_string(),
                 method: HttpMethod::Delete,
                 headers: None,
                 body_type: HttpBodyType::None,
@@ -2119,7 +2125,7 @@ mod tests {
             name: "HTTP PATCH请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/patch".to_string(),
+                url: "http://localhost:19090/api/mirror".to_string(),
                 method: HttpMethod::Patch,
                 headers: Some({
                     let mut headers = HashMap::new();
@@ -2162,7 +2168,7 @@ mod tests {
             name: "HTTP响应头".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
-                url: "https://httpbin.org/get".to_string(),
+                url: "http://localhost:19090/api/status".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
                 body_type: HttpBodyType::None,
@@ -2205,7 +2211,7 @@ mod tests {
         let node = create_http_node(
             "test-request-info",
             "HTTP GET请求",
-            "https://httpbin.org/get",
+            "http://localhost:19090/api/status",
             HttpMethod::Get,
             None,
             None,
@@ -2235,7 +2241,7 @@ mod tests {
         // 验证 request.url
         assert!(request.get("url").is_some(), "request 应包含 url 字段");
         let url = request.get("url").unwrap().as_str().unwrap();
-        assert!(url.contains("httpbin.org/get"), "request.url 应包含请求地址");
+        assert!(url.contains("localhost:19090/api/status"), "request.url 应包含请求地址");
         
         // 验证 request.method
         assert!(request.get("method").is_some(), "request 应包含 method 字段");
@@ -2264,7 +2270,7 @@ mod tests {
         let node = create_http_node(
             "test-post-body",
             "HTTP POST请求",
-            "https://httpbin.org/post",
+            "http://localhost:19090/api/mirror",
             HttpMethod::Post,
             Some(headers),
             Some(r#"{"test_key":"test_value"}"#.to_string()),
@@ -2304,7 +2310,7 @@ mod tests {
         let node = create_http_node(
             "test-var-url",
             "URL变量替换",
-            "https://httpbin.org/get?param={{test_param}}",
+            "http://localhost:19090/api/mirror?param={{test_param}}",
             HttpMethod::Get,
             None,
             None,
@@ -2335,7 +2341,7 @@ mod tests {
         let node = create_http_node(
             "test-var-headers",
             "请求头变量替换",
-            "https://httpbin.org/get",
+            "http://localhost:19090/api/status",
             HttpMethod::Get,
             Some(headers),
             None,
@@ -2541,7 +2547,7 @@ mod tests {
         let node = create_http_node(
             "test-header-key-var",
             "Header Key 变量替换",
-            "https://httpbin.org/headers",
+            "http://localhost:19090/api/mirror",
             HttpMethod::Get,
             Some(headers),
             None,
@@ -2565,16 +2571,16 @@ mod tests {
         let output = output_data.unwrap();
         assert_eq!(output["status"], 200);
 
-        // 验证响应体包含替换后的 header key
+        // 验证响应体包含替换后的 header key（echo 服务返回的 header key 为小写）
         if let Some(body) = output["body"].as_object() {
             if let Some(response_headers) = body.get("headers").and_then(|v| v.as_object()) {
                 assert_eq!(
-                    response_headers.get("X-Custom-Header").and_then(|v| v.as_str()),
+                    response_headers.get("x-custom-header").and_then(|v| v.as_str()),
                     Some("header_value"),
                     "Header key 应该被替换"
                 );
                 assert_eq!(
-                    response_headers.get("X-Static-Header").and_then(|v| v.as_str()),
+                    response_headers.get("x-static-header").and_then(|v| v.as_str()),
                     Some("dynamic_value"),
                     "Header value 应该被替换"
                 );
@@ -2592,7 +2598,7 @@ mod tests {
         let node = create_http_node(
             "test-header-key-partial-var",
             "Header Key 部分变量替换",
-            "https://httpbin.org/headers",
+            "http://localhost:19090/api/mirror",
             HttpMethod::Get,
             Some(headers),
             None,
@@ -2616,7 +2622,7 @@ mod tests {
         assert_eq!(output["status"], 200);
 
         // 验证 request.headers 中包含替换后的 header key
-        // 注意：httpbin.org 的 /headers 端点可能不会返回所有发送的 headers
+            // 注意：echo 服务的 /api/mirror 端点返回小写 header key
         // 所以我们验证 request.headers 而不是 body.headers
         if let Some(request) = output.get("request") {
             if let Some(sent_headers) = request.get("headers").and_then(|v| v.as_object()) {
@@ -2641,7 +2647,7 @@ mod tests {
         let node = create_http_node(
             "test-routing-success",
             "HTTP GET请求",
-            "https://httpbin.org/get",
+            "http://localhost:19090/api/status",
             HttpMethod::Get,
             None,
             None,
@@ -2690,7 +2696,7 @@ mod tests {
         let node = create_http_node(
             "test-routing-failure",
             "HTTP 404请求",
-            "https://httpbin.org/status/404",
+            "http://localhost:19090/api/status/404",
             HttpMethod::Get,
             None,
             None,

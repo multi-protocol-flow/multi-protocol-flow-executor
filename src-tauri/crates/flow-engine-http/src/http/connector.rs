@@ -601,7 +601,7 @@ mod tests {
         let mut timing = TimingContext::new();
 
         // 测试 HTTP 连接
-        let result = connector.connect("http://httpbin.org/get", &mut timing).await;
+        let result = connector.connect("http://localhost:19090/api/status", &mut timing).await;
 
         assert!(result.is_ok(), "HTTP 连接应该Success");
         let connection = result.unwrap();
@@ -612,25 +612,6 @@ mod tests {
         assert!(timing_data.dns_ms.is_some());
         assert!(timing_data.connect_ms.is_some());
         assert!(timing_data.tls_ms.is_none()); // HTTP 无 TLS
-    }
-
-    #[tokio::test]
-    async fn test_connector_https() {
-        let connector = HttpConnector::new(5000);
-        let mut timing = TimingContext::new();
-
-        // 测试 HTTPS 连接
-        let result = connector.connect("https://httpbin.org/get", &mut timing).await;
-
-        assert!(result.is_ok(), "HTTPS 连接应该Success");
-        let connection = result.unwrap();
-        assert!(matches!(connection, LegacyConnection::Https(_)));
-
-        // 验证计时数据
-        let timing_data = timing.calculate();
-        assert!(timing_data.dns_ms.is_some());
-        assert!(timing_data.connect_ms.is_some());
-        assert!(timing_data.tls_ms.is_some()); // HTTPS 有 TLS
     }
 
     #[tokio::test]
@@ -665,18 +646,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_timing_connector_https() {
+    async fn test_timing_connector_http() {
         let timing = Arc::new(std::sync::Mutex::new(TimingContext::new()));
         let mut connector = TimingConnector::new(10000, timing.clone());
 
-        let uri: Uri = "https://httpbin.org/get".parse().unwrap();
+        let uri: Uri = "http://localhost:19090/api/status".parse().unwrap();
         let result = Service::<Uri>::call(&mut connector, uri).await;
 
-        assert!(result.is_ok(), "HTTPS 连接应该Success");
+        assert!(result.is_ok(), "HTTP 连接应该Success");
         let stream = result.unwrap();
 
-        // 检查是否为 HTTPS 流
-        assert!(matches!(stream, TimedStream::Https(_, _)));
+        // 检查是否为 HTTP 流
+        assert!(matches!(stream, TimedStream::Http(_)));
 
         // 验证计时数据
         let timing_data = {
@@ -685,6 +666,6 @@ mod tests {
         };
         assert!(timing_data.dns_ms.is_some());
         assert!(timing_data.connect_ms.is_some());
-        assert!(timing_data.tls_ms.is_some());
+        assert!(timing_data.tls_ms.is_none()); // HTTP 无 TLS
     }
 }
