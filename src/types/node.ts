@@ -705,7 +705,7 @@ export interface GrpcFieldInfo {
   is_map: boolean;
   map_key_type?: string;
   map_value_type?: string;
-  enum_values?: GrpcEnumValue[];
+  enum_values: GrpcEnumValue[];
   nested_message?: GrpcMessageInfo;
 }
 

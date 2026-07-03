@@ -28,9 +28,9 @@ const wktMessage: GrpcMessageInfo = {
 const simpleMessage: GrpcMessageInfo = {
   full_name: 'test.Simple',
   fields: [
-    { name: 'name', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false },
-    { name: 'age', number: 2, type_kind: 'int32', type_display: 'int32', label: 'singular', is_map: false },
-    { name: 'active', number: 3, type_kind: 'bool', type_display: 'bool', label: 'singular', is_map: false },
+    { name: 'name', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false, enum_values: [] },
+    { name: 'age', number: 2, type_kind: 'int32', type_display: 'int32', label: 'singular', is_map: false, enum_values: [] },
+    { name: 'active', number: 3, type_kind: 'bool', type_display: 'bool', label: 'singular', is_map: false, enum_values: [] },
   ],
   oneof_groups: [],
   is_wkt: false,
@@ -58,7 +58,7 @@ const mapMessage: GrpcMessageInfo = {
   fields: [
     {
       name: 'labels', number: 1, type_kind: 'message', type_display: 'map<string, int32>',
-      label: 'singular', is_map: true, map_key_type: 'string', map_value_type: 'int32',
+      label: 'singular', is_map: true, map_key_type: 'string', map_value_type: 'int32', enum_values: [],
     },
   ],
   oneof_groups: [],
@@ -68,9 +68,9 @@ const mapMessage: GrpcMessageInfo = {
 const oneofMessage: GrpcMessageInfo = {
   full_name: 'test.WithOneof',
   fields: [
-    { name: 'name', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false },
-    { name: 'alt_name', number: 2, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false },
-    { name: 'value', number: 3, type_kind: 'int32', type_display: 'int32', label: 'singular', is_map: false },
+    { name: 'name', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false, enum_values: [] },
+    { name: 'alt_name', number: 2, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false, enum_values: [] },
+    { name: 'value', number: 3, type_kind: 'int32', type_display: 'int32', label: 'singular', is_map: false, enum_values: [] },
   ],
   oneof_groups: [
     { name: 'test_oneof', field_numbers: [1, 2] },
@@ -81,7 +81,7 @@ const oneofMessage: GrpcMessageInfo = {
 const nestedInner: GrpcMessageInfo = {
   full_name: 'test.Inner',
   fields: [
-    { name: 'nested_name', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false },
+    { name: 'nested_name', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false, enum_values: [] },
   ],
   oneof_groups: [],
   is_wkt: false,
@@ -90,10 +90,10 @@ const nestedInner: GrpcMessageInfo = {
 const nestedMessage: GrpcMessageInfo = {
   full_name: 'test.WithNested',
   fields: [
-    { name: 'name', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false },
+    { name: 'name', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false, enum_values: [] },
     {
       name: 'inner', number: 2, type_kind: 'message', type_display: 'Inner',
-      type_full_name: 'test.Inner', label: 'singular', is_map: false,
+      type_full_name: 'test.Inner', label: 'singular', is_map: false, enum_values: [],
       nested_message: nestedInner,
     },
   ],
@@ -106,7 +106,7 @@ const circularMessage: GrpcMessageInfo = {
   fields: [
     {
       name: 'self_ref', number: 1, type_kind: 'circular_ref', type_display: 'SelfRef',
-      label: 'singular', is_map: false,
+      label: 'singular', is_map: false, enum_values: [],
     },
   ],
   oneof_groups: [],
@@ -116,7 +116,7 @@ const circularMessage: GrpcMessageInfo = {
 const reservedMessage: GrpcMessageInfo = {
   full_name: 'test.WithReserved',
   fields: [
-    { name: 'name', number: 5, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false },
+    { name: 'name', number: 5, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false, enum_values: [] },
   ],
   oneof_groups: [],
   is_wkt: false,

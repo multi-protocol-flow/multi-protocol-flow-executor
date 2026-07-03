@@ -576,8 +576,6 @@ export const grpcMetadataEntrySchema = z.object({
   value: z.string(),
 });
 
-export type GrpcMetadataEntryFormData = z.infer<typeof grpcMetadataEntrySchema>;
-
 /**
  * gRPC 方法信息 Schema
  */
@@ -588,8 +586,6 @@ export const grpcMethodInfoSchema = z.object({
   is_server_streaming: z.boolean(),
   is_client_streaming: z.boolean().optional(),
 });
-
-export type GrpcMethodInfoFormData = z.infer<typeof grpcMethodInfoSchema>;
 
 // ============================================================================
 // gRPC Message Definition Schemas
@@ -603,8 +599,6 @@ export const grpcEnumValueSchema = z.object({
   number: z.number(),
 });
 
-export type GrpcEnumValueFormData = z.infer<typeof grpcEnumValueSchema>;
-
 /**
  * gRPC oneof 分组 Schema
  */
@@ -612,8 +606,6 @@ export const grpcOneofInfoSchema = z.object({
   name: z.string(),
   field_numbers: z.array(z.number()),
 });
-
-export type GrpcOneofInfoFormData = z.infer<typeof grpcOneofInfoSchema>;
 
 /**
  * gRPC 字段信息 Schema
@@ -631,12 +623,10 @@ export const grpcFieldInfoSchema: z.ZodType<GrpcFieldInfo> = z.lazy(() =>
     is_map: z.boolean(),
     map_key_type: z.string().optional(),
     map_value_type: z.string().optional(),
-    enum_values: z.array(grpcEnumValueSchema).optional(),
+    enum_values: z.array(grpcEnumValueSchema).default([]),
     nested_message: grpcMessageInfoSchema.optional(),
   })
 );
-
-export type GrpcFieldInfoFormData = z.infer<typeof grpcFieldInfoSchema>;
 
 /**
  * gRPC 消息定义 Schema
@@ -654,8 +644,6 @@ export const grpcMessageInfoSchema: z.ZodType<GrpcMessageInfo> = z.lazy(() =>
   })
 );
 
-export type GrpcMessageInfoFormData = z.infer<typeof grpcMessageInfoSchema>;
-
 /**
  * gRPC 服务信息 Schema
  */
@@ -664,8 +652,6 @@ export const grpcServiceInfoSchema = z.object({
   methods: z.array(grpcMethodInfoSchema),
   message_definitions: z.custom<Record<string, GrpcMessageInfo>>().optional(),
 });
-
-export type GrpcServiceInfoFormData = z.infer<typeof grpcServiceInfoSchema>;
 
 /**
  * gRPC Connect 配置表单 Schema

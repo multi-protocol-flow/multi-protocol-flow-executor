@@ -127,7 +127,6 @@ function FieldRow({ field, messageDefinitions, depth }: FieldRowProps) {
 
         {/* Enum values inline (hidden on narrow screens) */}
         {field.type_kind === 'enum' &&
-          field.enum_values &&
           field.enum_values.length > 0 && (
             <span className="text-[10px] text-muted-foreground truncate hidden xl:inline">
               // (
