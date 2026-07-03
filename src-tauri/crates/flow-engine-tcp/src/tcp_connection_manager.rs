@@ -13,8 +13,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use flow_engine_core::traits::{FramingConfig, TcpConnectionInfo, TcpProvider};
 use flow_engine_core::node_config::TcpKeepaliveConfig;
+use flow_engine_core::traits::{FramingConfig, TcpConnectionInfo, TcpProvider};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::{timeout, Duration};
@@ -147,11 +147,7 @@ impl ActiveTcpConnection {
     /// 设置连接流（连接Success后调用）
     ///
     /// 接受装箱的读写端，支持明文 TCP 和 TLS 流的统一处理。
-    pub fn set_stream(
-        &mut self,
-        read_half: BoxedReader,
-        write_half: BoxedWriter,
-    ) {
+    pub fn set_stream(&mut self, read_half: BoxedReader, write_half: BoxedWriter) {
         self.read_half = Some(Arc::new(tokio::sync::Mutex::new(read_half)));
         self.write_half = Some(Arc::new(tokio::sync::Mutex::new(write_half)));
         self.status = ConnectionStatus::Connected;
@@ -164,16 +160,12 @@ impl ActiveTcpConnection {
     }
 
     /// 获取读取端的克隆
-    pub fn get_read_half(
-        &self,
-    ) -> Option<Arc<tokio::sync::Mutex<BoxedReader>>> {
+    pub fn get_read_half(&self) -> Option<Arc<tokio::sync::Mutex<BoxedReader>>> {
         self.read_half.clone()
     }
 
     /// 获取写入端的克隆
-    pub fn get_write_half(
-        &self,
-    ) -> Option<Arc<tokio::sync::Mutex<BoxedWriter>>> {
+    pub fn get_write_half(&self) -> Option<Arc<tokio::sync::Mutex<BoxedWriter>>> {
         self.write_half.clone()
     }
 
@@ -302,8 +294,14 @@ impl TcpConnectionManager {
         tls_ca_cert: Option<String>,
     ) -> Result<(), String> {
         // 1. 创建 ActiveTcpConnection（状态为 Connecting）
-        let connection =
-            ActiveTcpConnection::new(uuid.clone(), name, host.clone(), port, use_tls, framing_config);
+        let connection = ActiveTcpConnection::new(
+            uuid.clone(),
+            name,
+            host.clone(),
+            port,
+            use_tls,
+            framing_config,
+        );
 
         // 2. 临时存储连接（状态为 Connecting）
         self.upsert_connection(connection);
@@ -344,13 +342,14 @@ impl TcpConnectionManager {
                 // 6. 根据 TLS 配置处理流
                 let stream_result: Result<(BoxedReader, BoxedWriter), String> = if use_tls {
                     let ca_bytes = tls_ca_cert.as_deref().map(|s| s.as_bytes());
-                    let connector = match crate::tls::create_tls_connector_with_ca(tls_skip_verify, ca_bytes) {
-                        Ok(c) => c,
-                        Err(e) => {
-                            self.update_connection_error(&uuid, &e);
-                            return Err(e);
-                        }
-                    };
+                    let connector =
+                        match crate::tls::create_tls_connector_with_ca(tls_skip_verify, ca_bytes) {
+                            Ok(c) => c,
+                            Err(e) => {
+                                self.update_connection_error(&uuid, &e);
+                                return Err(e);
+                            }
+                        };
 
                     let server_name = match rustls::pki_types::ServerName::try_from(host.clone()) {
                         Ok(name) => name,
@@ -380,9 +379,10 @@ impl TcpConnectionManager {
                 match stream_result {
                     Ok((read_half, write_half)) => {
                         // 7. 更新连接状态
-                        let mut connections = self.connections.lock().map_err(|e| {
-                            format!("Failed to acquire connection lock: {}", e)
-                        })?;
+                        let mut connections = self
+                            .connections
+                            .lock()
+                            .map_err(|e| format!("Failed to acquire connection lock: {}", e))?;
 
                         if let Some(conn) = connections.get_mut(&uuid) {
                             conn.set_stream(read_half, write_half);
@@ -447,8 +447,14 @@ impl TcpProvider for TcpConnectionManager {
         framing_config: FramingConfig,
     ) -> Result<(), String> {
         // 1. 创建 ActiveTcpConnection（状态为 Connecting）
-        let connection =
-            ActiveTcpConnection::new(uuid.clone(), name, host.clone(), port, use_tls, framing_config);
+        let connection = ActiveTcpConnection::new(
+            uuid.clone(),
+            name,
+            host.clone(),
+            port,
+            use_tls,
+            framing_config,
+        );
 
         // 2. 临时存储连接（状态为 Connecting）
         self.upsert_connection(connection);
@@ -502,9 +508,10 @@ impl TcpProvider for TcpConnectionManager {
                 match stream_result {
                     Ok((read_half, write_half)) => {
                         // 6. 更新连接状态
-                        let mut connections = self.connections.lock().map_err(|e| {
-                            format!("Failed to acquire connection lock: {}", e)
-                        })?;
+                        let mut connections = self
+                            .connections
+                            .lock()
+                            .map_err(|e| format!("Failed to acquire connection lock: {}", e))?;
 
                         if let Some(conn) = connections.get_mut(&uuid) {
                             conn.set_stream(read_half, write_half);
@@ -541,23 +548,22 @@ impl TcpProvider for TcpConnectionManager {
     /// 发送数据
     ///
     /// 查找连接池中的连接，通过写入端发送原始字节数据。
-    async fn send(
-        &self,
-        uuid: &str,
-        data: Vec<u8>,
-        send_timeout_ms: u64,
-    ) -> Result<(), String> {
+    async fn send(&self, uuid: &str, data: Vec<u8>, send_timeout_ms: u64) -> Result<(), String> {
         // 1. 获取写入端（克隆后释放锁）
         let write_half = {
-            let conns = self.connections.lock().map_err(|e| {
-                format!("Failed to acquire connection lock: {}", e)
-            })?;
+            let conns = self
+                .connections
+                .lock()
+                .map_err(|e| format!("Failed to acquire connection lock: {}", e))?;
             let conn = conns
                 .get(uuid)
                 .ok_or_else(|| format!("TCP connection '{}' not found", uuid))?;
 
             if !conn.is_connected() {
-                return Err(format!("TCP connection '{}' is not in connected state", uuid));
+                return Err(format!(
+                    "TCP connection '{}' is not in connected state",
+                    uuid
+                ));
             }
 
             conn.get_write_half()
@@ -578,11 +584,7 @@ impl TcpProvider for TcpConnectionManager {
                         rec.record_send(uuid, &data);
                     }
                 }
-                log::debug!(
-                    "[TCP] Send successful: uuid={}, bytes={}",
-                    uuid,
-                    data.len()
-                );
+                log::debug!("[TCP] Send successful: uuid={}, bytes={}", uuid, data.len());
                 Ok(())
             }
             Ok(Err(e)) => {
@@ -591,10 +593,7 @@ impl TcpProvider for TcpConnectionManager {
                 Err(error_msg)
             }
             Err(_) => {
-                let error_msg = format!(
-                    "TCP send timeout ({}ms): uuid={}",
-                    send_timeout_ms, uuid
-                );
+                let error_msg = format!("TCP send timeout ({}ms): uuid={}", send_timeout_ms, uuid);
                 self.update_connection_error(uuid, &error_msg);
                 Err(error_msg)
             }
@@ -612,15 +611,19 @@ impl TcpProvider for TcpConnectionManager {
     ) -> Result<Option<Vec<u8>>, String> {
         // 1. 获取读取端（克隆后释放锁）
         let read_half = {
-            let conns = self.connections.lock().map_err(|e| {
-                format!("Failed to acquire connection lock: {}", e)
-            })?;
+            let conns = self
+                .connections
+                .lock()
+                .map_err(|e| format!("Failed to acquire connection lock: {}", e))?;
             let conn = conns
                 .get(uuid)
                 .ok_or_else(|| format!("TCP connection '{}' not found", uuid))?;
 
             if !conn.is_connected() {
-                return Err(format!("TCP connection '{}' is not in connected state", uuid));
+                return Err(format!(
+                    "TCP connection '{}' is not in connected state",
+                    uuid
+                ));
             }
 
             conn.get_read_half()
@@ -640,7 +643,10 @@ impl TcpProvider for TcpConnectionManager {
             Ok(Ok(0)) => {
                 // 连接已关闭（EOF）
                 log::info!("[TCP] Connection closed (EOF): uuid={}", uuid);
-                self.update_connection_error(uuid, "Connection closed (peer closed the connection)");
+                self.update_connection_error(
+                    uuid,
+                    "Connection closed (peer closed the connection)",
+                );
                 Ok(None)
             }
             Ok(Ok(n)) => {
@@ -652,11 +658,7 @@ impl TcpProvider for TcpConnectionManager {
                         rec.record_receive(uuid, &buf);
                     }
                 }
-                log::debug!(
-                    "[TCP] Receive successful: uuid={}, bytes={}",
-                    uuid,
-                    n
-                );
+                log::debug!("[TCP] Receive successful: uuid={}, bytes={}", uuid, n);
                 Ok(Some(buf))
             }
             Ok(Err(e)) => {
@@ -679,11 +681,7 @@ impl TcpProvider for TcpConnectionManager {
     /// 关闭连接
     ///
     /// 从连接池中移除连接，TcpStream 在 drop 时自动关闭。
-    async fn close(
-        &self,
-        uuid: &str,
-        _close_timeout_ms: u64,
-    ) -> Result<(), String> {
+    async fn close(&self, uuid: &str, _close_timeout_ms: u64) -> Result<(), String> {
         // 先从连接池中移除（释放锁后再进行异步关闭操作）
         let conn = {
             let mut conns = self
@@ -859,7 +857,9 @@ mod tests {
     #[tokio::test]
     async fn test_tcp_connect_tls_handshake_failure() {
         // 创建一个明文 TCP 服务器（不说话 TLS）
-        let listener = TcpListener::bind("127.0.0.1:0").await.expect("绑定端口应Success");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("绑定端口应Success");
         let server_addr = listener.local_addr().expect("获取地址应Success");
         let server_port = server_addr.port();
 
@@ -878,7 +878,7 @@ mod tests {
                 "TLS handshake failure test".to_string(),
                 "127.0.0.1".to_string(),
                 server_port,
-                true, // use_tls
+                true,  // use_tls
                 false, // tls_skip_verify
                 5000,
                 FramingConfig::default(),
@@ -887,11 +887,7 @@ mod tests {
 
         assert!(result.is_err(), "TLS 握手应Failed");
         let err = result.expect_err("应返回 TLS 握手FailedError");
-        assert!(
-            err.contains("TLS"),
-            "Error应包含 TLS 相关信息: {}",
-            err
-        );
+        assert!(err.contains("TLS"), "Error应包含 TLS 相关信息: {}", err);
 
         // 验证连接池中有Error状态的连接
         let status = manager.get_status("uuid-tls-fail");
@@ -902,7 +898,9 @@ mod tests {
     #[tokio::test]
     async fn test_tcp_connect_tls_skip_verify_handshake_failure() {
         // 创建一个明文 TCP 服务器（不说话 TLS）
-        let listener = TcpListener::bind("127.0.0.1:0").await.expect("绑定端口应Success");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("绑定端口应Success");
         let server_addr = listener.local_addr().expect("获取地址应Success");
         let server_port = server_addr.port();
 
@@ -928,20 +926,14 @@ mod tests {
 
         assert!(result.is_err(), "TLS 握手应Failed");
         let err = result.expect_err("应返回 TLS 握手FailedError");
-        assert!(
-            err.contains("TLS"),
-            "Error应包含 TLS 相关信息: {}",
-            err
-        );
+        assert!(err.contains("TLS"), "Error应包含 TLS 相关信息: {}", err);
     }
 
     /// 测试对不存在连接发送数据
     #[tokio::test]
     async fn test_tcp_send_connection_not_found() {
         let manager = TcpConnectionManager::new();
-        let result = manager
-            .send("non-existent", vec![1, 2, 3], 5000)
-            .await;
+        let result = manager.send("non-existent", vec![1, 2, 3], 5000).await;
 
         assert!(result.is_err());
         let err = result.expect_err("应返回连接不存在Error");
@@ -976,7 +968,9 @@ mod tests {
     #[tokio::test]
     async fn test_tcp_pool_lifecycle() {
         // 1. 创建本地 echo 服务器
-        let listener = TcpListener::bind("127.0.0.1:0").await.expect("绑定端口应Success");
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("绑定端口应Success");
         let server_addr = listener.local_addr().expect("获取地址应Success");
         let server_port = server_addr.port();
 
@@ -1030,9 +1024,7 @@ mod tests {
 
         // 4. 发送数据
         let test_data = b"Hello, TCP!".to_vec();
-        let send_result = manager
-            .send("lifecycle-1", test_data.clone(), 5000)
-            .await;
+        let send_result = manager.send("lifecycle-1", test_data.clone(), 5000).await;
         assert!(send_result.is_ok(), "发送应Success");
 
         // 5. 接收 echo 回来的数据
@@ -1180,9 +1172,7 @@ mod tests {
         for uuid in &connected_uuids {
             let mgr = manager.clone();
             let uuid = uuid.clone();
-            recv_handles.push(tokio::spawn(async move {
-                mgr.receive(&uuid, 5000).await
-            }));
+            recv_handles.push(tokio::spawn(async move { mgr.receive(&uuid, 5000).await }));
         }
 
         for handle in recv_handles {
@@ -1194,9 +1184,7 @@ mod tests {
         let mut close_handles = Vec::new();
         for uuid in connected_uuids {
             let mgr = manager.clone();
-            close_handles.push(tokio::spawn(async move {
-                mgr.close(&uuid, 5000).await
-            }));
+            close_handles.push(tokio::spawn(async move { mgr.close(&uuid, 5000).await }));
         }
 
         for handle in close_handles {

@@ -131,7 +131,9 @@ impl TcpFramingEngine {
             TcpFramingMode::FixedLength { length } => {
                 read_fixed_length(reader, *length, config.max_frame_size).await
             }
-            TcpFramingMode::Timeout { timeout_ms: frame_timeout } => {
+            TcpFramingMode::Timeout {
+                timeout_ms: frame_timeout,
+            } => {
                 let effective_timeout = if *frame_timeout > 0 {
                     *frame_timeout
                 } else {
@@ -180,7 +182,10 @@ fn encode_length_prefix(len: usize, prefix_bytes: u8) -> Result<Vec<u8>, String>
             Ok((len as u32).to_be_bytes().to_vec())
         }
         8 => Ok((len as u64).to_be_bytes().to_vec()),
-        _ => Err(format!("Unsupported prefix byte count: {} (supported: 1/2/4/8)", prefix_bytes)),
+        _ => Err(format!(
+            "Unsupported prefix byte count: {} (supported: 1/2/4/8)",
+            prefix_bytes
+        )),
     }
 }
 
@@ -459,8 +464,7 @@ mod tests {
         });
         // 载荷中包含分隔符
         let data = b"line one\r\nline two".to_vec();
-        let framed =
-            TcpFramingEngine::frame_data(&data, &config).expect("frame_data 应Success");
+        let framed = TcpFramingEngine::frame_data(&data, &config).expect("frame_data 应Success");
         // framed = "line one\r\nline two\r\n"
         let mut cursor = Cursor::new(framed);
         // 第一次读取应该只读到第一个 \r\n

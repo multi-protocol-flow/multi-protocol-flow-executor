@@ -122,7 +122,9 @@ impl TcpRecording {
             .map_err(|e| format!("JSON deserialization failed: {}", e))?;
 
         // 合并外部 .bin 文件数据
-        let dir = path.parent().ok_or_else(|| "Unable to get file directory".to_string())?;
+        let dir = path
+            .parent()
+            .ok_or_else(|| "Unable to get file directory".to_string())?;
 
         for entry in recording.entries.iter_mut() {
             if let Some(ref bin_filename) = entry.external_bin_path {
@@ -259,9 +261,7 @@ impl RecordingManager {
 
     /// 是否正在录制
     pub fn is_recording(&self) -> bool {
-        self.active_recording
-            .as_ref()
-            .is_some_and(|a| a.enabled)
+        self.active_recording.as_ref().is_some_and(|a| a.enabled)
     }
 
     /// 内部：记录一条条目
@@ -364,9 +364,7 @@ mod tests {
         let recording = manager.stop_recording().expect("应返回录制");
 
         // 保存
-        recording
-            .save_to_file(dir.path())
-            .expect("保存应Success");
+        recording.save_to_file(dir.path()).expect("保存应Success");
 
         // 验证文件存在
         let json_path = dir.path().join(format!("{}.json", recording.id));
@@ -412,16 +410,16 @@ mod tests {
         manager.record_receive("conn-bin", &binary_data);
 
         let recording = manager.stop_recording().expect("应返回录制");
-        recording
-            .save_to_file(dir.path())
-            .expect("保存应Success");
+        recording.save_to_file(dir.path()).expect("保存应Success");
 
         let json_path = dir.path().join(format!("{}.json", recording.id));
         let loaded = TcpRecording::load_from_file(&json_path).expect("加载应Success");
 
         // 逐字节比较
-        let loaded_send = TcpRecording::decode_entry_data(&loaded.entries[0]).expect("解码应Success");
-        let loaded_recv = TcpRecording::decode_entry_data(&loaded.entries[1]).expect("解码应Success");
+        let loaded_send =
+            TcpRecording::decode_entry_data(&loaded.entries[0]).expect("解码应Success");
+        let loaded_recv =
+            TcpRecording::decode_entry_data(&loaded.entries[1]).expect("解码应Success");
 
         assert_eq!(loaded_send, mixed_data, "发送数据应字节精确匹配");
         assert_eq!(loaded_recv, binary_data, "接收数据应字节精确匹配");
@@ -447,7 +445,8 @@ mod tests {
         assert_eq!(recording.entries.len(), 6);
 
         // 验证方向顺序
-        let directions: Vec<&RecordingDirection> = recording.entries.iter().map(|e| &e.direction).collect();
+        let directions: Vec<&RecordingDirection> =
+            recording.entries.iter().map(|e| &e.direction).collect();
         assert_eq!(directions[0], &RecordingDirection::Send);
         assert_eq!(directions[1], &RecordingDirection::Receive);
         assert_eq!(directions[2], &RecordingDirection::Send);
@@ -516,9 +515,7 @@ mod tests {
         assert_eq!(recording.entries.len(), 2);
 
         // 保存
-        recording
-            .save_to_file(dir.path())
-            .expect("保存应Success");
+        recording.save_to_file(dir.path()).expect("保存应Success");
 
         // 验证 .bin 文件已创建
         let bin_path = dir.path().join(format!("{}_0.bin", recording.id));
@@ -532,11 +529,13 @@ mod tests {
         let json_path = dir.path().join(format!("{}.json", recording.id));
         let loaded = TcpRecording::load_from_file(&json_path).expect("加载应Success");
 
-        let loaded_large = TcpRecording::decode_entry_data(&loaded.entries[0]).expect("解码应Success");
+        let loaded_large =
+            TcpRecording::decode_entry_data(&loaded.entries[0]).expect("解码应Success");
         assert_eq!(loaded_large, large_data, "大数据应字节精确匹配");
         assert_eq!(loaded_large.len(), large_data.len());
 
-        let loaded_small = TcpRecording::decode_entry_data(&loaded.entries[1]).expect("解码应Success");
+        let loaded_small =
+            TcpRecording::decode_entry_data(&loaded.entries[1]).expect("解码应Success");
         assert_eq!(loaded_small, b"small-response".to_vec());
     }
 
@@ -557,9 +556,7 @@ mod tests {
 
         let recording = manager.stop_recording().expect("应返回录制");
 
-        recording
-            .save_to_file(dir.path())
-            .expect("保存应Success");
+        recording.save_to_file(dir.path()).expect("保存应Success");
 
         // 验证两个 .bin 文件
         assert!(

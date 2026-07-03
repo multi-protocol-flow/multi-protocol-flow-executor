@@ -118,11 +118,8 @@ fn create_skip_verify_config() -> Result<ClientConfig, String> {
 ///
 /// 加载 Mozilla 的根证书集合用于服务器证书验证。
 fn create_standard_config() -> Result<ClientConfig, String> {
-    let root_store = rustls::RootCertStore::from_iter(
-        webpki_roots::TLS_SERVER_ROOTS
-            .iter()
-            .cloned(),
-    );
+    let root_store =
+        rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
     let config = rustls::ClientConfig::builder()
         .with_root_certificates(root_store)
@@ -154,9 +151,8 @@ pub fn create_tls_connector_with_ca(
     }
 
     // 构建根证书存储：以 webpki-roots 为基础，追加自定义 CA 证书
-    let mut root_store = rustls::RootCertStore::from_iter(
-        webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
-    );
+    let mut root_store =
+        rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
     if let Some(pem_bytes) = ca_cert_pem {
         let mut cursor = std::io::Cursor::new(pem_bytes);
@@ -164,7 +160,9 @@ pub fn create_tls_connector_with_ca(
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("Failed to parse CA certificate PEM: {}", e))?;
         for cert in certs {
-            root_store.add(cert).map_err(|e| format!("Failed to add CA certificate: {}", e))?;
+            root_store
+                .add(cert)
+                .map_err(|e| format!("Failed to add CA certificate: {}", e))?;
         }
     }
 
@@ -227,11 +225,7 @@ mod tests {
     #[test]
     fn test_create_tls_connector_with_ca_skip_verify() {
         let result = create_tls_connector_with_ca(true, None);
-        assert!(
-            result.is_ok(),
-            "跳过验证模式应Success: {:?}",
-            result.err()
-        );
+        assert!(result.is_ok(), "跳过验证模式应Success: {:?}", result.err());
     }
 
     /// 测试 create_tls_connector_with_ca 标准模式（无自定义 CA）
