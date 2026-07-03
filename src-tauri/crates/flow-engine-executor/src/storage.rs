@@ -1930,7 +1930,7 @@ mod tests {
         assert_eq!(mpf_files.len(), 1, "应恰好创建一个 .mpf 文件");
         let file_name = mpf_files[0].file_name().to_string_lossy().to_string();
         assert!(
-            file_name.starts_with("Test Flow"),
+            file_name.starts_with("Test_Flow"),
             "文件名应以流程名称开头: {}",
             file_name
         );

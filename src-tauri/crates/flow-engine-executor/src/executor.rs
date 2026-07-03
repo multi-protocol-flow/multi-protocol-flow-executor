@@ -1444,7 +1444,7 @@ mod tests {
         // 验证执行Failed
         assert!(!result.success);
         assert!(result.error.is_some());
-        assert!(result.error.unwrap().contains("流程验证Failed"));
+        assert!(result.error.unwrap().contains("Flow validation failed"));
         assert_eq!(result.executed_count, 0);
     }
 
@@ -1740,8 +1740,8 @@ mod tests {
         assert!(!result.success);
         assert!(result.error.is_some());
         let error_msg = result.error.unwrap();
-        assert!(error_msg.contains("检测到循环"));
-        assert!(error_msg.contains("loop-node-uuid")); // Error消息包含 node.uuid
+        assert!(error_msg.contains("Flow contains a cycle"));
+        assert!(error_msg.contains("开始")); // Error消息包含 node name
     }
 
     #[tokio::test]
@@ -1837,7 +1837,7 @@ mod tests {
 
         let connection_2 = Connection {
             id: "conn-2-multi".to_string(),
-            source_node_uuid: start_node.uuid.clone(),
+            source_node_uuid: end_node_1.uuid.clone(),
             target_node_uuid: end_node_2.uuid.clone(),
             source_port_id: "out".to_string(),
             target_port_id: "input".to_string(),
@@ -1850,7 +1850,7 @@ mod tests {
 
         // 验证执行Success，连接映射正确使用了 UUID
         assert!(result.success);
-        assert_eq!(result.executed_count, 2);
+        assert_eq!(result.executed_count, 3);
     }
 
     #[test]

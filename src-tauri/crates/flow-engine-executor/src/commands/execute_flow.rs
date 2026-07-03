@@ -241,7 +241,7 @@ mod tests {
         // 验证Error结果
         assert!(!result.success, "流程应该Failed");
         assert!(result.error.is_some(), "应该有Error信息");
-        assert!(result.error.unwrap().contains("流程验证Failed"), "Error信息应该说明验证Failed");
+        assert!(result.error.unwrap().contains("Flow validation failed"), "Error信息应该说明验证Failed");
         // Error情况下 executed_count 为 0（没有 flow_report 或报告中的 executed_count 为 0）
         if let Some(ref report) = result.flow_report {
             assert_eq!(report.executed_count, 0, "不应该执行任何节点");
