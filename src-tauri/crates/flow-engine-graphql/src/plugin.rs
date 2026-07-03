@@ -599,12 +599,12 @@ mod tests {
         assert_eq!(plugin.icon(), "plug");
         assert_eq!(plugin.color(), "#6366f1");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
         assert_eq!(ports[1].id, "false");
+        assert!(ports.iter().any(|p| p.id == "false"), "connect node should have false port");
     }
 
     #[test]
@@ -616,12 +616,12 @@ mod tests {
         assert_eq!(plugin.icon(), "search");
         assert_eq!(plugin.color(), "#6366f1");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
         assert_eq!(ports[1].id, "false");
+        assert!(ports.iter().any(|p| p.id == "false"), "query node should have false port");
     }
 
     #[test]
@@ -633,12 +633,12 @@ mod tests {
         assert_eq!(plugin.icon(), "eye");
         assert_eq!(plugin.color(), "#6366f1");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
         assert_eq!(ports[1].id, "false");
+        assert!(ports.iter().any(|p| p.id == "false"), "subscribe node should have false port");
     }
 
     #[test]
@@ -650,12 +650,12 @@ mod tests {
         assert_eq!(plugin.icon(), "file-search");
         assert_eq!(plugin.color(), "#6366f1");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
         assert_eq!(ports[1].id, "false");
+        assert!(ports.iter().any(|p| p.id == "false"), "introspect node should have false port");
     }
 
     #[test]
@@ -667,11 +667,11 @@ mod tests {
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#6366f1");
         assert!(plugin.is_protocol_node());
-        assert!(!plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 1);
         assert_eq!(ports[0].id, "out");
+        assert!(ports.iter().all(|p| p.id != "false"), "disconnect node should not have false port");
     }
 
     // ---- resolve_port 测试 ----
