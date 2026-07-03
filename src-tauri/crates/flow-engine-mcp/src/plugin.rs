@@ -88,11 +88,6 @@ impl NodePlugin for McpConnectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "url": config.get("url"),
@@ -223,11 +218,6 @@ impl NodePlugin for McpCallToolPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -337,11 +327,6 @@ impl NodePlugin for McpReadResourcePlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -430,11 +415,6 @@ impl NodePlugin for McpClosePlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -539,11 +519,6 @@ impl NodePlugin for McpGetPromptPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -615,7 +590,6 @@ mod tests {
         assert_eq!(plugin.icon(), "puzzle");
         assert_eq!(plugin.color(), "#F59E0B");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -632,7 +606,6 @@ mod tests {
         assert_eq!(plugin.icon(), "wrench");
         assert_eq!(plugin.color(), "#F59E0B");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -649,7 +622,6 @@ mod tests {
         assert_eq!(plugin.icon(), "file-search");
         assert_eq!(plugin.color(), "#F59E0B");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -666,7 +638,6 @@ mod tests {
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#F59E0B");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 1);
@@ -825,7 +796,6 @@ mod tests {
         assert_eq!(plugin.icon(), "message-square");
         assert_eq!(plugin.color(), "#F59E0B");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
