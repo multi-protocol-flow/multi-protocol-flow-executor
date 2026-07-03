@@ -84,11 +84,6 @@ impl NodePlugin for RedisConnectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(json!({
             "host": config.get("host"),
@@ -194,11 +189,6 @@ impl NodePlugin for RedisCommandPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(json!({
             "connection_id": config.get("connection_id"),
@@ -292,11 +282,6 @@ impl NodePlugin for RedisClosePlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        false
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(json!({
             "connection_id": config.get("connection_id"),
@@ -361,7 +346,6 @@ mod tests {
         assert_eq!(plugin.display_name(), "Redis Connect");
         assert_eq!(plugin.category(), "redis");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
         assert_eq!(plugin.ports().len(), 2);
     }
 
@@ -372,7 +356,6 @@ mod tests {
         assert_eq!(plugin.display_name(), "Redis Command");
         assert_eq!(plugin.category(), "redis");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
         assert_eq!(plugin.ports().len(), 2);
     }
 
@@ -383,7 +366,6 @@ mod tests {
         assert_eq!(plugin.display_name(), "Redis Close");
         assert_eq!(plugin.category(), "redis");
         assert!(plugin.is_protocol_node());
-        assert!(!plugin.supports_false_port());
         assert_eq!(plugin.ports().len(), 1);
     }
 

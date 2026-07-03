@@ -89,11 +89,6 @@ impl NodePlugin for KafkaConnectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "bootstrap_servers": config.get("bootstrap_servers"),
@@ -205,11 +200,6 @@ impl NodePlugin for KafkaProducePlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -336,11 +326,6 @@ impl NodePlugin for KafkaConsumePlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -461,11 +446,6 @@ impl NodePlugin for KafkaConsumeBatchPlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -592,11 +572,6 @@ impl NodePlugin for KafkaAdminPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -719,11 +694,6 @@ impl NodePlugin for KafkaSchemaRegistryPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -825,11 +795,6 @@ impl NodePlugin for KafkaClosePlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        false
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -906,7 +871,6 @@ mod tests {
         assert_eq!(plugin.icon(), "radio");
         assert_eq!(plugin.color(), "#f43f5e");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -923,7 +887,6 @@ mod tests {
         assert_eq!(plugin.icon(), "send");
         assert_eq!(plugin.color(), "#f43f5e");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -940,7 +903,6 @@ mod tests {
         assert_eq!(plugin.icon(), "download");
         assert_eq!(plugin.color(), "#f43f5e");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -957,7 +919,6 @@ mod tests {
         assert_eq!(plugin.icon(), "layers");
         assert_eq!(plugin.color(), "#f43f5e");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -974,7 +935,6 @@ mod tests {
         assert_eq!(plugin.icon(), "settings");
         assert_eq!(plugin.color(), "#f43f5e");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -991,7 +951,6 @@ mod tests {
         assert_eq!(plugin.icon(), "file-text");
         assert_eq!(plugin.color(), "#f43f5e");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -1008,7 +967,6 @@ mod tests {
         assert_eq!(plugin.icon(), "x-circle");
         assert_eq!(plugin.color(), "#f43f5e");
         assert!(plugin.is_protocol_node());
-        assert!(!plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 1);
