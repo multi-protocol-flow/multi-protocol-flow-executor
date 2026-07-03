@@ -192,6 +192,7 @@ tempfile = "3.0"
 # WebSocket 依赖测试
 tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
 futures-util = { workspace = true }
+rustls = { workspace = true, features = ["ring"] }
 
 # Release 构建优化（减小二进制体积）
 [profile.release]
