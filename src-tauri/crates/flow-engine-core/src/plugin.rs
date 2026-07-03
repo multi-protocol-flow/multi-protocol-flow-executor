@@ -99,12 +99,6 @@ pub trait NodePlugin: Send + Sync {
         false
     }
 
-    /// 是否支持 false 端口Error路由（默认 false）
-    #[deprecated(note = "Use Node.on_error instead")]
-    fn supports_false_port(&self) -> bool {
-        false
-    }
-
     /// 报告输入数据
     fn build_report_input(&self, _config: &serde_json::Value) -> Option<serde_json::Value> {
         None
