@@ -522,6 +522,6 @@ mod tests {
 
         // 应该返回Error
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不是 DbCommitConfig"));
+        assert!(result.unwrap_err().message.contains("Node data type is not DbCommitConfig"));
     }
 }
