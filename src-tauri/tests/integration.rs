@@ -59,7 +59,7 @@ fn test_valid_flow_execution() {
     // Verify flow name
     assert_eq!(
         flow_json["name"].as_str().unwrap(),
-        "有效流程 - 开始节点连接到结束节点"
+        "Valid Flow - Start Node Connected to End Node"
     );
 
     // Verify nodes
@@ -217,7 +217,7 @@ fn test_no_start_node_error_handling() {
     // Verify flow name
     assert_eq!(
         flow_json["name"].as_str().unwrap(),
-        "无效流程 - 缺少开始节点"
+        "Invalid Flow - Missing Start Node"
     );
 
     // Verify nodes
@@ -285,7 +285,7 @@ fn test_loop_detection() {
     assert!(is_valid_uuid(flow_uuid), "Flow UUID should be valid");
 
     // Verify flow name
-    assert_eq!(flow_json["name"].as_str().unwrap(), "无效流程 - 循环检测");
+    assert_eq!(flow_json["name"].as_str().unwrap(), "Invalid Flow - Loop Detection");
 
     // Verify nodes
     let nodes = flow_json["nodes"]
@@ -524,7 +524,7 @@ fn test_ws_basic_connect_flow_structure() {
     assert!(flow_json["name"]
         .as_str()
         .unwrap()
-        .contains("WebSocket 基本连接测试"));
+        .contains("WebSocket Basic Connection Test"));
 
     // 验证节点数量和类型
     let nodes = flow_json["nodes"]
