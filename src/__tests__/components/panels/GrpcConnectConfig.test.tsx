@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GrpcConnectConfig } from '@/components/panels/GrpcConnectConfig';
-import type { GrpcConnectConfig as GrpcConnectConfigType } from '@/types';
+import type { GrpcConnectConfig as GrpcConnectConfigType, GrpcServiceInfo, GrpcMessageInfo } from '@/types';
 
 // Mock react-hook-form 的 zodResolver（简化 schema 验证）
 vi.mock('@hookform/resolvers/zod', () => ({
@@ -239,6 +239,143 @@ describe('GrpcConnectConfig', () => {
       render(<GrpcConnectConfig data={config} onSave={mockOnSave} />);
 
       expect(screen.getByText(/支持 http:\/\/.*和 https:\/\/.*格式/)).toBeDefined();
+    });
+  });
+
+  describe('Schema Expansion', () => {
+    /** Helper: build a discovered service with message_definitions */
+    function createDiscoveredService(): GrpcServiceInfo {
+      const helloRequest: GrpcMessageInfo = {
+        full_name: 'test.HelloRequest',
+        fields: [
+          { name: 'name', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false },
+          { name: 'age', number: 2, type_kind: 'int32', type_display: 'int32', label: 'singular', is_map: false },
+        ],
+        oneof_groups: [],
+        is_wkt: false,
+      };
+
+      const helloResponse: GrpcMessageInfo = {
+        full_name: 'test.HelloResponse',
+        fields: [
+          { name: 'message', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false },
+        ],
+        oneof_groups: [],
+        is_wkt: false,
+      };
+
+      return {
+        service_name: 'test.Greeter',
+        methods: [
+          {
+            method_name: 'SayHello',
+            input_type: 'test.HelloRequest',
+            output_type: 'test.HelloResponse',
+            is_server_streaming: false,
+            is_client_streaming: false,
+          },
+        ],
+        message_definitions: {
+          'test.HelloRequest': helloRequest,
+          'test.HelloResponse': helloResponse,
+        },
+      };
+    }
+
+    it('displays service with discovered methods when discovered_services is provided', () => {
+      const config = createBaseConfig({
+        discovered_services: [createDiscoveredService()],
+      });
+      render(<GrpcConnectConfig data={config} onSave={mockOnSave} />);
+
+      // Service name should be visible
+      expect(screen.getByText('test.Greeter')).toBeDefined();
+      // The "已发现的服务" section should appear
+      expect(screen.getByText('已发现的服务')).toBeDefined();
+    });
+
+    it('shows clickable input type chip with short name when message def exists', async () => {
+      const user = userEvent.setup();
+      const config = createBaseConfig({
+        discovered_services: [createDiscoveredService()],
+      });
+      render(<GrpcConnectConfig data={config} onSave={mockOnSave} />);
+
+      // Expand the service so methods show
+      await user.click(screen.getByText('test.Greeter'));
+
+      // The method name should be visible
+      expect(screen.getByText('SayHello')).toBeDefined();
+
+      // The input type chip should show the short name (last segment)
+      const inputChip = screen.getByText('HelloRequest');
+      expect(inputChip).toBeDefined();
+
+      // The output type chip should show the short name
+      const outputChip = screen.getByText('HelloResponse');
+      expect(outputChip).toBeDefined();
+    });
+
+    it('clicking input type chip expands MessageSchemaView with request fields', async () => {
+      const user = userEvent.setup();
+      const config = createBaseConfig({
+        discovered_services: [createDiscoveredService()],
+      });
+      render(<GrpcConnectConfig data={config} onSave={mockOnSave} />);
+
+      // Expand the service
+      await user.click(screen.getByText('test.Greeter'));
+
+      // Click the input type chip "HelloRequest"
+      await user.click(screen.getByText('HelloRequest'));
+
+      // Request schema label should appear
+      expect(screen.getByText('请求结构')).toBeDefined();
+
+      // HelloRequest fields should appear
+      expect(screen.getByText('name')).toBeDefined();
+      expect(screen.getByText('age')).toBeDefined();
+    });
+
+    it('clicking output type chip expands MessageSchemaView with response fields', async () => {
+      const user = userEvent.setup();
+      const config = createBaseConfig({
+        discovered_services: [createDiscoveredService()],
+      });
+      render(<GrpcConnectConfig data={config} onSave={mockOnSave} />);
+
+      // Expand the service
+      await user.click(screen.getByText('test.Greeter'));
+
+      // Click the output type chip "HelloResponse"
+      await user.click(screen.getByText('HelloResponse'));
+
+      // Response schema label should appear
+      expect(screen.getByText('响应结构')).toBeDefined();
+
+      // HelloResponse fields should appear
+      expect(screen.getByText('message')).toBeDefined();
+    });
+
+    it('clicking type chip again collapses the schema view', async () => {
+      const user = userEvent.setup();
+      const config = createBaseConfig({
+        discovered_services: [createDiscoveredService()],
+      });
+      render(<GrpcConnectConfig data={config} onSave={mockOnSave} />);
+
+      // Expand the service
+      await user.click(screen.getByText('test.Greeter'));
+
+      // Click input type chip to expand
+      await user.click(screen.getByText('HelloRequest'));
+      expect(screen.getByText('请求结构')).toBeDefined();
+
+      // Click again to collapse
+      await user.click(screen.getByText('HelloRequest'));
+
+      // Request schema label should be gone
+      expect(screen.queryByText('请求结构')).toBeNull();
     });
   });
 });
