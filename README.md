@@ -89,28 +89,90 @@ bun install
 npx tauri dev
 ```
 
-### 构建应用
+### 编译 GUI 应用（Tauri 桌面版）
 
 ```bash
-# 构建生产版本
+# 构建生产版本（包含前端资源 + Tauri 后端）
 npx tauri build
 ```
 
+编译产物位置：`src-tauri/target/release/bundle/`（平台对应安装包）
+
 ### 编译 CLI 工具
+
+项目提供二种二进制入口：
+
+| 二进制 | 适用场景 | 依赖 |
+|--------|----------|------|
+| `mpe` | GUI + CLI 二合一 | 需要 Tauri + 前端资源 |
+| `mpe-cli` | 纯 CLI（服务器/CI/Docker） | 纯 Rust，无 GUI 依赖 |
+
+#### 构建桌面版 CLI（二合一 `mpe`）
 
 ```bash
 # 开发版本
 cd src-tauri
 cargo build
 
-# 生产版本
+# 生产版本（体积优化）
 cd src-tauri
 cargo build --release
 ```
 
-编译产物位置：
-- Windows: `src-tauri\target\debug\mpe.exe` (或 `release\mpe.exe`)
-- Linux/macOS: `src-tauri/target/debug/mpe` (或 `release/mpe`)
+产物位置：
+- Windows: `src-tauri\target\debug\mpe.exe`（或 `release\mpe.exe`）
+- Linux/macOS: `src-tauri/target/debug/mpe`（或 `release/mpe`）
+
+> 注意：二合一 `mpe` 编译依赖完整前端构建，需要先 `npm install`。
+
+#### 构建独立 CLI（纯 Rust，推荐给 Linux 服务器使用）
+
+```bash
+# Linux / macOS
+cd src-tauri
+cargo build -p mpe-cli --release
+cp target/release/mpe-cli /usr/local/bin/mpe    # 安装到系统路径
+
+# 按需选择协议（减少编译时间/二进制体积）
+cargo build -p mpe-cli --release --no-default-features -F protocol-http -F protocol-script
+```
+
+产物：`src-tauri/target/release/mpe-cli`
+
+#### Windows 交叉编译 Linux CLI
+
+从 Windows 构建 Linux 独立 CLI 有两种方式：
+
+**方式一：WSL（推荐）**
+
+```bash
+# 在 WSL（Ubuntu/Debian）中
+sudo apt install build-essential pkg-config libssl-dev
+cd /path/to/multi-protocol-flow-executor/src-tauri
+cargo build -p mpe-cli --release
+# 产物在 target/release/mpe-cli，直接 cp 到 Linux 机器使用
+```
+
+**方式二：Rust 交叉编译**
+
+```bash
+# 1. 安装 Linux 目标
+rustup target add x86_64-unknown-linux-gnu
+
+# 2. 安装交叉编译器（需要 MSYS2 或 mingw64）
+# 或直接使用 WSL 更简单（见方式一）
+
+# 3. 构建
+cd src-tauri
+cargo build -p mpe-cli --release --target x86_64-unknown-linux-gnu
+```
+
+#### 安装到 Linux 系统路径
+
+```bash
+cp src-tauri/target/release/mpe-cli /usr/local/bin/mpe   # 或 /root/bin/mpe
+mpe --help
+```
 
 ### 使用 CLI
 
