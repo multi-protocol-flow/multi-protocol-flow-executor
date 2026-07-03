@@ -17,6 +17,7 @@ serde_json = { workspace = true }
 tokio = { workspace = true }
 log = { workspace = true }
 chrono = { workspace = true }
+rustls = { workspace = true, features = ["ring"] }
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [lints]

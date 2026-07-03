@@ -2279,6 +2279,7 @@ dependencies = [
  "futures-util",
  "log",
  "reqwest",
+ "rustls",
  "serde",
  "serde_json",
  "tokio",

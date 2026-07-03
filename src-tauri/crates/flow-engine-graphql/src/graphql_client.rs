@@ -155,8 +155,14 @@ pub struct GraphqlClient {
 }
 
 impl GraphqlClient {
+    /// 确保 `CryptoProvider` 已安装（rustls 0.23+ 必需）
+    fn ensure_crypto_provider() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    }
+
     /// 创建新的 GraphQL 客户端（不自动跟随 301/302 重定向，避免 POST→GET 丢失 body）
     pub fn new() -> Self {
+        Self::ensure_crypto_provider();
         Self {
             client: reqwest::Client::builder()
                 .redirect(reqwest::redirect::Policy::none())
@@ -167,6 +173,7 @@ impl GraphqlClient {
 
     /// 创建带自定义超时的 GraphQL 客户端
     pub fn with_timeout(timeout: Duration) -> Self {
+        Self::ensure_crypto_provider();
         Self {
             client: reqwest::Client::builder()
                 .redirect(reqwest::redirect::Policy::none())
