@@ -178,6 +178,7 @@ pub use db::{
 // ============================================================================
 
 #[cfg(test)]
+/// 测试工具模块：提供 WebSocket 节点创建辅助函数。
 pub mod test_utils {
     use crate::context::ExecutionContext;
     use crate::node::{Node, NodePosition};
@@ -216,6 +217,7 @@ pub mod test_utils {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -246,6 +248,7 @@ pub mod test_utils {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -271,6 +274,7 @@ pub mod test_utils {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
