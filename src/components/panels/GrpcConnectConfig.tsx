@@ -377,7 +377,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
   }, [getValues, onSave]);
 
   /** Check if a type name has a corresponding message definition */
-  const inputTypeDefined = useCallback(
+  const typeDefined = useCallback(
     (defs: Record<string, GrpcMessageInfo>, typeName: string): boolean => {
       return !!defs[typeName];
     },
@@ -937,7 +937,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                               <span className="text-muted-foreground shrink-0">→</span>
 
                               {/* Clickable input type chip */}
-                              {inputTypeDefined(messageDefinitions, method.input_type) ? (
+                              {typeDefined(messageDefinitions, method.input_type) ? (
                                 <button
                                   type="button"
                                   onClick={() => toggleSchema(service.service_name, method.method_name, 'input')}
@@ -956,7 +956,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                               <span className="text-muted-foreground shrink-0">→</span>
 
                               {/* Clickable output type chip */}
-                              {inputTypeDefined(messageDefinitions, method.output_type) ? (
+                              {typeDefined(messageDefinitions, method.output_type) ? (
                                 <button
                                   type="button"
                                   onClick={() => toggleSchema(service.service_name, method.method_name, 'output')}

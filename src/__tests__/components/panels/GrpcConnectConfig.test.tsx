@@ -248,8 +248,8 @@ describe('GrpcConnectConfig', () => {
       const helloRequest: GrpcMessageInfo = {
         full_name: 'test.HelloRequest',
         fields: [
-          { name: 'name', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false },
-          { name: 'age', number: 2, type_kind: 'int32', type_display: 'int32', label: 'singular', is_map: false },
+          { name: 'name', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false, enum_values: [] },
+          { name: 'age', number: 2, type_kind: 'int32', type_display: 'int32', label: 'singular', is_map: false, enum_values: [] },
         ],
         oneof_groups: [],
         is_wkt: false,
@@ -258,7 +258,7 @@ describe('GrpcConnectConfig', () => {
       const helloResponse: GrpcMessageInfo = {
         full_name: 'test.HelloResponse',
         fields: [
-          { name: 'message', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false },
+          { name: 'message', number: 1, type_kind: 'string', type_display: 'string', label: 'singular', is_map: false, enum_values: [] },
         ],
         oneof_groups: [],
         is_wkt: false,
