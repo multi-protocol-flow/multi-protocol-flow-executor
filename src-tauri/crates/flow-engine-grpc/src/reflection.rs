@@ -757,21 +757,23 @@ pub async fn discover_services_via_reflection(
 
     // 4. 提取服务信息
     let services = proto_parser::list_services(&pool);
+    let message_definitions = proto_parser::get_message_definitions(&pool);
     Ok(services
-        .iter()
+        .into_iter()
         .map(|s| GrpcServiceInfo {
-            service_name: s.service_name.clone(),
+            service_name: s.service_name,
             methods: s
                 .methods
-                .iter()
+                .into_iter()
                 .map(|m| GrpcMethodInfo {
-                    method_name: m.method_name.clone(),
-                    input_type: m.input_type.clone(),
-                    output_type: m.output_type.clone(),
+                    method_name: m.method_name,
+                    input_type: m.input_type,
+                    output_type: m.output_type,
                     is_server_streaming: m.is_server_streaming,
                     is_client_streaming: m.is_client_streaming,
                 })
                 .collect(),
+            message_definitions: message_definitions.clone(),
         })
         .collect())
 }
@@ -851,21 +853,23 @@ pub fn discover_services_via_proto(
         .map_err(|e| format!("解析 proto 文件Failed: {}", e))?;
 
     let services = proto_parser::list_services(&pool);
+    let message_definitions = proto_parser::get_message_definitions(&pool);
     Ok(services
-        .iter()
+        .into_iter()
         .map(|s| GrpcServiceInfo {
-            service_name: s.service_name.clone(),
+            service_name: s.service_name,
             methods: s
                 .methods
-                .iter()
+                .into_iter()
                 .map(|m| GrpcMethodInfo {
-                    method_name: m.method_name.clone(),
-                    input_type: m.input_type.clone(),
-                    output_type: m.output_type.clone(),
+                    method_name: m.method_name,
+                    input_type: m.input_type,
+                    output_type: m.output_type,
                     is_server_streaming: m.is_server_streaming,
                     is_client_streaming: m.is_client_streaming,
                 })
                 .collect(),
+            message_definitions: message_definitions.clone(),
         })
         .collect())
 }
