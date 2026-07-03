@@ -1,6 +1,6 @@
 // 钩子模块 - 流程生命周期钩子定义
 //
-// 支持在流程执行完成（成功/失败/取消）时自动触发预定义动作。
+// 支持在流程execution complete（Success/Failed/取消）时自动触发预定义动作。
 // 三种动作类型: Webhook (HTTP 回调)、Script (QuickJS 脚本)、Notify (系统通知)。
 
 use serde::{Deserialize, Serialize};
@@ -10,13 +10,13 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum HookTrigger {
-    /// 流程执行成功时触发
+    /// 流程执行Success时触发
     OnSuccess,
-    /// 流程执行失败时触发
+    /// Flow execution failed时触发
     OnFailure,
     /// 流程被取消时触发
     OnCancel,
-    /// 流程执行完成时触发（无论成功/失败/取消）
+    /// 流程execution complete时触发（无论Success/Failed/取消）
     OnComplete,
 }
 
@@ -121,11 +121,11 @@ pub struct HookContext {
     pub flow_uuid: String,
     /// 流程名称
     pub flow_name: String,
-    /// 执行状态: "success" | "failure" | "cancelled"
+    /// 执行Status: "success" | "failure" | "cancelled"
     pub status: String,
     /// 执行耗时（毫秒）
     pub duration_ms: u64,
-    /// 错误信息（仅在失败时有值）
+    /// Error信息（仅在Failed时有值）
     pub error: Option<String>,
 }
 
@@ -211,7 +211,7 @@ mod tests {
     fn test_notify_action_serialization() {
         let action = HookAction::Notify {
             title_template: "流程 {{flow_name}} 完成".to_string(),
-            message_template: "状态: {{status}}, 耗时: {{duration_ms}}ms".to_string(),
+            message_template: "Status: {{status}}, Duration: {{duration_ms}}ms".to_string(),
         };
         let json = serde_json::to_string(&action).unwrap();
         assert!(json.contains("\"type\":\"notify\""));
@@ -329,7 +329,7 @@ mod tests {
     fn test_hook_context_construction() {
         let ctx = HookContext {
             flow_uuid: "flow-001".to_string(),
-            flow_name: "测试流程".to_string(),
+            flow_name: "Test Flow".to_string(),
             status: "success".to_string(),
             duration_ms: 1234,
             error: None,

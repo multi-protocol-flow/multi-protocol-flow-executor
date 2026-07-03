@@ -1632,9 +1632,9 @@ mod tests {
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[0].label, "成功");
+        assert_eq!(ports[0].label, "Success");
         assert_eq!(ports[1].id, "false");
-        assert_eq!(ports[1].label, "失败");
+        assert_eq!(ports[1].label, "Failed");
     }
 
     #[test]

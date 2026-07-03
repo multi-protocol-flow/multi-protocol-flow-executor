@@ -667,7 +667,7 @@ mod tests {
     fn test_assertion_events_fail_scenario() {
         use flow_engine_core::node_config::AssertionResult;
 
-        // 测试失败场景
+        // 测试Failed场景
         let failed_assertions = vec![
             AssertionResult {
                 id: "assert-1".to_string(),

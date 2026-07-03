@@ -56,7 +56,7 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
             replace_variables(&config.connection_id, context).map_err(|e| {
                 let error_msg = format!("Connection ID variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -68,9 +68,9 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
         // 3. 变量替换 subject
         if let Some(ref subject) = config.subject {
             config.subject = Some(replace_variables(subject, context).map_err(|e| {
-                let error_msg = format!("Subject 变量替换失败: {}", e);
+                let error_msg = format!("Subject variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -80,9 +80,9 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
             })?);
         }
 
-        // 4. 日志：开始执行
+        // 4. 日志：start execution
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: kafka_schema_registry, 操作: {}, 连接ID: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: kafka_schema_registry, 操作: {}, Connection ID: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -94,7 +94,7 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "Kafka Schema Registry 节点 {} 开始执行: {}",
+                    "Kafka Schema Registry 节点 {} start execution: {}",
                     node.name, config.operation
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -129,7 +129,7 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
                 let output_data = serde_json::to_value(&output)
                     .map_err(|e| ErrorDetail::execution_error(format!("Failed to serialize Schema Registry output: {}", e)))?;
 
-                // 7. 日志：执行完成
+                // 7. 日志：execution complete
                 let log_level = if output.success {
                     LogLevel::Info
                 } else {
@@ -137,13 +137,13 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "Kafka Schema Registry 操作成功: {} ({}ms)",
+                        "Kafka Schema Registry 操作Success: {} ({}ms)",
                         config.operation,
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "Kafka Schema Registry 操作失败: {} - {}",
+                        "Kafka Schema Registry 操作Failed: {} - {}",
                         config.operation,
                         output.error.as_deref().unwrap_or("Unknown error")
                     )
@@ -163,7 +163,7 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
                     })
                     .await;
 
-                // 8. 根据成功/失败选择端口
+                // 8. 根据Success/Failed选择端口
                 if !output.success
                     && !node.on_error.as_ref().map_or(true, |s| {
                         *s == ExecutionErrorStrategy::RouteToFalse
@@ -172,7 +172,7 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("Schema Registry 操作失败")
+                        .unwrap_or("Schema Registry 操作Failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -197,7 +197,7 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
                     e
                 );
 
-                // 日志：执行异常
+                // 日志：execution error
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
@@ -215,7 +215,7 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let error_output = json!({
                     "success": false,
                     "operation": config.operation,
@@ -253,7 +253,7 @@ mod tests {
     use flow_engine_core::node_config::KafkaSchemaRegistryConfig;
     use crate::kafka_connection_manager::KafkaConnectionManager;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, operation: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -366,7 +366,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -396,7 +396,7 @@ mod tests {
         });
 
         let config: KafkaSchemaRegistryConfig =
-            serde_json::from_value(json).expect("反序列化应成功");
+            serde_json::from_value(json).expect("反序列化应Success");
         assert_eq!(config.connection_id, "conn-1");
         assert_eq!(config.operation, "register_schema");
         assert_eq!(config.subject, Some("orders-value".to_string()));

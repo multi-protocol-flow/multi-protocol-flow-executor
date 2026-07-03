@@ -45,7 +45,7 @@ impl NodeExecutor for Amqp10ConnectExecutor {
             NodeData::Amqp10Connect(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 Amqp10ConnectConfig: {}",
+                    "Node data type is not Amqp10ConnectConfig: {}",
                     node.uuid
                 )))
             }
@@ -53,9 +53,9 @@ impl NodeExecutor for Amqp10ConnectExecutor {
 
         // 2. 变量替换（url）
         let url = replace_variables(&config.url, context).map_err(|e| {
-            let error_msg = format!("url 变量替换失败: {}", e);
+            let error_msg = format!("url variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -66,7 +66,7 @@ impl NodeExecutor for Amqp10ConnectExecutor {
 
         // 3. 日志：开始连接
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp10_connect, url: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp10_connect, url: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -76,7 +76,7 @@ impl NodeExecutor for Amqp10ConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("AMQP 1.0 连接节点 {} 开始执行", node.name),
+                message: format!("AMQP 1.0 连接节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
@@ -112,14 +112,14 @@ impl NodeExecutor for Amqp10ConnectExecutor {
 
                 if output.success {
                     log::info!(
-                        "[AMQP 1.0] 连接成功: uuid={}, url={}, connection_id={}",
+                        "[AMQP 1.0] 连接Success: uuid={}, url={}, connection_id={}",
                         node.uuid,
                         connect_config.url,
                         output.connection_id
                     );
                 } else {
                     log::warn!(
-                        "[AMQP 1.0] 连接失败: uuid={}, url={}, error={:?}",
+                        "[AMQP 1.0] connection failed: uuid={}, url={}, error={:?}",
                         node.uuid,
                         connect_config.url,
                         output.error
@@ -150,11 +150,11 @@ impl NodeExecutor for Amqp10ConnectExecutor {
                     LogLevel::Error
                 };
                 let log_message = if output.success {
-                    format!("AMQP 1.0 连接成功 ({}ms)", duration.as_millis())
+                    format!("AMQP 1.0 连接Success ({}ms)", duration.as_millis())
                 } else {
                     format!(
-                        "AMQP 1.0 连接失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "AMQP 1.0 connection failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -173,7 +173,7 @@ impl NodeExecutor for Amqp10ConnectExecutor {
                     })
                     .await;
 
-                // 9. 路由：成功走 true 端口，失败走 false 端口
+                // 9. 路由：Success走 true 端口，Failed走 false 端口
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, port);
 
@@ -181,7 +181,7 @@ impl NodeExecutor for Amqp10ConnectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[AMQP 1.0] 连接异常: uuid={}, url={}, error={}",
+                    "[AMQP 1.0] connection error: uuid={}, url={}, error={}",
                     node.uuid,
                     connect_config.url,
                     e
@@ -190,7 +190,7 @@ impl NodeExecutor for Amqp10ConnectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("AMQP 1.0 连接异常: {}", e),
+                        message: format!("AMQP 1.0 connection error: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap_or_default()
@@ -215,9 +215,9 @@ impl NodeExecutor for Amqp10ConnectExecutor {
                     "error": e,
                 });
 
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP 1.0 connect 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("AMQP 1.0 connect Failed: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -254,7 +254,7 @@ mod tests {
         AmqpProvider,
     };
 
-    /// Mock AmqpProvider（连接成功）
+    /// Mock AmqpProvider（连接Success）
     struct MockAmqpProvider {
         output: Amqp10ConnectOutput,
     }
@@ -540,7 +540,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, url: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -580,7 +580,7 @@ mod tests {
         }
     }
 
-    /// 测试：连接成功时输出 JSON 结构正确
+    /// 测试：连接Success时输出 JSON 结构正确
     #[tokio::test]
     async fn test_amqp10_connect_success_output_structure() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -604,12 +604,12 @@ mod tests {
         assert!(data["error"].is_null());
     }
 
-    /// 测试：连接失败时路由到 false 端口
+    /// 测试：connection failed时路由到 false 端口
     #[tokio::test]
     async fn test_amqp10_connect_failure_routes_to_false_port() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_failure("Connection refused"));
         let executor = Amqp10ConnectExecutor::new(amqp_manager);
-        let node = create_test_node("test-2", "失败测试", "amqp://unreachable:5672");
+        let node = create_test_node("test-2", "Failed测试", "amqp://unreachable:5672");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -626,7 +626,7 @@ mod tests {
         assert_eq!(data["error"], "Connection refused");
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_amqp10_connect_wrong_node_data_type() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -635,7 +635,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(EntryConfig::default()),
             ports: None,

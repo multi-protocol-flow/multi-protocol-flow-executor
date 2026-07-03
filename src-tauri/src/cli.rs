@@ -14,7 +14,7 @@ pub mod debug_cmd;
 
 use clap::{Parser, Subcommand};
 
-// ── CLI 错误类型 ──────────────────────────────────────────────────
+// ── CLI Error类型 ──────────────────────────────────────────────────
 
 /// CLI error type
 #[derive(Debug)]
@@ -338,7 +338,7 @@ fn setup_logging() {
         chrono::Local::now().format("%Y-%m-%d_%H-%M-%S")
     ));
 
-    // 尝试创建文件输出，失败则仅输出到控制台
+    // 尝试创建文件输出，Failed则仅输出到控制台
     let file_logger = fern::log_file(&log_file).ok();
 
     // 配置 fern 日志分发器
@@ -355,14 +355,14 @@ fn setup_logging() {
         .level(log::LevelFilter::Info)
         .chain(std::io::stderr());
 
-    // 文件输出可选，失败不影响 CLI 执行
+    // 文件输出可选，Failed不影响 CLI 执行
     if let Some(file) = file_logger {
         dispatch = dispatch.chain(file);
     }
 
     let result = dispatch.apply();
 
-    // 日志初始化失败不影响 CLI 执行
+    // 日志初始化Failed不影响 CLI 执行
     if result.is_ok() {
         log::info!("Log initialized: {:?}", log_file);
     }

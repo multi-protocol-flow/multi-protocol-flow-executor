@@ -95,8 +95,8 @@ impl StressTestSessionManager {
     /// - `event_sender`: 事件发送器
     ///
     /// # 返回
-    /// - `Ok(())` - 启动成功
-    /// - `Err(String)` - 启动失败（如已有会话运行）
+    /// - `Ok(())` - 启动Success
+    /// - `Err(String)` - 启动Failed（如已有会话运行）
     pub async fn start(
         &self,
         flow: Flow,
@@ -134,8 +134,8 @@ impl StressTestSessionManager {
     /// 停止当前压测会话
     ///
     /// # 返回
-    /// - `Ok(())` - 停止成功
-    /// - `Err(String)` - 停止失败（如没有运行中的会话）
+    /// - `Ok(())` - 停止Success
+    /// - `Err(String)` - 停止Failed（如没有运行中的会话）
     pub async fn stop(&self) -> Result<(), String> {
         // 获取并清除会话
         let session = {
@@ -196,8 +196,8 @@ impl StressTestSessionManager {
 /// - `state`: 会话管理器（共享状态）
 ///
 /// # 返回
-/// - `Ok(())` - 启动成功
-/// - `Err(String)` - 启动失败
+/// - `Ok(())` - 启动Success
+/// - `Err(String)` - 启动Failed
 pub async fn handle_start_stress_test(
     input: StartStressTestInput,
     event_sender: mpsc::UnboundedSender<StressTestEvent>,
@@ -219,8 +219,8 @@ pub async fn handle_start_stress_test(
 /// - `state`: 会话管理器（共享状态）
 ///
 /// # 返回
-/// - `Ok(())` - 停止成功
-/// - `Err(String)` - 停止失败
+/// - `Ok(())` - 停止Success
+/// - `Err(String)` - 停止Failed
 pub async fn handle_stop_stress_test(state: Arc<StressTestSessionManager>) -> Result<(), String> {
     log::info!("[压测命令] 停止压测");
     state.stop().await
@@ -233,7 +233,7 @@ pub async fn handle_stop_stress_test(state: Arc<StressTestSessionManager>) -> Re
 ///
 /// # 返回
 /// - `Ok(GetStressTestStatusOutput)` - 当前状态和进度
-/// - `Err(String)` - 获取状态失败
+/// - `Err(String)` - 获取状态Failed
 pub async fn handle_get_stress_test_status(
     state: Arc<StressTestSessionManager>,
 ) -> Result<GetStressTestStatusOutput, String> {
@@ -276,14 +276,14 @@ mod tests {
         };
         let input = StartStressTestInput { flow, config };
 
-        let json = serde_json::to_string(&input).expect("序列化失败");
+        let json = serde_json::to_string(&input).expect("序列化Failed");
         assert!(json.contains("flow"));
         assert!(json.contains("config"));
         assert!(json.contains("concurrentUsers"));
         assert!(json.contains("rampUpSeconds"));
         assert!(json.contains("durationSeconds"));
 
-        let deserialized: StartStressTestInput = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: StartStressTestInput = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized.config.concurrent_users, 5);
     }
 
@@ -291,11 +291,11 @@ mod tests {
     fn test_stop_stress_test_input_serialization() {
         let input = StopStressTestInput {};
 
-        let json = serde_json::to_string(&input).expect("序列化失败");
+        let json = serde_json::to_string(&input).expect("序列化Failed");
         assert_eq!(json, "{}");
 
-        let deserialized: StopStressTestInput = serde_json::from_str(&json).expect("反序列化失败");
-        // 空结构体，验证反序列化成功即可
+        let deserialized: StopStressTestInput = serde_json::from_str(&json).expect("反序列化Failed");
+        // 空结构体，验证反序列化Success即可
         let _ = deserialized;
     }
 
@@ -315,7 +315,7 @@ mod tests {
             }),
         };
 
-        let json = serde_json::to_string(&output).expect("序列化失败");
+        let json = serde_json::to_string(&output).expect("序列化Failed");
         assert!(json.contains("status"));
         assert!(json.contains("progress"));
         assert!(json.contains("elapsedSeconds"));
@@ -326,7 +326,7 @@ mod tests {
         assert!(json.contains("avgLatencyMs"));
 
         let deserialized: GetStressTestStatusOutput =
-            serde_json::from_str(&json).expect("反序列化失败");
+            serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized.status, StressTestStatus::Running);
         assert!(deserialized.progress.is_some());
     }
@@ -338,12 +338,12 @@ mod tests {
             progress: None,
         };
 
-        let json = serde_json::to_string(&output).expect("序列化失败");
+        let json = serde_json::to_string(&output).expect("序列化Failed");
         assert!(json.contains("status"));
         assert!(json.contains("null"));
 
         let deserialized: GetStressTestStatusOutput =
-            serde_json::from_str(&json).expect("反序列化失败");
+            serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized.status, StressTestStatus::Idle);
         assert!(deserialized.progress.is_none());
     }
@@ -362,12 +362,12 @@ mod tests {
             config,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("started"));
         assert!(json.contains("flowUuid"));
         assert!(json.contains("config"));
 
-        let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(event, deserialized);
     }
 
@@ -386,12 +386,12 @@ mod tests {
             },
         };
 
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("progress"));
         assert!(json.contains("elapsedSeconds"));
         assert!(json.contains("currentRps"));
 
-        let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(event, deserialized);
     }
 
@@ -429,12 +429,12 @@ mod tests {
         };
         let event = StressTestEvent::Ended { report: Box::new(report) };
 
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("ended"));
         assert!(json.contains("report"));
         assert!(json.contains("report-001"));
 
-        let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(event, deserialized);
     }
 
@@ -454,8 +454,8 @@ mod tests {
         ];
 
         for event in events {
-            let json = serde_json::to_string(&event).expect("序列化失败");
-            let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化失败");
+            let json = serde_json::to_string(&event).expect("序列化Failed");
+            let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化Failed");
             assert_eq!(event, deserialized);
         }
     }
@@ -479,7 +479,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_get_status_idle() {
         let manager = StressTestSessionManager::new();
-        let result = manager.get_status().await.expect("获取状态失败");
+        let result = manager.get_status().await.expect("获取状态Failed");
 
         assert_eq!(result.status, StressTestStatus::Idle);
         assert!(result.progress.is_none());
@@ -511,7 +511,7 @@ mod tests {
         let input = StartStressTestInput { flow, config };
 
         let result = handle_start_stress_test(input, event_sender, manager.clone()).await;
-        assert!(result.is_ok(), "启动应该失败: {:?}", result.err());
+        assert!(result.is_ok(), "启动应该Failed: {:?}", result.err());
         assert!(manager.is_running().await);
 
         // 清理：停止会话
@@ -540,9 +540,9 @@ mod tests {
         };
 
         let result1 = handle_start_stress_test(input1, event_sender1, manager.clone()).await;
-        assert!(result1.is_ok(), "第一次启动应该成功");
+        assert!(result1.is_ok(), "第一次启动应该Success");
 
-        // 第二次启动应该失败
+        // 第二次启动应该Failed
         let flow2 = Flow { uuid: "flow-002".to_string(), name: "Test Flow 2".to_string(), description: None, nodes: vec![Node {
             uuid: "node-002".to_string(),
             node_type: "entry".to_string(),
@@ -566,7 +566,7 @@ mod tests {
         };
 
         let result2 = handle_start_stress_test(input2, event_sender2, manager.clone()).await;
-        assert!(result2.is_err(), "第二次启动应该失败");
+        assert!(result2.is_err(), "第二次启动应该Failed");
         let error = result2.unwrap_err();
         assert!(error.find("已有压测会话在运行").is_some());
 
@@ -592,7 +592,7 @@ mod tests {
         let input = StartStressTestInput { flow, config };
 
         let result = handle_start_stress_test(input, event_sender, manager.clone()).await;
-        assert!(result.is_err(), "无效配置应该失败");
+        assert!(result.is_err(), "无效配置应该Failed");
         let error = result.unwrap_err();
         assert!(error.find("并发用户数").is_some());
 
@@ -618,10 +618,10 @@ mod tests {
 
         // 然后停止
         let result = handle_stop_stress_test(manager.clone()).await;
-        assert!(result.is_ok(), "停止应该成功");
+        assert!(result.is_ok(), "停止应该Success");
         assert!(!manager.is_running().await);
 
-        // 再次停止应该失败
+        // 再次停止应该Failed
         let result2 = handle_stop_stress_test(manager).await;
         assert!(result2.is_err());
     }
@@ -673,7 +673,7 @@ mod tests {
 
         // 初始状态：空闲
         assert!(!manager.is_running().await);
-        let status = manager.get_status().await.expect("获取状态失败");
+        let status = manager.get_status().await.expect("获取状态Failed");
         assert_eq!(status.status, StressTestStatus::Idle);
 
         // 启动
@@ -690,12 +690,12 @@ mod tests {
         manager
             .start(flow, config, event_sender)
             .await
-            .expect("启动失败");
+            .expect("启动Failed");
 
         assert!(manager.is_running().await);
 
         // 停止
-        manager.stop().await.expect("停止失败");
+        manager.stop().await.expect("停止Failed");
         assert!(!manager.is_running().await);
 
         // 验证可以重新启动
@@ -719,7 +719,7 @@ mod tests {
         };
 
         let result = manager.start(flow2, config2, event_sender2).await;
-        assert!(result.is_ok(), "重新启动应该成功");
+        assert!(result.is_ok(), "重新启动应该Success");
 
         // 清理
         let _ = manager.stop().await;
@@ -727,7 +727,7 @@ mod tests {
 
     /// 测试并发启动安全性
     ///
-    /// 验证多个并发启动请求只有一个能成功，确保 TOCTOU 竞态条件已修复。
+    /// 验证多个并发启动请求只有一个能Success，确保 TOCTOU 竞态条件已修复。
     #[tokio::test]
     async fn test_concurrent_start_safety() {
         use futures_util::future::join_all;
@@ -759,7 +759,7 @@ mod tests {
         // 等待所有请求完成
         let results: Vec<_> = join_all(handles).await;
 
-        // 统计成功和失败的数量
+        // 统计Success和Failed的数量
         let success_count = results
             .iter()
             .filter(|r| matches!(r, Ok(Ok(()))))
@@ -769,15 +769,15 @@ mod tests {
             .filter(|r| matches!(r, Ok(Err(_))))
             .count();
 
-        // 只有一个应该成功
+        // 只有一个应该Success
         assert_eq!(
             success_count, 1,
-            "只有一个启动请求应该成功，但有 {} 个成功了",
+            "只有一个启动请求应该Success，但有 {} 个Success了",
             success_count
         );
         assert_eq!(
             failure_count, 4,
-            "四个启动请求应该失败，但有 {} 个失败了",
+            "四个启动请求应该Failed，但有 {} 个Failed了",
             failure_count
         );
 

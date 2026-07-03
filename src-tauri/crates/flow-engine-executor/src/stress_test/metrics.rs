@@ -1,9 +1,9 @@
 // 压力测试指标收集器
 //
 // 线程安全的指标收集器，用于收集压测过程中的各项指标：
-// - 成功/失败次数（使用 AtomicU64）
+// - Success/Failed次数（使用 AtomicU64）
 // - 延迟记录（环形缓冲区，最多 10,000 条）
-// - 错误分类统计（HashMap）
+// - Error分类统计（HashMap）
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -40,7 +40,7 @@ use super::types::{
 /// 延迟记录的最大容量
 const MAX_LATENCY_RECORDS: usize = 100_000;
 
-/// 错误样本的最大保留数量（每种错误类型）
+/// Error样本的最大保留数量（每种Error类型）
 const MAX_ERROR_SAMPLES: usize = 10;
 
 /// 压力测试指标收集器
@@ -48,9 +48,9 @@ const MAX_ERROR_SAMPLES: usize = 10;
 /// 线程安全的指标收集器，用于在压测过程中收集和汇总各项指标。
 /// 使用原子操作和互斥锁确保并发安全。
 pub struct MetricsCollector {
-    /// 成功次数计数器
+    /// Success次数计数器
     success_count: AtomicU64,
-    /// 失败次数计数器
+    /// Failed次数计数器
     failure_count: AtomicU64,
     /// 总迭代次数
     total_iterations: AtomicU64,
@@ -65,7 +65,7 @@ pub struct MetricsCollector {
     max_latency_ms: AtomicU64,
     /// 延迟总和（毫秒），用于计算平均值
     total_latency_ms: AtomicU64,
-    /// 错误分类统计
+    /// Error分类统计
     /// key: `error_kind`, value: (count, samples)
     error_stats: Mutex<HashMap<String, (u64, Vec<ErrorSample>)>>,
     /// 节点级指标收集器
@@ -273,7 +273,7 @@ impl MetricsCollector {
         self.start_time_ms.store(start_time_ms, Ordering::SeqCst);
     }
 
-    /// 记录一次成功执行
+    /// 记录一次Success执行
     ///
     /// # 参数
     ///
@@ -287,23 +287,23 @@ impl MetricsCollector {
         self.record_latency(latency_ms);
     }
 
-    /// 记录一次失败执行
+    /// 记录一次Failed执行
     ///
     /// # 参数
     ///
-    /// * `error_kind` - 错误类型
-    /// * `sample` - 错误样本
+    /// * `error_kind` - Error类型
+    /// * `sample` - Error样本
     pub fn record_failure(&self, error_kind: String, sample: ErrorSample) {
         // 更新计数器
         self.failure_count.fetch_add(1, Ordering::SeqCst);
         self.total_iterations.fetch_add(1, Ordering::SeqCst);
 
-        // 记录错误统计
+        // 记录Error统计
         if let Ok(mut stats) = self.error_stats.lock() {
             let entry = stats.entry(error_kind).or_insert((0, Vec::new()));
             entry.0 += 1;
 
-            // 保留最新的 N 个错误样本
+            // 保留最新的 N 个Error样本
             if entry.1.len() >= MAX_ERROR_SAMPLES {
                 entry.1.remove(0);
             }
@@ -466,11 +466,11 @@ impl MetricsCollector {
         }
     }
 
-    /// 获取错误统计列表
+    /// 获取Error统计列表
     ///
     /// # 返回
     ///
-    /// 按错误类型分组的错误统计
+    /// 按Error类型分组的Error统计
     pub fn get_error_statistics(&self) -> Vec<ErrorStatistics> {
         if let Ok(guard) = self.error_stats.lock() {
             guard
@@ -512,7 +512,7 @@ impl MetricsCollector {
         }
     }
 
-    /// 记录节点级成功执行
+    /// 记录节点级Success执行
     pub fn record_node_success(
         &self,
         node_uuid: &str,
@@ -531,7 +531,7 @@ impl MetricsCollector {
         }
     }
 
-    /// 记录节点级失败执行
+    /// 记录节点级Failed执行
     pub fn record_node_failure(
         &self,
         node_uuid: &str,
@@ -782,7 +782,7 @@ mod tests {
     fn test_error_samples_limit() {
         let collector = MetricsCollector::new();
 
-        // 添加超过限制数量的错误样本
+        // 添加超过限制数量的Error样本
         for i in 0..(MAX_ERROR_SAMPLES + 5) {
             let sample = ErrorSample {
                 iteration: i as u64,
@@ -880,7 +880,7 @@ mod tests {
     fn test_success_rate() {
         let collector = MetricsCollector::new();
 
-        // 80% 成功率
+        // 80% Success率
         for _ in 0..80 {
             collector.record_success(100);
         }
@@ -934,7 +934,7 @@ mod tests {
         let collector = Arc::new(MetricsCollector::new());
         let mut handles = vec![];
 
-        // 并发记录成功
+        // 并发记录Success
         for _ in 0..10 {
             let c = Arc::clone(&collector);
             handles.push(thread::spawn(move || {
@@ -944,7 +944,7 @@ mod tests {
             }));
         }
 
-        // 并发记录失败
+        // 并发记录Failed
         for _ in 0..5 {
             let c = Arc::clone(&collector);
             handles.push(thread::spawn(move || {
@@ -969,7 +969,7 @@ mod tests {
         assert_eq!(stats.failed, 100); // 5 threads * 20
         assert_eq!(stats.total_iterations, 1100);
 
-        // 验证成功率
+        // 验证Success率
         let expected_rate = 1000.0 / 1100.0;
         assert!((stats.success_rate - expected_rate).abs() < 0.01);
     }

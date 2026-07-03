@@ -86,7 +86,7 @@ impl KafkaConnectionManager {
         e.to_string()
     }
 
-    /// 将 Schema Registry 错误映射为 String
+    /// 将 Schema Registry Error映射为 String
     fn map_sr_error(e: crate::schema_registry_client::SchemaRegistryError) -> String {
         e.to_string()
     }
@@ -128,13 +128,13 @@ impl KafkaConnectionManager {
         let consumer: BaseConsumer = client
             .client_config()
             .create()
-            .map_err(|e| KafkaError::ConnectionFailed(format!("创建验证 Consumer 失败: {e}")))?;
+            .map_err(|e| KafkaError::ConnectionFailed(format!("创建验证 Consumer Failed: {e}")))?;
 
         let timeout = Duration::from_secs(5);
         consumer
             .fetch_metadata(None, timeout)
             .map_err(|e| {
-                KafkaError::ConnectionFailed(format!("获取 Metadata 失败（连接不可达）: {e}"))
+                KafkaError::ConnectionFailed(format!("获取 Metadata Failed（连接不可达）: {e}"))
             })?;
 
         Ok(())
@@ -263,7 +263,7 @@ impl KafkaConnectionManager {
                     messages.push(Self::msg_to_output(&msg));
                 }
                 Ok(Err(e)) => {
-                    warn!("Kafka 消费消息错误: {}", e);
+                    warn!("Kafka 消费消息Error: {}", e);
                     break;
                 }
                 Err(_) => {
@@ -285,11 +285,11 @@ impl KafkaConnectionManager {
         let consumer: BaseConsumer = client
             .client_config()
             .create()
-            .map_err(|e| format!("创建 Consumer 失败: {e}"))?;
+            .map_err(|e| format!("创建 Consumer Failed: {e}"))?;
 
         consumer
             .fetch_metadata(topic, timeout)
-            .map_err(|e| format!("获取 Metadata 失败: {e}"))
+            .map_err(|e| format!("获取 Metadata Failed: {e}"))
     }
 }
 
@@ -332,15 +332,15 @@ impl KafkaProvider for KafkaConnectionManager {
         // 创建 KafkaClient
         let client = KafkaClient::new(config).map_err(Self::map_error)?;
 
-        // 尝试验证连接（非阻塞，失败不影响存储）
+        // 尝试验证连接（非阻塞，Failed不影响存储）
         let status = match Self::verify_connection(&client).await {
             Ok(()) => {
-                info!("Kafka 连接 {} 验证成功", uuid);
+                info!("Kafka 连接 {} 验证Success", uuid);
                 "connected".to_string()
             }
             Err(e) => {
                 warn!(
-                    "Kafka 连接 {} 验证失败: {}，仍存储连接（首次使用时重试）",
+                    "Kafka 连接 {} 验证Failed: {}，仍存储连接（首次使用时重试）",
                     uuid, e
                 );
                 "connected".to_string()
@@ -413,7 +413,7 @@ impl KafkaProvider for KafkaConnectionManager {
         match result {
             Ok((partition, offset)) => {
                 debug!(
-                    "Kafka 生产成功: topic={}, partition={}, offset={}, 耗时={}ms",
+                    "Kafka 生产Success: topic={}, partition={}, offset={}, 耗时={}ms",
                     config.topic,
                     partition,
                     offset,
@@ -432,7 +432,7 @@ impl KafkaProvider for KafkaConnectionManager {
             }
             Err(e) => {
                 let err_msg = e.to_string();
-                warn!("Kafka 生产失败: {}", err_msg);
+                warn!("Kafka 生产Failed: {}", err_msg);
                 Ok(KafkaProduceOutput {
                     success: false,
                     partition: None,
@@ -477,16 +477,16 @@ impl KafkaProvider for KafkaConnectionManager {
         // 订阅主题
         consumer
             .subscribe(&[config.topic.as_str()])
-            .map_err(|e| format!("订阅主题失败: {e}"))?;
+            .map_err(|e| format!("订阅主题Failed: {e}"))?;
 
         // 如果指定了分区和偏移量，则手动分配
         if let (Some(partition), Some(offset)) = (config.partition, config.offset) {
             let mut tpl = TopicPartitionList::new();
             tpl.add_partition_offset(&config.topic, partition, rdkafka::Offset::from_raw(offset))
-                .map_err(|e| format!("添加分区偏移失败: {e}"))?;
+                .map_err(|e| format!("添加分区偏移Failed: {e}"))?;
             consumer
                 .assign(&tpl)
-                .map_err(|e| format!("分配分区失败: {e}"))?;
+                .map_err(|e| format!("分配分区Failed: {e}"))?;
         }
 
         let max_messages = config.max_messages.unwrap_or(1) as usize;
@@ -538,15 +538,15 @@ impl KafkaProvider for KafkaConnectionManager {
 
         consumer
             .subscribe(&[config.topic.as_str()])
-            .map_err(|e| format!("订阅主题失败: {e}"))?;
+            .map_err(|e| format!("订阅主题Failed: {e}"))?;
 
         if let (Some(partition), Some(offset)) = (config.partition, config.offset) {
             let mut tpl = TopicPartitionList::new();
             tpl.add_partition_offset(&config.topic, partition, rdkafka::Offset::from_raw(offset))
-                .map_err(|e| format!("添加分区偏移失败: {e}"))?;
+                .map_err(|e| format!("添加分区偏移Failed: {e}"))?;
             consumer
                 .assign(&tpl)
-                .map_err(|e| format!("分配分区失败: {e}"))?;
+                .map_err(|e| format!("分配分区Failed: {e}"))?;
         }
 
         let max_messages = config.max_messages.unwrap_or(10) as usize;
@@ -661,16 +661,16 @@ impl KafkaProvider for KafkaConnectionManager {
                 let results = admin_client
                     .create_topics([&new_topic], &options)
                     .await
-                    .map_err(|e| format!("创建主题请求失败: {e}"))?;
+                    .map_err(|e| format!("创建主题请求Failed: {e}"))?;
 
                 let mut error_msg = None;
                 for result in results {
                     match result {
                         Ok(_) => {
-                            info!("Kafka 主题 {} 创建成功", topic_name);
+                            info!("Kafka Topic {} 创建Success", topic_name);
                         }
                         Err((_, err_code)) => {
-                            let msg = format!("创建主题 {} 失败: code={:?}", topic_name, err_code);
+                            let msg = format!("创建Topic {} Failed: code={:?}", topic_name, err_code);
                             warn!("{}", msg);
                             error_msg = Some(msg);
                         }
@@ -703,16 +703,16 @@ impl KafkaProvider for KafkaConnectionManager {
                 let results = admin_client
                     .delete_topics(&[topic_name], &options)
                     .await
-                    .map_err(|e| format!("删除主题请求失败: {e}"))?;
+                    .map_err(|e| format!("删除主题请求Failed: {e}"))?;
 
                 let mut error_msg = None;
                 for result in results {
                     match result {
                         Ok(_) => {
-                            info!("Kafka 主题 {} 删除成功", topic_name);
+                            info!("Kafka Topic {} 删除Success", topic_name);
                         }
                         Err((_, err_code)) => {
-                            let msg = format!("删除主题 {} 失败: code={:?}", topic_name, err_code);
+                            let msg = format!("删除Topic {} Failed: code={:?}", topic_name, err_code);
                             warn!("{}", msg);
                             error_msg = Some(msg);
                         }
@@ -748,7 +748,7 @@ impl KafkaProvider for KafkaConnectionManager {
                         consumer_groups: vec![],
                         brokers: vec![],
                         config: None,
-                        error: Some(format!("未找到主题: {}", topic_name)),
+                        error: Some(format!("未找到Topic: {}", topic_name)),
                     });
                 }
 
@@ -805,7 +805,7 @@ impl KafkaProvider for KafkaConnectionManager {
         let sr_client = conn
             .schema_registry
             .as_ref()
-            .expect("ensure_schema_registry 成功后 schema_registry 必定有值");
+            .expect("ensure_schema_registry Success后 schema_registry 必定有值");
 
         match config.operation.as_str() {
             "list_subjects" => {
@@ -1054,7 +1054,7 @@ impl KafkaProvider for KafkaConnectionManager {
         match self.connections.try_read() {
             Ok(connections) => connections.get(uuid).map(|c| c.status.clone()),
             Err(_) => {
-                warn!("获取 Kafka 连接状态失败: 锁竞争");
+                warn!("获取 Kafka 连接状态Failed: 锁竞争");
                 None
             }
         }
@@ -1075,7 +1075,7 @@ impl KafkaProvider for KafkaConnectionManager {
                 })
                 .collect(),
             Err(_) => {
-                warn!("列出 Kafka 连接失败: 锁竞争");
+                warn!("列出 Kafka connection failed: 锁竞争");
                 vec![]
             }
         }
@@ -1117,7 +1117,7 @@ mod tests {
         assert!(list.is_empty(), "空管理器 list_connections 应返回空列表");
     }
 
-    /// 验证关闭不存在的连接返回错误
+    /// 验证关闭不存在的连接返回Error
     #[tokio::test]
     async fn test_close_not_found() {
         let manager = KafkaConnectionManager::new();
@@ -1125,10 +1125,10 @@ mod tests {
         let result = manager.close("non-existent-id", &config).await;
         let output = result.expect("close 不应返回 Err");
         assert!(!output.success, "关闭不存在的连接 success 应为 false");
-        assert!(output.error.is_some(), "关闭不存在的连接应有错误信息");
+        assert!(output.error.is_some(), "关闭不存在的连接应有Error信息");
         assert!(
             output.error.as_ref().unwrap().contains("不存在"),
-            "错误信息应包含'不存在'"
+            "Error信息应包含'不存在'"
         );
     }
 }

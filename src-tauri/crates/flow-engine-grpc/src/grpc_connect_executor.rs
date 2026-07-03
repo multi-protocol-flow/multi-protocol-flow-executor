@@ -43,14 +43,14 @@ impl NodeExecutor for GrpcConnectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::GrpcConnect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 GrpcConnectConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not GrpcConnectConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换 URL
         let url = replace_variables(&config.url, context).map_err(|e| {
-            let error_msg = format!("URL 变量替换失败: {}", e);
+            let error_msg = format!("URL variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -61,7 +61,7 @@ impl NodeExecutor for GrpcConnectExecutor {
 
         // 3. 日志：开始连接
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: grpc_connect, URL: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: grpc_connect, URL: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -71,10 +71,10 @@ impl NodeExecutor for GrpcConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("gRPC 连接节点 {} 开始执行", node.name),
+                message: format!("gRPC 连接节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -133,7 +133,7 @@ impl NodeExecutor for GrpcConnectExecutor {
         match connect_result {
             Ok(services) => {
                 log::info!(
-                    "[gRPC] 连接成功: uuid={}, url={}, 服务数={}",
+                    "[gRPC] 连接Success: uuid={}, url={}, 服务数={}",
                     node.uuid,
                     url,
                     services.len()
@@ -155,13 +155,13 @@ impl NodeExecutor for GrpcConnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "gRPC 连接成功，发现 {} 个服务 ({}ms)",
+                            "gRPC 连接Success，发现 {} 个服务 ({}ms)",
                             services.len(),
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -179,7 +179,7 @@ impl NodeExecutor for GrpcConnectExecutor {
                     });
                 }
 
-                // 8. 返回 true 端口（连接成功）
+                // 8. 返回 true 端口（连接Success）
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -201,20 +201,20 @@ impl NodeExecutor for GrpcConnectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[gRPC] 连接失败: uuid={}, url={}, error={}",
+                    "[gRPC] connection failed: uuid={}, url={}, error={}",
                     node.uuid,
                     url,
                     e
                 );
 
-                // 日志：连接失败
+                // 日志：connection failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("gRPC 连接失败: {}", e),
+                        message: format!("gRPC connection failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -222,7 +222,7 @@ impl NodeExecutor for GrpcConnectExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let duration = start_time.elapsed();
                 let error_output = json!({
                     "success": false,
@@ -273,7 +273,7 @@ impl NodeExecutor for GrpcConnectExecutor {
 }
 
 impl GrpcConnectExecutor {
-    /// 构建成功输出数据
+    /// 构建Success输出数据
     #[allow(clippy::too_many_arguments)]
     fn build_success_output(
         &self,
@@ -337,7 +337,7 @@ mod tests {
     use flow_engine_core::node_config::{GrpcConnectConfig, ProtoFile};
     use crate::grpc_connection_manager::GrpcConnectionManager;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, url: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -366,7 +366,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -448,11 +448,11 @@ mod tests {
         let grpc_manager = Arc::new(GrpcConnectionManager::new());
         let executor = GrpcConnectExecutor::new(grpc_manager);
 
-        // 创建一个错误类型的节点
+        // 创建一个Error类型的节点
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -464,7 +464,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回错误
+        // 应该返回Error
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("GrpcConnectConfig"));
     }
@@ -514,7 +514,7 @@ message GetUserResponse {
             .await;
 
         // tonic 的 endpoint.connect() 是惰性的（不立即建立 TCP 连接），
-        // 所以即使地址不可路由，proto 解析通过后连接可能返回成功。
+        // 所以即使地址不可路由，proto 解析通过后连接可能返回Success。
         // 这里只验证执行器不会崩溃，且返回有效的结构化输出。
         assert!(result.is_ok());
         let (_next_nodes, output_data) = result.unwrap();

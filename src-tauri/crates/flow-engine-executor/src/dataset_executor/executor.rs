@@ -1,7 +1,7 @@
 // 数据驱动执行器
 //!
 //! 逐行读取 CSV 数据，将每行作为 `runtime_variables` 注入流程执行。
-//! 支持顺序执行和并发执行（Semaphore），以及 Continue/StopOnFirst 失败策略。
+//! 支持顺序执行和并发执行（Semaphore），以及 Continue/StopOnFirst Failed策略。
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -39,13 +39,13 @@ impl DatasetExecutor {
     /// 执行数据驱动流程
     ///
     /// # 参数
-    /// - `config`: 执行配置（CSV 路径、并发数、失败策略等）
+    /// - `config`: 执行配置（CSV 路径、并发数、Failed策略等）
     /// - `flow`: 要执行的流程定义
     /// - `cancel_rx`: 取消信号接收器（None 表示不可取消）
     /// - `event_sender`: 事件发送器（None 表示不发送事件）
     ///
     /// # 返回
-    /// (每行的执行摘要, 失败行的详细报告, 生成的报告 UUID)
+    /// (每行的执行摘要, Failed行的详细报告, 生成的报告 UUID)
     pub async fn execute(
         &self,
         config: &DatasetExecutionConfig,
@@ -202,7 +202,7 @@ impl DatasetExecutor {
                 (RowStatus::Fail, execution_result.error.clone())
             };
 
-            // 发送行完成/失败事件
+            // 发送行完成/Failed事件
             match status {
                 RowStatus::Success => {
                     events::send_event(
@@ -282,7 +282,7 @@ impl DatasetExecutor {
                 },
             );
 
-            // StopOnFirst 策略：遇到非成功行即停止
+            // StopOnFirst 策略：遇到非Success行即停止
             if config.failure_strategy == FailureStrategy::StopOnFirst && status != RowStatus::Success
             {
                 break;
@@ -339,7 +339,7 @@ impl DatasetExecutor {
         let fail_count = Arc::new(std::sync::atomic::AtomicU32::new(0));
         let error_count = Arc::new(std::sync::atomic::AtomicU32::new(0));
 
-        // 失败行详细报告（线程安全共享）
+        // Failed行详细报告（线程安全共享）
         let failed_details: Arc<std::sync::Mutex<HashMap<u32, FlowExecutionReport>>> =
             Arc::new(std::sync::Mutex::new(HashMap::new()));
 
@@ -373,7 +373,7 @@ impl DatasetExecutor {
                 .clone()
                 .acquire_owned()
                 .await
-                .map_err(|e| format!("获取信号量失败: {}", e))?;
+                .map_err(|e| format!("获取信号量Failed: {}", e))?;
 
             let tx = tx.clone();
             let flow = Arc::clone(&flow);
@@ -534,7 +534,7 @@ impl DatasetExecutor {
         // 按 row_index 排序以保证顺序
         results.sort_by_key(|r| r.row_index);
 
-        // 提取失败行详情
+        // 提取Failed行详情
         let failed = failed_details
             .lock()
             .map(|guard| guard.clone())
@@ -572,7 +572,7 @@ mod tests {
     use flow_engine_core::node_config::NodeData;
     use std::io::Write;
 
-    /// 创建最小化的测试流程（仅含 entry 节点）
+    /// 创建最小化的Test Flow（仅含 Entry node）
     fn create_test_flow() -> Flow {
         Flow { uuid: "test-dataset-flow".to_string(), name: "Dataset Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![Node {
             uuid: "entry-001".to_string(),
@@ -591,8 +591,8 @@ mod tests {
         let mut file = tempfile::Builder::new()
             .suffix(".csv")
             .tempfile()
-            .expect("创建临时文件失败");
-        file.write_all(content).expect("写入临时文件失败");
+            .expect("创建临时文件Failed");
+        file.write_all(content).expect("写入临时文件Failed");
         file
     }
 
@@ -606,7 +606,7 @@ mod tests {
     #[tokio::test]
     async fn test_sequential_execution() {
         let csv = create_temp_csv(b"name,age\nAlice,30\nBob,25\nCharlie,35\n");
-        let path = csv.path().to_str().expect("路径转换失败");
+        let path = csv.path().to_str().expect("路径转换Failed");
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -619,7 +619,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行Failed");
 
         assert_eq!(results.len(), 3);
         assert_eq!(results[0].row_index, 0);
@@ -630,7 +630,7 @@ mod tests {
         assert_eq!(results[0].input_data["name"], json!("Alice"));
         assert_eq!(results[0].input_data["age"], json!("30"));
 
-        // 全部应成功（entry 节点总是成功）
+        // 全部应Success（Entry node总是Success）
         for r in &results {
             assert_eq!(r.status, RowStatus::Success);
         }
@@ -642,7 +642,7 @@ mod tests {
         let csv = create_temp_csv(
             b"name,age\nA,1\nB,2\nC,3\nD,4\nE,5\n",
         );
-        let path = csv.path().to_str().expect("路径转换失败");
+        let path = csv.path().to_str().expect("路径转换Failed");
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -655,7 +655,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行Failed");
 
         assert_eq!(results.len(), 5);
 
@@ -669,12 +669,12 @@ mod tests {
         assert_eq!(results[4].input_data["name"], json!("E"));
     }
 
-    /// 测试 Continue 失败策略 — 即使失败也继续执行所有行
+    /// 测试 Continue Failed策略 — 即使Failed也继续执行所有行
     #[tokio::test]
     async fn test_continue_failure_strategy() {
-        // 创建含空行的 CSV（空行不会导致失败，但我们可以验证 continue 行为）
+        // 创建含空行的 CSV（空行不会导致Failed，但我们可以验证 continue 行为）
         let csv = create_temp_csv(b"name\nAlice\nBob\nCharlie\n");
-        let path = csv.path().to_str().expect("路径转换失败");
+        let path = csv.path().to_str().expect("路径转换Failed");
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -687,7 +687,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行Failed");
         assert_eq!(results.len(), 3, "Continue 策略应执行全部行");
     }
 
@@ -695,7 +695,7 @@ mod tests {
     #[tokio::test]
     async fn test_empty_csv() {
         let csv = create_temp_csv(b"name,age\n");
-        let path = csv.path().to_str().expect("路径转换失败");
+        let path = csv.path().to_str().expect("路径转换Failed");
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -708,7 +708,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行Failed");
         assert!(results.is_empty(), "空 CSV 应返回空结果");
     }
 
@@ -716,7 +716,7 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_signal() {
         let csv = create_temp_csv(b"name\nA\nB\nC\nD\nE\n");
-        let path = csv.path().to_str().expect("路径转换失败");
+        let path = csv.path().to_str().expect("路径转换Failed");
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -732,14 +732,14 @@ mod tests {
         // 创建已触发的取消信号
         let (tx, rx) = watch::channel(true);
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, Some(rx), None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, Some(rx), None).await.expect("执行Failed");
         // 取消信号已触发，不应执行任何行
         assert!(results.is_empty(), "已取消时应返回空结果");
 
         drop(tx);
     }
 
-    /// 测试文件不存在时返回错误
+    /// 测试文件不存在时返回Error
     #[tokio::test]
     async fn test_file_not_found() {
         let flow = create_test_flow();
@@ -754,10 +754,10 @@ mod tests {
         };
 
         let result = executor.execute(&config, &flow, None, None).await;
-        assert!(result.is_err(), "文件不存在应返回错误");
+        assert!(result.is_err(), "文件不存在应返回Error");
         assert!(
             result.unwrap_err().contains("无法打开文件"),
-            "错误信息应包含文件相关提示"
+            "Error信息应包含文件相关提示"
         );
     }
 
@@ -765,7 +765,7 @@ mod tests {
     #[tokio::test]
     async fn test_custom_delimiter() {
         let csv = create_temp_csv(b"name;age\nAlice;30\nBob;25\n");
-        let path = csv.path().to_str().expect("路径转换失败");
+        let path = csv.path().to_str().expect("路径转换Failed");
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -778,7 +778,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行Failed");
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].input_data["name"], json!("Alice"));
         assert_eq!(results[0].input_data["age"], json!("30"));
@@ -808,7 +808,7 @@ mod tests {
     #[tokio::test]
     async fn test_event_sequence_sequential() {
         let csv = create_temp_csv(b"name\nA\nB\nC\n");
-        let path = csv.path().to_str().expect("路径转换失败");
+        let path = csv.path().to_str().expect("路径转换Failed");
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -823,7 +823,7 @@ mod tests {
 
         let (event_sender, mut event_rx) = tokio::sync::mpsc::unbounded_channel::<super::events::DatasetEvent>();
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, Some(event_sender)).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, Some(event_sender)).await.expect("执行Failed");
         assert_eq!(results.len(), 3);
 
         // 收集所有事件
@@ -861,7 +861,7 @@ mod tests {
     #[tokio::test]
     async fn test_cancelled_event_with_partial_report() {
         let csv = create_temp_csv(b"name\nA\nB\nC\nD\nE\n");
-        let path = csv.path().to_str().expect("路径转换失败");
+        let path = csv.path().to_str().expect("路径转换Failed");
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -877,7 +877,7 @@ mod tests {
         let (tx, rx) = watch::channel(true); // 已触发取消
         let (event_sender, mut event_rx) = tokio::sync::mpsc::unbounded_channel::<super::events::DatasetEvent>();
 
-        let _results = executor.execute(&config, &flow, Some(rx), Some(event_sender)).await.expect("执行失败");
+        let _results = executor.execute(&config, &flow, Some(rx), Some(event_sender)).await.expect("执行Failed");
 
         // 收集事件
         let mut collected_events: Vec<super::events::DatasetEvent> = Vec::new();

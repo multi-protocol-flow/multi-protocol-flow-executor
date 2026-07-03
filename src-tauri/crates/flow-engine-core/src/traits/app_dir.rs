@@ -23,11 +23,11 @@ impl AppDirProvider for DefaultAppDirProvider {
         if cfg!(windows) {
             std::env::var("APPDATA")
                 .map(|p| PathBuf::from(p).join("flow-executor"))
-                .map_err(|e| format!("获取 APPDATA 失败: {}", e))
+                .map_err(|e| format!("获取 APPDATA Failed: {}", e))
         } else {
             std::env::var("HOME")
                 .map(|p| PathBuf::from(p).join(".flow-executor"))
-                .map_err(|e| format!("获取 HOME 失败: {}", e))
+                .map_err(|e| format!("获取 HOME Failed: {}", e))
         }
     }
 }
@@ -97,8 +97,8 @@ mod tests {
                 );
             }
             Err(e) => {
-                // 如果环境变量不存在，应该返回有意义的错误信息
-                assert!(!e.is_empty(), "错误信息不应为空");
+                // 如果环境变量不存在，应该返回有意义的Error信息
+                assert!(!e.is_empty(), "Error信息不应为空");
             }
         }
     }

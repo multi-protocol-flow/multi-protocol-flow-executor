@@ -360,44 +360,44 @@ mod tests {
     #[test]
     fn test_roundtrip_redis_resp() {
         let original = get_template("redis_resp").expect("应找到模板");
-        let json = export_template(&original).expect("导出应成功");
-        let restored = load_template(&json).expect("加载应成功");
+        let json = export_template(&original).expect("导出应Success");
+        let restored = load_template(&json).expect("加载应Success");
         assert_eq!(original, restored);
     }
 
     #[test]
     fn test_roundtrip_custom_tlv() {
         let original = get_template("custom_tlv").expect("应找到模板");
-        let json = export_template(&original).expect("导出应成功");
-        let restored = load_template(&json).expect("加载应成功");
+        let json = export_template(&original).expect("导出应Success");
+        let restored = load_template(&json).expect("加载应Success");
         assert_eq!(original, restored);
     }
 
     #[test]
     fn test_roundtrip_fixed_header() {
         let original = get_template("fixed_header").expect("应找到模板");
-        let json = export_template(&original).expect("导出应成功");
-        let restored = load_template(&json).expect("加载应成功");
+        let json = export_template(&original).expect("导出应Success");
+        let restored = load_template(&json).expect("加载应Success");
         assert_eq!(original, restored);
     }
 
     #[test]
     fn test_roundtrip_http_like() {
         let original = get_template("http_like").expect("应找到模板");
-        let json = export_template(&original).expect("导出应成功");
-        let restored = load_template(&json).expect("加载应成功");
+        let json = export_template(&original).expect("导出应Success");
+        let restored = load_template(&json).expect("加载应Success");
         assert_eq!(original, restored);
     }
 
     #[test]
     fn test_roundtrip_blank() {
         let original = get_template("blank").expect("应找到模板");
-        let json = export_template(&original).expect("导出应成功");
-        let restored = load_template(&json).expect("加载应成功");
+        let json = export_template(&original).expect("导出应Success");
+        let restored = load_template(&json).expect("加载应Success");
         assert_eq!(original, restored);
     }
 
-    // === load_template 错误处理 ===
+    // === load_template Error处理 ===
 
     #[test]
     fn test_load_template_invalid_json() {
@@ -418,7 +418,7 @@ mod tests {
     #[test]
     fn test_export_template_is_valid_json() {
         for template in builtin_templates() {
-            let json = export_template(&template).expect("导出应成功");
+            let json = export_template(&template).expect("导出应Success");
             // 验证导出的 JSON 可以重新解析
             let reparsed: serde_json::Value =
                 serde_json::from_str(&json).expect("导出结果应为有效 JSON");
@@ -430,7 +430,7 @@ mod tests {
     #[test]
     fn test_export_template_contains_expected_keys() {
         let t = get_template("redis_resp").expect("应找到模板");
-        let json = export_template(&t).expect("导出应成功");
+        let json = export_template(&t).expect("导出应Success");
         let val: serde_json::Value = serde_json::from_str(&json).expect("应有效 JSON");
 
         assert!(val.get("id").is_some());
@@ -454,8 +454,8 @@ mod tests {
             offset: Some(4),
             length: Some(2),
         };
-        let json = serde_json::to_string(&field).expect("序列化应成功");
-        let restored: FieldDescription = serde_json::from_str(&json).expect("反序列化应成功");
+        let json = serde_json::to_string(&field).expect("序列化应Success");
+        let restored: FieldDescription = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(field, restored);
     }
 
@@ -468,8 +468,8 @@ mod tests {
             offset: Some(0),
             length: None,
         };
-        let json = serde_json::to_string(&field).expect("序列化应成功");
-        let restored: FieldDescription = serde_json::from_str(&json).expect("反序列化应成功");
+        let json = serde_json::to_string(&field).expect("序列化应Success");
+        let restored: FieldDescription = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(field, restored);
         assert!(restored.length.is_none());
     }

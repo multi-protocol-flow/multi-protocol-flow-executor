@@ -102,10 +102,10 @@ impl SmtpConnectionManager {
 
         let builder = match config.tls_mode {
             TlsMode::Implicit => AsyncSmtpTransport::<Tokio1Executor>::relay(host)
-                .map_err(|e| format!("构建 Implicit TLS transport 失败: {}", e))?
+                .map_err(|e| format!("构建 Implicit TLS transport Failed: {}", e))?
                 .port(port),
             TlsMode::StartTls => AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(host)
-                .map_err(|e| format!("构建 StartTLS transport 失败: {}", e))?
+                .map_err(|e| format!("构建 StartTLS transport Failed: {}", e))?
                 .port(port),
             TlsMode::None => AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host)
                 .port(port),
@@ -147,10 +147,10 @@ impl SmtpConnectionManager {
             } => {
                 let tokens_json =
                     flow_engine_crypto::encryption::decrypt(encrypted_tokens).map_err(|e| {
-                        format!("解密 OAuth2 token 失败: {}", e)
+                        format!("解密 OAuth2 token Failed: {}", e)
                     })?;
                 let tokens: EmailOAuthTokens = serde_json::from_str(&tokens_json)
-                    .map_err(|e| format!("解析 OAuth2 token JSON 失败: {}", e))?;
+                    .map_err(|e| format!("解析 OAuth2 token JSON Failed: {}", e))?;
 
                 let xoauth2_str = xoauth2_string("", &tokens.access_token);
                 let credentials = Credentials::new(String::new(), xoauth2_str);
@@ -165,7 +165,7 @@ impl SmtpConnectionManager {
             return Ok(String::new());
         }
         flow_engine_crypto::encryption::decrypt(encrypted)
-            .map_err(|e| format!("解密密码失败: {}", e))
+            .map_err(|e| format!("解密密码Failed: {}", e))
     }
 
     /// 解析有效的端口号
@@ -201,7 +201,7 @@ impl SmtpProvider for SmtpConnectionManager {
             config.host, config.port, connection_id
         );
 
-        // 连接去重：如果已存在直接返回成功
+        // 连接去重：如果已存在直接返回Success
         {
             let conns = self.connections.read().await;
             if conns.contains_key(connection_id) {
@@ -231,24 +231,24 @@ impl SmtpProvider for SmtpConnectionManager {
         let test_result = transport.test_connection().await;
         match test_result {
             Ok(true) => {
-                info!("SMTP 连接测试成功: id={}", connection_id);
+                info!("SMTP 连接测试Success: id={}", connection_id);
             }
             Ok(false) => {
-                warn!("SMTP 连接测试失败: id={}", connection_id);
+                warn!("SMTP 连接测试Failed: id={}", connection_id);
                 return Ok(SmtpConnectOutput {
                     success: false,
                     connection_id: None,
                     server_greeting: None,
-                    error: Some("连接测试失败".to_string()),
+                    error: Some("连接测试Failed".to_string()),
                 });
             }
             Err(e) => {
-                warn!("SMTP 连接测试错误: id={}, error={}", connection_id, e);
+                warn!("SMTP 连接测试Error: id={}, error={}", connection_id, e);
                 return Ok(SmtpConnectOutput {
                     success: false,
                     connection_id: None,
                     server_greeting: None,
-                    error: Some(format!("连接失败: {}", e)),
+                    error: Some(format!("connection failed: {}", e)),
                 });
             }
         }
@@ -304,7 +304,7 @@ impl SmtpProvider for SmtpConnectionManager {
         // 构建 from 地址
         let from_addr = from
             .parse()
-            .map_err(|e| format!("发件人地址格式错误 '{}': {}", from, e))?;
+            .map_err(|e| format!("发件人地址格式Error '{}': {}", from, e))?;
 
         // 构建消息 builder
         let mut builder = Message::builder()
@@ -315,7 +315,7 @@ impl SmtpProvider for SmtpConnectionManager {
         for addr in to {
             let parsed: lettre::Address = addr
                 .parse()
-                .map_err(|e| format!("收件人地址格式错误 '{}': {}", addr, e))?;
+                .map_err(|e| format!("收件人地址格式Error '{}': {}", addr, e))?;
             builder = builder.to(parsed.into());
         }
 
@@ -323,7 +323,7 @@ impl SmtpProvider for SmtpConnectionManager {
         for addr in cc {
             let parsed: lettre::Address = addr
                 .parse()
-                .map_err(|e| format!("抄送地址格式错误 '{}': {}", addr, e))?;
+                .map_err(|e| format!("抄送地址格式Error '{}': {}", addr, e))?;
             builder = builder.cc(parsed.into());
         }
 
@@ -331,7 +331,7 @@ impl SmtpProvider for SmtpConnectionManager {
         for addr in bcc {
             let parsed: lettre::Address = addr
                 .parse()
-                .map_err(|e| format!("密送地址格式错误 '{}': {}", addr, e))?;
+                .map_err(|e| format!("密送地址格式Error '{}': {}", addr, e))?;
             builder = builder.bcc(parsed.into());
         }
 
@@ -349,7 +349,7 @@ impl SmtpProvider for SmtpConnectionManager {
                 mixed = mixed.singlepart(part);
             }
 
-            builder.multipart(mixed).map_err(|e| format!("构建邮件失败: {}", e))?
+            builder.multipart(mixed).map_err(|e| format!("构建邮件Failed: {}", e))?
         } else {
             // 无附件
             Self::build_simple_message(builder, body_type, body, html_body)?
@@ -363,7 +363,7 @@ impl SmtpProvider for SmtpConnectionManager {
                 let message_id = response.first_line().map(|s| s.to_string());
 
                 info!(
-                    "SMTP 邮件发送成功: id={}, code={}",
+                    "SMTP 邮件发送Success: id={}, code={}",
                     connection_id, code
                 );
 
@@ -375,12 +375,12 @@ impl SmtpProvider for SmtpConnectionManager {
                 })
             }
             Err(e) => {
-                warn!("SMTP 邮件发送失败: id={}, error={}", connection_id, e);
+                warn!("SMTP 邮件发送Failed: id={}, error={}", connection_id, e);
                 Ok(SmtpSendOutput {
                     success: false,
                     message_id: None,
                     response_code: None,
-                    error: Some(format!("发送失败: {}", e)),
+                    error: Some(format!("发送Failed: {}", e)),
                 })
             }
         }
@@ -403,7 +403,7 @@ impl SmtpProvider for SmtpConnectionManager {
                 })
             }
             None => {
-                warn!("SMTP 断开连接失败: 连接 '{}' 不存在", connection_id);
+                warn!("SMTP 断开connection failed: 连接 '{}' 不存在", connection_id);
                 Ok(SmtpDisconnectOutput {
                     success: false,
                     error: Some(format!("SMTP 连接 '{}' 不存在", connection_id)),
@@ -431,7 +431,7 @@ impl SmtpProvider for SmtpConnectionManager {
         transport
             .test_connection()
             .await
-            .map_err(|e| format!("连接测试失败: {}", e))
+            .map_err(|e| format!("连接测试Failed: {}", e))
     }
 }
 
@@ -455,7 +455,7 @@ impl SmtpConnectionManager {
                             .header(ContentType::TEXT_HTML)
                             .body(html_body.to_string()),
                     )
-                    .map_err(|e| format!("构建 HTML 邮件失败: {}", e))
+                    .map_err(|e| format!("构建 HTML 邮件Failed: {}", e))
             }
             "both" => {
                 builder
@@ -472,7 +472,7 @@ impl SmtpConnectionManager {
                                     .body(html_body.to_string()),
                             ),
                     )
-                    .map_err(|e| format!("构建 multipart 邮件失败: {}", e))
+                    .map_err(|e| format!("构建 multipart 邮件Failed: {}", e))
             }
             _ => {
                 // 默认纯文本
@@ -482,7 +482,7 @@ impl SmtpConnectionManager {
                             .header(ContentType::TEXT_PLAIN)
                             .body(body.to_string()),
                     )
-                    .map_err(|e| format!("构建纯文本邮件失败: {}", e))
+                    .map_err(|e| format!("构建纯文本邮件Failed: {}", e))
             }
         }
     }
@@ -541,11 +541,11 @@ impl SmtpConnectionManager {
         // 解码 base64 内容
         let content = BASE64
             .decode(content_base64)
-            .map_err(|e| format!("解码附件 base64 失败 '{}': {}", filename, e))?;
+            .map_err(|e| format!("解码附件 base64 Failed '{}': {}", filename, e))?;
 
         let content_type: ContentType = content_type_str
             .parse()
-            .map_err(|e| format!("解析附件 Content-Type 失败 '{}': {}", filename, e))?;
+            .map_err(|e| format!("解析附件 Content-Type Failed '{}': {}", filename, e))?;
 
         let attachment_part = Attachment::new(filename).body(content, content_type);
 
@@ -698,7 +698,7 @@ mod tests {
 
         let result = SmtpConnectionManager::build_attachment_part(&attachment);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("解码附件 base64 失败"));
+        assert!(result.unwrap_err().contains("解码附件 base64 Failed"));
     }
 
     #[test]
@@ -722,7 +722,7 @@ mod tests {
 
         let result = SmtpConnectionManager::build_attachment_part(&attachment);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("解析附件 Content-Type 失败"));
+        assert!(result.unwrap_err().contains("解析附件 Content-Type Failed"));
     }
 
     #[test]

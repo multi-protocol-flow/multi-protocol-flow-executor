@@ -43,14 +43,14 @@ impl NodeExecutor for GrpcCloseExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::GrpcClose(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 GrpcCloseConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not GrpcCloseConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -61,7 +61,7 @@ impl NodeExecutor for GrpcCloseExecutor {
 
         // 3. 日志：开始关闭
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: grpc_close, 连接ID: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: grpc_close, Connection ID: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -71,10 +71,10 @@ impl NodeExecutor for GrpcCloseExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("gRPC Close 节点 {} 开始执行", node.name),
+                message: format!("gRPC Close 节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -88,7 +88,7 @@ impl NodeExecutor for GrpcCloseExecutor {
         match close_result {
             Ok(()) => {
                 log::info!(
-                    "[gRPC] 连接关闭成功: connection_id={}",
+                    "[gRPC] 连接关闭Success: connection_id={}",
                     connection_id
                 );
 
@@ -111,12 +111,12 @@ impl NodeExecutor for GrpcCloseExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "gRPC 连接关闭成功 ({}ms)",
+                            "gRPC 连接关闭Success ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -133,7 +133,7 @@ impl NodeExecutor for GrpcCloseExecutor {
                     });
                 }
 
-                // 7. 成功时走 true 端口
+                // 7. Success时走 true 端口
                 let next_node_ids: Vec<String> = connections
                     .iter()
                     .filter(|conn| {
@@ -146,19 +146,19 @@ impl NodeExecutor for GrpcCloseExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[gRPC] 连接关闭失败: connection_id={}, error={}",
+                    "[gRPC] 连接关闭Failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
 
-                // 日志：关闭失败
+                // 日志：关闭Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("gRPC 连接关闭失败: {}", e),
+                        message: format!("gRPC 连接关闭Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -166,7 +166,7 @@ impl NodeExecutor for GrpcCloseExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let duration = start_time.elapsed();
                 let error_output = json!({
                     "success": false,
@@ -186,7 +186,7 @@ impl NodeExecutor for GrpcCloseExecutor {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
-                // 关闭失败走 false 端口
+                // 关闭Failed走 false 端口
                 let next_node_ids: Vec<String> = connections
                     .iter()
                     .filter(|conn| {
@@ -209,7 +209,7 @@ mod tests {
     use flow_engine_core::node_config::GrpcCloseConfig;
     use crate::grpc_connection_manager::GrpcConnectionManager;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -233,7 +233,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -321,7 +321,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

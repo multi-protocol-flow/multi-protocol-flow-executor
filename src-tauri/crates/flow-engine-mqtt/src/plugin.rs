@@ -52,12 +52,12 @@ impl NodePlugin for MqttConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "连接成功".into(),
+                label: "Connect Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "连接失败".into(),
+                label: "connection failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -171,12 +171,12 @@ impl NodePlugin for MqttPublishPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "发布成功".into(),
+                label: "发布Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "发布失败".into(),
+                label: "发布Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -296,12 +296,12 @@ impl NodePlugin for MqttSubscribePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "订阅成功".into(),
+                label: "订阅Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "订阅失败".into(),
+                label: "订阅Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -423,12 +423,12 @@ impl NodePlugin for MqttUnsubscribePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "取消成功".into(),
+                label: "取消Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "取消失败".into(),
+                label: "取消Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -761,12 +761,12 @@ impl NodePlugin for MqttRequestPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "请求成功".into(),
+                label: "请求Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "请求失败".into(),
+                label: "请求Failed".into(),
                 position: "bottom".into(),
             },
         ]

@@ -192,7 +192,7 @@ impl NodeExecutor for ImapSelectExecutor {
                     },
                     "error": e,
                 });
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
                     return Err(ErrorDetail::execution_error(format!("IMAP select failed: {}", e)));
                 }
@@ -213,7 +213,7 @@ mod tests {
     use flow_engine_core::node_config::ImapSelectConfig;
     use flow_engine_core::traits::ImapSelectOutput;
 
-    /// 模拟 IMAP Provider（select 成功）
+    /// 模拟 IMAP Provider（select Success）
     struct MockImapProvider {
         output: ImapSelectOutput,
     }

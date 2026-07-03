@@ -71,7 +71,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
             NodeData::GraphqlQuery(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 GraphqlQueryConfig: {}",
+                    "Node data type is not GraphqlQueryConfig: {}",
                     node.uuid
                 )))
             }
@@ -79,9 +79,9 @@ impl NodeExecutor for GraphqlQueryExecutor {
 
         // 2. 变量替换（query, variables, operation_name）
         let query = replace_variables(&config.query, context).map_err(|e| {
-            let error_msg = format!("query 变量替换失败: {}", e);
+            let error_msg = format!("query variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -93,7 +93,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
         let operation_name = match &config.operation_name {
             Some(op_name) => {
                 let replaced = replace_variables(op_name, context).map_err(|e| {
-                    ErrorDetail::execution_error(format!("operation_name 变量替换失败: {}", e))
+                    ErrorDetail::execution_error(format!("operation_name variable substitution failed: {}", e))
                 })?;
                 Some(replaced)
             }
@@ -105,7 +105,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
             Some(vars) => {
                 let vars_str = serde_json::to_string(vars).unwrap_or_default();
                 let replaced_str = replace_variables(&vars_str, context)
-                    .map_err(|e| ErrorDetail::execution_error(format!("variables 变量替换失败: {}", e)))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("variables variable substitution failed: {}", e)))?;
                 let replaced_vars: serde_json::Value =
                     serde_json::from_str(&replaced_str).unwrap_or_else(|_| vars.clone());
                 Some(replaced_vars)
@@ -122,7 +122,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
         let query_type = if has_files { "mutation (文件上传)" } else { "query" };
 
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: graphql_query ({}), connection_id: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql_query ({}), connection_id: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -133,10 +133,10 @@ impl NodeExecutor for GraphqlQueryExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("GraphQL {} 节点 {} 开始执行", query_type, node.name),
+                message: format!("GraphQL {} 节点 {} start execution", query_type, node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -164,29 +164,29 @@ impl NodeExecutor for GraphqlQueryExecutor {
             Ok(output) => {
                 let duration = start_time.elapsed();
 
-                // 6. 区分网络错误和 GraphQL 错误
-                // - 网络错误（success=false, 有 error 字段）→ 走 false 端口
-                // - GraphQL 错误（HTTP 200 但有 errors 字段）→ 走 true 端口（用户决定是否中断）
+                // 6. 区分网络Error和 GraphQL Error
+                // - 网络Error（success=false, 有 error 字段）→ 走 false 端口
+                // - GraphQL Error（HTTP 200 但有 errors 字段）→ 走 true 端口（用户决定是否中断）
                 let is_network_error = !output.success && output.error.is_some();
                 let has_graphql_errors = !output.errors.is_empty();
 
                 if output.success {
                     log::info!(
-                        "[GraphQL] 查询成功: uuid={}, connection_id={}, 耗时={}ms",
+                        "[GraphQL] 查询Success: uuid={}, connection_id={}, 耗时={}ms",
                         node.uuid,
                         config.connection_id,
                         duration.as_millis()
                     );
                 } else if is_network_error {
                     log::warn!(
-                        "[GraphQL] 查询网络错误: uuid={}, connection_id={}, error={:?}",
+                        "[GraphQL] 查询网络Error: uuid={}, connection_id={}, error={:?}",
                         node.uuid,
                         config.connection_id,
                         output.error
                     );
                 } else {
                     log::warn!(
-                        "[GraphQL] 查询包含错误: uuid={}, connection_id={}, errors={:?}",
+                        "[GraphQL] 查询包含Error: uuid={}, connection_id={}, errors={:?}",
                         node.uuid,
                         config.connection_id,
                         output.errors
@@ -225,18 +225,18 @@ impl NodeExecutor for GraphqlQueryExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "GraphQL 查询成功 ({}ms){}",
+                        "GraphQL 查询Success ({}ms){}",
                         duration.as_millis(),
                         if has_graphql_errors {
-                            format!(" (含 {} 个 GraphQL 错误)", output.errors.len())
+                            format!(" (含 {} 个 GraphQL Error)", output.errors.len())
                         } else {
                             String::new()
                         }
                     )
                 } else {
                     format!(
-                        "GraphQL 查询失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "GraphQL 查询Failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -247,7 +247,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
                         message: log_message,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -255,7 +255,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
                     })
                     .await;
 
-                // 9. 路由：网络错误走 false，其他走 true
+                // 9. 路由：网络Error走 false，其他走 true
                 if is_network_error
                     && !node.on_error.as_ref().map_or(true, |s| {
                         *s == ExecutionErrorStrategy::RouteToFalse
@@ -264,7 +264,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("GraphQL 查询失败")
+                        .unwrap_or("GraphQL 查询Failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -274,7 +274,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
                 Ok((next_node_ids, Some(output_data)))
             }
             Err(e) => {
-                // Provider 返回 Err（如连接不存在）→ 网络/系统错误
+                // Provider 返回 Err（如连接不存在）→ 网络/系统Error
                 let duration = start_time.elapsed();
                 log::error!(
                     "[GraphQL] 查询异常: uuid={}, connection_id={}, error={}",
@@ -290,7 +290,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
                         message: format!("GraphQL 查询异常: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -298,7 +298,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
                     })
                     .await;
 
-                // 构建错误输出
+                // 构建Error输出
                 let error_output = json!({
                     "success": false,
                     "data": serde_json::Value::Null,
@@ -350,7 +350,7 @@ mod tests {
     // Mock GraphqlProvider
     // ---------------------------------------------------------------------------
 
-    /// 模拟 GraphQL Provider（查询成功）
+    /// 模拟 GraphQL Provider（查询Success）
     struct MockGraphqlProvider {
         output: GraphqlQueryOutput,
     }
@@ -529,7 +529,7 @@ mod tests {
     // 测试辅助函数
     // ---------------------------------------------------------------------------
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, query: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -558,7 +558,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -589,7 +589,7 @@ mod tests {
     // 测试
     // ---------------------------------------------------------------------------
 
-    /// 测试：配置提取成功（正确的 NodeData 变体）
+    /// 测试：配置提取Success（正确的 NodeData 变体）
     #[tokio::test]
     async fn test_graphql_query_config_extraction_success() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -603,12 +603,12 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
     }
 
-    /// 测试：配置提取拒绝错误的 NodeData 变体
+    /// 测试：配置提取拒绝Error的 NodeData 变体
     #[tokio::test]
     async fn test_graphql_query_config_extraction_wrong_variant() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -617,7 +617,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "graphql_connect".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlConnect(GraphqlConnectConfig::default()),
             ports: None,
@@ -689,13 +689,13 @@ mod tests {
         assert_eq!(data["request"]["operation_name"], "GetUser_v1");
     }
 
-    /// 测试：成功时路由到 true 端口，失败时路由到 false 端口
+    /// 测试：Success时路由到 true 端口，Failed时路由到 false 端口
     #[tokio::test]
     async fn test_graphql_query_true_false_port_routing() {
-        // 测试成功 → true
+        // 测试Success → true
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
         let executor = GraphqlQueryExecutor::new(graphql_manager);
-        let node = create_test_node("test-true", "成功测试", "conn-1", "{ users { id } }");
+        let node = create_test_node("test-true", "Success测试", "conn-1", "{ users { id } }");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -705,10 +705,10 @@ mod tests {
         let (next_nodes, _) = result.unwrap();
         assert_eq!(next_nodes, vec!["true"]);
 
-        // 测试网络错误 → false
+        // 测试网络Error → false
         let graphql_manager_err = Arc::new(MockGraphqlProvider::new_network_error("Connection refused"));
         let executor_err = GraphqlQueryExecutor::new(graphql_manager_err);
-        let node_err = create_test_node("test-false", "失败测试", "conn-1", "{ users { id } }");
+        let node_err = create_test_node("test-false", "Failed测试", "conn-1", "{ users { id } }");
         let mut context_err = create_context("test-flow");
 
         let result_err = executor_err
@@ -837,13 +837,13 @@ mod tests {
         assert!(data["error"].as_str().unwrap().contains("不存在"));
     }
 
-    /// 测试：GraphQL 错误（200 + errors）走 true 端口
+    /// 测试：GraphQL Error（200 + errors）走 true 端口
     #[tokio::test]
     async fn test_graphql_query_graphql_errors_route_to_true() {
-        // GraphQL 错误：HTTP 200 但有 errors 字段
+        // GraphQL Error：HTTP 200 但有 errors 字段
         let graphql_manager = Arc::new(MockGraphqlProvider::new_graphql_error());
         let executor = GraphqlQueryExecutor::new(graphql_manager);
-        let node = create_test_node("test-gql-err", "GraphQL 错误测试", "conn-1", "{ foo }");
+        let node = create_test_node("test-gql-err", "GraphQL Error测试", "conn-1", "{ foo }");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -852,15 +852,15 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // GraphQL 错误（非网络错误）应走 true 端口
+        // GraphQL Error（非网络Error）应走 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
         let data = output_data.unwrap();
-        // success 应为 false（有 GraphQL 错误）
+        // success 应为 false（有 GraphQL Error）
         assert_eq!(data["success"], false);
         // 但路由到了 true 端口
-        // errors 应包含错误详情
+        // errors 应包含Error详情
         let errors = data["errors"].as_array().expect("errors 应为数组");
         assert!(!errors.is_empty());
         assert!(errors[0]["message"]

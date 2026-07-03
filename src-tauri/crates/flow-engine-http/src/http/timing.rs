@@ -212,10 +212,10 @@ mod tests {
     fn test_timing_context_partial_failure() {
         let mut timing = TimingContext::new();
 
-        // DNS 成功
+        // DNS Success
         timing.mark_dns_resolved();
 
-        // TCP 失败（不标记）
+        // TCP Failed（不标记）
 
         let result = timing.calculate();
 
@@ -239,7 +239,7 @@ mod tests {
             total_ms: Some(240),
         };
 
-        let json = serde_json::to_string(&timing).expect("序列化失败");
+        let json = serde_json::to_string(&timing).expect("序列化Failed");
         assert!(json.contains("\"dns_ms\":15"));
         assert!(json.contains("\"connect_ms\":32"));
         assert!(json.contains("\"tls_ms\":28"));
@@ -247,7 +247,7 @@ mod tests {
         assert!(json.contains("\"download_ms\":45"));
         assert!(json.contains("\"total_ms\":240"));
 
-        let deserialized: HttpTiming = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: HttpTiming = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(timing.dns_ms, deserialized.dns_ms);
         assert_eq!(timing.connect_ms, deserialized.connect_ms);
         assert_eq!(timing.tls_ms, deserialized.tls_ms);

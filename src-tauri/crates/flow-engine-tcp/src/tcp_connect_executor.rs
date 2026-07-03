@@ -117,7 +117,7 @@ impl NodeExecutor for TcpConnectExecutor {
                     config.port
                 );
 
-                // 5. 构建成功输出数据
+                // 5. 构建Success输出数据
                 let total_ms = start_time.elapsed().as_millis() as u64;
                 let output_data = json!({
                     "success": true,
@@ -151,7 +151,7 @@ impl NodeExecutor for TcpConnectExecutor {
                     })
                     .await;
 
-                // 7. 返回 true 端口（连接成功）
+                // 7. 返回 true 端口（连接Success）
                 let next_node_ids = resolve_port_nodes(connections, &node.uuid, "true");
 
                 Ok((next_node_ids, Some(output_data)))
@@ -165,7 +165,7 @@ impl NodeExecutor for TcpConnectExecutor {
                     e
                 );
 
-                // 日志：连接失败
+                // 日志：connection failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
@@ -180,7 +180,7 @@ impl NodeExecutor for TcpConnectExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let total_ms = start_time.elapsed().as_millis() as u64;
                 let error_output = json!({
                     "success": false,
@@ -239,7 +239,7 @@ mod tests {
     // Mock TcpProvider
     // -----------------------------------------------------------------------
 
-    /// Mock TCP 提供者（可配置连接成功/失败）
+    /// Mock TCP 提供者（可配置连接Success/Failed）
     struct MockTcpProvider {
         should_succeed: AtomicBool,
     }
@@ -266,10 +266,10 @@ mod tests {
             _framing_config: FramingConfig,
         ) -> Result<(), String> {
             if self.should_succeed.load(Ordering::Relaxed) {
-                log::info!("[MockTcp] 连接成功: uuid={}, {}:{}", uuid, host, port);
+                log::info!("[MockTcp] 连接Success: uuid={}, {}:{}", uuid, host, port);
                 Ok(())
             } else {
-                Err(format!("MockTcp 连接失败: {}:{}", host, port))
+                Err(format!("MockTcp connection failed: {}:{}", host, port))
             }
         }
 
@@ -315,7 +315,7 @@ mod tests {
     // 辅助函数
     // -----------------------------------------------------------------------
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, host: &str, port: u16) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -410,7 +410,7 @@ mod tests {
     async fn test_tcp_connect_executor_failure() {
         let mock_provider = Arc::new(MockTcpProvider::new(false));
         let executor = TcpConnectExecutor::new(mock_provider);
-        let node = create_test_node("test-2", "失败连接", "192.168.1.1", 9999);
+        let node = create_test_node("test-2", "Failed连接", "192.168.1.1", 9999);
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -439,7 +439,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

@@ -63,7 +63,7 @@ mod tests {
         assert_eq!(output["text_preview"], "");
 
         let decoded = decode_from_base64(output["data"].as_str().expect("data 应为字符串"))
-            .expect("解码应成功");
+            .expect("解码应Success");
         assert_eq!(decoded, data);
     }
 
@@ -75,7 +75,7 @@ mod tests {
         assert_eq!(output["size"], 1);
 
         let decoded = decode_from_base64(output["data"].as_str().expect("data 应为字符串"))
-            .expect("解码应成功");
+            .expect("解码应Success");
         assert_eq!(decoded, data);
     }
 
@@ -89,7 +89,7 @@ mod tests {
         assert!(output["text_preview"].is_null());
 
         let decoded = decode_from_base64(output["data"].as_str().expect("data 应为字符串"))
-            .expect("解码应成功");
+            .expect("解码应Success");
         assert_eq!(decoded, data);
     }
 
@@ -101,7 +101,7 @@ mod tests {
         assert_eq!(output["size"], 65536);
 
         let decoded = decode_from_base64(output["data"].as_str().expect("data 应为字符串"))
-            .expect("解码应成功");
+            .expect("解码应Success");
         assert_eq!(decoded, data);
     }
 
@@ -113,7 +113,7 @@ mod tests {
         assert_eq!(output["size"], 65536);
 
         let decoded = decode_from_base64(output["data"].as_str().expect("data 应为字符串"))
-            .expect("解码应成功");
+            .expect("解码应Success");
         assert_eq!(decoded, data);
     }
 
@@ -121,7 +121,7 @@ mod tests {
     fn test_encode_decode_base64_basic() {
         let data = b"Hello, World!";
         let encoded = encode_to_base64(data);
-        let decoded = decode_from_base64(&encoded).expect("解码应成功");
+        let decoded = decode_from_base64(&encoded).expect("解码应Success");
         assert_eq!(decoded, data.as_slice());
     }
 
@@ -144,7 +144,7 @@ mod tests {
     fn test_try_decode_text_truncation() {
         let long_text = "a".repeat(2000);
         let data = long_text.as_bytes();
-        let result = try_decode_text(data).expect("应成功解码");
+        let result = try_decode_text(data).expect("应Success解码");
         assert!(result.ends_with("...[truncated]"));
         assert_eq!(result.len(), 1024 + "...[truncated]".len());
     }
@@ -167,7 +167,7 @@ mod tests {
         assert_eq!(output["text_preview"], text);
 
         let decoded = decode_from_base64(output["data"].as_str().expect("data 应为字符串"))
-            .expect("解码应成功");
+            .expect("解码应Success");
         assert_eq!(decoded, data);
     }
 }

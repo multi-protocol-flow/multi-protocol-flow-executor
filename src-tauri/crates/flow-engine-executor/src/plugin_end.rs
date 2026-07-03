@@ -17,7 +17,7 @@ impl NodePlugin for EndPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "结束"
+        "End"
     }
 
     fn category(&self) -> &str {
@@ -54,7 +54,7 @@ impl NodePlugin for EndPlugin {
         true
     }
 
-    /// 结束节点无业务逻辑，直接返回成功
+    /// 结束节点无业务逻辑，直接返回Success
     async fn execute(
         &self,
         _node: &Node,

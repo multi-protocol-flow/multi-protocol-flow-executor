@@ -25,7 +25,7 @@ use super::output;
 
 /// 解析 `--var key=value` 参数为 `HashMap`
 ///
-/// 值优先尝试 JSON 解析，失败则作为纯字符串处理。
+/// 值优先尝试 JSON 解析，Failed则作为纯字符串处理。
 fn parse_vars(vars: &[String]) -> Result<HashMap<String, serde_json::Value>, super::CliError> {
     let mut map = HashMap::new();
     for v in vars {
@@ -147,7 +147,7 @@ pub async fn execute(
                                 }
                             }
                             Err(e) => {
-                                // 输出解析错误到 stderr，保持 stdout 仅输出事件
+                                // 输出解析Error到 stderr，保持 stdout 仅输出事件
                                 eprintln!("Invalid command JSON: {}", e);
                             }
                         }
@@ -158,7 +158,7 @@ pub async fn execute(
                         // 继续读取事件直到 SessionEnded
                     }
                     Err(e) => {
-                        // stdin 读取错误
+                        // stdin 读取Error
                         eprintln!("stdin read error: {}", e);
                         let _ = debug_cmd_tx.send(flow_engine::debug::DebugCommand::EndDebug);
                     }

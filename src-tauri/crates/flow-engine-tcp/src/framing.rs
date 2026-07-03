@@ -358,11 +358,11 @@ mod tests {
 
     /// 辅助：frame_data + deframe_receive 往返验证
     async fn roundtrip(data: &[u8], config: &FramingConfig) -> Vec<u8> {
-        let framed = TcpFramingEngine::frame_data(data, config).expect("frame_data 应成功");
+        let framed = TcpFramingEngine::frame_data(data, config).expect("frame_data 应Success");
         let mut cursor = Cursor::new(framed);
         TcpFramingEngine::deframe_receive(&mut cursor, config, 1000)
             .await
-            .expect("deframe_receive 应成功")
+            .expect("deframe_receive 应Success")
     }
 
     // === LengthPrefix 测试 ===
@@ -438,7 +438,7 @@ mod tests {
         let config = make_config(TcpFramingMode::Manual);
         let data = b"raw data".to_vec();
         // Manual 模式使用 timeout 读取，但 roundtrip 会立即返回数据
-        let framed = TcpFramingEngine::frame_data(&data, &config).expect("frame_data 应成功");
+        let framed = TcpFramingEngine::frame_data(&data, &config).expect("frame_data 应Success");
         assert_eq!(framed, data); // Manual 不添加帧
     }
 
@@ -460,19 +460,19 @@ mod tests {
         // 载荷中包含分隔符
         let data = b"line one\r\nline two".to_vec();
         let framed =
-            TcpFramingEngine::frame_data(&data, &config).expect("frame_data 应成功");
+            TcpFramingEngine::frame_data(&data, &config).expect("frame_data 应Success");
         // framed = "line one\r\nline two\r\n"
         let mut cursor = Cursor::new(framed);
         // 第一次读取应该只读到第一个 \r\n
         let first = TcpFramingEngine::deframe_receive(&mut cursor, &config, 1000)
             .await
-            .expect("deframe 应成功");
+            .expect("deframe 应Success");
         assert_eq!(first, b"line one");
 
         // 第二次读取到 "line two"
         let second = TcpFramingEngine::deframe_receive(&mut cursor, &config, 1000)
             .await
-            .expect("deframe 应成功");
+            .expect("deframe 应Success");
         assert_eq!(second, b"line two");
     }
 
@@ -480,19 +480,19 @@ mod tests {
 
     #[test]
     fn test_encode_length_prefix_1byte() {
-        let result = encode_length_prefix(255, 1).expect("应成功");
+        let result = encode_length_prefix(255, 1).expect("应Success");
         assert_eq!(result, vec![0xFF]);
     }
 
     #[test]
     fn test_encode_length_prefix_2byte() {
-        let result = encode_length_prefix(256, 2).expect("应成功");
+        let result = encode_length_prefix(256, 2).expect("应Success");
         assert_eq!(result, vec![0x01, 0x00]);
     }
 
     #[test]
     fn test_encode_length_prefix_4byte() {
-        let result = encode_length_prefix(1024, 4).expect("应成功");
+        let result = encode_length_prefix(1024, 4).expect("应Success");
         assert_eq!(result, vec![0x00, 0x00, 0x04, 0x00]);
     }
 
@@ -517,7 +517,7 @@ mod tests {
         let mut buf = Vec::new();
         TcpFramingEngine::frame_send(&mut buf, data, &config)
             .await
-            .expect("frame_send 应成功");
+            .expect("frame_send 应Success");
 
         // 验证: 4 字节前缀 + 5 字节数据
         assert_eq!(buf.len(), 9);
@@ -535,7 +535,7 @@ mod tests {
         let mut buf = Vec::new();
         TcpFramingEngine::frame_send(&mut buf, data, &config)
             .await
-            .expect("frame_send 应成功");
+            .expect("frame_send 应Success");
 
         assert_eq!(buf, b"hello\n".to_vec());
     }
@@ -547,7 +547,7 @@ mod tests {
         let mut buf = Vec::new();
         TcpFramingEngine::frame_send(&mut buf, data, &config)
             .await
-            .expect("frame_send 应成功");
+            .expect("frame_send 应Success");
         assert_eq!(buf, b"hello".to_vec());
     }
 
@@ -558,7 +558,7 @@ mod tests {
         let mut buf = Vec::new();
         TcpFramingEngine::frame_send(&mut buf, data, &config)
             .await
-            .expect("frame_send 应成功");
+            .expect("frame_send 应Success");
         assert_eq!(buf, b"hel".to_vec());
     }
 
@@ -578,7 +578,7 @@ mod tests {
         let mut buf = Vec::new();
         TcpFramingEngine::frame_send(&mut buf, data, &config)
             .await
-            .expect("frame_send 应成功");
+            .expect("frame_send 应Success");
         assert_eq!(buf, b"raw".to_vec());
     }
 
@@ -589,7 +589,7 @@ mod tests {
         let mut buf = Vec::new();
         TcpFramingEngine::frame_send(&mut buf, data, &config)
             .await
-            .expect("frame_send 应成功");
+            .expect("frame_send 应Success");
         assert_eq!(buf, b"timed data".to_vec());
     }
 }

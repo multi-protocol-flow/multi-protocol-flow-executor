@@ -1,7 +1,7 @@
 //! AMQP 声明队列节点执行器
 //!
 //! 实现 AMQP 0-9-1 队列声明、变量替换和输出构建功能。
-//! 成功路由到 true 端口，失败路由到 false 端口。
+//! Success路由到 true 端口，Failed路由到 false 端口。
 
 use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
@@ -46,7 +46,7 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
             NodeData::AmqpQueueDeclare(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 AmqpQueueDeclareConfig: {}",
+                    "Node data type is not AmqpQueueDeclareConfig: {}",
                     node.uuid
                 )))
             }
@@ -54,9 +54,9 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
 
         // 2. 变量替换（connection_id）
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -69,9 +69,9 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
         let queue = match &config.queue {
             Some(q) => {
                 let replaced = replace_variables(q, context).map_err(|e| {
-                    let error_msg = format!("队列名称变量替换失败: {}", e);
+                    let error_msg = format!("队列名称variable substitution failed: {}", e);
                     log::error!(
-                        "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                        "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                         context.flow_uuid,
                         node.uuid,
                         node.name,
@@ -91,7 +91,7 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
                 for (k, v) in args {
                     if let Some(s) = v.as_str() {
                         let replaced = replace_variables(s, context)
-                            .map_err(|e| ErrorDetail::execution_error(format!("arguments[{}] 变量替换失败: {}", k, e)))?;
+                            .map_err(|e| ErrorDetail::execution_error(format!("arguments[{}] variable substitution failed: {}", k, e)))?;
                         resolved.insert(k.clone(), json!(replaced));
                     } else {
                         resolved.insert(k.clone(), v.clone());
@@ -104,7 +104,7 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
 
         // 5. 日志：开始声明
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp_queue_declare, queue: {:?}, durable: {}, exclusive: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp_queue_declare, queue: {:?}, durable: {}, exclusive: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -117,7 +117,7 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "AMQP QueueDeclare 节点 {} 开始执行 (queue={:?})",
+                    "AMQP QueueDeclare 节点 {} start execution (queue={:?})",
                     node.name, queue
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -156,7 +156,7 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
             Ok(output) => {
                 if output.success {
                     log::info!(
-                        "[AMQP] 队列声明成功: uuid={}, queue={:?}, message_count={:?}, consumer_count={:?}",
+                        "[AMQP] 队列声明Success: uuid={}, queue={:?}, message_count={:?}, consumer_count={:?}",
                         node.uuid,
                         output.queue_name,
                         output.message_count,
@@ -164,7 +164,7 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
                     );
                 } else {
                     log::warn!(
-                        "[AMQP] 队列声明失败: uuid={}, queue={:?}, error={:?}",
+                        "[AMQP] 队列声明Failed: uuid={}, queue={:?}, error={:?}",
                         node.uuid,
                         queue,
                         output.error,
@@ -201,7 +201,7 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "AMQP 队列声明成功: {} ({}ms)",
+                        "AMQP 队列声明Success: {} ({}ms)",
                         output
                             .queue_name
                             .as_deref()
@@ -210,8 +210,8 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
                     )
                 } else {
                     format!(
-                        "AMQP 队列声明失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "AMQP 队列声明Failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -230,7 +230,7 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
                     })
                     .await;
 
-                // 11. 路由：成功走 true 端口，失败走 false 端口
+                // 11. 路由：Success走 true 端口，Failed走 false 端口
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, port);
 
@@ -274,9 +274,9 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
                     "error": e,
                 });
 
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP queue_declare 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("AMQP queue_declare Failed: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -318,7 +318,7 @@ mod tests {
         AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider, AmqpQueueDeclareOutput,
     };
 
-    /// Mock AmqpProvider（queue_declare 成功）
+    /// Mock AmqpProvider（queue_declare Success）
     struct MockAmqpProvider {
         output: AmqpQueueDeclareOutput,
     }
@@ -671,7 +671,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, queue: Option<&str>) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -713,7 +713,7 @@ mod tests {
         }
     }
 
-    /// 测试：声明成功时输出 JSON 结构正确，路由到 true 端口
+    /// 测试：声明Success时输出 JSON 结构正确，路由到 true 端口
     #[tokio::test]
     async fn test_queue_declare_success_output_structure() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -740,12 +740,12 @@ mod tests {
         assert!(data["error"].is_null());
     }
 
-    /// 测试：声明失败时路由到 false 端口
+    /// 测试：声明Failed时路由到 false 端口
     #[tokio::test]
     async fn test_queue_declare_failure_routes_to_false() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_failure("Queue already exists"));
         let executor = AmqpQueueDeclareExecutor::new(amqp_manager);
-        let node = create_test_node("test-2", "失败测试", "conn-1", Some("my-queue"));
+        let node = create_test_node("test-2", "Failed测试", "conn-1", Some("my-queue"));
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -762,7 +762,7 @@ mod tests {
         assert_eq!(data["error"], "Queue already exists");
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_queue_declare_wrong_node_data_type() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -771,7 +771,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

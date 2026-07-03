@@ -56,12 +56,12 @@ impl NodePlugin for DbConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -240,12 +240,12 @@ impl NodePlugin for DbQueryPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -358,12 +358,12 @@ impl NodePlugin for DbBeginPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -460,12 +460,12 @@ impl NodePlugin for DbCommitPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -560,12 +560,12 @@ impl NodePlugin for DbRollbackPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]

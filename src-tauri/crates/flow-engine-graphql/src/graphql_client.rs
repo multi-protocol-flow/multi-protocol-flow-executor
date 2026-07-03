@@ -18,15 +18,15 @@ use serde::{Deserialize, Serialize};
 // 公共类型
 // ---------------------------------------------------------------------------
 
-/// GraphQL 错误信息
+/// GraphQL Error信息
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GraphqlError {
-    /// 错误消息
+    /// Error消息
     pub message: String,
-    /// 错误位置
+    /// Error位置
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locations: Option<Vec<GraphqlErrorLocation>>,
-    /// 错误路径
+    /// Error路径
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<serde_json::Value>,
     /// 扩展信息
@@ -34,7 +34,7 @@ pub struct GraphqlError {
     pub extensions: Option<serde_json::Value>,
 }
 
-/// GraphQL 错误位置
+/// GraphQL Error位置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GraphqlErrorLocation {
     /// 行号
@@ -68,7 +68,7 @@ pub struct GraphqlResponse {
     /// 响应数据
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
-    /// GraphQL 错误列表
+    /// GraphQL Error列表
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub errors: Option<Vec<GraphqlError>>,
     /// 响应扩展信息
@@ -87,7 +87,7 @@ pub struct GraphqlSubscriptionEvent {
     /// 事件数据
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
-    /// GraphQL 错误列表
+    /// GraphQL Error列表
     #[serde(default)]
     pub errors: Vec<GraphqlError>,
     /// 响应扩展信息
@@ -234,7 +234,7 @@ impl GraphqlClient {
             operation_name: None,
         };
         let operations_json =
-            serde_json::to_string(&body).map_err(|e| format!("序列化请求体失败: {}", e))?;
+            serde_json::to_string(&body).map_err(|e| format!("序列化请求体Failed: {}", e))?;
         form = form.text("operations", operations_json);
 
         // map 字段：文件索引到变量路径的映射
@@ -246,7 +246,7 @@ impl GraphqlClient {
             );
         }
         let map_json =
-            serde_json::to_string(&map).map_err(|e| format!("序列化文件映射失败: {}", e))?;
+            serde_json::to_string(&map).map_err(|e| format!("序列化文件映射Failed: {}", e))?;
         form = form.text("map", map_json);
 
         // 添加文件
@@ -258,7 +258,7 @@ impl GraphqlClient {
                         .as_deref()
                         .unwrap_or("application/octet-stream"),
                 )
-                .map_err(|e| format!("设置 MIME 类型失败: {}", e))?;
+                .map_err(|e| format!("设置 MIME 类型Failed: {}", e))?;
             form = form.part(i.to_string(), part);
         }
 
@@ -275,7 +275,7 @@ impl GraphqlClient {
         let response = builder
             .send()
             .await
-            .map_err(|e| format!("GraphQL 文件上传请求失败: {}", e))?;
+            .map_err(|e| format!("GraphQL 文件上传请求Failed: {}", e))?;
 
         let status_code = response.status().as_u16();
         let elapsed = start.elapsed();
@@ -283,7 +283,7 @@ impl GraphqlClient {
         let response_text = response
             .text()
             .await
-            .map_err(|e| format!("读取响应体失败: {}", e))?;
+            .map_err(|e| format!("读取响应体Failed: {}", e))?;
 
         Self::parse_graphql_response(response_text, status_code, elapsed)
     }
@@ -314,7 +314,7 @@ impl GraphqlClient {
         // 先用 IntoClientRequest 从 URL 构建标准请求（自动设置 Host、Method、URI 等）
         let mut request = ws_endpoint
             .into_client_request()
-            .map_err(|e| format!("构建 WebSocket 请求失败: {}", e))?;
+            .map_err(|e| format!("构建 WebSocket 请求Failed: {}", e))?;
 
         // 添加 graphql-ws 子协议头
         request
@@ -323,7 +323,7 @@ impl GraphqlClient {
 
         let (ws_stream, _response) = connect_async(request)
             .await
-            .map_err(|e| format!("WebSocket 连接失败: {}", e))?;
+            .map_err(|e| format!("WebSocket connection failed: {}", e))?;
 
         let (mut write, mut read) = ws_stream.split();
 
@@ -332,14 +332,14 @@ impl GraphqlClient {
         write
             .send(WsMessage::Text(init_msg.to_string().into()))
             .await
-            .map_err(|e| format!("发送 connection_init 失败: {}", e))?;
+            .map_err(|e| format!("发送 connection_init Failed: {}", e))?;
 
         // 4. 等待 connection_ack
         let ack_timeout = Duration::from_secs(10);
         let ack_received = match tokio::time::timeout(ack_timeout, read.next()).await {
             Ok(Some(Ok(WsMessage::Text(text)))) => {
                 let parsed: serde_json::Value = serde_json::from_str(&text)
-                    .map_err(|e| format!("解析 connection_ack 失败: {}", e))?;
+                    .map_err(|e| format!("解析 connection_ack Failed: {}", e))?;
                 let msg_type = parsed["type"].as_str().unwrap_or("");
                 if msg_type == "connection_ack" {
                     true
@@ -369,7 +369,7 @@ impl GraphqlClient {
                 false
             }
             Ok(Some(Err(e))) => {
-                return Err(format!("WebSocket 消息读取错误: {}", e));
+                return Err(format!("WebSocket 消息读取Error: {}", e));
             }
             Ok(None) => {
                 return Err("WebSocket 连接意外关闭".to_string());
@@ -407,7 +407,7 @@ impl GraphqlClient {
         write
             .send(WsMessage::Text(subscribe_msg.to_string().into()))
             .await
-            .map_err(|e| format!("发送 subscribe 失败: {}", e))?;
+            .map_err(|e| format!("发送 subscribe Failed: {}", e))?;
 
         info!(
             "GraphQL subscribe 已发送: id={}",
@@ -462,7 +462,7 @@ impl GraphqlClient {
                     let parsed: serde_json::Value = match serde_json::from_str(&text) {
                         Ok(v) => v,
                         Err(e) => {
-                            log::warn!("GraphQL 解析消息失败: {}", e);
+                            log::warn!("GraphQL 解析消息Failed: {}", e);
                             continue;
                         }
                     };
@@ -490,7 +490,7 @@ impl GraphqlClient {
                                 received_at: chrono::Utc::now().timestamp_millis() as u64,
                             };
 
-                            // 检查是否有 GraphQL 错误
+                            // 检查是否有 GraphQL Error
                             let has_errors = !event.errors.is_empty();
                             if has_errors {
                                 let error_msgs: Vec<String> = event
@@ -499,7 +499,7 @@ impl GraphqlClient {
                                     .map(|e| e.message.clone())
                                     .collect();
                                 log::warn!(
-                                    "GraphQL 订阅事件包含错误: {:?}",
+                                    "GraphQL 订阅事件包含Error: {:?}",
                                     error_msgs
                                 );
                             }
@@ -520,8 +520,8 @@ impl GraphqlClient {
                         "error" => {
                             let error_msg = parsed["payload"]
                                 .as_str()
-                                .unwrap_or("未知订阅错误");
-                            return Err(format!("GraphQL 订阅错误: {}", error_msg));
+                                .unwrap_or("未知订阅Error");
+                            return Err(format!("GraphQL 订阅Error: {}", error_msg));
                         }
                         _ => {
                             log::debug!("GraphQL 收到未处理消息类型: {}", msg_type);
@@ -542,7 +542,7 @@ impl GraphqlClient {
                     // 忽略其他类型（binary, pong 等）
                 }
                 Ok(Some(Err(e))) => {
-                    log::warn!("GraphQL WebSocket 消息读取错误: {}", e);
+                    log::warn!("GraphQL WebSocket 消息读取Error: {}", e);
                     break;
                 }
                 Ok(None) => {
@@ -601,9 +601,9 @@ impl GraphqlClient {
                 if e.is_timeout() {
                     format!("GraphQL 请求超时: {}", e)
                 } else if e.is_connect() {
-                    format!("GraphQL 连接失败: {}", e)
+                    format!("GraphQL connection failed: {}", e)
                 } else {
-                    format!("GraphQL 请求失败: {}", e)
+                    format!("GraphQL 请求Failed: {}", e)
                 }
             })?;
 
@@ -634,7 +634,7 @@ impl GraphqlClient {
 
             let status_code = status.as_u16();
             let response_text = resp.text().await
-                .map_err(|e| format!("读取响应体失败: {}", e))?;
+                .map_err(|e| format!("读取响应体Failed: {}", e))?;
 
             info!(
                 "GraphQL 请求完成: endpoint={}, status={}, elapsed={}ms",
@@ -682,7 +682,7 @@ impl GraphqlClient {
         let parsed: serde_json::Value =
             serde_json::from_str(&response_text).map_err(|e| {
                 format!(
-                    "GraphQL 响应 JSON 解析失败: {} (响应长度: {})",
+                    "GraphQL 响应 JSON 解析Failed: {} (响应长度: {})",
                     e,
                     response_text.len()
                 )
@@ -694,10 +694,10 @@ impl GraphqlClient {
             .and_then(|v| serde_json::from_value(v.clone()).ok());
         let extensions = parsed.get("extensions").cloned();
 
-        // 如果有 GraphQL 错误，记录警告
+        // 如果有 GraphQL Error，记录警告
         if let Some(ref errs) = errors {
             if !errs.is_empty() {
-                warn!("GraphQL 返回 {} 个错误", errs.len());
+                warn!("GraphQL 返回 {} 个Error", errs.len());
             }
         }
 
@@ -800,7 +800,7 @@ mod tests {
                 server_ms: Some(90),
             }),
         };
-        let json = serde_json::to_string(&response).expect("序列化失败");
+        let json = serde_json::to_string(&response).expect("序列化Failed");
         assert!(json.contains("\"status_code\":200"));
         assert!(json.contains("\"total_ms\":150"));
         // errors 为 None 时不应序列化
@@ -830,7 +830,7 @@ mod tests {
                 server_ms: None,
             }),
         };
-        let json = serde_json::to_string(&response).expect("序列化失败");
+        let json = serde_json::to_string(&response).expect("序列化Failed");
         assert!(json.contains("Field 'foo' not found"));
         assert!(json.contains("\"line\":1"));
         assert!(json.contains("\"column\":5"));
@@ -843,7 +843,7 @@ mod tests {
             "status_code": 200,
             "timing": {"total_ms": 100}
         }"#;
-        let response: GraphqlResponse = serde_json::from_str(json).expect("反序列化失败");
+        let response: GraphqlResponse = serde_json::from_str(json).expect("反序列化Failed");
         assert_eq!(response.status_code, 200);
         assert!(response.data.is_some());
         assert!(response.errors.is_none());
@@ -861,7 +861,7 @@ mod tests {
             path: None,
             extensions: None,
         };
-        let json = serde_json::to_string(&error).expect("序列化失败");
+        let json = serde_json::to_string(&error).expect("序列化Failed");
         assert!(json.contains("\"message\":\"Syntax Error\""));
         // 可选字段为 None 时不序列化
         assert!(!json.contains("locations"));
@@ -879,7 +879,7 @@ mod tests {
             path: Some(serde_json::json!("query.user")),
             extensions: Some(serde_json::json!({"code": "VALIDATION_ERROR"})),
         };
-        let json = serde_json::to_string(&error).expect("序列化失败");
+        let json = serde_json::to_string(&error).expect("序列化Failed");
         assert!(json.contains("\"line\":2"));
         assert!(json.contains("\"column\":3"));
         assert!(json.contains("VALIDATION_ERROR"));
@@ -896,7 +896,7 @@ mod tests {
             tls_ms: None,
             server_ms: None,
         };
-        let json = serde_json::to_string(&timing).expect("序列化失败");
+        let json = serde_json::to_string(&timing).expect("序列化Failed");
         assert!(json.contains("\"total_ms\":200"));
         assert!(!json.contains("dns_ms"));
     }
@@ -911,7 +911,7 @@ mod tests {
             extensions: None,
             received_at: 1234567890,
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("newMessage"));
         assert!(json.contains("\"received_at\":1234567890"));
         // errors 为空数组时仍然序列化（serde default）
@@ -927,7 +927,7 @@ mod tests {
             event_count: 0,
             duration_ms: 1000,
         };
-        let json = serde_json::to_string(&response).expect("序列化失败");
+        let json = serde_json::to_string(&response).expect("序列化Failed");
         assert!(json.contains("\"event_count\":0"));
         assert!(json.contains("\"duration_ms\":1000"));
     }
@@ -943,7 +943,7 @@ mod tests {
     #[test]
     fn test_auth_serialization() {
         let auth = GraphqlAuth::Bearer("my-token".to_string());
-        let json = serde_json::to_string(&auth).expect("序列化失败");
+        let json = serde_json::to_string(&auth).expect("序列化Failed");
         assert!(json.contains("Bearer"));
         assert!(json.contains("my-token"));
     }
@@ -1001,7 +1001,7 @@ mod tests {
         let result =
             GraphqlClient::parse_graphql_response(body.to_string(), 200, Duration::from_millis(100));
         assert!(result.is_ok());
-        let response = result.expect("响应解析失败");
+        let response = result.expect("响应解析Failed");
         assert_eq!(response.status_code, 200);
         assert!(response.data.is_some());
         assert!(response.errors.is_none());
@@ -1015,9 +1015,9 @@ mod tests {
         let result =
             GraphqlClient::parse_graphql_response(body.to_string(), 200, Duration::from_millis(50));
         assert!(result.is_ok());
-        let response = result.expect("响应解析失败");
+        let response = result.expect("响应解析Failed");
         assert!(response.data.is_some()); // null 值仍被解析为 Some(Value::Null)
-        let errors = response.errors.expect("应有错误");
+        let errors = response.errors.expect("应有Error");
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].message, "Not found");
     }
@@ -1028,7 +1028,7 @@ mod tests {
         let result =
             GraphqlClient::parse_graphql_response(body.to_string(), 200, Duration::from_millis(10));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("JSON 解析失败"));
+        assert!(result.unwrap_err().contains("JSON 解析Failed"));
     }
 
     #[test]
@@ -1037,7 +1037,7 @@ mod tests {
         let result =
             GraphqlClient::parse_graphql_response(body.to_string(), 200, Duration::from_millis(20));
         assert!(result.is_ok());
-        let response = result.expect("响应解析失败");
+        let response = result.expect("响应解析Failed");
         assert!(response.extensions.is_some());
         let ext = response.extensions.expect("应有扩展信息");
         assert!(ext.get("tracing").is_some());
@@ -1051,12 +1051,12 @@ mod tests {
             line: 3,
             column: 7,
         };
-        let json = serde_json::to_string(&loc).expect("序列化失败");
+        let json = serde_json::to_string(&loc).expect("序列化Failed");
         assert!(json.contains("\"line\":3"));
         assert!(json.contains("\"column\":7"));
     }
 
-    // ---- HTTP 请求测试（需要真实服务，仅测试错误路径） ----
+    // ---- HTTP 请求测试（需要真实服务，仅测试Error路径） ----
 
     #[tokio::test]
     async fn test_execute_query_invalid_endpoint() {
@@ -1130,7 +1130,7 @@ mod tests {
         // 连接被拒绝是预期的（无服务在 localhost:1 监听）
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.contains("连接失败") || err.contains("Connection refused"));
+        assert!(err.contains("connection failed") || err.contains("Connection refused"));
     }
 
     // ---- 使用本地 HTTP 服务的集成测试 ----
@@ -1145,12 +1145,12 @@ mod tests {
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
-            .expect("绑定端口失败");
-        let addr = listener.local_addr().expect("获取地址失败");
+            .expect("绑定端口Failed");
+        let addr = listener.local_addr().expect("获取地址Failed");
         let port = addr.port();
 
         let handle = tokio::spawn(async move {
-            let (mut stream, _) = listener.accept().await.expect("接受连接失败");
+            let (mut stream, _) = listener.accept().await.expect("接受connection failed");
             use tokio::io::{AsyncReadExt, AsyncWriteExt};
             let mut buf = vec![0u8; 8192];
             let _ = stream.read(&mut buf).await;
@@ -1188,8 +1188,8 @@ mod tests {
             )
             .await;
 
-        assert!(result.is_ok(), "查询应该成功: {:?}", result);
-        let response = result.expect("响应解析失败");
+        assert!(result.is_ok(), "查询应该Success: {:?}", result);
+        let response = result.expect("响应解析Failed");
         assert_eq!(response.status_code, 200);
         assert!(response.data.is_some());
         assert!(response.errors.is_none());
@@ -1257,7 +1257,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let response = result.expect("响应解析失败");
+        let response = result.expect("响应解析Failed");
         let data = response.data.expect("应有数据");
         let user = data.get("user").expect("应有 user 字段");
         assert_eq!(user["id"], 42);
@@ -1282,8 +1282,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let response = result.expect("响应解析失败");
-        let errors = response.errors.expect("应有错误");
+        let response = result.expect("响应解析Failed");
+        let errors = response.errors.expect("应有Error");
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].message, "Not found");
         let locations = errors[0].locations.clone().expect("应有位置信息");
@@ -1309,7 +1309,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let response = result.expect("响应解析失败");
+        let response = result.expect("响应解析Failed");
         assert_eq!(response.status_code, 500);
     }
 }

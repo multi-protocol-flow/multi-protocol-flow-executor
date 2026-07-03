@@ -22,7 +22,7 @@ use std::time::{Duration, Instant};
 /// 最大退避时间上限（30 秒）
 const MAX_BACKOFF_CAP_MS: u64 = 30_000;
 
-/// 检查 gRPC 错误是否可重试
+/// 检查 gRPC Error是否可重试
 ///
 /// 可重试的状态码：UNAVAILABLE、DEADLINE_EXCEEDED
 /// 这些 code 出现在 tonic Status 的字符串表示中，格式为 "message (CODE)"
@@ -114,14 +114,14 @@ impl NodeExecutor for GrpcCallExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::GrpcCall(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 GrpcCallConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not GrpcCallConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -132,9 +132,9 @@ impl NodeExecutor for GrpcCallExecutor {
 
         // 3. 变量替换 request_json
         let request_json = replace_variables(&config.request_json, context).map_err(|e| {
-            let error_msg = format!("请求 JSON 变量替换失败: {}", e);
+            let error_msg = format!("请求 JSON variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -183,7 +183,7 @@ impl NodeExecutor for GrpcCallExecutor {
 
         // 7. 日志：开始调用
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: grpc_call, 模式: {}, 连接ID: {}, 服务: {}/{}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: grpc_call, 模式: {}, Connection ID: {}, 服务: {}/{}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -197,12 +197,12 @@ impl NodeExecutor for GrpcCallExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "gRPC 调用节点 {} 开始执行: {}/{} ({})",
+                    "gRPC 调用节点 {} start execution: {}/{} ({})",
                     node.name, config.service_name, config.method_name, pattern_str
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -270,7 +270,7 @@ impl NodeExecutor for GrpcCallExecutor {
                             if attempt < max_retries && is_retryable_error(&e) {
                                 let backoff_ms = calculate_backoff_ms(initial_backoff_ms, attempt);
                                 log::warn!(
-                                    "[gRPC] Unary 调用失败（可重试），第 {} 次重试，等待 {}ms: {}",
+                                    "[gRPC] Unary 调用Failed（可重试），第 {} 次重试，等待 {}ms: {}",
                                     attempt + 1,
                                     backoff_ms,
                                     e
@@ -279,13 +279,13 @@ impl NodeExecutor for GrpcCallExecutor {
                                     .emit_log(LogEvent {
                                         level: LogLevel::Warn,
                                         message: format!(
-                                            "gRPC 调用失败，第 {} 次重试（等待 {}ms）",
+                                            "gRPC 调用Failed，第 {} 次重试（等待 {}ms）",
                                             attempt + 1,
                                             backoff_ms
                                         ),
                                         timestamp: std::time::SystemTime::now()
                                             .duration_since(std::time::UNIX_EPOCH)
-                                            .expect("系统时间错误")
+                                            .expect("系统时间Error")
                                             .as_millis() as u64,
                                         node_uuid: Some(node.uuid.clone()),
                                         node_name: Some(node.name.clone()),
@@ -342,7 +342,7 @@ impl NodeExecutor for GrpcCallExecutor {
                             if attempt < max_retries && is_retryable_error(&e) {
                                 let backoff_ms = calculate_backoff_ms(initial_backoff_ms, attempt);
                                 log::warn!(
-                                    "[gRPC] Server Streaming 调用失败（可重试），第 {} 次重试，等待 {}ms: {}",
+                                    "[gRPC] Server Streaming 调用Failed（可重试），第 {} 次重试，等待 {}ms: {}",
                                     attempt + 1,
                                     backoff_ms,
                                     e
@@ -351,13 +351,13 @@ impl NodeExecutor for GrpcCallExecutor {
                                     .emit_log(LogEvent {
                                         level: LogLevel::Warn,
                                         message: format!(
-                                            "gRPC 调用失败，第 {} 次重试（等待 {}ms）",
+                                            "gRPC 调用Failed，第 {} 次重试（等待 {}ms）",
                                             attempt + 1,
                                             backoff_ms
                                         ),
                                         timestamp: std::time::SystemTime::now()
                                             .duration_since(std::time::UNIX_EPOCH)
-                                            .expect("系统时间错误")
+                                            .expect("系统时间Error")
                                             .as_millis() as u64,
                                         node_uuid: Some(node.uuid.clone()),
                                         node_name: Some(node.name.clone()),
@@ -470,7 +470,7 @@ impl NodeExecutor for GrpcCallExecutor {
         match call_result {
             Ok((pattern_str, response_data, responses, sent_count, received_count, trailers, streaming_timing, response_metadata, cancelled)) => {
                 log::info!(
-                    "[gRPC] 调用成功: connection_id={}, service={}, method={}, 模式={}, 耗时={}ms",
+                    "[gRPC] 调用Success: connection_id={}, service={}, method={}, 模式={}, 耗时={}ms",
                     connection_id,
                     config.service_name,
                     config.method_name,
@@ -478,7 +478,7 @@ impl NodeExecutor for GrpcCallExecutor {
                     call_duration_ms
                 );
 
-                // 8. 构建统一成功输出数据
+                // 8. 构建统一Success输出数据
                 let duration = start_time.elapsed();
                 let mut output_data = json!({
                     "success": true,
@@ -539,7 +539,7 @@ impl NodeExecutor for GrpcCallExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "gRPC 调用成功: {}/{} ({}) ({}ms)",
+                            "gRPC 调用Success: {}/{} ({}) ({}ms)",
                             config.service_name,
                             config.method_name,
                             pattern_str,
@@ -547,7 +547,7 @@ impl NodeExecutor for GrpcCallExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -587,12 +587,12 @@ impl NodeExecutor for GrpcCallExecutor {
                 Ok((next_node_ids, Some(output_data)))
             }
             Err(e) => {
-                // 解析错误消息和结构化错误详情
+                // 解析Error消息和结构化Error详情
                 let (error_message, error_details) =
                     crate::error_detail::parse_error_details(&e);
 
                 log::error!(
-                    "[gRPC] 调用失败: connection_id={}, service={}, method={}, 模式={}, error={}",
+                    "[gRPC] 调用Failed: connection_id={}, service={}, method={}, 模式={}, error={}",
                     connection_id,
                     config.service_name,
                     config.method_name,
@@ -600,17 +600,17 @@ impl NodeExecutor for GrpcCallExecutor {
                     error_message
                 );
 
-                // 日志：调用失败
+                // 日志：调用Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!(
-                            "gRPC 调用失败: {}/{} ({}) - {}",
+                            "gRPC 调用Failed: {}/{} ({}) - {}",
                             config.service_name, config.method_name, pattern_str, error_message
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -618,7 +618,7 @@ impl NodeExecutor for GrpcCallExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据（包含 pattern 字段和结构化错误详情）
+                // 构建Error输出数据（包含 pattern 字段和结构化Error详情）
                 let duration = start_time.elapsed();
                 let mut error_output = json!({
                     "success": false,
@@ -644,7 +644,7 @@ impl NodeExecutor for GrpcCallExecutor {
                     "error": error_message,
                 });
 
-                // 添加结构化错误详情（来自 google.rpc.Status 的 google.protobuf.Any）
+                // 添加结构化Error详情（来自 google.rpc.Status 的 google.protobuf.Any）
                 if !error_details.is_empty() {
                     error_output["error_details"] = json!(error_details);
                 }
@@ -685,7 +685,7 @@ mod tests {
     use flow_engine_core::node_config::{GrpcCallConfig, GrpcMetadataEntry};
     use crate::grpc_connection_manager::GrpcConnectionManager;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -713,7 +713,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -863,7 +863,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -926,7 +926,7 @@ mod tests {
     }
 
     impl MockGrpcProvider {
-        /// 创建返回成功结果的 Mock
+        /// 创建返回Success结果的 Mock
         fn new_success(services: Vec<GrpcServiceInfo>) -> Self {
             Self {
                 services,
@@ -953,14 +953,14 @@ mod tests {
             }
         }
 
-        /// 创建返回错误的 Mock
+        /// 创建返回Error的 Mock
         fn new_error(services: Vec<GrpcServiceInfo>) -> Self {
             Self {
                 services,
-                unary_response: Err("模拟调用失败".to_string()),
-                server_streaming_response: Err("模拟流式调用失败".to_string()),
-                client_streaming_response: Err("模拟客户端流式调用失败".to_string()),
-                bidi_streaming_response: Err("模拟双向流式调用失败".to_string()),
+                unary_response: Err("模拟调用Failed".to_string()),
+                server_streaming_response: Err("模拟流式调用Failed".to_string()),
+                client_streaming_response: Err("模拟客户端流式调用Failed".to_string()),
+                bidi_streaming_response: Err("模拟双向流式调用Failed".to_string()),
                 call_log: MockCallLog::new(),
             }
         }
@@ -1017,7 +1017,7 @@ mod tests {
             _call_id: &str,
         ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
             self.call_log.call_client_streaming_count.fetch_add(1, AtomicOrdering::SeqCst);
-            *self.call_log.last_client_messages.lock().expect("锁不应失败") = request_messages;
+            *self.call_log.last_client_messages.lock().expect("锁不应Failed") = request_messages;
             self.client_streaming_response.clone().map(|v| (v, vec![]))
         }
 
@@ -1030,7 +1030,7 @@ mod tests {
             _call_id: &str,
         ) -> Result<GrpcStreamingResult, String> {
             self.call_log.call_bidi_streaming_count.fetch_add(1, AtomicOrdering::SeqCst);
-            *self.call_log.last_bidi_messages.lock().expect("锁不应失败") = request_messages;
+            *self.call_log.last_bidi_messages.lock().expect("锁不应Failed") = request_messages;
             self.bidi_streaming_response.clone()
         }
 
@@ -1104,7 +1104,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
@@ -1155,7 +1155,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
@@ -1224,7 +1224,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
@@ -1234,7 +1234,7 @@ mod tests {
         assert_eq!(data["received_count"], 1);
 
         // 验证发送的消息确实被过滤了
-        let msgs = mock.call_log.last_client_messages.lock().expect("锁不应失败");
+        let msgs = mock.call_log.last_client_messages.lock().expect("锁不应Failed");
         assert_eq!(msgs.len(), 2);
         assert!(msgs[0].contains("item\": 1"));
         assert!(msgs[1].contains("item\": 3"));
@@ -1277,7 +1277,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
@@ -1340,11 +1340,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["sent_count"], 1); // 只有 1 条启用的
 
-        let msgs = mock.call_log.last_client_messages.lock().expect("锁不应失败");
+        let msgs = mock.call_log.last_client_messages.lock().expect("锁不应Failed");
         assert_eq!(msgs.len(), 1);
         assert!(msgs[0].contains("keep"));
     }
@@ -1359,7 +1359,7 @@ mod tests {
         let mock = Arc::new(MockGrpcProvider::new_success(services));
         let executor = GrpcCallExecutor::new(mock.clone());
 
-        let node = create_test_node("node-port-success", "成功端口测试", "conn-1");
+        let node = create_test_node("node-port-success", "Success端口测试", "conn-1");
         let mut context = create_context_with_grpc("flow-port", mock.clone());
 
         // 创建 true 端口连接
@@ -1376,7 +1376,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.expect("执行应成功");
+        let (next_nodes, _) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["next-node"]); // 走 true 端口
     }
 
@@ -1386,7 +1386,7 @@ mod tests {
         let mock = Arc::new(MockGrpcProvider::new_error(services));
         let executor = GrpcCallExecutor::new(mock.clone());
 
-        let node = create_test_node("node-port-error", "失败端口测试", "conn-1");
+        let node = create_test_node("node-port-error", "Failed端口测试", "conn-1");
         let mut context = create_context_with_grpc("flow-port", mock.clone());
 
         // 创建 false 端口连接
@@ -1403,11 +1403,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["error-handler"]); // 走 false 端口
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
-        assert_eq!(data["error"], "模拟调用失败");
+        assert_eq!(data["error"], "模拟调用Failed");
     }
 
     // ========================================================================
@@ -1428,7 +1428,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
 
         // 验证必需字段存在
@@ -1472,7 +1472,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["pattern"], "unary");
     }
@@ -1498,13 +1498,13 @@ mod tests {
 
         /// 获取已发送的事件
         fn events(&self) -> Vec<DebugEvent> {
-            self.events.lock().expect("锁不应失败").clone()
+            self.events.lock().expect("锁不应Failed").clone()
         }
     }
 
     impl DebugEventSender for MockDebugEventSender {
         fn send_event(&self, event: DebugEvent) -> Result<(), String> {
-            self.events.lock().expect("锁不应失败").push(event);
+            self.events.lock().expect("锁不应Failed").push(event);
             Ok(())
         }
     }
@@ -1532,7 +1532,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
 
@@ -1567,7 +1567,7 @@ mod tests {
         let executor = GrpcCallExecutor::new(mock.clone());
         let debug_sender = Arc::new(MockDebugEventSender::new());
 
-        let node = create_test_node("node-fail", "失败无事件测试", "conn-1");
+        let node = create_test_node("node-fail", "Failed无事件测试", "conn-1");
         let mut context = create_context_with_debug("flow-fail", debug_sender.clone());
         context.set_provider("grpc", mock.clone());
 
@@ -1576,9 +1576,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        // 失败时不应发送 GrpcMethodCalled 事件
+        // Failed时不应发送 GrpcMethodCalled 事件
         let events = debug_sender.events();
-        assert_eq!(events.len(), 0, "失败时不应发送调试事件");
+        assert_eq!(events.len(), 0, "Failed时不应发送调试事件");
     }
 
     // ========================================================================
@@ -1587,18 +1587,18 @@ mod tests {
 
     #[test]
     fn test_is_retryable_error_unavailable() {
-        assert!(is_retryable_error("gRPC Unary 调用失败: service unavailable (UNAVAILABLE)"));
+        assert!(is_retryable_error("gRPC Unary 调用Failed: service unavailable (UNAVAILABLE)"));
     }
 
     #[test]
     fn test_is_retryable_error_deadline_exceeded() {
-        assert!(is_retryable_error("gRPC Unary 调用失败: timeout (DEADLINE_EXCEEDED)"));
+        assert!(is_retryable_error("gRPC Unary 调用Failed: timeout (DEADLINE_EXCEEDED)"));
     }
 
     #[test]
     fn test_is_retryable_error_not_retryable() {
-        assert!(!is_retryable_error("gRPC Unary 调用失败: not found (NOT_FOUND)"));
-        assert!(!is_retryable_error("gRPC Unary 调用失败: permission denied (PERMISSION_DENIED)"));
+        assert!(!is_retryable_error("gRPC Unary 调用Failed: not found (NOT_FOUND)"));
+        assert!(!is_retryable_error("gRPC Unary 调用Failed: permission denied (PERMISSION_DENIED)"));
         assert!(!is_retryable_error("连接 'xxx' 不存在"));
     }
 
@@ -1732,7 +1732,7 @@ mod tests {
     // 重试集成测试（使用 Mock）
     // ========================================================================
 
-    /// Mock: 第一次返回 UNAVAILABLE 错误，第二次成功
+    /// Mock: 第一次返回 UNAVAILABLE Error，第二次Success
     struct RetryThenSuccessMock {
         fail_count: AtomicUsize,
         services: Vec<GrpcServiceInfo>,
@@ -1766,7 +1766,7 @@ mod tests {
         ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
             let count = self.fail_count.fetch_add(1, AtomicOrdering::SeqCst);
             if count == 0 {
-                Err("gRPC Unary 调用失败: service unavailable (UNAVAILABLE)".to_string())
+                Err("gRPC Unary 调用Failed: service unavailable (UNAVAILABLE)".to_string())
             } else {
                 Ok((serde_json::json!({"success": true}), vec![]))
             }
@@ -1865,12 +1865,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
-        assert_eq!(next_nodes, vec!["true"]); // 成功走 true 端口
+        let (next_nodes, output_data) = result.expect("执行应Success");
+        assert_eq!(next_nodes, vec!["true"]); // Success走 true 端口
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
         assert_eq!(data["data"]["success"], true);
-        // 验证重试了 1 次后成功（第一次失败，第二次成功）
+        // 验证重试了 1 次后Success（第一次Failed，第二次Success）
         assert_eq!(mock.fail_count.load(AtomicOrdering::SeqCst), 2);
     }
 
@@ -1883,7 +1883,7 @@ mod tests {
         let node = Node {
             uuid: "node-no-retry".to_string(),
             node_type: "grpc_call".to_string(),
-            name: "不可重试错误".to_string(),
+            name: "不可重试Error".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GrpcCall(GrpcCallConfig {
                 connection_id: "conn-1".to_string(),
@@ -1907,15 +1907,15 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
-        assert_eq!(next_nodes, vec!["false"]); // 失败走 false 端口
+        let (next_nodes, output_data) = result.expect("执行应Success");
+        assert_eq!(next_nodes, vec!["false"]); // Failed走 false 端口
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
         // 验证只调用了一次（没有重试）
         assert_eq!(
             mock.call_log.call_unary_count.load(AtomicOrdering::SeqCst),
             1,
-            "不可重试错误应只调用一次"
+            "不可重试Error应只调用一次"
         );
     }
 
@@ -1954,7 +1954,7 @@ mod tests {
                 _call_id: &str,
             ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
                 self.call_count.fetch_add(1, AtomicOrdering::SeqCst);
-                Err("gRPC Unary 调用失败: service unavailable (UNAVAILABLE)".to_string())
+                Err("gRPC Unary 调用Failed: service unavailable (UNAVAILABLE)".to_string())
             }
 
             async fn call_server_streaming(
@@ -2049,8 +2049,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.expect("执行应成功");
-        assert_eq!(next_nodes, vec!["false"]); // 全部重试失败，走 false 端口
+        let (next_nodes, _) = result.expect("执行应Success");
+        assert_eq!(next_nodes, vec!["false"]); // 全部重试Failed，走 false 端口
         // 验证调用了 3 次（初始 1 次 + 2 次重试）
         assert_eq!(
             mock.call_count.load(AtomicOrdering::SeqCst),

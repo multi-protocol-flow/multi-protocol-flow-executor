@@ -43,7 +43,7 @@ pub async fn execute_flow(
         let _ = sender
             .send(LogEvent {
                 level: LogLevel::Info,
-                message: format!("流程 '{}' 开始执行", flow_name),
+                message: format!("流程 '{}' start execution", flow_name),
                 timestamp: start_timestamp,
                 node_uuid: None,
                 node_name: None,
@@ -90,7 +90,7 @@ pub async fn execute_flow(
                 },
                 message: format!(
                     "流程执行{}",
-                    if result.success { "成功" } else { "失败" }
+                    if result.success { "Success" } else { "Failed" }
                 ),
                 timestamp: end_timestamp,
                 node_uuid: None,
@@ -132,7 +132,7 @@ mod tests {
     /// 测试正常流程执行
     #[tokio::test]
     async fn test_execute_flow_normal() {
-        // 创建简单的 Entry 节点流程
+        // 创建简单的 Entry node流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -145,7 +145,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let input = ExecuteFlowCommandInput {
                     flow_id: flow_id.clone(),
@@ -156,8 +156,8 @@ mod tests {
         let result = execute_flow(input, flow, None, None, None, None).await;
 
         // 验证结果
-        assert!(result.success, "流程应该成功执行");
-        assert!(result.error.is_none(), "不应该有错误");
+        assert!(result.success, "流程应该Success执行");
+        assert!(result.error.is_none(), "不应该有Error");
         assert!(result.flow_report.is_some(), "应该有执行报告");
         // duration_ms 是 u64 类型，总是 >= 0，所以移除无用的比较
 
@@ -181,7 +181,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "变量测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "变量Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         // 传入变量
         let variables = json!({
@@ -209,12 +209,12 @@ mod tests {
         assert_eq!(init_vars["retry_count"], 3);
     }
 
-    /// 测试缺少开始节点的错误处理
+    /// 测试缺少开始节点的Error处理
     #[tokio::test]
     async fn test_execute_flow_missing_entry_node() {
         let flow_id = Uuid::new_v4().to_string();
         
-        // 创建没有 Entry 节点的流程（只有 HTTP 节点）
+        // 创建没有 Entry node的流程（只有 HTTP 节点）
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
             node_type: "http".to_string(),
@@ -238,11 +238,11 @@ mod tests {
 
         let result = execute_flow(input, flow, None, None, None, None).await;
 
-        // 验证错误结果
-        assert!(!result.success, "流程应该失败");
-        assert!(result.error.is_some(), "应该有错误信息");
-        assert!(result.error.unwrap().contains("流程验证失败"), "错误信息应该说明验证失败");
-        // 错误情况下 executed_count 为 0（没有 flow_report 或报告中的 executed_count 为 0）
+        // 验证Error结果
+        assert!(!result.success, "流程应该Failed");
+        assert!(result.error.is_some(), "应该有Error信息");
+        assert!(result.error.unwrap().contains("流程验证Failed"), "Error信息应该说明验证Failed");
+        // Error情况下 executed_count 为 0（没有 flow_report 或报告中的 executed_count 为 0）
         if let Some(ref report) = result.flow_report {
             assert_eq!(report.executed_count, 0, "不应该执行任何节点");
         }
@@ -263,7 +263,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "日志测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "日志Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let input = ExecuteFlowCommandInput {
                     flow_id: flow_id.clone(),
@@ -273,10 +273,10 @@ mod tests {
         // 使用 NoopLogSender
         let log_sender: Arc<dyn LogSender> = Arc::new(NoopLogSender);
 
-        // 执行流程（应该不会因日志发送而失败）
+        // 执行流程（应该不会因日志发送而Failed）
         let result = execute_flow(input, flow, Some(log_sender), None, None, None).await;
 
-        assert!(result.success, "流程应该成功执行");
+        assert!(result.success, "流程应该Success执行");
     }
 
     /// 测试多节点流程执行
@@ -298,7 +298,7 @@ mod tests {
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
             node_type: "entry".to_string(),  // 使用 Entry 作为第二个节点进行测试
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -345,7 +345,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "时间测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "时间Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let input = ExecuteFlowCommandInput {
                     flow_id: flow_id.clone(),
@@ -363,11 +363,11 @@ mod tests {
         }
     }
 
-    /// 测试流程报告包含正确的流程信息
+    /// Test Flow报告包含正确的流程信息
     #[tokio::test]
     async fn test_execute_flow_report_contains_flow_info() {
         let flow_id = Uuid::new_v4().to_string();
-        let flow_name = "报告信息测试流程".to_string();
+        let flow_name = "报告信息Test Flow".to_string();
         
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -413,7 +413,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "空变量测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "空变量Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         // 传入空对象
         let input = ExecuteFlowCommandInput {
@@ -423,7 +423,7 @@ mod tests {
 
         let result = execute_flow(input, flow, None, None, None, None).await;
 
-        // 应该成功执行
+        // 应该Success执行
         assert!(result.success);
         
         // 验证报告中的初始变量为空对象
@@ -433,11 +433,11 @@ mod tests {
         assert_eq!(init_vars.as_object().unwrap().len(), 0);
     }
 
-    /// 测试节点报告状态正确记录
+    /// Test Node报告状态正确记录
     #[tokio::test]
     async fn test_execute_flow_node_report_status() {
         let flow_id = Uuid::new_v4().to_string();
-        let node_name = "测试节点".to_string();
+        let node_name = "Test Node".to_string();
         
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -450,7 +450,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "状态测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "状态Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let input = ExecuteFlowCommandInput {
                     flow_id: flow_id.clone(),

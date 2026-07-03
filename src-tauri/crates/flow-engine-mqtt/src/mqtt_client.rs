@@ -71,7 +71,7 @@ pub fn create_mqtt_client(config: &MqttConnectConfig) -> Result<MqttClientResult
     let (client, eventloop) = AsyncClient::new(options, 10);
 
     info!(
-        "MQTT 客户端创建成功: {} ({:?})",
+        "MQTT 客户端创建Success: {} ({:?})",
         config.url, transport_type
     );
 
@@ -472,13 +472,13 @@ mod tests {
     #[test]
     fn test_create_tls_config_standard() {
         let result = create_tls_config(false);
-        assert!(result.is_ok(), "标准 TLS 配置应创建成功: {:?}", result.err());
+        assert!(result.is_ok(), "标准 TLS 配置应创建Success: {:?}", result.err());
     }
 
     #[test]
     fn test_create_tls_config_skip_verify() {
         let result = create_tls_config(true);
-        assert!(result.is_ok(), "跳过验证 TLS 配置应创建成功: {:?}", result.err());
+        assert!(result.is_ok(), "跳过验证 TLS 配置应创建Success: {:?}", result.err());
     }
 
     #[test]

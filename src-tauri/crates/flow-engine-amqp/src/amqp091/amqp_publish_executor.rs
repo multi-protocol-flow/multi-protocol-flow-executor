@@ -45,7 +45,7 @@ impl NodeExecutor for AmqpPublishExecutor {
             NodeData::AmqpPublish(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 AmqpPublishConfig: {}",
+                    "Node data type is not AmqpPublishConfig: {}",
                     node.uuid
                 )))
             }
@@ -55,9 +55,9 @@ impl NodeExecutor for AmqpPublishExecutor {
         //    reply_to, expiration, message_type, user_id, app_id, cluster_id）
         let exchange = match &config.exchange {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("exchange 变量替换失败: {}", e);
+                let error_msg = format!("exchange variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -70,9 +70,9 @@ impl NodeExecutor for AmqpPublishExecutor {
 
         let routing_key = match &config.routing_key {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("routing_key 变量替换失败: {}", e);
+                let error_msg = format!("routing_key variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -85,9 +85,9 @@ impl NodeExecutor for AmqpPublishExecutor {
 
         let body = match &config.body {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("body 变量替换失败: {}", e);
+                let error_msg = format!("body variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -100,9 +100,9 @@ impl NodeExecutor for AmqpPublishExecutor {
 
         let message_id = match &config.message_id {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("message_id 变量替换失败: {}", e);
+                let error_msg = format!("message_id variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -115,9 +115,9 @@ impl NodeExecutor for AmqpPublishExecutor {
 
         let correlation_id = match &config.correlation_id {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("correlation_id 变量替换失败: {}", e);
+                let error_msg = format!("correlation_id variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -130,9 +130,9 @@ impl NodeExecutor for AmqpPublishExecutor {
 
         let reply_to = match &config.reply_to {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("reply_to 变量替换失败: {}", e);
+                let error_msg = format!("reply_to variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -145,9 +145,9 @@ impl NodeExecutor for AmqpPublishExecutor {
 
         let expiration = match &config.expiration {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("expiration 变量替换失败: {}", e);
+                let error_msg = format!("expiration variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -160,9 +160,9 @@ impl NodeExecutor for AmqpPublishExecutor {
 
         let message_type = match &config.message_type {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("message_type 变量替换失败: {}", e);
+                let error_msg = format!("message_type variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -175,9 +175,9 @@ impl NodeExecutor for AmqpPublishExecutor {
 
         let user_id = match &config.user_id {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("user_id 变量替换失败: {}", e);
+                let error_msg = format!("user_id variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -190,9 +190,9 @@ impl NodeExecutor for AmqpPublishExecutor {
 
         let app_id = match &config.app_id {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("app_id 变量替换失败: {}", e);
+                let error_msg = format!("app_id variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -205,9 +205,9 @@ impl NodeExecutor for AmqpPublishExecutor {
 
         let cluster_id = match &config.cluster_id {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("cluster_id 变量替换失败: {}", e);
+                let error_msg = format!("cluster_id variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -226,9 +226,9 @@ impl NodeExecutor for AmqpPublishExecutor {
                     let replaced_val = match v.as_str() {
                         Some(s) => {
                             let s_replaced = replace_variables(s, context).map_err(|e| {
-                                let error_msg = format!("headers[{}] 变量替换失败: {}", k, e);
+                                let error_msg = format!("headers[{}] variable substitution failed: {}", k, e);
                                 log::error!(
-                                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                                     context.flow_uuid,
                                     node.uuid,
                                     node.name,
@@ -249,7 +249,7 @@ impl NodeExecutor for AmqpPublishExecutor {
 
         // 3. 日志：开始发布
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp_publish, exchange: {:?}, routing_key: {:?}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp_publish, exchange: {:?}, routing_key: {:?}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -260,7 +260,7 @@ impl NodeExecutor for AmqpPublishExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("AMQP 发布节点 {} 开始执行", node.name),
+                message: format!("AMQP 发布节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
@@ -308,7 +308,7 @@ impl NodeExecutor for AmqpPublishExecutor {
 
                 if output.success {
                     log::info!(
-                        "[AMQP] 发布成功: uuid={}, exchange={:?}, routing_key={:?}, confirm_mode={}, confirm_result={:?} ({}ms)",
+                        "[AMQP] 发布Success: uuid={}, exchange={:?}, routing_key={:?}, confirm_mode={}, confirm_result={:?} ({}ms)",
                         node.uuid,
                         resolved_config.exchange,
                         resolved_config.routing_key,
@@ -318,7 +318,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     );
                 } else {
                     log::warn!(
-                        "[AMQP] 发布失败: uuid={}, error={:?} ({}ms)",
+                        "[AMQP] 发布Failed: uuid={}, error={:?} ({}ms)",
                         node.uuid,
                         output.error,
                         duration.as_millis()
@@ -367,14 +367,14 @@ impl NodeExecutor for AmqpPublishExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "AMQP 发布成功, 确认结果: {:?} ({}ms)",
+                        "AMQP 发布Success, 确认结果: {:?} ({}ms)",
                         output.confirm_result,
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "AMQP 发布失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "AMQP 发布Failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -393,7 +393,7 @@ impl NodeExecutor for AmqpPublishExecutor {
                     })
                     .await;
 
-                // 8. 路由：成功走 true 端口，失败走 false 端口
+                // 8. 路由：Success走 true 端口，Failed走 false 端口
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, port);
 
@@ -438,9 +438,9 @@ impl NodeExecutor for AmqpPublishExecutor {
                     },
                 });
 
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP publish 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("AMQP publish Failed: {}", e)));
                 }
 
                 // 返回 false 端口
@@ -481,7 +481,7 @@ mod tests {
     };
     use flow_engine_core::traits::{AmqpConnectOutput, AmqpConnectionInfo, AmqpPublishOutput};
 
-    /// Mock AmqpProvider（发布成功）
+    /// Mock AmqpProvider（发布Success）
     struct MockAmqpProvider {
         output: AmqpPublishOutput,
     }
@@ -834,7 +834,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, config: AmqpPublishConfig) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -883,7 +883,7 @@ mod tests {
         }
     }
 
-    /// 测试：发布成功时输出 JSON 结构正确
+    /// 测试：发布Success时输出 JSON 结构正确
     #[tokio::test]
     async fn test_amqp_publish_success_output_structure() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success(None));
@@ -897,7 +897,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
@@ -909,7 +909,7 @@ mod tests {
         assert!(data["timing"]["total_ms"].is_number());
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_amqp_publish_wrong_node_data_type() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success(None));
@@ -918,7 +918,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -977,12 +977,12 @@ mod tests {
         assert_eq!(data["request"]["message_id"], "msg-12345");
     }
 
-    /// 测试：发布失败时路由到 false 端口
+    /// 测试：发布Failed时路由到 false 端口
     #[tokio::test]
     async fn test_amqp_publish_failure_routes_to_false() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_failure("exchange not found"));
         let executor = AmqpPublishExecutor::new(amqp_manager);
-        let node = create_test_node("test-2", "失败测试", default_publish_config());
+        let node = create_test_node("test-2", "Failed测试", default_publish_config());
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -991,7 +991,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 失败应路由到 false 端口
+        // Failed应路由到 false 端口
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 

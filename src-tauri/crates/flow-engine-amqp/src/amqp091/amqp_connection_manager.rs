@@ -41,7 +41,7 @@ pub enum AmqpConnectionStatus {
     Connected,
     /// 已断开
     Disconnected,
-    /// 错误状态
+    /// Error状态
     Error(String),
 }
 
@@ -180,7 +180,7 @@ impl AmqpProvider for AmqpConnectionManager {
     ) -> Result<AmqpConnectOutput, String> {
         info!("AMQP 开始连接: url={}, id={}", config.url, uuid);
 
-        // UUID 去重：如果已存在直接返回成功
+        // UUID 去重：如果已存在直接返回Success
         {
             let conns = self.connections.read().await;
             if let Some(existing) = conns.get(uuid) {
@@ -250,7 +250,7 @@ impl AmqpProvider for AmqpConnectionManager {
                 Ok(())
             }
             None => {
-                warn!("AMQP 关闭连接失败: 连接 '{}' 不存在", uuid);
+                warn!("AMQP 关闭connection failed: 连接 '{}' 不存在", uuid);
                 Err(format!("AMQP 连接 '{}' 不存在", uuid))
             }
         }
@@ -426,7 +426,7 @@ impl AmqpProvider for AmqpConnectionManager {
                     BasicQosOptions { global: false },
                 )
                 .await
-                .map_err(|e| format!("AMQP 设置预取数量失败: {}", e))?;
+                .map_err(|e| format!("AMQP 设置预取数量Failed: {}", e))?;
         }
 
         let consumer_tag = config
@@ -494,7 +494,7 @@ impl AmqpProvider for AmqpConnectionManager {
                     messages.push(msg);
                 }
                 Ok(Some(Err(e))) => {
-                    warn!("AMQP 消费消息错误: {}", e);
+                    warn!("AMQP 消费消息Error: {}", e);
                     if config.auto_reject_on_failure {
                         // 无法获取 delivery_tag，跳过
                     }
@@ -735,7 +735,7 @@ impl AmqpConnectionManager {
             )
             .send()
             .await
-            .map_err(|e| format!("Management API 请求失败: {}", e))?;
+            .map_err(|e| format!("Management API 请求Failed: {}", e))?;
 
         let status = response.status();
         if !status.is_success() {
@@ -751,7 +751,7 @@ impl AmqpConnectionManager {
         let data: serde_json::Value = response
             .json()
             .await
-            .map_err(|e| format!("Management API 响应解析失败: {}", e))?;
+            .map_err(|e| format!("Management API 响应解析Failed: {}", e))?;
 
         Ok(AmqpManagementOutput {
             success: true,
@@ -965,7 +965,7 @@ mod tests {
     async fn test_amqp10_connect_nonexistent() {
         let manager = AmqpConnectionManager::new();
         let config = Amqp10ConnectConfig::default();
-        // 没有 broker，连接应失败
+        // 没有 broker，连接应Failed
         let result = manager.amqp10_connect("any", &config).await;
         assert!(result.is_err());
     }

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 // ============================================================================
 // ============================================================================
-// Entry 节点配置
+// Entry node配置
 // ============================================================================
 
 /// 入口节点配置
@@ -850,14 +850,14 @@ pub enum AssertionMode {
     Any,
 }
 
-/// 失败行为
+/// Failed行为
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum OnFailureMode {
     /// 路由到 false 端口
     #[default]
     RouteFalse,
-    /// 抛出错误
+    /// 抛出Error
     Throw,
 }
 
@@ -870,10 +870,10 @@ pub struct AssertionConfig {
     /// 断言组合模式
     #[serde(default)]
     pub mode: AssertionMode,
-    /// 失败行为
+    /// Failed行为
     #[serde(default)]
     pub on_failure: OnFailureMode,
-    /// 失败后是否继续执行后续断言
+    /// Failed后是否继续执行后续断言
     #[serde(default)]
     pub continue_on_failure: bool,
     /// 断言列表
@@ -902,7 +902,7 @@ pub struct AssertionResult {
     pub expected: serde_json::Value,
     /// 实际值
     pub actual: serde_json::Value,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -916,11 +916,11 @@ pub struct AssertionOutput {
     pub total: usize,
     /// 通过数
     pub passed_count: usize,
-    /// 失败数
+    /// Failed数
     pub failed_count: usize,
     /// 所有断言结果
     pub results: Vec<AssertionResult>,
-    /// 失败的断言
+    /// Failed的断言
     pub failed_assertions: Vec<AssertionResult>,
     /// 输入数据
     pub input: serde_json::Value,
@@ -1066,18 +1066,18 @@ pub enum ScriptExecutionPhase {
     Standalone,
 }
 
-/// 脚本错误处理策略
+/// 脚本Error处理策略
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum ScriptErrorStrategy {
-    /// 可恢复错误 → 路由到 false 端口（默认）
+    /// 可恢复Error → 路由到 false 端口（默认）
     #[default]
     Recoverable,
-    /// 致命错误 → 终止整个流程
+    /// 致命Error → 终止整个流程
     Fatal,
 }
 
-/// 断言失败处理策略
+/// 断言Failed处理策略
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum AssertionFailStrategy {
@@ -1104,7 +1104,7 @@ pub struct ScriptNodeConfig {
     /// 脚本执行时机
     #[serde(default)]
     pub execution_phase: ScriptExecutionPhase,
-    /// 错误处理策略
+    /// Error处理策略
     #[serde(default)]
     pub on_error: ScriptErrorStrategy,
 }
@@ -2831,10 +2831,10 @@ pub struct AmqpConsumeConfig {
     /// 消费超时（毫秒）
     #[serde(default)]
     pub timeout_ms: u64,
-    /// 成功时自动确认
+    /// Success时自动确认
     #[serde(default)]
     pub auto_ack_on_success: bool,
-    /// 失败时自动拒绝
+    /// Failed时自动拒绝
     #[serde(default)]
     pub auto_reject_on_failure: bool,
     /// 拒绝后是否重新入队
@@ -3007,10 +3007,10 @@ pub struct Amqp10RejectConfig {
     /// 投递 ID
     #[serde(default)]
     pub delivery_id: u64,
-    /// 错误条件
+    /// Error条件
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error_condition: Option<String>,
-    /// 错误描述
+    /// Error描述
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error_description: Option<String>,
 }
@@ -4208,7 +4208,7 @@ impl NodeData {
         }
     }
 
-    /// 创建空的 Entry 节点配置
+    /// 创建空的 Entry node配置
     pub fn entry() -> Self {
         Self::Entry(EntryConfig::default())
     }

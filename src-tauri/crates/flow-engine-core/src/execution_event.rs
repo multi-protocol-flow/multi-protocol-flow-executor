@@ -8,14 +8,14 @@ use serde::{Deserialize, Serialize};
 /// 执行事件枚举（正常模式）
 ///
 /// 四个变体覆盖整个流程执行生命周期：
-/// - `FlowStarted`: 流程开始执行时
-/// - `NodeStarted`: 每个节点开始执行时
-/// - `NodeCompleted`: 每个节点执行完成时（成功或失败）
+/// - `FlowStarted`: 流程start execution时
+/// - `NodeStarted`: 每个节点start execution时
+/// - `NodeCompleted`: 每个节点execution complete时（Success或Failed）
 /// - `FlowCompleted`: 流程执行结束时
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ExecutionEvent {
-    /// 流程开始执行
+    /// 流程start execution
     FlowStarted {
         #[serde(rename = "flowUuid")]
         /// 流程唯一标识
@@ -27,7 +27,7 @@ pub enum ExecutionEvent {
         /// 总节点数
         total_nodes: u32,
     },
-    /// 节点开始执行
+    /// 节点start execution
     NodeStarted {
         #[serde(rename = "nodeUuid")]
         /// 节点唯一标识
@@ -39,12 +39,12 @@ pub enum ExecutionEvent {
         /// 节点类型
         node_type: String,
     },
-    /// 节点执行完成
+    /// 节点execution complete
     NodeCompleted {
         /// 节点执行报告
         report: Box<NodeExecutionReport>,
     },
-    /// 流程执行完成
+    /// 流程execution complete
     FlowCompleted {
         /// 流程执行报告
         report: Box<FlowExecutionReport>,
@@ -70,11 +70,11 @@ mod tests {
     fn test_flow_started_camel_case() {
         let event = ExecutionEvent::FlowStarted {
             flow_uuid: "flow-001".to_string(),
-            flow_name: "测试流程".to_string(),
+            flow_name: "Test Flow".to_string(),
             total_nodes: 5,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
 
         // 验证变体名使用 camelCase
         assert!(json.contains("\"flowStarted\""), "变体名应为 flowStarted");
@@ -105,7 +105,7 @@ mod tests {
             node_type: "http".to_string(),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
 
         // 验证变体名使用 camelCase
         assert!(
@@ -156,7 +156,7 @@ mod tests {
             report: Box::new(report),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
 
         // 验证变体名使用 camelCase（而非 snake_case）
         assert!(
@@ -177,7 +177,7 @@ mod tests {
         let report = FlowExecutionReport {
             uuid: "report-001".to_string(),
             flow_uuid: "flow-001".to_string(),
-            flow_name: "测试流程".to_string(),
+            flow_name: "Test Flow".to_string(),
             start_time: 1000,
             end_time: 2000,
             duration_ms: 1000,
@@ -202,7 +202,7 @@ mod tests {
             report: Box::new(report),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
 
         // 验证变体名使用 camelCase
         assert!(
@@ -221,8 +221,8 @@ mod tests {
             flow_name: "测试".to_string(),
             total_nodes: 3,
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
-        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
 
         // NodeStarted
@@ -231,15 +231,15 @@ mod tests {
             node_name: "HTTP 请求".to_string(),
             node_type: "http".to_string(),
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
-        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
 
         // NodeCompleted
         let report = NodeExecutionReport {
             node_uuid: "node-001".to_string(),
             node_type: "entry".to_string(),
-            node_name: "入口".to_string(),
+            node_name: "Entry".to_string(),
             start_time: 1000,
             end_time: 2000,
             duration_ms: 1000,
@@ -256,8 +256,8 @@ mod tests {
         let event = ExecutionEvent::NodeCompleted {
             report: Box::new(report),
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
-        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
 
         // FlowCompleted
@@ -287,8 +287,8 @@ mod tests {
         let event = ExecutionEvent::FlowCompleted {
             report: Box::new(report),
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
-        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
     }
 }

@@ -178,7 +178,7 @@ fn test_help() {
         .assert()
         .success()
         .stdout(predicate::str::contains("mpe"))
-        .stdout(predicate::str::contains("multi-protocol flow execution engine"));
+        .stdout(predicate::str::contains("Multi-Protocol Flow Orchestration"));
 }
 
 #[test]
@@ -188,7 +188,7 @@ fn test_run_subcommand_help() {
         .arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("execute flow"))
+        .stdout(predicate::str::contains("Execute a flow"))
         .stdout(predicate::str::contains("--flow"));
 }
 
@@ -1059,7 +1059,7 @@ fn test_log_output_contains_execution_info() {
         .assert()
         .success()
         // 验证日志包含执行相关信息（匹配实际的日志消息）
-        .stderr(predicate::str::contains("executing start node").or(predicate::str::contains("[done]")));
+        .stderr(predicate::str::contains("Executing Entry node:").or(predicate::str::contains("[Complete]")));
 }
 
 #[test]

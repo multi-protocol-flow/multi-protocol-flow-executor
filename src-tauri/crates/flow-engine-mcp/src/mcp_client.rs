@@ -24,7 +24,7 @@ use rmcp::transport::ConfigureCommandExt;
 /// - `Stdio`: 启动子进程，通过 stdin/stdout 通信
 ///
 /// 返回 [`RunningService`](rmcp::service::RunningService) + 服务器元数据（工具列表、资源列表）。
-/// 所有 rmcp 错误在边界转为 String。
+/// 所有 rmcp Error在边界转为 String。
 pub async fn create_mcp_client(
     config: &McpConnectConfig,
 ) -> Result<McpClientResult, String> {
@@ -48,7 +48,7 @@ pub async fn create_mcp_client(
 
     let connect_time = start.elapsed();
     let display_url = get_display_url(config);
-    info!("MCP 连接成功: {} ({:?})", display_url, connect_time);
+    info!("MCP 连接Success: {} ({:?})", display_url, connect_time);
 
     // 获取服务器信息
     let server_name = service
@@ -63,7 +63,7 @@ pub async fn create_mcp_client(
     let tools_result = service
         .list_all_tools()
         .await
-        .map_err(|e| format!("获取工具列表失败: {}", e))?;
+        .map_err(|e| format!("获取工具列表Failed: {}", e))?;
     let tools: Vec<McpToolInfo> = tools_result
         .iter()
         .map(|tool| McpToolInfo {
@@ -88,7 +88,7 @@ pub async fn create_mcp_client(
             .collect(),
         Err(e) => {
             let err_str = e.to_string();
-            log::warn!("[MCP] 获取资源列表失败（已降级为空列表）: {}", err_str);
+            log::warn!("[MCP] 获取资源列表Failed（已降级为空列表）: {}", err_str);
             Vec::new()
         }
     };
@@ -118,7 +118,7 @@ pub async fn create_mcp_client(
             .collect(),
         Err(e) => {
             let err_str = e.to_string();
-            log::warn!("[MCP] 获取提示词列表失败（已降级为空列表）: {}", err_str);
+            log::warn!("[MCP] 获取提示词列表Failed（已降级为空列表）: {}", err_str);
             Vec::new()
         }
     };
@@ -143,7 +143,7 @@ async fn create_streamable_http_transport(
         let transport = StreamableHttpClientTransport::from_uri(url.to_string());
         ().serve(transport)
             .await
-            .map_err(|e| format!("MCP 连接失败: {}", e))
+            .map_err(|e| format!("MCP connection failed: {}", e))
     } else {
         // 创建带自定义头的 reqwest 客户端
         let mut header_map = reqwest::header::HeaderMap::new();
@@ -158,13 +158,13 @@ async fn create_streamable_http_transport(
         let client = reqwest::Client::builder()
             .default_headers(header_map)
             .build()
-            .map_err(|e| format!("创建 HTTP 客户端失败: {}", e))?;
+            .map_err(|e| format!("创建 HTTP 客户端Failed: {}", e))?;
 
         let config = StreamableHttpClientTransportConfig::with_uri(url.to_string());
         let transport = StreamableHttpClientTransport::with_client(client, config);
         ().serve(transport)
             .await
-            .map_err(|e| format!("MCP 连接失败: {}", e))
+            .map_err(|e| format!("MCP connection failed: {}", e))
     }
 }
 
@@ -188,10 +188,10 @@ async fn create_stdio_transport(
                 cmd.env(k, v);
             }
         })
-    ).map_err(|e| format!("启动 MCP 进程失败 '{}': {}", command, e))?;
+    ).map_err(|e| format!("启动 MCP 进程Failed '{}': {}", command, e))?;
 
     ().serve(transport).await
-        .map_err(|e| format!("MCP stdio 连接失败: {}", e))
+        .map_err(|e| format!("MCP stdio connection failed: {}", e))
 }
 
 /// 获取用于日志显示的连接描述

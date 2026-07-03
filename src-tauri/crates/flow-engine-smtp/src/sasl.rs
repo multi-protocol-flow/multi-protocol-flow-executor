@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn test_build_xoauth2_credentials_empty_token() {
         let creds = build_xoauth2_credentials("user@gmail.com", "");
-        // 空 token 也能构建（实际认证会失败，但构建不应 panic）
+        // 空 token 也能构建（实际认证会Failed，但构建不应 panic）
         let _ = creds;
     }
 

@@ -36,7 +36,7 @@ pub enum MqttConnectionStatus {
     Connected,
     /// 已断开
     Disconnected,
-    /// 错误状态
+    /// Error状态
     Error(String),
 }
 
@@ -197,7 +197,7 @@ impl MqttConnectionManager {
                                     *s = MqttConnectionStatus::Connected;
                                 } else {
                                     warn!(
-                                        "MQTT 连接 {} ConnAck 失败: code={:?}",
+                                        "MQTT 连接 {} ConnAck Failed: code={:?}",
                                         connection_id, code
                                     );
                                     let mut s = status.write().await;
@@ -214,7 +214,7 @@ impl MqttConnectionManager {
                                     payload_format: None,
                                     timestamp_ms: Self::now_ms(),
                                 };
-                                // broadcast 发送失败说明没有接收者，忽略即可
+                                // broadcast 发送Failed说明没有接收者，忽略即可
                                 let _ = message_tx.send(msg);
                             }
                             Packet::Disconnect(_) => {
@@ -243,14 +243,14 @@ impl MqttConnectionManager {
                             return;
                         }
                         warn!(
-                            "MQTT 连接 {} EventLoop 轮询错误: {}",
+                            "MQTT 连接 {} EventLoop 轮询Error: {}",
                             connection_id, err_msg
                         );
                         {
                             let mut s = status.write().await;
                             *s = MqttConnectionStatus::Error(err_msg);
                         }
-                        // 短暂休眠后继续轮询，避免错误时 CPU 空转
+                        // 短暂休眠后继续轮询，避免Error时 CPU 空转
                         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                     }
                 }
@@ -276,7 +276,7 @@ impl MqttProvider for MqttConnectionManager {
     ) -> Result<MqttConnectOutput, String> {
         info!("MQTT 开始连接: url={}, id={}", config.url, uuid);
 
-        // UUID 去重：如果已存在直接返回成功
+        // UUID 去重：如果已存在直接返回Success
         {
             let conns = self.connections.read().await;
             if let Some(existing) = conns.get(uuid) {
@@ -348,7 +348,7 @@ impl MqttProvider for MqttConnectionManager {
                         });
                     }
                     MqttConnectionStatus::Error(e) => {
-                        // 连接失败，清理
+                        // connection failed，清理
                         let mut conns = self.connections.write().await;
                         if let Some(conn) = conns.remove(uuid) {
                             conn.eventloop_handle.abort();
@@ -426,7 +426,7 @@ impl MqttProvider for MqttConnectionManager {
             .await
             .map_err(|e| format!("MQTT publish failed: {}", e))?;
 
-        info!("MQTT 发布成功: topic={}, qos={}", topic, config.qos.unwrap_or(0));
+        info!("MQTT 发布Success: topic={}, qos={}", topic, config.qos.unwrap_or(0));
 
         Ok(MqttPublishOutput {
             success: true,
@@ -461,7 +461,7 @@ impl MqttProvider for MqttConnectionManager {
             .await
             .map_err(|e| format!("MQTT subscribe failed: {}", e))?;
 
-        info!("MQTT 订阅成功: topic={}, qos={}", topic, config.qos.unwrap_or(0));
+        info!("MQTT 订阅Success: topic={}, qos={}", topic, config.qos.unwrap_or(0));
 
         // 如果配置了 max_messages 或 collect_timeout_ms，收集消息
         let max_messages = config.max_messages.unwrap_or(0);
@@ -512,7 +512,7 @@ impl MqttProvider for MqttConnectionManager {
             .await
             .map_err(|e| format!("MQTT unsubscribe failed: {}", e))?;
 
-        info!("MQTT 取消订阅成功: topic={}", topic);
+        info!("MQTT 取消订阅Success: topic={}", topic);
         Ok(())
     }
 
@@ -664,7 +664,7 @@ impl MqttProvider for MqttConnectionManager {
                 Ok(())
             }
             None => {
-                warn!("MQTT 断开连接失败: 连接 '{}' not found", uuid);
+                warn!("MQTT 断开connection failed: 连接 '{}' not found", uuid);
                 Err(format!("MQTT connection '{}' not found", uuid))
             }
         }

@@ -19,12 +19,12 @@ use std::collections::HashMap;
 /// - `context`: 执行上下文，包含变量数据
 ///
 /// # 返回
-/// - `Result<String, String>`: 替换后的字符串，或错误信息
+/// - `Result<String, String>`: 替换后的字符串，或Error信息
 ///
 /// # 功能
 /// - 支持简单的变量替换，如 `{{api_key}}`
 /// - 支持嵌套路径访问，如 `{{user.profile.name}}`
-/// - 严格模式：变量不存在时返回错误
+/// - 严格模式：变量不存在时返回Error
 /// - 不支持索引访问（如 `items[0]`）和函数调用
 pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<String, String> {
     let re = regex::Regex::new(r"\{\{([^}]+)\}\}").map_err(|e| format!("Regex error: {}", e))?;
@@ -152,10 +152,10 @@ pub trait NodeExecutor: Send + Sync {
     /// - `node_map`: 节点 UUID 到节点的映射
     ///
     /// # 返回
-    /// - `Ok((next_node_ids, output_data))`: 执行成功
-    ///   - `next_node_ids`: 下一个要执行的节点 UUID 列表（空则终止当前分支）
+    /// - `Ok((next_node_ids, output_data))`: 执行Success
+    ///   - `next_node_ids`: 下一个要执行的节点 UUID 列表（空则, terminating current branch）
     ///   - `output_data`: 节点输出数据
-    /// - `Err(error_detail)`: 执行失败，包含结构化错误信息
+    /// - `Err(error_detail)`: 执行Failed，包含结构化Error信息
     async fn execute(
         &self,
         node: &Node,

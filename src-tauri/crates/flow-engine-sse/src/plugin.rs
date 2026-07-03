@@ -48,12 +48,12 @@ impl NodePlugin for SseConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "连接成功".into(),
+                label: "Connect Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "连接失败".into(),
+                label: "connection failed".into(),
                 position: "bottom".into(),
             },
         ]

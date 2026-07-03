@@ -71,7 +71,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
             NodeData::GraphqlSubscribe(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 GraphqlSubscribeConfig: {}",
+                    "Node data type is not GraphqlSubscribeConfig: {}",
                     node.uuid
                 )))
             }
@@ -79,9 +79,9 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
 
         // 2. 变量替换（subscription, variables, operation_name）
         let subscription = replace_variables(&config.subscription, context).map_err(|e| {
-            let error_msg = format!("subscription 变量替换失败: {}", e);
+            let error_msg = format!("subscription variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -93,7 +93,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
         let operation_name = match &config.operation_name {
             Some(op_name) => {
                 let replaced = replace_variables(op_name, context)
-                    .map_err(|e| ErrorDetail::execution_error(format!("operation_name 变量替换失败: {}", e)))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("operation_name variable substitution failed: {}", e)))?;
                 Some(replaced)
             }
             None => None,
@@ -104,7 +104,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
             Some(vars) => {
                 let vars_str = serde_json::to_string(vars).unwrap_or_default();
                 let replaced_str = replace_variables(&vars_str, context)
-                    .map_err(|e| ErrorDetail::execution_error(format!("variables 变量替换失败: {}", e)))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("variables variable substitution failed: {}", e)))?;
                 let replaced_vars: serde_json::Value =
                     serde_json::from_str(&replaced_str).unwrap_or_else(|_| vars.clone());
                 Some(replaced_vars)
@@ -114,7 +114,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
 
         // 3. 日志：开始订阅
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: graphql_subscribe, connection_id: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql_subscribe, connection_id: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -124,10 +124,10 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("GraphQL 订阅节点 {} 开始执行", node.name),
+                message: format!("GraphQL 订阅节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -157,7 +157,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
 
                 if output.success {
                     log::info!(
-                        "[GraphQL] 订阅成功: uuid={}, connection_id={}, 事件数={}, 耗时={}ms",
+                        "[GraphQL] 订阅Success: uuid={}, connection_id={}, 事件数={}, 耗时={}ms",
                         node.uuid,
                         config.connection_id,
                         output.event_count,
@@ -165,7 +165,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                     );
                 } else {
                     log::warn!(
-                        "[GraphQL] 订阅失败: uuid={}, connection_id={}, error={:?}",
+                        "[GraphQL] 订阅Failed: uuid={}, connection_id={}, error={:?}",
                         node.uuid,
                         config.connection_id,
                         output.error
@@ -213,14 +213,14 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "GraphQL 订阅成功: 收到 {} 个事件 ({}ms)",
+                        "GraphQL 订阅Success: 收到 {} 个事件 ({}ms)",
                         output.event_count,
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "GraphQL 订阅失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "GraphQL 订阅Failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -231,7 +231,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                         message: log_message,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -239,7 +239,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                     })
                     .await;
 
-                // 8. 路由：成功走 true 端口，失败走 false 端口
+                // 8. 路由：Success走 true 端口，Failed走 false 端口
                 if !output.success
                     && !node.on_error.as_ref().map_or(true, |s| {
                         *s == ExecutionErrorStrategy::RouteToFalse
@@ -248,7 +248,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("GraphQL 订阅失败")
+                        .unwrap_or("GraphQL 订阅Failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -273,7 +273,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                         message: format!("GraphQL 订阅异常: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -281,7 +281,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                     })
                     .await;
 
-                // 构建错误输出
+                // 构建Error输出
                 let error_output = json!({
                     "success": false,
                     "events": [],
@@ -333,7 +333,7 @@ mod tests {
     // Mock GraphqlProvider
     // ---------------------------------------------------------------------------
 
-    /// 模拟 GraphQL Provider（订阅成功）
+    /// 模拟 GraphQL Provider（订阅Success）
     struct MockGraphqlProvider {
         output: GraphqlSubscribeOutput,
     }
@@ -503,7 +503,7 @@ mod tests {
     // 测试辅助函数
     // ---------------------------------------------------------------------------
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, subscription: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -532,7 +532,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -563,7 +563,7 @@ mod tests {
     // 测试
     // ---------------------------------------------------------------------------
 
-    /// 测试：配置提取成功（正确的 NodeData 变体）
+    /// 测试：配置提取Success（正确的 NodeData 变体）
     #[tokio::test]
     async fn test_graphql_subscribe_config_extraction_success() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -582,12 +582,12 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
     }
 
-    /// 测试：配置提取拒绝错误的 NodeData 变体
+    /// 测试：配置提取拒绝Error的 NodeData 变体
     #[tokio::test]
     async fn test_graphql_subscribe_config_extraction_wrong_variant() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -596,7 +596,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "graphql_connect".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlConnect(GraphqlConnectConfig::default()),
             ports: None,
@@ -669,15 +669,15 @@ mod tests {
         assert_eq!(data["request"]["operation_name"], "OnMessage_v1");
     }
 
-    /// 测试：成功时路由到 true 端口，失败时路由到 false 端口
+    /// 测试：Success时路由到 true 端口，Failed时路由到 false 端口
     #[tokio::test]
     async fn test_graphql_subscribe_true_false_port_routing() {
-        // 测试成功 → true
+        // 测试Success → true
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
         let executor = GraphqlSubscribeExecutor::new(graphql_manager);
         let node = create_test_node(
             "test-true",
-            "成功测试",
+            "Success测试",
             "conn-1",
             "subscription { messageAdded { text } }",
         );
@@ -690,12 +690,12 @@ mod tests {
         let (next_nodes, _) = result.unwrap();
         assert_eq!(next_nodes, vec!["true"]);
 
-        // 测试失败 → false
-        let graphql_manager_fail = Arc::new(MockGraphqlProvider::new_failure("WebSocket 连接失败"));
+        // 测试Failed → false
+        let graphql_manager_fail = Arc::new(MockGraphqlProvider::new_failure("WebSocket connection failed"));
         let executor_fail = GraphqlSubscribeExecutor::new(graphql_manager_fail);
         let node_fail = create_test_node(
             "test-false",
-            "失败测试",
+            "Failed测试",
             "conn-1",
             "subscription { messageAdded { text } }",
         );

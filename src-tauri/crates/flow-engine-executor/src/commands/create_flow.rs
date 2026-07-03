@@ -35,7 +35,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
     let end_node = Node {
         uuid: format!("end-{}", flow_id),
         node_type: "end".to_string(),
-        name: "结束".to_string(),
+        name: "End".to_string(),
         position: NodePosition { x: 400.0, y: 0.0 },
         data: NodeData::end(),
         ports: None,
@@ -57,11 +57,11 @@ mod tests {
     #[test]
     fn test_create_flow_basic() {
         let input = CreateFlowCommandInput {
-            name: "测试流程".to_string(),
+            name: "Test Flow".to_string(),
         };
         let output = create_flow(input);
 
-        assert_eq!(output.flow.name, "测试流程");
+        assert_eq!(output.flow.name, "Test Flow");
         assert!(!output.flow.uuid.is_empty());
         assert!(output.flow.connections.is_empty());
         assert!(output.flow.initial_variables.is_none());
@@ -88,14 +88,14 @@ mod tests {
 
         let end_node = &output.flow.nodes[1];
         assert_eq!(end_node.node_type, "end");
-        assert_eq!(end_node.name, "结束");
+        assert_eq!(end_node.name, "End");
         assert_eq!(end_node.position.x, 400.0);
         assert_eq!(end_node.position.y, 0.0);
         assert!(end_node.ports.is_none());
         assert!(end_node.has_breakpoint.is_none());
     }
 
-    /// 测试流程 UUID 格式有效性
+    /// Test Flow UUID 格式有效性
     #[test]
     fn test_create_flow_uuid_valid() {
         let input = CreateFlowCommandInput {
@@ -148,11 +148,11 @@ mod tests {
     #[test]
     fn test_create_flow_unicode_name() {
         let input = CreateFlowCommandInput {
-            name: "测试流程🚀Тестαβγ".to_string(),
+            name: "Test Flow🚀Тестαβγ".to_string(),
         };
         let output = create_flow(input);
 
-        assert_eq!(output.flow.name, "测试流程🚀Тестαβγ");
+        assert_eq!(output.flow.name, "Test Flow🚀Тестαβγ");
         assert!(!output.flow.uuid.is_empty());
         assert_eq!(output.flow.nodes.len(), 2);
     }
@@ -180,7 +180,7 @@ mod tests {
         );
     }
 
-    /// 测试流程序列化
+    /// Test Flow序列化
     #[test]
     fn test_create_flow_serialization() {
         let input = CreateFlowCommandInput {

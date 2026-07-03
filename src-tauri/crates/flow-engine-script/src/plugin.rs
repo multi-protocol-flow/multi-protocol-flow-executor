@@ -40,12 +40,12 @@ impl NodePlugin for ScriptPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]

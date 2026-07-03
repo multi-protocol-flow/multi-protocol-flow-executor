@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// SSE 连接输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SseConnectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 连接 ID
     pub connection_id: String,
@@ -17,7 +17,7 @@ pub struct SseConnectOutput {
     /// Last-Event-ID（断线续传）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_event_id: Option<String>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -43,7 +43,7 @@ pub struct SseEventItem {
 /// SSE 监听输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SseListenOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 接收到的事件列表
     pub events: Vec<SseEventItem>,
@@ -51,7 +51,7 @@ pub struct SseListenOutput {
     pub event_count: u32,
     /// 监听持续时间（毫秒）
     pub duration_ms: u64,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }

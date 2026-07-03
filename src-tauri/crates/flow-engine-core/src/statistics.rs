@@ -5,15 +5,15 @@ use serde::{Deserialize, Serialize};
 
 /// 流程执行统计信息
 ///
-/// 提供流程执行的各项统计指标，包括成功/失败节点数量、执行时间、
+/// 提供流程执行的各项统计指标，包括Success/Failed节点数量、执行时间、
 /// 数据大小和执行效率等。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct FlowStatistics {
     // ===== 基础统计 =====
-    /// 成功的节点数量
+    /// Success的节点数量
     pub success_count: u32,
 
-    /// 失败的节点数量
+    /// Failed的节点数量
     pub failed_count: u32,
 
     // ===== 时间统计 =====
@@ -34,7 +34,7 @@ pub struct FlowStatistics {
     pub total_output_size_bytes: Option<u64>,
 
     // ===== 执行效率 =====
-    /// 错误率（0.0 - 1.0）
+    /// Error率（0.0 - 1.0）
     pub error_rate: Option<f64>,
 
     /// `完成率（executed_count` / `total_nodes`）
@@ -59,7 +59,7 @@ impl FlowStatistics {
 
         let mut stats = Self::default();
 
-        // 计算成功/失败节点数量
+        // 计算Success/Failed节点数量
         for report in reports {
             match report.status {
                 ExecutionStatus::Success => {
@@ -69,10 +69,10 @@ impl FlowStatistics {
                     stats.failed_count += 1;
                 }
                 ExecutionStatus::Skipped => {
-                    // 跳过的节点不计入成功/失败计数
+                    // 跳过的节点不计入Success/Failed计数
                 }
                 ExecutionStatus::Cancelled => {
-                    // 取消的节点计入失败计数
+                    // 取消的节点计入Failed计数
                     stats.failed_count += 1;
                 }
             }
@@ -107,7 +107,7 @@ impl FlowStatistics {
             stats.total_output_size_bytes = Some(total_output_size);
         }
 
-        // 计算错误率
+        // 计算Error率
         let total_executed = reports.len() as u32;
         if total_executed > 0 {
             stats.error_rate = Some(stats.failed_count as f64 / total_executed as f64);
@@ -153,25 +153,25 @@ impl FlowStatistics {
     ///
     /// # 返回
     ///
-    /// 成功 + 失败的节点数量
+    /// Success + Failed的节点数量
     pub fn total_executed_count(&self) -> u32 {
         self.success_count + self.failed_count
     }
 
-    /// 判断是否所有节点都执行成功
+    /// 判断是否所有节点都执行Success
     ///
     /// # 返回
     ///
-    /// 如果没有失败节点则返回 true
+    /// 如果没有Failed节点则返回 true
     pub fn is_all_success(&self) -> bool {
         self.failed_count == 0 && self.success_count > 0
     }
 
-    /// 判断是否有错误发生
+    /// 判断是否有Error发生
     ///
     /// # 返回
     ///
-    /// 如果有失败节点则返回 true
+    /// 如果有Failed节点则返回 true
     pub fn has_errors(&self) -> bool {
         self.failed_count > 0
     }
@@ -349,12 +349,12 @@ mod tests {
             completion_rate: Some(0.7142857142857143),
         };
 
-        let json = serde_json::to_string(&stats).expect("序列化失败");
+        let json = serde_json::to_string(&stats).expect("序列化Failed");
         assert!(json.contains("success_count"));
         assert!(json.contains("1"));
         assert!(json.contains("150"));
 
-        let deserialized: FlowStatistics = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: FlowStatistics = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized.success_count, stats.success_count);
     }
 
@@ -366,8 +366,8 @@ mod tests {
             ..FlowStatistics::default()
         };
 
-        let json = serde_json::to_string(&stats).expect("序列化失败");
-        let deserialized: FlowStatistics = serde_json::from_str(&json).expect("反序列化失败");
+        let json = serde_json::to_string(&stats).expect("序列化Failed");
+        let deserialized: FlowStatistics = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized.success_count, 5);
         assert_eq!(deserialized.failed_count, 2);
     }

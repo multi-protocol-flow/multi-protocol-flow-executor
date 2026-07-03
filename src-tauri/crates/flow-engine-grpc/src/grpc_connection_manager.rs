@@ -74,7 +74,7 @@ fn resolve_compression(
 /// Channelz 内省信息（轻量级，非完整 Channelz 协议）
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChannelzInfo {
-    /// 连接状态: "READY", "IDLE", "CONNECTING", "`TRANSIENT_FAILURE`", "SHUTDOWN"
+    /// 连接Status: "READY", "IDLE", "CONNECTING", "`TRANSIENT_FAILURE`", "SHUTDOWN"
     pub state: String,
     /// 连接建立时间（ISO 8601）
     pub connected_at: String,
@@ -82,7 +82,7 @@ pub struct ChannelzInfo {
     pub uptime_secs: u64,
     /// 活跃调用数
     pub active_calls: usize,
-    /// 最后错误（如果有）
+    /// 最后Error（如果有）
     pub last_error: Option<String>,
 }
 
@@ -105,7 +105,7 @@ struct GrpcConnection {
     compression_encoding: Option<String>,
     /// 活跃的流式调用: `call_id` → `CancellationToken`
     active_calls: Arc<Mutex<HashMap<String, CancellationToken>>>,
-    /// 最后一次错误信息（用于 Channelz 内省）
+    /// 最后一次Error信息（用于 Channelz 内省）
     last_error: Option<String>,
 }
 
@@ -153,7 +153,7 @@ impl GrpcConnectionManager {
             let conns = self
                 .connections
                 .read()
-                .map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+                .map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
             let conn = conns
                 .get(connection_id)
                 .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
@@ -300,7 +300,7 @@ impl GrpcProvider for GrpcConnectionManager {
                 .map(|(path, content)| proto_parser::ProtoFile { path, content })
                 .collect();
             proto_parser::parse_proto_files(&files)
-                .map_err(|e| format!("解析 proto 文件失败: {}", e))?
+                .map_err(|e| format!("解析 proto 文件Failed: {}", e))?
         };
 
         // 4. 提取服务信息
@@ -340,7 +340,7 @@ impl GrpcProvider for GrpcConnectionManager {
             let mut conns = self
                 .connections
                 .write()
-                .map_err(|e| format!("获取连接池写锁失败: {}", e))?;
+                .map_err(|e| format!("获取连接池写锁Failed: {}", e))?;
             conns.insert(uuid, connection);
         }
 
@@ -369,7 +369,7 @@ impl GrpcProvider for GrpcConnectionManager {
             let conns = self
                 .connections
                 .read()
-                .map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+                .map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
             let conn = conns
                 .get(connection_id)
                 .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
@@ -424,7 +424,7 @@ impl GrpcProvider for GrpcConnectionManager {
         let response = client
             .unary(request, path, codec)
             .await
-            .map_err(|e| format_grpc_error("gRPC Unary 调用失败", &e, &pool))?;
+            .map_err(|e| format_grpc_error("gRPC Unary 调用Failed", &e, &pool))?;
 
         // 7. 提取响应 metadata 并序列化响应为 JSON
         let response_metadata = extract_metadata(response.metadata());
@@ -472,7 +472,7 @@ impl GrpcProvider for GrpcConnectionManager {
             let conns = self
                 .connections
                 .read()
-                .map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+                .map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
             let conn = conns
                 .get(connection_id)
                 .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
@@ -482,7 +482,7 @@ impl GrpcProvider for GrpcConnectionManager {
         // 2. 注册 CancellationToken
         let cancel_token = CancellationToken::new();
         {
-            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁失败: {}", e))?;
+            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁Failed: {}", e))?;
             calls.insert(call_id.to_string(), cancel_token.clone());
         }
 
@@ -529,7 +529,7 @@ impl GrpcProvider for GrpcConnectionManager {
             .server_streaming(request, path, codec)
             .await
             .map_err(|e| {
-                format_grpc_error("gRPC Server Streaming 调用失败", &e, &pool)
+                format_grpc_error("gRPC Server Streaming 调用Failed", &e, &pool)
             })?;
 
         // 6. 提取响应 Initial Metadata 并采集响应流（带超时 + 取消支持）
@@ -576,17 +576,17 @@ impl GrpcProvider for GrpcConnectionManager {
                                 }
                                 Ok(None) => break,
                                 Err(e) => {
-                                    // 发送调试错误事件
+                                    // 发送调试Error事件
                                     if let Some(sender) = &debug_sender {
                                         let _ = sender.send_event(DebugEvent::GrpcStreamError {
                                             node_uuid: node_uuid.to_string(),
                                             connection_id: connection_id.to_string(),
                                             call_id: call_id.to_string(),
-                                            message: format!("流式响应错误: {} ({})", e.message(), e.code()),
+                                            message: format!("流式响应Error: {} ({})", e.message(), e.code()),
                                         });
                                     }
                                     return Err(format!(
-                                        "流式响应错误: {} ({})",
+                                        "流式响应Error: {} ({})",
                                         e.message(),
                                         e.code()
                                     ));
@@ -610,7 +610,7 @@ impl GrpcProvider for GrpcConnectionManager {
 
         // 清理 CancellationToken
         {
-            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁失败: {}", e))?;
+            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁Failed: {}", e))?;
             calls.remove(call_id);
         }
 
@@ -645,7 +645,7 @@ impl GrpcProvider for GrpcConnectionManager {
     ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
         // 1. 从连接池获取连接信息
         let (channel, pool, default_metadata, default_compression) = {
-            let conns = self.connections.read().map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+            let conns = self.connections.read().map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
             let conn = conns.get(connection_id).ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
             (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone(), conn.compression_encoding.clone())
         };
@@ -694,7 +694,7 @@ impl GrpcProvider for GrpcConnectionManager {
         client.ready().await.map_err(|e| format!("gRPC 客户端未就绪: {}", e))?;
 
         let response = client.client_streaming(request, path, codec).await
-            .map_err(|e| format_grpc_error("gRPC Client Streaming 调用失败", &e, &pool))?;
+            .map_err(|e| format_grpc_error("gRPC Client Streaming 调用Failed", &e, &pool))?;
 
         // 7. 提取响应 metadata 并序列化响应为 JSON
         let response_metadata = extract_metadata(response.metadata());
@@ -740,7 +740,7 @@ impl GrpcProvider for GrpcConnectionManager {
 
         // 1. 从连接池获取连接信息
         let (channel, pool, default_metadata, default_compression, active_calls) = {
-            let conns = self.connections.read().map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+            let conns = self.connections.read().map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
             let conn = conns.get(connection_id).ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
             (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone(), conn.compression_encoding.clone(), Arc::clone(&conn.active_calls))
         };
@@ -748,7 +748,7 @@ impl GrpcProvider for GrpcConnectionManager {
         // 2. 注册 CancellationToken
         let cancel_token = CancellationToken::new();
         {
-            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁失败: {}", e))?;
+            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁Failed: {}", e))?;
             calls.insert(call_id.to_string(), cancel_token.clone());
         }
 
@@ -794,7 +794,7 @@ impl GrpcProvider for GrpcConnectionManager {
         client.ready().await.map_err(|e| format!("gRPC 客户端未就绪: {}", e))?;
 
         let response = client.streaming(request, path, codec).await
-            .map_err(|e| format_grpc_error("gRPC Bidi Streaming 调用失败", &e, &pool))?;
+            .map_err(|e| format_grpc_error("gRPC Bidi Streaming 调用Failed", &e, &pool))?;
 
         // 8. 提取响应 Initial Metadata 并采集响应流（带超时 + 取消支持）
         let response_metadata = extract_metadata(response.metadata());
@@ -844,16 +844,16 @@ impl GrpcProvider for GrpcConnectionManager {
                                 }
                                 Ok(None) => break,
                                 Err(e) => {
-                                    // 发送调试错误事件
+                                    // 发送调试Error事件
                                     if let Some(sender) = &debug_sender {
                                         let _ = sender.send_event(DebugEvent::GrpcStreamError {
                                             node_uuid: node_uuid.to_string(),
                                             connection_id: connection_id.to_string(),
                                             call_id: call_id.to_string(),
-                                            message: format!("Bidi 流式响应错误: {} ({})", e.message(), e.code()),
+                                            message: format!("Bidi 流式响应Error: {} ({})", e.message(), e.code()),
                                         });
                                     }
-                                    return Err(format!("Bidi 流式响应错误: {} ({})", e.message(), e.code()));
+                                    return Err(format!("Bidi 流式响应Error: {} ({})", e.message(), e.code()));
                                 }
                             }
                         }
@@ -874,7 +874,7 @@ impl GrpcProvider for GrpcConnectionManager {
 
         // 清理 CancellationToken
         {
-            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁失败: {}", e))?;
+            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁Failed: {}", e))?;
             calls.remove(call_id);
         }
 
@@ -912,7 +912,7 @@ impl GrpcProvider for GrpcConnectionManager {
         let mut conns = self
             .connections
             .write()
-            .map_err(|e| format!("获取连接池写锁失败: {}", e))?;
+            .map_err(|e| format!("获取连接池写锁Failed: {}", e))?;
         conns
             .remove(connection_id)
             .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
@@ -955,8 +955,8 @@ impl GrpcProvider for GrpcConnectionManager {
     ///
     /// 使用 `tonic_health::pb::health_client::HealthClient` 发送 unary Check 请求。
     /// - UNIMPLEMENTED → 返回 "`NOT_IMPLEMENTED`"
-    /// - 其他错误 → 返回错误字符串
-    /// - 成功 → 返回 `ServingStatus` 字符串
+    /// - 其他Error → 返回Error字符串
+    /// - Success → 返回 `ServingStatus` 字符串
     async fn health_check(
         &self,
         connection_id: &str,
@@ -970,7 +970,7 @@ impl GrpcProvider for GrpcConnectionManager {
             let conns = self
                 .connections
                 .read()
-                .map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+                .map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
             let conn = conns
                 .get(connection_id)
                 .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
@@ -1003,7 +1003,7 @@ impl GrpcProvider for GrpcConnectionManager {
                         status: "NOT_IMPLEMENTED".to_string(),
                     })
                 } else {
-                    Err(format!("健康检查失败: {} ({})", status.message(), status.code()))
+                    Err(format!("健康检查Failed: {} ({})", status.message(), status.code()))
                 }
             }
         }
@@ -1012,12 +1012,12 @@ impl GrpcProvider for GrpcConnectionManager {
     fn cancel_stream(&self, connection_id: &str, call_id: &str) -> Result<(), String> {
         // 从连接池获取 active_calls
         let active_calls = {
-            let conns = self.connections.read().map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+            let conns = self.connections.read().map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
             let conn = conns.get(connection_id).ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
             Arc::clone(&conn.active_calls)
         };
 
-        let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁失败: {}", e))?;
+        let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁Failed: {}", e))?;
         match calls.get(call_id) {
             Some(token) => {
                 log::info!("[gRPC] 取消流式调用: connection_id={}, call_id={}", connection_id, call_id);
@@ -1050,13 +1050,13 @@ mod tests {
 
     #[test]
     fn test_build_method_path() {
-        let path = build_method_path("test.TestService", "GetUser").expect("路径构建应成功");
+        let path = build_method_path("test.TestService", "GetUser").expect("路径构建应Success");
         assert_eq!(path.as_str(), "/test.TestService/GetUser");
     }
 
     #[test]
     fn test_build_method_path_with_package() {
-        let path = build_method_path("myapp.v1.OrderService", "CreateOrder").expect("路径构建应成功");
+        let path = build_method_path("myapp.v1.OrderService", "CreateOrder").expect("路径构建应Success");
         assert_eq!(path.as_str(), "/myapp.v1.OrderService/CreateOrder");
     }
 
@@ -1075,7 +1075,7 @@ message TestMessage {
             path: "test.proto".to_string(),
             content: proto_content.to_string(),
         }];
-        let pool = proto_parser::parse_proto_files(&files).expect("解析应成功");
+        let pool = proto_parser::parse_proto_files(&files).expect("解析应Success");
 
         // DynamicCodec 需要一个 MethodDescriptor 来确定输入输出类型
         // 由于我们无法从 pool 直接获取独立方法的 MethodDescriptor，
@@ -1116,13 +1116,13 @@ message TestRequest {
             path: "test.proto".to_string(),
             content: proto_content.to_string(),
         }];
-        let pool = proto_parser::parse_proto_files(&files).expect("解析应成功");
+        let pool = proto_parser::parse_proto_files(&files).expect("解析应Success");
         let msg_desc = pool
             .get_message_by_name("test.TestRequest")
             .expect("应能找到 TestRequest");
 
         let json = r#"{"user_id": "abc123", "count": 5}"#;
-        let msg = json_to_dynamic_message(json, msg_desc).expect("反序列化应成功");
+        let msg = json_to_dynamic_message(json, msg_desc).expect("反序列化应Success");
 
         assert_eq!(
             msg.get_field_by_name("user_id")
@@ -1149,7 +1149,7 @@ message TestResponse {
             path: "test.proto".to_string(),
             content: proto_content.to_string(),
         }];
-        let pool = proto_parser::parse_proto_files(&files).expect("解析应成功");
+        let pool = proto_parser::parse_proto_files(&files).expect("解析应Success");
         let msg_desc = pool
             .get_message_by_name("test.TestResponse")
             .expect("应能找到 TestResponse");
@@ -1158,7 +1158,7 @@ message TestResponse {
         msg.set_field_by_name("name", prost_reflect::Value::String("Alice".to_string()));
         msg.set_field_by_name("age", prost_reflect::Value::I32(30));
 
-        let json = dynamic_message_to_json(&msg).expect("序列化应成功");
+        let json = dynamic_message_to_json(&msg).expect("序列化应Success");
         assert_eq!(json["name"], "Alice");
         assert_eq!(json["age"], 30);
     }
@@ -1237,9 +1237,9 @@ message TestResponse {
             active_calls: 3,
             last_error: None,
         };
-        let json = serde_json::to_string(&info).expect("序列化应成功");
+        let json = serde_json::to_string(&info).expect("序列化应Success");
         let deserialized: ChannelzInfo =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.state, "READY");
         assert_eq!(deserialized.uptime_secs, 3600);
         assert_eq!(deserialized.active_calls, 3);
@@ -1255,9 +1255,9 @@ message TestResponse {
             active_calls: 0,
             last_error: Some("connection refused".to_string()),
         };
-        let json = serde_json::to_string(&info).expect("序列化应成功");
+        let json = serde_json::to_string(&info).expect("序列化应Success");
         let deserialized: ChannelzInfo =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.state, "TRANSIENT_FAILURE");
         assert_eq!(deserialized.last_error, Some("connection refused".to_string()));
     }

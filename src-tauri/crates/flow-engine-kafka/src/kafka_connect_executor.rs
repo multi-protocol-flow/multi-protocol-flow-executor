@@ -55,9 +55,9 @@ impl NodeExecutor for KafkaConnectExecutor {
         // 2. 变量替换（bootstrap_servers, client_id, sasl_username, sasl_password 等）
         let bootstrap_servers =
             replace_variables(&config.bootstrap_servers, context).map_err(|e| {
-                let error_msg = format!("bootstrap_servers 变量替换失败: {}", e);
+                let error_msg = format!("bootstrap_servers variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -68,28 +68,28 @@ impl NodeExecutor for KafkaConnectExecutor {
 
         let client_id = match &config.client_id {
             Some(id) => Some(replace_variables(id, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("client_id 变量替换失败: {}", e))
+                ErrorDetail::execution_error(format!("client_id variable substitution failed: {}", e))
             })?),
             None => None,
         };
 
         let sasl_username = match &config.sasl_username {
             Some(u) => Some(replace_variables(u, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("sasl_username 变量替换失败: {}", e))
+                ErrorDetail::execution_error(format!("sasl_username variable substitution failed: {}", e))
             })?),
             None => None,
         };
 
         let sasl_password = match &config.sasl_password {
             Some(p) => Some(replace_variables(p, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("sasl_password 变量替换失败: {}", e))
+                ErrorDetail::execution_error(format!("sasl_password variable substitution failed: {}", e))
             })?),
             None => None,
         };
 
         // 3. 日志：开始连接
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: kafka_connect, Bootstrap: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: kafka_connect, Bootstrap: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -99,7 +99,7 @@ impl NodeExecutor for KafkaConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("Kafka 连接节点 {} 开始执行", node.name),
+                message: format!("Kafka 连接节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .map(|d| d.as_millis() as u64)
@@ -131,13 +131,13 @@ impl NodeExecutor for KafkaConnectExecutor {
 
                 if output.success {
                     log::info!(
-                        "[Kafka] 连接成功: uuid={}, bootstrap_servers={}",
+                        "[Kafka] 连接Success: uuid={}, bootstrap_servers={}",
                         node.uuid,
                         connect_config.bootstrap_servers
                     );
                 } else {
                     log::warn!(
-                        "[Kafka] 连接失败: uuid={}, bootstrap_servers={}, error={:?}",
+                        "[Kafka] connection failed: uuid={}, bootstrap_servers={}, error={:?}",
                         node.uuid,
                         connect_config.bootstrap_servers,
                         output.error
@@ -179,10 +179,10 @@ impl NodeExecutor for KafkaConnectExecutor {
                     LogLevel::Error
                 };
                 let log_message = if output.success {
-                    format!("Kafka 连接成功 ({}ms)", duration.as_millis())
+                    format!("Kafka 连接Success ({}ms)", duration.as_millis())
                 } else {
                     format!(
-                        "Kafka 连接失败: {} ({}ms)",
+                        "Kafka connection failed: {} ({}ms)",
                         output.error.as_deref().unwrap_or("Unknown error"),
                         duration.as_millis()
                     )
@@ -211,7 +211,7 @@ impl NodeExecutor for KafkaConnectExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("Kafka 连接失败")
+                        .unwrap_or("Kafka connection failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -222,7 +222,7 @@ impl NodeExecutor for KafkaConnectExecutor {
             Err(e) => {
                 let duration = start_time.elapsed();
                 log::error!(
-                    "[Kafka] 连接异常: uuid={}, bootstrap_servers={}, error={}",
+                    "[Kafka] connection error: uuid={}, bootstrap_servers={}, error={}",
                     node.uuid,
                     connect_config.bootstrap_servers,
                     e
@@ -231,7 +231,7 @@ impl NodeExecutor for KafkaConnectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("Kafka 连接异常: {}", e),
+                        message: format!("Kafka connection error: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .map(|d| d.as_millis() as u64)
@@ -307,7 +307,7 @@ mod tests {
     // Mock KafkaProvider
     // ---------------------------------------------------------------------------
 
-    /// 模拟成功连接的 KafkaProvider
+    /// 模拟Success连接的 KafkaProvider
     struct MockKafkaProvider {
         output: KafkaConnectOutput,
     }
@@ -420,7 +420,7 @@ mod tests {
     // 辅助工具
     // ---------------------------------------------------------------------------
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, bootstrap_servers: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -465,7 +465,7 @@ mod tests {
     // 测试用例
     // ---------------------------------------------------------------------------
 
-    /// 测试：连接成功时输出 JSON 结构正确
+    /// 测试：连接Success时输出 JSON 结构正确
     #[tokio::test]
     async fn test_connect_success_output_structure() {
         let kafka_manager = Arc::new(MockKafkaProvider::new_success());
@@ -479,7 +479,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
@@ -493,12 +493,12 @@ mod tests {
         assert_eq!(data["request"]["bootstrap_servers"], "localhost:9092");
     }
 
-    /// 测试：连接失败时路由到 false 端口
+    /// 测试：connection failed时路由到 false 端口
     #[tokio::test]
     async fn test_connect_failure_routes_to_false_port() {
         let kafka_manager = Arc::new(MockKafkaProvider::new_failure("Connection refused"));
         let executor = KafkaConnectExecutor::new(kafka_manager);
-        let node = create_test_node("test-2", "失败测试", "unreachable:9092");
+        let node = create_test_node("test-2", "Failed测试", "unreachable:9092");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -507,7 +507,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 失败应路由到 false 端口
+        // Failed应路由到 false 端口
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
@@ -517,7 +517,7 @@ mod tests {
         assert!(data["connection_info"].is_null());
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_connect_wrong_node_data_type() {
         let kafka_manager = Arc::new(MockKafkaProvider::new_success());
@@ -526,7 +526,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

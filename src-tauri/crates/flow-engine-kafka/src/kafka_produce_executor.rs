@@ -57,7 +57,7 @@ impl NodeExecutor for KafkaProduceExecutor {
             replace_variables(&config.connection_id, context).map_err(|e| {
                 let error_msg = format!("Connection ID variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -67,9 +67,9 @@ impl NodeExecutor for KafkaProduceExecutor {
             })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
-            let error_msg = format!("主题变量替换失败: {}", e);
+            let error_msg = format!("主题variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -80,16 +80,16 @@ impl NodeExecutor for KafkaProduceExecutor {
 
         let key = match &config.key {
             Some(k) => Some(replace_variables(k, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("消息键变量替换失败: {}", e))
+                ErrorDetail::execution_error(format!("消息键variable substitution failed: {}", e))
             })?),
             None => None,
         };
 
         let value = match &config.value {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("消息值变量替换失败: {}", e);
+                let error_msg = format!("消息值variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -102,7 +102,7 @@ impl NodeExecutor for KafkaProduceExecutor {
 
         // 3. 日志：开始生产
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: kafka_produce, 连接ID: {}, 主题: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: kafka_produce, Connection ID: {}, Topic: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -114,7 +114,7 @@ impl NodeExecutor for KafkaProduceExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "Kafka 生产节点 {} 开始执行 (主题: {})",
+                    "Kafka 生产节点 {} start execution (Topic: {})",
                     node.name, topic
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -148,14 +148,14 @@ impl NodeExecutor for KafkaProduceExecutor {
 
                 if output.success {
                     log::info!(
-                        "[Kafka] 生产成功: connection_id={}, topic={} ({}ms)",
+                        "[Kafka] 生产Success: connection_id={}, topic={} ({}ms)",
                         connection_id,
                         topic,
                         duration.as_millis()
                     );
                 } else {
                     log::warn!(
-                        "[Kafka] 生产返回错误: connection_id={}, topic={}, error={:?}",
+                        "[Kafka] 生产返回Error: connection_id={}, topic={}, error={:?}",
                         connection_id,
                         topic,
                         output.error
@@ -196,13 +196,13 @@ impl NodeExecutor for KafkaProduceExecutor {
                 };
                 let log_msg = if output.success {
                     format!(
-                        "Kafka 生产成功: {} ({}ms)",
+                        "Kafka 生产Success: {} ({}ms)",
                         topic,
                         duration.as_millis()
                     )
                 } else {
                     let err = output.error.as_deref().unwrap_or("Unknown error");
-                    format!("Kafka 生产失败: {} - {}", topic, err)
+                    format!("Kafka 生产Failed: {} - {}", topic, err)
                 };
 
                 context
@@ -228,7 +228,7 @@ impl NodeExecutor for KafkaProduceExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("Kafka 生产失败")
+                        .unwrap_or("Kafka 生产Failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -239,7 +239,7 @@ impl NodeExecutor for KafkaProduceExecutor {
             Err(e) => {
                 let duration = start_time.elapsed();
                 log::error!(
-                    "[Kafka] 生产失败: connection_id={}, topic={}, error={}",
+                    "[Kafka] 生产Failed: connection_id={}, topic={}, error={}",
                     connection_id,
                     topic,
                     e
@@ -248,7 +248,7 @@ impl NodeExecutor for KafkaProduceExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("Kafka 生产失败: {}", e),
+                        message: format!("Kafka 生产Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .map(|d| d.as_millis() as u64)
@@ -325,7 +325,7 @@ mod tests {
     // 辅助工具
     // ---------------------------------------------------------------------------
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(
         uuid: &str,
         name: &str,
@@ -383,7 +383,7 @@ mod tests {
     }
 
     // ---------------------------------------------------------------------------
-    // Mock KafkaProvider（生产成功）
+    // Mock KafkaProvider（生产Success）
     // ---------------------------------------------------------------------------
 
     struct MockKafkaProvider;
@@ -499,14 +499,14 @@ mod tests {
         assert!(data["error"].is_string());
     }
 
-    /// 测试：Mock 成功生产 → 走 true 端口
+    /// 测试：Mock Success生产 → 走 true 端口
     #[tokio::test]
     async fn test_produce_success_with_mock() {
         let kafka_manager = Arc::new(MockKafkaProvider);
         let executor = KafkaProduceExecutor::new(kafka_manager);
         let node = create_test_node(
             "test-ok",
-            "成功生产",
+            "Success生产",
             "mock-conn",
             "test-topic",
             Some("key1"),
@@ -574,7 +574,7 @@ mod tests {
         assert_eq!(data["request"]["connection_id"], "kafka-connection-123");
     }
 
-    /// 测试：错误的节点数据类型 → Err
+    /// 测试：Error的节点数据类型 → Err
     #[tokio::test]
     async fn test_produce_wrong_node_data_type() {
         let kafka_manager = Arc::new(MockKafkaProvider);
@@ -583,7 +583,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

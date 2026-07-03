@@ -8,12 +8,12 @@ use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::node_types;
 
-/// 结构化验证错误条目
+/// 结构化验证Error条目
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ValidationEntry {
-    /// 错误代码（如 E_VAL_MISSING_ENTRY）
+    /// Error代码（如 E_VAL_MISSING_ENTRY）
     pub code: ErrorCode,
-    /// 人类可读的错误描述
+    /// 人类可读的Error描述
     pub message: String,
     /// 相关的字段或属性名（可选）
     pub field: Option<String>,
@@ -24,14 +24,14 @@ pub struct ValidationEntry {
 pub struct ValidationResult {
     /// 验证是否通过
     pub valid: bool,
-    /// 结构化错误信息列表
+    /// 结构化Error信息列表
     pub errors: Vec<ValidationEntry>,
     /// 警告信息列表（不影响 valid 状态）
     pub warnings: Vec<String>,
 }
 
 impl ValidationResult {
-    /// 创建成功的验证结果
+    /// 创建Success的验证结果
     pub fn success() -> Self {
         ValidationResult {
             valid: true,
@@ -40,7 +40,7 @@ impl ValidationResult {
         }
     }
 
-    /// 创建包含单个结构化错误的验证结果
+    /// 创建包含单个结构化Error的验证结果
     pub fn error(code: ErrorCode, message: impl Into<String>, field: Option<String>) -> Self {
         ValidationResult {
             valid: false,
@@ -53,7 +53,7 @@ impl ValidationResult {
         }
     }
 
-    /// 创建多个错误的验证结果
+    /// 创建多个Error的验证结果
     pub fn errors(errors: Vec<ValidationEntry>) -> Self {
         ValidationResult {
             valid: false,
@@ -102,7 +102,7 @@ impl FlowValidator {
         let mut errors: Vec<ValidationEntry> = Vec::new();
         let mut warnings = Vec::new();
 
-        // 规则 1: 必须有至少一个 Entry 节点（流程入口）
+        // 规则 1: 必须有至少一个 Entry node（流程入口）
         let entry_nodes: Vec<&Node> = flow
             .nodes
             .iter()
@@ -116,10 +116,10 @@ impl FlowValidator {
                 field: None,
             });
         }
-        // 注意：不再检查 Entry 节点数量限制或输出连接要求
+        // 注意：不再检查 Entry node数量限制或输出连接要求
         // 新架构允许：
-        // 1. 多个 Entry 节点（Entry 节点可以用于流程入口和终止点）
-        // 2. Entry 节点可以没有输出连接（正常流程终止）
+        // 1. 多个 Entry node（Entry node可以用于流程入口和终止点）
+        // 2. Entry node可以没有输出连接（正常流程终止）
 
         // 规则 2: 验证输出端口唯一性（每个输出端口只能有一条出边）
         let port_validation = self.validate_output_port_uniqueness(flow);
@@ -167,7 +167,7 @@ impl FlowValidator {
             .collect();
 
         if end_nodes.is_empty() {
-            // 仅在流程有 Entry 节点（非空流程）时发出警告
+            // 仅在流程有 Entry node（非空流程）时发出警告
             let has_entry = flow
                 .nodes
                 .iter()
@@ -430,7 +430,7 @@ impl FlowValidator {
         for conn in &flow.connections {
             let key = (conn.source_node_uuid.clone(), conn.source_port_id.clone());
             if !seen.insert(key.clone()) {
-                // 查找节点名称以便提供有意义的错误信息
+                // 查找节点名称以便提供有意义的Error信息
                 let node_name = flow
                     .nodes
                     .iter()
@@ -860,7 +860,7 @@ mod tests {
         Node {
             uuid: Uuid::new_v4().to_string(),
             node_type: "entry".to_string(),
-            name: "入口".to_string(),
+            name: "Entry".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -874,7 +874,7 @@ mod tests {
         Node {
             uuid: Uuid::new_v4().to_string(),
             node_type: "end".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::end(),
             ports: None,
@@ -897,12 +897,12 @@ mod tests {
     #[test]
     fn test_validator_no_start_node() {
         // 创建没有开始节点的流程
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![create_end_node()], connections: vec![], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![create_end_node()], connections: vec![], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证检测到错误
+        // 验证检测到Error
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
         eprintln!("Error: {}", result.errors[0].message);
@@ -917,18 +917,18 @@ mod tests {
         let start_node1 = create_entry_node();
         let start_node2 = create_entry_node();
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node1, start_node2], connections: vec![], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node1, start_node2], connections: vec![], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 新架构：多个 Entry 节点是有效的
+        // 新架构：多个 Entry node是有效的
         assert!(result.valid);
     }
 
     #[test]
     fn test_validator_no_output_connection() {
-        // 创建没有 Entry 节点的流程（新架构只检查是否有 Entry 节点）
+        // 创建没有 Entry node的流程（新架构只检查是否有 Entry node）
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
             node_type: "http".to_string(),
@@ -940,12 +940,12 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node], connections: vec![], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证检测到错误（缺少 Entry 节点）
+        // 验证检测到Error（缺少 Entry node）
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
         eprintln!("Error: {}", result.errors[0].message);
@@ -959,7 +959,7 @@ mod tests {
         let end_node = create_end_node();
         let connection = create_connection(&start_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -971,8 +971,8 @@ mod tests {
 
     #[test]
     fn test_validator_multiple_errors() {
-        // 新架构：只有一个错误类型（缺少 Entry 节点）
-        // 创建没有 Entry 节点的流程
+        // 新架构：只有一个Error类型（缺少 Entry node）
+        // 创建没有 Entry node的流程
         let http_node1 = Node {
             uuid: Uuid::new_v4().to_string(),
             node_type: "http".to_string(),
@@ -994,12 +994,12 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node1, http_node2], connections: vec![], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node1, http_node2], connections: vec![], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证检测到错误（缺少 Entry 节点）
+        // 验证检测到Error（缺少 Entry node）
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
         assert!(result.errors[0].message.contains("missing an Entry node"));
@@ -1012,7 +1012,7 @@ mod tests {
         let end_node = create_end_node();
         let connection = create_connection(&start_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.execute(&flow);
@@ -1029,7 +1029,7 @@ mod tests {
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证检测到错误（缺少 Entry 节点）
+        // 验证检测到Error（缺少 Entry node）
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
         eprintln!("Empty flow error: {}", result.errors[0].message);
@@ -1055,7 +1055,7 @@ mod tests {
         let connection1 = create_connection(&start_node.uuid, &http_node.uuid);
         let connection2 = create_connection(&http_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "复杂测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, http_node, end_node], connections: vec![connection1, connection2], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "复杂Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, http_node, end_node], connections: vec![connection1, connection2], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1067,8 +1067,8 @@ mod tests {
 
     #[test]
     fn test_validator_connection_from_non_start() {
-        // 新架构：只检查是否有 Entry 节点，不检查连接来源
-        // 创建有 Entry 节点的流程（应该通过验证）
+        // 新架构：只检查是否有 Entry node，不检查连接来源
+        // 创建有 Entry node的流程（应该通过验证）
         let start_node = create_entry_node();
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
@@ -1085,12 +1085,12 @@ mod tests {
         // 只从 HTTP 节点发出连接
         let connection = create_connection(&http_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, http_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, http_node, end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 新架构：只要 Entry 节点存在就通过验证
+        // 新架构：只要 Entry node存在就通过验证
         assert!(result.valid);
     }
 
@@ -1109,7 +1109,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node.clone(), end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node.clone(), end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1121,8 +1121,8 @@ mod tests {
 
     #[test]
     fn test_validator_uses_start_node_uuid() {
-        // 新架构：只检查是否有 Entry 节点，不检查连接来源
-        // 创建有 Entry 节点的流程（应该通过验证）
+        // 新架构：只检查是否有 Entry node，不检查连接来源
+        // 创建有 Entry node的流程（应该通过验证）
         let start_node = Node {
             uuid: "start-uuid-test".to_string(),
             node_type: "entry".to_string(),
@@ -1155,12 +1155,12 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, other_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, other_node, end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 新架构：只要 Entry 节点存在就通过验证
+        // 新架构：只要 Entry node存在就通过验证
         assert!(result.valid);
     }
 
@@ -1179,7 +1179,7 @@ mod tests {
 
     #[test]
     fn test_validator_error_messages_correct() {
-        // 新架构：测试缺少 Entry 节点的错误消息
+        // 新架构：测试缺少 Entry node的Error消息
         let http_node = Node {
             uuid: "error-test-http".to_string(),
             node_type: "http".to_string(),
@@ -1191,12 +1191,12 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "错误测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "ErrorTest Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node], connections: vec![], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证错误消息正确
+        // 验证Error消息正确
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
         let error_entry = &result.errors[0];
@@ -1207,7 +1207,7 @@ mod tests {
 
     #[test]
     fn test_validator_multiple_connections_same_source() {
-        // 测试多个连接从同一个源节点同一个端口发出 → 应失败
+        // 测试多个连接从同一个源节点同一个端口发出 → 应Failed
         let start_node = create_entry_node();
         let end_node_1 = create_end_node();
         let end_node_2 = create_end_node();
@@ -1215,7 +1215,7 @@ mod tests {
         let connection_1 = create_connection(&start_node.uuid, &end_node_1.uuid);
         let connection_2 = create_connection(&start_node.uuid, &end_node_2.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1242,7 +1242,7 @@ mod tests {
         let end_node = Node {
             uuid: "specific-end-uuid-002".to_string(),
             node_type: "end".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::end(),
             ports: None,
@@ -1259,7 +1259,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1274,7 +1274,7 @@ mod tests {
 
     #[test]
     fn test_validator_no_end_node_warning() {
-        // 只有 Entry 节点，没有 End 节点 → 产生警告
+        // 只有 Entry node，没有 End 节点 → 产生警告
         let start_node = create_entry_node();
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
@@ -1315,7 +1315,7 @@ mod tests {
 
     #[test]
     fn test_validator_with_end_node_no_warning() {
-        // 有 Entry 节点和 End 节点 → 没有警告
+        // 有 Entry node和 End 节点 → 没有警告
         let start_node = create_entry_node();
         let end_node = create_end_node();
         let connection = create_connection(&start_node.uuid, &end_node.uuid);
@@ -1382,7 +1382,7 @@ mod tests {
 
     #[test]
     fn test_output_port_uniqueness_duplicate() {
-        // 同一个输出端口连接两个不同节点 → 应该失败
+        // 同一个输出端口连接两个不同节点 → 应该Failed
         let entry = create_entry_node();
         let end1 = create_end_node();
         let end2 = create_end_node();
@@ -1422,7 +1422,7 @@ mod tests {
         let conditional = Node {
             uuid: Uuid::new_v4().to_string(),
             node_type: "conditional".to_string(),
-            name: "条件分支".to_string(),
+            name: "Conditional Branch".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::conditional_simple("status", flow_engine_core::node_config::ConditionOperator::Equal, serde_json::json!("ok")),
             ports: None,
@@ -1432,7 +1432,7 @@ mod tests {
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
             node_type: "http".to_string(),
-            name: "HTTP 成功".to_string(),
+            name: "HTTP Success".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/success"),
             ports: None,
@@ -1565,7 +1565,7 @@ mod tests {
     #[test]
     fn test_cycle_detection_complex_cycle() {
         // A → B → C → D → B  复杂循环
-        let names = ["入口", "节点B", "节点C", "节点D"];
+        let names = ["Entry", "节点B", "节点C", "节点D"];
         let nodes: Vec<Node> = names
             .iter()
             .enumerate()

@@ -6,7 +6,7 @@ use crate::email_types::ImapConfig;
 /// IMAP 连接输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapConnectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 连接 ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -17,7 +17,7 @@ pub struct ImapConnectOutput {
     /// 服务器能力列表
     #[serde(default)]
     pub capabilities: Vec<String>,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -25,7 +25,7 @@ pub struct ImapConnectOutput {
 /// IMAP 选择邮箱输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapSelectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 邮箱名称
     pub mailbox: String,
@@ -44,7 +44,7 @@ pub struct ImapSelectOutput {
     /// 下一个 UID
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uid_next: Option<u64>,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -96,7 +96,7 @@ pub struct ImapMessageInfo {
 /// IMAP 搜索输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapSearchOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 匹配的 UID 列表
     #[serde(default)]
@@ -104,7 +104,7 @@ pub struct ImapSearchOutput {
     /// 匹配的邮件摘要（如果请求了预取）
     #[serde(default)]
     pub messages: Vec<ImapMessageInfo>,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -112,7 +112,7 @@ pub struct ImapSearchOutput {
 /// IMAP 获取输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapFetchOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 获取到的邮件列表
     #[serde(default)]
@@ -120,7 +120,7 @@ pub struct ImapFetchOutput {
     /// 已跳过的邮件数（超过 `max_fetch_count` 限制）
     #[serde(default)]
     pub skipped_count: usize,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -128,14 +128,14 @@ pub struct ImapFetchOutput {
 /// IMAP 设置标志输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapStoreFlagsOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 操作类型
     pub operation: String,
     /// 受影响的 UID 列表
     #[serde(default)]
     pub affected_uids: Vec<u32>,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -143,7 +143,7 @@ pub struct ImapStoreFlagsOutput {
 /// IMAP 复制输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapCopyOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 源邮箱
     pub source_mailbox: String,
@@ -152,7 +152,7 @@ pub struct ImapCopyOutput {
     /// 复制的邮件数
     #[serde(default)]
     pub copied_count: usize,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -160,7 +160,7 @@ pub struct ImapCopyOutput {
 /// IMAP 移动输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapMoveOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 源邮箱
     pub source_mailbox: String,
@@ -169,7 +169,7 @@ pub struct ImapMoveOutput {
     /// 移动的邮件数
     #[serde(default)]
     pub moved_count: usize,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -177,12 +177,12 @@ pub struct ImapMoveOutput {
 /// IMAP 永久删除输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapExpungeOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 已删除的邮件序号列表
     #[serde(default)]
     pub expunged_seqs: Vec<u32>,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -203,12 +203,12 @@ pub struct ImapMailboxInfo {
 /// IMAP 列出邮箱输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapListOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 邮箱列表
     #[serde(default)]
     pub mailboxes: Vec<ImapMailboxInfo>,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -216,11 +216,11 @@ pub struct ImapListOutput {
 /// IMAP 创建文件夹输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapFolderCreateOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 文件夹名称
     pub folder_name: String,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -228,11 +228,11 @@ pub struct ImapFolderCreateOutput {
 /// IMAP 删除文件夹输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapFolderDeleteOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 文件夹名称
     pub folder_name: String,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -240,7 +240,7 @@ pub struct ImapFolderDeleteOutput {
 /// IMAP IDLE 输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapIdleOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// IDLE 期间检测到的变化
     #[serde(default)]
@@ -248,7 +248,7 @@ pub struct ImapIdleOutput {
     /// IDLE 持续时间（毫秒）
     #[serde(default)]
     pub duration_ms: u64,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -256,9 +256,9 @@ pub struct ImapIdleOutput {
 /// IMAP 关闭连接输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImapCloseOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }

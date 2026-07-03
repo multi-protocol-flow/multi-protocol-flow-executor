@@ -52,12 +52,12 @@ impl NodePlugin for KafkaConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "连接成功".into(),
+                label: "Connect Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "连接失败".into(),
+                label: "connection failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -168,12 +168,12 @@ impl NodePlugin for KafkaProducePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "生产成功".into(),
+                label: "生产Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "生产失败".into(),
+                label: "生产Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -295,12 +295,12 @@ impl NodePlugin for KafkaConsumePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "消费成功".into(),
+                label: "消费Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "消费失败".into(),
+                label: "消费Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -423,12 +423,12 @@ impl NodePlugin for KafkaConsumeBatchPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "批量消费成功".into(),
+                label: "批量消费Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "批量消费失败".into(),
+                label: "批量消费Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -552,12 +552,12 @@ impl NodePlugin for KafkaAdminPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "操作成功".into(),
+                label: "操作Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "操作失败".into(),
+                label: "操作Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -678,12 +678,12 @@ impl NodePlugin for KafkaSchemaRegistryPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "操作成功".into(),
+                label: "操作Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "操作失败".into(),
+                label: "操作Failed".into(),
                 position: "bottom".into(),
             },
         ]

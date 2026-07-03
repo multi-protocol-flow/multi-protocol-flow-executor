@@ -4,7 +4,7 @@
 // - count_timeout: 达到数量上限或超时即停止
 // - count_only: 仅按数量上限消费
 // - timeout_only: 仅按时间窗口消费
-// 输出端口: "true"（成功）/ "false"（失败）
+// 输出端口: "true"（Success）/ "false"（Failed）
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::error::ErrorDetail;
@@ -71,7 +71,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
             let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -83,7 +83,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
         let topic = replace_variables(&config.topic, context).map_err(|e| {
             let error_msg = format!("Topic variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -96,7 +96,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
             Some(gid) => Some(replace_variables(gid, context).map_err(|e| {
                 let error_msg = format!("Group ID variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -109,7 +109,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
 
         // 4. 日志：开始批量消费
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: kafka_consume_batch, 连接ID: {}, topic: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: kafka_consume_batch, Connection ID: {}, topic: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -121,7 +121,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "Kafka 批量消费节点 {} 开始执行, topic: {}",
+                    "Kafka 批量消费节点 {} start execution, topic: {}",
                     node.name, topic
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -166,7 +166,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
 
                 if success {
                     log::info!(
-                        "[Kafka] 批量消费成功: connection_id={}, topic={}, batch_size={}, 耗时={}ms",
+                        "[Kafka] 批量消费Success: connection_id={}, topic={}, batch_size={}, 耗时={}ms",
                         connection_id,
                         topic,
                         batch_size,
@@ -174,7 +174,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                     );
                 } else {
                     log::warn!(
-                        "[Kafka] 批量消费返回失败: connection_id={}, topic={}, error={:?}",
+                        "[Kafka] 批量消费返回Failed: connection_id={}, topic={}, error={:?}",
                         connection_id,
                         topic,
                         output.error
@@ -200,7 +200,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                         level: log_level,
                         message: format!(
                             "Kafka 批量消费{} ({}条, {}ms)",
-                            if success { "成功" } else { "失败" },
+                            if success { "Success" } else { "Failed" },
                             batch_size,
                             duration.as_millis()
                         ),
@@ -223,7 +223,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                     let error_msg = output_data
                         .get("error")
                         .and_then(|v| v.as_str())
-                        .unwrap_or("Kafka 批量消费失败")
+                        .unwrap_or("Kafka 批量消费Failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -306,7 +306,7 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, topic: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -377,7 +377,7 @@ mod tests {
         assert_eq!(data["success"], false);
     }
 
-    /// 测试：NodeData 类型不匹配时返回错误
+    /// 测试：NodeData 类型不匹配时返回Error
     #[tokio::test]
     async fn test_consume_batch_wrong_node_data_type() {
         let kafka_manager = Arc::new(KafkaConnectionManager::new());
@@ -386,7 +386,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

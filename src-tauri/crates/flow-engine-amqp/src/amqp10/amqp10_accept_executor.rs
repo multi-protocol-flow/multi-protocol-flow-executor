@@ -45,7 +45,7 @@ impl NodeExecutor for Amqp10AcceptExecutor {
             NodeData::Amqp10Accept(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 Amqp10AcceptConfig: {}",
+                    "Node data type is not Amqp10AcceptConfig: {}",
                     node.uuid
                 )))
             }
@@ -53,20 +53,20 @@ impl NodeExecutor for Amqp10AcceptExecutor {
 
         // 2. 变量替换
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("connection_id 变量替换失败: {}", e);
-            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+            let error_msg = format!("connection_id variable substitution failed: {}", e);
+            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
             ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始确认
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp10_accept, 连接ID: {}, delivery_id: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp10_accept, Connection ID: {}, delivery_id: {}",
             context.flow_uuid, node.uuid, node.name, connection_id, config.delivery_id
         );
 
         context.emit_log(LogEvent {
             level: LogLevel::Info,
-            message: format!("AMQP 1.0 确认节点 {} 开始执行", node.name),
+            message: format!("AMQP 1.0 确认节点 {} start execution", node.name),
             timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
             node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone(),
@@ -103,9 +103,9 @@ impl NodeExecutor for Amqp10AcceptExecutor {
                     "error": e,
                 });
 
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP 1.0 accept 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("AMQP 1.0 accept Failed: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -181,7 +181,7 @@ mod tests {
         async fn amqp10_connect(&self, _uuid: &str, _config: &Amqp10ConnectConfig) -> Result<Amqp10ConnectOutput, String> { Err("not implemented".to_string()) }
         async fn amqp10_send(&self, _uuid: &str, _config: &Amqp10SendConfig) -> Result<Amqp10SendOutput, String> { Err("not implemented".to_string()) }
         async fn amqp10_receive(&self, _uuid: &str, _config: &Amqp10ReceiveConfig) -> Result<Amqp10ReceiveOutput, String> { Err("not implemented".to_string()) }
-        async fn amqp10_accept(&self, _uuid: &str, _config: &Amqp10AcceptConfig) -> Result<Amqp10AcceptOutput, String> { Err("确认失败".to_string()) }
+        async fn amqp10_accept(&self, _uuid: &str, _config: &Amqp10AcceptConfig) -> Result<Amqp10AcceptOutput, String> { Err("确认Failed".to_string()) }
         async fn amqp10_reject(&self, _uuid: &str, _config: &Amqp10RejectConfig) -> Result<Amqp10RejectOutput, String> { Err("not implemented".to_string()) }
         async fn amqp10_disconnect(&self, _uuid: &str, _config: &Amqp10DisconnectConfig) -> Result<(), String> { Err("not implemented".to_string()) }
         fn get_status(&self, _uuid: &str) -> Option<String> { None }
@@ -210,7 +210,7 @@ mod tests {
         }
     }
 
-    /// 测试：确认成功时路由到 true 端口
+    /// 测试：确认Success时路由到 true 端口
     #[tokio::test]
     async fn test_amqp10_accept_success_routes_to_true() {
         let executor = Amqp10AcceptExecutor::new(Arc::new(MockAmqpProvider::new_success()));
@@ -223,11 +223,11 @@ mod tests {
         assert_eq!(data.unwrap()["success"], true);
     }
 
-    /// 测试：确认失败时路由到 false 端口
+    /// 测试：确认Failed时路由到 false 端口
     #[tokio::test]
     async fn test_amqp10_accept_failure_routes_to_false() {
         let executor = Amqp10AcceptExecutor::new(Arc::new(MockAmqpProvider::new_failure("Session closed")));
-        let node = create_test_node("test-2", "失败测试", "conn-1", 42);
+        let node = create_test_node("test-2", "Failed测试", "conn-1", 42);
         let mut context = create_context("test-flow");
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok());
@@ -236,12 +236,12 @@ mod tests {
         assert_eq!(data.unwrap()["error"], "Session closed");
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_amqp10_accept_wrong_node_data_type() {
         let executor = Amqp10AcceptExecutor::new(Arc::new(MockAmqpProvider::new_success()));
         let node = Node {
-            uuid: "test-wrong".to_string(), node_type: "http".to_string(), name: "错误类型".to_string(),
+            uuid: "test-wrong".to_string(), node_type: "http".to_string(), name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 }, data: NodeData::Entry(EntryConfig::default()),
             ports: None, has_breakpoint: None, on_error: None,
         };
@@ -261,7 +261,7 @@ mod tests {
         assert!(result.is_ok());
         let (next_nodes, data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false"]);
-        assert_eq!(data.unwrap()["error"], "确认失败");
+        assert_eq!(data.unwrap()["error"], "确认Failed");
     }
 
     /// 测试：输出数据包含 delivery_id

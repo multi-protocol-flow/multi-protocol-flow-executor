@@ -84,7 +84,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -110,7 +110,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                     data.len()
                 );
 
-                // 5. 构建成功输出
+                // 5. 构建Success输出
                 let total_ms = start_time.elapsed().as_millis() as u64;
                 let received_output = build_binary_output(&data);
 
@@ -141,7 +141,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -176,7 +176,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                         message: error_msg.clone(),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -218,7 +218,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                         message: format!("UDP receive failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -338,7 +338,7 @@ mod tests {
             _receive_timeout_ms: u64,
         ) -> Result<Option<(Vec<u8>, String, u16)>, String> {
             self.recv_count.fetch_add(1, AtomicOrdering::SeqCst);
-            self.recv_result.lock().expect("锁不应失败").clone()
+            self.recv_result.lock().expect("锁不应Failed").clone()
         }
 
         async fn close(&self, _uuid: &str) -> Result<(), String> {
@@ -354,7 +354,7 @@ mod tests {
     // 辅助函数
     // ========================================================================
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(
         uuid: &str,
         name: &str,
@@ -391,7 +391,7 @@ mod tests {
     }
 
     // ========================================================================
-    // 测试：接收成功
+    // 测试：接收Success
     // ========================================================================
 
     #[tokio::test]
@@ -411,7 +411,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
@@ -450,7 +450,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
@@ -459,7 +459,7 @@ mod tests {
     }
 
     // ========================================================================
-    // 测试：接收失败
+    // 测试：接收Failed
     // ========================================================================
 
     #[tokio::test]
@@ -467,7 +467,7 @@ mod tests {
         let mock = Arc::new(MockUdpProvider::new_recv_error("UDP Socket 'conn-err' 不存在"));
         let executor = UdpRecvFromExecutor::new(mock.clone());
 
-        let node = create_test_node("node-3", "失败测试", "conn-err", 5000);
+        let node = create_test_node("node-3", "Failed测试", "conn-err", 5000);
         let mut context = create_context_with_udp("flow-3", mock.clone());
 
         let result = executor
@@ -475,7 +475,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
@@ -521,7 +521,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_id"], "udp-connection-789");
@@ -555,12 +555,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.expect("执行应成功");
+        let (next_nodes, _) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 
     // ========================================================================
-    // 测试：错误节点数据类型
+    // 测试：Error节点数据类型
     // ========================================================================
 
     #[tokio::test]
@@ -571,7 +571,7 @@ mod tests {
         let node = Node {
             uuid: "node-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

@@ -259,11 +259,11 @@ impl NodeExecutor for AssertionNodeExecutor {
             },
         );
 
-        // 7. 处理失败行为
+        // 7. 处理Failed行为
         if !passed {
             match assertion_config.on_failure {
                 OnFailureMode::Throw => {
-                    // 抛出错误
+                    // 抛出Error
                     let error_msg = self.build_failure_message(&assertion_output);
                     log::error!(
                         "[Flow {}] [Error] NodeUUID: {}, NodeName: {}, Assertion failed: {}",
@@ -368,7 +368,7 @@ impl AssertionNodeExecutor {
             .collect()
     }
 
-    /// 构建失败消息
+    /// 构建Failed消息
     fn build_failure_message(&self, output: &AssertionOutput) -> String {
         if output.failed_assertions.is_empty() {
             return format!(
@@ -561,7 +561,7 @@ mod tests {
             node_reports: Vec::new(),
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -654,7 +654,7 @@ mod tests {
         assert!(output.is_some());
 
         let output: AssertionOutput =
-            serde_json::from_value(output.unwrap()).expect("输出反序列化失败");
+            serde_json::from_value(output.unwrap()).expect("输出反序列化Failed");
         assert!(output.passed);
         assert_eq!(output.passed_count, 1);
         assert_eq!(output.failed_count, 0);
@@ -691,7 +691,7 @@ mod tests {
         assert!(next_nodes.is_empty()); // 没有连接，走 false 端口
 
         let output: AssertionOutput =
-            serde_json::from_value(output.unwrap()).expect("输出反序列化失败");
+            serde_json::from_value(output.unwrap()).expect("输出反序列化Failed");
         assert!(!output.passed);
         assert_eq!(output.passed_count, 0);
         assert_eq!(output.failed_count, 1);
@@ -719,7 +719,7 @@ mod tests {
 
         assert!(result.is_ok());
         let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化失败");
+            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
         assert!(output.passed);
         assert_eq!(output.total, 0);
     }
@@ -749,7 +749,7 @@ mod tests {
 
         assert!(result.is_ok());
         let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化失败");
+            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
         assert!(output.passed);
         assert_eq!(output.total, 0);
     }
@@ -875,8 +875,8 @@ mod tests {
 
         assert!(result.is_ok());
         let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化失败");
-        assert!(!output.passed); // all 模式，有一个失败则失败
+            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
+        assert!(!output.passed); // all 模式，有一个Failed则Failed
         assert_eq!(output.passed_count, 1);
         assert_eq!(output.failed_count, 1);
     }
@@ -887,8 +887,8 @@ mod tests {
         context.last_node_output = Some(json!({"status": 200, "count": 3}));
 
         let assertions = vec![
-            create_assertion("a1", "$.status", AssertionOperator::Eq, json!(999)), // 失败
-            create_assertion("a2", "$.count", AssertionOperator::Gt, json!(5)),    // 失败
+            create_assertion("a1", "$.status", AssertionOperator::Eq, json!(999)), // Failed
+            create_assertion("a2", "$.count", AssertionOperator::Gt, json!(5)),    // Failed
             create_assertion("a3", "$.status", AssertionOperator::Eq, json!(200)), // 通过
         ];
         let config = AssertionConfig {
@@ -908,7 +908,7 @@ mod tests {
 
         assert!(result.is_ok());
         let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化失败");
+            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
         assert!(output.passed); // any 模式，有一个通过则通过
         assert!(output.passed_count > 0);
     }
@@ -974,7 +974,7 @@ mod tests {
 
         assert!(result.is_ok());
         let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化失败");
+            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
         assert!(output.passed);
     }
 
@@ -988,7 +988,7 @@ mod tests {
         context.last_node_output = Some(json!({"status": 404, "count": 10}));
 
         let assertions = vec![
-            create_assertion("a1", "$.status", AssertionOperator::Eq, json!(200)), // 失败
+            create_assertion("a1", "$.status", AssertionOperator::Eq, json!(200)), // Failed
             create_assertion("a2", "$.count", AssertionOperator::Gt, json!(5)),    // 通过
         ];
         let config = AssertionConfig {
@@ -1008,7 +1008,7 @@ mod tests {
 
         assert!(result.is_ok());
         let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化失败");
+            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
         // 两个断言都执行了
         assert_eq!(output.total, 2);
         assert_eq!(output.passed_count, 1);
@@ -1034,7 +1034,7 @@ mod tests {
             node_reports: Vec::new(),
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -1172,7 +1172,7 @@ mod tests {
         // 验证收到两个事件：AssertionStarted 和 AssertionCompleted
         assert_eq!(events.len(), 2);
 
-        // 验证 AssertionCompleted 事件（失败）
+        // 验证 AssertionCompleted 事件（Failed）
         if let DebugEvent::AssertionCompleted {
             node_uuid,
             passed,
@@ -1257,7 +1257,7 @@ mod tests {
         context.last_node_output = Some(json!({"status": 200}));
 
         let assertions = vec![
-            create_assertion("a1", "$.status", AssertionOperator::Eq, json!(404)), // 失败
+            create_assertion("a1", "$.status", AssertionOperator::Eq, json!(404)), // Failed
             create_assertion("a2", "$.status", AssertionOperator::Eq, json!(200)), // 通过
         ];
         let config = AssertionConfig {
@@ -1325,7 +1325,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 执行应该成功，即使没有调试事件发送器
+        // 执行应该Success，即使没有调试事件发送器
         assert!(result.is_ok());
     }
 }

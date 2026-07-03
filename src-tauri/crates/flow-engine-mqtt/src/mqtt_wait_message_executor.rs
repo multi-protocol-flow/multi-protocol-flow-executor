@@ -64,7 +64,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
 
         // 3. 日志：开始等待
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: mqtt_wait_message, topic: {}, connection_id: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mqtt_wait_message, topic: {}, connection_id: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -76,7 +76,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "MQTT 等待消息节点 {} 开始执行: topic={}",
+                    "MQTT 等待消息节点 {} start execution: topic={}",
                     node.name, topic
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -138,18 +138,18 @@ impl NodeExecutor for MqttWaitMessageExecutor {
 
                 if output.success && matched_count > 0 {
                     log::info!(
-                        "[MQTT] 等待消息成功: topic={}, 匹配 {} 条消息, 耗时={}ms",
+                        "[MQTT] 等待消息Success: topic={}, 匹配 {} 条消息, 耗时={}ms",
                         wait_config.topic,
                         matched_count,
                         duration.as_millis()
                     );
 
-                    // 7. 日志：等待成功
+                    // 7. 日志：等待Success
                     context
                         .emit_log(LogEvent {
                             level: LogLevel::Info,
                             message: format!(
-                                "MQTT 等待消息成功: topic={}, 匹配 {} 条消息 ({}ms)",
+                                "MQTT 等待消息Success: topic={}, 匹配 {} 条消息 ({}ms)",
                                 wait_config.topic,
                                 matched_count,
                                 duration.as_millis()
@@ -184,7 +184,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
 
                     Ok((next_node_ids, Some(output_data)))
                 } else {
-                    // 成功但无匹配消息（超时）→ 走 false 端口
+                    // Success但无匹配消息（超时）→ 走 false 端口
                     log::warn!(
                         "[MQTT] Wait message timed out or no match: topic={}, 匹配 {} 条消息, 耗时={}ms",
                         wait_config.topic,
@@ -267,7 +267,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                     })
                     .await;
 
-                // 构建错误输出
+                // 构建Error输出
                 let error_output = json!({
                     "success": false,
                     "messages": [],
@@ -292,7 +292,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
-                // 失败时走 false 端口
+                // Failed时走 false 端口
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -331,7 +331,7 @@ mod tests {
     // 辅助工具
     // ---------------------------------------------------------------------------
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, topic: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -351,7 +351,7 @@ mod tests {
         }
     }
 
-    /// 创建带匹配条件的测试节点
+    /// 创建带匹配条件的Test Node
     fn create_test_node_with_condition(
         uuid: &str,
         name: &str,
@@ -560,7 +560,7 @@ mod tests {
     // 测试用例
     // ---------------------------------------------------------------------------
 
-    /// 测试：等待消息成功，匹配到消息时路由到 true 端口
+    /// 测试：等待消息Success，匹配到消息时路由到 true 端口
     #[tokio::test]
     async fn test_wait_message_success_routes_to_true() {
         let messages = vec![MqttReceivedMessage {
@@ -627,12 +627,12 @@ mod tests {
         assert_eq!(data["messages"].as_array().map(|a| a.len()), Some(0));
     }
 
-    /// 测试：provider 返回错误时路由到 false 端口
+    /// 测试：provider 返回Error时路由到 false 端口
     #[tokio::test]
     async fn test_wait_message_error_routes_to_false() {
         let provider = Arc::new(MockMqttProvider::new_error("连接 'conn-missing' 不存在"));
         let executor = MqttWaitMessageExecutor::new(provider);
-        let node = create_test_node("wait-3", "错误测试", "test/topic", "conn-missing");
+        let node = create_test_node("wait-3", "Error测试", "test/topic", "conn-missing");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -649,7 +649,7 @@ mod tests {
         assert_eq!(data["matched_count"], 0);
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_wait_message_wrong_node_data_type() {
         let provider = Arc::new(MockMqttProvider::new_success(vec![]));
@@ -658,7 +658,7 @@ mod tests {
         let node = Node {
             uuid: "wrong-type".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

@@ -201,7 +201,7 @@ mod tests {
 
         let response = HttpResponse::from_stream(&mut stream, &mut timing)
             .await
-            .expect("解析失败");
+            .expect("解析Failed");
 
         assert_eq!(response.status, 200);
         assert_eq!(response.status_text, "OK");
@@ -225,7 +225,7 @@ mod tests {
 
         let response = HttpResponse::from_stream(&mut stream, &mut timing)
             .await
-            .expect("解析失败");
+            .expect("解析Failed");
 
         assert_eq!(response.status, 201);
         assert_eq!(response.status_text, "Created");
@@ -248,7 +248,7 @@ mod tests {
 
         let response = HttpResponse::from_stream(&mut stream, &mut timing)
             .await
-            .expect("解析失败");
+            .expect("解析Failed");
 
         assert_eq!(response.status, 404);
         assert_eq!(response.status_text, "Not Found");
@@ -263,7 +263,7 @@ mod tests {
 
         let response = HttpResponse::from_stream(&mut stream, &mut timing)
             .await
-            .expect("解析失败");
+            .expect("解析Failed");
 
         assert_eq!(response.status, 200);
         assert_eq!(response.body_text().unwrap(), "Chunked content");
@@ -293,7 +293,7 @@ mod tests {
             body: br#"{"key":"value"}"#.to_vec(),
         };
 
-        let json = response.body_json().expect("JSON 解析失败");
+        let json = response.body_json().expect("JSON 解析Failed");
         assert_eq!(json["key"], "value");
     }
 }

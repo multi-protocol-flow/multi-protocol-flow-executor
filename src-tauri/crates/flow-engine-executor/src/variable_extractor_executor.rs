@@ -79,12 +79,12 @@ mod tests {
     use flow_engine_core::node_config::VariableExtractorConfig;
     use flow_engine_core::variable::OutputMapping;
 
-    /// 辅助函数：创建测试节点
+    /// 辅助函数：创建Test Node
     fn make_node(config: VariableExtractorConfig) -> Node {
         Node {
             uuid: "ve-node-1".to_string(),
             node_type: "variable_extractor".to_string(),
-            name: "变量提取".to_string(),
+            name: "Variable Extraction".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::VariableExtractor(config),
             ports: None,
@@ -126,7 +126,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        assert!(result.is_ok(), "执行不应失败");
+        assert!(result.is_ok(), "执行不应Failed");
         let (next_ids, output) = result.unwrap();
         assert!(next_ids.is_empty(), "无连接时 next_ids 为空");
         let output = output.expect("应有输出数据");
@@ -151,7 +151,7 @@ mod tests {
         assert_eq!(token_var.unwrap().value, serde_json::json!("abc"));
     }
 
-    /// 测试：无上游输出且未指定 source_node_id → 返回错误
+    /// 测试：无上游输出且未指定 source_node_id → 返回Error
     #[tokio::test]
     async fn test_variable_extractor_no_upstream_output() {
         let config = VariableExtractorConfig {
@@ -175,12 +175,12 @@ mod tests {
         let err = result.unwrap_err();
         assert!(
             err.message.contains("没有上游节点输出可提取"),
-            "错误信息应提示无上游输出: {}",
+            "Error信息应提示无上游输出: {}",
             err
         );
     }
 
-    /// 测试：指定不存在的 source_node_id → 返回错误
+    /// 测试：指定不存在的 source_node_id → 返回Error
     #[tokio::test]
     async fn test_variable_extractor_source_node_not_found() {
         let config = VariableExtractorConfig {
@@ -204,7 +204,7 @@ mod tests {
         let err = result.unwrap_err();
         assert!(
             err.message.contains("未找到节点 nonexistent 的执行结果"),
-            "错误信息应提示节点未找到: {}",
+            "Error信息应提示节点未找到: {}",
             err
         );
     }
@@ -252,7 +252,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        assert!(result.is_ok(), "执行不应失败");
+        assert!(result.is_ok(), "执行不应Failed");
 
         // 验证变量从指定节点提取
         let token_var = context

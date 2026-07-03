@@ -73,7 +73,7 @@ impl NodeExecutor for TcpCloseExecutor {
                 message: format!("TCP Close node {} started execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -116,7 +116,7 @@ impl NodeExecutor for TcpCloseExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -124,7 +124,7 @@ impl NodeExecutor for TcpCloseExecutor {
                     })
                     .await;
 
-                // 7. 成功时走 true 端口
+                // 7. Success时走 true 端口
                 let next_node_ids: Vec<String> = connections
                     .iter()
                     .filter(|conn| {
@@ -142,14 +142,14 @@ impl NodeExecutor for TcpCloseExecutor {
                     e
                 );
 
-                // 日志：关闭失败
+                // 日志：关闭Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("TCP connection close failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -157,7 +157,7 @@ impl NodeExecutor for TcpCloseExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let duration = start_time.elapsed();
                 let error_output = json!({
                     "success": false,
@@ -178,7 +178,7 @@ impl NodeExecutor for TcpCloseExecutor {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
-                // 关闭失败走 false 端口
+                // 关闭Failed走 false 端口
                 let next_node_ids: Vec<String> = connections
                     .iter()
                     .filter(|conn| {
@@ -273,7 +273,7 @@ mod tests {
     // 辅助函数
     // -----------------------------------------------------------------------
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -379,7 +379,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

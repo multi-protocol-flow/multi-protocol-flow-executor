@@ -335,7 +335,7 @@ impl ScriptExecutionContext {
     /// - `fn.console.log(message)` - 普通日志
     /// - `fn.console.info(message)` - 信息日志
     /// - `fn.console.warn(message)` - 警告日志
-    /// - `fn.console.error(message)` - 错误日志
+    /// - `fn.console.error(message)` - Error日志
     /// - `fn.console.debug(message)` - 调试日志
     /// - `fn.console.table(data)` - 表格数据
     pub fn register_console_api(&self, ctx: &Ctx) -> Result<(), rquickjs::Error> {
@@ -921,7 +921,7 @@ impl ScriptExecutionContext {
                         return dt.timestamp_millis().to_string();
                     }
                 }
-                // 解析失败返回空字符串
+                // 解析Failed返回空字符串
                 "".to_string()
             }),
         )?;
@@ -2862,7 +2862,7 @@ mod tests {
         ctx.with(|ctx| {
             script_ctx.register_expect_api(&ctx).unwrap();
 
-            // 测试失败的断言
+            // 测试Failed的断言
             let _: () = ctx.eval("fn.expect(5).to.equal(10)").catch(&ctx).unwrap();
 
             let results = script_ctx.get_test_results(&ctx).unwrap();

@@ -18,7 +18,7 @@ pub mod debug_types;
 pub mod email_types;
 /// `OAuth2` + SASL 认证工具模块（服务商预设配置、SASL 字符串构建）
 pub mod email_auth;
-/// 错误类型定义，区分致命错误和可恢复错误
+/// Error类型定义，区分致命Error和可恢复Error
 pub mod error;
 /// 正常执行模式的事件类型，用于实时推送节点和流程完成状态到前端
 pub mod execution_event;

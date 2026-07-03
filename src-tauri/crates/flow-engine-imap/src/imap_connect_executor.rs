@@ -206,7 +206,7 @@ impl NodeExecutor for ImapConnectExecutor {
                     })
                     .await;
 
-                // 10. 路由：成功走 true 端口，失败走 false 端口
+                // 10. 路由：Success走 true 端口，Failed走 false 端口
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = Self::resolve_next_nodes(&node.uuid, port, connections);
 
@@ -247,7 +247,7 @@ impl NodeExecutor for ImapConnectExecutor {
                     "error": e,
                 });
 
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
                     return Err(ErrorDetail::execution_error(format!("IMAP connect failed: {}", e)));
                 }
@@ -269,7 +269,7 @@ mod tests {
     use flow_engine_core::node_config::ImapConnectConfig;
     use flow_engine_core::traits::ImapConnectOutput;
 
-    /// 模拟 IMAP Provider（连接成功）
+    /// 模拟 IMAP Provider（连接Success）
     struct MockImapProvider {
         output: ImapConnectOutput,
     }
@@ -393,7 +393,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, host: &str, port: u16) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -436,7 +436,7 @@ mod tests {
         }
     }
 
-    /// 测试：连接成功时路由到 true 端口
+    /// 测试：连接Success时路由到 true 端口
     #[tokio::test]
     async fn test_connect_success_routes_to_true() {
         let imap_manager = Arc::new(MockImapProvider::new_success());
@@ -459,7 +459,7 @@ mod tests {
         assert!(data["timing"]["connect_ms"].is_number());
     }
 
-    /// 测试：连接失败时路由到 false 端口
+    /// 测试：connection failed时路由到 false 端口
     #[tokio::test]
     async fn test_connect_failure_routes_to_false() {
         let imap_manager = Arc::new(MockImapProvider::new_failure("Connection refused"));
@@ -479,7 +479,7 @@ mod tests {
         assert_eq!(data["error"], "Connection refused");
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_connect_wrong_node_data_type() {
         let imap_manager = Arc::new(MockImapProvider::new_success());

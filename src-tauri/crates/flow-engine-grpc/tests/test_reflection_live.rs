@@ -39,15 +39,15 @@ async fn test_reflection_grpcb_in_plaintext() {
             }
         }
         Err(e) => {
-            println!("❌ 失败: {}", e);
+            println!("❌ Failed: {}", e);
         }
     }
 
-    assert!(result.is_ok(), "Reflection 应该成功");
+    assert!(result.is_ok(), "Reflection 应该Success");
     assert!(!result.unwrap().is_empty(), "应该发现至少一个服务");
 }
 
-/// 直接使用 tonic 底层 API 测试，诊断反射失败的确切原因
+/// 直接使用 tonic 底层 API 测试，诊断反射Failed的确切原因
 #[tokio::test]
 #[ignore]
 async fn test_raw_tonic_reflection_grpcb_in() {
@@ -61,7 +61,7 @@ async fn test_raw_tonic_reflection_grpcb_in() {
     // 步骤 1: 建立 TCP + HTTP/2 连接
     println!("[1] 创建 endpoint...");
     let endpoint = tonic::transport::Endpoint::from_shared("http://grpcb.in:9000".to_string())
-        .expect("创建端点失败")
+        .expect("创建端点Failed")
         .connect_timeout(std::time::Duration::from_secs(10))
         .timeout(std::time::Duration::from_secs(30))
         .http2_keep_alive_interval(std::time::Duration::from_secs(5))
@@ -71,9 +71,9 @@ async fn test_raw_tonic_reflection_grpcb_in() {
     let channel = tokio::time::timeout(std::time::Duration::from_secs(15), endpoint.connect())
         .await
         .expect("TCP 连接超时")
-        .expect("TCP 连接失败");
+        .expect("TCP connection failed");
 
-    println!("[3] TCP 连接成功! 创建反射客户端...");
+    println!("[3] TCP 连接Success! 创建反射客户端...");
 
     // 步骤 2: 创建反射客户端
     let mut client = ServerReflectionClient::new(channel);
@@ -89,7 +89,7 @@ async fn test_raw_tonic_reflection_grpcb_in() {
 
     match response {
         Ok(Ok(response)) => {
-            println!("[5] 双向流建立成功!");
+            println!("[5] 双向流建立Success!");
             let mut stream = response.into_inner();
 
             // 步骤 3: 发送 ListServices
@@ -101,7 +101,7 @@ async fn test_raw_tonic_reflection_grpcb_in() {
                 )),
             })
             .await
-            .expect("发送失败");
+            .expect("发送Failed");
 
             println!("[7] 等待响应...");
             let list_resp =
@@ -116,7 +116,7 @@ async fn test_raw_tonic_reflection_grpcb_in() {
                 }
                 Ok(Err(e)) => {
                     println!(
-                        "[8] 读取响应错误: {} (code={:?}, message={})",
+                        "[8] 读取响应Error: {} (code={:?}, message={})",
                         e,
                         e.code(),
                         e.message()
@@ -129,7 +129,7 @@ async fn test_raw_tonic_reflection_grpcb_in() {
         }
         Ok(Err(e)) => {
             println!(
-                "[5] 双向流建立失败: {} (code={:?}, message={})",
+                "[5] 双向流建立Failed: {} (code={:?}, message={})",
                 e,
                 e.code(),
                 e.message()
@@ -154,7 +154,7 @@ async fn test_lazy_connect_reflection() {
     println!("=== 测试 connect_lazy + 反射 ===");
 
     let channel = tonic::transport::Endpoint::from_shared("http://grpcb.in:9000".to_string())
-        .expect("创建端点失败")
+        .expect("创建端点Failed")
         .connect_timeout(std::time::Duration::from_secs(10))
         .timeout(std::time::Duration::from_secs(30))
         .connect_lazy();
@@ -173,7 +173,7 @@ async fn test_lazy_connect_reflection() {
         )),
     })
     .await
-    .expect("发送失败");
+    .expect("发送Failed");
 
     println!("[2] 已发送 ListServices 请求到通道");
 
@@ -185,7 +185,7 @@ async fn test_lazy_connect_reflection() {
 
     match response {
         Ok(Ok(response)) => {
-            println!("[3] 双向流建立成功!");
+            println!("[3] 双向流建立Success!");
             let mut stream = response.into_inner();
 
             let list_resp =
@@ -196,12 +196,12 @@ async fn test_lazy_connect_reflection() {
                     println!("[4] 收到响应: {:?}", resp.message_response);
                 }
                 Ok(Ok(None)) => println!("[4] 流关闭 (None)"),
-                Ok(Err(e)) => println!("[4] 错误: {} (code={:?})", e, e.code()),
+                Ok(Err(e)) => println!("[4] Error: {} (code={:?})", e, e.code()),
                 Err(_) => println!("[4] 超时"),
             }
         }
         Ok(Err(e)) => {
-            println!("[3] 失败: {} (code={:?})", e, e.code());
+            println!("[3] Failed: {} (code={:?})", e, e.code());
         }
         Err(_) => {
             println!("[3] 超时 (30s)");

@@ -65,9 +65,9 @@ pub struct StressTestProgress {
     pub elapsed_seconds: u64,
     /// 总迭代次数
     pub total_iterations: u64,
-    /// 成功迭代次数
+    /// Success迭代次数
     pub successful_iterations: u64,
-    /// 失败迭代次数
+    /// Failed迭代次数
     pub failed_iterations: u64,
     /// 当前 RPS（每秒请求数）
     pub current_rps: f64,
@@ -84,11 +84,11 @@ pub struct StressTestProgress {
 pub struct StressTestStatistics {
     /// 总迭代次数
     pub total_iterations: u64,
-    /// 成功次数
+    /// Success次数
     pub successful: u64,
-    /// 失败次数
+    /// Failed次数
     pub failed: u64,
-    /// 成功率 (0.0 - 1.0)
+    /// Success率 (0.0 - 1.0)
     pub success_rate: f64,
     /// RPS（每秒请求数）
     pub rps: f64,
@@ -114,7 +114,7 @@ pub struct ResponseTimeDistribution {
     pub p99_ms: u64,
 }
 
-/// 错误样本
+/// Error样本
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorSample {
@@ -124,21 +124,21 @@ pub struct ErrorSample {
     pub node_uuid: String,
     /// 节点名称
     pub node_name: String,
-    /// 错误消息
+    /// Error消息
     pub error_message: String,
 }
 
-/// 错误统计
+/// Error统计
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorStatistics {
-    /// 错误类型
+    /// Error类型
     #[serde(default)]
     pub error_kind: String,
     /// 出现次数
     #[serde(default)]
     pub count: u64,
-    /// 错误样本（最多保留若干条）
+    /// Error样本（最多保留若干条）
     #[serde(default)]
     pub samples: Vec<ErrorSample>,
 }
@@ -159,13 +159,13 @@ pub struct NodeMetrics {
     /// 总执行次数
     #[serde(default)]
     pub total_executions: u64,
-    /// 成功执行次数
+    /// Success执行次数
     #[serde(default)]
     pub successful_executions: u64,
-    /// 失败执行次数
+    /// Failed执行次数
     #[serde(default)]
     pub failed_executions: u64,
-    /// 成功率 (0.0 - 1.0)
+    /// Success率 (0.0 - 1.0)
     #[serde(default)]
     pub success_rate: f64,
     /// 平均延迟（毫秒）
@@ -207,19 +207,19 @@ pub struct NodeLevelStatistics {
     /// 总执行次数
     #[serde(default)]
     pub total_executions: u64,
-    /// 成功执行次数
+    /// Success执行次数
     #[serde(default)]
     pub successful_executions: u64,
-    /// 失败执行次数
+    /// Failed执行次数
     #[serde(default)]
     pub failed_executions: u64,
-    /// 成功率 (0.0 - 1.0)
+    /// Success率 (0.0 - 1.0)
     #[serde(default)]
     pub success_rate: f64,
     /// 响应时间分布
     #[serde(default)]
     pub response_time_distribution: ResponseTimeDistribution,
-    /// 该节点的错误统计
+    /// 该节点的Error统计
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub error_statistics: Vec<ErrorStatistics>,
 }
@@ -237,13 +237,13 @@ pub struct NodeTypeStatistics {
     /// 总执行次数
     #[serde(default)]
     pub total_executions: u64,
-    /// 成功执行次数
+    /// Success执行次数
     #[serde(default)]
     pub successful_executions: u64,
-    /// 失败执行次数
+    /// Failed执行次数
     #[serde(default)]
     pub failed_executions: u64,
-    /// 成功率 (0.0 - 1.0)
+    /// Success率 (0.0 - 1.0)
     #[serde(default)]
     pub success_rate: f64,
     /// 响应时间分布（聚合后）
@@ -288,8 +288,8 @@ pub struct StressTestReport {
     #[serde(default)]
     pub response_time_distribution: ResponseTimeDistribution,
 
-    // ===== 错误统计 =====
-    /// 错误统计列表（按错误类型分组）
+    // ===== Error统计 =====
+    /// Error统计列表（按Error类型分组）
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub error_statistics: Vec<ErrorStatistics>,
 
@@ -374,7 +374,7 @@ mod tests {
             error_message: "Connection timeout".to_string(),
         };
 
-        let json = serde_json::to_string(&sample).expect("序列化失败");
+        let json = serde_json::to_string(&sample).expect("序列化Failed");
         assert!(json.contains("iteration"));
         assert!(json.contains("nodeUuid"));
         assert!(json.contains("nodeName"));
@@ -440,7 +440,7 @@ mod tests {
             flow_snapshot: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化失败");
+        let json = serde_json::to_string(&report).expect("序列化Failed");
         assert!(json.contains("report-001"));
         assert!(json.contains("flow-001"));
         assert!(json.contains("Test Flow"));
@@ -484,7 +484,7 @@ mod tests {
             flow_snapshot: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化失败");
+        let json = serde_json::to_string(&report).expect("序列化Failed");
         assert!(json.contains("errorStatistics"));
         assert!(json.contains("Timeout"));
         assert!(json.contains("errorKind"));
@@ -494,10 +494,10 @@ mod tests {
     #[test]
     fn test_stress_test_status_serialization() {
         let status = StressTestStatus::Running;
-        let json = serde_json::to_string(&status).expect("序列化失败");
+        let json = serde_json::to_string(&status).expect("序列化Failed");
         assert_eq!(json, "\"running\"");
 
-        let deserialized: StressTestStatus = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: StressTestStatus = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized, StressTestStatus::Running);
     }
 
@@ -533,13 +533,13 @@ mod tests {
             flow_snapshot: Some(flow.clone()),
         };
 
-        let json = serde_json::to_string(&report).expect("序列化失败");
+        let json = serde_json::to_string(&report).expect("序列化Failed");
         // rename_all = "camelCase" → flowSnapshot
         assert!(json.contains("flowSnapshot"));
         assert!(json.contains("flow-snap-001"));
 
         // 反序列化往返
-        let deserialized: StressTestReport = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: StressTestReport = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized.flow_snapshot, Some(flow));
     }
 
@@ -577,7 +577,7 @@ mod tests {
             }
         }"#;
 
-        let report: StressTestReport = serde_json::from_str(json).expect("反序列化失败");
+        let report: StressTestReport = serde_json::from_str(json).expect("反序列化Failed");
         assert_eq!(report.uuid, "report-bc-001");
         assert!(report.flow_snapshot.is_none());
     }
@@ -602,7 +602,7 @@ mod tests {
             flow_snapshot: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化失败");
+        let json = serde_json::to_string(&report).expect("序列化Failed");
         assert!(
             !json.contains("flowSnapshot"),
             "flow_snapshot 为 None 时不应出现在 JSON 中"

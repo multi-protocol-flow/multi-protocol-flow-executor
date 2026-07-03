@@ -64,23 +64,23 @@ impl NodeExecutor for KafkaConsumeExecutor {
         // 3. 变量替换: connection_id, topic, group_id
         let connection_id =
             replace_variables(&config.connection_id, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("connection_id 变量替换失败: {}", e))
+                ErrorDetail::execution_error(format!("connection_id variable substitution failed: {}", e))
             })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
-            ErrorDetail::execution_error(format!("主题变量替换失败: {}", e))
+            ErrorDetail::execution_error(format!("主题variable substitution failed: {}", e))
         })?;
 
         let group_id = match &config.group_id {
             Some(gid) => Some(replace_variables(gid, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("group_id 变量替换失败: {}", e))
+                ErrorDetail::execution_error(format!("group_id variable substitution failed: {}", e))
             })?),
             None => None,
         };
 
         // 4. 日志：开始消费
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: kafka_consume, 主题: {}, 连接ID: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: kafka_consume, Topic: {}, Connection ID: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -92,7 +92,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "Kafka 消费节点 {} 开始执行: topic={}",
+                    "Kafka 消费节点 {} start execution: topic={}",
                     node.name, topic
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -191,14 +191,14 @@ impl NodeExecutor for KafkaConsumeExecutor {
                 };
                 let log_msg = if output.success {
                     format!(
-                        "Kafka 消费成功: topic={}, 收到 {} 条消息 ({}ms)",
+                        "Kafka 消费Success: topic={}, 收到 {} 条消息 ({}ms)",
                         topic,
                         output.messages.len(),
                         duration.as_millis()
                     )
                 } else {
                     let err = output.error.as_deref().unwrap_or("Unknown error");
-                    format!("Kafka 消费失败: {} - {}", topic, err)
+                    format!("Kafka 消费Failed: {} - {}", topic, err)
                 };
 
                 context
@@ -224,7 +224,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("Kafka 消费失败")
+                        .unwrap_or("Kafka 消费Failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -236,7 +236,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
                 let duration = start_time.elapsed();
 
                 log::error!(
-                    "[Kafka] 消费失败: uuid={}, topic={}, error={}",
+                    "[Kafka] 消费Failed: uuid={}, topic={}, error={}",
                     node.uuid,
                     topic,
                     e
@@ -245,7 +245,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("Kafka 消费失败: {}", e),
+                        message: format!("Kafka 消费Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .map(|d| d.as_millis() as u64)
@@ -256,7 +256,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
                     })
                     .await;
 
-                // 构建错误输出
+                // 构建Error输出
                 let error_output = json!({
                     "success": false,
                     "messages": [],
@@ -324,7 +324,7 @@ mod tests {
     // 辅助工具
     // ---------------------------------------------------------------------------
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, topic: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -380,7 +380,7 @@ mod tests {
     // Mock KafkaProvider
     // ---------------------------------------------------------------------------
 
-    /// 模拟成功消费的 KafkaProvider
+    /// 模拟Success消费的 KafkaProvider
     struct MockKafkaProvider {
         consume_output: KafkaConsumeOutput,
     }
@@ -515,7 +515,7 @@ mod tests {
         assert!(data["error"].is_string());
     }
 
-    /// 测试：NodeData::KafkaConsume 提取成功（Mock）
+    /// 测试：NodeData::KafkaConsume 提取Success（Mock）
     #[tokio::test]
     async fn test_consume_node_data_extraction() {
         let provider = Arc::new(MockKafkaProvider::new_success(vec![]));
@@ -575,14 +575,14 @@ mod tests {
         assert_eq!(msgs[0]["key"], "key-1");
     }
 
-    /// 测试：消费失败时走 false 端口
+    /// 测试：消费Failed时走 false 端口
     #[tokio::test]
     async fn test_consume_failure_routes_to_false_port() {
         let provider = Arc::new(MockKafkaProvider::new_failure(
             "连接 'conn-missing' 不存在".to_string(),
         ));
         let executor = KafkaConsumeExecutor::new(provider);
-        let node = create_test_node("sub-fail", "失败消费", "test-topic", "conn-missing");
+        let node = create_test_node("sub-fail", "Failed消费", "test-topic", "conn-missing");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -597,7 +597,7 @@ mod tests {
         assert!(data["error"].is_string());
     }
 
-    /// 测试：错误的节点数据类型 → Err
+    /// 测试：Error的节点数据类型 → Err
     #[tokio::test]
     async fn test_wrong_node_data_type() {
         let provider = Arc::new(MockKafkaProvider::new_success(vec![]));
@@ -606,7 +606,7 @@ mod tests {
         let node = Node {
             uuid: "wrong-type".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

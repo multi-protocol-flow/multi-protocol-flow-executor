@@ -32,7 +32,7 @@ pub enum SseConnectionStatus {
     Connected,
     /// 已断开
     Disconnected,
-    /// 错误状态
+    /// Error状态
     Error(String),
 }
 
@@ -182,7 +182,7 @@ impl SseProvider for SseConnectionManager {
     ) -> Result<SseConnectOutput, String> {
         info!("SSE 开始连接: url={}, id={}", config.url, uuid);
 
-        // UUID 去重：如果已存在且已连接，直接返回成功
+        // UUID 去重：如果已存在且已连接，直接返回Success
         {
             let conns = self.connections.read().await;
             if let Some(existing) = conns.get(uuid) {
@@ -390,7 +390,7 @@ impl SseProvider for SseConnectionManager {
                 Ok(())
             }
             None => {
-                warn!("SSE 断开连接失败: 连接 '{}' 不存在", uuid);
+                warn!("SSE 断开connection failed: 连接 '{}' 不存在", uuid);
                 Err(format!("SSE 连接 '{}' 不存在", uuid))
             }
         }

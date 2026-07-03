@@ -77,7 +77,7 @@ pub struct DbConnection {
     /// 连接状态
     #[serde(default = "default_status")]
     pub status: DbConnectionStatus,
-    /// 最后错误信息
+    /// 最后Error信息
     pub last_error: Option<String>,
     /// 最后测试时间（时间戳）
     pub last_tested_at: Option<u64>,
@@ -113,7 +113,7 @@ pub enum DbConnectionStatus {
     /// 已断开，未建立连接
     #[default]
     Disconnected,
-    /// 连接错误，上次操作失败
+    /// 连接Error，上次操作Failed
     Error,
     /// 正在测试连接中
     Testing,
@@ -124,14 +124,14 @@ pub enum DbConnectionStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TestDbConnectionResult {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
-    /// 错误信息（如果失败）
+    /// Error信息（如果Failed）
     pub error: Option<String>,
 }
 
 impl TestDbConnectionResult {
-    /// 创建成功结果
+    /// 创建Success结果
     pub fn success() -> Self {
         Self {
             success: true,
@@ -139,7 +139,7 @@ impl TestDbConnectionResult {
         }
     }
 
-    /// 创建失败结果
+    /// 创建Failed结果
     pub fn failure(error: impl Into<String>) -> Self {
         Self {
             success: false,

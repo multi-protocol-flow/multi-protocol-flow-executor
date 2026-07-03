@@ -1,7 +1,7 @@
 // GraphQL 断开连接节点执行器
 //
 // 实现 GraphQL 连接断开功能。
-// 断开始终走 "out" 端口（失败不阻塞流程）。
+// 断开始终走 "out" 端口（Failed不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::error::ErrorDetail;
@@ -44,7 +44,7 @@ impl NodeExecutor for GraphqlDisconnectExecutor {
             NodeData::GraphqlDisconnect(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 GraphqlDisconnectConfig: {}",
+                    "Node data type is not GraphqlDisconnectConfig: {}",
                     node.uuid
                 )))
             }
@@ -52,9 +52,9 @@ impl NodeExecutor for GraphqlDisconnectExecutor {
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -65,7 +65,7 @@ impl NodeExecutor for GraphqlDisconnectExecutor {
 
         // 3. 日志：开始断开
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: graphql_disconnect, 连接ID: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql_disconnect, Connection ID: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -75,10 +75,10 @@ impl NodeExecutor for GraphqlDisconnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("GraphQL Disconnect 节点 {} 开始执行", node.name),
+                message: format!("GraphQL Disconnect 节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -119,7 +119,7 @@ impl NodeExecutor for GraphqlDisconnectExecutor {
         match disconnect_result {
             Ok(()) => {
                 log::info!(
-                    "[GraphQL] 连接断开成功: connection_id={}",
+                    "[GraphQL] 连接断开Success: connection_id={}",
                     connection_id
                 );
 
@@ -141,12 +141,12 @@ impl NodeExecutor for GraphqlDisconnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "GraphQL 连接断开成功 ({}ms)",
+                            "GraphQL 连接断开Success ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -158,19 +158,19 @@ impl NodeExecutor for GraphqlDisconnectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[GraphQL] 连接断开失败: connection_id={}, error={}",
+                    "[GraphQL] 连接断开Failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
 
-                // 日志：断开失败
+                // 日志：断开Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("GraphQL 连接断开失败: {}", e),
+                        message: format!("GraphQL 连接断开Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -178,7 +178,7 @@ impl NodeExecutor for GraphqlDisconnectExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据（仍然走 out 端口）
+                // 构建Error输出数据（仍然走 out 端口）
                 let error_output = json!({
                     "success": false,
                     "connection_id": connection_id,
@@ -206,7 +206,7 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::GraphqlDisconnectConfig;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -230,7 +230,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -257,7 +257,7 @@ mod tests {
         }
     }
 
-    /// 测试：断开不存在的连接，仍然路由到 "out" 端口（失败不阻塞流程）
+    /// 测试：断开不存在的连接，仍然路由到 "out" 端口（Failed不阻塞流程）
     #[tokio::test]
     async fn test_disconnect_nonexistent_connection_routes_to_out() {
         let graphql_manager = Arc::new(GraphqlConnectionManager::new());
@@ -269,7 +269,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 Ok，走 out 端口（断开失败不阻塞）
+        // 应该返回 Ok，走 out 端口（断开Failed不阻塞）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["out"]);
@@ -280,7 +280,7 @@ mod tests {
         assert!(data["error"].is_string());
     }
 
-    /// 测试：NodeData 类型不匹配时返回错误
+    /// 测试：NodeData 类型不匹配时返回Error
     #[tokio::test]
     async fn test_disconnect_wrong_node_data_type() {
         let graphql_manager = Arc::new(GraphqlConnectionManager::new());
@@ -289,7 +289,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -337,7 +337,7 @@ mod tests {
         assert_eq!(data["success"], false);
     }
 
-    /// 测试：共享模式下断开不存在的连接应成功（no-op）
+    /// 测试：共享模式下断开不存在的连接应Success（no-op）
     #[tokio::test]
     async fn test_disconnect_shared_mode_noop() {
         let graphql_manager = Arc::new(GraphqlConnectionManager::new_shared());

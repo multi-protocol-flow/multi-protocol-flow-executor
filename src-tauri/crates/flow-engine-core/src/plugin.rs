@@ -11,18 +11,18 @@ use crate::error::ErrorDetail;
 pub struct PortDef {
     /// 端口标识，如 "true"、"false"、"output"
     pub id: String,
-    /// 端口显示名称，如 "成功"、"失败"、"输出"
+    /// 端口显示名称，如 "Success"、"Failed"、"输出"
     pub label: String,
     /// 端口位置，如 "right"、"bottom"
     pub position: String,
 }
 
-/// 配置验证错误
+/// 配置验证Error
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ValidationError {
     /// 出错的字段名
     pub field: String,
-    /// 错误描述
+    /// Error描述
     pub message: String,
 }
 
@@ -99,7 +99,7 @@ pub trait NodePlugin: Send + Sync {
         false
     }
 
-    /// 是否支持 false 端口错误路由（默认 false）
+    /// 是否支持 false 端口Error路由（默认 false）
     #[deprecated(note = "Use Node.on_error instead")]
     fn supports_false_port(&self) -> bool {
         false
@@ -110,7 +110,7 @@ pub trait NodePlugin: Send + Sync {
         None
     }
 
-    /// 配置验证（默认无错误）
+    /// 配置验证（默认无Error）
     fn validate(&self, _config: &serde_json::Value) -> Vec<ValidationError> {
         Vec::new()
     }
@@ -130,8 +130,8 @@ pub trait NodePlugin: Send + Sync {
     /// - `node_map`: 节点 UUID 到节点的映射
     ///
     /// # 返回
-    /// - `Ok((next_node_ids, output_data))`: 执行成功
-    /// - `Err(error_detail)`: 执行失败，包含结构化错误信息
+    /// - `Ok((next_node_ids, output_data))`: 执行Success
+    /// - `Err(error_detail)`: 执行Failed，包含结构化Error信息
     async fn execute(
         &self,
         node: &crate::node::Node,
@@ -223,7 +223,7 @@ mod tests {
     fn test_port_def_serialization() {
         let port = PortDef {
             id: "true".to_string(),
-            label: "成功".to_string(),
+            label: "Success".to_string(),
             position: "right".to_string(),
         };
 
@@ -231,11 +231,11 @@ mod tests {
         assert!(json.contains("\"id\""));
         assert!(json.contains("\"true\""));
         assert!(json.contains("\"label\""));
-        assert!(json.contains("\"成功\""));
+        assert!(json.contains("\"Success\""));
 
         let deserialized: PortDef = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.id, "true");
-        assert_eq!(deserialized.label, "成功");
+        assert_eq!(deserialized.label, "Success");
         assert_eq!(deserialized.position, "right");
     }
 
@@ -265,12 +265,12 @@ mod tests {
             ports: vec![
                 PortDef {
                     id: "true".to_string(),
-                    label: "成功".to_string(),
+                    label: "Success".to_string(),
                     position: "right".to_string(),
                 },
                 PortDef {
                     id: "false".to_string(),
-                    label: "失败".to_string(),
+                    label: "Failed".to_string(),
                     position: "bottom".to_string(),
                 },
             ],

@@ -51,7 +51,7 @@ pub struct ExecutionContext {
     /// 执行历史记录（每个节点的详细执行报告）
     pub node_reports: Vec<NodeExecutionReport>,
 
-    /// 流程触发时间（用于记录触发和开始执行的时间差）
+    /// 流程触发时间（用于记录触发和start execution的时间差）
     pub flow_trigger_time: u64,
 
     /// 日志发送器（Tauri 模式有值，CLI 模式为 None）
@@ -422,7 +422,7 @@ impl ExecutionContext {
     ///
     /// # 说明
     ///
-    /// 此方法在 `ws_send_wait` 或 `ws_close` 节点开始执行时调用。
+    /// 此方法在 `ws_send_wait` 或 `ws_close` 节点start execution时调用。
     /// 如果连接 ID 不存在，则不做任何操作。
     pub async fn transfer_ws_ownership(
         &self,
@@ -448,8 +448,8 @@ impl ExecutionContext {
     ///
     /// # 返回
     ///
-    /// * `Ok(())` - 推送成功
-    /// * `Err(msg)` - 推送失败（连接不存在、连接已关闭或消息过大）
+    /// * `Ok(())` - 推送Success
+    /// * `Err(msg)` - 推送Failed（连接不存在、连接已关闭或消息过大）
     pub async fn push_ws_message(
         &self,
         connection_id: &str,
@@ -663,11 +663,11 @@ mod tests {
         let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
 
         // 序列化
-        let json = serde_json::to_string(&ctx).expect("序列化失败");
+        let json = serde_json::to_string(&ctx).expect("序列化Failed");
         assert!(json.contains("test-flow"));
 
         // 反序列化
-        let deserialized: ExecutionContext = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: ExecutionContext = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized.flow_uuid, ctx.flow_uuid);
         assert_eq!(deserialized.flow_trigger_time, ctx.flow_trigger_time);
     }
@@ -779,9 +779,9 @@ mod tests {
         let mut pool = VariablePool::new();
         pool.set_variable("key1".to_string(), json!("value1"), "node-1".to_string());
 
-        let json_str = serde_json::to_string(&pool).expect("序列化失败");
+        let json_str = serde_json::to_string(&pool).expect("序列化Failed");
         let deserialized: VariablePool =
-            serde_json::from_str(&json_str).expect("反序列化失败");
+            serde_json::from_str(&json_str).expect("反序列化Failed");
 
         assert_eq!(deserialized.variables.len(), 1);
         assert_eq!(deserialized.variables[0].name, "key1");
@@ -844,7 +844,7 @@ mod tests {
             "ws_connect".to_string(),
         ).await;
 
-        // 验证创建成功
+        // 验证创建Success
         let stream = ctx.get_ws_stream("conn-1").await;
         assert!(stream.is_some());
 
@@ -900,7 +900,7 @@ mod tests {
     async fn test_transfer_ws_ownership_nonexistent() {
         let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
 
-        // 对不存在的连接转移所有权应该静默失败（不做任何操作）
+        // 对不存在的连接转移所有权应该静默Failed（不做任何操作）
         ctx.transfer_ws_ownership(
             "nonexistent",
             "node-2".to_string(),
@@ -908,7 +908,7 @@ mod tests {
             "ws_send_wait".to_string(),
         ).await;
 
-        // 不应该有任何错误
+        // 不应该有任何Error
     }
 
     #[tokio::test]
@@ -983,10 +983,10 @@ mod tests {
     async fn test_close_ws_stream_nonexistent() {
         let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
 
-        // 对不存在的连接关闭应该静默失败（不做任何操作）
+        // 对不存在的连接关闭应该静默Failed（不做任何操作）
         ctx.close_ws_stream("nonexistent").await;
 
-        // 不应该有任何错误
+        // 不应该有任何Error
     }
 
     #[tokio::test]
@@ -1034,7 +1034,7 @@ mod tests {
 
         assert!(!ctx.is_cancelled(), "初始状态不应被取消");
 
-        tx.send(true).expect("发送取消信号失败");
+        tx.send(true).expect("发送取消信号Failed");
         assert!(ctx.is_cancelled(), "收到信号后应返回 true");
     }
 
@@ -1046,13 +1046,13 @@ mod tests {
             reason: "用户取消".to_string(),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("\"flowCancelled\""), "变体名应为 flowCancelled");
         assert!(json.contains("\"flowUuid\""), "字段名应为 flowUuid");
         assert!(json.contains("\"reason\""), "字段名应为 reason");
 
         // 反序列化往返测试
-        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
     }
 
@@ -1081,7 +1081,7 @@ mod tests {
         assert!(result.is_none(), "不存在的 key 应返回 None");
     }
 
-    /// 测试 get_provider 对错误类型返回 None
+    /// 测试 get_provider 对Error类型返回 None
     #[test]
     fn test_provider_get_wrong_type() {
         let value: Arc<String> = Arc::new("hello".to_string());
@@ -1089,7 +1089,7 @@ mod tests {
 
         ctx.set_provider("test", value as Arc<dyn Any + Send + Sync>);
 
-        // 尝试用错误的类型获取
+        // 尝试用Error的类型获取
         let result: Option<Arc<i32>> = ctx.get_provider("test");
         assert!(result.is_none(), "类型不匹配应返回 None");
     }
@@ -1104,13 +1104,13 @@ mod tests {
         ctx.set_provider("test", value as Arc<dyn Any + Send + Sync>);
 
         // 序列化
-        let json = serde_json::to_string(&ctx).expect("序列化失败");
+        let json = serde_json::to_string(&ctx).expect("序列化Failed");
 
         // providers 不应出现在 JSON 中
         assert!(!json.contains("providers"), "providers 不应出现在序列化结果中");
 
         // 反序列化后 providers 应为空
-        let deserialized: ExecutionContext = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: ExecutionContext = serde_json::from_str(&json).expect("反序列化Failed");
         assert!(
             deserialized.providers.is_empty(),
             "反序列化后 providers 应为空"

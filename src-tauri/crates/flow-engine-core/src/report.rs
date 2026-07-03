@@ -4,9 +4,9 @@
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ExecutionStatus {
-    /// 执行成功
+    /// 执行Success
     Success,
-    /// 执行失败
+    /// 执行Failed
     Failed,
     /// 跳过执行
     Skipped,
@@ -69,11 +69,11 @@ pub struct NodeExecutionReport {
     /// 输出数据（完整存储，不截断）
     pub output_data: Option<serde_json::Value>,
     /// 实际使用的输出端口 ID（仅已执行节点有值）
-    /// - Entry 节点：固定为 "out"
+    /// - Entry node：固定为 "out"
     /// - Http 节点：固定为 "out"
     /// - Conditional 节点：根据条件评估结果为 "true" 或 "false"
     pub used_port_id: Option<String>,
-    /// 错误详情
+    /// Error详情
     pub error: Option<crate::error::ErrorDetail>,
     /// 解析后的配置（变量解析后的实际值）
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -225,7 +225,7 @@ pub struct FlowExecutionReport {
     pub node_reports: Vec<NodeExecutionReport>,
     /// 流程统计信息
     pub statistics: crate::statistics::FlowStatistics,
-    /// 流程级错误详情（可选）
+    /// 流程级Error详情（可选）
     pub flow_error: Option<crate::error::ErrorDetail>,
     /// 执行模式（正常/调试）
     #[serde(default)]
@@ -275,7 +275,7 @@ mod tests {
             message_count: 5,
         };
 
-        let json = serde_json::to_string(&summary).expect("序列化失败");
+        let json = serde_json::to_string(&summary).expect("序列化Failed");
         assert!(json.contains("node-1"));
         assert!(json.contains("Connect Node"));
         assert!(json.contains("ws_connect"));
@@ -299,7 +299,7 @@ mod tests {
             }],
         };
 
-        let json = serde_json::to_string(&summary).expect("序列化失败");
+        let json = serde_json::to_string(&summary).expect("序列化Failed");
         assert!(json.contains("conn-1"));
         assert!(json.contains("wss://example.com/ws"));
         assert!(json.contains("total_received"));
@@ -454,7 +454,7 @@ mod tests {
             flow_warning: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化失败");
+        let json = serde_json::to_string(&report).expect("序列化Failed");
         // 空的 ws_streams 应该被跳过
         assert!(!json.contains("ws_streams"));
     }
@@ -489,7 +489,7 @@ mod tests {
             flow_warning: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化失败");
+        let json = serde_json::to_string(&report).expect("序列化Failed");
         // 非空的 ws_streams 应该被包含
         assert!(json.contains("ws_streams"));
         assert!(json.contains("conn-1"));
@@ -500,14 +500,14 @@ mod tests {
     #[test]
     fn test_execution_status_cancelled_serialization() {
         let status = ExecutionStatus::Cancelled;
-        let json = serde_json::to_string(&status).expect("序列化失败");
+        let json = serde_json::to_string(&status).expect("序列化Failed");
         assert!(
             json.contains("cancelled"),
             "Cancelled 应序列化为 'cancelled'"
         );
 
         // 反序列化往返测试
-        let deserialized: ExecutionStatus = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: ExecutionStatus = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(status, deserialized);
 
         // Display trait 测试
@@ -553,13 +553,13 @@ mod tests {
             flow_warning: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化失败");
+        let json = serde_json::to_string(&report).expect("序列化Failed");
         assert!(json.contains("flow_snapshot"));
         assert!(json.contains("flow-snap-001"));
         assert!(json.contains("Snapshot Flow"));
 
         // 反序列化往返
-        let deserialized: FlowExecutionReport = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: FlowExecutionReport = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized.flow_snapshot, Some(flow));
     }
 
@@ -591,7 +591,7 @@ mod tests {
             "skipped_nodes": []
         }"#;
 
-        let report: FlowExecutionReport = serde_json::from_str(json).expect("反序列化失败");
+        let report: FlowExecutionReport = serde_json::from_str(json).expect("反序列化Failed");
         assert_eq!(report.uuid, "report-bc-001");
         assert!(report.flow_snapshot.is_none());
     }
@@ -623,7 +623,7 @@ mod tests {
             flow_warning: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化失败");
+        let json = serde_json::to_string(&report).expect("序列化Failed");
         assert!(
             !json.contains("flow_snapshot"),
             "flow_snapshot 为 None 时不应出现在 JSON 中"

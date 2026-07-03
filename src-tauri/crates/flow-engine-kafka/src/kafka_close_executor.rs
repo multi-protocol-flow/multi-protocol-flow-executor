@@ -1,7 +1,7 @@
 // Kafka 关闭连接节点执行器
 //
 // 关闭指定的 Kafka 连接，释放连接池中的资源。
-// 关闭始终走 "out" 端口（失败不阻塞流程）。
+// 关闭始终走 "out" 端口（Failed不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::error::ErrorDetail;
@@ -54,7 +54,7 @@ impl NodeExecutor for KafkaCloseExecutor {
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
             let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -65,7 +65,7 @@ impl NodeExecutor for KafkaCloseExecutor {
 
         // 3. 日志：开始关闭
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: kafka_close, 连接ID: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: kafka_close, Connection ID: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -75,7 +75,7 @@ impl NodeExecutor for KafkaCloseExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("Kafka Close 节点 {} 开始执行", node.name),
+                message: format!("Kafka Close 节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .expect("System time error")
@@ -121,12 +121,12 @@ impl NodeExecutor for KafkaCloseExecutor {
             Ok(output) => {
                 if output.success {
                     log::info!(
-                        "[Kafka] 连接关闭成功: connection_id={}",
+                        "[Kafka] 连接关闭Success: connection_id={}",
                         connection_id
                     );
                 } else {
                     log::warn!(
-                        "[Kafka] 连接关闭失败: connection_id={}, error={:?}",
+                        "[Kafka] 连接关闭Failed: connection_id={}, error={:?}",
                         connection_id,
                         output.error
                     );
@@ -151,7 +151,7 @@ impl NodeExecutor for KafkaCloseExecutor {
                         level: log_level,
                         message: format!(
                             "Kafka 连接关闭{} ({}ms)",
-                            if output.success { "成功" } else { "失败" },
+                            if output.success { "Success" } else { "Failed" },
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
@@ -188,7 +188,7 @@ impl NodeExecutor for KafkaCloseExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据（仍然走 out 端口）
+                // 构建Error输出数据（仍然走 out 端口）
                 let error_output = json!({
                     "success": false,
                     "error": e,
@@ -207,7 +207,7 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -247,7 +247,7 @@ mod tests {
         }
     }
 
-    /// 测试：关闭不存在的连接，仍然路由到 "out" 端口（失败不阻塞流程）
+    /// 测试：关闭不存在的连接，仍然路由到 "out" 端口（Failed不阻塞流程）
     #[tokio::test]
     async fn test_close_nonexistent_connection_routes_to_out() {
         let kafka_manager = Arc::new(KafkaConnectionManager::new());
@@ -259,7 +259,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 Ok，走 out 端口（关闭失败不阻塞）
+        // 应该返回 Ok，走 out 端口（关闭Failed不阻塞）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["out"]);
@@ -269,7 +269,7 @@ mod tests {
         assert!(data["error"].is_string());
     }
 
-    /// 测试：NodeData 类型不匹配时返回错误
+    /// 测试：NodeData 类型不匹配时返回Error
     #[tokio::test]
     async fn test_close_wrong_node_data_type() {
         let kafka_manager = Arc::new(KafkaConnectionManager::new());
@@ -278,7 +278,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

@@ -63,12 +63,12 @@ impl NodePlugin for AmqpConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "连接成功".into(),
+                label: "Connect Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "连接失败".into(),
+                label: "connection failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -265,12 +265,12 @@ impl NodePlugin for AmqpExchangeDeclarePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -383,12 +383,12 @@ impl NodePlugin for AmqpExchangeDeletePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -497,12 +497,12 @@ impl NodePlugin for AmqpQueueDeclarePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -608,12 +608,12 @@ impl NodePlugin for AmqpQueueDeletePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -722,12 +722,12 @@ impl NodePlugin for AmqpQueueBindPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -846,12 +846,12 @@ impl NodePlugin for AmqpPublishPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -960,12 +960,12 @@ impl NodePlugin for AmqpConsumePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -1079,12 +1079,12 @@ impl NodePlugin for AmqpGetPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -1194,12 +1194,12 @@ impl NodePlugin for AmqpAckPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -1306,12 +1306,12 @@ impl NodePlugin for AmqpManagementPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -1403,8 +1403,8 @@ impl NodePlugin for Amqp10ConnectPlugin {
 
     fn ports(&self) -> Vec<PortDef> {
         vec![
-            PortDef { id: "true".into(), label: "连接成功".into(), position: "right".into() },
-            PortDef { id: "false".into(), label: "连接失败".into(), position: "bottom".into() },
+            PortDef { id: "true".into(), label: "Connect Success".into(), position: "right".into() },
+            PortDef { id: "false".into(), label: "connection failed".into(), position: "bottom".into() },
         ]
     }
 
@@ -1471,8 +1471,8 @@ impl NodePlugin for Amqp10SendPlugin {
 
     fn ports(&self) -> Vec<PortDef> {
         vec![
-            PortDef { id: "true".into(), label: "成功".into(), position: "right".into() },
-            PortDef { id: "false".into(), label: "失败".into(), position: "bottom".into() },
+            PortDef { id: "true".into(), label: "Success".into(), position: "right".into() },
+            PortDef { id: "false".into(), label: "Failed".into(), position: "bottom".into() },
         ]
     }
 
@@ -1545,8 +1545,8 @@ impl NodePlugin for Amqp10ReceivePlugin {
 
     fn ports(&self) -> Vec<PortDef> {
         vec![
-            PortDef { id: "true".into(), label: "成功".into(), position: "right".into() },
-            PortDef { id: "false".into(), label: "失败".into(), position: "bottom".into() },
+            PortDef { id: "true".into(), label: "Success".into(), position: "right".into() },
+            PortDef { id: "false".into(), label: "Failed".into(), position: "bottom".into() },
         ]
     }
 
@@ -1621,8 +1621,8 @@ impl NodePlugin for Amqp10AcceptPlugin {
 
     fn ports(&self) -> Vec<PortDef> {
         vec![
-            PortDef { id: "true".into(), label: "成功".into(), position: "right".into() },
-            PortDef { id: "false".into(), label: "失败".into(), position: "bottom".into() },
+            PortDef { id: "true".into(), label: "Success".into(), position: "right".into() },
+            PortDef { id: "false".into(), label: "Failed".into(), position: "bottom".into() },
         ]
     }
 
@@ -1688,8 +1688,8 @@ impl NodePlugin for Amqp10RejectPlugin {
 
     fn ports(&self) -> Vec<PortDef> {
         vec![
-            PortDef { id: "true".into(), label: "成功".into(), position: "right".into() },
-            PortDef { id: "false".into(), label: "失败".into(), position: "bottom".into() },
+            PortDef { id: "true".into(), label: "Success".into(), position: "right".into() },
+            PortDef { id: "false".into(), label: "Failed".into(), position: "bottom".into() },
         ]
     }
 

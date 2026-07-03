@@ -77,7 +77,7 @@ fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, ErrorDetail> {
         .step_by(2)
         .map(|i| {
             u8::from_str_radix(&cleaned[i..i + 2], 16)
-                .map_err(|e| ErrorDetail::execution_error(format!("十六进制解码失败（位置 {}）: {}", i, e)))
+                .map_err(|e| ErrorDetail::execution_error(format!("十六进制解码Failed（位置 {}）: {}", i, e)))
         })
         .collect()
 }
@@ -109,7 +109,7 @@ fn base64_to_bytes(input: &str) -> Result<Vec<u8>, ErrorDetail> {
         } else if ch == '/' {
             63
         } else {
-            return Err(ErrorDetail::execution_error(format!("Base64 解码失败: 非法字符 '{}'", ch)));
+            return Err(ErrorDetail::execution_error(format!("Base64 解码Failed: 非法字符 '{}'", ch)));
         };
 
         byte_acc = (byte_acc << 6) | val;
@@ -150,9 +150,9 @@ impl NodeExecutor for MqttPublishExecutor {
         // 2. 变量替换: connection_id, topic, payload
         let connection_id =
             replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("连接 ID 变量替换失败: {}", e);
+                let error_msg = format!("连接 ID variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -164,7 +164,7 @@ impl NodeExecutor for MqttPublishExecutor {
         let topic = replace_variables(&config.topic, context).map_err(|e| {
             let error_msg = format!("Topic variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -177,7 +177,7 @@ impl NodeExecutor for MqttPublishExecutor {
             Some(p) => Some(replace_variables(p, context).map_err(|e| {
                 let error_msg = format!("Payload variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -190,7 +190,7 @@ impl NodeExecutor for MqttPublishExecutor {
 
         // 3. 日志：开始发布
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: mqtt_publish, 连接ID: {}, 主题: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mqtt_publish, Connection ID: {}, Topic: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -202,7 +202,7 @@ impl NodeExecutor for MqttPublishExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "MQTT 发布节点 {} 开始执行 (主题: {})",
+                    "MQTT 发布节点 {} start execution (Topic: {})",
                     node.name, topic
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -223,7 +223,7 @@ impl NodeExecutor for MqttPublishExecutor {
             Ok(bytes) => bytes,
             Err(e) => {
                 log::error!(
-                    "[MQTT] Payload 编码失败: connection_id={}, topic={}, error={}",
+                    "[MQTT] Payload 编码Failed: connection_id={}, topic={}, error={}",
                     connection_id,
                     topic,
                     e.message
@@ -232,7 +232,7 @@ impl NodeExecutor for MqttPublishExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MQTT Payload 编码失败: {}", e.message),
+                        message: format!("MQTT Payload 编码Failed: {}", e.message),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .expect("System time error")
@@ -290,14 +290,14 @@ impl NodeExecutor for MqttPublishExecutor {
 
                 if output.success {
                     log::info!(
-                        "[MQTT] 发布成功: connection_id={}, topic={} ({}ms)",
+                        "[MQTT] 发布Success: connection_id={}, topic={} ({}ms)",
                         connection_id,
                         topic,
                         duration.as_millis()
                     );
                 } else {
                     log::warn!(
-                        "[MQTT] 发布返回错误: connection_id={}, topic={}, error={:?}",
+                        "[MQTT] 发布返回Error: connection_id={}, topic={}, error={:?}",
                         connection_id,
                         topic,
                         output.error
@@ -331,7 +331,7 @@ impl NodeExecutor for MqttPublishExecutor {
                 };
                 let log_msg = if output.success {
                     format!(
-                        "MQTT 发布成功: {} ({}ms)",
+                        "MQTT 发布Success: {} ({}ms)",
                         topic,
                         duration.as_millis()
                     )
@@ -364,7 +364,7 @@ impl NodeExecutor for MqttPublishExecutor {
             Err(e) => {
                 let duration = start_time.elapsed();
                 log::error!(
-                    "[MQTT] 发布失败: connection_id={}, topic={}, error={}",
+                    "[MQTT] 发布Failed: connection_id={}, topic={}, error={}",
                     connection_id,
                     topic,
                     e
@@ -412,7 +412,7 @@ impl NodeExecutor for MqttPublishExecutor {
 // 端口路由辅助函数
 // ---------------------------------------------------------------------------
 
-/// 成功路由到 true 端口
+/// Success路由到 true 端口
 fn route_to_true(
     node: &Node,
     connections: &[Connection],
@@ -435,7 +435,7 @@ fn route_to_true(
     Ok((next_node_ids, Some(output_data)))
 }
 
-/// 失败路由到 false 端口
+/// Failed路由到 false 端口
 fn route_to_false(
     node: &Node,
     connections: &[Connection],
@@ -446,7 +446,7 @@ fn route_to_false(
         let error_msg = output_data
             .get("error")
             .and_then(|v| v.as_str())
-            .unwrap_or("节点执行失败 (AbortFlow)")
+            .unwrap_or("节点执行Failed (AbortFlow)")
             .to_string();
         return Err(ErrorDetail::execution_error(error_msg));
     }
@@ -484,7 +484,7 @@ mod tests {
     };
     use crate::mqtt_connection_manager::MqttConnectionManager;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(
         uuid: &str,
         name: &str,
@@ -623,7 +623,7 @@ mod tests {
         assert_eq!(data["topic"], "sensor/sensor-001/data");
     }
 
-    /// 测试：错误的节点数据类型 → Err
+    /// 测试：Error的节点数据类型 → Err
     #[tokio::test]
     async fn test_publish_wrong_node_data_type() {
         let mqtt_manager = Arc::new(MqttConnectionManager::new());
@@ -632,7 +632,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -652,20 +652,20 @@ mod tests {
 
     #[test]
     fn test_encode_payload_text() {
-        let result = encode_payload("hello world", None).expect("text 编码应成功");
+        let result = encode_payload("hello world", None).expect("text 编码应Success");
         assert_eq!(result, b"hello world");
 
-        let result = encode_payload("hello", Some("text")).expect("text 编码应成功");
+        let result = encode_payload("hello", Some("text")).expect("text 编码应Success");
         assert_eq!(result, b"hello");
     }
 
     #[test]
     fn test_encode_payload_json() {
         let json_str = r#"{"key": "value"}"#;
-        let result = encode_payload(json_str, Some("json")).expect("json 编码应成功");
+        let result = encode_payload(json_str, Some("json")).expect("json 编码应Success");
         assert_eq!(result, json_str.as_bytes());
 
-        // 非法 JSON 应失败
+        // 非法 JSON 应Failed
         let bad_json = "{invalid}";
         let result = encode_payload(bad_json, Some("json"));
         assert!(result.is_err());
@@ -674,36 +674,36 @@ mod tests {
 
     #[test]
     fn test_encode_payload_hex() {
-        let result = encode_payload("48656c6c6f", Some("hex")).expect("hex 编码应成功");
+        let result = encode_payload("48656c6c6f", Some("hex")).expect("hex 编码应Success");
         assert_eq!(result, b"Hello");
 
         // 带 0x 前缀
-        let result = encode_payload("0x48656c6c6f", Some("hex")).expect("hex 编码应成功");
+        let result = encode_payload("0x48656c6c6f", Some("hex")).expect("hex 编码应Success");
         assert_eq!(result, b"Hello");
 
         // 带空格
-        let result = encode_payload("48 65 6c 6c 6f", Some("hex")).expect("hex 编码应成功");
+        let result = encode_payload("48 65 6c 6c 6f", Some("hex")).expect("hex 编码应Success");
         assert_eq!(result, b"Hello");
 
-        // 奇数长度应失败
+        // 奇数长度应Failed
         let result = encode_payload("ABC", Some("hex"));
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("偶数"));
 
         // 空字符串
-        let result = encode_payload("", Some("hex")).expect("空 hex 应成功");
+        let result = encode_payload("", Some("hex")).expect("空 hex 应Success");
         assert!(result.is_empty());
     }
 
     #[test]
     fn test_encode_payload_base64() {
-        let result = encode_payload("SGVsbG8=", Some("base64")).expect("base64 编码应成功");
+        let result = encode_payload("SGVsbG8=", Some("base64")).expect("base64 编码应Success");
         assert_eq!(result, b"Hello");
 
-        // 非法 base64 应失败
+        // 非法 base64 应Failed
         let result = encode_payload("!!!invalid!!!", Some("base64"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Base64 解码失败"));
+        assert!(result.unwrap_err().contains("Base64 解码Failed"));
     }
 
     #[test]
@@ -713,9 +713,9 @@ mod tests {
         assert!(result.unwrap_err().contains("不支持的 payload_format"));
     }
 
-    // ===== 成功场景（使用 Mock） =====
+    // ===== Success场景（使用 Mock） =====
 
-    /// 模拟 MQTT Provider（publish 成功）
+    /// 模拟 MQTT Provider（publish Success）
     struct MockMqttProvider;
 
     #[async_trait::async_trait]
@@ -790,14 +790,14 @@ mod tests {
         }
     }
 
-    /// 测试：Mock 成功发布 → 走 true 端口
+    /// 测试：Mock Success发布 → 走 true 端口
     #[tokio::test]
     async fn test_publish_success_with_mock() {
         let mqtt_manager = Arc::new(MockMqttProvider);
         let executor = MqttPublishExecutor::new(mqtt_manager);
         let node = create_test_node(
             "test-ok",
-            "成功发布",
+            "Success发布",
             "mock-conn",
             "test/topic",
             Some("hello mqtt"),
@@ -822,7 +822,7 @@ mod tests {
         assert!(data["timing"]["total_ms"].is_number());
     }
 
-    /// 测试：hex payload Mock 成功发布
+    /// 测试：hex payload Mock Success发布
     #[tokio::test]
     async fn test_publish_hex_payload_with_mock() {
         let mqtt_manager = Arc::new(MockMqttProvider);

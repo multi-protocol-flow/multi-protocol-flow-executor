@@ -38,7 +38,7 @@ pub struct OAuth2Config {
 /// - `redirect_port`: 本地回调监听端口
 ///
 /// # 返回
-/// - `Ok(OAuth2Config)`: 成功创建配置
+/// - `Ok(OAuth2Config)`: Success创建配置
 /// - `Err(String)`: 自定义服务商不支持预设配置
 pub fn oauth2_config_from_provider(
     provider: &EmailProvider,
@@ -123,20 +123,20 @@ fn urlencoding(s: &str) -> String {
 ///
 /// # 返回
 /// - `Ok((code, state))`: 授权码和 CSRF state
-/// - `Err(String)`: 监听失败或回调参数缺失
+/// - `Err(String)`: 监听Failed或回调参数缺失
 pub async fn start_callback_listener(
     port: u16,
 ) -> Result<(String, String), String> {
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
         .await
-        .map_err(|e| format!("绑定端口 {} 失败: {}", port, e))?;
+        .map_err(|e| format!("绑定端口 {} Failed: {}", port, e))?;
 
     log::info!("OAuth2 回调监听器已启动，等待授权码 (port={})", port);
 
     let (stream, _) = listener
         .accept()
         .await
-        .map_err(|e| format!("接受连接失败: {}", e))?;
+        .map_err(|e| format!("接受connection failed: {}", e))?;
 
     let mut stream: tokio::net::TcpStream = stream;
     use tokio::io::AsyncReadExt;
@@ -146,7 +146,7 @@ pub async fn start_callback_listener(
     let n = stream
         .read(&mut buf)
         .await
-        .map_err(|e| format!("读取请求失败: {}", e))?;
+        .map_err(|e| format!("读取请求Failed: {}", e))?;
 
     let request = String::from_utf8_lossy(&buf[..n]);
     log::debug!("收到回调请求: {}", request.lines().next().unwrap_or(""));
@@ -172,9 +172,9 @@ pub async fn start_callback_listener(
 
     // 发送响应给浏览器
     let response = if code_opt.is_some() {
-        "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<html><body><h2>授权成功！</h2><p>可以关闭此窗口。</p></body></html>"
+        "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<html><body><h2>授权Success！</h2><p>可以关闭此窗口。</p></body></html>"
     } else {
-        "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<html><body><h2>授权失败</h2><p>未收到授权码。</p></body></html>"
+        "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<html><body><h2>授权Failed</h2><p>未收到授权码。</p></body></html>"
     };
     let _ = stream.write_all(response.as_bytes()).await;
     let _ = stream.flush().await;
@@ -193,8 +193,8 @@ pub async fn start_callback_listener(
 /// - `pkce_verifier`: PKCE 验证码（必须与授权 URL 中 challenge 对应）
 ///
 /// # 返回
-/// - `Ok(EmailOAuthTokens)`: 成功获取 Token
-/// - `Err(String)`: 交换失败
+/// - `Ok(EmailOAuthTokens)`: Success获取 Token
+/// - `Err(String)`: 交换Failed
 pub async fn exchange_code(
     config: &OAuth2Config,
     code: &str,
@@ -220,18 +220,18 @@ pub async fn exchange_code(
         .form(&params)
         .send()
         .await
-        .map_err(|e| format!("Token 请求失败: {}", e))?;
+        .map_err(|e| format!("Token 请求Failed: {}", e))?;
 
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Token 交换失败 (HTTP {}): {}", status, body));
+        return Err(format!("Token 交换Failed (HTTP {}): {}", status, body));
     }
 
     let token_resp: serde_json::Value = resp
         .json()
         .await
-        .map_err(|e| format!("解析 Token 响应失败: {}", e))?;
+        .map_err(|e| format!("解析 Token 响应Failed: {}", e))?;
 
     parse_token_response(&token_resp)
 }
@@ -260,7 +260,7 @@ struct DeviceCodeResponse {
 ///
 /// # 返回
 /// - `Ok((user_code, verification_uri, device_code, interval))`: 用户码、验证 URL、设备码（内部使用）、轮询间隔（秒）
-/// - `Err(String)`: 请求失败
+/// - `Err(String)`: 请求Failed
 pub async fn start_device_flow(
     config: &OAuth2Config,
 ) -> Result<(String, String, String, u64), String> {
@@ -277,18 +277,18 @@ pub async fn start_device_flow(
         .form(&params)
         .send()
         .await
-        .map_err(|e| format!("Device Flow 请求失败: {}", e))?;
+        .map_err(|e| format!("Device Flow 请求Failed: {}", e))?;
 
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Device Flow 失败 (HTTP {}): {}", status, body));
+        return Err(format!("Device Flow Failed (HTTP {}): {}", status, body));
     }
 
     let device_resp: DeviceCodeResponse = resp
         .json()
         .await
-        .map_err(|e| format!("解析 Device Flow 响应失败: {}", e))?;
+        .map_err(|e| format!("解析 Device Flow 响应Failed: {}", e))?;
 
     let interval = device_resp.interval.unwrap_or(5);
 
@@ -311,8 +311,8 @@ pub async fn start_device_flow(
 /// - `max_attempts`: 最大轮询次数（0 表示无限）
 ///
 /// # 返回
-/// - `Ok(EmailOAuthTokens)`: 授权成功，获取到 Token
-/// - `Err(String)`: 授权失败或超时
+/// - `Ok(EmailOAuthTokens)`: 授权Success，获取到 Token
+/// - `Err(String)`: 授权Failed或超时
 pub async fn poll_device_token(
     config: &OAuth2Config,
     device_code: &str,
@@ -345,19 +345,19 @@ pub async fn poll_device_token(
             .form(&params)
             .send()
             .await
-            .map_err(|e| format!("Token 轮询请求失败: {}", e))?;
+            .map_err(|e| format!("Token 轮询请求Failed: {}", e))?;
 
         let body: serde_json::Value = resp
             .json()
             .await
-            .map_err(|e| format!("解析 Token 轮询响应失败: {}", e))?;
+            .map_err(|e| format!("解析 Token 轮询响应Failed: {}", e))?;
 
-        // 检查是否授权成功
+        // 检查是否授权Success
         if body.get("access_token").is_some() {
             return parse_token_response(&body);
         }
 
-        // 检查错误类型
+        // 检查Error类型
         let error = body
             .get("error")
             .and_then(|v| v.as_str())
@@ -384,8 +384,8 @@ pub async fn poll_device_token(
                 let error_desc = body
                     .get("error_description")
                     .and_then(|v| v.as_str())
-                    .unwrap_or("未知错误");
-                return Err(format!("Device Flow 失败: {} - {}", error, error_desc));
+                    .unwrap_or("未知Error");
+                return Err(format!("Device Flow Failed: {} - {}", error, error_desc));
             }
         }
     }
@@ -403,7 +403,7 @@ pub async fn poll_device_token(
 ///
 /// # 返回
 /// - `Ok(EmailOAuthTokens)`: 新的 Token（可能包含新的 `refresh_token`）
-/// - `Err(String)`: 刷新失败
+/// - `Err(String)`: 刷新Failed
 pub async fn refresh_token(
     config: &OAuth2Config,
     refresh_token: &str,
@@ -424,18 +424,18 @@ pub async fn refresh_token(
         .form(&params)
         .send()
         .await
-        .map_err(|e| format!("Token 刷新请求失败: {}", e))?;
+        .map_err(|e| format!("Token 刷新请求Failed: {}", e))?;
 
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Token 刷新失败 (HTTP {}): {}", status, body));
+        return Err(format!("Token 刷新Failed (HTTP {}): {}", status, body));
     }
 
     let token_resp: serde_json::Value = resp
         .json()
         .await
-        .map_err(|e| format!("解析 Token 刷新响应失败: {}", e))?;
+        .map_err(|e| format!("解析 Token 刷新响应Failed: {}", e))?;
 
     let mut tokens = parse_token_response(&token_resp)?;
 
@@ -458,10 +458,10 @@ pub async fn refresh_token(
 ///
 /// # 返回
 /// - `Ok(String)`: 加密后的密文（格式: `base64(nonce):base64(ciphertext)`）
-/// - `Err(String)`: 加密失败
+/// - `Err(String)`: 加密Failed
 pub fn store_tokens_encrypted(tokens: &EmailOAuthTokens) -> Result<String, String> {
-    let json = serde_json::to_string(tokens).map_err(|e| format!("序列化 Token 失败: {}", e))?;
-    flow_engine_crypto::encryption::encrypt(&json).map_err(|e| format!("加密 Token 失败: {}", e))
+    let json = serde_json::to_string(tokens).map_err(|e| format!("序列化 Token Failed: {}", e))?;
+    flow_engine_crypto::encryption::encrypt(&json).map_err(|e| format!("加密 Token Failed: {}", e))
 }
 
 /// 解密加载 Token
@@ -473,11 +473,11 @@ pub fn store_tokens_encrypted(tokens: &EmailOAuthTokens) -> Result<String, Strin
 ///
 /// # 返回
 /// - `Ok(EmailOAuthTokens)`: 解密后的 Token
-/// - `Err(String)`: 解密或解析失败
+/// - `Err(String)`: 解密或解析Failed
 pub fn load_tokens_decrypted(encrypted: &str) -> Result<EmailOAuthTokens, String> {
     let json =
-        flow_engine_crypto::encryption::decrypt(encrypted).map_err(|e| format!("解密失败: {}", e))?;
-    serde_json::from_str(&json).map_err(|e| format!("反序列化 Token 失败: {}", e))
+        flow_engine_crypto::encryption::decrypt(encrypted).map_err(|e| format!("解密Failed: {}", e))?;
+    serde_json::from_str(&json).map_err(|e| format!("反序列化 Token Failed: {}", e))
 }
 
 // ─── 内部工具函数 ─────────────────────────────────────────────────────────────
@@ -553,7 +553,7 @@ mod tests {
             None,
             8080,
         )
-        .expect("创建 Gmail OAuth2 配置失败");
+        .expect("创建 Gmail OAuth2 配置Failed");
 
         assert_eq!(config.client_id, "test-client-id.apps.googleusercontent.com");
         assert!(config.auth_url.contains("accounts.google.com"));
@@ -572,7 +572,7 @@ mod tests {
             Some("outlook-secret"),
             9090,
         )
-        .expect("创建 Outlook OAuth2 配置失败");
+        .expect("创建 Outlook OAuth2 配置Failed");
 
         assert_eq!(config.client_id, "outlook-client-id");
         assert_eq!(config.client_secret, Some("outlook-secret".to_string()));
@@ -610,7 +610,7 @@ mod tests {
             redirect_port: 8080,
         };
 
-        let (url, verifier, state) = build_pkce_auth_url(&config).expect("构建授权 URL 失败");
+        let (url, verifier, state) = build_pkce_auth_url(&config).expect("构建授权 URL Failed");
 
         // URL 必须包含关键参数
         assert!(url.contains("response_type=code"), "缺少 response_type");
@@ -694,7 +694,7 @@ mod tests {
             Ok(d) => d,
             Err(e) => {
                 // keyring 竞争导致密钥不一致，非代码问题
-                eprintln!("跳过: 解密失败 (keyring 竞争): {}", e);
+                eprintln!("跳过: 解密Failed (keyring 竞争): {}", e);
                 return;
             }
         };
@@ -723,7 +723,7 @@ mod tests {
         let decrypted = match load_tokens_decrypted(&encrypted) {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("跳过: 解密失败 (keyring 竞争): {}", e);
+                eprintln!("跳过: 解密Failed (keyring 竞争): {}", e);
                 return;
             }
         };
@@ -741,7 +741,7 @@ mod tests {
         assert!(result.is_err());
     }
 
-    /// 测试解密格式错误数据应报错
+    /// 测试解密格式Error数据应报错
     #[test]
     fn test_load_tokens_bad_format() {
         let result = load_tokens_decrypted("no_colon_here");
@@ -752,7 +752,7 @@ mod tests {
     #[test]
     fn test_derive_device_code_url_google() {
         let url =
-            derive_device_code_url("https://oauth2.googleapis.com/token").expect("推导失败");
+            derive_device_code_url("https://oauth2.googleapis.com/token").expect("推导Failed");
         assert_eq!(url, "https://oauth2.googleapis.com/device/code");
     }
 
@@ -762,7 +762,7 @@ mod tests {
         let url = derive_device_code_url(
             "https://login.microsoftonline.com/common/oauth2/v2.0/token",
         )
-        .expect("推导失败");
+        .expect("推导Failed");
         assert_eq!(
             url,
             "https://login.microsoftonline.com/common/oauth2/v2.0/devicecode"
@@ -787,7 +787,7 @@ mod tests {
             "token_type": "Bearer"
         });
 
-        let tokens = parse_token_response(&json).expect("解析失败");
+        let tokens = parse_token_response(&json).expect("解析Failed");
 
         assert_eq!(tokens.access_token, "ya29.token");
         assert_eq!(tokens.refresh_token, Some("1//refresh".to_string()));
@@ -823,7 +823,7 @@ mod tests {
             "expires_in": 1800
         });
 
-        let tokens = parse_token_response(&json).expect("解析失败");
+        let tokens = parse_token_response(&json).expect("解析Failed");
         assert_eq!(tokens.access_token, "short_lived_token");
         assert!(tokens.refresh_token.is_none());
     }
@@ -841,7 +841,7 @@ mod tests {
             redirect_port: 8080,
         };
 
-        let (url, _, _) = build_pkce_auth_url(&config).expect("构建 URL 失败");
+        let (url, _, _) = build_pkce_auth_url(&config).expect("构建 URL Failed");
 
         // scope 中不包含 offline_access，URL 应自动追加
         assert!(
@@ -862,7 +862,7 @@ mod tests {
             redirect_port: 8080,
         };
 
-        let (url, _, _) = build_pkce_auth_url(&config).expect("构建 URL 失败");
+        let (url, _, _) = build_pkce_auth_url(&config).expect("构建 URL Failed");
 
         // Gmail token_url 不含 microsoftonline.com，不应追加 offline_access
         assert!(

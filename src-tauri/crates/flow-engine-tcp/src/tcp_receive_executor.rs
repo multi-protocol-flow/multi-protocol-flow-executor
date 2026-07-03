@@ -66,7 +66,7 @@ impl NodeExecutor for TcpReceiveExecutor {
             ErrorDetail::execution_error(error_msg)
         })?;
 
-        // 3. 日志：开始执行
+        // 3. 日志：start execution
         log::info!(
             "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: tcp_receive, ConnectionID: {}, Timeout: {}ms",
             context.flow_uuid,
@@ -85,7 +85,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -109,7 +109,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                     data.len()
                 );
 
-                // 5. 构建成功输出
+                // 5. 构建Success输出
                 let received_output = build_binary_output(&data);
 
                 let mut output_data = json!({
@@ -139,7 +139,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -152,7 +152,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                 Ok((next_node_ids, Some(output_data)))
             }
             Ok(None) => {
-                // 超时无数据，仍算成功但标记
+                // 超时无数据，仍算Success但标记
                 log::debug!(
                     "[TCP] Receive timeout, no data: connection_id={}",
                     connection_id
@@ -178,7 +178,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -218,7 +218,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                         message: format!("TCP Receive failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -226,7 +226,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                     })
                     .await;
 
-                // 失败走 false 端口
+                // Failed走 false 端口
                 route_to_false_port(node, connections, Some(output_data))
             }
         }
@@ -275,7 +275,7 @@ mod tests {
     // 辅助函数
     // ========================================================================
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(
         uuid: &str,
         name: &str,
@@ -307,7 +307,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -387,7 +387,7 @@ mod tests {
             &self, _uuid: &str, _receive_timeout_ms: u64,
         ) -> Result<Option<Vec<u8>>, String> {
             self.receive_count.fetch_add(1, AtomicOrdering::SeqCst);
-            self.receive_result.lock().expect("锁不应失败").clone()
+            self.receive_result.lock().expect("锁不应Failed").clone()
         }
 
         async fn close(&self, _uuid: &str, _close_timeout_ms: u64) -> Result<(), String> {
@@ -413,7 +413,7 @@ mod tests {
     }
 
     // ========================================================================
-    // 测试：成功接收数据
+    // 测试：Success接收数据
     // ========================================================================
 
     #[tokio::test]
@@ -429,7 +429,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
@@ -469,7 +469,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
@@ -478,7 +478,7 @@ mod tests {
     }
 
     // ========================================================================
-    // 测试：接收失败
+    // 测试：接收Failed
     // ========================================================================
 
     #[tokio::test]
@@ -486,7 +486,7 @@ mod tests {
         let mock = Arc::new(MockTcpProvider::new_with_error("连接不存在"));
         let executor = TcpReceiveExecutor::new(mock.clone());
 
-        let node = create_test_node("node-3", "失败测试", "conn-3", 5000);
+        let node = create_test_node("node-3", "Failed测试", "conn-3", 5000);
         let mut context = create_context_with_tcp("flow-3", mock.clone());
 
         let result = executor
@@ -494,7 +494,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
@@ -537,7 +537,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_id"], "tcp-connection-456");
@@ -552,7 +552,7 @@ mod tests {
         let mock = Arc::new(MockTcpProvider::new_with_data(b"OK".to_vec()));
         let executor = TcpReceiveExecutor::new(mock.clone());
 
-        let node = create_test_node("node-port-ok", "成功端口路由", "conn-1", 5000);
+        let node = create_test_node("node-port-ok", "Success端口路由", "conn-1", 5000);
         let mut context = create_context_with_tcp("flow-port", mock.clone());
         let connections = vec![Connection {
             id: "c1".to_string(),
@@ -567,16 +567,16 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.expect("执行应成功");
+        let (next_nodes, _) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 
     #[tokio::test]
     async fn test_tcp_receive_routes_to_false_port_with_connections() {
-        let mock = Arc::new(MockTcpProvider::new_with_error("连接失败"));
+        let mock = Arc::new(MockTcpProvider::new_with_error("connection failed"));
         let executor = TcpReceiveExecutor::new(mock.clone());
 
-        let node = create_test_node("node-port-fail", "失败端口路由", "conn-1", 5000);
+        let node = create_test_node("node-port-fail", "Failed端口路由", "conn-1", 5000);
         let mut context = create_context_with_tcp("flow-port", mock.clone());
         let connections = vec![Connection {
             id: "c2".to_string(),
@@ -591,14 +591,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["error-handler"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
     }
 
     // ========================================================================
-    // 测试：错误节点数据类型
+    // 测试：Error节点数据类型
     // ========================================================================
 
     #[tokio::test]
@@ -609,7 +609,7 @@ mod tests {
         let node = Node {
             uuid: "node-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -643,7 +643,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
@@ -668,7 +668,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
         assert_eq!(data["received"]["size"], 65536);

@@ -56,8 +56,8 @@ impl MySqlConnection {
     ///
     /// # 返回
     ///
-    /// * `Ok(MySqlConnection)` - 连接池创建成功
-    /// * `Err(String)` - 连接池创建失败
+    /// * `Ok(MySqlConnection)` - 连接池创建Success
+    /// * `Err(String)` - 连接池创建Failed
     ///
     /// # 示例
     ///
@@ -92,9 +92,9 @@ impl MySqlConnection {
         let pool = pool_options
             .connect(&connection_string)
             .await
-            .map_err(|e| format!("MySQL 连接池创建失败: {}", e))?;
+            .map_err(|e| format!("MySQL 连接池创建Failed: {}", e))?;
 
-        log::info!("[MySQL] 连接池创建成功: name={}", name);
+        log::info!("[MySQL] 连接池创建Success: name={}", name);
 
         // 生成安全的连接字符串（隐藏密码）
         let connection_string_safe = Self::sanitize_connection_string(&connection_string);
@@ -116,8 +116,8 @@ impl MySqlConnection {
     ///
     /// # 返回
     ///
-    /// * `Ok(MySqlConnection)` - 连接池创建成功
-    /// * `Err(String)` - 连接池创建失败
+    /// * `Ok(MySqlConnection)` - 连接池创建Success
+    /// * `Err(String)` - 连接池创建Failed
     pub async fn from_config(config: &super::types::DbConnection) -> Result<Self, String> {
         // 构建 MySQL 连接字符串
         let connection_string = Self::build_connection_string(config)?;
@@ -208,8 +208,8 @@ impl DatabasePool for MySqlConnection {
     ///
     /// # 返回
     ///
-    /// * `Ok(QueryResult)` - 查询成功
-    /// * `Err(String)` - 查询失败
+    /// * `Ok(QueryResult)` - 查询Success
+    /// * `Err(String)` - 查询Failed
     ///
     /// # 参数占位符
     ///
@@ -271,7 +271,7 @@ impl DatabasePool for MySqlConnection {
     /// # 返回
     ///
     /// * `Ok(())` - 连接正常
-    /// * `Err(String)` - 连接失败
+    /// * `Err(String)` - connection failed
     async fn test_connection(&self) -> Result<(), String> {
         log::info!("[MySQL] 测试连接: name={}", self.name);
 
@@ -280,11 +280,11 @@ impl DatabasePool for MySqlConnection {
 
         match result {
             Ok(_) => {
-                log::info!("[MySQL] 连接测试成功: name={}", self.name);
+                log::info!("[MySQL] 连接测试Success: name={}", self.name);
                 Ok(())
             }
             Err(e) => {
-                log::error!("[MySQL] 连接测试失败: name={}, error={}", self.name, e);
+                log::error!("[MySQL] 连接测试Failed: name={}, error={}", self.name, e);
                 Err(e)
             }
         }
@@ -337,7 +337,7 @@ impl DatabasePool for MySqlConnection {
             .pool
             .acquire()
             .await
-            .map_err(|e| format!("MySQL 获取事务连接失败: {}", e))?;
+            .map_err(|e| format!("MySQL 获取事务connection failed: {}", e))?;
 
         // 如果指定了隔离级别，先设置
         // MySQL 的事务管理命令不支持 prepared statement 协议 (Error 1295)，
@@ -350,13 +350,13 @@ impl DatabasePool for MySqlConnection {
             log::debug!("[MySQL] 设置事务隔离级别: {}", sql);
             conn.execute(sql.as_str())
                 .await
-                .map_err(|e| format!("MySQL 设置事务隔离级别失败: {}", e))?;
+                .map_err(|e| format!("MySQL 设置事务隔离级别Failed: {}", e))?;
         }
 
         // 执行 START TRANSACTION (text protocol / COM_QUERY)
         conn.execute("START TRANSACTION")
             .await
-            .map_err(|e| format!("MySQL 开始事务失败: {}", e))?;
+            .map_err(|e| format!("MySQL 开始事务Failed: {}", e))?;
 
         // 将专用连接存入 tx_conn
         {
@@ -383,7 +383,7 @@ impl DatabasePool for MySqlConnection {
         // 执行 COMMIT (text protocol / COM_QUERY)
         conn.execute("COMMIT")
             .await
-            .map_err(|e| format!("MySQL 提交事务失败: {}", e))?;
+            .map_err(|e| format!("MySQL 提交事务Failed: {}", e))?;
 
         // conn drop 后自动归还连接池
         drop(conn);
@@ -407,7 +407,7 @@ impl DatabasePool for MySqlConnection {
         // 执行 ROLLBACK (text protocol / COM_QUERY)
         conn.execute("ROLLBACK")
             .await
-            .map_err(|e| format!("MySQL 回滚事务失败: {}", e))?;
+            .map_err(|e| format!("MySQL 回滚事务Failed: {}", e))?;
 
         // conn drop 后自动归还连接池
         drop(conn);
@@ -447,7 +447,7 @@ impl MySqlConnection {
             let rows = query
                 .fetch_all(&self.pool)
                 .await
-                .map_err(|e| format!("MySQL 查询执行失败: {}", e))?;
+                .map_err(|e| format!("MySQL 查询执行Failed: {}", e))?;
 
             // 处理结果
             Self::rows_to_query_result(rows)
@@ -462,7 +462,7 @@ impl MySqlConnection {
             let result = query
                 .execute(&self.pool)
                 .await
-                .map_err(|e| format!("MySQL 执行失败: {}", e))?;
+                .map_err(|e| format!("MySQL 执行Failed: {}", e))?;
 
             Ok(QueryResult::with_affected_rows(result.rows_affected()))
         }
@@ -496,7 +496,7 @@ impl MySqlConnection {
             let rows: Vec<sqlx::mysql::MySqlRow> = query
                 .fetch_all(conn)
                 .await
-                .map_err(|e| format!("MySQL 查询执行失败(事务): {}", e))?;
+                .map_err(|e| format!("MySQL 查询执行Failed(事务): {}", e))?;
 
             // 处理结果
             Self::rows_to_query_result(rows)
@@ -511,7 +511,7 @@ impl MySqlConnection {
             let result = query
                 .execute(conn)
                 .await
-                .map_err(|e| format!("MySQL 执行失败(事务): {}", e))?;
+                .map_err(|e| format!("MySQL 执行Failed(事务): {}", e))?;
 
             Ok(QueryResult::with_affected_rows(result.rows_affected()))
         }
@@ -804,14 +804,14 @@ mod tests {
     #[test]
     fn test_tx_conn_field_initialized() {
         // 验证 MySqlConnection 结构体包含 tx_conn 字段
-        // 这主要是编译时检查 — 如果字段缺失或类型不匹配则编译失败
+        // 这主要是编译时检查 — 如果字段缺失或类型不匹配则编译Failed
         let _ = std::marker::PhantomData::<Arc<tokio::sync::Mutex<Option<sqlx::pool::PoolConnection<sqlx::mysql::MySql>>>>>;
     }
 
     #[test]
     fn test_begin_transaction_double_begin_error() {
-        // 验证双重 begin 返回错误信息（无真实连接池，仅验证错误消息格式）
-        // 这确保错误消息符合预期，集成测试中验证完整流程
+        // 验证双重 begin 返回Error信息（无真实连接池，仅验证Error消息格式）
+        // 这确保Error消息符合预期，集成测试中验证完整流程
         let msg = "MySQL 已有活跃事务，无法开始新事务";
         assert!(!msg.is_empty());
         assert!(msg.contains("活跃事务"));
@@ -819,7 +819,7 @@ mod tests {
 
     #[test]
     fn test_commit_without_begin_error() {
-        // 验证没有事务时 commit 返回错误
+        // 验证没有事务时 commit 返回Error
         let msg = "MySQL 没有活跃事务，无法提交";
         assert!(!msg.is_empty());
         assert!(msg.contains("没有活跃事务"));
@@ -827,7 +827,7 @@ mod tests {
 
     #[test]
     fn test_rollback_without_begin_error() {
-        // 验证没有事务时 rollback 返回错误
+        // 验证没有事务时 rollback 返回Error
         let msg = "MySQL 没有活跃事务，无法回滚";
         assert!(!msg.is_empty());
         assert!(msg.contains("没有活跃事务"));
@@ -878,7 +878,7 @@ mod tests {
                 5,
             )
             .await
-            .expect("连接池创建失败");
+            .expect("连接池创建Failed");
 
             // 测试连接
             let result = conn.test_connection().await;
@@ -897,13 +897,13 @@ mod tests {
                 5,
             )
             .await
-            .expect("连接池创建失败");
+            .expect("连接池创建Failed");
 
             // 执行 SELECT 1
             let result = conn
                 .execute("SELECT 1 AS value", vec![])
                 .await
-                .expect("查询执行失败");
+                .expect("查询执行Failed");
 
             assert_eq!(result.rows.len(), 1);
             assert_eq!(result.row_count, 1);
@@ -922,7 +922,7 @@ mod tests {
                 5,
             )
             .await
-            .expect("连接池创建失败");
+            .expect("连接池创建Failed");
 
             // 创建表
             conn.execute(
@@ -930,12 +930,12 @@ mod tests {
                 vec![],
             )
             .await
-            .expect("创建表失败");
+            .expect("创建表Failed");
 
             // 清空表
             conn.execute("DELETE FROM test_users", vec![])
                 .await
-                .expect("清空表失败");
+                .expect("清空表Failed");
 
             // 插入数据
             let insert_result = conn
@@ -944,7 +944,7 @@ mod tests {
                     vec![serde_json::json!("Alice"), serde_json::json!(30)],
                 )
                 .await
-                .expect("插入失败");
+                .expect("插入Failed");
 
             assert_eq!(insert_result.affected_rows, 1);
 
@@ -952,7 +952,7 @@ mod tests {
             let select_result = conn
                 .execute("SELECT * FROM test_users WHERE name = ?", vec![serde_json::json!("Alice")])
                 .await
-                .expect("查询失败");
+                .expect("查询Failed");
 
             assert_eq!(select_result.rows.len(), 1);
             assert!(select_result.columns.contains(&"id".to_string()));
@@ -967,7 +967,7 @@ mod tests {
             // 清理
             conn.execute("DROP TABLE test_users", vec![])
                 .await
-                .expect("删除表失败");
+                .expect("删除表Failed");
 
             conn.close().await;
         }
@@ -981,7 +981,7 @@ mod tests {
                 5,
             )
             .await
-            .expect("连接池创建失败");
+            .expect("连接池创建Failed");
 
             // 创建表
             conn.execute(
@@ -989,7 +989,7 @@ mod tests {
                 vec![],
             )
             .await
-            .expect("创建表失败");
+            .expect("创建表Failed");
 
             // 插入数据
             conn.execute(
@@ -997,7 +997,7 @@ mod tests {
                 vec![serde_json::json!("Widget"), serde_json::json!(9.99)],
             )
             .await
-            .expect("插入失败");
+            .expect("插入Failed");
 
             // 更新数据
             let update_result = conn
@@ -1006,7 +1006,7 @@ mod tests {
                     vec![serde_json::json!(19.99), serde_json::json!("Widget")],
                 )
                 .await
-                .expect("更新失败");
+                .expect("更新Failed");
 
             assert_eq!(update_result.affected_rows, 1);
 
@@ -1017,7 +1017,7 @@ mod tests {
                     vec![serde_json::json!("Widget")],
                 )
                 .await
-                .expect("查询失败");
+                .expect("查询Failed");
 
             let row = &select_result.rows[0];
             // 价格应该是 19.99 或接近的浮点数
@@ -1026,7 +1026,7 @@ mod tests {
             // 清理
             conn.execute("DROP TABLE test_products", vec![])
                 .await
-                .expect("删除表失败");
+                .expect("删除表Failed");
 
             conn.close().await;
         }
@@ -1040,7 +1040,7 @@ mod tests {
                 5,
             )
             .await
-            .expect("连接池创建失败");
+            .expect("连接池创建Failed");
 
             // 创建表
             conn.execute(
@@ -1048,7 +1048,7 @@ mod tests {
                 vec![],
             )
             .await
-            .expect("创建表失败");
+            .expect("创建表Failed");
 
             // 插入多条数据
             conn.execute(
@@ -1056,7 +1056,7 @@ mod tests {
                 vec![serde_json::json!("Item1"), serde_json::json!("Item2")],
             )
             .await
-            .expect("插入失败");
+            .expect("插入Failed");
 
             // 删除数据
             let delete_result = conn
@@ -1065,7 +1065,7 @@ mod tests {
                     vec![serde_json::json!("Item1")],
                 )
                 .await
-                .expect("删除失败");
+                .expect("删除Failed");
 
             assert_eq!(delete_result.affected_rows, 1);
 
@@ -1073,14 +1073,14 @@ mod tests {
             let select_result = conn
                 .execute("SELECT * FROM test_items", vec![])
                 .await
-                .expect("查询失败");
+                .expect("查询Failed");
 
             assert_eq!(select_result.rows.len(), 1);
 
             // 清理
             conn.execute("DROP TABLE test_items", vec![])
                 .await
-                .expect("删除表失败");
+                .expect("删除表Failed");
 
             conn.close().await;
         }
@@ -1094,7 +1094,7 @@ mod tests {
                 5,
             )
             .await
-            .expect("连接池创建失败");
+            .expect("连接池创建Failed");
 
             let status = conn.status_info();
             assert!(status.contains("test-status"));
@@ -1129,7 +1129,7 @@ mod tests {
 
             let conn = MySqlConnection::from_config(&config)
                 .await
-                .expect("从配置创建连接失败");
+                .expect("从配置创建connection failed");
 
             assert_eq!(conn.name(), "Test MySQL");
 
@@ -1149,7 +1149,7 @@ mod tests {
                 5,
             )
             .await
-            .expect("连接池创建失败");
+            .expect("连接池创建Failed");
 
             // 创建表
             conn.execute(
@@ -1157,7 +1157,7 @@ mod tests {
                 vec![],
             )
             .await
-            .expect("创建表失败");
+            .expect("创建表Failed");
 
             // 插入不同类型的值
             conn.execute(
@@ -1170,13 +1170,13 @@ mod tests {
                 ],
             )
             .await
-            .expect("插入失败");
+            .expect("插入Failed");
 
             // 查询并验证
             let result = conn
                 .execute("SELECT * FROM test_types WHERE int_val = ?", vec![serde_json::json!(42)])
                 .await
-                .expect("查询失败");
+                .expect("查询Failed");
 
             assert_eq!(result.rows.len(), 1);
 
@@ -1190,7 +1190,7 @@ mod tests {
             // 清理
             conn.execute("DROP TABLE test_types", vec![])
                 .await
-                .expect("删除表失败");
+                .expect("删除表Failed");
 
             conn.close().await;
         }
@@ -1204,7 +1204,7 @@ mod tests {
                 5,
             )
             .await
-            .expect("连接池创建失败");
+            .expect("连接池创建Failed");
 
             // 创建表
             conn.execute(
@@ -1212,18 +1212,18 @@ mod tests {
                 vec![],
             )
             .await
-            .expect("创建表失败");
+            .expect("创建表Failed");
 
             // 清空表
             conn.execute("DELETE FROM test_empty", vec![])
                 .await
-                .expect("清空表失败");
+                .expect("清空表Failed");
 
             // 查询空表
             let result = conn
                 .execute("SELECT * FROM test_empty", vec![])
                 .await
-                .expect("查询失败");
+                .expect("查询Failed");
 
             assert_eq!(result.rows.len(), 0);
             assert_eq!(result.row_count, 0);
@@ -1231,7 +1231,7 @@ mod tests {
             // 清理
             conn.execute("DROP TABLE test_empty", vec![])
                 .await
-                .expect("删除表失败");
+                .expect("删除表Failed");
 
             conn.close().await;
         }
@@ -1245,13 +1245,13 @@ mod tests {
                 5,
             )
             .await
-            .expect("连接池创建失败");
+            .expect("连接池创建Failed");
 
             // 执行 SHOW 查询
             let result = conn
                 .execute("SHOW VARIABLES LIKE 'version'", vec![])
                 .await
-                .expect("SHOW 查询失败");
+                .expect("SHOW 查询Failed");
 
             assert!(result.rows.len() > 0);
             assert!(result.columns.contains(&"Variable_name".to_string()));

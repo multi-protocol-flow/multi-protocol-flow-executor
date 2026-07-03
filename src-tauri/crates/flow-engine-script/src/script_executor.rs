@@ -14,7 +14,7 @@
 //! - 支持工具函数 (`fn.util.*`)
 //! - 支持链式断言 (`fn.expect()`)
 //! - 内存限制和超时控制
-//! - 错误处理策略 (致命/可恢复)
+//! - Error处理策略 (致命/可恢复)
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -79,10 +79,10 @@ impl NodeExecutor for ScriptNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("脚本节点 {} 开始执行", node.name),
+                message: format!("脚本节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -137,7 +137,7 @@ impl NodeExecutor for ScriptNodeExecutor {
         // ScriptExecutionContext 使用 Rc<RefCell>（非 Send），必须在闭包内创建
         let result = tokio::task::spawn_blocking(move || {
             // 创建 QuickJS Runtime 并设置内存/超时限制
-            let rt = JsRuntime::new().map_err(|e| ErrorDetail::execution_error(format!("创建 JS Runtime 失败: {}", e)))?;
+            let rt = JsRuntime::new().map_err(|e| ErrorDetail::execution_error(format!("创建 JS Runtime Failed: {}", e)))?;
             rt.set_memory_limit((memory_limit_mb * 1024 * 1024) as usize);
 
             // 设置超时中断处理器
@@ -146,7 +146,7 @@ impl NodeExecutor for ScriptNodeExecutor {
             })));
 
             // 创建 JS Context
-            let ctx = JsContext::full(&rt).map_err(|e| ErrorDetail::execution_error(format!("创建 JS Context 失败: {}", e)))?;
+            let ctx = JsContext::full(&rt).map_err(|e| ErrorDetail::execution_error(format!("创建 JS Context Failed: {}", e)))?;
 
             ctx.with(|ctx| {
                 // 构建脚本执行上下文（在闭包内创建，因为使用 Rc<RefCell>）
@@ -177,13 +177,13 @@ impl NodeExecutor for ScriptNodeExecutor {
                 // 注册全部 fn.* API
                 script_ctx
                     .register_all_apis(&ctx)
-                    .map_err(|e| ErrorDetail::execution_error(format!("注册脚本 API 失败: {}", e)))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("注册脚本 API Failed: {}", e)))?;
 
                 // 执行脚本
                 let _: () = ctx
                     .eval(script.as_bytes())
                     .catch(&ctx)
-                    .map_err(|e| ErrorDetail::execution_error(format!("脚本执行错误: {}", e)))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("脚本执行Error: {}", e)))?;
 
                 // 收集执行结果
                 let result_vars = script_ctx.variables.borrow().clone();
@@ -219,7 +219,7 @@ impl NodeExecutor for ScriptNodeExecutor {
         // 8. 处理结果
         match result {
             Ok(Ok(Ok(exec_result))) => {
-                // 脚本执行成功，同步变量回 ExecutionContext
+                // 脚本执行Success，同步变量回 ExecutionContext
                 for (key, value) in exec_result.variables {
                     log::debug!(
                         "[流程 {}] 同步变量: {} = {:?}",
@@ -244,7 +244,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                             message: format!("[console.{}] {}", log_entry.level, log_entry.message),
                             timestamp: std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
-                                .expect("系统时间错误")
+                                .expect("系统时间Error")
                                 .as_millis() as u64,
                             node_uuid: Some(node.uuid.clone()),
                             node_name: Some(node.name.clone()),
@@ -273,10 +273,10 @@ impl NodeExecutor for ScriptNodeExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!("脚本节点 {} 执行完成", node.name),
+                        message: format!("脚本节点 {} execution complete", node.name),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -316,7 +316,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                 Ok((next_nodes, Some(output_data)))
             }
             Ok(Ok(Err(e))) => {
-                // 脚本执行错误
+                // 脚本执行Error
                 self.handle_error(
                     e,
                     &config,
@@ -327,8 +327,8 @@ impl NodeExecutor for ScriptNodeExecutor {
                 .await
             }
             Ok(Err(e)) => {
-                // spawn_blocking 错误
-                let error_msg = format!("脚本执行任务失败: {}", e);
+                // spawn_blocking Error
+                let error_msg = format!("脚本执行任务Failed: {}", e);
                 self.handle_error(
                     ErrorDetail::new(ErrorKind::ScriptRuntime, error_msg),
                     &config,
@@ -350,7 +350,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                         message: error_msg.clone(),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -467,7 +467,7 @@ impl ScriptNodeExecutor {
         })
     }
 
-    /// 处理执行错误
+    /// 处理执行Error
     async fn handle_error(
         &self,
         error: ErrorDetail,
@@ -477,20 +477,20 @@ impl ScriptNodeExecutor {
         connections: &[Connection],
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         log::error!(
-            "[流程 {}] 脚本节点 {} 执行错误: {}",
+            "[流程 {}] 脚本节点 {} 执行Error: {}",
             context.flow_uuid,
             node.name,
             error.message
         );
 
-        // 发送错误日志
+        // 发送Error日志
         context
             .emit_log(LogEvent {
                 level: LogLevel::Error,
-                message: format!("脚本节点 {} 错误: {}", node.name, error.message),
+                message: format!("脚本节点 {} Error: {}", node.name, error.message),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -500,11 +500,11 @@ impl ScriptNodeExecutor {
 
         match config.on_error {
             ScriptErrorStrategy::Fatal => {
-                // 致命错误，终止流程
+                // 致命Error，终止流程
                 Err(ErrorDetail::execution_error(error.message))
             }
             ScriptErrorStrategy::Recoverable => {
-                // 可恢复错误，路由到 false 端口
+                // 可恢复Error，路由到 false 端口
                 let next_nodes = self.get_next_nodes_by_port(node, "false", connections);
                 let output_data = serde_json::json!({
                     "success": false,
@@ -576,7 +576,7 @@ mod tests {
             .execute(&node, &mut context, &connections, &HashMap::new())
             .await;
 
-        assert!(result.is_ok(), "脚本执行应该成功");
+        assert!(result.is_ok(), "脚本执行应该Success");
         let (next_nodes, output_data) = result.unwrap();
         assert!(next_nodes.is_empty()); // 没有连接时返回空列表
         assert!(output_data.is_some());
@@ -605,7 +605,7 @@ mod tests {
             .execute(&node, &mut context, &connections, &HashMap::new())
             .await;
 
-        assert!(result.is_ok(), "变量设置和获取应该成功");
+        assert!(result.is_ok(), "变量设置和获取应该Success");
 
         // 验证变量已同步到 ExecutionContext
         assert!(context.variables.get_variable("my_var").is_some());
@@ -719,7 +719,7 @@ mod tests {
     async fn test_script_executor_fatal_error() {
         let executor = ScriptNodeExecutor::new();
 
-        // 创建致命错误配置的节点
+        // 创建致命Error配置的节点
         let node = Node {
             uuid: "script-007".to_string(),
             node_type: "script".to_string(),
@@ -730,7 +730,7 @@ mod tests {
                 timeout_ms: 5000,
                 memory_limit_mb: 10,
                 execution_phase: ScriptExecutionPhase::Standalone,
-                on_error: ScriptErrorStrategy::Fatal, // 致命错误
+                on_error: ScriptErrorStrategy::Fatal, // 致命Error
             }),
             ports: None,
             has_breakpoint: None,
@@ -744,7 +744,7 @@ mod tests {
             .execute(&node, &mut context, &connections, &HashMap::new())
             .await;
 
-        // 致命错误应该返回 Err
+        // 致命Error应该返回 Err
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Fatal error"));
     }
@@ -818,7 +818,7 @@ mod tests {
             .execute(&node, &mut context, &connections, &HashMap::new())
             .await;
 
-        // Recoverable 错误应该走 false 端口
+        // Recoverable Error应该走 false 端口
         assert!(result.is_ok());
         let (next_nodes, _) = result.unwrap();
         assert_eq!(next_nodes, vec!["error-handler-node"]);

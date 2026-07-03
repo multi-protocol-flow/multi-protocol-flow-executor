@@ -16,8 +16,8 @@ use flow_engine_core::node_types;
 /// - `DeleteNodeCommandOutput`: 包含删除结果
 ///
 /// # 桩实现说明
-/// - 如果节点是开始节点，返回错误 "不能删除开始节点"
-/// - 否则返回错误信息 "暂未实现持久化"
+/// - 如果节点是开始节点，返回Error "不能删除开始节点"
+/// - 否则返回Error信息 "暂未实现持久化"
 /// - `说明原因：delete_node` 需要先加载流程、删除节点和相关连接、再保存流程
 /// - 这将在任务 2.5（保存流程）中完整实现
 pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeCommandOutput {
@@ -43,7 +43,7 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
         };
     }
 
-    // 桩实现：返回持久化未实现的错误
+    // 桩实现：返回持久化未实现的Error
     DeleteNodeCommandOutput {
         success: false,
         error: Some(
@@ -85,7 +85,7 @@ mod tests {
         on_error: None,
         };
 
-        Flow { uuid: "flow-001".to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![entry_node, http_node], connections: vec![], hooks: None }
+        Flow { uuid: "flow-001".to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![entry_node, http_node], connections: vec![], hooks: None }
     }
 
     #[test]
@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_delete_entry_node_should_fail() {
-        // 测试删除开始节点应该失败
+        // 测试删除开始节点应该Failed
         let flow = create_test_flow();
         let input = DeleteNodeCommandInput {
             flow_id: "flow-001".to_string(),
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_delete_existing_node_returns_stub_error() {
-        // 测试删除存在的非 Entry 节点（桩实现）
+        // 测试删除存在的非 Entry node（桩实现）
         let flow = create_test_flow();
         let input = DeleteNodeCommandInput {
             flow_id: "flow-001".to_string(),
@@ -132,7 +132,7 @@ mod tests {
 
         let result = delete_node(input, flow);
 
-        // 桩实现：返回持久化未实现的错误
+        // 桩实现：返回持久化未实现的Error
         assert!(!result.success);
         assert!(result.error.is_some());
         let error_msg = result.error.unwrap();

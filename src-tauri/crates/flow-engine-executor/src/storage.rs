@@ -69,11 +69,11 @@ pub fn get_data_dir() -> Result<PathBuf, String> {
 
     let base_dir = if cfg!(target_os = "windows") {
         std::env::var("APPDATA")
-            .map_err(|e| format!("获取 APPDATA 环境变量失败: {}", e))?
+            .map_err(|e| format!("获取 APPDATA 环境变量Failed: {}", e))?
             .into()
     } else if cfg!(target_os = "macos") {
         std::env::var("HOME")
-            .map_err(|e| format!("获取 HOME 环境变量失败: {}", e))
+            .map_err(|e| format!("获取 HOME 环境变量Failed: {}", e))
             .map(|h| PathBuf::from(h).join("Library").join("Application Support"))?
     } else {
         // Linux 和其他类 Unix 系统
@@ -81,7 +81,7 @@ pub fn get_data_dir() -> Result<PathBuf, String> {
             .map(PathBuf::from)
             .or_else(|_| {
                 std::env::var("HOME")
-                    .map_err(|e| format!("获取 HOME 环境变量失败: {}", e))
+                    .map_err(|e| format!("获取 HOME 环境变量Failed: {}", e))
                     .map(|h| PathBuf::from(h).join(".local").join("share"))
             })?
     };
@@ -103,10 +103,10 @@ pub fn ensure_flows_dir() -> Result<PathBuf, String> {
     // 检查目录是否已存在（使用 try_exists 避免竞态条件）
     if !flows_dir
         .try_exists()
-        .map_err(|e| format!("检查目录失败: {}", e))?
+        .map_err(|e| format!("检查目录Failed: {}", e))?
     {
         // 创建目录（包括所有必要的父目录）
-        fs::create_dir_all(&flows_dir).map_err(|e| format!("创建 flows 目录失败: {}", e))?;
+        fs::create_dir_all(&flows_dir).map_err(|e| format!("创建 flows 目录Failed: {}", e))?;
     }
 
     Ok(flows_dir)
@@ -119,8 +119,8 @@ pub fn ensure_flows_dir() -> Result<PathBuf, String> {
 /// - `path`: 文件路径（可以是绝对路径或相对于 flows 目录的路径）
 ///
 /// # 返回
-/// - `Ok(())`: 保存成功
-/// - `Err(String)`: 保存失败，包含错误信息
+/// - `Ok(())`: 保存Success
+/// - `Err(String)`: 保存Failed，包含Error信息
 pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
     let file_path = if std::path::Path::new(path).is_absolute() {
         // 规范化绝对路径以避免重复分隔符
@@ -136,10 +136,10 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
     if let Some(parent) = file_path.parent() {
         if !parent
             .try_exists()
-            .map_err(|e| format!("检查父目录失败: {}", e))?
+            .map_err(|e| format!("检查父目录Failed: {}", e))?
         {
             fs::create_dir_all(parent)
-                .map_err(|e| format!("创建父目录 {:?} 失败: {}", parent, e))?;
+                .map_err(|e| format!("创建父目录 {:?} Failed: {}", parent, e))?;
         }
     }
 
@@ -150,14 +150,14 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
         _meta: None,
     };
     let json_string =
-        serde_json::to_string_pretty(&flow_file).map_err(|e| format!("序列化 Flow 失败: {}", e))?;
+        serde_json::to_string_pretty(&flow_file).map_err(|e| format!("序列化 Flow Failed: {}", e))?;
 
     // 创建并写入文件
     let mut file =
-        File::create(&file_path).map_err(|e| format!("创建文件 {:?} 失败: {}", file_path, e))?;
+        File::create(&file_path).map_err(|e| format!("创建文件 {:?} Failed: {}", file_path, e))?;
 
     file.write_all(json_string.as_bytes())
-        .map_err(|e| format!("写入文件 {:?} 失败: {}", file_path, e))?;
+        .map_err(|e| format!("写入文件 {:?} Failed: {}", file_path, e))?;
 
     Ok(())
 }
@@ -169,7 +169,7 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
 ///
 /// # 返回
 /// - `Ok(Flow)`: 加载的流程
-/// - `Err(String)`: 加载失败，包含错误信息
+/// - `Err(String)`: 加载Failed，包含Error信息
 pub fn load_flow(path: &str) -> Result<Flow, String> {
     let file_path = if std::path::Path::new(path).is_absolute() {
         // 规范化绝对路径以避免重复分隔符
@@ -183,15 +183,15 @@ pub fn load_flow(path: &str) -> Result<Flow, String> {
 
     // 读取文件内容
     let mut file =
-        File::open(&file_path).map_err(|e| format!("打开文件 {:?} 失败: {}", file_path, e))?;
+        File::open(&file_path).map_err(|e| format!("打开文件 {:?} Failed: {}", file_path, e))?;
 
     let mut content = String::new();
     file.read_to_string(&mut content)
-        .map_err(|e| format!("读取文件 {:?} 失败: {}", file_path, e))?;
+        .map_err(|e| format!("读取文件 {:?} Failed: {}", file_path, e))?;
 
     // 反序列化为 FlowFile 包装格式（.mpf 文件统一格式）
     let flow_file: FlowFile = serde_json::from_str(&content)
-        .map_err(|e| format!("反序列化 FlowFile 失败: {}（流程文件必须使用 FlowFile 包装格式，包含 _version 和 flow 键）", e))?;
+        .map_err(|e| format!("Deserialize FlowFile Failed: {} (Flow file must use FlowFile wrapper format with _version and flow keys)", e))?;
     let flow = flow_file.flow;
 
     Ok(flow)
@@ -203,13 +203,13 @@ pub fn load_flow(path: &str) -> Result<Flow, String> {
 fn collect_mpf_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
     if !dir
         .try_exists()
-        .map_err(|e| format!("检查目录失败: {}", e))?
+        .map_err(|e| format!("检查目录Failed: {}", e))?
     {
         return Ok(());
     }
 
-    for entry in fs::read_dir(dir).map_err(|e| format!("读取目录失败: {}", e))? {
-        let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+    for entry in fs::read_dir(dir).map_err(|e| format!("读取目录Failed: {}", e))? {
+        let entry = entry.map_err(|e| format!("读取目录项Failed: {}", e))?;
         let path = entry.path();
         if path.is_dir() {
             collect_mpf_files(&path, files)?;
@@ -243,7 +243,7 @@ pub fn save_flow_file_with_meta(
     meta: Option<serde_json::Value>,
 ) -> Result<(), String> {
     // 确保目录存在
-    fs::create_dir_all(flows_dir).map_err(|e| format!("创建流程目录失败: {}", e))?;
+    fs::create_dir_all(flows_dir).map_err(|e| format!("创建流程目录Failed: {}", e))?;
 
     // 包装为 FlowFile
     let flow_file = FlowFile {
@@ -254,7 +254,7 @@ pub fn save_flow_file_with_meta(
 
     // 序列化为 JSON
     let json_string =
-        serde_json::to_string_pretty(&flow_file).map_err(|e| format!("序列化流程失败: {}", e))?;
+        serde_json::to_string_pretty(&flow_file).map_err(|e| format!("序列化流程Failed: {}", e))?;
 
     // 检查是否已存在同 UUID 的文件（更新场景）
     let mut existing_path: Option<PathBuf> = None;
@@ -283,7 +283,7 @@ pub fn save_flow_file_with_meta(
     // 确保目标目录存在
     if target_dir != flows_dir {
         fs::create_dir_all(&target_dir)
-            .map_err(|e| format!("创建目标目录失败: {}", e))?;
+            .map_err(|e| format!("创建目标目录Failed: {}", e))?;
     }
 
     // 生成文件名，处理冲突
@@ -295,7 +295,7 @@ pub fn save_flow_file_with_meta(
         let candidate_path = target_dir.join(&filename);
         // 如果目标路径就是旧文件路径（名称未变），直接跳出
         let is_old_path = existing_path.as_ref() == Some(&candidate_path);
-        if is_old_path || !candidate_path.try_exists().map_err(|e| format!("检查文件失败: {}", e))? {
+        if is_old_path || !candidate_path.try_exists().map_err(|e| format!("检查文件Failed: {}", e))? {
             break;
         }
         filename = format!("{}_{}.mpf", safe_name, counter);
@@ -306,15 +306,15 @@ pub fn save_flow_file_with_meta(
 
     // 原子写入：先写临时文件，再重命名
     let mut temp_file =
-        NamedTempFile::new_in(flows_dir).map_err(|e| format!("创建临时文件失败: {}", e))?;
+        NamedTempFile::new_in(flows_dir).map_err(|e| format!("创建临时文件Failed: {}", e))?;
 
     temp_file
         .write_all(json_string.as_bytes())
-        .map_err(|e| format!("写入临时文件失败: {}", e))?;
+        .map_err(|e| format!("写入临时文件Failed: {}", e))?;
 
     temp_file
         .persist(&target_path)
-        .map_err(|e| format!("保存流程文件失败: {}", e))?;
+        .map_err(|e| format!("保存流程文件Failed: {}", e))?;
 
     // 如果文件名/位置变更，删除旧文件
     if let Some(ref old_path) = existing_path {
@@ -329,7 +329,7 @@ pub fn save_flow_file_with_meta(
 /// 从 .mpf 文件加载流程文件（按 UUID 查找）
 ///
 /// 先轻量扫描定位文件，再完整验证 Flow 结构。
-/// 如果文件格式损坏，返回明确的错误提示而不是"流程不存在"。
+/// 如果文件格式损坏，返回明确的Error提示而不是"流程不存在"。
 pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, String> {
     let mut mpf_files = Vec::new();
     collect_mpf_files(flows_dir, &mut mpf_files)?;
@@ -341,9 +341,9 @@ pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, Stri
             let mut content = String::new();
             if (|| -> Result<(), String> {
                 let mut file =
-                    File::open(path).map_err(|e| format!("打开文件失败: {}", e))?;
+                    File::open(path).map_err(|e| format!("打开文件Failed: {}", e))?;
                 file.read_to_string(&mut content)
-                    .map_err(|e| format!("读取文件失败: {}", e))?;
+                    .map_err(|e| format!("读取文件Failed: {}", e))?;
                 Ok(())
             })()
             .is_err()
@@ -365,9 +365,9 @@ pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, Stri
             // 第二遍：读取并完整验证该文件
             let mut content = String::new();
             let mut file =
-                File::open(&path).map_err(|e| format!("打开文件失败: {}", e))?;
+                File::open(&path).map_err(|e| format!("打开文件Failed: {}", e))?;
             file.read_to_string(&mut content)
-                .map_err(|e| format!("读取文件失败: {}", e))?;
+                .map_err(|e| format!("读取文件Failed: {}", e))?;
 
             let flow_file: FlowFile = serde_json::from_str(&content).map_err(|e| {
                 format!(
@@ -394,7 +394,7 @@ pub fn load_flow_file(uuid: &str, flows_dir: &Path) -> Result<Flow, String> {
 /// 列出所有 .mpf 流程文件的元数据
 ///
 /// 仅检查 `.mpf` 后缀，使用轻量 JSON 解析提取 UUID 和流程名称，不验证完整 Flow 结构。
-/// 损坏的文件（JSON 解析失败）会被跳过并记录警告日志。
+/// 损坏的文件（JSON 解析Failed）会被跳过并记录警告日志。
 /// 结果按文件夹路径排序，同文件夹内按名称排序。
 pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
     let mut mpf_files = Vec::new();
@@ -405,9 +405,9 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
     for path in &mpf_files {
         let mut content = String::new();
         let read_ok = (|| -> Result<(), String> {
-            let mut file = File::open(path).map_err(|e| format!("打开文件失败: {}", e))?;
+            let mut file = File::open(path).map_err(|e| format!("打开文件Failed: {}", e))?;
             file.read_to_string(&mut content)
-                .map_err(|e| format!("读取文件失败: {}", e))?;
+                .map_err(|e| format!("读取文件Failed: {}", e))?;
             Ok(())
         })();
 
@@ -468,9 +468,9 @@ pub fn delete_flow_file(uuid: &str, flows_dir: &Path) -> Result<(), String> {
     for path in mpf_files {
         let mut content = String::new();
         let read_ok = (|| -> Result<(), String> {
-            let mut file = File::open(&path).map_err(|e| format!("打开文件失败: {}", e))?;
+            let mut file = File::open(&path).map_err(|e| format!("打开文件Failed: {}", e))?;
             file.read_to_string(&mut content)
-                .map_err(|e| format!("读取文件失败: {}", e))?;
+                .map_err(|e| format!("读取文件Failed: {}", e))?;
             Ok(())
         })();
 
@@ -481,7 +481,7 @@ pub fn delete_flow_file(uuid: &str, flows_dir: &Path) -> Result<(), String> {
         if let Ok(meta) = serde_json::from_str::<FlowFileMeta>(&content) {
             if meta.flow.uuid == uuid {
                 fs::remove_file(&path)
-                    .map_err(|e| format!("删除流程文件 {:?} 失败: {}", path, e))?;
+                    .map_err(|e| format!("删除流程文件 {:?} Failed: {}", path, e))?;
                 return Ok(());
             }
         }
@@ -506,9 +506,9 @@ pub fn copy_flow_file(uuid: &str, flows_dir: &Path) -> Result<Flow, String> {
     for path in &mpf_files {
         let mut content = String::new();
         let read_ok = (|| -> Result<(), String> {
-            let mut file = File::open(path).map_err(|e| format!("打开文件失败: {}", e))?;
+            let mut file = File::open(path).map_err(|e| format!("打开文件Failed: {}", e))?;
             file.read_to_string(&mut content)
-                .map_err(|e| format!("读取文件失败: {}", e))?;
+                .map_err(|e| format!("读取文件Failed: {}", e))?;
             Ok(())
         })();
 
@@ -563,7 +563,7 @@ pub fn get_reports_dir() -> Result<PathBuf, String> {
 /// - `reports_dir`: 存储目录路径（由调用方决定）
 pub fn save_report(report: &FlowExecutionReport, reports_dir: &Path) -> Result<(), String> {
     // 确保目录存在
-    fs::create_dir_all(reports_dir).map_err(|e| format!("创建报告目录失败: {}", e))?;
+    fs::create_dir_all(reports_dir).map_err(|e| format!("创建报告目录Failed: {}", e))?;
 
     // 根据执行模式决定文件名前缀
     let filename = match report.execution_mode {
@@ -576,21 +576,21 @@ pub fn save_report(report: &FlowExecutionReport, reports_dir: &Path) -> Result<(
 
     // 序列化为 JSON
     let json_string =
-        serde_json::to_string_pretty(report).map_err(|e| format!("序列化报告失败: {}", e))?;
+        serde_json::to_string_pretty(report).map_err(|e| format!("序列化报告Failed: {}", e))?;
 
     // 使用原子写入：先写临时文件，再重命名
     let mut temp_file =
-        NamedTempFile::new_in(reports_dir).map_err(|e| format!("创建临时文件失败: {}", e))?;
+        NamedTempFile::new_in(reports_dir).map_err(|e| format!("创建临时文件Failed: {}", e))?;
 
     // 写入内容到临时文件
     temp_file
         .write_all(json_string.as_bytes())
-        .map_err(|e| format!("写入临时文件失败: {}", e))?;
+        .map_err(|e| format!("写入临时文件Failed: {}", e))?;
 
     // 原子重命名到最终路径
     temp_file
         .persist(&file_path)
-        .map_err(|e| format!("保存报告文件失败: {}", e))?;
+        .map_err(|e| format!("保存报告文件Failed: {}", e))?;
 
     Ok(())
 }
@@ -608,12 +608,12 @@ pub fn load_report(uuid: &str, reports_dir: &Path) -> Result<FlowExecutionReport
     // 确定使用哪个文件路径
     let file_path = if normal_path
         .try_exists()
-        .map_err(|e| format!("检查报告文件失败: {}", e))?
+        .map_err(|e| format!("检查报告文件Failed: {}", e))?
     {
         normal_path
     } else if debug_path
         .try_exists()
-        .map_err(|e| format!("检查报告文件失败: {}", e))?
+        .map_err(|e| format!("检查报告文件Failed: {}", e))?
     {
         debug_path
     } else {
@@ -622,15 +622,15 @@ pub fn load_report(uuid: &str, reports_dir: &Path) -> Result<FlowExecutionReport
 
     // 读取文件内容
     let mut file =
-        File::open(&file_path).map_err(|e| format!("打开报告文件 {:?} 失败: {}", file_path, e))?;
+        File::open(&file_path).map_err(|e| format!("打开报告文件 {:?} Failed: {}", file_path, e))?;
 
     let mut content = String::new();
     file.read_to_string(&mut content)
-        .map_err(|e| format!("读取报告文件 {:?} 失败: {}", file_path, e))?;
+        .map_err(|e| format!("读取报告文件 {:?} Failed: {}", file_path, e))?;
 
     // 反序列化
     let report: FlowExecutionReport =
-        serde_json::from_str(&content).map_err(|e| format!("解析报告文件失败: {}", e))?;
+        serde_json::from_str(&content).map_err(|e| format!("解析报告文件Failed: {}", e))?;
 
     Ok(report)
 }
@@ -662,7 +662,7 @@ pub fn list_reports(reports_dir: &Path) -> Result<Vec<ReportMetadata>, String> {
     // 确保目录存在
     if !reports_dir
         .try_exists()
-        .map_err(|e| format!("检查报告目录失败: {}", e))?
+        .map_err(|e| format!("检查报告目录Failed: {}", e))?
     {
         return Ok(Vec::new());
     }
@@ -670,9 +670,9 @@ pub fn list_reports(reports_dir: &Path) -> Result<Vec<ReportMetadata>, String> {
     let mut reports = Vec::new();
 
     // 读取目录中的所有 JSON 文件
-    for entry in fs::read_dir(reports_dir).map_err(|e| format!("读取报告目录失败: {}", e))?
+    for entry in fs::read_dir(reports_dir).map_err(|e| format!("读取报告目录Failed: {}", e))?
     {
-        let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+        let entry = entry.map_err(|e| format!("读取目录项Failed: {}", e))?;
         let path = entry.path();
 
         // 跳过非 JSON 文件（如元数据文件）
@@ -723,13 +723,13 @@ pub fn list_reports(reports_dir: &Path) -> Result<Vec<ReportMetadata>, String> {
 /// 对于 50 个平均 200KB 的报告文件，完整解析需要分配 ~10MB+ 的 Rust 结构体，
 /// 而轻量解析仅分配 ~50KB，**内存分配减少 200 倍**，GC/释放压力也随之大幅降低。
 fn read_report_entry(path: &Path) -> Result<ReportListEntry, String> {
-    let mut file = File::open(path).map_err(|e| format!("打开报告文件失败: {}", e))?;
+    let mut file = File::open(path).map_err(|e| format!("打开报告文件Failed: {}", e))?;
     let mut content = String::new();
     file.read_to_string(&mut content)
-        .map_err(|e| format!("读取报告文件失败: {}", e))?;
+        .map_err(|e| format!("读取报告文件Failed: {}", e))?;
 
     serde_json::from_str::<ReportListEntry>(&content)
-        .map_err(|e| format!("解析报告元数据失败: {}", e))
+        .map_err(|e| format!("解析报告元数据Failed: {}", e))
 }
 
 /// 删除报告
@@ -745,12 +745,12 @@ pub fn delete_report(uuid: &str, reports_dir: &Path) -> Result<(), String> {
     // 确定使用哪个文件路径
     let file_path = if normal_path
         .try_exists()
-        .map_err(|e| format!("检查报告文件失败: {}", e))?
+        .map_err(|e| format!("检查报告文件Failed: {}", e))?
     {
         normal_path
     } else if debug_path
         .try_exists()
-        .map_err(|e| format!("检查报告文件失败: {}", e))?
+        .map_err(|e| format!("检查报告文件Failed: {}", e))?
     {
         debug_path
     } else {
@@ -758,7 +758,7 @@ pub fn delete_report(uuid: &str, reports_dir: &Path) -> Result<(), String> {
     };
 
     // 删除文件
-    fs::remove_file(&file_path).map_err(|e| format!("删除报告文件 {:?} 失败: {}", file_path, e))?;
+    fs::remove_file(&file_path).map_err(|e| format!("删除报告文件 {:?} Failed: {}", file_path, e))?;
 
     Ok(())
 }
@@ -791,7 +791,7 @@ pub struct StressTestReportSummary {
 ///
 /// # 返回
 /// - `Ok(PathBuf)`: 保存的文件路径
-/// - `Err(String)`: 保存失败，包含错误信息
+/// - `Err(String)`: 保存Failed，包含Error信息
 ///
 /// # 文件命名格式
 /// `performance_{flow_name}_{YYYYMMDD_HHMMSS}.json`
@@ -800,7 +800,7 @@ pub fn save_stress_report(
     reports_dir: &Path,
 ) -> Result<PathBuf, String> {
     // 确保目录存在
-    fs::create_dir_all(reports_dir).map_err(|e| format!("创建压测报告目录失败: {}", e))?;
+    fs::create_dir_all(reports_dir).map_err(|e| format!("创建压测报告目录Failed: {}", e))?;
 
     // 生成时间戳：YYYYMMDD_HHMMSS
     let timestamp = format_timestamp(report.start_time);
@@ -816,21 +816,21 @@ pub fn save_stress_report(
 
     // 序列化为 JSON
     let json_string =
-        serde_json::to_string_pretty(report).map_err(|e| format!("序列化压测报告失败: {}", e))?;
+        serde_json::to_string_pretty(report).map_err(|e| format!("序列化压测报告Failed: {}", e))?;
 
     // 使用原子写入：先写临时文件，再重命名
     let mut temp_file =
-        NamedTempFile::new_in(reports_dir).map_err(|e| format!("创建临时文件失败: {}", e))?;
+        NamedTempFile::new_in(reports_dir).map_err(|e| format!("创建临时文件Failed: {}", e))?;
 
     // 写入内容到临时文件
     temp_file
         .write_all(json_string.as_bytes())
-        .map_err(|e| format!("写入临时文件失败: {}", e))?;
+        .map_err(|e| format!("写入临时文件Failed: {}", e))?;
 
     // 原子重命名到最终路径
     temp_file
         .persist(&file_path)
-        .map_err(|e| format!("保存压测报告文件失败: {}", e))?;
+        .map_err(|e| format!("保存压测报告文件Failed: {}", e))?;
 
     Ok(file_path)
 }
@@ -842,27 +842,27 @@ pub fn save_stress_report(
 ///
 /// # 返回
 /// - `Ok(StressTestReport)`: 加载的压测报告
-/// - `Err(String)`: 加载失败，包含错误信息
+/// - `Err(String)`: 加载Failed，包含Error信息
 pub fn load_stress_report(file_path: &Path) -> Result<StressTestReport, String> {
     // 检查文件是否存在
     if !file_path
         .try_exists()
-        .map_err(|e| format!("检查压测报告文件失败: {}", e))?
+        .map_err(|e| format!("检查压测报告文件Failed: {}", e))?
     {
         return Err(format!("压测报告文件不存在: {:?}", file_path));
     }
 
     // 读取文件内容
     let mut file = File::open(file_path)
-        .map_err(|e| format!("打开压测报告文件 {:?} 失败: {}", file_path, e))?;
+        .map_err(|e| format!("打开压测报告文件 {:?} Failed: {}", file_path, e))?;
 
     let mut content = String::new();
     file.read_to_string(&mut content)
-        .map_err(|e| format!("读取压测报告文件 {:?} 失败: {}", file_path, e))?;
+        .map_err(|e| format!("读取压测报告文件 {:?} Failed: {}", file_path, e))?;
 
     // 反序列化
     let report: StressTestReport =
-        serde_json::from_str(&content).map_err(|e| format!("解析压测报告文件失败: {}", e))?;
+        serde_json::from_str(&content).map_err(|e| format!("解析压测报告文件Failed: {}", e))?;
 
     Ok(report)
 }
@@ -873,16 +873,16 @@ pub fn load_stress_report(file_path: &Path) -> Result<StressTestReport, String> 
 /// - `file_path`: 报告文件路径
 ///
 /// # 返回
-/// - `Ok(())`: 删除成功
-/// - `Err(String)`: 删除失败，包含错误信息
+/// - `Ok(())`: 删除Success
+/// - `Err(String)`: 删除Failed，包含Error信息
 pub fn delete_stress_report(file_path: &Path) -> Result<(), String> {
     if !file_path
         .try_exists()
-        .map_err(|e| format!("检查压测报告文件失败: {}", e))?
+        .map_err(|e| format!("检查压测报告文件Failed: {}", e))?
     {
         return Err(format!("压测报告文件不存在: {:?}", file_path));
     }
-    fs::remove_file(file_path).map_err(|e| format!("删除压测报告文件 {:?} 失败: {}", file_path, e))
+    fs::remove_file(file_path).map_err(|e| format!("删除压测报告文件 {:?} Failed: {}", file_path, e))
 }
 
 /// 列出压测报告摘要
@@ -892,12 +892,12 @@ pub fn delete_stress_report(file_path: &Path) -> Result<(), String> {
 ///
 /// # 返回
 /// - `Ok(Vec<StressTestReportSummary>)`: 报告摘要列表，按开始时间倒序排序
-/// - `Err(String)`: 读取失败，包含错误信息
+/// - `Err(String)`: 读取Failed，包含Error信息
 pub fn list_stress_reports(reports_dir: &Path) -> Result<Vec<StressTestReportSummary>, String> {
     // 确保目录存在
     if !reports_dir
         .try_exists()
-        .map_err(|e| format!("检查压测报告目录失败: {}", e))?
+        .map_err(|e| format!("检查压测报告目录Failed: {}", e))?
     {
         return Ok(Vec::new());
     }
@@ -905,9 +905,9 @@ pub fn list_stress_reports(reports_dir: &Path) -> Result<Vec<StressTestReportSum
     let mut reports = Vec::new();
 
     // 读取目录中的所有 performance_*.json 文件
-    for entry in fs::read_dir(reports_dir).map_err(|e| format!("读取压测报告目录失败: {}", e))?
+    for entry in fs::read_dir(reports_dir).map_err(|e| format!("读取压测报告目录Failed: {}", e))?
     {
-        let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+        let entry = entry.map_err(|e| format!("读取目录项Failed: {}", e))?;
         let path = entry.path();
 
         // 获取文件名
@@ -1006,13 +1006,13 @@ fn collect_folders(
 ) -> Result<(), String> {
     if !base_dir
         .try_exists()
-        .map_err(|e| format!("检查目录失败: {}", e))?
+        .map_err(|e| format!("检查目录Failed: {}", e))?
     {
         return Ok(());
     }
 
-    for entry in fs::read_dir(base_dir).map_err(|e| format!("读取目录失败: {}", e))? {
-        let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+    for entry in fs::read_dir(base_dir).map_err(|e| format!("读取目录Failed: {}", e))? {
+        let entry = entry.map_err(|e| format!("读取目录项Failed: {}", e))?;
         let path = entry.path();
         if path.is_dir() {
             let rel_path = path
@@ -1039,13 +1039,13 @@ fn collect_folders(
 fn has_mpf_files_recursive(dir: &Path) -> Result<bool, String> {
     if !dir
         .try_exists()
-        .map_err(|e| format!("检查目录失败: {}", e))?
+        .map_err(|e| format!("检查目录Failed: {}", e))?
     {
         return Ok(false);
     }
 
-    for entry in fs::read_dir(dir).map_err(|e| format!("读取目录失败: {}", e))? {
-        let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+    for entry in fs::read_dir(dir).map_err(|e| format!("读取目录Failed: {}", e))? {
+        let entry = entry.map_err(|e| format!("读取目录项Failed: {}", e))?;
         let path = entry.path();
         if path.is_dir() {
             if has_mpf_files_recursive(&path)? {
@@ -1086,13 +1086,13 @@ pub fn create_folder(flows_dir: &Path, folder_path: &str) -> Result<FolderInfo, 
     // 检查是否已存在
     if full_path
         .try_exists()
-        .map_err(|e| format!("检查目录失败: {}", e))?
+        .map_err(|e| format!("检查目录Failed: {}", e))?
     {
         return Err(format!("文件夹已存在: {}", clean_path));
     }
 
     // 创建目录（包括所有必要的父目录）
-    fs::create_dir_all(&full_path).map_err(|e| format!("创建文件夹失败: {}", e))?;
+    fs::create_dir_all(&full_path).map_err(|e| format!("创建文件夹Failed: {}", e))?;
 
     let name = clean_parts.last().expect("clean_parts 不为空").clone();
 
@@ -1116,7 +1116,7 @@ pub fn delete_folder(flows_dir: &Path, folder_path: &str) -> Result<(), String> 
     // 安全检查：确保路径在 flows_dir 内
     let canonical_flows_dir = flows_dir
         .canonicalize()
-        .map_err(|e| format!("规范化流程目录失败: {}", e))?;
+        .map_err(|e| format!("规范化流程目录Failed: {}", e))?;
     let canonical_full_path = full_path
         .canonicalize()
         .map_err(|_| format!("文件夹不存在: {}", folder_path))?;
@@ -1131,7 +1131,7 @@ pub fn delete_folder(flows_dir: &Path, folder_path: &str) -> Result<(), String> 
     }
 
     // 删除空目录树
-    fs::remove_dir_all(&full_path).map_err(|e| format!("删除文件夹失败: {}", e))?;
+    fs::remove_dir_all(&full_path).map_err(|e| format!("删除文件夹Failed: {}", e))?;
 
     Ok(())
 }
@@ -1158,7 +1158,7 @@ pub fn rename_folder(
 
     if !full_path
         .try_exists()
-        .map_err(|e| format!("检查目录失败: {}", e))?
+        .map_err(|e| format!("检查目录Failed: {}", e))?
     {
         return Err(format!("文件夹不存在: {}", folder_path));
     }
@@ -1171,13 +1171,13 @@ pub fn rename_folder(
 
     if new_full_path
         .try_exists()
-        .map_err(|e| format!("检查目录失败: {}", e))?
+        .map_err(|e| format!("检查目录Failed: {}", e))?
     {
         return Err(format!("文件夹名称已存在: {}", clean_name));
     }
 
     // 重命名
-    fs::rename(&full_path, &new_full_path).map_err(|e| format!("重命名文件夹失败: {}", e))?;
+    fs::rename(&full_path, &new_full_path).map_err(|e| format!("重命名文件夹Failed: {}", e))?;
 
     // 计算新的相对路径
     let new_rel = parent
@@ -1237,9 +1237,9 @@ pub fn move_flow_to_folder(
     // 确保目标目录存在
     if !target_dir
         .try_exists()
-        .map_err(|e| format!("检查目标目录失败: {}", e))?
+        .map_err(|e| format!("检查目标目录Failed: {}", e))?
     {
-        fs::create_dir_all(&target_dir).map_err(|e| format!("创建目标目录失败: {}", e))?;
+        fs::create_dir_all(&target_dir).map_err(|e| format!("创建目标目录Failed: {}", e))?;
     }
 
     let file_name = source_path
@@ -1255,7 +1255,7 @@ pub fn move_flow_to_folder(
     // 检查目标位置是否有同名文件
     if target_path
         .try_exists()
-        .map_err(|e| format!("检查目标文件失败: {}", e))?
+        .map_err(|e| format!("检查目标文件Failed: {}", e))?
     {
         return Err(format!(
             "目标文件夹中已存在同名文件: {}",
@@ -1264,7 +1264,7 @@ pub fn move_flow_to_folder(
     }
 
     // 移动文件
-    fs::rename(&source_path, &target_path).map_err(|e| format!("移动流程文件失败: {}", e))?;
+    fs::rename(&source_path, &target_path).map_err(|e| format!("移动流程文件Failed: {}", e))?;
 
     Ok(())
 }
@@ -1288,7 +1288,7 @@ pub fn move_folder(
     // 验证源文件夹存在
     if !source_full
         .try_exists()
-        .map_err(|e| format!("检查源目录失败: {}", e))?
+        .map_err(|e| format!("检查源目录Failed: {}", e))?
     {
         return Err(format!("源文件夹不存在: {}", source_folder_path));
     }
@@ -1296,7 +1296,7 @@ pub fn move_folder(
     // 安全检查：规范化路径，防止路径遍历
     let canonical_flows_dir = flows_dir
         .canonicalize()
-        .map_err(|e| format!("规范化流程目录失败: {}", e))?;
+        .map_err(|e| format!("规范化流程目录Failed: {}", e))?;
     let canonical_source = source_full
         .canonicalize()
         .map_err(|_| format!("源文件夹不存在: {}", source_folder_path))?;
@@ -1334,7 +1334,7 @@ pub fn move_folder(
         // 验证目标文件夹存在
         if !target_parent
             .try_exists()
-            .map_err(|e| format!("检查目标目录失败: {}", e))?
+            .map_err(|e| format!("检查目标目录Failed: {}", e))?
         {
             return Err(format!("目标文件夹不存在: {}", target_folder_path));
         }
@@ -1351,7 +1351,7 @@ pub fn move_folder(
     // 检查目标位置是否有同名文件夹
     if new_path
         .try_exists()
-        .map_err(|e| format!("检查目标路径失败: {}", e))?
+        .map_err(|e| format!("检查目标路径Failed: {}", e))?
     {
         return Err(format!(
             "目标位置已存在同名文件夹: {}",
@@ -1360,7 +1360,7 @@ pub fn move_folder(
     }
 
     // 移动文件夹
-    fs::rename(&source_full, &new_path).map_err(|e| format!("移动文件夹失败: {}", e))?;
+    fs::rename(&source_full, &new_path).map_err(|e| format!("移动文件夹Failed: {}", e))?;
 
     Ok(())
 }
@@ -1470,20 +1470,20 @@ mod tests {
     /// 测试默认值回退逻辑（模拟 CLI 中 unwrap_or_default 的行为）
     #[test]
     fn test_log_dir_fallback_to_default() {
-        // 模拟 CLI 中的逻辑：如果 get_data_dir() 失败，使用默认空路径
+        // 模拟 CLI 中的逻辑：如果 get_data_dir() Failed，使用默认空路径
         let log_dir: PathBuf = get_data_dir().map(|d| d.join("logs")).unwrap_or_default();
 
-        // 如果 get_data_dir() 成功，log_dir 应该是非空路径
-        // 如果失败（某些测试环境），log_dir 应该是空路径
+        // 如果 get_data_dir() Success，log_dir 应该是非空路径
+        // 如果Failed（某些测试环境），log_dir 应该是空路径
         if get_data_dir().is_ok() {
             assert!(
                 !log_dir.as_os_str().is_empty(),
-                "当 get_data_dir() 成功时，日志目录路径不应为空"
+                "当 get_data_dir() Success时，日志目录路径不应为空"
             );
         } else {
             assert!(
                 log_dir.as_os_str().is_empty(),
-                "当 get_data_dir() 失败时，应回退到空路径"
+                "当 get_data_dir() Failed时，应回退到空路径"
             );
         }
     }
@@ -1582,7 +1582,7 @@ mod tests {
             file_path: "/tmp/performance_Test_Flow_20240115.json".to_string(),
         };
 
-        let json = serde_json::to_string(&summary).expect("序列化失败");
+        let json = serde_json::to_string(&summary).expect("序列化Failed");
         assert!(json.contains("report-001"));
         assert!(json.contains("flow-001"));
         assert!(json.contains("Test Flow"));
@@ -1592,7 +1592,7 @@ mod tests {
         assert!(json.contains("startTime"));
 
         let deserialized: StressTestReportSummary =
-            serde_json::from_str(&json).expect("反序列化失败");
+            serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized, summary);
     }
 
@@ -1605,7 +1605,7 @@ mod tests {
         use tempfile::TempDir;
 
         // 创建临时目录
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path();
 
         // 创建测试报告
@@ -1649,7 +1649,7 @@ mod tests {
         };
 
         // 保存报告
-        let saved_path = save_stress_report(&report, reports_dir).expect("保存报告失败");
+        let saved_path = save_stress_report(&report, reports_dir).expect("保存报告Failed");
 
         // 验证文件名格式
         let filename = saved_path.file_name().unwrap().to_str().unwrap();
@@ -1657,7 +1657,7 @@ mod tests {
         assert!(filename.ends_with(".json"));
 
         // 加载报告
-        let loaded_report = load_stress_report(&saved_path).expect("加载报告失败");
+        let loaded_report = load_stress_report(&saved_path).expect("加载报告Failed");
 
         // 验证报告内容
         assert_eq!(loaded_report.uuid, report.uuid);
@@ -1681,7 +1681,7 @@ mod tests {
         use tempfile::TempDir;
 
         // 创建临时目录
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path();
 
         // 创建多个测试报告
@@ -1738,11 +1738,11 @@ mod tests {
 
         // 保存所有报告
         for report in &reports {
-            save_stress_report(report, reports_dir).expect("保存报告失败");
+            save_stress_report(report, reports_dir).expect("保存报告Failed");
         }
 
         // 列出报告
-        let summaries = list_stress_reports(reports_dir).expect("列出报告失败");
+        let summaries = list_stress_reports(reports_dir).expect("列出报告Failed");
 
         // 验证数量
         assert_eq!(summaries.len(), 3);
@@ -1758,10 +1758,10 @@ mod tests {
     fn test_list_stress_reports_empty_dir() {
         use tempfile::TempDir;
 
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path();
 
-        let summaries = list_stress_reports(reports_dir).expect("列出报告失败");
+        let summaries = list_stress_reports(reports_dir).expect("列出报告Failed");
         assert!(summaries.is_empty());
     }
 
@@ -1770,7 +1770,7 @@ mod tests {
     fn test_load_stress_report_not_found() {
         use tempfile::TempDir;
 
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let non_existent_path = temp_dir.path().join("non_existent.json");
 
         let result = load_stress_report(&non_existent_path);
@@ -1783,20 +1783,20 @@ mod tests {
     fn test_flow_file_roundtrip() {
         use flow_engine_core::flow::Flow;
 
-        let flow = Flow { uuid: "test-flow-001".to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
+        let flow = Flow { uuid: "test-flow-001".to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
         let flow_file = FlowFile {
             _version: 1,
             flow,
             _meta: None,
         };
 
-        let json = serde_json::to_string(&flow_file).expect("序列化 FlowFile 失败");
+        let json = serde_json::to_string(&flow_file).expect("序列化 FlowFile Failed");
         assert!(json.contains("_version"), "JSON 应包含 _version 字段");
 
-        let deserialized: FlowFile = serde_json::from_str(&json).expect("反序列化 FlowFile 失败");
+        let deserialized: FlowFile = serde_json::from_str(&json).expect("反序列化 FlowFile Failed");
         assert_eq!(deserialized._version, 1);
         assert_eq!(deserialized.flow.uuid, "test-flow-001");
-        assert_eq!(deserialized.flow.name, "测试流程");
+        assert_eq!(deserialized.flow.name, "Test Flow");
     }
 
     /// 测试 FlowFile _meta 字段的序列化/反序列化往返
@@ -1815,11 +1815,11 @@ mod tests {
             _meta: Some(meta.clone()),
         };
 
-        let json = serde_json::to_string(&flow_file).expect("序列化 FlowFile 失败");
+        let json = serde_json::to_string(&flow_file).expect("序列化 FlowFile Failed");
         assert!(json.contains("_meta"), "JSON 应包含 _meta 字段");
         assert!(json.contains("isBuiltin"), "JSON 应包含 isBuiltin 字段");
 
-        let deserialized: FlowFile = serde_json::from_str(&json).expect("反序列化 FlowFile 失败");
+        let deserialized: FlowFile = serde_json::from_str(&json).expect("反序列化 FlowFile Failed");
         let meta = deserialized._meta.expect("应包含 _meta 字段");
         assert_eq!(meta["version"], 5);
         assert_eq!(meta["isBuiltin"], true);
@@ -1837,7 +1837,7 @@ mod tests {
             _meta: None,
         };
 
-        let json = serde_json::to_string(&flow_file).expect("序列化 FlowFile 失败");
+        let json = serde_json::to_string(&flow_file).expect("序列化 FlowFile Failed");
         assert!(
             !json.contains("_meta"),
             "无 _meta 时 JSON 不应包含 _meta 字段"
@@ -1849,7 +1849,7 @@ mod tests {
     fn test_save_and_load_flow_file_with_meta() {
         use tempfile::TempDir;
 
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let flows_dir = temp_dir.path();
 
         let flow = create_test_flow("builtin-001", "内置模板流程");
@@ -1860,10 +1860,10 @@ mod tests {
 
         // 保存带 _meta 的流程
         save_flow_file_with_meta(&flow, flows_dir, Some(meta.clone()))
-            .expect("保存带 _meta 的流程失败");
+            .expect("保存带 _meta 的流程Failed");
 
         // 加载并验证 _meta
-        let loaded = load_flow_file_raw("builtin-001", flows_dir).expect("加载流程文件失败");
+        let loaded = load_flow_file_raw("builtin-001", flows_dir).expect("加载流程文件Failed");
         assert_eq!(loaded.flow.uuid, "builtin-001");
         assert_eq!(loaded.flow.name, "内置模板流程");
         assert!(loaded._meta.is_some(), "应包含 _meta 字段");
@@ -1881,7 +1881,7 @@ mod tests {
             folder_path: String::new(),
         };
 
-        let json = serde_json::to_string(&metadata).expect("序列化 FlowMetadata 失败");
+        let json = serde_json::to_string(&metadata).expect("序列化 FlowMetadata Failed");
         assert!(
             json.contains("\"filePath\""),
             "JSON 应包含 camelCase 的 filePath 字段: {}",
@@ -1908,13 +1908,13 @@ mod tests {
     fn test_save_and_load_flow_file() {
         use tempfile::TempDir;
 
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let flows_dir = temp_dir.path();
 
-        let flow = create_test_flow("flow-save-001", "测试流程");
+        let flow = create_test_flow("flow-save-001", "Test Flow");
 
         // 保存
-        save_flow_file(&flow, flows_dir).expect("保存流程文件失败");
+        save_flow_file(&flow, flows_dir).expect("保存流程文件Failed");
 
         // 验证文件已创建，扩展名为 .mpf
         let mpf_files: Vec<_> = fs::read_dir(flows_dir)
@@ -1930,7 +1930,7 @@ mod tests {
         assert_eq!(mpf_files.len(), 1, "应恰好创建一个 .mpf 文件");
         let file_name = mpf_files[0].file_name().to_string_lossy().to_string();
         assert!(
-            file_name.starts_with("测试流程"),
+            file_name.starts_with("Test Flow"),
             "文件名应以流程名称开头: {}",
             file_name
         );
@@ -1941,13 +1941,13 @@ mod tests {
         );
 
         // 加载
-        let loaded = load_flow_file("flow-save-001", flows_dir).expect("加载流程文件失败");
+        let loaded = load_flow_file("flow-save-001", flows_dir).expect("加载流程文件Failed");
         assert_eq!(loaded.uuid, "flow-save-001");
-        assert_eq!(loaded.name, "测试流程");
+        assert_eq!(loaded.name, "Test Flow");
         assert!(loaded.nodes.is_empty());
         assert!(loaded.connections.is_empty());
 
-        // 加载不存在的 UUID 应失败
+        // 加载不存在的 UUID 应Failed
         let result = load_flow_file("nonexistent", flows_dir);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("流程不存在"));
@@ -1958,16 +1958,16 @@ mod tests {
     fn test_list_flow_files_recursive() {
         use tempfile::TempDir;
 
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let flows_dir = temp_dir.path();
 
         // 在根目录创建流程
         let flow1 = create_test_flow("list-001", "Alpha流程");
-        save_flow_file(&flow1, flows_dir).expect("保存 flow1 失败");
+        save_flow_file(&flow1, flows_dir).expect("保存 flow1 Failed");
 
         // 在子目录创建流程
         let sub_dir = flows_dir.join("subdir");
-        fs::create_dir_all(&sub_dir).expect("创建子目录失败");
+        fs::create_dir_all(&sub_dir).expect("创建子目录Failed");
         let flow2 = create_test_flow("list-002", "Beta流程");
         // 手动在子目录创建 .mpf 文件（测试递归扫描）
         let flow_file = FlowFile {
@@ -1975,23 +1975,23 @@ mod tests {
             flow: flow2.clone(),
             _meta: None,
         };
-        let json = serde_json::to_string_pretty(&flow_file).expect("序列化失败");
-        fs::write(sub_dir.join("Beta流程.mpf"), json).expect("写入文件失败");
+        let json = serde_json::to_string_pretty(&flow_file).expect("序列化Failed");
+        fs::write(sub_dir.join("Beta流程.mpf"), json).expect("写入文件Failed");
 
         // 在更深子目录创建流程
         let deep_dir = sub_dir.join("deep");
-        fs::create_dir_all(&deep_dir).expect("创建深层目录失败");
+        fs::create_dir_all(&deep_dir).expect("创建深层目录Failed");
         let flow3 = create_test_flow("list-003", "Gamma流程");
         let flow_file3 = FlowFile {
             _version: 1,
             flow: flow3.clone(),
             _meta: None,
         };
-        let json3 = serde_json::to_string_pretty(&flow_file3).expect("序列化失败");
-        fs::write(deep_dir.join("Gamma流程.mpf"), json3).expect("写入文件失败");
+        let json3 = serde_json::to_string_pretty(&flow_file3).expect("序列化Failed");
+        fs::write(deep_dir.join("Gamma流程.mpf"), json3).expect("写入文件Failed");
 
         // 列出并验证
-        let list = list_flow_files(flows_dir).expect("列出流程文件失败");
+        let list = list_flow_files(flows_dir).expect("列出流程文件Failed");
         assert_eq!(list.len(), 3, "应找到 3 个流程文件");
 
         // 验证按名称排序
@@ -2010,29 +2010,29 @@ mod tests {
     fn test_corrupted_file_skipped() {
         use tempfile::TempDir;
 
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let flows_dir = temp_dir.path();
 
         // 创建一个正常的流程
         let flow = create_test_flow("good-001", "正常流程");
-        save_flow_file(&flow, flows_dir).expect("保存正常流程失败");
+        save_flow_file(&flow, flows_dir).expect("保存正常流程Failed");
 
         // 创建一个损坏的 .mpf 文件
         fs::write(
             flows_dir.join("corrupted.mpf"),
             "this is not valid json {{{",
         )
-        .expect("写入损坏文件失败");
+        .expect("写入损坏文件Failed");
 
         // 再创建一个损坏的 .mpf 文件（JSON 格式但不是 FlowFile）
         fs::write(
             flows_dir.join("wrong_structure.mpf"),
             r#"{"not_a_flow": true}"#,
         )
-        .expect("写入错误结构文件失败");
+        .expect("写入Error结构文件Failed");
 
         // 列出 — 应只返回正常流程，不报错
-        let list = list_flow_files(flows_dir).expect("列出流程文件应成功");
+        let list = list_flow_files(flows_dir).expect("列出流程文件应Success");
         assert_eq!(list.len(), 1, "应只找到 1 个有效流程");
         assert_eq!(list[0].uuid, "good-001");
         assert_eq!(list[0].name, "正常流程");
@@ -2043,7 +2043,7 @@ mod tests {
     fn test_uuid_collision_detection() {
         use tempfile::TempDir;
 
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let flows_dir = temp_dir.path();
 
         let duplicate_uuid = "collision-uuid";
@@ -2055,8 +2055,8 @@ mod tests {
             flow: flow1,
             _meta: None,
         };
-        let json1 = serde_json::to_string_pretty(&flow_file1).expect("序列化失败");
-        fs::write(flows_dir.join("flow_a.mpf"), json1).expect("写入文件 A 失败");
+        let json1 = serde_json::to_string_pretty(&flow_file1).expect("序列化Failed");
+        fs::write(flows_dir.join("flow_a.mpf"), json1).expect("写入文件 A Failed");
 
         let flow2 = create_test_flow(duplicate_uuid, "流程B");
         let flow_file2 = FlowFile {
@@ -2064,11 +2064,11 @@ mod tests {
             flow: flow2,
             _meta: None,
         };
-        let json2 = serde_json::to_string_pretty(&flow_file2).expect("序列化失败");
-        fs::write(flows_dir.join("flow_b.mpf"), json2).expect("写入文件 B 失败");
+        let json2 = serde_json::to_string_pretty(&flow_file2).expect("序列化Failed");
+        fs::write(flows_dir.join("flow_b.mpf"), json2).expect("写入文件 B Failed");
 
         // 列出 — 列表不做验证，两个文件都会出现（UUID 可能重复）
-        let list = list_flow_files(flows_dir).expect("列出流程文件应成功");
+        let list = list_flow_files(flows_dir).expect("列出流程文件应Success");
         assert_eq!(list.len(), 2, "应返回 2 个流程");
 
         // 验证名称仍然正确
@@ -2086,14 +2086,14 @@ mod tests {
     fn test_copy_flow_file() {
         use tempfile::TempDir;
 
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let flows_dir = temp_dir.path();
 
         let flow = create_test_flow("copy-001", "原始流程");
-        save_flow_file(&flow, flows_dir).expect("保存原始流程失败");
+        save_flow_file(&flow, flows_dir).expect("保存原始流程Failed");
 
         // 复制
-        let copied = copy_flow_file("copy-001", flows_dir).expect("复制流程失败");
+        let copied = copy_flow_file("copy-001", flows_dir).expect("复制流程Failed");
 
         // 验证新 UUID
         assert_ne!(copied.uuid, "copy-001", "复制的流程应有新的 UUID");
@@ -2105,7 +2105,7 @@ mod tests {
         );
 
         // 验证两个流程独立存在
-        let list = list_flow_files(flows_dir).expect("列出流程文件失败");
+        let list = list_flow_files(flows_dir).expect("列出流程文件Failed");
         assert_eq!(list.len(), 2, "应存在 2 个流程");
 
         // 原始流程仍然可加载
@@ -2117,7 +2117,7 @@ mod tests {
         assert_eq!(copied_load.name, "原始流程(副本)");
 
         // 再次复制同一流程 — 应生成 "(副本 2)"
-        let copied2 = copy_flow_file("copy-001", flows_dir).expect("第二次复制失败");
+        let copied2 = copy_flow_file("copy-001", flows_dir).expect("第二次复制Failed");
         assert_eq!(
             copied2.name, "原始流程(副本 2)",
             "第二次复制的名称应为 (副本 2)"
@@ -2130,29 +2130,29 @@ mod tests {
     fn test_delete_flow_file() {
         use tempfile::TempDir;
 
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let flows_dir = temp_dir.path();
 
         // 创建多个流程
         let flow1 = create_test_flow("del-001", "保留流程");
         let flow2 = create_test_flow("del-002", "删除流程");
-        save_flow_file(&flow1, flows_dir).expect("保存 flow1 失败");
-        save_flow_file(&flow2, flows_dir).expect("保存 flow2 失败");
+        save_flow_file(&flow1, flows_dir).expect("保存 flow1 Failed");
+        save_flow_file(&flow2, flows_dir).expect("保存 flow2 Failed");
 
         // 验证初始数量
-        let list = list_flow_files(flows_dir).expect("列出失败");
+        let list = list_flow_files(flows_dir).expect("列出Failed");
         assert_eq!(list.len(), 2);
 
         // 删除一个
-        delete_flow_file("del-002", flows_dir).expect("删除流程失败");
+        delete_flow_file("del-002", flows_dir).expect("删除流程Failed");
 
         // 验证删除后数量
-        let list_after = list_flow_files(flows_dir).expect("列出失败");
+        let list_after = list_flow_files(flows_dir).expect("列出Failed");
         assert_eq!(list_after.len(), 1, "删除后应剩余 1 个流程");
         assert_eq!(list_after[0].uuid, "del-001", "剩余的应是保留流程");
         assert_eq!(list_after[0].name, "保留流程");
 
-        // 删除不存在的 UUID 应失败
+        // 删除不存在的 UUID 应Failed
         let result = delete_flow_file("nonexistent", flows_dir);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("流程不存在"));
@@ -2163,35 +2163,35 @@ mod tests {
     fn test_save_flow_file_updates_existing() {
         use tempfile::TempDir;
 
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let flows_dir = temp_dir.path();
 
         // 首次保存
         let flow = create_test_flow("update-001", "更新测试");
-        save_flow_file(&flow, flows_dir).expect("首次保存失败");
+        save_flow_file(&flow, flows_dir).expect("首次保存Failed");
 
         // 验证只有 1 个文件
-        let list = list_flow_files(flows_dir).expect("列出失败");
+        let list = list_flow_files(flows_dir).expect("列出Failed");
         assert_eq!(list.len(), 1);
 
         // 更新流程（同 UUID，新名称）
         let mut updated_flow = flow.clone();
         updated_flow.name = "更新后名称".to_string();
-        save_flow_file(&updated_flow, flows_dir).expect("更新保存失败");
+        save_flow_file(&updated_flow, flows_dir).expect("更新保存Failed");
 
         // 验证仍然只有 1 个文件（未产生副本）
-        let list_after = list_flow_files(flows_dir).expect("列出失败");
+        let list_after = list_flow_files(flows_dir).expect("列出Failed");
         assert_eq!(list_after.len(), 1, "更新后应仍只有 1 个文件");
 
         // 验证内容已更新
-        let loaded = load_flow_file("update-001", flows_dir).expect("加载失败");
+        let loaded = load_flow_file("update-001", flows_dir).expect("加载Failed");
         assert_eq!(loaded.name, "更新后名称");
 
         // 多次更新验证
         updated_flow.name = "第三次更新".to_string();
-        save_flow_file(&updated_flow, flows_dir).expect("第三次保存失败");
+        save_flow_file(&updated_flow, flows_dir).expect("第三次保存Failed");
 
-        let list_final = list_flow_files(flows_dir).expect("列出失败");
+        let list_final = list_flow_files(flows_dir).expect("列出Failed");
         assert_eq!(list_final.len(), 1, "多次更新后应仍只有 1 个文件");
         assert_eq!(list_final[0].name, "第三次更新");
     }

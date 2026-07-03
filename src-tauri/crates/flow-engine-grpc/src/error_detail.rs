@@ -1,6 +1,6 @@
-//! gRPC 错误详情解码模块
+//! gRPC Error详情解码模块
 //!
-//! 从 tonic Status 解码 `google.rpc.Status` 中的 `google.protobuf.Any` 错误详情，
+//! 从 tonic Status 解码 `google.rpc.Status` 中的 `google.protobuf.Any` Error详情，
 //! 使用 prost-reflect 的 DynamicMessage 进行动态解码。
 
 use flow_engine_core::traits::GrpcErrorDetail;
@@ -21,23 +21,23 @@ struct RpcStatus {
     details: Vec<prost_types::Any>,
 }
 
-/// 全局错误详情类型 DescriptorPool（包含 `google.rpc.*` 错误类型）
+/// 全局Error详情类型 DescriptorPool（包含 `google.rpc.*` Error类型）
 ///
 /// 首次使用时通过 protox 编译内联 proto 定义，后续复用缓存。
 static ERROR_DETAIL_POOL: OnceLock<prost_reflect::DescriptorPool> = OnceLock::new();
 
-/// `google.rpc.*` 错误详情类型的 proto 定义
+/// `google.rpc.*` Error详情类型的 proto 定义
 ///
-/// 包含 gRPC 标准错误详情类型:
+/// 包含 gRPC 标准Error详情类型:
 /// - `RetryInfo` - 重试信息
 /// - `DebugInfo` - 调试信息
-/// - `QuotaFailure` - 配额失败
-/// - `BadRequest` - 请求错误
+/// - `QuotaFailure` - 配额Failed
+/// - `BadRequest` - 请求Error
 /// - `ResourceInfo` - 资源信息
 /// - `Help` - 帮助链接
 /// - `LocalizedMessage` - 本地化消息
-/// - `PreconditionFailure` - 前置条件失败
-/// - `ErrorInfo` - 错误信息
+/// - `PreconditionFailure` - 前置条件Failed
+/// - `ErrorInfo` - Error信息
 const ERROR_DETAILS_PROTO: &str = r#"
 syntax = "proto3";
 package google.rpc;
@@ -105,16 +105,16 @@ message ErrorInfo {
 }
 "#;
 
-/// 获取错误详情类型 `DescriptorPool`
+/// 获取Error详情类型 `DescriptorPool`
 ///
 /// 编译 `google.rpc.*` proto 定义并缓存结果。
-/// 失败时返回空 DescriptorPool（错误详情将以原始十六进制展示）。
+/// Failed时返回空 DescriptorPool（Error详情将以原始十六进制展示）。
 fn get_error_detail_pool() -> &'static prost_reflect::DescriptorPool {
     ERROR_DETAIL_POOL.get_or_init(|| {
         let temp_dir = match tempfile::tempdir() {
             Ok(dir) => dir,
             Err(e) => {
-                log::warn!("[gRPC ErrorDetail] 创建临时目录失败: {}", e);
+                log::warn!("[gRPC ErrorDetail] 创建临时目录Failed: {}", e);
                 return prost_reflect::DescriptorPool::new();
             }
         };
@@ -122,14 +122,14 @@ fn get_error_detail_pool() -> &'static prost_reflect::DescriptorPool {
         // 创建 google/rpc/ 目录结构
         let rpc_dir = temp_dir.path().join("google").join("rpc");
         if let Err(e) = std::fs::create_dir_all(&rpc_dir) {
-            log::warn!("[gRPC ErrorDetail] 创建目录失败: {}", e);
+            log::warn!("[gRPC ErrorDetail] 创建目录Failed: {}", e);
             return prost_reflect::DescriptorPool::new();
         }
 
         // 写入 proto 文件
         let proto_path = rpc_dir.join("error_details.proto");
         if let Err(e) = std::fs::write(&proto_path, ERROR_DETAILS_PROTO) {
-            log::warn!("[gRPC ErrorDetail] 写入 proto 文件失败: {}", e);
+            log::warn!("[gRPC ErrorDetail] 写入 proto 文件Failed: {}", e);
             return prost_reflect::DescriptorPool::new();
         }
 
@@ -142,19 +142,19 @@ fn get_error_detail_pool() -> &'static prost_reflect::DescriptorPool {
                 match prost_reflect::DescriptorPool::from_file_descriptor_set(fds) {
                     Ok(pool) => {
                         log::debug!(
-                            "[gRPC ErrorDetail] 错误详情 DescriptorPool 构建成功，包含 {} 个消息类型",
+                            "[gRPC ErrorDetail] Error详情 DescriptorPool 构建Success，包含 {} 个消息类型",
                             pool.all_messages().count()
                         );
                         pool
                     }
                     Err(e) => {
-                        log::warn!("[gRPC ErrorDetail] 构建 DescriptorPool 失败: {}", e);
+                        log::warn!("[gRPC ErrorDetail] 构建 DescriptorPool Failed: {}", e);
                         prost_reflect::DescriptorPool::new()
                     }
                 }
             }
             Err(e) => {
-                log::warn!("[gRPC ErrorDetail] 编译 proto 文件失败: {}", e);
+                log::warn!("[gRPC ErrorDetail] 编译 proto 文件Failed: {}", e);
                 prost_reflect::DescriptorPool::new()
             }
         }
@@ -177,20 +177,20 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
     hex
 }
 
-/// 错误详情分隔标记（用于在错误字符串中嵌入 JSON）
+/// Error详情分隔标记（用于在Error字符串中嵌入 JSON）
 pub(crate) const ERROR_DETAILS_MARKER: &str = "\n---GRPC_ERROR_DETAILS---\n";
 
-/// 从 tonic Status 解码错误详情
+/// 从 tonic Status 解码Error详情
 ///
 /// 解码流程:
 /// 1. 将 `Status.details()` 解码为 `google.rpc.Status`
 /// 2. 遍历 `details` 字段中的每个 `google.protobuf.Any`
 /// 3. 从 `type_url` 提取类型名，尝试在 `DescriptorPool` 中查找
 /// 4. 使用 `DynamicMessage` 解码为 JSON
-/// 5. 查找失败时返回原始十六进制
+/// 5. 查找Failed时返回原始十六进制
 ///
 /// # 参数
-/// - `status` - tonic Status 错误
+/// - `status` - tonic Status Error
 /// - `connection_pool` - 连接的 DescriptorPool（包含用户 proto 定义的类型）
 pub(crate) fn decode_error_details(
     status: &tonic::Status,
@@ -218,7 +218,7 @@ pub(crate) fn decode_error_details(
         let type_name = extract_type_name(&any.type_url).to_string();
 
         // 优先从连接的 DescriptorPool 解码（用户定义的类型）
-        // 回退到错误详情 Pool（google.rpc.* 标准错误类型）
+        // 回退到Error详情 Pool（google.rpc.* 标准Error类型）
         let decoded = try_decode_any(&any.value, &type_name, connection_pool)
             .or_else(|| try_decode_any(&any.value, &type_name, detail_pool));
 
@@ -249,9 +249,9 @@ fn try_decode_any(
     crate::helpers::dynamic_message_to_json(&dynamic_msg).ok()
 }
 
-/// 格式化 gRPC 错误消息（包含解码后的错误详情）
+/// 格式化 gRPC Error消息（包含解码后的Error详情）
 ///
-/// 当 Status 包含非空 details 时，在错误消息后追加 JSON 编码的错误详情。
+/// 当 Status 包含非空 details 时，在Error消息后追加 JSON 编码的Error详情。
 /// 使用 [`ERROR_DETAILS_MARKER`] 分隔人类可读消息和 JSON 详情。
 pub(crate) fn format_grpc_error(
     prefix: &str,
@@ -268,10 +268,10 @@ pub(crate) fn format_grpc_error(
     }
 }
 
-/// 从错误字符串中解析错误消息和错误详情
+/// 从Error字符串中解析Error消息和Error详情
 ///
-/// 返回 (人类可读的错误消息, 解码后的错误详情列表)。
-/// 如果错误字符串不包含详情标记，返回完整字符串和空列表。
+/// 返回 (人类可读的Error消息, 解码后的Error详情列表)。
+/// 如果Error字符串不包含详情标记，返回完整字符串和空列表。
 pub(crate) fn parse_error_details(error: &str) -> (&str, Vec<GrpcErrorDetail>) {
     if let Some(pos) = error.find(ERROR_DETAILS_MARKER) {
         let message = &error[..pos];
@@ -315,7 +315,7 @@ mod tests {
 
     #[test]
     fn test_parse_error_details_no_marker() {
-        let error = "gRPC Unary 调用失败: not found (NOT_FOUND)";
+        let error = "gRPC Unary 调用Failed: not found (NOT_FOUND)";
         let (msg, details) = parse_error_details(error);
         assert_eq!(msg, error);
         assert!(details.is_empty());
@@ -324,9 +324,9 @@ mod tests {
     #[test]
     fn test_parse_error_details_with_marker() {
         let json = r#"[{"type_url":"type.googleapis.com/google.rpc.RetryInfo","decoded":{"retry_delay":"1.0s"},"raw_hex":null}]"#;
-        let error = format!("gRPC 调用失败: rate limited (RESOURCE_EXHAUSTED){}{}", ERROR_DETAILS_MARKER, json);
+        let error = format!("gRPC 调用Failed: rate limited (RESOURCE_EXHAUSTED){}{}", ERROR_DETAILS_MARKER, json);
         let (msg, details) = parse_error_details(&error);
-        assert_eq!(msg, "gRPC 调用失败: rate limited (RESOURCE_EXHAUSTED)");
+        assert_eq!(msg, "gRPC 调用Failed: rate limited (RESOURCE_EXHAUSTED)");
         assert_eq!(details.len(), 1);
         assert_eq!(
             details[0].type_url,
@@ -352,9 +352,9 @@ mod tests {
         // tonic::Status::new 创建的 Status 没有 details
         let status = tonic::Status::new(tonic::Code::NotFound, "not found");
         let pool = prost_reflect::DescriptorPool::new();
-        let result = format_grpc_error("gRPC 调用失败", &status, &pool);
-        // 验证包含前缀和错误消息（tonic 会生成完整的错误描述文本）
-        assert!(result.starts_with("gRPC 调用失败: not found"));
+        let result = format_grpc_error("gRPC 调用Failed", &status, &pool);
+        // 验证包含前缀和Error消息（tonic 会生成完整的Error描述文本）
+        assert!(result.starts_with("gRPC 调用Failed: not found"));
         assert!(!result.contains(ERROR_DETAILS_MARKER));
     }
 
@@ -370,7 +370,7 @@ mod tests {
             }],
         };
         let mut details_buf = Vec::new();
-        rpc_status.encode(&mut details_buf).expect("编码应成功");
+        rpc_status.encode(&mut details_buf).expect("编码应Success");
 
         let status = tonic::Status::with_details(
             tonic::Code::ResourceExhausted,
@@ -379,7 +379,7 @@ mod tests {
         );
 
         let pool = prost_reflect::DescriptorPool::new();
-        let result = format_grpc_error("gRPC 调用失败", &status, &pool);
+        let result = format_grpc_error("gRPC 调用Failed", &status, &pool);
 
         // 应包含标记
         assert!(result.contains(ERROR_DETAILS_MARKER));
@@ -417,7 +417,7 @@ mod tests {
             ],
         };
         let mut details_buf = Vec::new();
-        rpc_status.encode(&mut details_buf).expect("编码应成功");
+        rpc_status.encode(&mut details_buf).expect("编码应Success");
 
         let status = tonic::Status::with_details(
             tonic::Code::InvalidArgument,
@@ -425,7 +425,7 @@ mod tests {
             details_buf.into(),
         );
 
-        // 使用错误详情 pool 来解码
+        // 使用Error详情 pool 来解码
         let pool = get_error_detail_pool();
         let details = decode_error_details(&status, pool);
 
@@ -488,8 +488,8 @@ mod tests {
             }],
         };
         let mut buf = Vec::new();
-        original.encode(&mut buf).expect("编码应成功");
-        let decoded = RpcStatus::decode(buf.as_slice()).expect("解码应成功");
+        original.encode(&mut buf).expect("编码应Success");
+        let decoded = RpcStatus::decode(buf.as_slice()).expect("解码应Success");
         assert_eq!(decoded.code, 5);
         assert_eq!(decoded.message, "test error");
         assert_eq!(decoded.details.len(), 1);

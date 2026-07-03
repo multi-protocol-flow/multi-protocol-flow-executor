@@ -48,7 +48,7 @@ pub enum Amqp10ConnectionStatus {
     Connected,
     /// 已断开
     Disconnected,
-    /// 错误状态
+    /// Error状态
     Error(String),
 }
 
@@ -189,7 +189,7 @@ impl Amqp10ConnectionManager {
     ) -> Result<Amqp10ConnectOutput, String> {
         info!("AMQP 1.0 开始连接: url={}, id={}", config.url, uuid);
 
-        // UUID 去重：如果已存在直接返回成功
+        // UUID 去重：如果已存在直接返回Success
         {
             let conns = self.connections.read().await;
             if let Some(existing) = conns.get(uuid) {
@@ -425,7 +425,7 @@ impl Amqp10ConnectionManager {
                     messages.push(msg);
                 }
                 Ok(Err(_)) | Err(_) => {
-                    // 接收错误或超时
+                    // 接收Error或超时
                     break;
                 }
             }
@@ -569,7 +569,7 @@ impl Amqp10ConnectionManager {
                 Ok(())
             }
             None => {
-                warn!("AMQP 1.0 断开连接失败: 连接 '{}' 不存在", uuid);
+                warn!("AMQP 1.0 断开connection failed: 连接 '{}' 不存在", uuid);
                 Err(format!("AMQP 1.0 连接 '{}' 不存在", uuid))
             }
         }

@@ -51,12 +51,12 @@ impl NodePlugin for GraphqlConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "连接成功".into(),
+                label: "Connect Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "连接失败".into(),
+                label: "connection failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -161,12 +161,12 @@ impl NodePlugin for GraphqlQueryPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -283,7 +283,7 @@ impl NodePlugin for GraphqlSubscribePlugin {
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -395,12 +395,12 @@ impl NodePlugin for GraphqlIntrospectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]

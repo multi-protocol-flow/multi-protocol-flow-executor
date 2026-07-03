@@ -102,7 +102,7 @@ impl NodeExecutor for UdpSendToExecutor {
             ErrorDetail::execution_error(error_msg)
         })?;
 
-        // 5. 日志：开始执行
+        // 5. 日志：start execution
         log::info!(
             "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: udp_send_to, ConnectionID: {}, Target: {}:{}, DataEncoding: {}, DataLength: {}",
             context.flow_uuid,
@@ -124,7 +124,7 @@ impl NodeExecutor for UdpSendToExecutor {
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -150,7 +150,7 @@ impl NodeExecutor for UdpSendToExecutor {
                         message: format!("Data decoding failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -158,7 +158,7 @@ impl NodeExecutor for UdpSendToExecutor {
                     })
                     .await;
 
-                // 解码失败走 false 端口
+                // 解码Failed走 false 端口
                 return route_to_false_port(node, connections, Some(error_output));
             }
         };
@@ -187,7 +187,7 @@ impl NodeExecutor for UdpSendToExecutor {
                     raw_data.len()
                 );
 
-                // 8. 构建成功输出
+                // 8. 构建Success输出
                 let total_ms = start_time.elapsed().as_millis() as u64;
                 let sent_output = build_binary_output(&raw_data);
 
@@ -216,7 +216,7 @@ impl NodeExecutor for UdpSendToExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -243,7 +243,7 @@ impl NodeExecutor for UdpSendToExecutor {
                         message: format!("UDP send failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -265,7 +265,7 @@ impl NodeExecutor for UdpSendToExecutor {
     }
 }
 
-/// 构建错误输出数据
+/// 构建Error输出数据
 fn build_error_output(
     connection_id: &str,
     error_msg: &str,
@@ -372,8 +372,8 @@ mod tests {
             _send_timeout_ms: u64,
         ) -> Result<(), String> {
             self.send_count.fetch_add(1, AtomicOrdering::SeqCst);
-            *self.last_sent_data.lock().expect("锁不应失败") = data;
-            self.send_result.lock().expect("锁不应失败").clone()
+            *self.last_sent_data.lock().expect("锁不应Failed") = data;
+            self.send_result.lock().expect("锁不应Failed").clone()
         }
 
         async fn recv_from(
@@ -397,7 +397,7 @@ mod tests {
     // 辅助函数
     // ========================================================================
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(
         uuid: &str,
         name: &str,
@@ -465,7 +465,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
@@ -478,7 +478,7 @@ mod tests {
         assert!(timing["total_ms"].as_u64().is_some());
 
         // 验证实际发送的数据
-        let sent_data = mock.last_sent_data.lock().expect("锁不应失败");
+        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
         assert_eq!(&sent_data[..], b"Hello, UDP!");
     }
 
@@ -508,13 +508,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
 
         // 验证发送的数据是 "Hello" (5 字节)
-        let sent_data = mock.last_sent_data.lock().expect("锁不应失败");
+        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
         assert_eq!(&sent_data[..], b"Hello");
     }
 
@@ -544,17 +544,17 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
 
         // 验证发送的数据是 "Hello World" (11 字节)
-        let sent_data = mock.last_sent_data.lock().expect("锁不应失败");
+        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
         assert_eq!(&sent_data[..], b"Hello World");
     }
 
     // ========================================================================
-    // 测试：发送失败
+    // 测试：发送Failed
     // ========================================================================
 
     #[tokio::test]
@@ -564,7 +564,7 @@ mod tests {
 
         let node = create_test_node(
             "node-5",
-            "失败测试",
+            "Failed测试",
             "conn-closed",
             "Hello",
             "text",
@@ -579,7 +579,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
@@ -634,14 +634,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_id"], "udp-connection-123");
         assert_eq!(data["sent"]["target"], "10.0.0.1:9090");
 
         // 验证发送的数据包含替换后的内容
-        let sent_data = mock.last_sent_data.lock().expect("锁不应失败");
+        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
         assert_eq!(&sent_data[..], b"Message: Hello");
     }
 
@@ -678,7 +678,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
@@ -696,7 +696,7 @@ mod tests {
 
         let node = create_test_node(
             "node-port-ok",
-            "成功端口路由",
+            "Success端口路由",
             "conn-1",
             "Hello",
             "text",
@@ -718,12 +718,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.expect("执行应成功");
+        let (next_nodes, _) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 
     // ========================================================================
-    // 测试：错误节点数据类型
+    // 测试：Error节点数据类型
     // ========================================================================
 
     #[tokio::test]
@@ -734,7 +734,7 @@ mod tests {
         let node = Node {
             uuid: "node-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -757,21 +757,21 @@ mod tests {
 
     #[test]
     fn test_decode_user_data_text() {
-        let result = UdpSendToExecutor::decode_user_data("Hello", "text").expect("应成功");
+        let result = UdpSendToExecutor::decode_user_data("Hello", "text").expect("应Success");
         assert_eq!(result, b"Hello".to_vec());
     }
 
     #[test]
     fn test_decode_user_data_hex() {
         let result =
-            UdpSendToExecutor::decode_user_data("48656c6c6f", "hex").expect("应成功");
+            UdpSendToExecutor::decode_user_data("48656c6c6f", "hex").expect("应Success");
         assert_eq!(result, b"Hello".to_vec());
     }
 
     #[test]
     fn test_decode_user_data_base64() {
         let result =
-            UdpSendToExecutor::decode_user_data("SGVsbG8=", "base64").expect("应成功");
+            UdpSendToExecutor::decode_user_data("SGVsbG8=", "base64").expect("应Success");
         assert_eq!(result, b"Hello".to_vec());
     }
 

@@ -1,6 +1,6 @@
 //! IMAP 关闭connect node执行器
 //!
-//! 断开 IMAP 连接，始终走 "out" 端口（失败不阻塞流程）。
+//! 断开 IMAP 连接，始终走 "out" 端口（Failed不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::error::ErrorDetail;

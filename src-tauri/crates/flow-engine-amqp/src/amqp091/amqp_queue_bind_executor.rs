@@ -1,7 +1,7 @@
 //! AMQP 绑定队列节点执行器
 //!
 //! 实现 AMQP 0-9-1 队列绑定到交换器、变量替换和输出构建功能。
-//! 成功路由到 true 端口，失败路由到 false 端口。
+//! Success路由到 true 端口，Failed路由到 false 端口。
 
 use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
@@ -46,7 +46,7 @@ impl NodeExecutor for AmqpQueueBindExecutor {
             NodeData::AmqpQueueBind(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 AmqpQueueBindConfig: {}",
+                    "Node data type is not AmqpQueueBindConfig: {}",
                     node.uuid
                 )))
             }
@@ -54,9 +54,9 @@ impl NodeExecutor for AmqpQueueBindExecutor {
 
         // 2. 变量替换（connection_id、queue、exchange）
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -66,9 +66,9 @@ impl NodeExecutor for AmqpQueueBindExecutor {
         })?;
 
         let queue = replace_variables(&config.queue, context).map_err(|e| {
-            let error_msg = format!("队列名称变量替换失败: {}", e);
+            let error_msg = format!("队列名称variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -78,9 +78,9 @@ impl NodeExecutor for AmqpQueueBindExecutor {
         })?;
 
         let exchange = replace_variables(&config.exchange, context).map_err(|e| {
-            let error_msg = format!("交换器名称变量替换失败: {}", e);
+            let error_msg = format!("交换器名称variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -93,9 +93,9 @@ impl NodeExecutor for AmqpQueueBindExecutor {
         let routing_key = match &config.routing_key {
             Some(rk) => {
                 let replaced = replace_variables(rk, context).map_err(|e| {
-                    let error_msg = format!("路由键变量替换失败: {}", e);
+                    let error_msg = format!("路由键variable substitution failed: {}", e);
                     log::error!(
-                        "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                        "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                         context.flow_uuid,
                         node.uuid,
                         node.name,
@@ -115,7 +115,7 @@ impl NodeExecutor for AmqpQueueBindExecutor {
                 for (k, v) in args {
                     if let Some(s) = v.as_str() {
                         let replaced = replace_variables(s, context)
-                            .map_err(|e| ErrorDetail::execution_error(format!("arguments[{}] 变量替换失败: {}", k, e)))?;
+                            .map_err(|e| ErrorDetail::execution_error(format!("arguments[{}] variable substitution failed: {}", k, e)))?;
                         resolved.insert(k.clone(), json!(replaced));
                     } else {
                         resolved.insert(k.clone(), v.clone());
@@ -128,7 +128,7 @@ impl NodeExecutor for AmqpQueueBindExecutor {
 
         // 5. 日志：开始绑定
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp_queue_bind, queue: {}, exchange: {}, routing_key: {:?}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp_queue_bind, queue: {}, exchange: {}, routing_key: {:?}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -141,7 +141,7 @@ impl NodeExecutor for AmqpQueueBindExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "AMQP QueueBind 节点 {} 开始执行 (queue={}, exchange={})",
+                    "AMQP QueueBind 节点 {} start execution (queue={}, exchange={})",
                     node.name, queue, exchange
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -174,7 +174,7 @@ impl NodeExecutor for AmqpQueueBindExecutor {
         match bind_result {
             Ok(()) => {
                 log::info!(
-                    "[AMQP] 队列绑定成功: uuid={}, queue={}, exchange={}, routing_key={:?}",
+                    "[AMQP] 队列绑定Success: uuid={}, queue={}, exchange={}, routing_key={:?}",
                     node.uuid,
                     queue,
                     exchange,
@@ -203,7 +203,7 @@ impl NodeExecutor for AmqpQueueBindExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "AMQP 队列绑定成功: {} -> {} ({}ms)",
+                            "AMQP 队列绑定Success: {} -> {} ({}ms)",
                             queue,
                             exchange,
                             duration.as_millis()
@@ -218,14 +218,14 @@ impl NodeExecutor for AmqpQueueBindExecutor {
                     })
                     .await;
 
-                // 10. 路由：成功走 true 端口
+                // 10. 路由：Success走 true 端口
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "true");
 
                 Ok((next_node_ids, Some(output_data)))
             }
             Err(e) => {
                 log::error!(
-                    "[AMQP] 队列绑定失败: uuid={}, queue={}, exchange={}, error={}",
+                    "[AMQP] 队列绑定Failed: uuid={}, queue={}, exchange={}, error={}",
                     node.uuid,
                     queue,
                     exchange,
@@ -235,7 +235,7 @@ impl NodeExecutor for AmqpQueueBindExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("AMQP 队列绑定失败: {}", e),
+                        message: format!("AMQP 队列绑定Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap_or_default()
@@ -261,10 +261,10 @@ impl NodeExecutor for AmqpQueueBindExecutor {
                     "error": e,
                 });
 
-                // 绑定失败走 false 端口
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 绑定Failed走 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP queue_bind 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("AMQP queue_bind Failed: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -304,7 +304,7 @@ mod tests {
     };
     use flow_engine_core::traits::{AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider};
 
-    /// Mock AmqpProvider（queue_bind 成功）
+    /// Mock AmqpProvider（queue_bind Success）
     struct MockAmqpProvider {
         should_fail: bool,
     }
@@ -479,7 +479,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(
         uuid: &str,
         name: &str,
@@ -528,7 +528,7 @@ mod tests {
         }
     }
 
-    /// 测试：绑定成功时输出 JSON 结构正确，路由到 true 端口
+    /// 测试：绑定Success时输出 JSON 结构正确，路由到 true 端口
     #[tokio::test]
     async fn test_queue_bind_success_output_structure() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -552,12 +552,12 @@ mod tests {
         assert!(data["error"].is_null());
     }
 
-    /// 测试：绑定失败时路由到 false 端口
+    /// 测试：绑定Failed时路由到 false 端口
     #[tokio::test]
     async fn test_queue_bind_failure_routes_to_false() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_failure());
         let executor = AmqpQueueBindExecutor::new(amqp_manager);
-        let node = create_test_node("test-2", "失败测试", "conn-1", "my-queue", "my-exchange");
+        let node = create_test_node("test-2", "Failed测试", "conn-1", "my-queue", "my-exchange");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -574,7 +574,7 @@ mod tests {
         assert_eq!(data["error"], "交换器不存在");
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_queue_bind_wrong_node_data_type() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -583,7 +583,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -731,7 +731,7 @@ mod tests {
         assert_eq!(request["arguments"]["x-match"], "all");
     }
 
-    /// 测试：routing_key 为 None 时绑定成功
+    /// 测试：routing_key 为 None 时绑定Success
     #[tokio::test]
     async fn test_queue_bind_without_routing_key() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());

@@ -43,14 +43,14 @@ impl NodeExecutor for DbCommitExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::DbCommit(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 DbCommitConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not DbCommitConfig: {}", node.uuid))),
         };
 
         // 2. 验证 connection_uuid
         if config.connection_uuid.is_empty() {
-            // 空连接 UUID 时，直接返回成功（无操作）
+            // 空连接 UUID 时，直接返回Success（无操作）
             log::warn!(
-                "[流程 {}] [警告] 节点ID: {}, 节点名称: {}, connection_uuid 为空，跳过提交",
+                "[流程 {}] [警告] 节点ID: {}, NodeName: {}, connection_uuid 为空，跳过提交",
                 context.flow_uuid,
                 node.uuid,
                 node.name
@@ -66,7 +66,7 @@ impl NodeExecutor for DbCommitExecutor {
                     message: format!("数据库提交节点 {} 跳过：connection_uuid 为空", node.name),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间错误")
+                        .expect("系统时间Error")
                         .as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -74,14 +74,14 @@ impl NodeExecutor for DbCommitExecutor {
                 })
                 .await;
 
-            // 返回 true 端口（跳过也视为成功）
+            // 返回 true 端口（跳过也视为Success）
             let next_nodes = get_nodes_by_port(node, connections, "true");
             return Ok((next_nodes, Some(output_data)));
         }
 
         // 3. 日志：开始提交
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: db_commit, connection_uuid: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: db_commit, connection_uuid: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -91,10 +91,10 @@ impl NodeExecutor for DbCommitExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("数据库提交节点 {} 开始执行", node.name),
+                message: format!("数据库提交节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -103,7 +103,7 @@ impl NodeExecutor for DbCommitExecutor {
             .await;
 
         // 4. 提交事务
-        // 注意：提交总是成功，即使没有活跃事务也返回成功（幂等操作）
+        // 注意：提交总是Success，即使没有活跃事务也返回Success（幂等操作）
         let commit_result = self.db_manager.commit_transaction(&config.connection_uuid).await;
 
         let duration = start_time.elapsed();
@@ -111,11 +111,11 @@ impl NodeExecutor for DbCommitExecutor {
         match commit_result {
             Ok(()) => {
                 log::info!(
-                    "[Database] 事务提交成功: uuid={}",
+                    "[Database] 事务提交Success: uuid={}",
                     config.connection_uuid
                 );
 
-                // 5. 构建输出数据（成功）
+                // 5. 构建输出数据（Success）
                 let output_data = self.build_success_output(
                     &config,
                     duration.as_millis() as u64,
@@ -126,12 +126,12 @@ impl NodeExecutor for DbCommitExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "数据库事务提交成功 ({}ms)",
+                            "数据库事务提交Success ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -139,14 +139,14 @@ impl NodeExecutor for DbCommitExecutor {
                     })
                     .await;
 
-                // 7. 返回 true 端口（提交成功）
+                // 7. 返回 true 端口（提交Success）
                 let next_nodes = get_nodes_by_port(node, connections, "true");
                 Ok((next_nodes, Some(output_data)))
             }
             Err(e) => {
-                let error_msg = format!("事务提交失败: {}", e);
+                let error_msg = format!("事务提交Failed: {}", e);
                 log::warn!(
-                    "[Database] 事务提交失败: uuid={}, error={}",
+                    "[Database] 事务提交Failed: uuid={}, error={}",
                     config.connection_uuid,
                     e
                 );
@@ -161,7 +161,7 @@ impl NodeExecutor for DbCommitExecutor {
                                 message: error_msg.clone(),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("系统时间Error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -172,30 +172,30 @@ impl NodeExecutor for DbCommitExecutor {
                         return Err(ErrorDetail::execution_error(error_msg));
                     }
                     _ => {
-                        // RouteToFalse（或 None）：路由到 false 端口，仍视为幂等成功
+                        // RouteToFalse（或 None）：路由到 false 端口，仍视为幂等Success
                         log::warn!(
-                            "[Database] 事务提交失败，路由到 false 端口: uuid={}, error={}",
+                            "[Database] 事务提交Failed，路由到 false 端口: uuid={}, error={}",
                             config.connection_uuid,
                             e
                         );
 
-                        // 构建输出数据（仍视为成功，幂等操作）
+                        // 构建输出数据（仍视为Success，幂等操作）
                         let output_data = self.build_success_output(
                             &config,
                             duration.as_millis() as u64,
                         );
 
-                        // 日志：提交失败（警告）
+                        // 日志：提交Failed（警告）
                         context
                             .emit_log(LogEvent {
                                 level: LogLevel::Warn,
                                 message: format!(
-                                    "数据库事务提交失败，路由到 false 端口 ({}ms)",
+                                    "数据库事务提交Failed，路由到 false 端口 ({}ms)",
                                     duration.as_millis()
                                 ),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("系统时间Error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -213,14 +213,14 @@ impl NodeExecutor for DbCommitExecutor {
 }
 
 impl DbCommitExecutor {
-    /// 构建成功输出数据
+    /// 构建Success输出数据
     fn build_success_output(
         &self,
         config: &DbCommitConfig,
         total_ms: u64,
     ) -> serde_json::Value {
         json!({
-            // 统一成功标识
+            // 统一Success标识
             "success": true,
             "connection_uuid": config.connection_uuid,
             // 请求配置
@@ -241,7 +241,7 @@ impl DbCommitExecutor {
         total_ms: u64,
     ) -> serde_json::Value {
         json!({
-            // 统一成功标识（跳过也视为成功）
+            // 统一Success标识（跳过也视为Success）
             "success": true,
             "skipped": true,
             "connection_uuid": config.connection_uuid,
@@ -281,7 +281,7 @@ mod tests {
     use flow_engine_core::node::{NodePosition};
     use crate::db::pool::DatabaseConnectionManager;
     use crate::db::pool::MockPool;
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -306,7 +306,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -347,7 +347,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 true 端口（成功）
+        // 应该返回 true 端口（Success）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert!(next_nodes.is_empty());
@@ -427,7 +427,7 @@ mod tests {
         let node = create_test_node("test-4", "端口路由测试", "conn-004");
         let mut context = create_context("test-flow");
 
-        // 创建 true 端口连接（成功路由）
+        // 创建 true 端口连接（Success路由）
         let connections = vec![Connection {
             id: "conn-1".to_string(),
             source_node_uuid: "test-4".to_string(),
@@ -451,11 +451,11 @@ mod tests {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbCommitExecutor::new(db_manager);
 
-        // 创建节点（conn-xxx 不存在，提交会失败）
+        // 创建节点（conn-xxx 不存在，提交会Failed）
         let node = create_test_node("test-false", "false 端口路由测试", "conn-nonexistent");
         let mut context = create_context("test-flow");
 
-        // 创建 false 端口连接（失败路由）
+        // 创建 false 端口连接（Failed路由）
         let connections = vec![Connection {
             id: "conn-false".to_string(),
             source_node_uuid: "test-false".to_string(),
@@ -503,13 +503,13 @@ mod tests {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbCommitExecutor::new(db_manager);
 
-        // 创建一个使用错误数据类型的节点
+        // 创建一个使用Error数据类型的节点
         let node = Node {
             uuid: "test-6".to_string(),
             node_type: "db_commit".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(), // 错误：使用 Entry 配置
+            data: NodeData::entry(), // Error：使用 Entry 配置
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -520,7 +520,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回错误
+        // 应该返回Error
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不是 DbCommitConfig"));
     }

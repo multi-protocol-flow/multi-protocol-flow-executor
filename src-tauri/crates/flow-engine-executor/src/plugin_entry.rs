@@ -18,7 +18,7 @@ impl NodePlugin for EntryPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "入口"
+        "Entry"
     }
 
     fn category(&self) -> &str {

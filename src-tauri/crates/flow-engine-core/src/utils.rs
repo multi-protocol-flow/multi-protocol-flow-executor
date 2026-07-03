@@ -36,7 +36,7 @@ pub fn extract_value_by_path(value: &serde_json::Value, path: &str) -> Option<se
 /// 应用输出映射，从响应数据中提取变量写入执行上下文
 ///
 /// 遍历 mappings，用 `JSONPath` 从 response 中提取值，
-/// 成功时通过 `context.variables.set_variable` 写入并记录 info 日志，
+/// Success时通过 `context.variables.set_variable` 写入并记录 info 日志，
 /// 未找到值时记录 warn 日志。
 pub fn apply_output_mappings(
     response: &serde_json::Value,

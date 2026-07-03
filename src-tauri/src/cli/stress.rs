@@ -85,7 +85,7 @@ async fn execute_run(
                         }
                         output::output_ndjson(&evt);
                     }
-                    None => break, // 通道关闭，执行完成
+                    None => break, // 通道关闭，execution complete
                 }
             }
             _ = cancel_rx.changed() => {

@@ -135,7 +135,7 @@ impl QueuedLogSender {
             // 后台消费任务
             let worker = LogWorker::Release(Box::pin(async move {
                 while let Some(event) = rx.recv().await {
-                    // 按顺序发送，失败不重试（避免阻塞）
+                    // 按顺序发送，Failed不重试（避免阻塞）
                     let _ = underlying_clone.send_sync(event);
                 }
             }));

@@ -2,7 +2,7 @@
 //!
 //! 实现 AMQP 0-9-1 消息确认/拒绝功能。
 //! 支持 `basic_ack(multiple)、basic_nack(multiple`, `requeue)、basic_reject(requeue`)。
-//! 成功走 true 端口，失败走 false 端口。
+//! Success走 true 端口，Failed走 false 端口。
 
 use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
@@ -47,7 +47,7 @@ impl NodeExecutor for AmqpAckExecutor {
             NodeData::AmqpAck(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 AmqpAckConfig: {}",
+                    "Node data type is not AmqpAckConfig: {}",
                     node.uuid
                 )))
             }
@@ -56,9 +56,9 @@ impl NodeExecutor for AmqpAckExecutor {
         // 2. 变量替换 connection_id 和 action
         let connection_id =
             replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("connection_id 变量替换失败: {}", e);
+                let error_msg = format!("connection_id variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -68,9 +68,9 @@ impl NodeExecutor for AmqpAckExecutor {
             })?;
 
         let action = replace_variables(&config.action, context).map_err(|e| {
-            let error_msg = format!("action 变量替换失败: {}", e);
+            let error_msg = format!("action variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -86,7 +86,7 @@ impl NodeExecutor for AmqpAckExecutor {
                 action
             );
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -95,9 +95,9 @@ impl NodeExecutor for AmqpAckExecutor {
             return Err(ErrorDetail::execution_error(error_msg));
         }
 
-        // 4. 日志：开始执行
+        // 4. 日志：start execution
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp_ack, 连接ID: {}, action: {}, delivery_tag: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp_ack, Connection ID: {}, action: {}, delivery_tag: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -110,7 +110,7 @@ impl NodeExecutor for AmqpAckExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "AMQP Ack 节点 {} 开始执行 (action={}, delivery_tag={})",
+                    "AMQP Ack 节点 {} start execution (action={}, delivery_tag={})",
                     node.name, action, config.delivery_tag
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -141,14 +141,14 @@ impl NodeExecutor for AmqpAckExecutor {
 
                 if output.success {
                     log::info!(
-                        "[AMQP] 确认成功: connection_id={}, action={}, delivery_tag={}",
+                        "[AMQP] 确认Success: connection_id={}, action={}, delivery_tag={}",
                         connection_id,
                         action,
                         config.delivery_tag
                     );
                 } else {
                     log::warn!(
-                        "[AMQP] 确认失败: connection_id={}, action={}, delivery_tag={}, error={:?}",
+                        "[AMQP] 确认Failed: connection_id={}, action={}, delivery_tag={}, error={:?}",
                         connection_id,
                         action,
                         config.delivery_tag,
@@ -175,7 +175,7 @@ impl NodeExecutor for AmqpAckExecutor {
                     "error": output.error,
                 });
 
-                // 8. 日志：执行完成
+                // 8. 日志：execution complete
                 let log_level = if output.success {
                     LogLevel::Info
                 } else {
@@ -183,16 +183,16 @@ impl NodeExecutor for AmqpAckExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "AMQP {} 成功 (delivery_tag={}, {}ms)",
+                        "AMQP {} Success (delivery_tag={}, {}ms)",
                         action,
                         config.delivery_tag,
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "AMQP {} 失败: {} ({}ms)",
+                        "AMQP {} Failed: {} ({}ms)",
                         action,
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -211,7 +211,7 @@ impl NodeExecutor for AmqpAckExecutor {
                     })
                     .await;
 
-                // 9. 路由：成功走 true 端口，失败走 false 端口
+                // 9. 路由：Success走 true 端口，Failed走 false 端口
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, port);
 
@@ -226,7 +226,7 @@ impl NodeExecutor for AmqpAckExecutor {
                     e
                 );
 
-                // 日志：执行异常
+                // 日志：execution error
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
@@ -241,7 +241,7 @@ impl NodeExecutor for AmqpAckExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let error_output = json!({
                     "success": false,
                     "action": action,
@@ -261,9 +261,9 @@ impl NodeExecutor for AmqpAckExecutor {
                 });
 
                 // 返回 false 端口
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP ack 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("AMQP ack Failed: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -303,7 +303,7 @@ mod tests {
     };
     use flow_engine_core::traits::{AmqpAckOutput, AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider};
 
-    /// Mock AmqpProvider（ack 成功）
+    /// Mock AmqpProvider（ack Success）
     struct MockAmqpProvider {
         output: AmqpAckOutput,
     }
@@ -642,7 +642,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, action: &str, delivery_tag: u64) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -685,7 +685,7 @@ mod tests {
         }
     }
 
-    /// 测试：ack 成功时输出 JSON 结构正确并路由到 true 端口
+    /// 测试：ack Success时输出 JSON 结构正确并路由到 true 端口
     #[tokio::test]
     async fn test_amqp_ack_success_output_structure() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -716,12 +716,12 @@ mod tests {
         assert_eq!(data["request"]["requeue"], false);
     }
 
-    /// 测试：ack 失败时路由到 false 端口
+    /// 测试：ack Failed时路由到 false 端口
     #[tokio::test]
     async fn test_amqp_ack_failure_routes_to_false_port() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_failure("未知投递标签"));
         let executor = AmqpAckExecutor::new(amqp_manager);
-        let node = create_test_node("test-2", "失败测试", "conn-1", "ack", 99);
+        let node = create_test_node("test-2", "Failed测试", "conn-1", "ack", 99);
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -738,7 +738,7 @@ mod tests {
         assert_eq!(data["error"], "未知投递标签");
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_amqp_ack_wrong_node_data_type() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -747,7 +747,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -764,7 +764,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("AmqpAckConfig"));
     }
 
-    /// 测试：无效 action 值时返回错误
+    /// 测试：无效 action 值时返回Error
     #[tokio::test]
     async fn test_amqp_ack_invalid_action() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());

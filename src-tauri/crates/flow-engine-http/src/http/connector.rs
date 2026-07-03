@@ -603,7 +603,7 @@ mod tests {
         // 测试 HTTP 连接
         let result = connector.connect("http://httpbin.org/get", &mut timing).await;
 
-        assert!(result.is_ok(), "HTTP 连接应该成功");
+        assert!(result.is_ok(), "HTTP 连接应该Success");
         let connection = result.unwrap();
         assert!(matches!(connection, LegacyConnection::Http(_)));
 
@@ -622,7 +622,7 @@ mod tests {
         // 测试 HTTPS 连接
         let result = connector.connect("https://httpbin.org/get", &mut timing).await;
 
-        assert!(result.is_ok(), "HTTPS 连接应该成功");
+        assert!(result.is_ok(), "HTTPS 连接应该Success");
         let connection = result.unwrap();
         assert!(matches!(connection, LegacyConnection::Https(_)));
 
@@ -638,7 +638,7 @@ mod tests {
         let connector = HttpConnector::new(5000);
         let mut timing = TimingContext::new();
 
-        // 测试 DNS 解析失败
+        // 测试 DNS 解析Failed
         let result = connector
             .connect("http://this-domain-does-not-exist-12345.invalid", &mut timing)
             .await;
@@ -672,7 +672,7 @@ mod tests {
         let uri: Uri = "https://httpbin.org/get".parse().unwrap();
         let result = Service::<Uri>::call(&mut connector, uri).await;
 
-        assert!(result.is_ok(), "HTTPS 连接应该成功");
+        assert!(result.is_ok(), "HTTPS 连接应该Success");
         let stream = result.unwrap();
 
         // 检查是否为 HTTPS 流

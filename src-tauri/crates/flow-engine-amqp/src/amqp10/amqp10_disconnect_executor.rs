@@ -1,7 +1,7 @@
 //! AMQP 1.0 断开连接节点执行器
 //!
 //! 实现 AMQP 1.0 断开连接功能。
-//! 断开始终走 "out" 端口（失败不阻塞流程）。
+//! 断开始终走 "out" 端口（Failed不阻塞流程）。
 
 use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
@@ -45,7 +45,7 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
             NodeData::Amqp10Disconnect(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 Amqp10DisconnectConfig: {}",
+                    "Node data type is not Amqp10DisconnectConfig: {}",
                     node.uuid
                 )))
             }
@@ -53,20 +53,20 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
 
         // 2. 变量替换
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("connection_id 变量替换失败: {}", e);
-            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+            let error_msg = format!("connection_id variable substitution failed: {}", e);
+            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
             ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始断开
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp10_disconnect, 连接ID: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp10_disconnect, Connection ID: {}",
             context.flow_uuid, node.uuid, node.name, connection_id
         );
 
         context.emit_log(LogEvent {
             level: LogLevel::Info,
-            message: format!("AMQP 1.0 断开节点 {} 开始执行", node.name),
+            message: format!("AMQP 1.0 断开节点 {} start execution", node.name),
             timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
             node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone(),
@@ -94,7 +94,7 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
 
         match disconnect_result {
             Ok(()) => {
-                log::info!("[AMQP 1.0] 断开成功: connection_id={}", connection_id);
+                log::info!("[AMQP 1.0] 断开Success: connection_id={}", connection_id);
 
                 let output_data = json!({
                     "success": true,
@@ -104,7 +104,7 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
 
                 context.emit_log(LogEvent {
                     level: LogLevel::Info,
-                    message: format!("AMQP 1.0 断开成功 ({}ms)", duration.as_millis()),
+                    message: format!("AMQP 1.0 断开Success ({}ms)", duration.as_millis()),
                     timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
@@ -113,7 +113,7 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
                 Ok((next_node_ids, Some(output_data)))
             }
             Err(e) => {
-                log::error!("[AMQP 1.0] 断开失败: connection_id={}, error={}", connection_id, e);
+                log::error!("[AMQP 1.0] 断开Failed: connection_id={}, error={}", connection_id, e);
 
                 let error_output = json!({
                     "success": false,
@@ -124,7 +124,7 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
 
                 context.emit_log(LogEvent {
                     level: LogLevel::Error,
-                    message: format!("AMQP 1.0 断开失败: {}", e),
+                    message: format!("AMQP 1.0 断开Failed: {}", e),
                     timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
@@ -144,7 +144,7 @@ mod tests {
     use flow_engine_core::node_config::*;
     use flow_engine_core::traits::*;
 
-    /// Mock AmqpProvider（断开成功）
+    /// Mock AmqpProvider（断开Success）
     struct MockAmqpProvider { should_error: bool }
     impl MockAmqpProvider {
         fn new_success() -> Self { Self { should_error: false } }
@@ -171,7 +171,7 @@ mod tests {
         async fn amqp10_accept(&self, _uuid: &str, _config: &Amqp10AcceptConfig) -> Result<Amqp10AcceptOutput, String> { Err("not implemented".to_string()) }
         async fn amqp10_reject(&self, _uuid: &str, _config: &Amqp10RejectConfig) -> Result<Amqp10RejectOutput, String> { Err("not implemented".to_string()) }
         async fn amqp10_disconnect(&self, _uuid: &str, _config: &Amqp10DisconnectConfig) -> Result<(), String> {
-            if self.should_error { Err("断开失败".to_string()) } else { Ok(()) }
+            if self.should_error { Err("断开Failed".to_string()) } else { Ok(()) }
         }
         fn get_status(&self, _uuid: &str) -> Option<String> { Some("connected".to_string()) }
         fn list_connections(&self) -> Vec<AmqpConnectionInfo> { vec![] }
@@ -199,7 +199,7 @@ mod tests {
         }
     }
 
-    /// 测试：断开成功时路由到 out 端口
+    /// 测试：断开Success时路由到 out 端口
     #[tokio::test]
     async fn test_amqp10_disconnect_success_routes_to_out() {
         let executor = Amqp10DisconnectExecutor::new(Arc::new(MockAmqpProvider::new_success()));
@@ -212,11 +212,11 @@ mod tests {
         assert_eq!(data.unwrap()["success"], true);
     }
 
-    /// 测试：断开失败时仍然路由到 out 端口（失败不阻塞）
+    /// 测试：断开Failed时仍然路由到 out 端口（Failed不阻塞）
     #[tokio::test]
     async fn test_amqp10_disconnect_failure_routes_to_out() {
         let executor = Amqp10DisconnectExecutor::new(Arc::new(MockAmqpProvider::new_error()));
-        let node = create_test_node("test-2", "失败测试", "conn-1");
+        let node = create_test_node("test-2", "Failed测试", "conn-1");
         let mut context = create_context("test-flow");
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok());
@@ -224,15 +224,15 @@ mod tests {
         assert_eq!(next_nodes, vec!["out"]);
         let data = data.unwrap();
         assert_eq!(data["success"], false);
-        assert_eq!(data["error"], "断开失败");
+        assert_eq!(data["error"], "断开Failed");
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_amqp10_disconnect_wrong_node_data_type() {
         let executor = Amqp10DisconnectExecutor::new(Arc::new(MockAmqpProvider::new_success()));
         let node = Node {
-            uuid: "test-wrong".to_string(), node_type: "http".to_string(), name: "错误类型".to_string(),
+            uuid: "test-wrong".to_string(), node_type: "http".to_string(), name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 }, data: NodeData::Entry(EntryConfig::default()),
             ports: None, has_breakpoint: None, on_error: None,
         };

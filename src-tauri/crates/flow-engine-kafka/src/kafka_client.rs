@@ -18,7 +18,7 @@ use rdkafka::util::Timeout;
 use thiserror::Error;
 
 // ---------------------------------------------------------------------------
-// 错误类型
+// Error类型
 // ---------------------------------------------------------------------------
 
 /// Kafka error type
@@ -165,7 +165,7 @@ impl KafkaClient {
         debug!("正在创建 Kafka BaseProducer");
         self.client_config
             .create()
-            .map_err(|e| KafkaError::ConnectionFailed(format!("创建 Producer 失败: {e}")))
+            .map_err(|e| KafkaError::ConnectionFailed(format!("创建 Producer Failed: {e}")))
     }
 
     /// 创建 StreamConsumer（异步流式消费者）
@@ -181,7 +181,7 @@ impl KafkaClient {
 
         config
             .create()
-            .map_err(|e| KafkaError::ConnectionFailed(format!("创建 Consumer 失败: {e}")))
+            .map_err(|e| KafkaError::ConnectionFailed(format!("创建 Consumer Failed: {e}")))
     }
 
     /// 创建 AdminClient（管理操作客户端）
@@ -189,7 +189,7 @@ impl KafkaClient {
         debug!("正在创建 Kafka AdminClient");
         self.client_config
             .create()
-            .map_err(|e| KafkaError::ConnectionFailed(format!("创建 AdminClient 失败: {e}")))
+            .map_err(|e| KafkaError::ConnectionFailed(format!("创建 AdminClient Failed: {e}")))
     }
 
     // -----------------------------------------------------------------------
@@ -252,16 +252,16 @@ impl KafkaClient {
                         "主题不存在: {topic} — {e}"
                     )));
                 }
-                return Err(KafkaError::ProduceFailed(format!("生产消息失败: {e}")));
+                return Err(KafkaError::ProduceFailed(format!("生产消息Failed: {e}")));
             }
         }
 
         // flush 以同步等待发送结果
         producer
             .flush(Timeout::After(Duration::from_secs(5)))
-            .map_err(|e| KafkaError::ProduceFailed(format!("flush 失败: {e}")))?;
+            .map_err(|e| KafkaError::ProduceFailed(format!("flush Failed: {e}")))?;
 
-        // 注意：BaseProducer 的 send 是 fire-and-forget，成功仅表示进入了缓冲区。
+        // 注意：BaseProducer 的 send 是 fire-and-forget，Success仅表示进入了缓冲区。
         // 返回占位的 (0, -1)，实际分区/偏移量需通过 delivery callback 获取。
         // 对于需要精确 partition/offset 的场景，后续可切换到 FutureProducer。
         Ok((0, -1))
@@ -292,7 +292,7 @@ impl KafkaClient {
                 if err_msg.contains("timeout") || err_msg.contains("Timed out") {
                     return Err(KafkaError::Timeout(format!("消费消息超时: {e}")));
                 }
-                Err(KafkaError::ConsumeFailed(format!("消费消息失败: {e}")))
+                Err(KafkaError::ConsumeFailed(format!("消费消息Failed: {e}")))
             }
             None => {
                 debug!("拉取消息超时，未收到消息");
@@ -315,19 +315,19 @@ mod tests {
     fn test_kafka_error_display() {
         assert_eq!(
             KafkaError::ConnectionFailed("broker".into()).to_string(),
-            "连接失败: broker"
+            "connection failed: broker"
         );
         assert_eq!(
             KafkaError::ProduceFailed("err".into()).to_string(),
-            "生产失败: err"
+            "生产Failed: err"
         );
         assert_eq!(
             KafkaError::ConsumeFailed("err".into()).to_string(),
-            "消费失败: err"
+            "消费Failed: err"
         );
         assert_eq!(
             KafkaError::AdminFailed("err".into()).to_string(),
-            "管理操作失败: err"
+            "管理操作Failed: err"
         );
         assert_eq!(
             KafkaError::Timeout("30s".into()).to_string(),
@@ -335,7 +335,7 @@ mod tests {
         );
         assert_eq!(
             KafkaError::AuthFailed("bad token".into()).to_string(),
-            "认证失败: bad token"
+            "认证Failed: bad token"
         );
         assert_eq!(
             KafkaError::TopicNotFound("t1".into()).to_string(),
@@ -343,15 +343,15 @@ mod tests {
         );
         assert_eq!(
             KafkaError::ConfigError("missing".into()).to_string(),
-            "配置错误: missing"
+            "配置Error: missing"
         );
         assert_eq!(
             KafkaError::SerializationFailed("json".into()).to_string(),
-            "序列化失败: json"
+            "序列化Failed: json"
         );
         assert_eq!(
             KafkaError::DeserializationFailed("avro".into()).to_string(),
-            "反序列化失败: avro"
+            "反序列化Failed: avro"
         );
         assert_eq!(
             KafkaError::Other("misc".into()).to_string(),
@@ -369,23 +369,23 @@ mod tests {
             ..Default::default()
         };
 
-        let mut client = KafkaClient::new(&config).expect("KafkaClient 创建应成功");
+        let mut client = KafkaClient::new(&config).expect("KafkaClient 创建应Success");
         let cc = client.client_config();
 
         // 验证底层 ClientConfig 的关键参数已正确设置
-        // ClientConfig 没有公开 getter，但创建成功即表示映射正确
+        // ClientConfig 没有公开 getter，但创建Success即表示映射正确
         // 我们通过 client_config() 确认可访问
         let _ = cc;
 
         // 验证可变引用也可获取
         let _ = client.client_config_mut();
 
-        // 创建 Producer / Admin 应能成功（不需要实际连接 Kafka）
+        // 创建 Producer / Admin 应能Success（不需要实际连接 Kafka）
         // Consumer 需要 group.id，此处跳过
-        assert!(client.create_producer().is_ok(), "Producer 创建应成功");
+        assert!(client.create_producer().is_ok(), "Producer 创建应Success");
         assert!(
             client.create_admin_client().is_ok(),
-            "AdminClient 创建应成功"
+            "AdminClient 创建应Success"
         );
     }
 
@@ -401,18 +401,18 @@ mod tests {
             ..Default::default()
         };
 
-        let client = KafkaClient::new(&config).expect("SASL KafkaClient 创建应成功");
+        let client = KafkaClient::new(&config).expect("SASL KafkaClient 创建应Success");
 
         // Producer 创建应能正常构建（BaseProducer 不需要 Tokio runtime）
         assert!(
             client.create_producer().is_ok(),
-            "SASL Producer 创建应成功"
+            "SASL Producer 创建应Success"
         );
 
         // Admin 不依赖连接，可直接创建
         assert!(
             client.create_admin_client().is_ok(),
-            "SASL AdminClient 创建应成功"
+            "SASL AdminClient 创建应Success"
         );
     }
 
@@ -428,18 +428,18 @@ mod tests {
             ..Default::default()
         };
 
-        let client = KafkaClient::new(&config).expect("SASL KafkaClient 创建应成功");
+        let client = KafkaClient::new(&config).expect("SASL KafkaClient 创建应Success");
 
         // StreamConsumer 需要 Tokio runtime
         assert!(
             client.create_consumer("test-group").is_ok(),
-            "SASL Consumer 创建应成功"
+            "SASL Consumer 创建应Success"
         );
     }
 
     /// 验证 SSL/TLS 配置映射
     ///
-    /// 仅验证 KafkaClient 构建成功（配置映射正确）。
+    /// 仅验证 KafkaClient 构建Success（配置映射正确）。
     /// 不实际创建客户端，因为 rdkafka 会校验 SSL 证书路径是否存在。
     #[test]
     fn test_kafka_client_config_with_ssl() {
@@ -453,8 +453,8 @@ mod tests {
             ..Default::default()
         };
 
-        // 验证配置映射成功（KafkaClient::new 不实际连接 Kafka）
-        let client = KafkaClient::new(&config).expect("SSL KafkaClient 创建应成功");
+        // 验证配置映射Success（KafkaClient::new 不实际连接 Kafka）
+        let client = KafkaClient::new(&config).expect("SSL KafkaClient 创建应Success");
 
         // 验证 client_config 可访问
         let _ = client.client_config();

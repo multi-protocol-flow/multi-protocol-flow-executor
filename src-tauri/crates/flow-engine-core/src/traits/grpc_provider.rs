@@ -120,12 +120,12 @@ pub struct HealthCheckResponse {
     pub status: String,
 }
 
-/// gRPC 错误详情
+/// gRPC Error详情
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GrpcErrorDetail {
-    /// 错误详情类型 URL
+    /// Error详情类型 URL
     pub type_url: String,
-    /// 解码后的错误详情
+    /// 解码后的Error详情
     pub decoded: Option<serde_json::Value>,
     /// 原始十六进制数据
     pub raw_hex: Option<String>,
@@ -294,10 +294,10 @@ mod tests {
             GrpcPattern::ClientStreaming,
             GrpcPattern::BidiStreaming,
         ] {
-            let json = serde_json::to_string(&pattern).expect("序列化应成功");
+            let json = serde_json::to_string(&pattern).expect("序列化应Success");
             let deserialized: GrpcPattern =
-                serde_json::from_str(&json).expect("反序列化应成功");
-            assert_eq!(pattern, deserialized, "GrpcPattern serde 往返失败: {:?}", pattern);
+                serde_json::from_str(&json).expect("反序列化应Success");
+            assert_eq!(pattern, deserialized, "GrpcPattern serde 往返Failed: {:?}", pattern);
         }
     }
 
@@ -305,7 +305,7 @@ mod tests {
     fn test_grpc_method_info_default_client_streaming() {
         // is_client_streaming 有 #[serde(default)]，缺少时应默认为 false
         let json = r#"{"method_name":"M","input_type":"I","output_type":"O","is_server_streaming":true}"#;
-        let info: GrpcMethodInfo = serde_json::from_str(json).expect("反序列化应成功");
+        let info: GrpcMethodInfo = serde_json::from_str(json).expect("反序列化应Success");
         assert!(!info.is_client_streaming);
         assert!(info.is_server_streaming);
     }
@@ -316,9 +316,9 @@ mod tests {
             total_ms: 150,
             first_response_ms: Some(50),
         };
-        let json = serde_json::to_string(&timing).expect("序列化应成功");
+        let json = serde_json::to_string(&timing).expect("序列化应Success");
         let deserialized: GrpcTimingInfo =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.total_ms, 150);
         assert_eq!(deserialized.first_response_ms, Some(50));
     }
@@ -338,9 +338,9 @@ mod tests {
             },
             cancelled: false,
         };
-        let json = serde_json::to_string(&result).expect("序列化应成功");
+        let json = serde_json::to_string(&result).expect("序列化应Success");
         let deserialized: GrpcStreamingResult =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.status, 0);
         assert_eq!(deserialized.sent_count, 3);
         assert_eq!(deserialized.received_count, 1);

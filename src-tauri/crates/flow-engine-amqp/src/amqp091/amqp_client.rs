@@ -74,9 +74,9 @@ pub async fn connect_async(config: &AmqpConnectConfig) -> Result<Connection, Str
     // 创建连接（lapin 自动从 URL 协议推断是否使用 TLS）
     let connection = Connection::connect(url, properties)
         .await
-        .map_err(|e| format!("AMQP 连接失败: {}", e))?;
+        .map_err(|e| format!("AMQP connection failed: {}", e))?;
 
-    info!("AMQP 连接成功: url={}", url);
+    info!("AMQP 连接Success: url={}", url);
     Ok(connection)
 }
 
@@ -89,7 +89,7 @@ pub async fn create_channel(connection: &Connection) -> Result<Channel, String> 
     connection
         .create_channel()
         .await
-        .map_err(|e| format!("AMQP 创建通道失败: {}", e))
+        .map_err(|e| format!("AMQP 创建通道Failed: {}", e))
 }
 
 // ---------------------------------------------------------------------------
@@ -132,9 +132,9 @@ pub async fn exchange_declare(
     channel
         .exchange_declare(name.into(), kind, options, field_table)
         .await
-        .map_err(|e| format!("AMQP 声明交换器 '{}' 失败: {}", name, e))?;
+        .map_err(|e| format!("AMQP 声明交换器 '{}' Failed: {}", name, e))?;
 
-    info!("AMQP 声明交换器成功: name={}, type={}", name, exchange_type);
+    info!("AMQP 声明交换器Success: name={}, type={}", name, exchange_type);
     Ok(())
 }
 
@@ -152,9 +152,9 @@ pub async fn exchange_delete(
     channel
         .exchange_delete(name.into(), options)
         .await
-        .map_err(|e| format!("AMQP 删除交换器 '{}' 失败: {}", name, e))?;
+        .map_err(|e| format!("AMQP 删除交换器 '{}' Failed: {}", name, e))?;
 
-    info!("AMQP 删除交换器成功: name={}", name);
+    info!("AMQP 删除交换器Success: name={}", name);
     Ok(())
 }
 
@@ -187,14 +187,14 @@ pub async fn queue_declare(
     let result = channel
         .queue_declare(queue_name.into(), options, field_table)
         .await
-        .map_err(|e| format!("AMQP 声明队列 '{}' 失败: {}", queue_name, e))?;
+        .map_err(|e| format!("AMQP 声明队列 '{}' Failed: {}", queue_name, e))?;
 
     let name = result.name().to_string();
     let message_count = result.message_count();
     let consumer_count = result.consumer_count();
 
     info!(
-        "AMQP 声明队列成功: name={}, messages={}, consumers={}",
+        "AMQP 声明队列Success: name={}, messages={}, consumers={}",
         name, message_count, consumer_count
     );
 
@@ -219,9 +219,9 @@ pub async fn queue_delete(
     let result = channel
         .queue_delete(queue_name.into(), options)
         .await
-        .map_err(|e| format!("AMQP 删除队列 '{}' 失败: {}", queue_name, e))?;
+        .map_err(|e| format!("AMQP 删除队列 '{}' Failed: {}", queue_name, e))?;
 
-    info!("AMQP 删除队列成功: name={}, deleted={}", queue_name, result);
+    info!("AMQP 删除队列Success: name={}, deleted={}", queue_name, result);
     Ok(result)
 }
 
@@ -246,13 +246,13 @@ pub async fn queue_bind(
         .await
         .map_err(|e| {
             format!(
-                "AMQP 绑定队列 '{}' 到交换器 '{}' 失败: {}",
+                "AMQP 绑定队列 '{}' 到交换器 '{}' Failed: {}",
                 queue_name, exchange, e
             )
         })?;
 
     info!(
-        "AMQP 绑定队列成功: queue={}, exchange={}, routing_key={}",
+        "AMQP 绑定队列Success: queue={}, exchange={}, routing_key={}",
         queue_name, exchange, routing_key
     );
     Ok(())
@@ -289,7 +289,7 @@ pub async fn basic_publish(
         .await
         .map_err(|e| {
             format!(
-                "AMQP 发布消息失败: exchange={}, routing_key={}: {}",
+                "AMQP 发布消息Failed: exchange={}, routing_key={}: {}",
                 exchange, routing_key, e
             )
         })?;
@@ -299,11 +299,11 @@ pub async fn basic_publish(
         Ok(lapin::Confirmation::Ack(_)) => "ack".to_string(),
         Ok(lapin::Confirmation::Nack(_)) => "nack".to_string(),
         Ok(lapin::Confirmation::NotRequested) => "not_requested".to_string(),
-        Err(e) => format!("确认等待错误: {}", e),
+        Err(e) => format!("确认等待Error: {}", e),
     };
 
     info!(
-        "AMQP 发布成功: exchange={}, routing_key={}, confirm={}",
+        "AMQP 发布Success: exchange={}, routing_key={}, confirm={}",
         exchange, routing_key, confirm_str
     );
 
@@ -336,9 +336,9 @@ pub async fn basic_consume(
             FieldTable::default(),
         )
         .await
-        .map_err(|e| format!("AMQP 消费队列 '{}' 失败: {}", queue, e))?;
+        .map_err(|e| format!("AMQP 消费队列 '{}' Failed: {}", queue, e))?;
 
-    info!("AMQP 消费者创建成功: queue={}, tag={}", queue, consumer_tag);
+    info!("AMQP 消费者创建Success: queue={}, tag={}", queue, consumer_tag);
     Ok(consumer)
 }
 
@@ -355,7 +355,7 @@ pub async fn basic_get(
     let result = channel
         .basic_get(queue.into(), options)
         .await
-        .map_err(|e| format!("AMQP 获取消息失败: queue={}, 错误: {}", queue, e))?;
+        .map_err(|e| format!("AMQP 获取消息Failed: queue={}, Error: {}", queue, e))?;
 
     match result {
         Some(message) => {
@@ -367,7 +367,7 @@ pub async fn basic_get(
             let message_count = message.message_count;
 
             info!(
-                "AMQP 获取消息成功: queue={}, delivery_tag={}",
+                "AMQP 获取消息Success: queue={}, delivery_tag={}",
                 queue, delivery_tag
             );
             Ok(Some((
@@ -396,8 +396,8 @@ pub async fn basic_ack(channel: &Channel, delivery_tag: u64, multiple: bool) -> 
     channel
         .basic_ack(delivery_tag, options)
         .await
-        .map_err(|e| format!("AMQP 确认消息失败: tag={}, 错误: {}", delivery_tag, e))?;
-    info!("AMQP 确认消息成功: tag={}", delivery_tag);
+        .map_err(|e| format!("AMQP 确认消息Failed: tag={}, Error: {}", delivery_tag, e))?;
+    info!("AMQP 确认消息Success: tag={}", delivery_tag);
     Ok(())
 }
 
@@ -412,8 +412,8 @@ pub async fn basic_nack(
     channel
         .basic_nack(delivery_tag, options)
         .await
-        .map_err(|e| format!("AMQP Nack 失败: tag={}, 错误: {}", delivery_tag, e))?;
-    info!("AMQP Nack 成功: tag={}, requeue={}", delivery_tag, requeue);
+        .map_err(|e| format!("AMQP Nack Failed: tag={}, Error: {}", delivery_tag, e))?;
+    info!("AMQP Nack Success: tag={}, requeue={}", delivery_tag, requeue);
     Ok(())
 }
 
@@ -427,8 +427,8 @@ pub async fn basic_reject(
     channel
         .basic_reject(delivery_tag, options)
         .await
-        .map_err(|e| format!("AMQP Reject 失败: tag={}, 错误: {}", delivery_tag, e))?;
-    info!("AMQP Reject 成功: tag={}, requeue={}", delivery_tag, requeue);
+        .map_err(|e| format!("AMQP Reject Failed: tag={}, Error: {}", delivery_tag, e))?;
+    info!("AMQP Reject Success: tag={}, requeue={}", delivery_tag, requeue);
     Ok(())
 }
 
@@ -441,7 +441,7 @@ pub async fn confirm_select(channel: &Channel) -> Result<(), String> {
     channel
         .confirm_select(ConfirmSelectOptions::default())
         .await
-        .map_err(|e| format!("AMQP 启用确认模式失败: {}", e))?;
+        .map_err(|e| format!("AMQP 启用确认模式Failed: {}", e))?;
     info!("AMQP 确认模式已启用");
     Ok(())
 }
@@ -451,7 +451,7 @@ pub async fn tx_select(channel: &Channel) -> Result<(), String> {
     channel
         .tx_select()
         .await
-        .map_err(|e| format!("AMQP 启用事务模式失败: {}", e))?;
+        .map_err(|e| format!("AMQP 启用事务模式Failed: {}", e))?;
     info!("AMQP 事务模式已启用");
     Ok(())
 }
@@ -461,7 +461,7 @@ pub async fn tx_commit(channel: &Channel) -> Result<(), String> {
     channel
         .tx_commit()
         .await
-        .map_err(|e| format!("AMQP 提交事务失败: {}", e))?;
+        .map_err(|e| format!("AMQP 提交事务Failed: {}", e))?;
     info!("AMQP 事务已提交");
     Ok(())
 }
@@ -471,7 +471,7 @@ pub async fn tx_rollback(channel: &Channel) -> Result<(), String> {
     channel
         .tx_rollback()
         .await
-        .map_err(|e| format!("AMQP 回滚事务失败: {}", e))?;
+        .map_err(|e| format!("AMQP 回滚事务Failed: {}", e))?;
     info!("AMQP 事务已回滚");
     Ok(())
 }

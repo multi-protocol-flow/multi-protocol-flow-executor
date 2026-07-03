@@ -1,7 +1,7 @@
 //! AMQP 声明交换器节点执行器
 //!
 //! 实现 AMQP 0-9-1 交换器声明、变量替换和输出构建功能。
-//! 成功路由到 true 端口，失败路由到 false 端口。
+//! Success路由到 true 端口，Failed路由到 false 端口。
 
 use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
@@ -46,7 +46,7 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
             NodeData::AmqpExchangeDeclare(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 AmqpExchangeDeclareConfig: {}",
+                    "Node data type is not AmqpExchangeDeclareConfig: {}",
                     node.uuid
                 )))
             }
@@ -54,9 +54,9 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
 
         // 2. 变量替换（connection_id、exchange）
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -66,9 +66,9 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
         })?;
 
         let exchange = replace_variables(&config.exchange, context).map_err(|e| {
-            let error_msg = format!("交换器名称变量替换失败: {}", e);
+            let error_msg = format!("交换器名称variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -84,7 +84,7 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
                 for (k, v) in args {
                     if let Some(s) = v.as_str() {
                         let replaced = replace_variables(s, context).map_err(|e| {
-                            ErrorDetail::execution_error(format!("arguments[{}] 变量替换失败: {}", k, e))
+                            ErrorDetail::execution_error(format!("arguments[{}] variable substitution failed: {}", k, e))
                         })?;
                         resolved.insert(k.clone(), json!(replaced));
                     } else {
@@ -98,7 +98,7 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
 
         // 4. 日志：开始声明
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp_exchange_declare, exchange: {}, type: {:?}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp_exchange_declare, exchange: {}, type: {:?}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -110,7 +110,7 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "AMQP ExchangeDeclare 节点 {} 开始执行 (exchange={})",
+                    "AMQP ExchangeDeclare 节点 {} start execution (exchange={})",
                     node.name, exchange
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -151,14 +151,14 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
             Ok(output) => {
                 if output.success {
                     log::info!(
-                        "[AMQP] 交换器声明成功: uuid={}, exchange={}, type={:?}",
+                        "[AMQP] 交换器声明Success: uuid={}, exchange={}, type={:?}",
                         node.uuid,
                         exchange,
                         output.exchange_type,
                     );
                 } else {
                     log::warn!(
-                        "[AMQP] 交换器声明失败: uuid={}, exchange={}, error={:?}",
+                        "[AMQP] 交换器声明Failed: uuid={}, exchange={}, error={:?}",
                         node.uuid,
                         exchange,
                         output.error,
@@ -196,14 +196,14 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "AMQP 交换器声明成功: {} ({}ms)",
+                        "AMQP 交换器声明Success: {} ({}ms)",
                         exchange,
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "AMQP 交换器声明失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "AMQP 交换器声明Failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -222,7 +222,7 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
                     })
                     .await;
 
-                // 10. 路由：成功走 true 端口，失败走 false 端口
+                // 10. 路由：Success走 true 端口，Failed走 false 端口
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, port);
 
@@ -265,9 +265,9 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
                     "error": e,
                 });
 
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP exchange_declare 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("AMQP exchange_declare Failed: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -309,7 +309,7 @@ mod tests {
         AmqpConnectOutput, AmqpConnectionInfo, AmqpExchangeOutput, AmqpProvider,
     };
 
-    /// Mock AmqpProvider（exchange_declare 成功）
+    /// Mock AmqpProvider（exchange_declare Success）
     struct MockAmqpProvider {
         output: AmqpExchangeOutput,
     }
@@ -648,7 +648,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, exchange: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -690,7 +690,7 @@ mod tests {
         }
     }
 
-    /// 测试：声明成功时输出 JSON 结构正确，路由到 true 端口
+    /// 测试：声明Success时输出 JSON 结构正确，路由到 true 端口
     #[tokio::test]
     async fn test_exchange_declare_success_output_structure() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -716,12 +716,12 @@ mod tests {
         assert!(data["error"].is_null());
     }
 
-    /// 测试：声明失败时路由到 false 端口
+    /// 测试：声明Failed时路由到 false 端口
     #[tokio::test]
     async fn test_exchange_declare_failure_routes_to_false() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_failure("Exchange already exists"));
         let executor = AmqpExchangeDeclareExecutor::new(amqp_manager);
-        let node = create_test_node("test-2", "失败测试", "conn-1", "my-exchange");
+        let node = create_test_node("test-2", "Failed测试", "conn-1", "my-exchange");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -738,7 +738,7 @@ mod tests {
         assert_eq!(data["error"], "Exchange already exists");
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_exchange_declare_wrong_node_data_type() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -747,7 +747,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

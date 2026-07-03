@@ -24,13 +24,13 @@ impl DatasetSessionManager {
     /// 尝试开始一个新的执行会话
     ///
     /// # 返回
-    /// - `Ok(())`: 成功获取会话
+    /// - `Ok(())`: Success获取会话
     /// - `Err(msg)`: 已有执行在运行
     pub fn start_session(&self, session_id: String) -> Result<(), String> {
         let mut guard = self
             .active_session
             .lock()
-            .map_err(|e| format!("获取会话锁失败: {}", e))?;
+            .map_err(|e| format!("获取会话锁Failed: {}", e))?;
         if guard.is_some() {
             return Err("数据驱动执行已在运行中".to_string());
         }
@@ -41,13 +41,13 @@ impl DatasetSessionManager {
     /// 结束当前执行会话
     ///
     /// # 返回
-    /// - `Ok(())`: 成功释放会话
+    /// - `Ok(())`: Success释放会话
     /// - `Err(msg)`: 没有运行中的会话
     pub fn end_session(&self) -> Result<(), String> {
         let mut guard = self
             .active_session
             .lock()
-            .map_err(|e| format!("获取会话锁失败: {}", e))?;
+            .map_err(|e| format!("获取会话锁Failed: {}", e))?;
         if guard.is_none() {
             return Err("没有运行中的数据驱动执行会话".to_string());
         }
@@ -91,7 +91,7 @@ mod tests {
         // 开始会话
         manager
             .start_session("session-001".to_string())
-            .expect("开始会话应成功");
+            .expect("开始会话应Success");
         assert!(manager.is_running());
         assert_eq!(
             manager.current_session_id(),
@@ -99,7 +99,7 @@ mod tests {
         );
 
         // 结束会话
-        manager.end_session().expect("结束会话应成功");
+        manager.end_session().expect("结束会话应Success");
         assert!(!manager.is_running());
         assert!(manager.current_session_id().is_none());
     }
@@ -109,7 +109,7 @@ mod tests {
         let manager = DatasetSessionManager::new();
         manager
             .start_session("session-001".to_string())
-            .expect("第一次开始应成功");
+            .expect("第一次开始应Success");
 
         let result = manager.start_session("session-002".to_string());
         assert!(result.is_err());
@@ -130,13 +130,13 @@ mod tests {
 
         manager
             .start_session("session-001".to_string())
-            .expect("第一次开始应成功");
-        manager.end_session().expect("结束应成功");
+            .expect("第一次开始应Success");
+        manager.end_session().expect("结束应Success");
 
         // 结束后可以重新开始
         manager
             .start_session("session-002".to_string())
-            .expect("重新开始应成功");
+            .expect("重新开始应Success");
         assert_eq!(
             manager.current_session_id(),
             Some("session-002".to_string())

@@ -49,7 +49,7 @@ impl NodeExecutor for MqttConnectExecutor {
         let url = replace_variables(&config.url, context).map_err(|e| {
             let error_msg = format!("URL variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -81,7 +81,7 @@ impl NodeExecutor for MqttConnectExecutor {
 
         // 3. 日志：开始连接
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: mqtt_connect, URL: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mqtt_connect, URL: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -91,7 +91,7 @@ impl NodeExecutor for MqttConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("MQTT 连接节点 {} 开始执行", node.name),
+                message: format!("MQTT 连接节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .expect("System time error")
@@ -123,14 +123,14 @@ impl NodeExecutor for MqttConnectExecutor {
 
                 if output.success {
                     log::info!(
-                        "[MQTT] 连接成功: uuid={}, url={}, reason_code={:?}",
+                        "[MQTT] 连接Success: uuid={}, url={}, reason_code={:?}",
                         node.uuid,
                         connect_config.url,
                         output.reason_code
                     );
                 } else {
                     log::warn!(
-                        "[MQTT] 连接失败: uuid={}, url={}, error={:?}",
+                        "[MQTT] connection failed: uuid={}, url={}, error={:?}",
                         node.uuid,
                         connect_config.url,
                         output.error
@@ -179,12 +179,12 @@ impl NodeExecutor for MqttConnectExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "MQTT 连接成功 ({}ms)",
+                        "MQTT 连接Success ({}ms)",
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "MQTT 连接失败: {} ({}ms)",
+                        "MQTT connection failed: {} ({}ms)",
                         output.error.as_deref().unwrap_or("Unknown error"),
                         duration.as_millis()
                     )
@@ -204,7 +204,7 @@ impl NodeExecutor for MqttConnectExecutor {
                     })
                     .await;
 
-                // 8. 路由：成功走 true 端口，失败走 false 端口
+                // 8. 路由：Success走 true 端口，Failed走 false 端口
                 if !output.success
                     && !node.on_error.as_ref().map_or(true, |s| {
                         *s == ExecutionErrorStrategy::RouteToFalse
@@ -213,7 +213,7 @@ impl NodeExecutor for MqttConnectExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("MQTT 连接失败")
+                        .unwrap_or("MQTT connection failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -238,17 +238,17 @@ impl NodeExecutor for MqttConnectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[MQTT] 连接异常: uuid={}, url={}, error={}",
+                    "[MQTT] connection error: uuid={}, url={}, error={}",
                     node.uuid,
                     connect_config.url,
                     e
                 );
 
-                // 日志：连接异常
+                // 日志：connection error
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MQTT 连接异常: {}", e),
+                        message: format!("MQTT connection error: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .expect("System time error")
@@ -259,7 +259,7 @@ impl NodeExecutor for MqttConnectExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let duration = start_time.elapsed();
                 let error_output = json!({
                     "success": false,
@@ -318,7 +318,7 @@ mod tests {
         MqttBrokerInfo, MqttConnectOutput, MqttConnectionInfo,
     };
 
-    /// 模拟 MQTT Provider（连接成功）
+    /// 模拟 MQTT Provider（连接Success）
     struct MockMqttProvider {
         output: MqttConnectOutput,
     }
@@ -424,7 +424,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, url: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -479,7 +479,7 @@ mod tests {
         }
     }
 
-    /// 测试：连接成功时输出 JSON 结构正确
+    /// 测试：连接Success时输出 JSON 结构正确
     #[tokio::test]
     async fn test_connect_success_output_structure() {
         let mqtt_manager = Arc::new(MockMqttProvider::new_success());
@@ -493,7 +493,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
@@ -511,12 +511,12 @@ mod tests {
         assert_eq!(data["request"]["url"], "mqtt://localhost:1883");
     }
 
-    /// 测试：连接失败时路由到 false 端口
+    /// 测试：connection failed时路由到 false 端口
     #[tokio::test]
     async fn test_connect_failure_routes_to_false_port() {
         let mqtt_manager = Arc::new(MockMqttProvider::new_failure("Connection refused"));
         let executor = MqttConnectExecutor::new(mqtt_manager);
-        let node = create_test_node("test-2", "失败测试", "mqtt://unreachable:1883");
+        let node = create_test_node("test-2", "Failed测试", "mqtt://unreachable:1883");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -525,7 +525,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 失败应路由到 false 端口
+        // Failed应路由到 false 端口
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
@@ -535,7 +535,7 @@ mod tests {
         assert!(data["broker_info"].is_null());
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_connect_wrong_node_data_type() {
         let mqtt_manager = Arc::new(MockMqttProvider::new_success());
@@ -544,7 +544,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

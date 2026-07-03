@@ -6,7 +6,7 @@ use crate::email_types::SmtpConfig;
 /// SMTP 连接输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SmtpConnectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 连接 ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -14,7 +14,7 @@ pub struct SmtpConnectOutput {
     /// 服务器问候信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub server_greeting: Option<String>,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -22,7 +22,7 @@ pub struct SmtpConnectOutput {
 /// SMTP 发送输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SmtpSendOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 消息 ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -30,7 +30,7 @@ pub struct SmtpSendOutput {
     /// 响应码
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub response_code: Option<u16>,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -38,9 +38,9 @@ pub struct SmtpSendOutput {
 /// SMTP 断开连接输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SmtpDisconnectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }

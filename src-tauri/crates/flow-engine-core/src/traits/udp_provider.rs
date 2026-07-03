@@ -17,7 +17,7 @@ pub struct UdpSocketInfo {
     pub local_port: u16,
     /// 绑定时间（Unix 时间戳，毫秒）
     pub bound_at: u64,
-    /// 最近一次错误信息
+    /// 最近一次Error信息
     pub last_error: Option<String>,
 }
 
@@ -67,7 +67,7 @@ pub trait UdpProvider: Send + Sync {
     /// - `receive_timeout_ms` - 接收超时（毫秒）
     ///
     /// # 返回
-    /// 成功时返回 (数据, 来源地址, 来源端口)，超时或无数据时返回 None
+    /// Success时返回 (数据, 来源地址, 来源端口)，超时或无数据时返回 None
     async fn recv_from(
         &self,
         uuid: &str,
@@ -101,9 +101,9 @@ mod tests {
             bound_at: 1700000000000,
             last_error: None,
         };
-        let json = serde_json::to_string(&info).expect("序列化应成功");
+        let json = serde_json::to_string(&info).expect("序列化应Success");
         let deserialized: UdpSocketInfo =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.uuid, "socket-001");
         assert_eq!(deserialized.local_addr, "0.0.0.0");
         assert_eq!(deserialized.local_port, 9090);
@@ -114,16 +114,16 @@ mod tests {
     fn test_udp_socket_info_with_error() {
         let info = UdpSocketInfo {
             uuid: "socket-002".to_string(),
-            name: "错误Socket".to_string(),
+            name: "ErrorSocket".to_string(),
             status: "Error".to_string(),
             local_addr: "127.0.0.1".to_string(),
             local_port: 8080,
             bound_at: 1700000000000,
             last_error: Some("端口已被占用".to_string()),
         };
-        let json = serde_json::to_string(&info).expect("序列化应成功");
+        let json = serde_json::to_string(&info).expect("序列化应Success");
         let deserialized: UdpSocketInfo =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.last_error, Some("端口已被占用".to_string()));
     }
 
@@ -138,9 +138,9 @@ mod tests {
             bound_at: 1700000000000,
             last_error: None,
         };
-        let json = serde_json::to_string(&info).expect("序列化应成功");
+        let json = serde_json::to_string(&info).expect("序列化应Success");
         let deserialized: UdpSocketInfo =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.local_port, 0);
     }
 }

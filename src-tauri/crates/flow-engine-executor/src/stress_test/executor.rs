@@ -145,8 +145,8 @@ impl StressTestExecutor {
     /// 启动压力测试
     ///
     /// # 返回
-    /// - `Ok(())`: 启动成功
-    /// - `Err(msg)`: 启动失败（配置验证失败或测试已在运行）
+    /// - `Ok(())`: 启动Success
+    /// - `Err(msg)`: 启动Failed（配置验证Failed或测试已在运行）
     pub async fn start(&self) -> Result<(), String> {
         // 验证配置
         self.config.validate()?;
@@ -215,8 +215,8 @@ impl StressTestExecutor {
     /// 停止压力测试
     ///
     /// # 返回
-    /// - `Ok(())`: 停止成功
-    /// - `Err(msg)`: 停止失败（测试未在运行）
+    /// - `Ok(())`: 停止Success
+    /// - `Err(msg)`: 停止Failed（测试未在运行）
     pub async fn stop(&self) -> Result<(), String> {
         let state = self.state.read().await;
 
@@ -295,12 +295,12 @@ impl StressTestExecutor {
                         Arc::new(rows)
                     }
                     Err(e) => {
-                        log::error!("[压测] 解析 CSV 数据失败: {}", e);
+                        log::error!("[压测] 解析 CSV 数据Failed: {}", e);
                         Arc::new(Vec::new())
                     }
                 },
                 Err(e) => {
-                    log::error!("[压测] 打开 CSV 文件失败: {}", e);
+                    log::error!("[压测] 打开 CSV 文件Failed: {}", e);
                     Arc::new(Vec::new())
                 }
             }
@@ -507,11 +507,11 @@ impl StressTestExecutor {
             if execution_result.success {
                 metrics.record_success(latency_ms);
             } else {
-                // 执行完成但失败
+                // execution complete但Failed
                 let error_msg = execution_result
                     .error
                     .clone()
-                    .unwrap_or_else(|| "未知错误".to_string());
+                    .unwrap_or_else(|| "未知Error".to_string());
                 let sample = ErrorSample {
                     iteration: metrics.get_statistics().total_iterations,
                     node_uuid: String::new(),
@@ -536,7 +536,7 @@ impl StressTestExecutor {
                 } else {
                     let node_error = node_report.error.as_ref()
                         .map(|e| format!("{:?}", e))
-                        .unwrap_or_else(|| "未知节点错误".to_string());
+                        .unwrap_or_else(|| "未知节点Error".to_string());
                     let node_sample = ErrorSample {
                         iteration: metrics.get_statistics().total_iterations,
                         node_uuid: node_report.node_uuid.clone(),
@@ -750,7 +750,7 @@ mod tests {
 
         // 启动压测
         let result = executor.start().await;
-        assert!(result.is_ok(), "启动应该成功: {:?}", result);
+        assert!(result.is_ok(), "启动应该Success: {:?}", result);
 
         // 验证状态已改变
         let progress = executor.get_progress().await;
@@ -768,14 +768,14 @@ mod tests {
 
         // 停止压测
         let result = executor.stop().await;
-        assert!(result.is_ok(), "停止应该成功: {:?}", result);
+        assert!(result.is_ok(), "停止应该Success: {:?}", result);
 
-        // 再次停止应该失败
+        // 再次停止应该Failed
         // 等待一小段时间让状态更新
         tokio::time::sleep(Duration::from_millis(200)).await;
     }
 
-    /// 测试重复启动应该失败
+    /// 测试重复启动应该Failed
     #[tokio::test]
     async fn test_double_start_fails() {
         let flow = create_test_flow();
@@ -790,11 +790,11 @@ mod tests {
 
         let executor = StressTestExecutor::new(flow, config, tx);
 
-        // 第一次启动应该成功
+        // 第一次启动应该Success
         let result = executor.start().await;
         assert!(result.is_ok());
 
-        // 第二次启动应该失败
+        // 第二次启动应该Failed
         let result = executor.start().await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("已在运行"));
@@ -804,7 +804,7 @@ mod tests {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
-    /// 测试无效配置启动失败
+    /// 测试无效配置启动Failed
     #[tokio::test]
     async fn test_invalid_config_fails() {
         let flow = create_test_flow();
@@ -819,14 +819,14 @@ mod tests {
 
         let executor = StressTestExecutor::new(flow, config, tx);
 
-        // 启动应该失败
+        // 启动应该Failed
         let result = executor.start().await;
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(error.find("并发用户数").is_some());
     }
 
-    /// 测试停止未运行的压测失败
+    /// 测试停止未运行的压测Failed
     #[tokio::test]
     async fn test_stop_not_running_fails() {
         let flow = create_test_flow();
@@ -835,7 +835,7 @@ mod tests {
 
         let executor = StressTestExecutor::new(flow, config, tx);
 
-        // 停止未运行的压测应该失败
+        // 停止未运行的压测应该Failed
         let result = executor.stop().await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("未在运行"));
@@ -931,8 +931,8 @@ mod tests {
         let mut file = tempfile::Builder::new()
             .suffix(".csv")
             .tempfile()
-            .expect("创建临时文件失败");
-        file.write_all(content).expect("写入临时文件失败");
+            .expect("创建临时文件Failed");
+        file.write_all(content).expect("写入临时文件Failed");
         file
     }
 
@@ -1014,14 +1014,14 @@ mod tests {
             dataset_strategy: Some(DataPickStrategy::RoundRobin),
         };
 
-        let json = serde_json::to_string(&config).expect("序列化失败");
+        let json = serde_json::to_string(&config).expect("序列化Failed");
         assert!(json.contains("datasetPath"));
         assert!(json.contains("datasetEncoding"));
         assert!(json.contains("datasetStrategy"));
         assert!(json.contains("round_robin"));
 
         // 反序列化往返
-        let deserialized: StressTestConfig = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: StressTestConfig = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized.dataset_path, Some("/data/test.csv".to_string()));
         assert_eq!(deserialized.dataset_encoding, Some("utf-8".to_string()));
         assert_eq!(deserialized.dataset_strategy, Some(DataPickStrategy::RoundRobin));
@@ -1037,7 +1037,7 @@ mod tests {
             "flowUuid": "flow-001"
         }"#;
 
-        let config: StressTestConfig = serde_json::from_str(json).expect("反序列化失败");
+        let config: StressTestConfig = serde_json::from_str(json).expect("反序列化Failed");
         assert_eq!(config.concurrent_users, 10);
         assert_eq!(config.dataset_path, None);
         assert_eq!(config.dataset_encoding, None);
@@ -1048,7 +1048,7 @@ mod tests {
     #[tokio::test]
     async fn test_stress_test_with_csv_dataset() {
         let csv_file = create_temp_csv(b"name,value\nAlice,1\nBob,2\nCharlie,3\n");
-        let csv_path = csv_file.path().to_str().expect("路径转换失败").to_string();
+        let csv_path = csv_file.path().to_str().expect("路径转换Failed").to_string();
 
         let flow = create_test_flow();
         let config = StressTestConfig {
@@ -1065,7 +1065,7 @@ mod tests {
 
         let executor = StressTestExecutor::new(flow.clone(), config.clone(), tx);
         let result = executor.start().await;
-        assert!(result.is_ok(), "启动应该成功: {:?}", result);
+        assert!(result.is_ok(), "启动应该Success: {:?}", result);
 
         // 等待结束事件
         let mut received_report = false;

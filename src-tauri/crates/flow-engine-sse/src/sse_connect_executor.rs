@@ -45,7 +45,7 @@ impl NodeExecutor for SseConnectExecutor {
             NodeData::SseConnect(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 SseConnectConfig: {}",
+                    "Node data type is not SseConnectConfig: {}",
                     node.uuid
                 )))
             }
@@ -53,9 +53,9 @@ impl NodeExecutor for SseConnectExecutor {
 
         // 2. 变量替换（url, headers, last_event_id）
         let url = replace_variables(&config.url, context).map_err(|e| {
-            let error_msg = format!("URL 变量替换失败: {}", e);
+            let error_msg = format!("URL variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -66,7 +66,7 @@ impl NodeExecutor for SseConnectExecutor {
 
         let last_event_id = match &config.last_event_id {
             Some(id) => Some(replace_variables(id, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("last_event_id 变量替换失败: {}", e))
+                ErrorDetail::execution_error(format!("last_event_id variable substitution failed: {}", e))
             })?),
             None => None,
         };
@@ -77,7 +77,7 @@ impl NodeExecutor for SseConnectExecutor {
                 let mut replaced = HashMap::new();
                 for (k, v) in h {
                     let rv = replace_variables(v, context)
-                        .map_err(|e| ErrorDetail::execution_error(format!("Header '{}' 变量替换失败: {}", k, e)))?;
+                        .map_err(|e| ErrorDetail::execution_error(format!("Header '{}' variable substitution failed: {}", k, e)))?;
                     replaced.insert(k.clone(), rv);
                 }
                 Some(replaced)
@@ -87,7 +87,7 @@ impl NodeExecutor for SseConnectExecutor {
 
         // 3. 日志：开始连接
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: sse_connect, URL: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: sse_connect, URL: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -97,7 +97,7 @@ impl NodeExecutor for SseConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("SSE 连接节点 {} 开始执行", node.name),
+                message: format!("SSE 连接节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
@@ -128,14 +128,14 @@ impl NodeExecutor for SseConnectExecutor {
 
                 if output.success {
                     log::info!(
-                        "[SSE] 连接成功: uuid={}, url={}, connection_id={}",
+                        "[SSE] 连接Success: uuid={}, url={}, connection_id={}",
                         node.uuid,
                         connect_config.url,
                         output.connection_id
                     );
                 } else {
                     log::warn!(
-                        "[SSE] 连接失败: uuid={}, url={}, error={:?}",
+                        "[SSE] connection failed: uuid={}, url={}, error={:?}",
                         node.uuid,
                         connect_config.url,
                         output.error
@@ -172,11 +172,11 @@ impl NodeExecutor for SseConnectExecutor {
                     LogLevel::Error
                 };
                 let log_message = if output.success {
-                    format!("SSE 连接成功 ({}ms)", duration.as_millis())
+                    format!("SSE 连接Success ({}ms)", duration.as_millis())
                 } else {
                     format!(
-                        "SSE 连接失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "SSE connection failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -195,7 +195,7 @@ impl NodeExecutor for SseConnectExecutor {
                     })
                     .await;
 
-                // 8. 路由：成功走 true 端口，失败走 false 端口
+                // 8. 路由：Success走 true 端口，Failed走 false 端口
                 if !output.success
                     && !node.on_error.as_ref().map_or(true, |s| {
                         *s == ExecutionErrorStrategy::RouteToFalse
@@ -204,7 +204,7 @@ impl NodeExecutor for SseConnectExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("SSE 连接失败")
+                        .unwrap_or("SSE connection failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -229,17 +229,17 @@ impl NodeExecutor for SseConnectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[SSE] 连接异常: uuid={}, url={}, error={}",
+                    "[SSE] connection error: uuid={}, url={}, error={}",
                     node.uuid,
                     connect_config.url,
                     e
                 );
 
-                // 日志：连接异常
+                // 日志：connection error
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("SSE 连接异常: {}", e),
+                        message: format!("SSE connection error: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap_or_default()
@@ -250,7 +250,7 @@ impl NodeExecutor for SseConnectExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let duration = start_time.elapsed();
                 let error_output = json!({
                     "success": false,
@@ -306,7 +306,7 @@ mod tests {
     use flow_engine_core::node_config::SseConnectConfig;
     use flow_engine_core::traits::{SseConnectOutput, SseConnectionInfo};
 
-    /// 模拟 SSE Provider（连接成功）
+    /// 模拟 SSE Provider（连接Success）
     struct MockSseProvider {
         output: SseConnectOutput,
         /// 是否在 connect 中回传 config.last_event_id
@@ -344,7 +344,7 @@ mod tests {
             }
         }
 
-        /// 创建会回传 config.last_event_id 的成功 mock
+        /// 创建会回传 config.last_event_id 的Success mock
         fn new_success_echo() -> Self {
             let mut server_headers = HashMap::new();
             server_headers.insert("content-type".to_string(), "text/event-stream".to_string());
@@ -403,7 +403,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, url: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -443,7 +443,7 @@ mod tests {
         }
     }
 
-    /// 测试：连接成功时输出 JSON 结构正确
+    /// 测试：连接Success时输出 JSON 结构正确
     #[tokio::test]
     async fn test_sse_connect_success_output_structure() {
         let sse_manager = Arc::new(MockSseProvider::new_success());
@@ -457,7 +457,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
@@ -469,16 +469,16 @@ mod tests {
         assert!(data["timing"]["connect_ms"].is_number());
         assert!(data["timing"]["total_ms"].is_number());
         assert_eq!(data["request"]["url"], "https://example.com/sse");
-        // error 应为 null（成功时无错误）
+        // error 应为 null（Success时无Error）
         assert!(data["error"].is_null());
     }
 
-    /// 测试：连接失败时路由到 false 端口
+    /// 测试：connection failed时路由到 false 端口
     #[tokio::test]
     async fn test_sse_connect_failure_routes_to_false_port() {
         let sse_manager = Arc::new(MockSseProvider::new_failure("Connection refused"));
         let executor = SseConnectExecutor::new(sse_manager);
-        let node = create_test_node("test-2", "失败测试", "https://unreachable.example/sse");
+        let node = create_test_node("test-2", "Failed测试", "https://unreachable.example/sse");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -487,7 +487,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 失败应路由到 false 端口
+        // Failed应路由到 false 端口
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
@@ -497,7 +497,7 @@ mod tests {
         assert!(data["server_headers"].is_null());
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_sse_connect_wrong_node_data_type() {
         let sse_manager = Arc::new(MockSseProvider::new_success());
@@ -506,7 +506,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

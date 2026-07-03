@@ -119,7 +119,7 @@ impl NodeExecutor for WsCloseExecutor {
                 // 6. 构建输出数据（结构化格式，与 HTTP 报告保持一致）
                 let duration = start_time.elapsed();
                 let output_data = json!({
-                    // 统一成功标识（与 HTTP 保持一致）
+                    // 统一Success标识（与 HTTP 保持一致）
                     "success": true,
                     "connection_id": connection_id,
                     "url": url,
@@ -158,7 +158,7 @@ impl NodeExecutor for WsCloseExecutor {
                     })
                     .await;
 
-                // 7. 成功时走 true 端口
+                // 7. Success时走 true 端口
                 let next_node_ids: Vec<String> = connections
                     .iter()
                     .filter(|conn| {
@@ -176,7 +176,7 @@ impl NodeExecutor for WsCloseExecutor {
                     e
                 );
 
-                // 日志：关闭失败
+                // 日志：关闭Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
@@ -191,10 +191,10 @@ impl NodeExecutor for WsCloseExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据（结构化格式，与 HTTP 报告保持一致）
+                // 构建Error输出数据（结构化格式，与 HTTP 报告保持一致）
                 let duration = start_time.elapsed();
                 let error_output = json!({
-                    // 统一成功标识（与 HTTP 保持一致）
+                    // 统一Success标识（与 HTTP 保持一致）
                     "success": false,
                     "connection_id": connection_id,
                     "url": url,
@@ -218,7 +218,7 @@ impl NodeExecutor for WsCloseExecutor {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
-                // 关闭失败走 false 端口
+                // 关闭Failed走 false 端口
                 let next_node_ids: Vec<String> = connections
                     .iter()
                     .filter(|conn| {
@@ -241,7 +241,7 @@ mod tests {
     use crate::websocket_manager::WebSocketConnectionManager;
     use std::sync::Arc;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -307,7 +307,7 @@ mod tests {
             String::new(),
         );
 
-        // 注意：这个测试会失败，因为我们没有真实的 WebSocket 连接
+        // 注意：这个测试会Failed，因为我们没有真实的 WebSocket 连接
         // 但我们可以验证变量替换逻辑不会崩溃
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -348,7 +348,7 @@ mod tests {
         };
         let mut context = create_context("test-flow");
 
-        // 注意：这个测试会失败，因为没有真实的 WebSocket 连接
+        // 注意：这个测试会Failed，因为没有真实的 WebSocket 连接
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
@@ -386,7 +386,7 @@ mod tests {
             )
             .await;
 
-        // 网络测试：如果连接成功，继续测试
+        // 网络测试：如果连接Success，继续测试
         if connect_result.is_ok() {
             // 接收并丢弃初始问候消息
             let _ = ws_manager.receive("echo-close-conn", 3000).await;
@@ -402,7 +402,7 @@ mod tests {
                 .execute(&node, &mut context, &[], &HashMap::new())
                 .await;
 
-            // 验证关闭成功
+            // 验证关闭Success
             match result {
                 Ok((next_nodes, output_data)) => {
                     assert_eq!(next_nodes, vec![] as Vec<String>);
@@ -414,7 +414,7 @@ mod tests {
                     assert_eq!(data["url"], "wss://echo.websocket.org");
                 }
                 Err(e) => {
-                    // 不应该发生错误
+                    // 不应该发生Error
                     panic!("Executor returned error: {}", e);
                 }
             }
@@ -444,7 +444,7 @@ mod tests {
             )
             .await;
 
-        // 网络测试：如果连接成功，继续测试
+        // 网络测试：如果连接Success，继续测试
         if connect_result.is_ok() {
             // 接收并丢弃初始问候消息
             let _ = ws_manager.receive("close-reason-conn", 3000).await;
@@ -474,7 +474,7 @@ mod tests {
                 .execute(&node, &mut context, &[], &HashMap::new())
                 .await;
 
-            // 验证关闭成功
+            // 验证关闭Success
             match result {
                 Ok((next_nodes, output_data)) => {
                     assert_eq!(next_nodes, vec![] as Vec<String>);
@@ -485,7 +485,7 @@ mod tests {
                     assert_eq!(data["url"], "wss://echo.websocket.org");
                 }
                 Err(e) => {
-                    // 不应该发生错误
+                    // 不应该发生Error
                     panic!("Executor returned error: {}", e);
                 }
             }

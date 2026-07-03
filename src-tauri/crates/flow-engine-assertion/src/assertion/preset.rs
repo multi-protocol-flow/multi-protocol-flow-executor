@@ -312,12 +312,12 @@ mod tests {
         let output = AssertionEvaluator::evaluate_all(&config, &input);
         assert!(output.passed);
 
-        // 测试 300 失败
+        // 测试 300 Failed
         let input = json!({"status": 300});
         let output = AssertionEvaluator::evaluate_all(&config, &input);
         assert!(!output.passed);
 
-        // 测试 404 失败
+        // 测试 404 Failed
         let input = json!({"status": 404});
         let output = AssertionEvaluator::evaluate_all(&config, &input);
         assert!(!output.passed);
@@ -348,7 +348,7 @@ mod tests {
         let output = AssertionEvaluator::evaluate_all(&config, &input);
         assert!(output.passed);
 
-        // 测试 text/html 失败
+        // 测试 text/html Failed
         let input = json!({"headers": {"Content-Type": "text/html"}});
         let output = AssertionEvaluator::evaluate_all(&config, &input);
         assert!(!output.passed);
@@ -379,12 +379,12 @@ mod tests {
         let output = AssertionEvaluator::evaluate_all(&config, &input);
         assert!(output.passed);
 
-        // 测试 500ms 失败 (边界值，< 500)
+        // 测试 500ms Failed (边界值，< 500)
         let input = json!({"response_time": 500});
         let output = AssertionEvaluator::evaluate_all(&config, &input);
         assert!(!output.passed);
 
-        // 测试 1000ms 失败
+        // 测试 1000ms Failed
         let input = json!({"response_time": 1000});
         let output = AssertionEvaluator::evaluate_all(&config, &input);
         assert!(!output.passed);

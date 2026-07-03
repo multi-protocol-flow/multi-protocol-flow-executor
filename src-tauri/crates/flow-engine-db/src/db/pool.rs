@@ -25,7 +25,7 @@ pub struct ActivePool {
     pub created_at: u64,
     /// 最后使用时间戳（Unix 时间戳，毫秒）
     pub last_used_at: u64,
-    /// 最后错误信息
+    /// 最后Error信息
     pub last_error: Option<String>,
 
     /// 实际的连接池（trait object）
@@ -83,12 +83,12 @@ impl ActivePool {
             .as_millis() as u64;
     }
 
-    /// 设置错误信息
+    /// 设置Error信息
     pub fn set_error(&mut self, error: String) {
         self.last_error = Some(error);
     }
 
-    /// 清除错误信息
+    /// 清除Error信息
     pub fn clear_error(&mut self) {
         self.last_error = None;
     }
@@ -171,7 +171,7 @@ impl DatabaseConnectionManager {
         pools.insert(connection_uuid.clone(), active_pool);
 
         log::info!(
-            "[Database] 连接池创建成功: uuid={}, type={}",
+            "[Database] 连接池创建Success: uuid={}, type={}",
             connection_uuid,
             pools.get(&connection_uuid).unwrap().db_type
         );
@@ -272,7 +272,7 @@ impl DatabaseConnectionManager {
             if let Some(info) = transactions.get(connection_uuid) {
                 if info.state != TransactionState::Active {
                     return Err(format!(
-                        "连接 {} 没有活跃事务（当前状态: {:?}）",
+                        "连接 {} 没有活跃事务（当前Status: {:?}）",
                         connection_uuid, info.state
                     ));
                 }
@@ -307,7 +307,7 @@ impl DatabaseConnectionManager {
             if let Some(info) = transactions.get(connection_uuid) {
                 if info.state != TransactionState::Active {
                     return Err(format!(
-                        "连接 {} 没有活跃事务（当前状态: {:?}）",
+                        "连接 {} 没有活跃事务（当前Status: {:?}）",
                         connection_uuid, info.state
                     ));
                 }
@@ -389,7 +389,7 @@ impl DatabaseConnectionManager {
         log::info!("[Database] 所有连接池已清空");
     }
 
-    /// 更新连接池错误状态
+    /// 更新连接池Error状态
     pub async fn set_pool_error(&self, connection_uuid: &str, error: &str) {
         let mut pools = self.pools.write().await;
         if let Some(active_pool) = pools.get_mut(connection_uuid) {
@@ -397,7 +397,7 @@ impl DatabaseConnectionManager {
         }
     }
 
-    /// 清除连接池错误状态
+    /// 清除连接池Error状态
     pub async fn clear_pool_error(&self, connection_uuid: &str) {
         let mut pools = self.pools.write().await;
         if let Some(active_pool) = pools.get_mut(connection_uuid) {
@@ -467,7 +467,7 @@ pub struct PoolMetadata {
     pub created_at: u64,
     /// 最后使用时间戳
     pub last_used_at: u64,
-    /// 最后错误信息
+    /// 最后Error信息
     pub last_error: Option<String>,
     /// 是否可用
     pub is_available: bool,
@@ -492,7 +492,7 @@ impl MockPool {
         }
     }
 
-    /// 创建会失败的 Mock 连接池
+    /// 创建会Failed的 Mock 连接池
     pub fn failing(name: String) -> Self {
         Self {
             name,

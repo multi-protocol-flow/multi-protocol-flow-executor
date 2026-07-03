@@ -128,6 +128,6 @@ impl flow_engine::AppDirProvider for TauriAppDirProvider {
     fn app_data_dir(&self) -> Result<std::path::PathBuf, String> {
         self.app.path()
             .app_data_dir()
-            .map_err(|e| format!("获取应用数据目录失败: {}", e))
+            .map_err(|e| format!("获取应用数据目录Failed: {}", e))
     }
 }

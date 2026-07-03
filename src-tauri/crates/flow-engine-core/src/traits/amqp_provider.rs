@@ -17,14 +17,14 @@ use serde::{Deserialize, Serialize};
 /// AMQP 连接输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AmqpConnectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 连接 ID
     pub connection_id: String,
     /// 服务器属性
     #[serde(skip_serializing_if = "Option::is_none")]
     pub server_properties: Option<serde_json::Value>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -32,7 +32,7 @@ pub struct AmqpConnectOutput {
 /// AMQP 交换器操作输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AmqpExchangeOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 交换器名称
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -40,7 +40,7 @@ pub struct AmqpExchangeOutput {
     /// 交换器类型
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exchange_type: Option<String>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -48,7 +48,7 @@ pub struct AmqpExchangeOutput {
 /// AMQP 声明队列输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AmqpQueueDeclareOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 队列名称（自动生成时有用）
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -59,7 +59,7 @@ pub struct AmqpQueueDeclareOutput {
     /// 队列的消费者数
     #[serde(skip_serializing_if = "Option::is_none")]
     pub consumer_count: Option<u32>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -67,12 +67,12 @@ pub struct AmqpQueueDeclareOutput {
 /// AMQP 删除队列输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AmqpQueueDeleteOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 被删除的消息数
     #[serde(skip_serializing_if = "Option::is_none")]
     pub messages_deleted: Option<u32>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -80,7 +80,7 @@ pub struct AmqpQueueDeleteOutput {
 /// AMQP 发布输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AmqpPublishOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 发布确认结果
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -88,7 +88,7 @@ pub struct AmqpPublishOutput {
     /// 被退回的消息（mandatory 模式下）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub returned_message: Option<serde_json::Value>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -121,13 +121,13 @@ pub struct AmqpMessage {
 /// AMQP 消费输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AmqpConsumeOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 接收到的消息列表
     pub messages: Vec<AmqpMessage>,
     /// 消息数量
     pub message_count: u32,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -135,7 +135,7 @@ pub struct AmqpConsumeOutput {
 /// AMQP Get 输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AmqpGetOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 获取到的消息
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -143,7 +143,7 @@ pub struct AmqpGetOutput {
     /// 队列剩余消息数
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message_count_remaining: Option<u32>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -151,7 +151,7 @@ pub struct AmqpGetOutput {
 /// AMQP 确认输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AmqpAckOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 操作类型
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -159,7 +159,7 @@ pub struct AmqpAckOutput {
     /// 投递标签
     #[serde(skip_serializing_if = "Option::is_none")]
     pub delivery_tag: Option<u64>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -167,12 +167,12 @@ pub struct AmqpAckOutput {
 /// AMQP 管理输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AmqpManagementOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 管理操作返回数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -184,11 +184,11 @@ pub struct AmqpManagementOutput {
 /// AMQP 1.0 连接输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Amqp10ConnectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 连接 ID
     pub connection_id: String,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -196,9 +196,9 @@ pub struct Amqp10ConnectOutput {
 /// AMQP 1.0 发送输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Amqp10SendOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -225,13 +225,13 @@ pub struct Amqp10Message {
 /// AMQP 1.0 接收输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Amqp10ReceiveOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 接收到的消息列表
     pub messages: Vec<Amqp10Message>,
     /// 消息数量
     pub message_count: u32,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -239,9 +239,9 @@ pub struct Amqp10ReceiveOutput {
 /// AMQP 1.0 确认输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Amqp10AcceptOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -249,9 +249,9 @@ pub struct Amqp10AcceptOutput {
 /// AMQP 1.0 拒绝输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Amqp10RejectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }

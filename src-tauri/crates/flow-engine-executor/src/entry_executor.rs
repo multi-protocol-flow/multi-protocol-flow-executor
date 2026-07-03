@@ -1,4 +1,4 @@
-// Entry 节点执行器 - EntryNodeExecutor 实现
+// Entry node执行器 - EntryNodeExecutor 实现
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::error::ErrorDetail;
@@ -9,9 +9,9 @@ use flow_engine_core::node::Node;
 use serde_json::Value;
 use std::collections::HashMap;
 
-/// Entry 节点执行器
+/// Entry node执行器
 ///
-/// Entry 节点立即传递，不执行任何逻辑，仅作为流程入口
+/// Entry node立即传递，不执行任何逻辑，仅作为流程入口
 pub struct EntryNodeExecutor;
 
 impl Default for EntryNodeExecutor {
@@ -21,7 +21,7 @@ impl Default for EntryNodeExecutor {
 }
 
 impl EntryNodeExecutor {
-    /// 创建新的 Entry 节点执行器
+    /// 创建新的 Entry node执行器
     pub fn new() -> Self {
         EntryNodeExecutor
     }
@@ -29,9 +29,9 @@ impl EntryNodeExecutor {
 
 #[async_trait::async_trait]
 impl NodeExecutor for EntryNodeExecutor {
-    /// 执行 Entry 节点
+    /// 执行 Entry node
     ///
-    /// Entry 节点立即传递，不执行任何逻辑（<1ms 执行时间）
+    /// Entry node立即传递，不执行任何逻辑（<1ms 执行时间）
     ///
     /// # 参数
     /// - `node`: 要执行的节点
@@ -40,11 +40,11 @@ impl NodeExecutor for EntryNodeExecutor {
     /// - `node_map`: 节点 UUID 到节点的映射（未使用）
     ///
     /// # 返回
-    /// - `Ok((next_node_ids, output_data))`: 执行成功，返回下一个节点 UUID 列表和空输出数据
+    /// - `Ok((next_node_ids, output_data))`: 执行Success，返回下一个节点 UUID 列表和空输出数据
     ///   - `next_node_ids`: 下一个节点的 UUID 列表
     ///     - 返回 0 或 1 个节点 UUID（空列表表示流程终止）
-    ///   - `output_data`: 节点输出数据（Entry 节点必须为 None，不产生数据）
-    /// - `Err(error)`: 执行失败，返回错误信息
+    ///   - `output_data`: 节点输出数据（Entry node必须为 None，不产生数据）
+    /// - `Err(error)`: 执行Failed，返回Error信息
     async fn execute(
         &self,
         node: &Node,
@@ -59,7 +59,7 @@ impl NodeExecutor for EntryNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("Entry 节点 {} 开始", node.name),
+                message: format!("Entry node {} 开始", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .map(|d| d.as_millis() as u64)
@@ -72,13 +72,13 @@ impl NodeExecutor for EntryNodeExecutor {
 
         // 执行前日志
         log::info!(
-            "[流程 {}] [Entry] 节点 UUID: {}, 节点名称: {}",
+            "[流程 {}] [Entry] Node UUID: {}, NodeName: {}",
             context.flow_uuid,
             node.uuid,
             node.name
         );
 
-        // Entry 节点立即传递，不执行任何逻辑（<1ms 执行时间）
+        // Entry node立即传递，不执行任何逻辑（<1ms 执行时间）
         // 查找下一个节点
         let next_node_ids = connections
             .iter()
@@ -86,13 +86,13 @@ impl NodeExecutor for EntryNodeExecutor {
             .map(|conn| conn.target_node_uuid.clone())
             .collect::<Vec<_>>();
 
-        // 如果没有输出连接，这是流程的正常终止，不是错误
+        // 如果没有输出连接，这是流程的正常终止，不是Error
         if next_node_ids.is_empty() {
             // 发送无连接终止日志
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Info,
-                    message: "Entry 节点无后续连接，流程终止".to_string(),
+                    message: "Entry node无后续连接，流程终止".to_string(),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .map(|d| d.as_millis() as u64)
@@ -104,7 +104,7 @@ impl NodeExecutor for EntryNodeExecutor {
                 .await;
 
             log::info!(
-                "[流程 {}] Entry 节点 {} ({}) 没有输出连接，流程终止",
+                "[流程 {}] Entry node {} ({}) has no output connection, flow terminated",
                 context.flow_uuid,
                 node.name,
                 node.uuid
@@ -120,7 +120,7 @@ impl NodeExecutor for EntryNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("Entry 节点 {} 完成", node.name),
+                message: format!("Entry node {} 完成", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .map(|d| d.as_millis() as u64)
@@ -133,13 +133,13 @@ impl NodeExecutor for EntryNodeExecutor {
 
         // 执行后日志
         log::info!(
-            "[流程 {}] [完成] 节点 UUID: {}, 耗时: {}ms, 状态: success",
+            "[流程 {}] [完成] Node UUID: {}, Duration: {}ms, Status: success",
             context.flow_uuid,
             node.uuid,
             duration_ms
         );
 
-        // 返回下一个节点 UUID 列表和空输出数据（Entry 节点不产生数据）
+        // 返回下一个节点 UUID 列表和空输出数据（Entry node不产生数据）
         Ok((next_node_ids, None))
     }
 }
@@ -155,7 +155,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_entry_node_executor_success() {
-        // 创建测试流程
+        // 创建Test Flow
         let entry_node = Node {
             uuid: "entry-1".to_string(),
             node_type: "entry".to_string(),
@@ -214,13 +214,13 @@ mod tests {
             .await;
         let elapsed = start_time.elapsed();
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
 
         let (next_node_ids, output_data) = result.unwrap();
         // 验证下一个节点 UUID 列表
         assert_eq!(next_node_ids, vec!["next-1".to_string()]);
-        // 验证输出数据为空（Entry 节点不产生数据）
+        // 验证输出数据为空（Entry node不产生数据）
         assert!(output_data.is_none());
         // 验证执行时间 < 1ms
         assert!(
@@ -232,7 +232,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_entry_node_executor_no_connection() {
-        // 创建没有连接的 Entry 节点 - 正常流程终止
+        // 创建没有连接的 Entry node - 正常流程终止
         let entry_node = Node {
             uuid: "entry-1".to_string(),
             node_type: "entry".to_string(),
@@ -266,12 +266,12 @@ mod tests {
         let executor = EntryNodeExecutor::new();
         let result = executor.execute(&entry_node, &mut context, &[], &node_map).await;
 
-        // 验证执行成功（没有连接是正常终止）
+        // 验证执行Success（没有连接是正常终止）
         assert!(result.is_ok());
         let (next_node_ids, output_data) = result.unwrap();
         // 验证下一个节点 UUID 列表为空（流程终止）
         assert!(next_node_ids.is_empty());
-        // 验证输出数据为空（Entry 节点不产生数据）
+        // 验证输出数据为空（Entry node不产生数据）
         assert!(output_data.is_none());
     }
 
@@ -359,7 +359,7 @@ mod tests {
             )
             .await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
 
         let (next_node_ids, _) = result.unwrap();
@@ -512,7 +512,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_node_execution_logic_correct() {
-        // 测试节点执行逻辑正确
+        // Test Node执行逻辑正确
         let entry_node = Node {
             uuid: "logic-test-entry".to_string(),
             node_type: "entry".to_string(),
@@ -570,12 +570,12 @@ mod tests {
             .await;
 
         // 验证执行逻辑正确：
-        // 1. 执行成功
+        // 1. 执行Success
         assert!(result.is_ok());
         // 2. 返回下一个节点 UUID 列表
         let (next_node_ids, output_data) = result.unwrap();
         assert_eq!(next_node_ids, vec!["logic-test-next".to_string()]);
-        // 3. Entry 节点不产生数据
+        // 3. Entry node不产生数据
         assert!(output_data.is_none());
     }
 
@@ -638,7 +638,7 @@ mod tests {
             .execute(&entry_node, &mut context, &[connection1, connection2], &node_map)
             .await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
         let (next_node_ids, _) = result.unwrap();
         // 验证返回所有连接的目标节点 UUID

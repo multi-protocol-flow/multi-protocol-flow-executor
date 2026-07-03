@@ -132,7 +132,7 @@ pub enum ConnectionStatus {
     Closing,
     /// 已关闭
     Closed,
-    /// 连接错误
+    /// 连接Error
     Error,
 }
 
@@ -152,7 +152,7 @@ pub struct ActiveConnection {
     pub url: String,
     /// 消息缓冲区（用于暂存待处理消息）
     pub message_buffer: VecDeque<WebSocketMessage>,
-    /// 最后错误消息（如果有）
+    /// 最后Error消息（如果有）
     pub last_error: Option<String>,
 
     /// 当前持有者节点 UUID（用于消息流所有权追踪）
@@ -226,7 +226,7 @@ impl ActiveConnection {
         self.status = status;
     }
 
-    /// 设置错误状态和消息
+    /// 设置Error状态和消息
     pub fn set_error(&mut self, error: String) {
         self.status = ConnectionStatus::Error;
         self.last_error = Some(error);
@@ -247,7 +247,7 @@ impl ActiveConnection {
         self.message_buffer.len()
     }
 
-    /// 设置 WebSocket 流（连接成功后调用）
+    /// 设置 WebSocket 流（连接Success后调用）
     pub fn set_stream(&mut self, sender: WsSender, receiver: WsReceiver) {
         self.sender = Some(Arc::new(tokio::sync::Mutex::new(sender)));
         self.receiver = Some(Arc::new(tokio::sync::Mutex::new(receiver)));
@@ -336,8 +336,8 @@ impl WebSocketConnectionManager {
     ///
     /// # 返回
     ///
-    /// * `Ok(())` - 连接成功
-    /// * `Err(msg)` - 连接失败，包含错误消息
+    /// * `Ok(())` - 连接Success
+    /// * `Err(msg)` - connection failed，包含Error消息
     ///
     /// # TLS 模式
     ///
@@ -423,7 +423,7 @@ impl WebSocketConnectionManager {
 
         match connect_result {
             Ok(Ok((ws_stream, _response))) => {
-                // 8. 连接成功，分割流
+                // 8. 连接Success，分割流
                 let (sender, receiver) = ws_stream.split();
 
                 // 9. 更新连接状态
@@ -461,7 +461,7 @@ impl WebSocketConnectionManager {
                 Ok(())
             }
             Ok(Err(e)) => {
-                // 连接失败（网络错误、TLS 错误等）
+                // connection failed（网络Error、TLS Error等）
                 let error_msg = format!("WebSocket connection failed ({}): {}", url, e);
                 self.update_connection_error(&uuid, &error_msg);
                 Err(error_msg)
@@ -541,8 +541,8 @@ impl WebSocketConnectionManager {
     ///
     /// # 返回
     ///
-    /// * `Ok(())` - 关闭成功
-    /// * `Err(msg)` - 关闭失败或连接不存在
+    /// * `Ok(())` - 关闭Success
+    /// * `Err(msg)` - 关闭Failed或连接不存在
     pub async fn close(
         &self,
         uuid: &str,
@@ -659,8 +659,8 @@ impl WebSocketConnectionManager {
     ///
     /// # 返回
     ///
-    /// * `Ok(())` - 发送成功
-    /// * `Err(msg)` - 发送失败或连接不存在
+    /// * `Ok(())` - 发送Success
+    /// * `Err(msg)` - 发送Failed或连接不存在
     pub async fn send(
         &self,
         uuid: &str,
@@ -735,7 +735,7 @@ impl WebSocketConnectionManager {
     ///
     /// * `Ok(Some(message))` - 接收到消息（返回文本内容）
     /// * `Ok(None)` - 超时未收到消息
-    /// * `Err(msg)` - 接收失败或连接不存在
+    /// * `Err(msg)` - 接收Failed或连接不存在
     pub async fn receive(
         &self,
         uuid: &str,
@@ -885,7 +885,7 @@ impl WebSocketConnectionManager {
     /// # 返回
     ///
     /// * `Ok(count)` - 清空的消息数量
-    /// * `Err(msg)` - 连接不存在或状态错误
+    /// * `Err(msg)` - 连接不存在或状态Error
     pub async fn drain_pending_messages(&self, uuid: &str) -> Result<usize, String> {
         // 1. 获取连接，检查状态是否为 Connected
         let (receiver, sender) = {
@@ -1098,7 +1098,7 @@ impl WebSocketConnectionManager {
     ///
     /// # 返回
     ///
-    /// 操作是否成功（连接是否存在）
+    /// 操作是否Success（连接是否存在）
     pub fn update_status(&self, uuid: &str, status: ConnectionStatus) -> Result<(), String> {
         let mut connections = self.connections.lock().map_err(|e| {
             format!("Failed to acquire connection lock: {}", e)
@@ -1111,7 +1111,7 @@ impl WebSocketConnectionManager {
         }
     }
 
-    /// 更新连接错误状态（内部方法）
+    /// 更新连接Error状态（内部方法）
     fn update_connection_error(&self, uuid: &str, error: &str) {
         if let Ok(mut connections) = self.connections.lock() {
             if let Some(conn) = connections.get_mut(uuid) {
@@ -1168,7 +1168,7 @@ impl WebSocketConnectionManager {
     ///
     /// # 返回
     ///
-    /// * `Ok(true)`: 消息匹配成功
+    /// * `Ok(true)`: 消息匹配Success
     /// * `Ok(false)`: 消息不匹配
     /// * `Err(msg)`: 匹配过程出错
     ///
@@ -1197,7 +1197,7 @@ impl WebSocketConnectionManager {
 
     /// `JSONPath` 匹配
     ///
-    /// 使用 `JSONPath` 表达式查询 JSON 消息，非空结果表示匹配成功。
+    /// 使用 `JSONPath` 表达式查询 JSON 消息，非空结果表示匹配Success。
     ///
     /// # 参数
     ///
@@ -1208,7 +1208,7 @@ impl WebSocketConnectionManager {
     ///
     /// * `Ok(true)`: `JSONPath` 查询结果非空
     /// * `Ok(false)`: `JSONPath` 查询结果为空
-    /// * `Err(msg)`: JSON 解析失败或 `JSONPath` 语法错误
+    /// * `Err(msg)`: JSON 解析Failed或 `JSONPath` 语法Error
     fn match_jsonpath(&self, message: &str, expression: &str) -> Result<bool, String> {
         // 1. 解析 JSON
         let json: serde_json::Value = serde_json::from_str(message)
@@ -1238,7 +1238,7 @@ impl WebSocketConnectionManager {
     ///
     /// * `Ok(true)`: 消息匹配正则表达式
     /// * `Ok(false)`: 消息不匹配正则表达式
-    /// * `Err(msg)`: 正则表达式语法错误
+    /// * `Err(msg)`: 正则表达式语法Error
     fn match_regex(&self, message: &str, pattern: &str) -> Result<bool, String> {
         // 1. 编译正则表达式
         let regex = Regex::new(pattern)
@@ -1261,7 +1261,7 @@ impl WebSocketConnectionManager {
     ///
     /// * `Ok(true)`: 表达式求值为 true
     /// * `Ok(false)`: 表达式求值为 false
-    /// * `Err(msg)`: 表达式语法错误或求值失败
+    /// * `Err(msg)`: 表达式语法Error或求值Failed
     ///
     /// # 说明
     ///
@@ -1796,7 +1796,7 @@ mod tests {
         assert_eq!(old.unwrap().name, "conn1");
         assert_eq!(manager.connection_count(), 1);
 
-        // 验证更新成功
+        // 验证更新Success
         let current = manager.get_connection("uuid-1").unwrap();
         assert_eq!(current.name, "conn1-updated");
         assert_eq!(current.url, "wss://example.com/ws2");
@@ -2013,7 +2013,7 @@ mod tests {
         let bytes_with_prefix = hex_to_bytes(hex_with_prefix).unwrap();
         assert_eq!(bytes_with_prefix, vec![0x01, 0x02, 0xff, 0xab]);
 
-        // 奇数长度应该失败
+        // 奇数长度应该Failed
         let odd_hex = "010";
         assert!(hex_to_bytes(odd_hex).is_err());
     }
@@ -2075,7 +2075,7 @@ mod tests {
         let error = result.unwrap_err();
         assert!(
             error.find("timeout").is_some() || error.find("failed").is_some(),
-            "错误消息应该包含超时或失败: {}",
+            "Error消息应该包含超时或Failed: {}",
             error
         );
     }
@@ -2132,7 +2132,7 @@ mod tests {
             )
             .await;
 
-        // 网络测试：如果连接失败，跳过而不是失败
+        // 网络测试：如果connection failed，跳过而不是Failed
         match result {
             Ok(()) => {
                 // 验证连接状态
@@ -2190,7 +2190,7 @@ mod tests {
             )
             .await;
 
-        // 网络测试：如果连接失败，跳过而不是失败
+        // 网络测试：如果connection failed，跳过而不是Failed
         if result.is_ok() {
             // 接收并丢弃初始问候消息
             let _ = manager.receive("binary-conn", 3000).await;
@@ -2236,7 +2236,7 @@ mod tests {
             )
             .await;
 
-        // 网络测试：如果连接失败，跳过而不是失败
+        // 网络测试：如果connection failed，跳过而不是Failed
         if result.is_ok() {
             // 接收并丢弃初始问候消息
             let _ = manager.receive("timeout-conn", 3000).await;

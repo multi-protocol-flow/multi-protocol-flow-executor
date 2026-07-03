@@ -5,7 +5,7 @@ use async_trait::async_trait;
 /// Redis 连接输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RedisConnectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 连接 ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -13,7 +13,7 @@ pub struct RedisConnectOutput {
     /// 服务器信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub server_info: Option<String>,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -21,7 +21,7 @@ pub struct RedisConnectOutput {
 /// Redis 命令输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RedisCommandOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 执行的命令
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -41,7 +41,7 @@ pub struct RedisCommandOutput {
     /// 是否被截断（超出限制）
     #[serde(default)]
     pub truncated: bool,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -49,9 +49,9 @@ pub struct RedisCommandOutput {
 /// Redis 关闭连接输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RedisCloseOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
-    /// 错误信息
+    /// Error信息
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }

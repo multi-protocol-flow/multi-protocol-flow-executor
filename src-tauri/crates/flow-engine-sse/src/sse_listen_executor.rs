@@ -1,7 +1,7 @@
 //! SSE 监听执行器
 //!
 //! 从已建立的 SSE 连接监听事件，支持事件过滤、最大事件数和超时控制。
-//! 成功收到事件路由到 true 端口，超时或无事件路由到 false 端口。
+//! Success收到事件路由到 true 端口，超时或无事件路由到 false 端口。
 
 use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
@@ -46,7 +46,7 @@ impl NodeExecutor for SseListenExecutor {
             NodeData::SseListen(cfg) => cfg.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 SseListenConfig: {}",
+                    "Node data type is not SseListenConfig: {}",
                     node.uuid
                 )))
             }
@@ -54,19 +54,19 @@ impl NodeExecutor for SseListenExecutor {
 
         // 2. 变量替换：connection_id 和 event_filter
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            ErrorDetail::execution_error(format!("connection_id 变量替换失败: {}", e))
+            ErrorDetail::execution_error(format!("connection_id variable substitution failed: {}", e))
         })?;
 
         let event_filter = match &config.event_filter {
             Some(filter) => Some(replace_variables(filter, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("event_filter 变量替换失败: {}", e))
+                ErrorDetail::execution_error(format!("event_filter variable substitution failed: {}", e))
             })?),
             None => None,
         };
 
         // 3. 日志：开始监听
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: sse_listen, connection_id: {}, event_filter: {:?}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: sse_listen, connection_id: {}, event_filter: {:?}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -78,7 +78,7 @@ impl NodeExecutor for SseListenExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "SSE 监听节点 {} 开始执行: connection_id={}",
+                    "SSE 监听节点 {} start execution: connection_id={}",
                     node.name, connection_id
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -139,7 +139,7 @@ impl NodeExecutor for SseListenExecutor {
                     },
                 });
 
-                // 7. 路由：成功且有事件 → true，否则 → false
+                // 7. 路由：Success且有事件 → true，否则 → false
                 if !output.success || event_count == 0 {
                     // 检查 on_error 策略
                     if !node.on_error.as_ref().map_or(true, |s| {
@@ -148,7 +148,7 @@ impl NodeExecutor for SseListenExecutor {
                         let error_msg = output_data
                             .get("error")
                             .and_then(|v| v.as_str())
-                            .unwrap_or("SSE 监听无事件或失败")
+                            .unwrap_or("SSE 监听无事件或Failed")
                             .to_string();
                         return Err(ErrorDetail::execution_error(error_msg));
                     }
@@ -161,7 +161,7 @@ impl NodeExecutor for SseListenExecutor {
 
                 if is_success {
                     log::info!(
-                        "[SSE] 监听成功: connection_id={}, 事件数={}, 耗时={}ms",
+                        "[SSE] 监听Success: connection_id={}, 事件数={}, 耗时={}ms",
                         connection_id,
                         event_count,
                         duration.as_millis()
@@ -183,7 +183,7 @@ impl NodeExecutor for SseListenExecutor {
                 };
                 let log_msg = if is_success {
                     format!(
-                        "SSE 监听成功: 收到 {} 个事件 ({}ms)",
+                        "SSE 监听Success: 收到 {} 个事件 ({}ms)",
                         event_count,
                         duration.as_millis()
                     )
@@ -252,7 +252,7 @@ impl NodeExecutor for SseListenExecutor {
                     })
                     .await;
 
-                // 构建错误输出
+                // 构建Error输出
                 let error_output = json!({
                     "success": false,
                     "events": [],
@@ -274,7 +274,7 @@ impl NodeExecutor for SseListenExecutor {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
-                // 失败时走 false 端口
+                // Failed时走 false 端口
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -312,7 +312,7 @@ mod tests {
     // 辅助工具
     // ---------------------------------------------------------------------------
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -333,7 +333,7 @@ mod tests {
         }
     }
 
-    /// 创建带事件过滤的测试节点
+    /// 创建带事件过滤的Test Node
     fn create_test_node_with_filter(
         uuid: &str,
         name: &str,
@@ -482,7 +482,7 @@ mod tests {
     // 测试用例
     // ---------------------------------------------------------------------------
 
-    /// 测试：成功监听并收到事件，路由到 true 端口
+    /// 测试：Success监听并收到事件，路由到 true 端口
     #[tokio::test]
     async fn test_sse_listen_success_with_events() {
         let events = vec![
@@ -557,12 +557,12 @@ mod tests {
         assert_eq!(data["events"].as_array().map(|a| a.len()), Some(0));
     }
 
-    /// 测试：provider 返回错误，路由到 false 端口
+    /// 测试：provider 返回Error，路由到 false 端口
     #[tokio::test]
     async fn test_sse_listen_error_routes_to_false() {
         let provider = Arc::new(MockSseProvider::new_error("连接 'conn-missing' 不存在"));
         let executor = SseListenExecutor::new(provider);
-        let node = create_test_node("listen-3", "错误测试", "conn-missing");
+        let node = create_test_node("listen-3", "Error测试", "conn-missing");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -588,7 +588,7 @@ mod tests {
         let node = Node {
             uuid: "wrong-type".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -761,12 +761,12 @@ mod tests {
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 
-    /// 测试：错误时连接端口路由（false 端口指向具体节点）
+    /// 测试：Error时连接端口路由（false 端口指向具体节点）
     #[tokio::test]
     async fn test_sse_listen_error_connection_routing() {
         let provider = Arc::new(MockSseProvider::new_error("连接不存在"));
         let executor = SseListenExecutor::new(provider);
-        let node = create_test_node("route-err", "路由错误", "conn-1");
+        let node = create_test_node("route-err", "路由Error", "conn-1");
         let mut context = create_context("test-flow");
 
         let connections = vec![Connection {

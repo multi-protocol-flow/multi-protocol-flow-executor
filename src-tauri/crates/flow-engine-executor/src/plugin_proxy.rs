@@ -176,7 +176,7 @@ fn parse_proxy_url(url: &str) -> Result<(String, u16), String> {
         let port_str = &host_port[colon_pos + 1..];
         let port: u16 = port_str
             .parse()
-            .map_err(|_| format!("代理端口格式错误: {}", port_str))?;
+            .map_err(|_| format!("代理端口格式Error: {}", port_str))?;
         if host.is_empty() {
             return Err("代理地址缺少主机名".to_string());
         }

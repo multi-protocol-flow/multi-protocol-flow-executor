@@ -39,17 +39,17 @@ pub struct MethodInfo {
     pub is_client_streaming: bool,
 }
 
-/// Proto 解析错误
+/// Proto 解析Error
 #[derive(Debug, thiserror::Error)]
 pub enum ProtoParseError {
-    /// Proto 文件解析失败
-    #[error("Proto 文件解析失败: {0}")]
+    /// Proto 文件解析Failed
+    #[error("Proto 文件解析Failed: {0}")]
     ParseError(String),
     /// 缺失文件
     #[error("缺失文件: {0:?}")]
     MissingFiles(Vec<String>),
-    /// I/O 错误
-    #[error("I/O 错误: {0}")]
+    /// I/O Error
+    #[error("I/O Error: {0}")]
     IoError(#[from] std::io::Error),
 }
 
@@ -64,7 +64,7 @@ pub enum ProtoParseError {
 ///
 /// # 返回
 ///
-/// 成功时返回 DescriptorPool，可用于后续的服务发现和消息解析
+/// Success时返回 DescriptorPool，可用于后续的服务发现和消息解析
 pub fn parse_proto_files(files: &[ProtoFile]) -> Result<DescriptorPool, ProtoParseError> {
     // 创建临时目录
     let temp_dir = tempfile::tempdir()?;
@@ -98,7 +98,7 @@ pub fn parse_proto_files(files: &[ProtoFile]) -> Result<DescriptorPool, ProtoPar
 
     // 从 FileDescriptorSet 构建 DescriptorPool
     let pool = DescriptorPool::from_file_descriptor_set(fds)
-        .map_err(|e| ProtoParseError::ParseError(format!("构建 DescriptorPool 失败: {}", e)))?;
+        .map_err(|e| ProtoParseError::ParseError(format!("构建 DescriptorPool Failed: {}", e)))?;
 
     Ok(pool)
 }
@@ -149,7 +149,7 @@ pub fn generate_skeleton_from_pool(
     let input_msg = method.input();
     let skeleton = generate_json_skeleton(&input_msg);
     serde_json::to_string_pretty(&skeleton)
-        .map_err(|e| format!("序列化 JSON 骨架失败: {}", e))
+        .map_err(|e| format!("序列化 JSON 骨架Failed: {}", e))
 }
 
 /// 生成消息类型的 JSON 骨架
@@ -199,7 +199,7 @@ fn field_to_json(field: &FieldDescriptor) -> serde_json::Value {
 ///
 /// # 返回
 ///
-/// 成功时返回 `(Vec<(String, String)>, String)`：
+/// Success时返回 `(Vec<(String, String)>, String)`：
 /// - `Vec<(String, String)>`：文件名和内容的元组列表（文件名为相对路径）
 /// - `String`：目录根路径（用作 proto 编译的 include 路径）
 pub fn discover_proto_files_in_dir(
@@ -274,22 +274,22 @@ fn scan_proto_dir(
 ///
 /// # 返回
 ///
-/// 成功时返回 `DescriptorPool`
+/// Success时返回 `DescriptorPool`
 pub fn parse_descriptor_set(data: &[u8]) -> Result<DescriptorPool, ProtoParseError> {
     DescriptorPool::decode(data)
-        .map_err(|e| ProtoParseError::ParseError(format!("解析 FileDescriptorSet 失败: {}", e)))
+        .map_err(|e| ProtoParseError::ParseError(format!("解析 FileDescriptorSet Failed: {}", e)))
 }
 
 // ============================================================================
 // 请求 JSON 预验证
 // ============================================================================
 
-/// 验证错误条目
+/// 验证Error条目
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ValidationError {
     /// 字段路径（如 "address.street"）
     pub path: String,
-    /// 错误描述（如 "未知字段" 或 "期望 string 类型，实际 number"）
+    /// Error描述（如 "未知字段" 或 "期望 string 类型，实际 number"）
     pub message: String,
 }
 
@@ -298,7 +298,7 @@ pub struct ValidationError {
 pub struct ValidationResult {
     /// 是否通过验证
     pub valid: bool,
-    /// 错误列表
+    /// Error列表
     pub errors: Vec<ValidationError>,
 }
 
@@ -315,7 +315,7 @@ pub struct ValidationResult {
 ///
 /// # 返回
 ///
-/// 验证结果，包含是否通过和错误列表
+/// 验证结果，包含是否通过和Error列表
 pub fn validate_request_json(
     pool: &DescriptorPool,
     message_name: &str,
@@ -323,7 +323,7 @@ pub fn validate_request_json(
 ) -> Result<ValidationResult, String> {
     // 1. 解析 JSON 语法
     let value: serde_json::Value = serde_json::from_str(json)
-        .map_err(|e| format!("JSON 语法错误: {}", e))?;
+        .map_err(|e| format!("JSON 语法Error: {}", e))?;
 
     // 2. 获取消息描述符
     let msg_desc = pool
@@ -547,7 +547,7 @@ message User {
             content: TEST_PROTO.to_string(),
         }];
 
-        let pool = parse_proto_files(&files).expect("解析 proto 文件应成功");
+        let pool = parse_proto_files(&files).expect("解析 proto 文件应Success");
 
         // 验证可以找到服务
         let service = pool
@@ -564,7 +564,7 @@ message User {
             content: TEST_PROTO.to_string(),
         }];
 
-        let pool = parse_proto_files(&files).expect("解析 proto 文件应成功");
+        let pool = parse_proto_files(&files).expect("解析 proto 文件应Success");
         let services = list_services(&pool);
 
         assert_eq!(services.len(), 1, "应只有一个服务");
@@ -608,7 +608,7 @@ message User {
             content: TEST_PROTO.to_string(),
         }];
 
-        let pool = parse_proto_files(&files).expect("解析 proto 文件应成功");
+        let pool = parse_proto_files(&files).expect("解析 proto 文件应Success");
 
         let msg = pool
             .get_message_by_name("test.GetUserRequest")
@@ -626,14 +626,14 @@ message User {
         );
     }
 
-    /// 测试空文件列表返回错误
+    /// 测试空文件列表返回Error
     #[test]
     fn test_empty_files_returns_error() {
         let result = parse_proto_files(&[]);
-        assert!(result.is_err(), "空文件列表应返回错误");
+        assert!(result.is_err(), "空文件列表应返回Error");
     }
 
-    /// 测试无效 proto 内容返回错误
+    /// 测试无效 proto 内容返回Error
     #[test]
     fn test_invalid_proto_returns_error() {
         let files = vec![ProtoFile {
@@ -642,68 +642,68 @@ message User {
         }];
 
         let result = parse_proto_files(&files);
-        assert!(result.is_err(), "无效 proto 内容应返回错误");
+        assert!(result.is_err(), "无效 proto 内容应返回Error");
     }
 
-    /// 测试目录扫描 — 空目录应返回错误
+    /// 测试目录扫描 — 空目录应返回Error
     #[test]
     fn test_scan_empty_dir_returns_error() {
-        let temp_dir = tempfile::tempdir().expect("创建临时目录应成功");
+        let temp_dir = tempfile::tempdir().expect("创建临时目录应Success");
         let result = discover_proto_files_in_dir(
-            temp_dir.path().to_str().expect("路径转换应成功"),
+            temp_dir.path().to_str().expect("路径转换应Success"),
         );
-        assert!(result.is_err(), "空目录应返回错误");
+        assert!(result.is_err(), "空目录应返回Error");
     }
 
-    /// 测试目录扫描 — 不存在的目录应返回错误
+    /// 测试目录扫描 — 不存在的目录应返回Error
     #[test]
     fn test_scan_nonexistent_dir_returns_error() {
         let result = discover_proto_files_in_dir("/nonexistent/path/that/does/not/exist");
-        assert!(result.is_err(), "不存在的目录应返回错误");
+        assert!(result.is_err(), "不存在的目录应返回Error");
     }
 
     /// 测试目录扫描 — 正常扫描 .proto 文件
     #[test]
     fn test_scan_dir_finds_proto_files() {
-        let temp_dir = tempfile::tempdir().expect("创建临时目录应成功");
+        let temp_dir = tempfile::tempdir().expect("创建临时目录应Success");
 
         // 创建 proto 文件
         std::fs::write(
             temp_dir.path().join("test.proto"),
             TEST_PROTO,
         )
-        .expect("写入 proto 文件应成功");
+        .expect("写入 proto 文件应Success");
 
         // 创建子目录中的 proto 文件
         let sub_dir = temp_dir.path().join("sub");
-        std::fs::create_dir_all(&sub_dir).expect("创建子目录应成功");
+        std::fs::create_dir_all(&sub_dir).expect("创建子目录应Success");
         std::fs::write(
             sub_dir.join("nested.proto"),
             r#"syntax = "proto3"; package nested; message Nested { string id = 1; }"#,
         )
-        .expect("写入嵌套 proto 文件应成功");
+        .expect("写入嵌套 proto 文件应Success");
 
         // 创建非 proto 文件（应被跳过）
         std::fs::write(
             temp_dir.path().join("readme.txt"),
             "not a proto file",
         )
-        .expect("写入非 proto 文件应成功");
+        .expect("写入非 proto 文件应Success");
 
         // 创建隐藏目录（应被跳过）
         let hidden_dir = temp_dir.path().join(".hidden");
-        std::fs::create_dir_all(&hidden_dir).expect("创建隐藏目录应成功");
+        std::fs::create_dir_all(&hidden_dir).expect("创建隐藏目录应Success");
         std::fs::write(
             hidden_dir.join("hidden.proto"),
             r#"syntax = "proto3"; package hidden;"#,
         )
-        .expect("写入隐藏 proto 文件应成功");
+        .expect("写入隐藏 proto 文件应Success");
 
-        let dir_path = temp_dir.path().to_str().expect("路径转换应成功");
+        let dir_path = temp_dir.path().to_str().expect("路径转换应Success");
         let result = discover_proto_files_in_dir(dir_path);
 
-        assert!(result.is_ok(), "扫描目录应成功: {:?}", result);
-        let (files, _) = result.expect("应成功获取文件列表");
+        assert!(result.is_ok(), "扫描目录应Success: {:?}", result);
+        let (files, _) = result.expect("应Success获取文件列表");
         assert_eq!(files.len(), 2, "应找到 2 个 proto 文件（跳过隐藏目录和非 proto 文件）");
 
         let filenames: Vec<&str> = files.iter().map(|(name, _)| name.as_str()).collect();
@@ -714,22 +714,22 @@ message User {
         );
     }
 
-    /// 测试 parse_descriptor_set — 无效数据应返回错误
+    /// 测试 parse_descriptor_set — 无效数据应返回Error
     #[test]
     fn test_parse_descriptor_set_invalid_data() {
         let result = parse_descriptor_set(b"not a valid descriptor set");
-        assert!(result.is_err(), "无效数据应返回错误");
+        assert!(result.is_err(), "无效数据应返回Error");
     }
 
     /// 测试 parse_descriptor_set — 空数据
     #[test]
     fn test_parse_descriptor_set_empty_data() {
-        // 空的 FileDescriptorSet 可以被成功解码（prost 默认行为），只是结果为空 pool
+        // 空的 FileDescriptorSet 可以被Success解码（prost 默认行为），只是结果为空 pool
         let result = parse_descriptor_set(b"");
-        // 空数据解码成功但 pool 为空，这是 prost 的默认行为
+        // 空数据解码Success但 pool 为空，这是 prost 的默认行为
         // 验证可以解码（即使结果为空）
         assert!(result.is_ok(), "空数据解码为空的 DescriptorPool");
-        let pool = result.expect("应成功解码");
+        let pool = result.expect("应Success解码");
         // 空 pool 中没有服务
         assert_eq!(pool.services().count(), 0, "空 DescriptorPool 应没有服务");
     }
@@ -743,21 +743,21 @@ message User {
             content: TEST_PROTO.to_string(),
         }];
 
-        let temp_dir = tempfile::tempdir().expect("创建临时目录应成功");
+        let temp_dir = tempfile::tempdir().expect("创建临时目录应Success");
         let file_path = temp_dir.path().join("test.proto");
-        std::fs::write(&file_path, &files[0].content).expect("写入 proto 文件应成功");
+        std::fs::write(&file_path, &files[0].content).expect("写入 proto 文件应Success");
 
         let fds = protox::compile(
             ["test.proto"],
             [temp_dir.path()],
-        ).expect("编译 proto 文件应成功");
+        ).expect("编译 proto 文件应Success");
 
         // 将 FileDescriptorSet 编码为字节
         let mut buf = Vec::new();
-        prost::Message::encode(&fds, &mut buf).expect("编码 FileDescriptorSet 应成功");
+        prost::Message::encode(&fds, &mut buf).expect("编码 FileDescriptorSet 应Success");
 
         // 使用 parse_descriptor_set 解码
-        let pool = parse_descriptor_set(&buf).expect("解析 FileDescriptorSet 应成功");
+        let pool = parse_descriptor_set(&buf).expect("解析 FileDescriptorSet 应Success");
 
         // 验证服务存在
         let service = pool
@@ -814,7 +814,7 @@ message Status {
             content: main_proto.to_string(),
         }];
 
-        let pool = parse_proto_files(&files).expect("解析多消息 proto 文件应成功");
+        let pool = parse_proto_files(&files).expect("解析多消息 proto 文件应Success");
         let services = list_services(&pool);
 
         assert_eq!(services.len(), 1);
@@ -843,7 +843,7 @@ message Status {
             path: "test.proto".to_string(),
             content: TEST_PROTO.to_string(),
         }];
-        parse_proto_files(&files).expect("解析 proto 文件应成功")
+        parse_proto_files(&files).expect("解析 proto 文件应Success")
     }
 
     /// 测试验证 — 有效的 JSON
@@ -851,18 +851,18 @@ message Status {
     fn test_validate_valid_json() {
         let pool = get_test_pool();
         let result = validate_request_json(&pool, "test.GetUserRequest", r#"{"user_id": "abc"}"#);
-        assert!(result.is_ok(), "应成功验证");
+        assert!(result.is_ok(), "应Success验证");
         let vr = result.expect("应返回验证结果");
         assert!(vr.valid, "应通过验证");
-        assert!(vr.errors.is_empty(), "不应有错误");
+        assert!(vr.errors.is_empty(), "不应有Error");
     }
 
-    /// 测试验证 — JSON 语法错误
+    /// 测试验证 — JSON 语法Error
     #[test]
     fn test_validate_json_syntax_error() {
         let pool = get_test_pool();
         let result = validate_request_json(&pool, "test.GetUserRequest", r#"{invalid}"#);
-        assert!(result.is_err(), "JSON 语法错误应返回 Err");
+        assert!(result.is_err(), "JSON 语法Error应返回 Err");
     }
 
     /// 测试验证 — 消息类型不存在
@@ -913,7 +913,7 @@ message Status {
         assert!(result.is_ok());
         let vr = result.expect("应返回验证结果");
         assert!(!vr.valid, "类型不匹配应不通过");
-        assert_eq!(vr.errors.len(), 2, "应有 2 个类型错误");
+        assert_eq!(vr.errors.len(), 2, "应有 2 个类型Error");
         assert!(vr.errors.iter().any(|e| e.path == "user_id"));
         assert!(vr.errors.iter().any(|e| e.path == "age"));
     }
@@ -939,9 +939,9 @@ message Person {
             path: "nested.proto".to_string(),
             content: proto.to_string(),
         }];
-        let pool = parse_proto_files(&files).expect("解析应成功");
+        let pool = parse_proto_files(&files).expect("解析应Success");
 
-        // 嵌套字段类型错误
+        // 嵌套字段类型Error
         let result = validate_request_json(
             &pool,
             "nested.Person",
@@ -1004,7 +1004,7 @@ message ItemList {
             path: "rep.proto".to_string(),
             content: proto.to_string(),
         }];
-        let pool = parse_proto_files(&files).expect("解析应成功");
+        let pool = parse_proto_files(&files).expect("解析应Success");
 
         // repeated 使用数组 — 通过
         let result = validate_request_json(&pool, "rep.ItemList", r#"{"items": ["a", "b"], "counts": [1, 2]}"#);
@@ -1034,7 +1034,7 @@ message Config {
             path: "maptest.proto".to_string(),
             content: proto.to_string(),
         }];
-        let pool = parse_proto_files(&files).expect("解析应成功");
+        let pool = parse_proto_files(&files).expect("解析应Success");
 
         // map 使用对象 — 通过
         let result = validate_request_json(&pool, "maptest.Config", r#"{"labels": {"key": "value"}}"#);
@@ -1069,7 +1069,7 @@ message User {
             path: "enumtest.proto".to_string(),
             content: proto.to_string(),
         }];
-        let pool = parse_proto_files(&files).expect("解析应成功");
+        let pool = parse_proto_files(&files).expect("解析应Success");
 
         // enum 使用字符串 — 通过
         let result = validate_request_json(&pool, "enumtest.User", r#"{"status": "ACTIVE"}"#);

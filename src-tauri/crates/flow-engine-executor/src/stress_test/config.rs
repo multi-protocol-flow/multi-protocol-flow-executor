@@ -12,7 +12,7 @@ impl StressTestConfig {
     ///
     /// # 返回
     /// - `Ok(())` - 验证通过
-    /// - `Err(String)` - 验证失败，返回中文错误信息
+    /// - `Err(String)` - 验证Failed，返回中文Error信息
     pub fn validate(&self) -> Result<(), String> {
         // 验证并发用户数 >= 1
         if self.concurrent_users < 1 {
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_validate_zero_duration_with_ramp_up() {
-        // 持续时间为 0，但预热时长 > 0，应该失败
+        // 持续时间为 0，但预热时长 > 0，应该Failed
         let config = StressTestConfig {
             concurrent_users: 10,
             ramp_up_seconds: 10,

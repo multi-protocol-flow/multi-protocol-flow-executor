@@ -114,7 +114,7 @@ fn decrypt_password(encrypted: &str) -> Result<String, String> {
     if encrypted.is_empty() {
         return Ok(String::new());
     }
-    // 尝试 AES-256-GCM 解密，若失败则返回原文（本地测试/明文密码兼容）
+    // 尝试 AES-256-GCM 解密，若Failed则返回原文（本地测试/明文密码兼容）
     flow_engine_crypto::encryption::decrypt(encrypted)
         .or_else(|_| Ok(encrypted.to_string()))
 }
@@ -181,7 +181,7 @@ impl ImapProvider for ImapConnectionManager {
             TlsMode::StartTls => {
                 // async-imap 0.11 无内置 STARTTLS 支持，
                 // 需要手动: 创建 plaintext client → 发送 STARTTLS 命令 → TLS 握手
-                // 此处暂未实现，返回错误
+                // 此处暂未实现，返回Error
                 return Err("[E_IMAP_CONNECTION] IMAP STARTTLS mode not yet implemented".into());
             }
             TlsMode::None => async_imap::Client::new(box_stream(tcp)),
@@ -805,7 +805,7 @@ impl ImapProvider for ImapConnectionManager {
 
         match result {
             Ok(_) => {
-                // 连接成功，立即关闭
+                // 连接Success，立即关闭
                 let _ = self.close(&temp_id).await;
                 Ok(true)
             }
@@ -905,7 +905,7 @@ mod tests {
         let manager = ImapConnectionManager::new();
         // 手动插入一个假连接来测试重复检测
         // (我们无法真正创建 ImapConnection 因为需要真实的 IMAP Session)
-        // 改为测试 close 对does not exist的连接返回错误
+        // 改为测试 close 对does not exist的连接返回Error
         let result = manager.close("dup_id").await;
         assert!(result.is_err());
     }

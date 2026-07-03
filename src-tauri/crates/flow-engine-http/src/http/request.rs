@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn test_request_builder_get() {
         let builder =
-            RequestBuilder::new("GET", "https://example.com/path?query=value").expect("创建失败");
+            RequestBuilder::new("GET", "https://example.com/path?query=value").expect("创建Failed");
 
         let request = builder.build();
         let request_str = String::from_utf8(request).expect("无效 UTF-8");
@@ -118,7 +118,7 @@ mod tests {
     fn test_request_builder_post_with_body() {
         let body = r#"{"key":"value"}"#;
         let builder = RequestBuilder::new("POST", "https://example.com/api")
-            .expect("创建失败")
+            .expect("创建Failed")
             .header("Content-Type", "application/json")
             .body_text(body);
 
@@ -139,7 +139,7 @@ mod tests {
         headers.insert("X-Custom-Header".to_string(), "custom-value".to_string());
 
         let builder = RequestBuilder::new("GET", "https://api.example.com/data")
-            .expect("创建失败")
+            .expect("创建Failed")
             .headers(headers);
 
         let request = builder.build();
@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn test_request_builder_with_port() {
         let builder =
-            RequestBuilder::new("GET", "https://example.com:8080/path").expect("创建失败");
+            RequestBuilder::new("GET", "https://example.com:8080/path").expect("创建Failed");
 
         let request = builder.build();
         let request_str = String::from_utf8(request).expect("无效 UTF-8");
@@ -163,14 +163,14 @@ mod tests {
     #[test]
     fn test_request_builder_default_port() {
         // HTTPS 默认端口 443（不显示）
-        let builder = RequestBuilder::new("GET", "https://example.com/path").expect("创建失败");
+        let builder = RequestBuilder::new("GET", "https://example.com/path").expect("创建Failed");
         let request = builder.build();
         let request_str = String::from_utf8(request).expect("无效 UTF-8");
         assert!(request_str.contains("Host: example.com\r\n"));
         assert!(!request_str.contains("Host: example.com:443\r\n"));
 
         // HTTP 默认端口 80（不显示）
-        let builder = RequestBuilder::new("GET", "http://example.com/path").expect("创建失败");
+        let builder = RequestBuilder::new("GET", "http://example.com/path").expect("创建Failed");
         let request = builder.build();
         let request_str = String::from_utf8(request).expect("无效 UTF-8");
         assert!(request_str.contains("Host: example.com\r\n"));

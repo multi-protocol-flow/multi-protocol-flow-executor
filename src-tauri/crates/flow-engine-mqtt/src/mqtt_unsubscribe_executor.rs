@@ -1,7 +1,7 @@
 // MQTT 取消订阅节点执行器
 //
 // 实现 MQTT 主题取消订阅功能。
-// 成功路由到 "true" 端口，失败路由到 "false" 端口。
+// Success路由到 "true" 端口，Failed路由到 "false" 端口。
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::error::ErrorDetail;
@@ -53,9 +53,9 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
 
         // 2. 变量替换 connection_id 和 topic
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -67,7 +67,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
         let topic = replace_variables(&config.topic, context).map_err(|e| {
             let error_msg = format!("Topic variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -78,7 +78,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
 
         // 3. 日志：开始取消订阅
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: mqtt_unsubscribe, 连接ID: {}, 主题: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mqtt_unsubscribe, Connection ID: {}, Topic: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -89,7 +89,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("MQTT Unsubscribe 节点 {} 开始执行", node.name),
+                message: format!("MQTT Unsubscribe 节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .expect("System time error")
@@ -111,7 +111,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
         match unsubscribe_result {
             Ok(()) => {
                 log::info!(
-                    "[MQTT] 取消订阅成功: connection_id={}, topic={}",
+                    "[MQTT] 取消订阅Success: connection_id={}, topic={}",
                     connection_id,
                     topic
                 );
@@ -136,7 +136,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "MQTT 取消订阅成功 ({}ms)",
+                            "MQTT 取消订阅Success ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
@@ -149,7 +149,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
                     })
                     .await;
 
-                // 成功时走 true 端口
+                // Success时走 true 端口
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -170,13 +170,13 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[MQTT] 取消订阅失败: connection_id={}, topic={}, error={}",
+                    "[MQTT] 取消订阅Failed: connection_id={}, topic={}, error={}",
                     connection_id,
                     topic,
                     e
                 );
 
-                // 日志：取消订阅失败
+                // 日志：取消订阅Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
@@ -191,7 +191,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let error_output = json!({
                     "success": false,
                     "connection_id": connection_id,
@@ -214,7 +214,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
-                // 失败时走 false 端口
+                // Failed时走 false 端口
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -245,7 +245,7 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::MqttUnsubscribeConfig;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, topic: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -322,7 +322,7 @@ mod tests {
         assert!(data["error"].is_string());
     }
 
-    /// 测试：NodeData 类型不匹配时返回错误
+    /// 测试：NodeData 类型不匹配时返回Error
     #[tokio::test]
     async fn test_unsubscribe_wrong_node_data_type() {
         let mqtt_manager = Arc::new(MqttConnectionManager::new());
@@ -331,7 +331,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

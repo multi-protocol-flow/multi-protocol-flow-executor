@@ -42,31 +42,31 @@ const NONCE_SIZE: usize = 12;
 /// AES-256 密钥长度
 const KEY_SIZE: usize = 32;
 
-/// 加密错误类型
+/// 加密Error类型
 #[derive(Error, Debug)]
 pub enum EncryptionError {
-    /// 加密操作失败
-    #[error("加密失败: {0}")]
+    /// 加密操作Failed
+    #[error("加密Failed: {0}")]
     EncryptionFailed(String),
 
-    /// 解密操作失败
-    #[error("解密失败: {0}")]
+    /// 解密操作Failed
+    #[error("解密Failed: {0}")]
     DecryptionFailed(String),
 
-    /// Keychain 操作失败
-    #[error("Keychain 操作失败: {0}")]
+    /// Keychain 操作Failed
+    #[error("Keychain 操作Failed: {0}")]
     KeyringError(String),
 
-    /// Base64 编解码失败
-    #[error("Base64 编解码失败: {0}")]
+    /// Base64 编解码Failed
+    #[error("Base64 编解码Failed: {0}")]
     Base64Error(String),
 
-    /// 密钥生成失败
-    #[error("密钥生成失败: {0}")]
+    /// 密钥生成Failed
+    #[error("密钥生成Failed: {0}")]
     KeyGenerationFailed(String),
 
-    /// UTF-8 编解码失败
-    #[error("UTF-8 编解码失败: {0}")]
+    /// UTF-8 编解码Failed
+    #[error("UTF-8 编解码Failed: {0}")]
     Utf8Error(String),
 
     /// 密文格式无效
@@ -92,7 +92,7 @@ pub enum EncryptionError {
 ///
 /// # 返回
 /// - `Ok(String)`: 格式为 `base64(nonce):base64(ciphertext)` 的密文
-/// - `Err(EncryptionError)`: 加密失败
+/// - `Err(EncryptionError)`: 加密Failed
 ///
 /// # 示例
 /// ```ignore
@@ -143,14 +143,14 @@ pub fn encrypt(plaintext: &str) -> Result<String, EncryptionError> {
 ///
 /// # 安全特性
 /// - GCM 模式自动验证完整性
-/// - 任何篡改都会导致解密失败
+/// - 任何篡改都会导致解密Failed
 ///
 /// # 参数
 /// - `ciphertext`: 格式为 `base64(nonce):base64(ciphertext)` 的密文
 ///
 /// # 返回
 /// - `Ok(String)`: 解密后的明文
-/// - `Err(EncryptionError)`: 解密失败（密钥错误、密文篡改等）
+/// - `Err(EncryptionError)`: 解密Failed（密钥Error、密文篡改等）
 ///
 /// # 示例
 /// ```ignore
@@ -201,7 +201,7 @@ pub fn decrypt(ciphertext: &str) -> Result<String, EncryptionError> {
     let mut plaintext = cipher
         .decrypt(nonce, ciphertext_bytes.as_slice())
         .map_err(|_| {
-            EncryptionError::DecryptionFailed("解密失败：密钥错误或密文已被篡改".to_string())
+            EncryptionError::DecryptionFailed("解密Failed：密钥Error或密文已被篡改".to_string())
         })?;
 
     // 转换为字符串
@@ -232,7 +232,7 @@ pub fn decrypt(ciphertext: &str) -> Result<String, EncryptionError> {
 ///
 /// # 返回
 /// - `Ok([u8; 32])`: 32 字节 AES-256 密钥
-/// - `Err(EncryptionError)`: keychain 操作失败
+/// - `Err(EncryptionError)`: keychain 操作Failed
 fn get_or_create_key() -> Result<[u8; KEY_SIZE], EncryptionError> {
     // 创建 keychain entry
     let entry = Entry::new(KEYRING_SERVICE, KEYRING_USERNAME)
@@ -293,8 +293,8 @@ fn get_or_create_key() -> Result<[u8; KEY_SIZE], EncryptionError> {
 /// 用于测试清理或密钥轮换
 ///
 /// # 返回
-/// - `Ok(())`: 删除成功
-/// - `Err(EncryptionError)`: 删除失败或密钥不存在
+/// - `Ok(())`: 删除Success
+/// - `Err(EncryptionError)`: 删除Failed或密钥不存在
 #[allow(dead_code)]
 pub fn delete_key() -> Result<(), EncryptionError> {
     let entry = Entry::new(KEYRING_SERVICE, KEYRING_USERNAME)
@@ -329,7 +329,7 @@ mod tests {
         }
 
         // 初始化新密钥
-        let key = get_or_create_key().expect("获取密钥失败");
+        let key = get_or_create_key().expect("获取密钥Failed");
         *key_guard = Some(key);
         key
     }
@@ -407,7 +407,7 @@ mod tests {
         let mut plaintext = cipher
             .decrypt(nonce, ciphertext_bytes.as_slice())
             .map_err(|_| {
-                EncryptionError::DecryptionFailed("解密失败：密钥错误或密文已被篡改".to_string())
+                EncryptionError::DecryptionFailed("解密Failed：密钥Error或密文已被篡改".to_string())
             })?;
 
         // 转换为字符串
@@ -430,13 +430,13 @@ mod tests {
         let plaintext = "my_secret_password_123";
 
         // 加密
-        let encrypted = encrypt_with_test_key(plaintext).expect("加密失败");
+        let encrypted = encrypt_with_test_key(plaintext).expect("加密Failed");
 
         // 验证格式
         assert!(encrypted.contains(':'), "密文格式应包含冒号分隔符");
 
         // 解密
-        let decrypted = decrypt_with_test_key(&encrypted).expect("解密失败");
+        let decrypted = decrypt_with_test_key(&encrypted).expect("解密Failed");
 
         // 验证结果
         assert_eq!(decrypted, plaintext, "解密后的明文应与原文相同");
@@ -448,8 +448,8 @@ mod tests {
         let plaintext = "same_password";
 
         // 多次加密相同明文
-        let encrypted1 = encrypt_with_test_key(plaintext).expect("第一次加密失败");
-        let encrypted2 = encrypt_with_test_key(plaintext).expect("第二次加密失败");
+        let encrypted1 = encrypt_with_test_key(plaintext).expect("第一次加密Failed");
+        let encrypted2 = encrypt_with_test_key(plaintext).expect("第二次加密Failed");
 
         // 由于随机 nonce，密文应该不同
         assert_ne!(
@@ -458,8 +458,8 @@ mod tests {
         );
 
         // 但两者都应能正确解密
-        let decrypted1 = decrypt_with_test_key(&encrypted1).expect("第一次解密失败");
-        let decrypted2 = decrypt_with_test_key(&encrypted2).expect("第二次解密失败");
+        let decrypted1 = decrypt_with_test_key(&encrypted1).expect("第一次解密Failed");
+        let decrypted2 = decrypt_with_test_key(&encrypted2).expect("第二次解密Failed");
 
         assert_eq!(decrypted1, plaintext);
         assert_eq!(decrypted2, plaintext);
@@ -472,14 +472,14 @@ mod tests {
         let plaintext2 = "password_two";
 
         // 使用密钥 A 加密 plaintext1
-        let encrypted1 = encrypt_with_test_key(plaintext1).expect("第一次加密失败");
+        let encrypted1 = encrypt_with_test_key(plaintext1).expect("第一次加密Failed");
 
         // 使用相同密钥加密 plaintext2
-        let encrypted2 = encrypt_with_test_key(plaintext2).expect("第二次加密失败");
+        let encrypted2 = encrypt_with_test_key(plaintext2).expect("第二次加密Failed");
 
-        // 解密应成功（证明密钥一致）
-        let decrypted1 = decrypt_with_test_key(&encrypted1).expect("第一次解密失败");
-        let decrypted2 = decrypt_with_test_key(&encrypted2).expect("第二次解密失败");
+        // 解密应Success（证明密钥一致）
+        let decrypted1 = decrypt_with_test_key(&encrypted1).expect("第一次解密Failed");
+        let decrypted2 = decrypt_with_test_key(&encrypted2).expect("第二次解密Failed");
 
         assert_eq!(decrypted1, plaintext1);
         assert_eq!(decrypted2, plaintext2);
@@ -490,8 +490,8 @@ mod tests {
     fn test_encrypt_empty_string() {
         let plaintext = "";
 
-        let encrypted = encrypt_with_test_key(plaintext).expect("空字符串加密失败");
-        let decrypted = decrypt_with_test_key(&encrypted).expect("空字符串解密失败");
+        let encrypted = encrypt_with_test_key(plaintext).expect("空字符串加密Failed");
+        let decrypted = decrypt_with_test_key(&encrypted).expect("空字符串解密Failed");
 
         assert_eq!(decrypted, plaintext);
     }
@@ -502,8 +502,8 @@ mod tests {
         // 1KB 随机数据
         let plaintext: String = (0..1024).map(|_| 'X').collect();
 
-        let encrypted = encrypt_with_test_key(&plaintext).expect("长字符串加密失败");
-        let decrypted = decrypt_with_test_key(&encrypted).expect("长字符串解密失败");
+        let encrypted = encrypt_with_test_key(&plaintext).expect("长字符串加密Failed");
+        let decrypted = decrypt_with_test_key(&encrypted).expect("长字符串解密Failed");
 
         assert_eq!(decrypted, plaintext);
     }
@@ -513,8 +513,8 @@ mod tests {
     fn test_encrypt_special_characters() {
         let plaintext = "密码测试!@#$%^&*()_+-={}[]|:;<>?,./~`";
 
-        let encrypted = encrypt_with_test_key(plaintext).expect("特殊字符加密失败");
-        let decrypted = decrypt_with_test_key(&encrypted).expect("特殊字符解密失败");
+        let encrypted = encrypt_with_test_key(plaintext).expect("特殊字符加密Failed");
+        let decrypted = decrypt_with_test_key(&encrypted).expect("特殊字符解密Failed");
 
         assert_eq!(decrypted, plaintext);
     }
@@ -524,18 +524,18 @@ mod tests {
     fn test_invalid_ciphertext_format() {
         // 缺少冒号
         let result = decrypt("invalid_base64_without_colon");
-        assert!(result.is_err(), "无效格式应返回错误");
+        assert!(result.is_err(), "无效格式应返回Error");
 
         // 多个冒号
         let result = decrypt("part1:part2:part3");
-        assert!(result.is_err(), "多个分隔符应返回错误");
+        assert!(result.is_err(), "多个分隔符应返回Error");
     }
 
     /// 测试篡改密文（认证验证）
     #[test]
     fn test_tampered_ciphertext() {
         let plaintext = "original_password";
-        let mut encrypted = encrypt(plaintext).expect("加密失败");
+        let mut encrypted = encrypt(plaintext).expect("加密Failed");
 
         // 篡改密文（修改最后一个字符）
         let last_char = encrypted.chars().last().unwrap();
@@ -543,16 +543,16 @@ mod tests {
         encrypted.pop();
         encrypted.push(tampered_char);
 
-        // 解密应失败（GCM 认证失败）
+        // 解密应Failed（GCM 认证Failed）
         let result = decrypt(&encrypted);
-        assert!(result.is_err(), "篡改的密文应导致解密失败（GCM 认证）");
+        assert!(result.is_err(), "篡改的密文应导致解密Failed（GCM 认证）");
     }
 
-    /// 测试 Base64 解码错误
+    /// 测试 Base64 解码Error
     #[test]
     fn test_invalid_base64() {
         // 无效的 Base64 字符
         let result = decrypt("!!!invalid!!!:moreinvalid");
-        assert!(result.is_err(), "无效 Base64 应返回错误");
+        assert!(result.is_err(), "无效 Base64 应返回Error");
     }
 }

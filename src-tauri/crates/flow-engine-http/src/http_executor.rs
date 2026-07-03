@@ -570,7 +570,7 @@ impl NodeExecutor for HttpNodeExecutor {
             }
         };
         
-        // 处理超时和网络错误 - 走 false 端口
+        // 处理超时和网络Error - 走 false 端口
         let http_result = match http_result {
             Ok(res) => res,
             Err(error_msg) => {
@@ -843,11 +843,11 @@ mod tests {
     }
 
     // ============================================================================
-    // 测试：成功场景
+    // 测试：Success场景
     // ============================================================================
 
     #[tokio::test]
-    /// 测试GET请求成功场景（2xx -> true 端口）
+    /// 测试GET请求Success场景（2xx -> true 端口）
     async fn test_http_success_get() {
         let node = create_http_node(
             "test-get",
@@ -864,8 +864,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
-        assert!(result.is_ok(), "GET请求应该成功");
+        // 验证执行Success
+        assert!(result.is_ok(), "GET请求应该Success");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
 
@@ -878,7 +878,7 @@ mod tests {
     }
 
     #[tokio::test]
-    /// 测试POST请求成功场景（2xx -> true 端口）
+    /// 测试POST请求Success场景（2xx -> true 端口）
     async fn test_http_success_post() {
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
@@ -898,8 +898,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
-        assert!(result.is_ok(), "POST请求应该成功");
+        // 验证执行Success
+        assert!(result.is_ok(), "POST请求应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -916,7 +916,7 @@ mod tests {
     }
 
     #[tokio::test]
-    /// 测试PUT请求成功场景（2xx -> true 端口）
+    /// 测试PUT请求Success场景（2xx -> true 端口）
     async fn test_http_success_put() {
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
@@ -936,7 +936,7 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        assert!(result.is_ok(), "PUT请求应该成功");
+        assert!(result.is_ok(), "PUT请求应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -945,7 +945,7 @@ mod tests {
     }
 
     #[tokio::test]
-    /// 测试DELETE请求成功场景（2xx -> true 端口）
+    /// 测试DELETE请求Success场景（2xx -> true 端口）
     async fn test_http_success_delete() {
         let node = create_http_node(
             "test-delete",
@@ -962,7 +962,7 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        assert!(result.is_ok(), "DELETE请求应该成功");
+        assert!(result.is_ok(), "DELETE请求应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -971,7 +971,7 @@ mod tests {
     }
 
     #[tokio::test]
-    /// 测试PATCH请求成功场景
+    /// 测试PATCH请求Success场景
     async fn test_http_success_patch() {
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
@@ -991,7 +991,7 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        assert!(result.is_ok(), "PATCH请求应该成功");
+        assert!(result.is_ok(), "PATCH请求应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -1000,15 +1000,15 @@ mod tests {
     }
 
     // ============================================================================
-    // 测试：失败场景（非2xx状态码 -> false 端口）
+    // 测试：Failed场景（非2xx状态码 -> false 端口）
     // ============================================================================
 
     #[tokio::test]
-    /// 测试HTTP 404错误场景（非2xx -> false 端口）
+    /// 测试HTTP 404Error场景（非2xx -> false 端口）
     async fn test_http_failure_404() {
         let node = create_http_node(
             "test-404",
-            "HTTP 404错误",
+            "HTTP 404Error",
             "https://httpbin.org/status/404",
             HttpMethod::Get,
             None,
@@ -1021,8 +1021,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功（不返回 Err，而是返回 Ok 并标记 success: false）
-        assert!(result.is_ok(), "404错误应该返回Ok（走false端口）");
+        // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
+        assert!(result.is_ok(), "404Error应该返回Ok（走false端口）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty(), "没有连接时next_node_ids应该为空");
         
@@ -1034,11 +1034,11 @@ mod tests {
     }
 
     #[tokio::test]
-    /// 测试HTTP 500服务器错误场景（非2xx -> false 端口）
+    /// 测试HTTP 500服务器Error场景（非2xx -> false 端口）
     async fn test_http_failure_500() {
         let node = create_http_node(
             "test-500",
-            "HTTP 500错误",
+            "HTTP 500Error",
             "https://httpbin.org/status/500",
             HttpMethod::Get,
             None,
@@ -1051,8 +1051,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功（不返回 Err，而是返回 Ok 并标记 success: false）
-        assert!(result.is_ok(), "500错误应该返回Ok（走false端口）");
+        // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
+        assert!(result.is_ok(), "500Error应该返回Ok（走false端口）");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -1061,11 +1061,11 @@ mod tests {
     }
 
     #[tokio::test]
-    /// 测试HTTP 403禁止访问错误场景（非2xx -> false 端口）
+    /// 测试HTTP 403禁止访问Error场景（非2xx -> false 端口）
     async fn test_http_failure_403() {
         let node = create_http_node(
             "test-403",
-            "HTTP 403错误",
+            "HTTP 403Error",
             "https://httpbin.org/status/403",
             HttpMethod::Get,
             None,
@@ -1078,8 +1078,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功（不返回 Err，而是返回 Ok 并标记 success: false）
-        assert!(result.is_ok(), "403错误应该返回Ok（走false端口）");
+        // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
+        assert!(result.is_ok(), "403Error应该返回Ok（走false端口）");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -1088,11 +1088,11 @@ mod tests {
     }
 
     #[tokio::test]
-    /// 测试HTTP 401未授权错误场景（非2xx -> false 端口）
+    /// 测试HTTP 401未授权Error场景（非2xx -> false 端口）
     async fn test_http_failure_401() {
         let node = create_http_node(
             "test-401",
-            "HTTP 401错误",
+            "HTTP 401Error",
             "https://httpbin.org/status/401",
             HttpMethod::Get,
             None,
@@ -1105,8 +1105,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功（不返回 Err，而是返回 Ok 并标记 success: false）
-        assert!(result.is_ok(), "401错误应该返回Ok（走false端口）");
+        // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
+        assert!(result.is_ok(), "401Error应该返回Ok（走false端口）");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -1115,15 +1115,15 @@ mod tests {
     }
 
     // ============================================================================
-    // 测试：网络错误场景（-> false 端口）
+    // 测试：网络Error场景（-> false 端口）
     // ============================================================================
 
     #[tokio::test]
-    /// 测试DNS解析失败场景（网络错误 -> false 端口）
+    /// 测试DNS解析Failed场景（网络Error -> false 端口）
     async fn test_http_error_dns_failure() {
         let node = create_http_node(
             "test-dns",
-            "DNS解析失败",
+            "DNS解析Failed",
             "http://this-domain-does-not-exist-12345.invalid",
             HttpMethod::Get,
             None,
@@ -1136,30 +1136,30 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功（不返回 Err，而是返回 Ok 并标记 success: false）
-        assert!(result.is_ok(), "DNS解析失败应该返回Ok（走false端口）");
+        // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
+        assert!(result.is_ok(), "DNS解析Failed应该返回Ok（走false端口）");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some(), "应该有输出数据");
         let output = output_data.unwrap();
         assert_eq!(output["success"], false, "success 应该为 false");
-        assert!(output["status"].is_null(), "网络错误时 status 应该为 null");
-        assert!(output["body"].is_null(), "网络错误时 body 应该为 null");
-        assert!(output["headers"].is_null(), "网络错误时 headers 应该为 null");
-        assert!(output["error"].is_string(), "网络错误时应该有 error 字段");
+        assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
+        assert!(output["body"].is_null(), "网络Error时 body 应该为 null");
+        assert!(output["headers"].is_null(), "网络Error时 headers 应该为 null");
+        assert!(output["error"].is_string(), "网络Error时应该有 error 字段");
         let error_msg = output["error"].as_str().unwrap();
         assert!(
-            error_msg.contains("HTTP请求失败") ||
+            error_msg.contains("HTTP请求Failed") ||
             error_msg.contains("dns") ||
             error_msg.contains("connect") ||
             error_msg.contains("timeout") ||
             error_msg.contains("no such host"),
-            "错误消息应该包含网络错误信息: {}",
+            "Error消息应该包含网络Error信息: {}",
             error_msg
         );
     }
 
     #[tokio::test]
-    /// 测试连接超时场景（网络错误 -> false 端口）
+    /// 测试连接超时场景（网络Error -> false 端口）
     async fn test_http_error_connection_timeout() {
         // 使用192.0.2.1（RFC 3330定义的测试地址，不可路由）
         let node = create_http_node(
@@ -1177,23 +1177,23 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功（不返回 Err，而是返回 Ok 并标记 success: false）
+        // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "连接超时应该返回Ok（走false端口）");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some(), "应该有输出数据");
         let output = output_data.unwrap();
         assert_eq!(output["success"], false, "success 应该为 false");
-        assert!(output["status"].is_null(), "网络错误时 status 应该为 null");
-        assert!(output["body"].is_null(), "网络错误时 body 应该为 null");
-        assert!(output["headers"].is_null(), "网络错误时 headers 应该为 null");
-        assert!(output["error"].is_string(), "网络错误时应该有 error 字段");
+        assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
+        assert!(output["body"].is_null(), "网络Error时 body 应该为 null");
+        assert!(output["headers"].is_null(), "网络Error时 headers 应该为 null");
+        assert!(output["error"].is_string(), "网络Error时应该有 error 字段");
         let error_msg = output["error"].as_str().unwrap();
         assert!(
-            error_msg.contains("HTTP请求失败") ||
+            error_msg.contains("HTTP请求Failed") ||
             error_msg.contains("timeout") ||
             error_msg.contains("connect") ||
             error_msg.contains("timed out"),
-            "错误消息应该包含超时或连接错误信息: {}",
+            "Error消息应该包含超时或连接Error信息: {}",
             error_msg
         );
     }
@@ -1225,8 +1225,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
-        assert!(result.is_ok(), "变量替换应该成功");
+        // 验证执行Success
+        assert!(result.is_ok(), "变量替换应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -1276,8 +1276,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
-        assert!(result.is_ok(), "请求头变量替换应该成功");
+        // 验证执行Success
+        assert!(result.is_ok(), "请求头变量替换应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -1335,8 +1335,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
-        assert!(result.is_ok(), "请求体变量替换应该成功");
+        // 验证执行Success
+        assert!(result.is_ok(), "请求体变量替换应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -1398,8 +1398,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
-        assert!(result.is_ok(), "全部变量替换应该成功");
+        // 验证执行Success
+        assert!(result.is_ok(), "全部变量替换应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -1549,7 +1549,7 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        assert!(result.is_ok(), "空请求头应该成功");
+        assert!(result.is_ok(), "空请求头应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         assert_eq!(output_data.unwrap()["status"], 200);
@@ -1576,7 +1576,7 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        assert!(result.is_ok(), "空请求体应该成功");
+        assert!(result.is_ok(), "空请求体应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         assert_eq!(output_data.unwrap()["status"], 200);
@@ -1605,7 +1605,7 @@ mod tests {
         assert!(output_data.is_some());
         let output = output_data.unwrap();
 
-        // 验证请求成功
+        // 验证请求Success
         assert_eq!(output["status"], 200);
 
         // 验证URL参数被正确解析
@@ -1655,10 +1655,10 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
         let (next_node_ids, output_data) = result.unwrap();
-        assert!(next_node_ids.is_empty()); // 测试节点没有连接
+        assert!(next_node_ids.is_empty()); // Test Node没有连接
 
         // 验证输出数据包含响应
         assert!(output_data.is_some());
@@ -1703,7 +1703,7 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
@@ -1713,7 +1713,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_http_executor_404_error() {
-        // 创建HTTP 404错误请求
+        // 创建HTTP 404Error请求
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
@@ -1742,8 +1742,8 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功（不返回 Err，而是返回 Ok 并标记 success: false）
-        assert!(result.is_ok(), "404错误应该返回Ok（走false端口）");
+        // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
+        assert!(result.is_ok(), "404Error应该返回Ok（走false端口）");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -1753,12 +1753,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_http_executor_200_success() {
-        // 测试HTTP 200成功状态码
+        // 测试HTTP 200Success状态码
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
             node_type: "http".to_string(),
-            name: "HTTP 200成功".to_string(),
+            name: "HTTP 200Success".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
                 url: "https://httpbin.org/status/200".to_string(),
@@ -1782,7 +1782,7 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
@@ -1792,12 +1792,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_http_executor_500_error() {
-        // 测试HTTP 500服务器错误
+        // 测试HTTP 500服务器Error
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
             node_type: "http".to_string(),
-            name: "HTTP 500错误".to_string(),
+            name: "HTTP 500Error".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
                 url: "https://httpbin.org/status/500".to_string(),
@@ -1821,8 +1821,8 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功（不返回 Err，而是返回 Ok 并标记 success: false）
-        assert!(result.is_ok(), "500错误应该返回Ok（走false端口）");
+        // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
+        assert!(result.is_ok(), "500Error应该返回Ok（走false端口）");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -1869,7 +1869,7 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
@@ -1889,12 +1889,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_http_executor_network_error() {
-        // 测试网络错误（无效URL）
+        // 测试网络Error（无效URL）
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
             node_type: "http".to_string(),
-            name: "HTTP网络错误".to_string(),
+            name: "HTTP网络Error".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
                 url: "http://this-domain-does-not-exist-12345.invalid".to_string(),
@@ -1918,23 +1918,23 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功（不返回 Err，而是返回 Ok 并标记 success: false）
-        assert!(result.is_ok(), "网络错误应该返回Ok（走false端口）");
+        // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
+        assert!(result.is_ok(), "网络Error应该返回Ok（走false端口）");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some(), "应该有输出数据");
         let output = output_data.unwrap();
         assert_eq!(output["success"], false, "success 应该为 false");
-        assert!(output["status"].is_null(), "网络错误时 status 应该为 null");
-        assert!(output["body"].is_null(), "网络错误时 body 应该为 null");
-        assert!(output["headers"].is_null(), "网络错误时 headers 应该为 null");
-        assert!(output["error"].is_string(), "网络错误时应该有 error 字段");
+        assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
+        assert!(output["body"].is_null(), "网络Error时 body 应该为 null");
+        assert!(output["headers"].is_null(), "网络Error时 headers 应该为 null");
+        assert!(output["error"].is_string(), "网络Error时应该有 error 字段");
         let error_msg = output["error"].as_str().unwrap();
         assert!(
-            error_msg.contains("HTTP请求失败") ||
+            error_msg.contains("HTTP请求Failed") ||
             error_msg.contains("dns") ||
             error_msg.contains("connect") ||
             error_msg.contains("timeout"),
-            "错误消息应该包含网络错误信息: {}",
+            "Error消息应该包含网络Error信息: {}",
             error_msg
         );
     }
@@ -1974,7 +1974,7 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
@@ -2016,7 +2016,7 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
@@ -2062,7 +2062,7 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
@@ -2101,7 +2101,7 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
@@ -2144,7 +2144,7 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
@@ -2183,7 +2183,7 @@ mod tests {
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
@@ -2216,8 +2216,8 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
-        assert!(result.is_ok(), "GET请求应该成功");
+        // 验证执行Success
+        assert!(result.is_ok(), "GET请求应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -2275,7 +2275,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        assert!(result.is_ok(), "POST请求应该成功");
+        assert!(result.is_ok(), "POST请求应该Success");
         let output = result.unwrap().1.unwrap();
 
         // 验证 request 字段
@@ -2558,8 +2558,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
-        assert!(result.is_ok(), "Header key 变量替换应该成功");
+        // 验证执行Success
+        assert!(result.is_ok(), "Header key 变量替换应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -2608,8 +2608,8 @@ mod tests {
         let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
             executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
-        // 验证执行成功
-        assert!(result.is_ok(), "Header key 部分变量替换应该成功");
+        // 验证执行Success
+        assert!(result.is_ok(), "Header key 部分变量替换应该Success");
         let output_data = result.unwrap().1;
         assert!(output_data.is_some());
         let output = output_data.unwrap();
@@ -2634,7 +2634,7 @@ mod tests {
     // ============================================================================
 
     #[tokio::test]
-    /// 测试成功响应（2xx）路由到 true 端口
+    /// 测试Success响应（2xx）路由到 true 端口
     async fn test_http_port_routing_success_to_true() {
         use flow_engine_core::connection::Connection;
 
@@ -2670,7 +2670,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &connections, &HashMap::new()).await;
 
-        assert!(result.is_ok(), "请求应该成功");
+        assert!(result.is_ok(), "请求应该Success");
         let (next_node_ids, output_data) = result.unwrap();
 
         // 验证：应该路由到 true 端口连接的节点
@@ -2683,7 +2683,7 @@ mod tests {
     }
 
     #[tokio::test]
-    /// 测试失败响应（非2xx）路由到 false 端口
+    /// 测试Failed响应（非2xx）路由到 false 端口
     async fn test_http_port_routing_failure_to_false() {
         use flow_engine_core::connection::Connection;
 
@@ -2732,13 +2732,13 @@ mod tests {
     }
 
     #[tokio::test]
-    /// 测试网络错误路由到 false 端口
+    /// 测试网络Error路由到 false 端口
     async fn test_http_port_routing_network_error_to_false() {
         use flow_engine_core::connection::Connection;
 
         let node = create_http_node(
             "test-routing-network-error",
-            "DNS解析失败",
+            "DNS解析Failed",
             "http://this-domain-does-not-exist-12345.invalid",
             HttpMethod::Get,
             None,
@@ -2768,16 +2768,16 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &connections, &HashMap::new()).await;
 
-        assert!(result.is_ok(), "网络错误应该返回Ok");
+        assert!(result.is_ok(), "网络Error应该返回Ok");
         let (next_node_ids, output_data) = result.unwrap();
 
         // 验证：应该路由到 false 端口连接的节点
-        assert_eq!(next_node_ids, vec!["node-false"], "网络错误应该路由到 false 端口");
+        assert_eq!(next_node_ids, vec!["node-false"], "网络Error应该路由到 false 端口");
 
         // 验证输出数据
         let output = output_data.unwrap();
         assert_eq!(output["success"], false);
-        assert!(output["status"].is_null(), "网络错误时 status 应该为 null");
-        assert!(output["error"].is_string(), "网络错误时应该有 error 字段");
+        assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
+        assert!(output["error"].is_string(), "网络Error时应该有 error 字段");
     }
 }

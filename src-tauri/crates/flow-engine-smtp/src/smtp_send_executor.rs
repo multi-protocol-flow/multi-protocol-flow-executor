@@ -47,7 +47,7 @@ impl NodeExecutor for SmtpSendExecutor {
             NodeData::SmtpSend(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 SmtpSendConfig: {}",
+                    "Node data type is not SmtpSendConfig: {}",
                     node.uuid
                 )))
             }
@@ -56,9 +56,9 @@ impl NodeExecutor for SmtpSendExecutor {
         // 2. 变量替换: connection_id
         let connection_id =
             replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("连接 ID 变量替换失败: {}", e);
+                let error_msg = format!("连接 ID variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -70,9 +70,9 @@ impl NodeExecutor for SmtpSendExecutor {
         // 3. 变量替换: from
         let from = match &config.from {
             Some(f) => Some(replace_variables(f, context).map_err(|e| {
-                let error_msg = format!("发件人变量替换失败: {}", e);
+                let error_msg = format!("发件人variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -90,9 +90,9 @@ impl NodeExecutor for SmtpSendExecutor {
             .map(|addr| replace_variables(addr, context))
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| {
-                let error_msg = format!("收件人变量替换失败: {}", e);
+                let error_msg = format!("收件人variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -108,9 +108,9 @@ impl NodeExecutor for SmtpSendExecutor {
                 .map(|addr| replace_variables(addr, context))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|e| {
-                    let error_msg = format!("抄送变量替换失败: {}", e);
+                    let error_msg = format!("抄送variable substitution failed: {}", e);
                     log::error!(
-                        "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                        "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                         context.flow_uuid,
                         node.uuid,
                         node.name,
@@ -128,9 +128,9 @@ impl NodeExecutor for SmtpSendExecutor {
                 .map(|addr| replace_variables(addr, context))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|e| {
-                    let error_msg = format!("密送变量替换失败: {}", e);
+                    let error_msg = format!("密送variable substitution failed: {}", e);
                     log::error!(
-                        "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                        "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                         context.flow_uuid,
                         node.uuid,
                         node.name,
@@ -144,9 +144,9 @@ impl NodeExecutor for SmtpSendExecutor {
         // 7. 变量替换: subject
         let subject = match &config.subject {
             Some(s) => replace_variables(s, context).map_err(|e| {
-                let error_msg = format!("主题变量替换失败: {}", e);
+                let error_msg = format!("主题variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -160,9 +160,9 @@ impl NodeExecutor for SmtpSendExecutor {
         // 8. 变量替换: body
         let body = match &config.body {
             Some(b) => replace_variables(b, context).map_err(|e| {
-                let error_msg = format!("正文变量替换失败: {}", e);
+                let error_msg = format!("正文variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -176,9 +176,9 @@ impl NodeExecutor for SmtpSendExecutor {
         // 9. 变量替换: html_body
         let html_body = match &config.html_body {
             Some(h) => replace_variables(h, context).map_err(|e| {
-                let error_msg = format!("HTML 正文变量替换失败: {}", e);
+                let error_msg = format!("HTML 正文variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -195,7 +195,7 @@ impl NodeExecutor for SmtpSendExecutor {
 
         // 11. 日志：开始发送
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: smtp_send, 连接ID: {}, 收件人: {:?}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: smtp_send, Connection ID: {}, 收件人: {:?}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -207,13 +207,13 @@ impl NodeExecutor for SmtpSendExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "SMTP 发送节点 {} 开始执行 (收件人: {})",
+                    "SMTP 发送节点 {} start execution (收件人: {})",
                     node.name,
                     to.join(", ")
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -226,7 +226,7 @@ impl NodeExecutor for SmtpSendExecutor {
             let duration = start_time.elapsed();
             let error_msg = "Sender address is required";
             log::error!(
-                "[SMTP] 发送失败: connection_id={}, error={}",
+                "[SMTP] 发送Failed: connection_id={}, error={}",
                 connection_id,
                 error_msg
             );
@@ -234,10 +234,10 @@ impl NodeExecutor for SmtpSendExecutor {
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Error,
-                    message: format!("SMTP 发送失败: {}", error_msg),
+                    message: format!("SMTP 发送Failed: {}", error_msg),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间错误")
+                        .expect("系统时间Error")
                         .as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -271,7 +271,7 @@ impl NodeExecutor for SmtpSendExecutor {
             let duration = start_time.elapsed();
             let error_msg = "Recipient list cannot be empty";
             log::error!(
-                "[SMTP] 发送失败: connection_id={}, error={}",
+                "[SMTP] 发送Failed: connection_id={}, error={}",
                 connection_id,
                 error_msg
             );
@@ -279,10 +279,10 @@ impl NodeExecutor for SmtpSendExecutor {
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Error,
-                    message: format!("SMTP 发送失败: {}", error_msg),
+                    message: format!("SMTP 发送Failed: {}", error_msg),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间错误")
+                        .expect("系统时间Error")
                         .as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -342,14 +342,14 @@ impl NodeExecutor for SmtpSendExecutor {
 
                 if output.success {
                     log::info!(
-                        "[SMTP] 邮件发送成功: connection_id={}, message_id={:?} ({}ms)",
+                        "[SMTP] 邮件发送Success: connection_id={}, message_id={:?} ({}ms)",
                         connection_id,
                         output.message_id,
                         duration.as_millis()
                     );
                 } else {
                     log::warn!(
-                        "[SMTP] 邮件发送返回错误: connection_id={}, error={:?}",
+                        "[SMTP] 邮件发送返回Error: connection_id={}, error={:?}",
                         connection_id,
                         output.error
                     );
@@ -383,14 +383,14 @@ impl NodeExecutor for SmtpSendExecutor {
                 };
                 let log_msg = if output.success {
                     format!(
-                        "SMTP 邮件发送成功: {} → {:?} ({}ms)",
+                        "SMTP 邮件发送Success: {} → {:?} ({}ms)",
                         from_str,
                         to,
                         duration.as_millis()
                     )
                 } else {
-                    let err = output.error.as_deref().unwrap_or("未知错误");
-                    format!("SMTP 邮件发送失败: {} - {}", subject, err)
+                    let err = output.error.as_deref().unwrap_or("未知Error");
+                    format!("SMTP 邮件发送Failed: {} - {}", subject, err)
                 };
 
                 context
@@ -399,7 +399,7 @@ impl NodeExecutor for SmtpSendExecutor {
                         message: log_msg,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -417,7 +417,7 @@ impl NodeExecutor for SmtpSendExecutor {
             Err(e) => {
                 let duration = start_time.elapsed();
                 log::error!(
-                    "[SMTP] 邮件发送失败: connection_id={}, error={}",
+                    "[SMTP] 邮件发送Failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
@@ -425,10 +425,10 @@ impl NodeExecutor for SmtpSendExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("SMTP 邮件发送失败: {}", e),
+                        message: format!("SMTP 邮件发送Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -455,9 +455,9 @@ impl NodeExecutor for SmtpSendExecutor {
                     },
                 });
 
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("SMTP send 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("SMTP send Failed: {}", e)));
                 }
 
                 route_to_false(node, connections, error_output)
@@ -470,7 +470,7 @@ impl NodeExecutor for SmtpSendExecutor {
 // 端口路由辅助函数
 // ---------------------------------------------------------------------------
 
-/// 成功路由到 true 端口
+/// Success路由到 true 端口
 fn route_to_true(
     node: &Node,
     connections: &[Connection],
@@ -491,7 +491,7 @@ fn route_to_true(
     Ok((next_node_ids, Some(output_data)))
 }
 
-/// 失败路由到 false 端口
+/// Failed路由到 false 端口
 fn route_to_false(
     node: &Node,
     connections: &[Connection],
@@ -528,7 +528,7 @@ mod tests {
     use flow_engine_core::email_types::SmtpConfig;
     use crate::smtp_connection_manager::SmtpConnectionManager;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(
         uuid: &str,
         name: &str,
@@ -574,7 +574,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -771,7 +771,7 @@ mod tests {
         assert_eq!(data["request"]["subject"], "Report: Q4 财报");
     }
 
-    /// 测试：错误的节点数据类型 → Err
+    /// 测试：Error的节点数据类型 → Err
     #[tokio::test]
     async fn test_send_wrong_node_data_type() {
         let smtp_manager = Arc::new(SmtpConnectionManager::new());
@@ -780,7 +780,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -796,9 +796,9 @@ mod tests {
         assert!(result.unwrap_err().contains("SmtpSendConfig"));
     }
 
-    // ===== Mock 成功场景 =====
+    // ===== Mock Success场景 =====
 
-    /// 模拟 SMTP Provider（send 成功）
+    /// 模拟 SMTP Provider（send Success）
     struct MockSmtpProvider;
 
     #[async_trait::async_trait]
@@ -847,7 +847,7 @@ mod tests {
         }
     }
 
-    /// 模拟 SMTP Provider（send 失败）
+    /// 模拟 SMTP Provider（send Failed）
     struct MockSmtpProviderFail;
 
     #[async_trait::async_trait]
@@ -877,7 +877,7 @@ mod tests {
                 success: false,
                 message_id: None,
                 response_code: None,
-                error: Some("模拟发送失败".to_string()),
+                error: Some("模拟发送Failed".to_string()),
             })
         }
 
@@ -896,7 +896,7 @@ mod tests {
         }
     }
 
-    /// 模拟 SMTP Provider（send 抛出错误）
+    /// 模拟 SMTP Provider（send 抛出Error）
     struct MockSmtpProviderError;
 
     #[async_trait::async_trait]
@@ -940,14 +940,14 @@ mod tests {
         }
     }
 
-    /// 测试：Mock 成功发送 → 走 true 端口
+    /// 测试：Mock Success发送 → 走 true 端口
     #[tokio::test]
     async fn test_send_success_with_mock() {
         let smtp_manager = Arc::new(MockSmtpProvider);
         let executor = SmtpSendExecutor::new(smtp_manager);
         let node = create_test_node(
             "test-ok",
-            "成功发送",
+            "Success发送",
             "mock-conn",
             Some("from@test.com"),
             vec!["to@test.com"],
@@ -974,14 +974,14 @@ mod tests {
         assert!(data["timing"]["total_ms"].is_number());
     }
 
-    /// 测试：Mock send 返回失败 → 走 false 端口
+    /// 测试：Mock send 返回Failed → 走 false 端口
     #[tokio::test]
     async fn test_send_failure_with_mock() {
         let smtp_manager = Arc::new(MockSmtpProviderFail);
         let executor = SmtpSendExecutor::new(smtp_manager);
         let node = create_test_node(
             "test-fail",
-            "发送失败",
+            "发送Failed",
             "mock-conn",
             Some("from@test.com"),
             vec!["to@test.com"],
@@ -1003,7 +1003,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.unwrap();
         assert_eq!(data["success"], false);
-        assert_eq!(data["error"], "模拟发送失败");
+        assert_eq!(data["error"], "模拟发送Failed");
     }
 
     /// 测试：Mock send 抛出 Err → 走 false 端口
@@ -1013,7 +1013,7 @@ mod tests {
         let executor = SmtpSendExecutor::new(smtp_manager);
         let node = create_test_node(
             "test-error",
-            "发送错误",
+            "发送Error",
             "mock-conn",
             Some("from@test.com"),
             vec!["to@test.com"],

@@ -49,7 +49,7 @@ impl NodeExecutor for DbConnectExecutor {
         // 1. 提取配置
         let node_config = match &node.data {
             NodeData::DbConnect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 DbConnectConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not DbConnectConfig: {}", node.uuid))),
         };
 
         // 2. 使用节点配置直接作为连接配置
@@ -65,8 +65,8 @@ impl NodeExecutor for DbConnectExecutor {
                     match flow_engine_core::executor::replace_variables(v, context) {
                         Ok(replaced) => Ok(Some(replaced)),
                         Err(e) => {
-                            let err_msg = format!("{} 变量替换失败: {}", label, e);
-                            log::error!("[流程 {}] [错误] 节点ID: {}, 错误: {}", context.flow_uuid, node.uuid, err_msg);
+                            let err_msg = format!("{} variable substitution failed: {}", label, e);
+                            log::error!("[流程 {}] [Error] 节点ID: {}, Error: {}", context.flow_uuid, node.uuid, err_msg);
                             Err(ErrorDetail::execution_error(err_msg))
                         }
                     }
@@ -93,7 +93,7 @@ impl NodeExecutor for DbConnectExecutor {
             }
 
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -109,7 +109,7 @@ impl NodeExecutor for DbConnectExecutor {
 
         // 3. 日志：开始连接
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: db_connect, pool_key: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: db_connect, pool_key: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -119,10 +119,10 @@ impl NodeExecutor for DbConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("数据库连接节点 {} 开始执行", node.name),
+                message: format!("数据库连接节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -171,13 +171,13 @@ impl NodeExecutor for DbConnectExecutor {
                 match SqliteConnection::from_config(&db_config).await {
                     Ok(conn) => {
                         log::info!(
-                            "[Database] SQLite 连接池创建成功: uuid={}",
+                            "[Database] SQLite 连接池创建Success: uuid={}",
                             pool_key
                         );
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
-                        let error_msg = format!("SQLite 连接失败: {}", e);
+                        let error_msg = format!("SQLite connection failed: {}", e);
 
                         // 检查 on_error 策略
                         if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -185,19 +185,19 @@ impl NodeExecutor for DbConnectExecutor {
                         }
 
                         log::error!(
-                            "[Database] SQLite 连接池创建失败: uuid={}, error={}",
+                            "[Database] SQLite 连接池创建Failed: uuid={}, error={}",
                             pool_key,
                             e
                         );
 
-                        // 日志：连接失败
+                        // 日志：connection failed
                         context
                             .emit_log(LogEvent {
                                 level: LogLevel::Error,
-                                message: format!("SQLite 连接失败: {}", e),
+                                message: format!("SQLite connection failed: {}", e),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("系统时间Error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -251,13 +251,13 @@ impl NodeExecutor for DbConnectExecutor {
                 match crate::db::MySqlConnection::from_config(&db_config).await {
                     Ok(conn) => {
                         log::info!(
-                            "[Database] MySQL 连接池创建成功: uuid={}",
+                            "[Database] MySQL 连接池创建Success: uuid={}",
                             pool_key
                         );
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
-                        let error_msg = format!("MySQL 连接失败: {}", e);
+                        let error_msg = format!("MySQL connection failed: {}", e);
 
                         // 检查 on_error 策略
                         if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -265,7 +265,7 @@ impl NodeExecutor for DbConnectExecutor {
                         }
 
                         log::error!(
-                            "[Database] MySQL 连接池创建失败: uuid={}, error={}",
+                            "[Database] MySQL 连接池创建Failed: uuid={}, error={}",
                             pool_key,
                             e
                         );
@@ -273,10 +273,10 @@ impl NodeExecutor for DbConnectExecutor {
                         context
                             .emit_log(LogEvent {
                                 level: LogLevel::Error,
-                                message: format!("MySQL 连接失败: {}", e),
+                                message: format!("MySQL connection failed: {}", e),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("系统时间Error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -328,13 +328,13 @@ impl NodeExecutor for DbConnectExecutor {
                 match crate::db::PostgresConnection::from_config(&db_config).await {
                     Ok(conn) => {
                         log::info!(
-                            "[Database] PostgreSQL 连接池创建成功: uuid={}",
+                            "[Database] PostgreSQL 连接池创建Success: uuid={}",
                             pool_key
                         );
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
-                        let error_msg = format!("PostgreSQL 连接失败: {}", e);
+                        let error_msg = format!("PostgreSQL connection failed: {}", e);
 
                         // 检查 on_error 策略
                         if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -342,7 +342,7 @@ impl NodeExecutor for DbConnectExecutor {
                         }
 
                         log::error!(
-                            "[Database] PostgreSQL 连接池创建失败: uuid={}, error={}",
+                            "[Database] PostgreSQL 连接池创建Failed: uuid={}, error={}",
                             pool_key,
                             e
                         );
@@ -350,10 +350,10 @@ impl NodeExecutor for DbConnectExecutor {
                         context
                             .emit_log(LogEvent {
                                 level: LogLevel::Error,
-                                message: format!("PostgreSQL 连接失败: {}", e),
+                                message: format!("PostgreSQL connection failed: {}", e),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("系统时间Error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -399,7 +399,7 @@ impl NodeExecutor for DbConnectExecutor {
         match create_result {
             Ok(()) => {
                 log::info!(
-                    "[Database] 连接池创建成功: uuid={}",
+                    "[Database] 连接池创建Success: uuid={}",
                     pool_key
                 );
 
@@ -415,14 +415,14 @@ impl NodeExecutor for DbConnectExecutor {
                         match pool.test_connection().await {
                             Ok(()) => {
                                 log::info!(
-                                    "[Database] 测试查询成功: uuid={}",
+                                    "[Database] 测试查询Success: uuid={}",
                                     pool_key
                                 );
                                 Ok(())
                             }
                             Err(e) => {
                                 log::error!(
-                                    "[Database] 测试查询失败: uuid={}, error={}",
+                                    "[Database] 测试查询Failed: uuid={}, error={}",
                                     pool_key,
                                     e
                                 );
@@ -438,7 +438,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                 match test_query_result {
                     Ok(()) => {
-                        // 6. 构建输出数据（成功）
+                        // 6. 构建输出数据（Success）
                         let output_data = self.build_success_output(
                             &config,
                             &pool_key,
@@ -455,12 +455,12 @@ impl NodeExecutor for DbConnectExecutor {
                             .emit_log(LogEvent {
                                 level: LogLevel::Info,
                                 message: format!(
-                                    "数据库连接成功 ({}ms)",
+                                    "数据库连接Success ({}ms)",
                                     duration.as_millis()
                                 ),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("系统时间Error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -475,28 +475,28 @@ impl NodeExecutor for DbConnectExecutor {
                         ))
                     }
                     Err(e) => {
-                        let error_msg = format!("测试查询失败: {}", e);
+                        let error_msg = format!("测试查询Failed: {}", e);
 
                         // 检查 on_error 策略
                         if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
                             return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                         }
 
-                        // 测试查询失败
+                        // 测试查询Failed
                         log::error!(
-                            "[Database] 测试查询失败: uuid={}, error={}",
+                            "[Database] 测试查询Failed: uuid={}, error={}",
                             pool_key,
                             e
                         );
 
-                        // 日志：测试查询失败
+                        // 日志：测试查询Failed
                         context
                             .emit_log(LogEvent {
                                 level: LogLevel::Error,
-                                message: format!("数据库测试查询失败: {}", e),
+                                message: format!("数据库测试查询Failed: {}", e),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("系统时间Error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -521,28 +521,28 @@ impl NodeExecutor for DbConnectExecutor {
                 }
             }
             Err(e) => {
-                let error_msg = format!("数据库连接池创建失败: {}", e);
+                let error_msg = format!("数据库连接池创建Failed: {}", e);
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                 }
 
-                // 连接池创建失败
+                // 连接池创建Failed
                 log::error!(
-                    "[Database] 连接池创建失败: uuid={}, error={}",
+                    "[Database] 连接池创建Failed: uuid={}, error={}",
                     pool_key,
                     e
                 );
 
-                // 日志：连接失败
+                // 日志：connection failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("数据库连接池创建失败: {}", e),
+                        message: format!("数据库连接池创建Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -597,7 +597,7 @@ impl DbConnectExecutor {
         }
     }
 
-    /// 构建成功输出数据
+    /// 构建Success输出数据
     fn build_success_output(
         &self,
         config: &DbConnectConfig,
@@ -606,7 +606,7 @@ impl DbConnectExecutor {
         total_ms: u64,
     ) -> serde_json::Value {
         json!({
-            // 统一成功标识
+            // 统一Success标识
             "success": true,
             "connected": true,
             "connection_id": connection_id,
@@ -625,7 +625,7 @@ impl DbConnectExecutor {
         })
     }
 
-    /// 构建错误输出数据
+    /// 构建Error输出数据
     fn build_error_output(
         &self,
         config: &DbConnectConfig,
@@ -634,7 +634,7 @@ impl DbConnectExecutor {
         total_ms: u64,
     ) -> serde_json::Value {
         json!({
-            // 统一成功标识
+            // 统一Success标识
             "success": false,
             "connected": false,
             "connection_id": serde_json::Value::Null,
@@ -679,7 +679,7 @@ mod tests {
     use flow_engine_core::node::{NodePosition};
     use crate::db::pool::{DatabaseConnectionManager, PoolMetadata};
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -737,7 +737,7 @@ mod tests {
         }
     }
 
-    /// 创建无 driver 的测试节点（用于验证失败场景）
+    /// 创建无 driver 的Test Node（用于验证Failed场景）
     fn create_test_node_no_driver(uuid: &str, name: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -773,7 +773,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -798,7 +798,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 true 端口（连接成功）
+        // 应该返回 true 端口（连接Success）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["true"]);
@@ -825,7 +825,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // MockPool 的 test_connection 会成功
+        // MockPool 的 test_connection 会Success
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["true"]);
@@ -898,8 +898,8 @@ mod tests {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbConnectExecutor::new(db_manager);
 
-        // 创建无 driver 节点（会失败）
-        let node = create_test_node_no_driver("test-5", "失败测试");
+        // 创建无 driver 节点（会Failed）
+        let node = create_test_node_no_driver("test-5", "Failed测试");
         let mut context = create_context("test-flow");
 
         // 创建 false 端口连接
@@ -948,13 +948,13 @@ mod tests {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbConnectExecutor::new(db_manager);
 
-        // 创建一个使用错误数据类型的节点
+        // 创建一个使用Error数据类型的节点
         let node = Node {
             uuid: "test-7".to_string(),
             node_type: "db_connect".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(), // 错误：使用 Entry 配置
+            data: NodeData::entry(), // Error：使用 Entry 配置
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -965,7 +965,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回错误
+        // 应该返回Error
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不是 DbConnectConfig"));
     }
@@ -974,7 +974,7 @@ mod tests {
     // SQLite 集成测试
     // ========================================================================
 
-    /// 创建 SQLite 测试节点
+    /// 创建 SQLite Test Node
     fn create_sqlite_test_node(uuid: &str, name: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -1001,7 +1001,7 @@ mod tests {
         }
     }
 
-    /// 创建带测试查询的 SQLite 测试节点
+    /// 创建带测试查询的 SQLite Test Node
     fn create_sqlite_test_node_with_query(
         uuid: &str,
         name: &str,
@@ -1043,7 +1043,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 true 端口（连接成功）
+        // 应该返回 true 端口（连接Success）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["true"]);
@@ -1076,7 +1076,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // SQLite 测试查询应该成功
+        // SQLite 测试查询应该Success
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["true"]);
@@ -1122,7 +1122,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 false 端口（连接失败）
+        // 应该返回 false 端口（connection failed）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false"]);

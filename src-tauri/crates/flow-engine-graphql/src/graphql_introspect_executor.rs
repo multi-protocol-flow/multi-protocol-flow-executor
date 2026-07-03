@@ -73,7 +73,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
             NodeData::GraphqlIntrospect(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 GraphqlIntrospectConfig: {}",
+                    "Node data type is not GraphqlIntrospectConfig: {}",
                     node.uuid
                 )))
             }
@@ -81,9 +81,9 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
 
         // 2. 变量替换（connection_id）
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("connection_id 变量替换失败: {}", e);
+            let error_msg = format!("connection_id variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -94,7 +94,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
 
         // 3. 日志：开始探索
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: graphql_introspect, connection_id: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql_introspect, connection_id: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -104,10 +104,10 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("GraphQL Schema 探索节点 {} 开始执行", node.name),
+                message: format!("GraphQL Schema 探索节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -133,14 +133,14 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
 
                 if output.success {
                     log::info!(
-                        "[GraphQL] Schema 探索成功: uuid={}, connection_id={}, 耗时={}ms",
+                        "[GraphQL] Schema 探索Success: uuid={}, connection_id={}, 耗时={}ms",
                         node.uuid,
                         connection_id,
                         duration.as_millis()
                     );
                 } else {
                     log::warn!(
-                        "[GraphQL] Schema 探索失败: uuid={}, connection_id={}, error={:?}",
+                        "[GraphQL] Schema 探索Failed: uuid={}, connection_id={}, error={:?}",
                         node.uuid,
                         connection_id,
                         output.error
@@ -192,14 +192,14 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                         .map(|t| t.len())
                         .unwrap_or(0);
                     format!(
-                        "GraphQL Schema 探索成功 ({}ms), 生成 {} 个查询模板",
+                        "GraphQL Schema 探索Success ({}ms), 生成 {} 个查询模板",
                         duration.as_millis(),
                         template_count
                     )
                 } else {
                     format!(
-                        "GraphQL Schema 探索失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "GraphQL Schema 探索Failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -210,7 +210,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                         message: log_message,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -218,7 +218,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                     })
                     .await;
 
-                // 8. 路由：成功走 true 端口，失败走 false 端口
+                // 8. 路由：Success走 true 端口，Failed走 false 端口
                 if !output.success
                     && !node.on_error.as_ref().map_or(true, |s| {
                         *s == ExecutionErrorStrategy::RouteToFalse
@@ -227,7 +227,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("GraphQL 内省查询失败")
+                        .unwrap_or("GraphQL 内省查询Failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -253,7 +253,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                         message: format!("GraphQL Schema 探索异常: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -261,7 +261,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                     })
                     .await;
 
-                // 构建错误输出
+                // 构建Error输出
                 let error_output = json!({
                     "success": false,
                     "schema": serde_json::Value::Null,
@@ -311,7 +311,7 @@ mod tests {
     // Mock GraphqlProvider
     // ---------------------------------------------------------------------------
 
-    /// 模拟 GraphQL Provider（探索成功，含 Schema 和模板）
+    /// 模拟 GraphQL Provider（探索Success，含 Schema 和模板）
     struct MockGraphqlProvider {
         output: GraphqlIntrospectOutput,
     }
@@ -483,7 +483,7 @@ mod tests {
     // 测试辅助函数
     // ---------------------------------------------------------------------------
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -508,7 +508,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -539,7 +539,7 @@ mod tests {
     // 测试
     // ---------------------------------------------------------------------------
 
-    /// 测试：配置提取成功（正确的 NodeData 变体）
+    /// 测试：配置提取Success（正确的 NodeData 变体）
     #[tokio::test]
     async fn test_graphql_introspect_config_extraction_success() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -553,12 +553,12 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
     }
 
-    /// 测试：配置提取拒绝错误的 NodeData 变体
+    /// 测试：配置提取拒绝Error的 NodeData 变体
     #[tokio::test]
     async fn test_graphql_introspect_config_extraction_wrong_variant() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -567,7 +567,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "graphql_connect".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlConnect(GraphqlConnectConfig::default()),
             ports: None,
@@ -583,12 +583,12 @@ mod tests {
         assert!(result.unwrap_err().contains("GraphqlIntrospectConfig"));
     }
 
-    /// 测试：成功时路由到 true 端口
+    /// 测试：Success时路由到 true 端口
     #[tokio::test]
     async fn test_graphql_introspect_success_routes_to_true_port() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
         let executor = GraphqlIntrospectExecutor::new(graphql_manager);
-        let node = create_test_node("test-true", "成功测试", "conn-1");
+        let node = create_test_node("test-true", "Success测试", "conn-1");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -606,12 +606,12 @@ mod tests {
         assert!(data["error"].is_null());
     }
 
-    /// 测试：失败时路由到 false 端口
+    /// 测试：Failed时路由到 false 端口
     #[tokio::test]
     async fn test_graphql_introspect_failure_routes_to_false_port() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_failure("Endpoint unreachable"));
         let executor = GraphqlIntrospectExecutor::new(graphql_manager);
-        let node = create_test_node("test-false", "失败测试", "conn-1");
+        let node = create_test_node("test-false", "Failed测试", "conn-1");
         let mut context = create_context("test-flow");
 
         let result = executor

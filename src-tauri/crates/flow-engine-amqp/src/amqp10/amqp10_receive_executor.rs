@@ -45,7 +45,7 @@ impl NodeExecutor for Amqp10ReceiveExecutor {
             NodeData::Amqp10Receive(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 Amqp10ReceiveConfig: {}",
+                    "Node data type is not Amqp10ReceiveConfig: {}",
                     node.uuid
                 )))
             }
@@ -53,26 +53,26 @@ impl NodeExecutor for Amqp10ReceiveExecutor {
 
         // 2. 变量替换
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("connection_id 变量替换失败: {}", e);
-            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+            let error_msg = format!("connection_id variable substitution failed: {}", e);
+            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
             ErrorDetail::execution_error(error_msg)
         })?;
 
         let address = replace_variables(&config.address, context).map_err(|e| {
-            let error_msg = format!("address 变量替换失败: {}", e);
-            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+            let error_msg = format!("address variable substitution failed: {}", e);
+            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
             ErrorDetail::execution_error(error_msg)
         })?;
 
         // 3. 日志：开始接收
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp10_receive, 连接ID: {}, 地址: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp10_receive, Connection ID: {}, 地址: {}",
             context.flow_uuid, node.uuid, node.name, connection_id, address
         );
 
         context.emit_log(LogEvent {
             level: LogLevel::Info,
-            message: format!("AMQP 1.0 接收节点 {} 开始执行", node.name),
+            message: format!("AMQP 1.0 接收节点 {} start execution", node.name),
             timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
             node_uuid: Some(node.uuid.clone()),
             node_name: Some(node.name.clone()),
@@ -94,9 +94,9 @@ impl NodeExecutor for Amqp10ReceiveExecutor {
         match receive_result {
             Ok(output) => {
                 if output.success {
-                    log::info!("[AMQP 1.0] 接收成功: connection_id={}, address={}, 消息数={}", connection_id, address, output.message_count);
+                    log::info!("[AMQP 1.0] 接收Success: connection_id={}, address={}, 消息数={}", connection_id, address, output.message_count);
                 } else {
-                    log::warn!("[AMQP 1.0] 接收失败: connection_id={}, address={}, error={:?}", connection_id, address, output.error);
+                    log::warn!("[AMQP 1.0] 接收Failed: connection_id={}, address={}, error={:?}", connection_id, address, output.error);
                 }
 
                 let output_data = json!({
@@ -118,9 +118,9 @@ impl NodeExecutor for Amqp10ReceiveExecutor {
 
                 let log_level = if output.success { LogLevel::Info } else { LogLevel::Error };
                 let log_message = if output.success {
-                    format!("AMQP 1.0 接收成功，消息数: {} ({}ms)", output.message_count, duration.as_millis())
+                    format!("AMQP 1.0 接收Success，消息数: {} ({}ms)", output.message_count, duration.as_millis())
                 } else {
-                    format!("AMQP 1.0 接收失败: {} ({}ms)", output.error.as_deref().unwrap_or("未知错误"), duration.as_millis())
+                    format!("AMQP 1.0 接收Failed: {} ({}ms)", output.error.as_deref().unwrap_or("未知Error"), duration.as_millis())
                 };
 
                 context.emit_log(LogEvent {
@@ -153,9 +153,9 @@ impl NodeExecutor for Amqp10ReceiveExecutor {
                     "error": e,
                 });
 
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP 1.0 receive 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("AMQP 1.0 receive Failed: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -186,7 +186,7 @@ mod tests {
         Amqp10RejectOutput, Amqp10SendOutput, AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider,
     };
 
-    /// Mock AmqpProvider（接收成功）
+    /// Mock AmqpProvider（接收Success）
     struct MockAmqpProvider { output: Amqp10ReceiveOutput }
 
     impl MockAmqpProvider {
@@ -282,7 +282,7 @@ mod tests {
         }
     }
 
-    /// 测试：接收成功时路由到 true 端口
+    /// 测试：接收Success时路由到 true 端口
     #[tokio::test]
     async fn test_amqp10_receive_success_routes_to_true() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -299,12 +299,12 @@ mod tests {
         assert_eq!(data["message_count"], 1);
     }
 
-    /// 测试：接收失败时路由到 false 端口
+    /// 测试：接收Failed时路由到 false 端口
     #[tokio::test]
     async fn test_amqp10_receive_failure_routes_to_false() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_failure("No messages"));
         let executor = Amqp10ReceiveExecutor::new(amqp_manager);
-        let node = create_test_node("test-2", "失败测试", "conn-1", "test-queue");
+        let node = create_test_node("test-2", "Failed测试", "conn-1", "test-queue");
         let mut context = create_context("test-flow");
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -314,13 +314,13 @@ mod tests {
         assert_eq!(data.unwrap()["error"], "No messages");
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_amqp10_receive_wrong_node_data_type() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
         let executor = Amqp10ReceiveExecutor::new(amqp_manager);
         let node = Node {
-            uuid: "test-wrong".to_string(), node_type: "http".to_string(), name: "错误类型".to_string(),
+            uuid: "test-wrong".to_string(), node_type: "http".to_string(), name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 }, data: NodeData::Entry(EntryConfig::default()),
             ports: None, has_breakpoint: None, on_error: None,
         };

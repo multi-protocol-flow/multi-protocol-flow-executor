@@ -43,14 +43,14 @@ impl NodeExecutor for McpCallToolExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::McpCallTool(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 McpCallToolConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not McpCallToolConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换 connection_id 和 tool_name
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -60,9 +60,9 @@ impl NodeExecutor for McpCallToolExecutor {
         })?;
 
         let tool_name = replace_variables(&config.tool_name, context).map_err(|e| {
-            let error_msg = format!("工具名称变量替换失败: {}", e);
+            let error_msg = format!("工具名称variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -73,7 +73,7 @@ impl NodeExecutor for McpCallToolExecutor {
 
         // 3. 日志：开始调用
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: mcp_call_tool, 连接ID: {}, 工具: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mcp_call_tool, Connection ID: {}, 工具: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -84,10 +84,10 @@ impl NodeExecutor for McpCallToolExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("MCP 调用工具节点 {} 开始执行 (工具: {})", node.name, tool_name),
+                message: format!("MCP 调用工具节点 {} start execution (工具: {})", node.name, tool_name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -109,14 +109,14 @@ impl NodeExecutor for McpCallToolExecutor {
 
                 if is_error {
                     log::warn!(
-                        "[MCP] 工具调用返回错误: connection_id={}, tool={}, error_content={:?}",
+                        "[MCP] 工具调用返回Error: connection_id={}, tool={}, error_content={:?}",
                         connection_id,
                         tool_name,
                         tool_result.content
                     );
                 } else {
                     log::info!(
-                        "[MCP] 工具调用成功: connection_id={}, tool={} ({}ms)",
+                        "[MCP] 工具调用Success: connection_id={}, tool={} ({}ms)",
                         connection_id,
                         tool_name,
                         duration.as_millis()
@@ -162,10 +162,10 @@ impl NodeExecutor for McpCallToolExecutor {
                     LogLevel::Info
                 };
                 let log_msg = if is_error {
-                    format!("MCP 工具调用返回错误: {}", tool_name)
+                    format!("MCP 工具调用返回Error: {}", tool_name)
                 } else {
                     format!(
-                        "MCP 工具调用成功: {} ({}ms)",
+                        "MCP 工具调用Success: {} ({}ms)",
                         tool_name,
                         duration.as_millis()
                     )
@@ -177,7 +177,7 @@ impl NodeExecutor for McpCallToolExecutor {
                         message: log_msg,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -208,20 +208,20 @@ impl NodeExecutor for McpCallToolExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[MCP] 工具调用失败: connection_id={}, tool={}, error={}",
+                    "[MCP] 工具调用Failed: connection_id={}, tool={}, error={}",
                     connection_id,
                     tool_name,
                     e
                 );
 
-                // 日志：调用失败
+                // 日志：调用Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MCP 工具调用失败: {}", e),
+                        message: format!("MCP 工具调用Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -229,7 +229,7 @@ impl NodeExecutor for McpCallToolExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let duration = start_time.elapsed();
                 let error_output = json!({
                     "success": false,
@@ -252,7 +252,7 @@ impl NodeExecutor for McpCallToolExecutor {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
-                // 失败走 false 端口
+                // Failed走 false 端口
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -284,7 +284,7 @@ mod tests {
     use flow_engine_core::node_config::McpCallToolConfig;
     use crate::mcp_connection_manager::McpConnectionManager;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, tool_name: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -310,7 +310,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -399,7 +399,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -436,7 +436,7 @@ mod tests {
         }
     }
 
-    /// 模拟 MCP Provider（call_tool 成功）
+    /// 模拟 MCP Provider（call_tool Success）
     struct MockMcpProvider;
 
     #[async_trait::async_trait]
@@ -507,7 +507,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -535,12 +535,12 @@ mod tests {
         (context, event_receiver)
     }
 
-    /// 测试：调用失败时不发射 McpToolCalled 调试事件
+    /// 测试：调用Failed时不发射 McpToolCalled 调试事件
     #[tokio::test]
     async fn test_debug_event_not_emitted_on_call_tool_failure() {
         let mcp_manager = Arc::new(McpConnectionManager::new());
         let executor = McpCallToolExecutor::new(mcp_manager);
-        let node = create_test_node("test-fail", "失败测试", "nonexistent", "test_tool");
+        let node = create_test_node("test-fail", "Failed测试", "nonexistent", "test_tool");
         let (mut context, mut event_receiver) = create_context_with_debug_sender("test-flow");
 
         let result = executor
@@ -548,21 +548,21 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        // 连接不存在导致调用失败，不应发射调试事件
+        // 连接不存在导致调用Failed，不应发射调试事件
         let events: Vec<_> = (&mut event_receiver).try_recv().into_iter().collect();
         assert!(
             events.is_empty(),
-            "调用失败时不应发射调试事件，但收到: {:?}",
+            "调用Failed时不应发射调试事件，但收到: {:?}",
             events
         );
     }
 
-    /// 测试：调用成功时发射 McpToolCalled 调试事件
+    /// 测试：调用Success时发射 McpToolCalled 调试事件
     #[tokio::test]
     async fn test_debug_event_mcp_tool_called() {
         let mcp_manager = Arc::new(MockMcpProvider);
         let executor = McpCallToolExecutor::new(mcp_manager);
-        let node = create_test_node("test-ok", "成功测试", "mock-conn-1", "get_weather");
+        let node = create_test_node("test-ok", "Success测试", "mock-conn-1", "get_weather");
         let (mut context, mut event_receiver) = create_context_with_debug_sender("test-flow");
 
         let result = executor

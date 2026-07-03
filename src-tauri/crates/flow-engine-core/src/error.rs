@@ -1,45 +1,45 @@
-// 错误模块 - 错误详情和错误类型
+// Error模块 - Error详情和Error类型
 
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-/// 错误详情结构（用于执行调试）
+/// Error详情结构（用于执行调试）
 ///
-/// 提供结构化的错误信息，包括错误类型、错误代码、消息、堆栈跟踪和上下文快照。
-/// 这些信息用于调试和错误分析。
+/// 提供结构化的Error信息，包括Error类型、Error代码、消息、堆栈跟踪和上下文快照。
+/// 这些信息用于调试和Error分析。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ErrorDetail {
-    /// 错误类型（决定错误处理策略，同时标识具体错误类型）
+    /// Error类型（决定Error处理策略，同时标识具体Error类型）
     pub error_kind: ErrorKind,
 
-    /// 错误代码（可选，用于程序化处理）
+    /// Error代码（可选，用于程序化处理）
     pub error_code: Option<ErrorCode>,
 
-    /// i18n 翻译参数（可选，用于前端错误消息展示）
+    /// i18n 翻译参数（可选，用于前端Error消息展示）
     pub i18n_args: Option<HashMap<String, String>>,
 
-    /// 错误消息（人类可读）
+    /// Error消息（人类可读）
     pub message: String,
 
     /// 堆栈跟踪（可选）
     pub stack_trace: Option<String>,
 
-    /// 错误发生时的上下文快照（可选）
+    /// Error发生时的上下文快照（可选）
     pub context: Option<serde_json::Value>,
 }
 
 impl ErrorDetail {
-    /// 创建新的错误详情
+    /// 创建新的Error详情
     ///
     /// # 参数
     ///
-    /// * `error_kind` - 错误类型
-    /// * `message` - 错误消息
+    /// * `error_kind` - Error类型
+    /// * `message` - Error消息
     ///
     /// # 返回
     ///
-    /// 新的错误详情，不包含错误代码、堆栈跟踪和上下文
+    /// 新的Error详情，不包含Error代码、堆栈跟踪和上下文
     pub fn new(error_kind: ErrorKind, message: String) -> Self {
         Self {
             error_kind,
@@ -51,7 +51,7 @@ impl ErrorDetail {
         }
     }
 
-    /// 设置错误代码（向后兼容，接受字符串）
+    /// 设置Error代码（向后兼容，接受字符串）
     ///
     /// 尝试将字符串解析为 ErrorCode 变体名称（如 "E_EXECUTION_ERROR"），
     /// 如果无法识别则回退到 `ErrorCode::E_EXECUTION_ERROR`。
@@ -59,7 +59,7 @@ impl ErrorDetail {
     ///
     /// # 参数
     ///
-    /// * `code` - 错误代码字符串
+    /// * `code` - Error代码字符串
     ///
     /// # 返回
     ///
@@ -72,7 +72,7 @@ impl ErrorDetail {
         self
     }
 
-    /// 设置类型化错误代码
+    /// 设置类型化Error代码
     ///
     /// # 参数
     ///
@@ -88,7 +88,7 @@ impl ErrorDetail {
 
     /// 添加 i18n 翻译参数
     ///
-    /// 用于前端错误消息的翻译插值。例如：`with_i18n_arg("url", "https://example.com")`
+    /// 用于前端Error消息的翻译插值。例如：`with_i18n_arg("url", "https://example.com")`
     ///
     /// # 参数
     ///
@@ -105,17 +105,17 @@ impl ErrorDetail {
         self
     }
 
-    /// 创建通用执行错误
+    /// 创建通用执行Error
     ///
-    /// 使用 `ErrorKind::Execution` 和给定的消息快速创建错误详情。
+    /// 使用 `ErrorKind::Execution` 和给定的消息快速创建Error详情。
     ///
     /// # 参数
     ///
-    /// * `message` - 错误消息
+    /// * `message` - Error消息
     ///
     /// # 返回
     ///
-    /// 新的错误详情
+    /// 新的Error详情
     pub fn execution_error(message: String) -> Self {
         Self::new(ErrorKind::Execution, message)
     }
@@ -148,11 +148,11 @@ impl ErrorDetail {
         self
     }
 
-    /// 判断是否为致命错误
+    /// 判断是否为致命Error
     ///
     /// # 返回
     ///
-    /// 如果是致命错误（需要立即终止流程）则返回 true
+    /// 如果是致命Error（需要立即终止流程）则返回 true
     pub fn is_fatal(&self) -> bool {
         self.error_kind.is_fatal()
     }
@@ -164,170 +164,170 @@ impl std::fmt::Display for ErrorDetail {
     }
 }
 
-/// 错误类型枚举（决定错误处理策略，同时标识具体错误类型）
+/// Error类型枚举（决定Error处理策略，同时标识具体Error类型）
 ///
-/// 错误分为两类：
-/// - **致命错误**：配置错误和条件语法错误，需要立即终止流程
-/// - **可恢复错误**：执行错误、验证错误、解析错误等，在容错模式下可继续执行
+/// Error分为两类：
+/// - **致命Error**：配置Error和条件语法Error，需要立即终止流程
+/// - **可恢复Error**：执行Error、验证Error、解析Error等，在容错模式下可继续执行
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ErrorKind {
-    // ===== 配置错误（立即终止流程） =====
-    /// 通用配置错误
+    // ===== 配置Error（立即终止流程） =====
+    /// 通用配置Error
     Configuration,
 
-    /// 条件表达式语法错误（如表达式语法错误、字段配置缺失）
+    /// 条件表达式语法Error（如表达式语法Error、字段配置缺失）
     ConditionSyntax,
 
-    // ===== 执行错误（容错模式，继续执行） =====
-    /// 通用执行错误
+    // ===== 执行Error（容错模式，继续执行） =====
+    /// 通用执行Error
     Execution,
 
-    /// 网络连接失败
+    /// 网络connection failed
     Connection,
 
     /// 操作超时
     Timeout,
 
-    /// 条件评估运行时错误（如字段不存在、类型不匹配）
+    /// 条件评估运行时Error（如字段不存在、类型不匹配）
     ConditionEvaluation,
 
-    // ===== 验证错误（容错模式，继续执行） =====
-    /// 参数验证失败
+    // ===== 验证Error（容错模式，继续执行） =====
+    /// 参数验证Failed
     Validation,
 
-    // ===== 解析错误（容错模式，继续执行） =====
-    /// 数据解析失败（如 JSON 解析失败、数据格式转换失败）
+    // ===== 解析Error（容错模式，继续执行） =====
+    /// 数据解析Failed（如 JSON 解析Failed、数据格式转换Failed）
     Parse,
 
-    // ===== WebSocket 错误（容错模式，继续执行） =====
-    /// WebSocket 连接失败
+    // ===== WebSocket Error（容错模式，继续执行） =====
+    /// WebSocket connection failed
     WebSocketConnection,
     /// WebSocket 超时
     WebSocketTimeout,
-    /// WebSocket 消息错误
+    /// WebSocket 消息Error
     WebSocketMessage,
-    /// WebSocket 关闭错误
+    /// WebSocket 关闭Error
     WebSocketClose,
-    /// WebSocket 协议错误
+    /// WebSocket 协议Error
     WebSocketProtocol,
 
-    // ===== gRPC 错误（容错模式，继续执行） =====
-    /// gRPC 连接失败
+    // ===== gRPC Error（容错模式，继续执行） =====
+    /// gRPC connection failed
     GrpcConnection,
     /// gRPC 超时
     GrpcTimeout,
-    /// gRPC 消息错误
+    /// gRPC 消息Error
     GrpcMessage,
-    /// gRPC 状态错误
+    /// gRPC 状态Error
     GrpcStatus,
-    /// gRPC 关闭错误
+    /// gRPC 关闭Error
     GrpcClose,
 
-    // ===== MCP 错误（容错模式，继续执行） =====
-    /// MCP 连接失败
+    // ===== MCP Error（容错模式，继续执行） =====
+    /// MCP connection failed
     McpConnection,
-    /// MCP 工具调用失败
+    /// MCP 工具调用Failed
     McpToolCall,
-    /// MCP 资源读取失败
+    /// MCP 资源读取Failed
     McpResourceRead,
     /// MCP 连接未找到
     McpNotConnected,
 
-    // ===== 断言错误（容错模式，继续执行） =====
-    /// 断言失败
+    // ===== 断言Error（容错模式，继续执行） =====
+    /// 断言Failed
     Assertion,
 
-    // ===== 脚本错误（根据 on_error 配置决定是否致命） =====
-    /// 脚本语法错误
+    // ===== 脚本Error（根据 on_error 配置决定是否致命） =====
+    /// 脚本语法Error
     ScriptSyntax,
-    /// 脚本运行时错误
+    /// 脚本运行时Error
     ScriptRuntime,
     /// 脚本执行超时
     ScriptTimeout,
-    /// 断言失败
+    /// 断言Failed
     ScriptAssertion,
     /// 用户调用 `fn.flow.abort()`
     ScriptAbort,
 
-    // ===== TCP 错误（容错模式，继续执行） =====
-    /// TCP 连接失败
+    // ===== TCP Error（容错模式，继续执行） =====
+    /// TCP connection failed
     TcpConnection,
     /// TCP 操作超时
     TcpTimeout,
-    /// TCP 发送数据失败
+    /// TCP 发送数据Failed
     TcpSend,
-    /// TCP 接收数据失败
+    /// TCP 接收数据Failed
     TcpReceive,
-    /// TCP 连接关闭错误
+    /// TCP 连接关闭Error
     TcpClose,
 
-    // ===== UDP 错误（容错模式，继续执行） =====
-    /// UDP 绑定失败
+    // ===== UDP Error（容错模式，继续执行） =====
+    /// UDP 绑定Failed
     UdpBind,
-    /// UDP 发送数据失败
+    /// UDP 发送数据Failed
     UdpSend,
-    /// UDP 接收数据失败
+    /// UDP 接收数据Failed
     UdpReceive,
-    /// UDP 连接关闭错误
+    /// UDP 连接关闭Error
     UdpClose,
 
-    // ===== SSE 错误（容错模式，继续执行） =====
-    /// SSE 连接失败
+    // ===== SSE Error（容错模式，继续执行） =====
+    /// SSE connection failed
     SseConnection,
     /// SSE 超时
     SseTimeout,
-    /// SSE 事件错误
+    /// SSE 事件Error
     SseEvent,
 
-    // ===== GraphQL 错误（容错模式，继续执行） =====
-    /// GraphQL 连接失败
+    // ===== GraphQL Error（容错模式，继续执行） =====
+    /// GraphQL connection failed
     GraphqlConnection,
-    /// GraphQL 查询错误
+    /// GraphQL 查询Error
     GraphqlQuery,
-    /// GraphQL 订阅错误
+    /// GraphQL 订阅Error
     GraphqlSubscription,
-    /// GraphQL Schema 探索错误
+    /// GraphQL Schema 探索Error
     GraphqlIntrospection,
-    /// GraphQL 关闭错误
+    /// GraphQL 关闭Error
     GraphqlClose,
 
-    // ===== AMQP 错误（容错模式，继续执行） =====
-    /// AMQP 连接失败
+    // ===== AMQP Error（容错模式，继续执行） =====
+    /// AMQP connection failed
     AmqpConnection,
-    /// AMQP 通道错误
+    /// AMQP 通道Error
     AmqpChannel,
-    /// AMQP 发布错误
+    /// AMQP 发布Error
     AmqpPublish,
-    /// AMQP 消费错误
+    /// AMQP 消费Error
     AmqpConsume,
-    /// AMQP 队列操作错误
+    /// AMQP 队列操作Error
     AmqpQueue,
-    /// AMQP 交换器操作错误
+    /// AMQP 交换器操作Error
     AmqpExchange,
-    /// AMQP 确认错误
+    /// AMQP 确认Error
     AmqpAck,
-    /// AMQP 管理操作错误
+    /// AMQP 管理操作Error
     AmqpManagement,
-    /// AMQP 协议错误
+    /// AMQP 协议Error
     AmqpProtocol,
 
-    // ===== 取消错误（容错模式，继续执行） =====
+    // ===== 取消Error（容错模式，继续执行） =====
     /// 执行被取消
     Cancelled,
 }
 
 impl ErrorKind {
-    /// 判断是否为致命错误（需要立即终止流程）
+    /// 判断是否为致命Error（需要立即终止流程）
     ///
     /// # 返回
     ///
-    /// 如果是致命错误则返回 true
+    /// 如果是致命Error则返回 true
     ///
-    /// # 致命错误类型
+    /// # 致命Error类型
     ///
-    /// - `ConfigurationError` - 配置错误
-    /// - `ConditionSyntaxError` - 条件语法错误
+    /// - `ConfigurationError` - 配置Error
+    /// - `ConditionSyntaxError` - 条件语法Error
     pub fn is_fatal(&self) -> bool {
         matches!(self, ErrorKind::Configuration | ErrorKind::ConditionSyntax)
     }
@@ -335,11 +335,11 @@ impl ErrorKind {
 
 // ===== ErrorCode enum for i18n translation and programmatic handling =====
 
-/// 错误代码枚举（用于 i18n 翻译和程序化处理）
+/// Error代码枚举（用于 i18n 翻译和程序化处理）
 ///
 /// 命名规范：
-/// - 通用错误（无特定协议）：`E_<CATEGORY>_<DESCRIPTION>`（如 `E_CONN_TIMEOUT`）
-/// - 协议特定错误：`E_<PROTOCOL>_<DESCRIPTION>`（如 `E_WS_TIMEOUT`）
+/// - 通用Error（无特定协议）：`E_<CATEGORY>_<DESCRIPTION>`（如 `E_CONN_TIMEOUT`）
+/// - 协议特定Error：`E_<PROTOCOL>_<DESCRIPTION>`（如 `E_WS_TIMEOUT`）
 /// - 两者冲突时，使用协议特定变体（如 WebSocket 超时用 `E_WS_TIMEOUT` 而非 `E_CONN_TIMEOUT`）
 /// - 覆盖要求：每个 `ErrorKind` 变体至少对应一个 `ErrorCode` 变体
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1161,13 +1161,13 @@ mod tests {
             ErrorKind::WebSocketMessage,
             ErrorKind::WebSocketClose,
             ErrorKind::WebSocketProtocol,
-            // 脚本错误类型
+            // 脚本Error类型
             ErrorKind::ScriptSyntax,
             ErrorKind::ScriptRuntime,
             ErrorKind::ScriptTimeout,
             ErrorKind::ScriptAssertion,
             ErrorKind::ScriptAbort,
-            // TCP/UDP 错误类型
+            // TCP/UDP Error类型
             ErrorKind::TcpConnection,
             ErrorKind::TcpTimeout,
             ErrorKind::TcpSend,
@@ -1177,17 +1177,17 @@ mod tests {
             ErrorKind::UdpSend,
             ErrorKind::UdpReceive,
             ErrorKind::UdpClose,
-            // SSE 错误类型
+            // SSE Error类型
             ErrorKind::SseConnection,
             ErrorKind::SseTimeout,
             ErrorKind::SseEvent,
-            // GraphQL 错误类型
+            // GraphQL Error类型
             ErrorKind::GraphqlConnection,
             ErrorKind::GraphqlQuery,
             ErrorKind::GraphqlSubscription,
             ErrorKind::GraphqlIntrospection,
             ErrorKind::GraphqlClose,
-            // AMQP 错误类型
+            // AMQP Error类型
             ErrorKind::AmqpConnection,
             ErrorKind::AmqpChannel,
             ErrorKind::AmqpPublish,
@@ -1236,13 +1236,13 @@ mod tests {
             ErrorKind::WebSocketMessage,
             ErrorKind::WebSocketClose,
             ErrorKind::WebSocketProtocol,
-            // 脚本错误类型
+            // 脚本Error类型
             ErrorKind::ScriptSyntax,
             ErrorKind::ScriptRuntime,
             ErrorKind::ScriptTimeout,
             ErrorKind::ScriptAssertion,
             ErrorKind::ScriptAbort,
-            // TCP/UDP 错误类型
+            // TCP/UDP Error类型
             ErrorKind::TcpConnection,
             ErrorKind::TcpTimeout,
             ErrorKind::TcpSend,
@@ -1252,17 +1252,17 @@ mod tests {
             ErrorKind::UdpSend,
             ErrorKind::UdpReceive,
             ErrorKind::UdpClose,
-            // SSE 错误类型
+            // SSE Error类型
             ErrorKind::SseConnection,
             ErrorKind::SseTimeout,
             ErrorKind::SseEvent,
-            // GraphQL 错误类型
+            // GraphQL Error类型
             ErrorKind::GraphqlConnection,
             ErrorKind::GraphqlQuery,
             ErrorKind::GraphqlSubscription,
             ErrorKind::GraphqlIntrospection,
             ErrorKind::GraphqlClose,
-            // AMQP 错误类型
+            // AMQP Error类型
             ErrorKind::AmqpConnection,
             ErrorKind::AmqpChannel,
             ErrorKind::AmqpPublish,

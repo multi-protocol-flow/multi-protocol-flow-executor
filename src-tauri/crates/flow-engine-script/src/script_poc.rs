@@ -118,7 +118,7 @@ fn rquickjs_poc_timeout_interrupt() {
     });
 
     let elapsed = start.elapsed();
-    // 正常脚本应该很快执行完成
+    // 正常脚本应该很快execution complete
     assert!(elapsed < Duration::from_millis(500));
 }
 
@@ -156,18 +156,18 @@ fn rquickjs_poc_memory_limit() {
     });
 }
 
-/// 测试脚本错误捕获
+/// 测试脚本Error捕获
 #[test]
 fn rquickjs_poc_error_handling() {
     let rt = Runtime::new().unwrap();
     let ctx = Context::full(&rt).unwrap();
 
     ctx.with(|ctx| {
-        // 测试语法错误
+        // 测试语法Error
         let result: Result<String, _> = ctx.eval("invalid syntax {{{").catch(&ctx);
         assert!(result.is_err());
 
-        // 测试运行时错误
+        // 测试运行时Error
         let result: Result<String, _> = ctx.eval("undefined_variable").catch(&ctx);
         assert!(result.is_err());
     });

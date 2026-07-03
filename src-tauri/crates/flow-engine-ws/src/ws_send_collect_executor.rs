@@ -142,7 +142,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                     })
                     .await;
 
-                // 返回 false 端口 + 错误数据
+                // 返回 false 端口 + Error数据
                 let url = context.get_ws_url(&connection_id).map(|s| s.as_str());
                 Some(self.build_error_output_data(&connection_id, &error_msg, url))
             }
@@ -170,13 +170,13 @@ impl NodeExecutor for WsSendCollectExecutor {
                     })
                     .await;
 
-                // 返回 false 端口 + 错误数据
+                // 返回 false 端口 + Error数据
                 let url = context.get_ws_url(&connection_id).map(|s| s.as_str());
                 Some(self.build_error_output_data(&connection_id, &error_msg, url))
             }
         };
 
-        // 如果有错误数据，直接返回 false 端口
+        // 如果有Error数据，直接返回 false 端口
         if let Some(output_data) = error_data {
 
             // 返回 false 端口
@@ -359,7 +359,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                     collect_response_duration_ms,
                 )?;
 
-                // 8. 日志：执行完成
+                // 8. 日志：execution complete
                 let duration = start_time.elapsed();
                 context
                     .emit_log(LogEvent {
@@ -403,7 +403,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                     })
                     .await;
 
-                // 返回 false 端口 + 错误数据
+                // 返回 false 端口 + Error数据
                 let url = context.get_ws_url(&connection_id).map(|s| s.as_str());
                 ("false", self.build_error_output_data(&connection_id, &e, url))
             }
@@ -576,8 +576,8 @@ impl WsSendCollectExecutor {
                                 let msg_index = collected.len();
                                 collected.push(message.clone());
 
-                                // 条件匹配：对 match_message 错误做容错处理
-                                // 表达式语法错误等不匹配问题不应中断整个采集过程
+                                // 条件匹配：对 match_message Error做容错处理
+                                // 表达式语法Error等不匹配问题不应中断整个采集过程
                                 match self.ws_manager.match_message(&message, condition) {
                                     Ok(true) => {
                                         log::info!(
@@ -851,7 +851,7 @@ impl WsSendCollectExecutor {
         Ok(Some(output_data))
     }
 
-    /// 构建错误输出数据（结构化格式，与 HTTP 报告保持一致）
+    /// 构建Error输出数据（结构化格式，与 HTTP 报告保持一致）
     fn build_error_output_data(
         &self,
         connection_id: &str,
@@ -889,7 +889,7 @@ mod tests {
     use serde_json::json;
     use std::sync::Arc;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, message: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -931,7 +931,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 Ok，但包含错误数据（连接不存在）
+        // 应该返回 Ok，但包含Error数据（连接不存在）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false".to_string()]);
@@ -958,13 +958,13 @@ mod tests {
             .variables
             .set_variable("msg".to_string(), json!("Hello"), String::new());
 
-        // 注意：这个测试会返回错误数据，因为我们没有真实的 WebSocket 连接
+        // 注意：这个测试会返回Error数据，因为我们没有真实的 WebSocket 连接
         // 但我们可以验证变量替换逻辑不会崩溃
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 Ok，但包含错误数据（连接不存在），变量替换正常工作
+        // 应该返回 Ok，但包含Error数据（连接不存在），变量替换正常工作
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false".to_string()]);
@@ -999,12 +999,12 @@ mod tests {
         };
         let mut context = create_context("test-flow");
 
-        // 注意：这个测试会返回错误数据，因为没有真实的 WebSocket 连接
+        // 注意：这个测试会返回Error数据，因为没有真实的 WebSocket 连接
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 Ok，但包含错误数据（连接不存在）
+        // 应该返回 Ok，但包含Error数据（连接不存在）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false".to_string()]);
@@ -1042,12 +1042,12 @@ mod tests {
         };
         let mut context = create_context("test-flow");
 
-        // 注意：这个测试会返回错误数据，因为没有真实的 WebSocket 连接
+        // 注意：这个测试会返回Error数据，因为没有真实的 WebSocket 连接
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 Ok，但包含错误数据（连接不存在）
+        // 应该返回 Ok，但包含Error数据（连接不存在）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false".to_string()]);
@@ -1082,12 +1082,12 @@ mod tests {
         };
         let mut context = create_context("test-flow");
 
-        // 注意：这个测试会返回错误数据，因为没有真实的 WebSocket 连接
+        // 注意：这个测试会返回Error数据，因为没有真实的 WebSocket 连接
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 Ok，但包含错误数据（连接不存在）
+        // 应该返回 Ok，但包含Error数据（连接不存在）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false".to_string()]);
@@ -1122,12 +1122,12 @@ mod tests {
         };
         let mut context = create_context("test-flow");
 
-        // 注意：这个测试会返回错误数据，因为没有真实的 WebSocket 连接
+        // 注意：这个测试会返回Error数据，因为没有真实的 WebSocket 连接
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 Ok，但包含错误数据（连接不存在）
+        // 应该返回 Ok，但包含Error数据（连接不存在）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false".to_string()]);
@@ -1156,7 +1156,7 @@ mod tests {
             )
             .await;
 
-        // 网络测试：如果连接成功，继续测试
+        // 网络测试：如果连接Success，继续测试
         if connect_result.is_ok() {
             // 接收并丢弃初始问候消息
             let _ = ws_manager.receive("echo-conn", 3000).await;
@@ -1169,7 +1169,7 @@ mod tests {
                 .execute(&node, &mut context, &[], &HashMap::new())
                 .await;
 
-            // 验证发送成功
+            // 验证发送Success
             match result {
                 Ok((next_nodes, output_data)) => {
                     // 没有连接时返回端口名称
@@ -1186,7 +1186,7 @@ mod tests {
                         .await;
                 }
                 Err(e) => {
-                    // 不应该发生错误
+                    // 不应该发生Error
                     panic!("Executor returned error: {}", e);
                 }
             }
@@ -1216,7 +1216,7 @@ mod tests {
             )
             .await;
 
-        // 网络测试：如果连接成功，继续测试
+        // 网络测试：如果连接Success，继续测试
         if connect_result.is_ok() {
             // 接收并丢弃初始问候消息
             let _ = ws_manager.receive("echo-conn-2", 3000).await;
@@ -1247,7 +1247,7 @@ mod tests {
                 .execute(&node, &mut context, &[], &HashMap::new())
                 .await;
 
-            // 验证发送和接收成功
+            // 验证发送和接收Success
             match result {
                 Ok((next_nodes, output_data)) => {
                     // 没有连接时返回端口名称

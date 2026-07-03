@@ -91,7 +91,7 @@ mod tests {
     fn test_context() -> HookContext {
         HookContext {
             flow_uuid: "flow-001".to_string(),
-            flow_name: "测试流程".to_string(),
+            flow_name: "Test Flow".to_string(),
             status: "success".to_string(),
             duration_ms: 1234,
             error: None,
@@ -101,7 +101,7 @@ mod tests {
     fn test_context_with_error() -> HookContext {
         HookContext {
             flow_uuid: "flow-002".to_string(),
-            flow_name: "失败流程".to_string(),
+            flow_name: "Failed流程".to_string(),
             status: "failure".to_string(),
             duration_ms: 5000,
             error: Some("连接超时".to_string()),
@@ -110,27 +110,27 @@ mod tests {
 
     #[test]
     fn test_render_template_basic() {
-        let template = "流程 {{flow_name}} 状态: {{status}}, 耗时: {{duration_ms}}ms";
+        let template = "流程 {{flow_name}} Status: {{status}}, Duration: {{duration_ms}}ms";
         let ctx = test_context();
         let result = DefaultHookExecutor::render_template(template, &ctx);
-        assert_eq!(result, "流程 测试流程 状态: success, 耗时: 1234ms");
+        assert_eq!(result, "流程 Test Flow Status: success, Duration: 1234ms");
     }
 
     #[test]
     fn test_render_template_with_error() {
-        let template = "错误: {{error}}";
+        let template = "Error: {{error}}";
         let ctx = test_context_with_error();
         let result = DefaultHookExecutor::render_template(template, &ctx);
-        assert_eq!(result, "错误: 连接超时");
+        assert_eq!(result, "Error: 连接超时");
     }
 
     #[test]
     fn test_render_template_no_error() {
-        let template = "错误: {{error}}";
+        let template = "Error: {{error}}";
         let ctx = test_context();
         let result = DefaultHookExecutor::render_template(template, &ctx);
-        // 无错误时 {{error}} 不被替换
-        assert_eq!(result, "错误: {{error}}");
+        // 无Error时 {{error}} 不被替换
+        assert_eq!(result, "Error: {{error}}");
     }
 
     #[test]
@@ -179,7 +179,7 @@ mod tests {
             trigger: HookTrigger::OnComplete,
             action: HookAction::Notify {
                 title_template: "流程 {{flow_name}} 完成".to_string(),
-                message_template: "状态: {{status}}".to_string(),
+                message_template: "Status: {{status}}".to_string(),
             },
         };
         executor.execute(&hook, &test_context());

@@ -321,14 +321,14 @@ pub struct Port {
     pub label: Option<String>,
 }
 
-/// 执行错误策略
+/// 执行Error策略
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecutionErrorStrategy {
     /// 路由到 false 端口（默认行为）
     #[default]
     RouteToFalse,
-    /// 忽略错误，继续执行（如同成功，路由到 true 端口）
+    /// 忽略Error，继续执行（如同Success，路由到 true 端口）
     Ignore,
     /// 中止整个流程
     AbortFlow,
@@ -353,7 +353,7 @@ pub struct Node {
     /// 是否设置断点（可选，默认 false）
     #[serde(default)]
     pub has_breakpoint: Option<bool>,
-    /// 执行错误策略（可选，默认 RouteToFalse）
+    /// 执行Error策略（可选，默认 RouteToFalse）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub on_error: Option<ExecutionErrorStrategy>,
 }

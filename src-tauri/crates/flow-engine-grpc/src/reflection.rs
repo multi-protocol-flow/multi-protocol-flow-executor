@@ -1,7 +1,7 @@
 //! Server Reflection 协议发现 gRPC 服务
 //!
 //! 通过 gRPC Server Reflection 协议或解析 .proto 文件发现服务和方法。
-//! 支持 v1 和 v1alpha 两种反射协议，优先使用 v1，失败时回退到 v1alpha。
+//! 支持 v1 和 v1alpha 两种反射协议，优先使用 v1，Failed时回退到 v1alpha。
 
 use std::collections::HashSet;
 
@@ -53,7 +53,7 @@ async fn reflect_services_v1alpha(
         ),
     })
     .await
-    .map_err(|e| format!("发送 ListServices 请求失败: {}", e))?;
+    .map_err(|e| format!("发送 ListServices 请求Failed: {}", e))?;
 
     // 发起双向流调用（带 metadata 和超时）
     log::info!("[gRPC Reflection v1alpha] 发起双向流调用...");
@@ -70,8 +70,8 @@ async fn reflect_services_v1alpha(
         "Server Reflection v1alpha 连接超时（服务器可能不支持 Reflection）".to_string()
     })?
     .map_err(|e| {
-        log::error!("[gRPC Reflection v1alpha] 双向流连接失败: {}", e);
-        format!("Server Reflection v1alpha 连接失败: {}（服务器可能不支持 Reflection）", e)
+        log::error!("[gRPC Reflection v1alpha] 双向流connection failed: {}", e);
+        format!("Server Reflection v1alpha connection failed: {}（服务器可能不支持 Reflection）", e)
     })?;
     let stream = response.into_inner();
     log::info!("[gRPC Reflection v1alpha] 双向流已建立，等待 ListServices 响应...");
@@ -99,8 +99,8 @@ async fn collect_reflection_data_v1alpha(
         "ListServices 响应超时（服务器可能不支持 Reflection）".to_string()
     })?
     .map_err(|e| {
-        log::error!("[gRPC Reflection v1alpha] 读取 ListServices 响应失败: {}", e);
-        format!("读取 ListServices 响应失败: {}", e)
+        log::error!("[gRPC Reflection v1alpha] 读取 ListServices 响应Failed: {}", e);
+        format!("读取 ListServices 响应Failed: {}", e)
     })?
     .ok_or_else(|| {
         log::error!("[gRPC Reflection v1alpha] 服务器关闭了流，未返回服务列表");
@@ -112,7 +112,7 @@ async fn collect_reflection_data_v1alpha(
             resp.service
         }
         Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
-            return Err(format!("Server Reflection 错误: {}", err.error_message));
+            return Err(format!("Server Reflection Error: {}", err.error_message));
         }
         _ => return Err("Server Reflection 返回了意外的响应类型".to_string()),
     };
@@ -162,7 +162,7 @@ async fn fetch_file_descriptors_v1alpha(
             ),
         })
         .await
-        .map_err(|e| format!("发送 FileContainingSymbol 请求失败: {}", e))?;
+        .map_err(|e| format!("发送 FileContainingSymbol 请求Failed: {}", e))?;
 
         let resp = tokio::time::timeout(
             std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
@@ -170,7 +170,7 @@ async fn fetch_file_descriptors_v1alpha(
         )
         .await
         .map_err(|_| format!("查询服务 '{}' 的文件描述符超时", service_name))?
-        .map_err(|e| format!("查询服务 '{}' 的文件描述符失败: {}", service_name, e))?
+        .map_err(|e| format!("查询服务 '{}' 的文件描述符Failed: {}", service_name, e))?
         .ok_or_else(|| format!("Server Reflection 在查询服务 '{}' 时关闭了流", service_name))?;
 
         match resp.message_response {
@@ -179,7 +179,7 @@ async fn fetch_file_descriptors_v1alpha(
                     let fd: prost_types::FileDescriptorProto = prost::Message::decode(
                         fd_bytes.as_slice(),
                     )
-                    .map_err(|e| format!("解码 FileDescriptorProto 失败: {}", e))?;
+                    .map_err(|e| format!("解码 FileDescriptorProto Failed: {}", e))?;
 
                     if let Some(name) = &fd.name {
                         if seen_files.insert(name.clone()) {
@@ -191,7 +191,7 @@ async fn fetch_file_descriptors_v1alpha(
             }
             Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
                 log::warn!(
-                    "查询服务 '{}' 的文件描述符时收到错误: {}",
+                    "查询服务 '{}' 的文件描述符时收到Error: {}",
                     service_name,
                     err.error_message
                 );
@@ -256,7 +256,7 @@ async fn resolve_dependencies_v1alpha(
                 ),
             })
             .await
-            .map_err(|e| format!("发送 FileByFilename 请求失败: {}", e))?;
+            .map_err(|e| format!("发送 FileByFilename 请求Failed: {}", e))?;
 
             let resp = tokio::time::timeout(
                 std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
@@ -273,7 +273,7 @@ async fn resolve_dependencies_v1alpha(
                     continue;
                 }
                 Err(e) => {
-                    log::warn!("查询依赖文件 '{}' 失败: {}", dep_name, e);
+                    log::warn!("查询依赖文件 '{}' Failed: {}", dep_name, e);
                     seen_files.insert(dep_name.clone());
                     continue;
                 }
@@ -286,7 +286,7 @@ async fn resolve_dependencies_v1alpha(
                     for fd_bytes in &fdr.file_descriptor_proto {
                         let fd: prost_types::FileDescriptorProto =
                             prost::Message::decode(fd_bytes.as_slice()).map_err(|e| {
-                                format!("解码依赖 FileDescriptorProto 失败: {}", e)
+                                format!("解码依赖 FileDescriptorProto Failed: {}", e)
                             })?;
                         if let Some(name) = &fd.name {
                             if seen_files.insert(name.clone()) {
@@ -298,7 +298,7 @@ async fn resolve_dependencies_v1alpha(
                 }
                 Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
                     log::warn!(
-                        "查询依赖文件 '{}' 时收到错误: {}",
+                        "查询依赖文件 '{}' 时收到Error: {}",
                         dep_name,
                         err.error_message
                     );
@@ -347,7 +347,7 @@ async fn reflect_services_v1(
         ),
     })
     .await
-    .map_err(|e| format!("发送 ListServices 请求失败: {}", e))?;
+    .map_err(|e| format!("发送 ListServices 请求Failed: {}", e))?;
 
     // 发起双向流调用（带 metadata 和超时）
     log::info!("[gRPC Reflection v1] 发起双向流调用...");
@@ -364,8 +364,8 @@ async fn reflect_services_v1(
         "Server Reflection v1 连接超时".to_string()
     })?
     .map_err(|e| {
-        log::error!("[gRPC Reflection v1] 双向流连接失败: {}", e);
-        format!("Server Reflection v1 连接失败: {}", e)
+        log::error!("[gRPC Reflection v1] 双向流connection failed: {}", e);
+        format!("Server Reflection v1 connection failed: {}", e)
     })?;
     let mut stream = response.into_inner();
     log::info!("[gRPC Reflection v1] 双向流已建立，等待 ListServices 响应...");
@@ -381,8 +381,8 @@ async fn reflect_services_v1(
         "ListServices v1 响应超时".to_string()
     })?
     .map_err(|e| {
-        log::error!("[gRPC Reflection v1] 读取 ListServices 响应失败: {}", e);
-        format!("读取 ListServices v1 响应失败: {}", e)
+        log::error!("[gRPC Reflection v1] 读取 ListServices 响应Failed: {}", e);
+        format!("读取 ListServices v1 响应Failed: {}", e)
     })?
     .ok_or_else(|| {
         log::error!("[gRPC Reflection v1] 服务器关闭了流，未返回服务列表");
@@ -394,7 +394,7 @@ async fn reflect_services_v1(
             resp.service
         }
         Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
-            return Err(format!("Server Reflection v1 错误: {}", err.error_message));
+            return Err(format!("Server Reflection v1 Error: {}", err.error_message));
         }
         _ => return Err("Server Reflection v1 返回了意外的响应类型".to_string()),
     };
@@ -445,7 +445,7 @@ async fn fetch_file_descriptors_v1(
             ),
         })
         .await
-        .map_err(|e| format!("发送 FileContainingSymbol 请求失败: {}", e))?;
+        .map_err(|e| format!("发送 FileContainingSymbol 请求Failed: {}", e))?;
 
         let resp = tokio::time::timeout(
             std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
@@ -453,7 +453,7 @@ async fn fetch_file_descriptors_v1(
         )
         .await
         .map_err(|_| format!("查询服务 '{}' 的文件描述符超时", service_name))?
-        .map_err(|e| format!("查询服务 '{}' 的文件描述符失败: {}", service_name, e))?
+        .map_err(|e| format!("查询服务 '{}' 的文件描述符Failed: {}", service_name, e))?
         .ok_or_else(|| format!("Server Reflection v1 在查询服务 '{}' 时关闭了流", service_name))?;
 
         match resp.message_response {
@@ -462,7 +462,7 @@ async fn fetch_file_descriptors_v1(
                     let fd: prost_types::FileDescriptorProto = prost::Message::decode(
                         fd_bytes.as_slice(),
                     )
-                    .map_err(|e| format!("解码 FileDescriptorProto 失败: {}", e))?;
+                    .map_err(|e| format!("解码 FileDescriptorProto Failed: {}", e))?;
 
                     if let Some(name) = &fd.name {
                         if seen_files.insert(name.clone()) {
@@ -474,7 +474,7 @@ async fn fetch_file_descriptors_v1(
             }
             Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
                 log::warn!(
-                    "查询服务 '{}' 的文件描述符时收到错误: {}",
+                    "查询服务 '{}' 的文件描述符时收到Error: {}",
                     service_name,
                     err.error_message
                 );
@@ -538,7 +538,7 @@ async fn resolve_dependencies_v1(
                 ),
             })
             .await
-            .map_err(|e| format!("发送 FileByFilename 请求失败: {}", e))?;
+            .map_err(|e| format!("发送 FileByFilename 请求Failed: {}", e))?;
 
             let resp = tokio::time::timeout(
                 std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
@@ -555,7 +555,7 @@ async fn resolve_dependencies_v1(
                     continue;
                 }
                 Err(e) => {
-                    log::warn!("查询依赖文件 '{}' 失败: {}", dep_name, e);
+                    log::warn!("查询依赖文件 '{}' Failed: {}", dep_name, e);
                     seen_files.insert(dep_name.clone());
                     continue;
                 }
@@ -566,7 +566,7 @@ async fn resolve_dependencies_v1(
                     for fd_bytes in &fdr.file_descriptor_proto {
                         let fd: prost_types::FileDescriptorProto =
                             prost::Message::decode(fd_bytes.as_slice()).map_err(|e| {
-                                format!("解码依赖 FileDescriptorProto 失败: {}", e)
+                                format!("解码依赖 FileDescriptorProto Failed: {}", e)
                             })?;
                         if let Some(name) = &fd.name {
                             if seen_files.insert(name.clone()) {
@@ -578,7 +578,7 @@ async fn resolve_dependencies_v1(
                 }
                 Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
                     log::warn!(
-                        "查询依赖文件 '{}' 时收到错误: {}",
+                        "查询依赖文件 '{}' 时收到Error: {}",
                         dep_name,
                         err.error_message
                     );
@@ -600,7 +600,7 @@ async fn resolve_dependencies_v1(
 
 /// 通过 Server Reflection 协议发现 gRPC 服务（v1 优先，自动回退到 v1alpha）
 ///
-/// 策略: 先尝试 v1 协议，如果失败（连接错误或 UNIMPLEMENTED），回退到 v1alpha。
+/// 策略: 先尝试 v1 协议，如果Failed（连接Error或 UNIMPLEMENTED），回退到 v1alpha。
 /// 支持在反射请求中附带 metadata，用于需要认证的反射服务。
 pub(crate) async fn reflect_services(
     channel: tonic::transport::Channel,
@@ -610,18 +610,18 @@ pub(crate) async fn reflect_services(
     log::info!("[gRPC Reflection] 尝试 v1 协议...");
     match reflect_services_v1(channel.clone(), &metadata).await {
         Ok(pool) => {
-            log::info!("[gRPC Reflection] v1 协议成功");
+            log::info!("[gRPC Reflection] v1 协议Success");
             return Ok(pool);
         }
         Err(e) => {
-            // 判断是否应该回退: 连接错误或 UNIMPLEMENTED 可回退
+            // 判断是否应该回退: 连接Error或 UNIMPLEMENTED 可回退
             let should_fallback = is_fallback_eligible_error(&e);
             if !should_fallback {
-                log::error!("[gRPC Reflection] v1 失败（不可回退）: {}", e);
+                log::error!("[gRPC Reflection] v1 Failed（不可回退）: {}", e);
                 return Err(e);
             }
             log::info!(
-                "[gRPC Reflection] v1 失败（可回退）: {}, 尝试 v1alpha...",
+                "[gRPC Reflection] v1 Failed（可回退）: {}, 尝试 v1alpha...",
                 e
             );
         }
@@ -630,22 +630,22 @@ pub(crate) async fn reflect_services(
     // 回退到 v1alpha
     match reflect_services_v1alpha(channel, &metadata).await {
         Ok(pool) => {
-            log::info!("[gRPC Reflection] v1alpha 回退成功");
+            log::info!("[gRPC Reflection] v1alpha 回退Success");
             Ok(pool)
         }
         Err(e) => {
-            log::error!("[gRPC Reflection] v1alpha 也失败: {}", e);
+            log::error!("[gRPC Reflection] v1alpha 也Failed: {}", e);
             Err(format!(
-                "Server Reflection 失败（已尝试 v1 和 v1alpha）: {}",
+                "Server Reflection Failed（已尝试 v1 和 v1alpha）: {}",
                 e
             ))
         }
     }
 }
 
-/// 判断 v1 错误是否可以回退到 v1alpha
+/// 判断 v1 Error是否可以回退到 v1alpha
 ///
-/// 默认回退 — 绝大多数错误都可以尝试 v1alpha
+/// 默认回退 — 绝大多数Error都可以尝试 v1alpha
 fn is_fallback_eligible_error(_error: &str) -> bool {
     true
 }
@@ -690,7 +690,7 @@ fn build_descriptor_pool(
 
     let fds = prost_types::FileDescriptorSet { file: all_fds };
     prost_reflect::DescriptorPool::from_file_descriptor_set(fds)
-        .map_err(|e| format!("从反射数据构建 DescriptorPool 失败: {}", e))
+        .map_err(|e| format!("从反射数据构建 DescriptorPool Failed: {}", e))
 }
 
 /// 判断是否为 gRPC 反射服务（应从结果中过滤）
@@ -848,7 +848,7 @@ pub fn discover_services_via_proto(
         .collect();
 
     let pool = proto_parser::parse_proto_files(&files)
-        .map_err(|e| format!("解析 proto 文件失败: {}", e))?;
+        .map_err(|e| format!("解析 proto 文件Failed: {}", e))?;
 
     let services = proto_parser::list_services(&pool);
     Ok(services

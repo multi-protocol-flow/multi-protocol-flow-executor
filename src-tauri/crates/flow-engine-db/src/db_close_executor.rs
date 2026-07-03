@@ -43,14 +43,14 @@ impl NodeExecutor for DbCloseExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::DbClose(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 DbCloseConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not DbCloseConfig: {}", node.uuid))),
         };
 
         // 2. 验证 connection_uuid
         if config.connection_uuid.is_empty() {
-            // 空连接 UUID 时，直接返回成功（无操作）
+            // 空连接 UUID 时，直接返回Success（无操作）
             log::warn!(
-                "[流程 {}] [警告] 节点ID: {}, 节点名称: {}, connection_uuid 为空，跳过关闭",
+                "[流程 {}] [警告] 节点ID: {}, NodeName: {}, connection_uuid 为空，跳过关闭",
                 context.flow_uuid,
                 node.uuid,
                 node.name
@@ -66,7 +66,7 @@ impl NodeExecutor for DbCloseExecutor {
                     message: format!("数据库关闭节点 {} 跳过：connection_uuid 为空", node.name),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间错误")
+                        .expect("系统时间Error")
                         .as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -80,7 +80,7 @@ impl NodeExecutor for DbCloseExecutor {
 
         // 3. 日志：开始关闭
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: db_close, connection_uuid: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: db_close, connection_uuid: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -90,10 +90,10 @@ impl NodeExecutor for DbCloseExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("数据库关闭节点 {} 开始执行", node.name),
+                message: format!("数据库关闭节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -102,7 +102,7 @@ impl NodeExecutor for DbCloseExecutor {
             .await;
 
         // 4. 关闭连接池
-        // 注意：关闭总是成功，即使连接池不存在也返回成功
+        // 注意：关闭总是Success，即使连接池不存在也返回Success
         let close_result = self.db_manager.close_pool(&config.connection_uuid).await;
 
         let duration = start_time.elapsed();
@@ -110,11 +110,11 @@ impl NodeExecutor for DbCloseExecutor {
         match close_result {
             Ok(()) => {
                 log::info!(
-                    "[Database] 连接池关闭成功: uuid={}",
+                    "[Database] 连接池关闭Success: uuid={}",
                     config.connection_uuid
                 );
 
-                // 5. 构建输出数据（成功）
+                // 5. 构建输出数据（Success）
                 let output_data = self.build_success_output(
                     &config,
                     duration.as_millis() as u64,
@@ -125,12 +125,12 @@ impl NodeExecutor for DbCloseExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "数据库连接池关闭成功 ({}ms)",
+                            "数据库连接池关闭Success ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -142,14 +142,14 @@ impl NodeExecutor for DbCloseExecutor {
                 Ok((self.get_output_port_nodes(node, connections), Some(output_data)))
             }
             Err(e) => {
-                // 连接池不存在时也返回成功（幂等操作）
+                // 连接池不存在时也返回Success（幂等操作）
                 log::warn!(
-                    "[Database] 连接池关闭失败（可能已关闭）: uuid={}, error={}",
+                    "[Database] 连接池关闭Failed（可能已关闭）: uuid={}, error={}",
                     config.connection_uuid,
                     e
                 );
 
-                // 构建输出数据（仍视为成功，幂等操作）
+                // 构建输出数据（仍视为Success，幂等操作）
                 let output_data = self.build_success_output(
                     &config,
                     duration.as_millis() as u64,
@@ -165,7 +165,7 @@ impl NodeExecutor for DbCloseExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -173,7 +173,7 @@ impl NodeExecutor for DbCloseExecutor {
                     })
                     .await;
 
-                // 返回单一输出端口（关闭总是成功）
+                // 返回单一输出端口（关闭总是Success）
                 Ok((self.get_output_port_nodes(node, connections), Some(output_data)))
             }
         }
@@ -199,14 +199,14 @@ impl DbCloseExecutor {
         }
     }
 
-    /// 构建成功输出数据
+    /// 构建Success输出数据
     fn build_success_output(
         &self,
         config: &DbCloseConfig,
         total_ms: u64,
     ) -> serde_json::Value {
         json!({
-            // 统一成功标识
+            // 统一Success标识
             "success": true,
             "connection_uuid": config.connection_uuid,
             // 请求配置
@@ -227,7 +227,7 @@ impl DbCloseExecutor {
         total_ms: u64,
     ) -> serde_json::Value {
         json!({
-            // 统一成功标识（跳过也视为成功）
+            // 统一Success标识（跳过也视为Success）
             "success": true,
             "skipped": true,
             "connection_uuid": config.connection_uuid,
@@ -255,7 +255,7 @@ mod tests {
     use crate::db::pool::DatabaseConnectionManager;
     use crate::db::pool::MockPool;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -280,7 +280,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -321,7 +321,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回单一输出端口（成功）
+        // 应该返回单一输出端口（Success）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["out"]);
@@ -346,7 +346,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 关闭不存在的连接池也应该成功（幂等操作）
+        // 关闭不存在的连接池也应该Success（幂等操作）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["out"]);
@@ -368,7 +368,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 空 UUID 时跳过关闭，返回成功
+        // 空 UUID 时跳过关闭，返回Success
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["out"]);
@@ -432,13 +432,13 @@ mod tests {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbCloseExecutor::new(db_manager);
 
-        // 创建一个使用错误数据类型的节点
+        // 创建一个使用Error数据类型的节点
         let node = Node {
             uuid: "test-6".to_string(),
             node_type: "db_close".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(), // 错误：使用 Entry 配置
+            data: NodeData::entry(), // Error：使用 Entry 配置
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -449,7 +449,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回错误
+        // 应该返回Error
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不是 DbCloseConfig"));
     }

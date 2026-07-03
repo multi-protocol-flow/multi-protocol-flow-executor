@@ -139,7 +139,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
 /// - 创建 `watch::channel(false)` 取消信号通道
 /// - sender 存储在 `ExecutionSessionManager` 中
 /// - receiver 传递给执行引擎用于取消检查
-/// - 执行完成后自动清理 sender
+/// - execution complete后自动清理 sender
 #[tauri::command]
 pub async fn execute_flow(
     input: ExecuteFlowCommandInput,
@@ -220,7 +220,7 @@ pub async fn execute_flow(
         execution_time,
     };
 
-    // 执行完成后清理会话（take sender 使其 drop，后续 cancel_flow 调用将返回"没有活跃的执行会话"）
+    // execution complete后清理会话（take sender 使其 drop，后续 cancel_flow 调用将返回"没有活跃的执行会话"）
     {
         let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
         *guard = None;
@@ -234,7 +234,7 @@ pub async fn execute_flow(
 /// 取消流程执行
 ///
 /// 向当前正在执行的流程发送取消信号。
-/// 幂等操作：第二次调用返回"没有活跃的执行会话"错误。
+/// 幂等操作：第二次调用返回"没有活跃的执行会话"Error。
 #[tauri::command]
 pub fn cancel_flow(state: State<'_, ExecutionSessionManager>) -> Result<(), String> {
     let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
@@ -290,7 +290,7 @@ pub async fn execute_single_node(
 
     let result = executor.execute_single_node(&node, variables, None).await;
 
-    // 执行完成后清理会话
+    // execution complete后清理会话
     {
         let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
         *guard = None;
@@ -318,8 +318,8 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
 
 /// 验证流程
 ///
-/// 检查流程结构是否正确，返回带有错误码的结构化验证结果。
-/// 每个错误项包含 `code`（错误码，前端用于 i18n 映射）、`message`（详细描述）和可选的 `field`。
+/// 检查流程结构是否正确，返回带有Error码的结构化验证结果。
+/// 每个Error项包含 `code`（Error码，前端用于 i18n 映射）、`message`（详细描述）和可选的 `field`。
 #[tauri::command]
 pub fn validate_flow(flow: Flow) -> serde_json::Value {
     let validator = flow_engine::validator::FlowValidator::new();
@@ -505,11 +505,11 @@ pub struct GrpcDiscoverServicesInput {
 #[cfg(feature = "protocol-grpc")]
 #[derive(serde::Serialize)]
 pub struct GrpcDiscoverServicesOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 发现的服务列表
     pub services: Vec<GrpcServiceInfo>,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -607,13 +607,13 @@ pub struct ProtoFileOutput {
 #[cfg(feature = "protocol-grpc")]
 #[derive(Debug, serde::Serialize)]
 pub struct GrpcScanProtoDirectoryOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 发现的 proto 文件列表
     pub files: Vec<ProtoFileOutput>,
     /// 目录根路径（用作 proto 编译的 include 路径）
     pub import_path: Option<String>,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -657,11 +657,11 @@ pub async fn grpc_scan_proto_directory(
 #[cfg(feature = "protocol-grpc")]
 #[derive(Debug, serde::Serialize)]
 pub struct GrpcReadProtoFilesOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 文件列表 (filename, content)
     pub files: Vec<ProtoFileOutput>,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -713,11 +713,11 @@ pub async fn grpc_read_proto_files(
 #[cfg(feature = "protocol-grpc")]
 #[derive(Debug, serde::Serialize)]
 pub struct GrpcParseDescriptorSetOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 发现的服务列表
     pub services: Vec<GrpcServiceInfo>,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -802,11 +802,11 @@ pub async fn grpc_parse_descriptor_set(
 #[cfg(feature = "protocol-grpc")]
 #[derive(Debug, serde::Serialize)]
 pub struct GrpcChannelzOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
-    /// Channelz 信息（成功时返回）
+    /// Channelz 信息（Success时返回）
     pub info: Option<flow_engine::grpc_connection_manager::ChannelzInfo>,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -898,11 +898,11 @@ pub struct GrpcGenerateRequestSkeletonInput {
 #[cfg(feature = "protocol-grpc")]
 #[derive(serde::Serialize)]
 pub struct GrpcGenerateRequestSkeletonOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 生成的 JSON 骨架字符串
     pub skeleton: Option<String>,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -917,11 +917,11 @@ use flow_engine::proto_parser::ValidationResult;
 #[cfg(feature = "protocol-grpc")]
 #[derive(Debug, serde::Serialize)]
 pub struct GrpcValidateRequestOutput {
-    /// 是否成功执行验证（不代表验证通过）
+    /// 是否Success执行验证（不代表验证通过）
     pub success: bool,
-    /// 验证结果（成功执行时返回）
+    /// 验证结果（Success执行时返回）
     pub result: Option<ValidationResult>,
-    /// 错误信息（执行失败时）
+    /// Error信息（执行Failed时）
     pub error: Option<String>,
 }
 
@@ -1213,7 +1213,7 @@ message GetUserResponse {
 }
 "#;
 
-    /// 测试成功生成请求骨架
+    /// 测试Success生成请求骨架
     #[tokio::test]
     async fn test_grpc_generate_skeleton_success() {
         let input = GrpcGenerateRequestSkeletonInput {
@@ -1311,7 +1311,7 @@ pub struct McpDiscoverToolsInput {
 #[cfg(feature = "protocol-mcp")]
 #[derive(Debug, serde::Serialize)]
 pub struct McpDiscoverToolsOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 发现的工具列表
     pub tools: Vec<McpToolInfoOutput>,
@@ -1321,7 +1321,7 @@ pub struct McpDiscoverToolsOutput {
     pub prompts: Vec<McpPromptInfoOutput>,
     /// 服务器信息
     pub server_info: Option<McpServerInfoOutput>,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -1526,11 +1526,11 @@ pub struct MqttTestConnectionInput {
 #[cfg(feature = "protocol-mqtt")]
 #[derive(Debug, serde::Serialize)]
 pub struct MqttTestConnectionOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// Broker 信息
     pub broker_info: Option<flow_engine::traits::MqttBrokerInfo>,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -1733,9 +1733,9 @@ pub struct SmtpTestConnectionInput {
 #[cfg(feature = "protocol-smtp")]
 #[derive(Debug, serde::Serialize)]
 pub struct SmtpTestConnectionOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -1828,9 +1828,9 @@ pub struct ImapTestConnectionInput {
 #[cfg(feature = "protocol-imap")]
 #[derive(Debug, serde::Serialize)]
 pub struct ImapTestConnectionOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -1925,11 +1925,11 @@ pub struct EmailOAuth2AuthorizeInput {
 #[cfg(feature = "protocol-smtp")]
 #[derive(serde::Serialize)]
 pub struct EmailOAuth2AuthorizeOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 加密后的 Token（格式: `base64(nonce):base64(ciphertext)`）
     pub encrypted_tokens: Option<String>,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -2072,11 +2072,11 @@ pub struct EmailOAuth2RefreshInput {
 #[cfg(feature = "protocol-smtp")]
 #[derive(serde::Serialize)]
 pub struct EmailOAuth2RefreshOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 加密后的新 Token
     pub encrypted_tokens: Option<String>,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -2201,9 +2201,9 @@ pub struct EmailOAuth2RevokeInput {
 #[cfg(feature = "protocol-smtp")]
 #[derive(serde::Serialize)]
 pub struct EmailOAuth2RevokeOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -2243,7 +2243,7 @@ pub async fn email_oauth2_revoke(
             }
             Ok(resp) => {
                 log::warn!("[OAuth2] Revoke request returned non-success status: {}", resp.status());
-                // 不阻塞——即使撤销请求失败，Token 也会从本地移除
+                // 不阻塞——即使撤销请求Failed，Token 也会从本地移除
             }
             Err(e) => {
                 log::warn!("[OAuth2] Revoke request failed: {}", e);
@@ -2299,14 +2299,14 @@ pub struct GraphqlIntrospectInput {
 #[cfg(feature = "protocol-graphql")]
 #[derive(Debug, serde::Serialize)]
 pub struct GraphqlIntrospectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// Schema JSON 字符串
     pub schema: Option<serde_json::Value>,
     /// 生成的查询模板
     #[serde(skip_serializing_if = "Option::is_none")]
     pub query_templates: Option<Vec<flow_engine::traits::GraphqlQueryTemplate>>,
-    /// 错误信息
+    /// Error信息
     pub error: Option<String>,
 }
 
@@ -2702,11 +2702,11 @@ pub struct KafkaTestConnectionInput {
 #[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Serialize)]
 pub struct KafkaTestConnectionOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// Broker 信息列表
     pub broker_info: Option<Vec<flow_engine::traits::KafkaBrokerInfo>>,
-    /// 错误信息（失败时）
+    /// Error信息（Failed时）
     pub error: Option<String>,
 }
 
@@ -2732,11 +2732,11 @@ pub struct KafkaListTopicsInput {
 #[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Serialize)]
 pub struct KafkaListTopicsOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// Topic 列表
     pub topics: Option<Vec<flow_engine::traits::KafkaTopicInfo>>,
-    /// 错误信息
+    /// Error信息
     pub error: Option<String>,
 }
 
@@ -2762,11 +2762,11 @@ pub struct KafkaListConsumerGroupsInput {
 #[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Serialize)]
 pub struct KafkaListConsumerGroupsOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// Consumer Group 列表
     pub consumer_groups: Option<Vec<flow_engine::traits::KafkaConsumerGroupInfo>>,
-    /// 错误信息
+    /// Error信息
     pub error: Option<String>,
 }
 
@@ -2788,11 +2788,11 @@ pub struct KafkaDiscoverSchemaInput {
 #[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Serialize)]
 pub struct KafkaDiscoverSchemaOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// Schema Subject 列表
     pub subjects: Option<Vec<String>>,
-    /// 错误信息
+    /// Error信息
     pub error: Option<String>,
 }
 
@@ -2831,7 +2831,7 @@ pub async fn kafka_test_connection(
 
     match result {
         Ok(_output) => {
-            // 连接成功后获取 Broker 信息
+            // 连接Success后获取 Broker 信息
             let admin_config = flow_engine::node_config::KafkaAdminConfig {
                 operation: "broker_list".to_string(),
                 ..Default::default()
@@ -3614,7 +3614,7 @@ pub async fn execute_flow_with_dataset(
     input: ExecuteDatasetInput,
     state: State<'_, DatasetExecutionSessionManager>,
 ) -> Result<(), String> {
-    // 获取应用数据目录（用于保存失败行详情）
+    // 获取应用数据目录（用于保存Failed行详情）
     let app_data_dir = app
         .path()
         .app_data_dir()
@@ -3670,7 +3670,7 @@ pub async fn execute_flow_with_dataset(
             }
         }
 
-        // 执行完成后清理 cancel sender
+        // execution complete后清理 cancel sender
         if let Ok(mut guard) = state_cancel.lock() {
             *guard = None;
         }
@@ -3682,7 +3682,7 @@ pub async fn execute_flow_with_dataset(
 /// 取消数据驱动执行
 ///
 /// 向当前正在运行的数据驱动执行发送取消信号。
-/// 幂等操作：第二次调用返回"没有活跃的执行会话"错误。
+/// 幂等操作：第二次调用返回"没有活跃的执行会话"Error。
 #[tauri::command]
 pub fn cancel_dataset_execution(
     state: State<'_, DatasetExecutionSessionManager>,
@@ -3789,7 +3789,7 @@ pub fn load_dataset_report(
     serde_json::from_str(&content).map_err(|e| format!("Failed to parse report: {}", e))
 }
 
-/// 加载失败行详情
+/// 加载Failed行详情
 ///
 /// 读取行的详细执行报告。
 #[tauri::command]
@@ -3866,7 +3866,7 @@ pub fn save_dataset_report(
 // 单元测试
 // ============================================================================
 
-// Windows 上跳过测试：cargo test 会因 Tauri 依赖导致 STATUS_ENTRYPOINT_NOT_FOUND 错误
+// Windows 上跳过测试：cargo test 会因 Tauri 依赖导致 STATUS_ENTRYPOINT_NOT_FOUND Error
 #[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
@@ -3886,7 +3886,7 @@ mod tests {
 
         let output = create_flow(input);
 
-        // 验证流程创建成功
+        // 验证流程创建Success
         assert_eq!(output.flow.name, "Test Flow");
 
         // 验证流程有唯一 ID
@@ -3930,7 +3930,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_execute_flow_success() {
-        // 创建一个测试流程
+        // 创建一个Test Flow
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -3978,7 +3978,7 @@ mod tests {
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.success, "flow should execute successfully");
         assert!(result.error.is_none(), "should have no error on success");
         assert!(result.data.is_some(), "should have data on success");
@@ -3991,8 +3991,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_execute_flow_no_connection() {
-        // 创建一个没有连接的测试流程
-        // 真实执行器认为这是正常流程终止，不是错误
+        // 创建一个没有连接的Test Flow
+        // 真实执行器认为这是正常流程终止，不是Error
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -4021,14 +4021,14 @@ mod tests {
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 真实执行器认为没有连接是正常终止，不是错误
+        // 真实执行器认为没有连接是正常终止，不是Error
         assert!(result.success, "flow should succeed (Entry with no connections is normal termination)");
         assert!(result.error.is_none(), "should have no error on success");
     }
 
     #[tokio::test]
     async fn test_execute_flow_no_start_node() {
-        // 创建一个没有开始节点的测试流程
+        // 创建一个没有开始节点的Test Flow
         let flow_id = Uuid::new_v4().to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
@@ -4057,7 +4057,7 @@ mod tests {
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 验证执行失败
+        // 验证执行Failed
         assert!(!result.success, "flow should fail (no start node)");
         assert!(result.error.is_some(), "should have error on failure");
         assert!(
@@ -4068,7 +4068,7 @@ mod tests {
 
     #[test]
     fn test_update_node_not_implemented() {
-        // 创建一个测试流程
+        // 创建一个Test Flow
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -4102,7 +4102,7 @@ mod tests {
         // 更新节点
         let output = update_node(input, flow);
 
-        // 验证更新失败（持久化未实现）
+        // 验证更新Failed（持久化未实现）
         assert!(!output.success, "update_node should return failure");
         assert!(output.error.is_some(), "should have error info");
         let error = output.error.unwrap();
@@ -4119,7 +4119,7 @@ mod tests {
 
     #[test]
     fn test_delete_start_node() {
-        // 创建一个测试流程
+        // 创建一个Test Flow
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -4152,7 +4152,7 @@ mod tests {
         // 尝试删除开始节点
         let output = delete_node(input, flow);
 
-        // 验证删除失败
+        // 验证删除Failed
         assert!(!output.success, "deleting start node should fail");
         assert!(output.error.is_some(), "should have error info");
         let error = output.error.unwrap();
@@ -4165,7 +4165,7 @@ mod tests {
 
     #[test]
     fn test_delete_node_not_implemented() {
-        // 创建一个测试流程
+        // 创建一个Test Flow
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -4209,7 +4209,7 @@ mod tests {
         // 尝试删除非开始节点
         let output = delete_node(input, flow);
 
-        // 验证删除失败（持久化未实现）
+        // 验证删除Failed（持久化未实现）
         assert!(!output.success, "delete_node should return failure");
         assert!(output.error.is_some(), "should have error info");
         let error = output.error.unwrap();

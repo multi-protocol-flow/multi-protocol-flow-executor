@@ -48,12 +48,12 @@ impl NodePlugin for SmtpConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "连接成功".into(),
+                label: "Connect Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "连接失败".into(),
+                label: "connection failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -165,12 +165,12 @@ impl NodePlugin for SmtpSendPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "发送成功".into(),
+                label: "发送Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "发送失败".into(),
+                label: "发送Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -307,7 +307,7 @@ impl NodePlugin for SmtpDisconnectPlugin {
         })
     }
 
-    /// `SmtpDisconnect` 始终返回 "out" 端口（断开失败不阻塞流程）
+    /// `SmtpDisconnect` 始终返回 "out" 端口（断开Failed不阻塞流程）
     fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String {
         "out".to_string()
     }
@@ -395,9 +395,9 @@ mod tests {
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[0].label, "连接成功");
+        assert_eq!(ports[0].label, "Connect Success");
         assert_eq!(ports[1].id, "false");
-        assert_eq!(ports[1].label, "连接失败");
+        assert_eq!(ports[1].label, "connection failed");
     }
 
     #[test]
@@ -414,9 +414,9 @@ mod tests {
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[0].label, "发送成功");
+        assert_eq!(ports[0].label, "发送Success");
         assert_eq!(ports[1].id, "false");
-        assert_eq!(ports[1].label, "发送失败");
+        assert_eq!(ports[1].label, "发送Failed");
     }
 
     #[test]

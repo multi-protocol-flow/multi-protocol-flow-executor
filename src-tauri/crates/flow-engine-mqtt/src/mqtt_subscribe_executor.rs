@@ -96,7 +96,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
 
         // 4. 日志：开始订阅
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: mqtt_subscribe, topic: {}, connection_id: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mqtt_subscribe, topic: {}, connection_id: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -108,7 +108,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "MQTT 订阅节点 {} 开始执行: topic={}",
+                    "MQTT 订阅节点 {} start execution: topic={}",
                     node.name, effective_topic
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -181,7 +181,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
                 });
 
                 log::info!(
-                    "[MQTT] 订阅成功: topic={}, 消息数={}, 耗时={}ms",
+                    "[MQTT] 订阅Success: topic={}, 消息数={}, 耗时={}ms",
                     effective_topic,
                     filtered_messages.len(),
                     duration.as_millis()
@@ -192,7 +192,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "MQTT 订阅成功: topic={}, 收到 {} 条消息 ({}ms)",
+                            "MQTT 订阅Success: topic={}, 收到 {} 条消息 ({}ms)",
                             effective_topic,
                             filtered_messages.len(),
                             duration.as_millis()
@@ -207,7 +207,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
                     })
                     .await;
 
-                // 10. 成功时走 true 端口
+                // 10. Success时走 true 端口
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -231,13 +231,13 @@ impl NodeExecutor for MqttSubscribeExecutor {
                 let duration = start_time.elapsed();
 
                 log::error!(
-                    "[MQTT] 订阅失败: uuid={}, topic={}, error={}",
+                    "[MQTT] 订阅Failed: uuid={}, topic={}, error={}",
                     node.uuid,
                     effective_topic,
                     e
                 );
 
-                // 日志：订阅失败
+                // 日志：订阅Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
@@ -252,7 +252,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
                     })
                     .await;
 
-                // 构建错误输出
+                // 构建Error输出
                 let error_output = json!({
                     "success": false,
                     "reason_code": serde_json::Value::Null,
@@ -276,7 +276,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
-                // 失败时走 false 端口
+                // Failed时走 false 端口
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -314,7 +314,7 @@ mod tests {
     // 辅助工具
     // ---------------------------------------------------------------------------
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, topic: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -380,7 +380,7 @@ mod tests {
     // Mock MqttProvider
     // ---------------------------------------------------------------------------
 
-    /// 模拟成功订阅的 MqttProvider
+    /// 模拟Success订阅的 MqttProvider
     struct MockMqttProvider {
         subscribe_output: MqttSubscribeOutput,
     }
@@ -448,7 +448,7 @@ mod tests {
                     .subscribe_output
                     .error
                     .clone()
-                    .unwrap_or_else(|| "未知错误".to_string()))
+                    .unwrap_or_else(|| "未知Error".to_string()))
             }
         }
 
@@ -697,14 +697,14 @@ mod tests {
         assert_eq!(msgs.len(), 2);
     }
 
-    /// 测试：订阅失败时走 false 端口
+    /// 测试：订阅Failed时走 false 端口
     #[tokio::test]
     async fn test_subscribe_failure_routes_to_false_port() {
         let provider = Arc::new(MockMqttProvider::new_failure(
             "连接 'conn-missing' 不存在".to_string(),
         ));
         let executor = MqttSubscribeExecutor::new(provider);
-        let node = create_test_node("sub-fail-1", "失败订阅", "test/topic", "conn-missing");
+        let node = create_test_node("sub-fail-1", "Failed订阅", "test/topic", "conn-missing");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -719,7 +719,7 @@ mod tests {
         assert!(data["error"].is_string());
     }
 
-    /// 测试：错误的节点数据类型
+    /// 测试：Error的节点数据类型
     #[tokio::test]
     async fn test_wrong_node_data_type() {
         let provider = Arc::new(MockMqttProvider::new_success(vec![]));
@@ -728,7 +728,7 @@ mod tests {
         let node = Node {
             uuid: "wrong-type".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

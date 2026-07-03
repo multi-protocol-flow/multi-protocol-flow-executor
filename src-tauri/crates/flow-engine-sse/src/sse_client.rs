@@ -101,17 +101,17 @@ impl SseClient {
         let response = builder
             .send()
             .await
-            .map_err(|e| format!("SSE 连接请求失败: {}", e))?;
+            .map_err(|e| format!("SSE 连接请求Failed: {}", e))?;
 
         let status = response.status();
         if !status.is_success() {
             return Err(format!(
-                "SSE 连接失败: HTTP {}",
+                "SSE connection failed: HTTP {}",
                 status.as_u16()
             ));
         }
 
-        info!("SSE 连接成功: {}", config.url);
+        info!("SSE 连接Success: {}", config.url);
         Ok(response)
     }
 
@@ -127,7 +127,7 @@ impl SseClient {
         tokio::spawn(async move {
             if let Err(e) = Self::read_sse_stream(response, &cancel_token, &event_sender).await {
                 if !cancel_token.is_cancelled() {
-                    warn!("SSE 流读取错误: {}", e);
+                    warn!("SSE 流读取Error: {}", e);
                 }
             }
         })
@@ -159,7 +159,7 @@ impl SseClient {
                 return Ok(());
             }
 
-            let chunk = chunk_result.map_err(|e| format!("SSE 流读取失败: {}", e))?;
+            let chunk = chunk_result.map_err(|e| format!("SSE 流读取Failed: {}", e))?;
             let text = String::from_utf8_lossy(&chunk);
             line_buffer.push_str(&text);
 
@@ -267,7 +267,7 @@ mod tests {
             data: r#"{"status":"ok"}"#.to_string(),
             retry: None,
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("\"event\":\"update\""));
         assert!(json.contains("\"id\":\"42\""));
         assert!(json.contains(r#""data":"{\"status\":\"ok\"}"#));
@@ -278,7 +278,7 @@ mod tests {
     #[test]
     fn test_sse_event_deserialization() {
         let json = r#"{"event":"message","data":"hello","id":"1"}"#;
-        let event: SseEvent = serde_json::from_str(json).expect("反序列化失败");
+        let event: SseEvent = serde_json::from_str(json).expect("反序列化Failed");
         assert_eq!(event.event, Some("message".to_string()));
         assert_eq!(event.data, "hello");
         assert_eq!(event.id, Some("1".to_string()));
@@ -463,11 +463,11 @@ mod tests {
         let body_bytes = body.as_bytes().to_vec();
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await
-            .expect("绑定端口失败");
-        let addr = listener.local_addr().expect("获取地址失败");
+            .expect("绑定端口Failed");
+        let addr = listener.local_addr().expect("获取地址Failed");
 
         tokio::spawn(async move {
-            let (mut stream, _) = listener.accept().await.expect("接受连接失败");
+            let (mut stream, _) = listener.accept().await.expect("接受connection failed");
             use tokio::io::{AsyncReadExt, AsyncWriteExt};
             let mut buf = vec![0u8; 4096];
             let _ = stream.read(&mut buf).await;
@@ -491,6 +491,6 @@ mod tests {
             .get(format!("http://{}", addr))
             .send()
             .await
-            .expect("mock 请求失败")
+            .expect("mock 请求Failed")
     }
 }

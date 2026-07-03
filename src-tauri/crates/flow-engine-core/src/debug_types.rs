@@ -39,14 +39,14 @@ pub enum PauseReason {
         /// 断点所在节点 UUID
         node_uuid: String,
     },
-    /// 单步执行完成
+    /// 单步execution complete
     StepComplete {
         /// 当前节点 UUID
         node_uuid: String,
     },
     /// 执行出错
     Error {
-        /// 错误信息
+        /// Error信息
         message: String,
     },
 }
@@ -59,13 +59,13 @@ pub enum PauseReason {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum EndReason {
-    /// 流程执行完成
+    /// 流程execution complete
     Completed,
     /// 用户终止调试
     UserAbort,
     /// 执行出错
     Error {
-        /// 错误信息
+        /// Error信息
         message: String,
     },
 }
@@ -144,7 +144,7 @@ pub enum DebugEvent {
         /// 执行堆栈（已执行节点列表）
         execution_stack: Vec<ExecutionStackEntry>,
     },
-    /// 节点执行完成
+    /// 节点execution complete
     NodeExecuted {
         /// 已完成的执行堆栈条目（包含完整的执行信息）
         entry: ExecutionStackEntry,
@@ -179,9 +179,9 @@ pub enum DebugEvent {
         /// 是否启用断点
         enabled: bool,
     },
-    /// 调试错误
+    /// 调试Error
     Error {
-        /// 错误信息
+        /// Error信息
         message: String,
     },
     /// 心跳事件（定期发送，用于检测会话是否存活）
@@ -240,7 +240,7 @@ pub enum DebugEvent {
         /// 最后所有者节点 UUID
         last_owner_node_uuid: String,
     },
-    /// 断言节点开始执行
+    /// 断言节点start execution
     AssertionStarted {
         /// 节点 UUID
         node_uuid: String,
@@ -251,7 +251,7 @@ pub enum DebugEvent {
         /// 断言模式 (all/any)
         mode: String,
     },
-    /// 断言节点执行完成
+    /// 断言节点execution complete
     AssertionCompleted {
         /// 节点 UUID
         node_uuid: String,
@@ -261,11 +261,11 @@ pub enum DebugEvent {
         passed: bool,
         /// 通过数量
         passed_count: usize,
-        /// 失败数量
+        /// Failed数量
         failed_count: usize,
         /// 总数量
         total: usize,
-        /// 失败的断言详情
+        /// Failed的断言详情
         failed_assertions: Vec<crate::node_config::AssertionResult>,
     },
     // ===== 数据库调试事件 =====
@@ -332,7 +332,7 @@ pub enum DebugEvent {
         row_count: usize,
         /// 执行时间（毫秒）
         execute_ms: u64,
-        /// 是否成功
+        /// 是否Success
         success: bool,
     },
     // ===== gRPC 调试事件 =====
@@ -390,7 +390,7 @@ pub enum DebugEvent {
         /// 是否为最后一条消息
         is_last: bool,
     },
-    /// gRPC 流式错误（实时推送，supplementary）
+    /// gRPC 流式Error（实时推送，supplementary）
     GrpcStreamError {
         /// 节点 UUID
         node_uuid: String,
@@ -398,7 +398,7 @@ pub enum DebugEvent {
         connection_id: String,
         /// 调用 ID
         call_id: String,
-        /// 错误信息
+        /// Error信息
         message: String,
     },
     // ===== MCP 调试事件 =====
@@ -478,9 +478,9 @@ pub struct ExecutionStackEntry {
     pub input: Option<serde_json::Value>,
     /// 输出数据
     pub output: Option<serde_json::Value>,
-    /// 是否执行成功
+    /// 是否执行Success
     pub success: bool,
-    /// 错误信息（如果失败）
+    /// Error信息（如果Failed）
     pub error: Option<String>,
     /// 实际使用的输出端口 ID（可选）
     #[serde(default)]
@@ -654,13 +654,13 @@ mod tests {
             service_count: 3,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应成功");
+        let json = serde_json::to_string(&event).expect("序列化应Success");
         assert!(json.contains("GrpcChannelCreated"), "应包含变体名");
         assert!(json.contains("conn-grpc-1"));
         assert!(json.contains("http://localhost:50051"));
 
         let deserialized: DebugEvent =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -675,13 +675,13 @@ mod tests {
             duration_ms: 120,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应成功");
+        let json = serde_json::to_string(&event).expect("序列化应Success");
         assert!(json.contains("GrpcMethodCalled"), "应包含变体名");
         assert!(json.contains("package.ServiceName"));
         assert!(json.contains("unary"));
 
         let deserialized: DebugEvent =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(event, deserialized, "序列化往返应保持一致");
 
         // 验证 pattern 字段为 String 类型（非枚举）
@@ -704,12 +704,12 @@ mod tests {
             url: "http://localhost:50051".to_string(),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应成功");
+        let json = serde_json::to_string(&event).expect("序列化应Success");
         assert!(json.contains("GrpcChannelClosed"), "应包含变体名");
         assert!(json.contains("conn-grpc-1"));
 
         let deserialized: DebugEvent =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -724,13 +724,13 @@ mod tests {
             server_name: "test-server".to_string(),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应成功");
+        let json = serde_json::to_string(&event).expect("序列化应Success");
         assert!(json.contains("McpConnectionCreated"), "应包含变体名");
         assert!(json.contains("conn-mcp-1"));
         assert!(json.contains("test-server"));
 
         let deserialized: DebugEvent =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -743,12 +743,12 @@ mod tests {
             duration_ms: 200,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应成功");
+        let json = serde_json::to_string(&event).expect("序列化应Success");
         assert!(json.contains("McpToolCalled"), "应包含变体名");
         assert!(json.contains("get_weather"));
 
         let deserialized: DebugEvent =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -761,11 +761,11 @@ mod tests {
             duration_ms: 80,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应成功");
+        let json = serde_json::to_string(&event).expect("序列化应Success");
         assert!(json.contains("McpResourceRead"), "应包含变体名");
 
         let deserialized: DebugEvent =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -778,12 +778,12 @@ mod tests {
             duration_ms: 50,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应成功");
+        let json = serde_json::to_string(&event).expect("序列化应Success");
         assert!(json.contains("McpPromptGet"), "应包含变体名");
         assert!(json.contains("greeting"));
 
         let deserialized: DebugEvent =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -795,11 +795,11 @@ mod tests {
             url: "http://localhost:8080/mcp".to_string(),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应成功");
+        let json = serde_json::to_string(&event).expect("序列化应Success");
         assert!(json.contains("McpConnectionClosed"), "应包含变体名");
 
         let deserialized: DebugEvent =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -818,13 +818,13 @@ mod tests {
             is_last: false,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应成功");
+        let json = serde_json::to_string(&event).expect("序列化应Success");
         assert!(json.contains("GrpcStreamMessage"), "应包含变体名");
         assert!(json.contains("call-001"));
         assert!(json.contains("conn-grpc-1"));
 
         let deserialized: DebugEvent =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -841,11 +841,11 @@ mod tests {
             is_last: true,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应成功");
+        let json = serde_json::to_string(&event).expect("序列化应Success");
         assert!(json.contains("GrpcStreamMessage"));
 
         let deserialized: DebugEvent =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(event, deserialized, "序列化往返应保持一致");
 
         if let DebugEvent::GrpcStreamMessage { is_last, index, .. } = &deserialized {
@@ -862,16 +862,16 @@ mod tests {
             node_uuid: "node-021".to_string(),
             connection_id: "conn-grpc-2".to_string(),
             call_id: "call-002".to_string(),
-            message: "流式响应错误: internal (INTERNAL)".to_string(),
+            message: "流式响应Error: internal (INTERNAL)".to_string(),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应成功");
+        let json = serde_json::to_string(&event).expect("序列化应Success");
         assert!(json.contains("GrpcStreamError"), "应包含变体名");
         assert!(json.contains("call-002"));
         assert!(json.contains("internal"));
 
         let deserialized: DebugEvent =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 }

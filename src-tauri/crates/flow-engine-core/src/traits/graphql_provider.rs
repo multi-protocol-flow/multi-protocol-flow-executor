@@ -10,14 +10,14 @@ use serde::{Deserialize, Serialize};
 /// GraphQL 连接输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GraphqlConnectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 连接 ID
     pub connection_id: String,
     /// 服务器信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub server_info: Option<String>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -44,12 +44,12 @@ pub struct GraphqlTimingInfo {
 /// GraphQL 查询输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GraphqlQueryOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 响应数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
-    /// GraphQL 错误列表
+    /// GraphQL Error列表
     #[serde(default)]
     pub errors: Vec<serde_json::Value>,
     /// 响应扩展信息
@@ -61,7 +61,7 @@ pub struct GraphqlQueryOutput {
     /// 请求耗时信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timing: Option<GraphqlTimingInfo>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -72,7 +72,7 @@ pub struct GraphqlSubscriptionEvent {
     /// 事件数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
-    /// GraphQL 错误列表
+    /// GraphQL Error列表
     #[serde(default)]
     pub errors: Vec<serde_json::Value>,
     /// 响应扩展信息
@@ -85,7 +85,7 @@ pub struct GraphqlSubscriptionEvent {
 /// GraphQL 订阅输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GraphqlSubscribeOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 接收到的事件列表
     pub events: Vec<GraphqlSubscriptionEvent>,
@@ -93,7 +93,7 @@ pub struct GraphqlSubscribeOutput {
     pub event_count: u32,
     /// 订阅持续时间（毫秒）
     pub duration_ms: u64,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -112,7 +112,7 @@ pub struct GraphqlQueryTemplate {
 /// GraphQL Schema 探索输出
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GraphqlIntrospectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 完整 Schema（JSON）
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -120,7 +120,7 @@ pub struct GraphqlIntrospectOutput {
     /// 生成的查询模板
     #[serde(skip_serializing_if = "Option::is_none")]
     pub query_templates: Option<Vec<GraphqlQueryTemplate>>,
-    /// 错误信息
+    /// Error信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }

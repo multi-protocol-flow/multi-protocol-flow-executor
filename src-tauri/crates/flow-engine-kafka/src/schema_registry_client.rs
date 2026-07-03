@@ -7,10 +7,10 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 // ---------------------------------------------------------------------------
-// 错误类型（本地定义，后续与 KafkaError 合并）
+// Error类型（本地定义，后续与 KafkaError 合并）
 // ---------------------------------------------------------------------------
 
-/// Schema Registry 操作错误类型
+/// Schema Registry 操作Error类型
 #[derive(Debug, Error)]
 pub enum SchemaRegistryError {
     /// Subject 不存在
@@ -34,24 +34,24 @@ pub enum SchemaRegistryError {
     #[error("Invalid schema: {0}")]
     InvalidSchema(String),
 
-    /// HTTP 请求失败
+    /// HTTP 请求Failed
     #[error("HTTP request failed: {0}")]
     HttpError(String),
 
-    /// 响应解析失败
+    /// 响应解析Failed
     #[error("Failed to parse response: {0}")]
     ParseError(String),
 
-    /// 认证失败
+    /// 认证Failed
     #[error("Authentication failed: {0}")]
     AuthError(String),
 
-    /// 服务端错误
+    /// 服务端Error
     #[error("Server error ({status}): {message}")]
     ServerError {
         /// HTTP 状态码
         status: u16,
-        /// 错误消息
+        /// Error消息
         message: String,
     },
 }
@@ -122,7 +122,7 @@ struct ConfigResponse {
     compatibility: String,
 }
 
-/// Schema Registry 通用错误响应体
+/// Schema Registry 通用Error响应体
 #[derive(Debug, Deserialize)]
 struct ErrorResponse {
     #[serde(default)]
@@ -468,7 +468,7 @@ impl SchemaRegistryClient {
         }
     }
 
-    /// 通用错误响应处理 — 根据 HTTP 状态码映射到具体错误类型
+    /// 通用Error响应处理 — 根据 HTTP 状态码映射到具体Error类型
     async fn handle_error_response<T>(
         &self,
         status: reqwest::StatusCode,
@@ -477,7 +477,7 @@ impl SchemaRegistryClient {
         let status_code = status.as_u16();
         let text = response.text().await.unwrap_or_default();
 
-        // 尝试解析错误响应体以获取更详细信息
+        // 尝试解析Error响应体以获取更详细信息
         let error_message = serde_json::from_str::<ErrorResponse>(&text)
             .map(|e| e.message)
             .unwrap_or(text.clone());
@@ -796,7 +796,7 @@ mod tests {
         mock.assert_async().await;
     }
 
-    // ===== 404 错误 → SubjectNotFound =====
+    // ===== 404 Error → SubjectNotFound =====
 
     #[tokio::test]
     async fn test_error_404() {
@@ -821,7 +821,7 @@ mod tests {
         mock.assert_async().await;
     }
 
-    // ===== 409 错误 → IncompatibleSchema =====
+    // ===== 409 Error → IncompatibleSchema =====
 
     #[tokio::test]
     async fn test_error_409() {
@@ -851,7 +851,7 @@ mod tests {
         mock.assert_async().await;
     }
 
-    // ===== 422 错误 → InvalidSchema =====
+    // ===== 422 Error → InvalidSchema =====
 
     #[tokio::test]
     async fn test_error_422() {
@@ -878,7 +878,7 @@ mod tests {
         mock.assert_async().await;
     }
 
-    // ===== 401 错误 → AuthError =====
+    // ===== 401 Error → AuthError =====
 
     #[tokio::test]
     async fn test_error_401() {

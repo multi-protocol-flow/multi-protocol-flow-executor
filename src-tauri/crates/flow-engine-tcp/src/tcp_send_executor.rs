@@ -67,7 +67,7 @@ impl TcpSendExecutor {
         }
     }
 
-    /// 构建错误输出数据
+    /// 构建Error输出数据
     fn build_error_output(
         connection_id: &str,
         error_msg: &str,
@@ -147,7 +147,7 @@ impl NodeExecutor for TcpSendExecutor {
             ErrorDetail::execution_error(error_msg)
         })?;
 
-        // 4. 日志：开始执行
+        // 4. 日志：start execution
         log::info!(
             "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: tcp_send, ConnectionID: {}, DataEncoding: {}, DataLength: {}",
             context.flow_uuid,
@@ -167,7 +167,7 @@ impl NodeExecutor for TcpSendExecutor {
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -194,7 +194,7 @@ impl NodeExecutor for TcpSendExecutor {
                         message: format!("Data decoding failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -202,7 +202,7 @@ impl NodeExecutor for TcpSendExecutor {
                     })
                     .await;
 
-                // 解码失败走 false 端口
+                // 解码Failed走 false 端口
                 return route_to_false_port(node, connections, Some(error_output));
             }
         };
@@ -231,7 +231,7 @@ impl NodeExecutor for TcpSendExecutor {
                         message: format!("Framing encoding failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -289,7 +289,7 @@ impl NodeExecutor for TcpSendExecutor {
                             (Some(build_binary_output(&data)), Some(recv_ms))
                         }
                         Ok(None) => {
-                            // 超时无数据，非错误
+                            // 超时无数据，非Error
                             log::debug!(
                                 "[TCP] Receive timeout, no data: connection_id={}",
                                 connection_id
@@ -373,7 +373,7 @@ impl NodeExecutor for TcpSendExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -400,7 +400,7 @@ impl NodeExecutor for TcpSendExecutor {
                         message: format!("TCP send failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -466,7 +466,7 @@ mod tests {
     // 辅助函数
     // ========================================================================
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(
         uuid: &str,
         name: &str,
@@ -503,7 +503,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -589,15 +589,15 @@ mod tests {
             &self, _uuid: &str, data: Vec<u8>, _send_timeout_ms: u64,
         ) -> Result<(), String> {
             self.send_count.fetch_add(1, AtomicOrdering::SeqCst);
-            *self.last_sent_data.lock().expect("锁不应失败") = data;
-            self.send_result.lock().expect("锁不应失败").clone()
+            *self.last_sent_data.lock().expect("锁不应Failed") = data;
+            self.send_result.lock().expect("锁不应Failed").clone()
         }
 
         async fn receive(
             &self, _uuid: &str, _receive_timeout_ms: u64,
         ) -> Result<Option<Vec<u8>>, String> {
             self.receive_count.fetch_add(1, AtomicOrdering::SeqCst);
-            self.receive_result.lock().expect("锁不应失败").clone()
+            self.receive_result.lock().expect("锁不应Failed").clone()
         }
 
         async fn close(&self, _uuid: &str, _close_timeout_ms: u64) -> Result<(), String> {
@@ -644,7 +644,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
@@ -663,7 +663,7 @@ mod tests {
         assert!(timing["total_ms"].as_u64().is_some());
 
         // 验证实际发送的数据包含 4 字节前缀 + "Hello, TCP!" (11 字节) = 15 字节
-        let sent_data = mock.last_sent_data.lock().expect("锁不应失败");
+        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
         assert_eq!(sent_data.len(), 15); // 4 + 11
         assert_eq!(&sent_data[4..], b"Hello, TCP!");
     }
@@ -695,7 +695,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
@@ -705,7 +705,7 @@ mod tests {
         assert!(framing.starts_with("Delimiter("));
 
         // 验证发送的数据是 "Hello\r\n" (5 + 2 = 7 字节)
-        let sent_data = mock.last_sent_data.lock().expect("锁不应失败");
+        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
         assert_eq!(sent_data.len(), 7);
         assert_eq!(&sent_data[..5], b"Hello");
         assert_eq!(&sent_data[5..], b"\r\n");
@@ -736,14 +736,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
         assert_eq!(data["sent"]["framing"], "Manual");
 
         // Manual 模式不添加帧，直接发送 "Hello World" (11 字节)
-        let sent_data = mock.last_sent_data.lock().expect("锁不应失败");
+        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
         assert_eq!(sent_data.len(), 11);
         assert_eq!(&sent_data[..], b"Hello World");
     }
@@ -773,17 +773,17 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["true"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
         // 空数据 + 4 字节前缀 = 4 字节
-        let sent_data = mock.last_sent_data.lock().expect("锁不应失败");
+        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
         assert_eq!(sent_data.len(), 4); // 只有长度前缀 (0)
     }
 
     // ========================================================================
-    // 测试：连接不存在/发送失败
+    // 测试：连接不存在/发送Failed
     // ========================================================================
 
     #[tokio::test]
@@ -807,7 +807,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
@@ -858,13 +858,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_id"], "tcp-connection-123");
 
         // 验证发送的数据包含替换后的内容
-        let sent_data = mock.last_sent_data.lock().expect("锁不应失败");
+        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
         assert_eq!(&sent_data[..], b"Message: Hello");
     }
 
@@ -902,7 +902,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
@@ -934,7 +934,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
@@ -952,7 +952,7 @@ mod tests {
 
         let node = create_test_node(
             "node-port-ok",
-            "成功端口路由",
+            "Success端口路由",
             "conn-1",
             "Hello",
             "text",
@@ -973,18 +973,18 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.expect("执行应成功");
+        let (next_nodes, _) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 
     #[tokio::test]
     async fn test_tcp_send_routes_to_false_port_with_connections() {
-        let mock = Arc::new(MockTcpProvider::new_send_error("发送失败"));
+        let mock = Arc::new(MockTcpProvider::new_send_error("发送Failed"));
         let executor = TcpSendExecutor::new(mock.clone());
 
         let node = create_test_node(
             "node-port-fail",
-            "失败端口路由",
+            "Failed端口路由",
             "conn-1",
             "Hello",
             "text",
@@ -1005,14 +1005,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["error-handler"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);
     }
 
     // ========================================================================
-    // 测试：错误节点数据类型
+    // 测试：Error节点数据类型
     // ========================================================================
 
     #[tokio::test]
@@ -1023,7 +1023,7 @@ mod tests {
         let node = Node {
             uuid: "node-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -1065,7 +1065,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
         // 验证接收到响应数据
@@ -1083,19 +1083,19 @@ mod tests {
 
     #[test]
     fn test_decode_user_data_text() {
-        let result = TcpSendExecutor::decode_user_data("Hello", "text").expect("应成功");
+        let result = TcpSendExecutor::decode_user_data("Hello", "text").expect("应Success");
         assert_eq!(result, b"Hello".to_vec());
     }
 
     #[test]
     fn test_decode_user_data_hex() {
-        let result = TcpSendExecutor::decode_user_data("48656c6c6f", "hex").expect("应成功");
+        let result = TcpSendExecutor::decode_user_data("48656c6c6f", "hex").expect("应Success");
         assert_eq!(result, b"Hello".to_vec());
     }
 
     #[test]
     fn test_decode_user_data_base64() {
-        let result = TcpSendExecutor::decode_user_data("SGVsbG8=", "base64").expect("应成功");
+        let result = TcpSendExecutor::decode_user_data("SGVsbG8=", "base64").expect("应Success");
         assert_eq!(result, b"Hello".to_vec());
     }
 
@@ -1179,11 +1179,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应成功");
+        let (_, output_data) = result.expect("执行应Success");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
 
-        let sent_data = mock.last_sent_data.lock().expect("锁不应失败");
+        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
         assert_eq!(sent_data.len(), 8);
         assert_eq!(&sent_data[..], b"12345678");
     }
@@ -1210,7 +1210,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应成功");
+        let (next_nodes, output_data) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], false);

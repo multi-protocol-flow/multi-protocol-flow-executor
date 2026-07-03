@@ -32,7 +32,7 @@ impl AssertionEvaluator {
     ///
     /// # 返回
     /// - `Ok(Value)`: 提取的值（字段不存在时返回 `Value::Null`）
-    /// - `Err(ErrorDetail)`: `JSONPath` 语法错误
+    /// - `Err(ErrorDetail)`: `JSONPath` 语法Error
     ///
     /// # 支持的 `JSONPath` 语法
     /// - `$.status` - 顶级字段
@@ -151,7 +151,7 @@ impl AssertionEvaluator {
                 failed_count += 1;
                 failed_assertions.push(result.clone());
 
-                // 检查是否为致命错误（JSONPath 语法错误）
+                // 检查是否为致命Error（JSONPath 语法Error）
                 if result
                     .error
                     .as_ref()
@@ -168,12 +168,12 @@ impl AssertionEvaluator {
             if !config.continue_on_failure && !passed {
                 match config.mode {
                     AssertionMode::All => {
-                        // all 模式：失败后不继续（除非 continue_on_failure 为 true）
+                        // all 模式：Failed后不继续（除非 continue_on_failure 为 true）
                         break;
                     }
                     AssertionMode::Any => {
                         // any 模式：继续执行直到找到通过的
-                        // 但这里已经失败了，所以继续
+                        // 但这里已经Failed了，所以继续
                     }
                 }
             }
@@ -556,7 +556,7 @@ mod tests {
 
         let output = AssertionEvaluator::evaluate_all(&config, &input);
 
-        assert!(!output.passed); // all 模式，有一个失败则整体失败
+        assert!(!output.passed); // all 模式，有一个Failed则整体Failed
         assert_eq!(output.total, 2);
         assert_eq!(output.passed_count, 1);
         assert_eq!(output.failed_count, 1);
@@ -569,14 +569,14 @@ mod tests {
             preset: None,
             mode: AssertionMode::All,
             on_failure: Default::default(),
-            continue_on_failure: false, // 失败后停止
+            continue_on_failure: false, // Failed后停止
             assertions: vec![
                 Assertion {
                     id: "a1".to_string(),
                     description: None,
                     target: "$.status".to_string(),
                     operator: AssertionOperator::Eq,
-                    expected: json!(500), // 会失败
+                    expected: json!(500), // 会Failed
                     enabled: true,
                 },
                 Assertion {
@@ -598,7 +598,7 @@ mod tests {
         let output = AssertionEvaluator::evaluate_all(&config, &input);
 
         assert!(!output.passed);
-        // continue_on_failure = false，所以第一个失败后停止
+        // continue_on_failure = false，所以第一个Failed后停止
         assert_eq!(output.total, 1);
         assert_eq!(output.passed_count, 0);
         assert_eq!(output.failed_count, 1);
@@ -621,7 +621,7 @@ mod tests {
                     description: None,
                     target: "$.status".to_string(),
                     operator: AssertionOperator::Eq,
-                    expected: json!(500), // 失败
+                    expected: json!(500), // Failed
                     enabled: true,
                 },
                 Assertion {
@@ -674,7 +674,7 @@ mod tests {
 
         let output = AssertionEvaluator::evaluate_all(&config, &input);
 
-        assert!(!output.passed); // any 模式，全部失败则整体失败
+        assert!(!output.passed); // any 模式，全部Failed则整体Failed
         assert_eq!(output.passed_count, 0);
         assert_eq!(output.failed_count, 2);
     }

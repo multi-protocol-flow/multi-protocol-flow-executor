@@ -202,7 +202,7 @@ impl McpProvider for McpConnectionManager {
         let result = peer
             .call_tool(call_params)
             .await
-            .map_err(|e| format!("MCP 工具调用失败 '{}': {}", tool_name, e))?;
+            .map_err(|e| format!("MCP 工具调用Failed '{}': {}", tool_name, e))?;
 
         let timing_ms = start.elapsed().as_millis() as u64;
 
@@ -247,7 +247,7 @@ impl McpProvider for McpConnectionManager {
         let result = peer
             .read_resource(read_params)
             .await
-            .map_err(|e| format!("MCP 读取资源失败 '{}': {}", resource_uri, e))?;
+            .map_err(|e| format!("MCP 读取资源Failed '{}': {}", resource_uri, e))?;
 
         let timing_ms = start.elapsed().as_millis() as u64;
 
@@ -305,7 +305,7 @@ impl McpProvider for McpConnectionManager {
         let result = peer
             .get_prompt(prompt_params)
             .await
-            .map_err(|e| format!("MCP 获取提示词失败 '{}': {}", prompt_name, e))?;
+            .map_err(|e| format!("MCP 获取提示词Failed '{}': {}", prompt_name, e))?;
 
         let timing_ms = start.elapsed().as_millis() as u64;
 
@@ -339,7 +339,7 @@ impl McpProvider for McpConnectionManager {
             info!("MCP 关闭连接: id={}", connection_id);
             Ok(())
         } else {
-            warn!("MCP 关闭连接失败: 连接 '{}' 不存在", connection_id);
+            warn!("MCP 关闭connection failed: 连接 '{}' 不存在", connection_id);
             Err(format!("MCP 连接 '{}' 不存在", connection_id))
         }
     }

@@ -34,7 +34,7 @@ pub enum GraphqlConnectionStatus {
     Connected,
     /// 已断开
     Disconnected,
-    /// 错误状态
+    /// Error状态
     Error(String),
 }
 
@@ -84,7 +84,7 @@ pub struct GraphqlConnectionManager {
     connections: Arc<RwLock<HashMap<String, GraphqlConnection>>>,
     /// GraphQL HTTP 客户端
     client: GraphqlClient,
-    /// 连接状态: `connection_id` → [`GraphqlConnectionStatus`]
+    /// 连接Status: `connection_id` → [`GraphqlConnectionStatus`]
     statuses: Arc<RwLock<HashMap<String, GraphqlConnectionStatus>>>,
     /// 是否为共享模式（压力测试）
     is_shared: bool,
@@ -160,7 +160,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
     ) -> Result<GraphqlConnectOutput, String> {
         info!("GraphQL 开始连接: endpoint={}, id={}", config.endpoint, uuid);
 
-        // UUID 去重：如果已存在且已连接，直接返回成功
+        // UUID 去重：如果已存在且已连接，直接返回Success
         {
             let conns = self.connections.read().await;
             if conns.contains_key(uuid) {
@@ -203,7 +203,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
 
         match verification_result {
             Ok(response) => {
-                // 检查是否有 GraphQL 错误
+                // 检查是否有 GraphQL Error
                 if let Some(errors) = &response.errors {
                     if !errors.is_empty() {
                         let error_msg = errors
@@ -211,8 +211,8 @@ impl GraphqlProvider for GraphqlConnectionManager {
                             .map(|e| e.message.as_str())
                             .collect::<Vec<_>>()
                             .join("; ");
-                        warn!("GraphQL 连接验证返回错误: {}", error_msg);
-                        // 仍然算连接成功（可能是服务端不支持 __typename 查询）
+                        warn!("GraphQL 连接验证返回Error: {}", error_msg);
+                        // 仍然算连接Success（可能是服务端不支持 __typename 查询）
                     }
                 }
 
@@ -237,7 +237,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                     );
                 }
 
-                info!("GraphQL 连接成功: id={}", uuid);
+                info!("GraphQL 连接Success: id={}", uuid);
 
                 Ok(GraphqlConnectOutput {
                     success: true,
@@ -247,7 +247,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                 })
             }
             Err(e) => {
-                warn!("GraphQL 连接验证失败: {}", e);
+                warn!("GraphQL 连接验证Failed: {}", e);
 
                 // 仍然存储连接（可能验证查询格式不兼容）
                 let connection = GraphqlConnection {
@@ -669,7 +669,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                 Ok(())
             }
             None => {
-                warn!("GraphQL 断开连接失败: 连接 '{}' 不存在", uuid);
+                warn!("GraphQL 断开connection failed: 连接 '{}' 不存在", uuid);
                 Err(format!("GraphQL 连接 '{}' 不存在", uuid))
             }
         }
@@ -1167,7 +1167,7 @@ mod tests {
         };
         let result = manager.connect("reuse-conn", &config).await;
         assert!(result.is_ok());
-        let output = result.expect("连接应成功");
+        let output = result.expect("连接应Success");
         assert!(output.success);
     }
 }

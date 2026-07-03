@@ -44,7 +44,7 @@ impl SmtpConnectExecutor {
         }
         let auth: EmailAuthConfig =
             serde_json::from_value(auth_value.clone())
-                .map_err(|e| ErrorDetail::execution_error(format!("解析认证配置失败: {}", e)))?;
+                .map_err(|e| ErrorDetail::execution_error(format!("解析认证配置Failed: {}", e)))?;
         Ok(Some(auth))
     }
 
@@ -71,7 +71,7 @@ impl SmtpConnectExecutor {
     fn current_timestamp() -> u64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .expect("系统时间错误")
+            .expect("系统时间Error")
             .as_millis() as u64
     }
 }
@@ -90,14 +90,14 @@ impl NodeExecutor for SmtpConnectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::SmtpConnect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 SmtpConnectConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not SmtpConnectConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换（host）
         let host = replace_variables(&config.host, context).map_err(|e| {
-            let error_msg = format!("host 变量替换失败: {}", e);
+            let error_msg = format!("host variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -125,7 +125,7 @@ impl NodeExecutor for SmtpConnectExecutor {
 
         // 6. 日志：开始连接
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: smtp_connect, host: {}:{}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: smtp_connect, host: {}:{}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -136,7 +136,7 @@ impl NodeExecutor for SmtpConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("SMTP 连接节点 {} 开始执行", node.name),
+                message: format!("SMTP 连接节点 {} start execution", node.name),
                 timestamp: Self::current_timestamp(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -156,7 +156,7 @@ impl NodeExecutor for SmtpConnectExecutor {
 
                 if output.success {
                     log::info!(
-                        "[SMTP] 连接成功: uuid={}, host={}:{}, connection_id={}",
+                        "[SMTP] 连接Success: uuid={}, host={}:{}, connection_id={}",
                         node.uuid,
                         smtp_config.host,
                         smtp_config.port,
@@ -164,11 +164,11 @@ impl NodeExecutor for SmtpConnectExecutor {
                     );
                 } else {
                     log::warn!(
-                        "[SMTP] 连接失败: uuid={}, host={}:{}, error={}",
+                        "[SMTP] connection failed: uuid={}, host={}:{}, error={}",
                         node.uuid,
                         smtp_config.host,
                         smtp_config.port,
-                        output.error.as_deref().unwrap_or("未知错误")
+                        output.error.as_deref().unwrap_or("未知Error")
                     );
                 }
 
@@ -197,13 +197,13 @@ impl NodeExecutor for SmtpConnectExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "SMTP 连接成功 ({}ms)",
+                        "SMTP 连接Success ({}ms)",
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "SMTP 连接失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "SMTP connection failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -219,7 +219,7 @@ impl NodeExecutor for SmtpConnectExecutor {
                     })
                     .await;
 
-                // 10. 路由：成功走 true 端口，失败走 false 端口
+                // 10. 路由：Success走 true 端口，Failed走 false 端口
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = Self::resolve_next_nodes(&node.uuid, port, connections);
 
@@ -227,18 +227,18 @@ impl NodeExecutor for SmtpConnectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[SMTP] 连接异常: uuid={}, host={}:{}, error={}",
+                    "[SMTP] connection error: uuid={}, host={}:{}, error={}",
                     node.uuid,
                     smtp_config.host,
                     smtp_config.port,
                     e
                 );
 
-                // 日志：连接异常
+                // 日志：connection error
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("SMTP 连接异常: {}", e),
+                        message: format!("SMTP connection error: {}", e),
                         timestamp: Self::current_timestamp(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -246,7 +246,7 @@ impl NodeExecutor for SmtpConnectExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let duration = start_time.elapsed();
                 let error_output = json!({
                     "success": false,
@@ -264,9 +264,9 @@ impl NodeExecutor for SmtpConnectExecutor {
                     "error": e,
                 });
 
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("SMTP connect 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("SMTP connect Failed: {}", e)));
                 }
 
                 // 返回 false 端口
@@ -286,7 +286,7 @@ mod tests {
     use flow_engine_core::node_config::SmtpConnectConfig;
     use flow_engine_core::traits::SmtpConnectOutput;
 
-    /// 模拟 SMTP Provider（连接成功）
+    /// 模拟 SMTP Provider（连接Success）
     struct MockSmtpProvider {
         output: SmtpConnectOutput,
     }
@@ -356,7 +356,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, host: &str, port: u16) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -384,7 +384,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -411,7 +411,7 @@ mod tests {
         }
     }
 
-    /// 测试：连接成功时输出 JSON 结构正确
+    /// 测试：连接Success时输出 JSON 结构正确
     #[tokio::test]
     async fn test_connect_success_output_structure() {
         let smtp_manager = Arc::new(MockSmtpProvider::new_success());
@@ -425,7 +425,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
@@ -441,12 +441,12 @@ mod tests {
         assert_eq!(data["request"]["port"], 465);
     }
 
-    /// 测试：连接失败时路由到 false 端口
+    /// 测试：connection failed时路由到 false 端口
     #[tokio::test]
     async fn test_connect_failure_routes_to_false_port() {
         let smtp_manager = Arc::new(MockSmtpProvider::new_failure("Connection refused"));
         let executor = SmtpConnectExecutor::new(smtp_manager);
-        let node = create_test_node("test-2", "失败测试", "unreachable.host", 465);
+        let node = create_test_node("test-2", "Failed测试", "unreachable.host", 465);
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -455,7 +455,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 失败应路由到 false 端口
+        // Failed应路由到 false 端口
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
@@ -465,7 +465,7 @@ mod tests {
         assert!(data["connection_id"].is_null());
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_connect_wrong_node_data_type() {
         let smtp_manager = Arc::new(MockSmtpProvider::new_success());
@@ -474,7 +474,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

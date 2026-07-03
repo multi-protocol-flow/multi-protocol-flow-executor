@@ -27,7 +27,7 @@ pub struct DbBeginExecutor {
 }
 
 impl DbBeginExecutor {
-    /// 创建新的事务开始执行器
+    /// 创建新的事务start execution器
     pub fn new(db_manager: Arc<dyn DbProvider>) -> Self {
         Self { db_manager }
     }
@@ -47,7 +47,7 @@ impl NodeExecutor for DbBeginExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::DbBegin(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 DbBeginConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not DbBeginConfig: {}", node.uuid))),
         };
 
         // 2. 验证 connection_uuid
@@ -60,7 +60,7 @@ impl NodeExecutor for DbBeginExecutor {
             }
 
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -76,7 +76,7 @@ impl NodeExecutor for DbBeginExecutor {
 
         // 3. 日志：开始事务
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: db_begin, connection_uuid: {}, isolation_level: {:?}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: db_begin, connection_uuid: {}, isolation_level: {:?}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -87,10 +87,10 @@ impl NodeExecutor for DbBeginExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("事务开始节点 {} 开始执行", node.name),
+                message: format!("事务开始节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -118,7 +118,7 @@ impl NodeExecutor for DbBeginExecutor {
                             message: format!("无效的隔离级别: {}", level_str),
                             timestamp: std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
-                                .expect("系统时间错误")
+                                .expect("系统时间Error")
                                 .as_millis() as u64,
                             node_uuid: Some(node.uuid.clone()),
                             node_name: Some(node.name.clone()),
@@ -149,12 +149,12 @@ impl NodeExecutor for DbBeginExecutor {
         match begin_result {
             Ok(()) => {
                 log::info!(
-                    "[Database] 事务开始成功: uuid={}, isolation_level={:?}",
+                    "[Database] 事务开始Success: uuid={}, isolation_level={:?}",
                     config.connection_uuid,
                     isolation_level_str
                 );
 
-                // 6. 构建输出数据（成功）
+                // 6. 构建输出数据（Success）
                 let output_data = self.build_success_output(
                     &config,
                     isolation_level_str,
@@ -167,12 +167,12 @@ impl NodeExecutor for DbBeginExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "事务开始成功 ({}ms)",
+                            "事务开始Success ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -187,28 +187,28 @@ impl NodeExecutor for DbBeginExecutor {
                 ))
             }
             Err(e) => {
-                let error_msg = format!("事务开始失败: {}", e);
+                let error_msg = format!("事务开始Failed: {}", e);
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                 }
 
-                // 事务开始失败
+                // 事务开始Failed
                 log::error!(
-                    "[Database] 事务开始失败: uuid={}, error={}",
+                    "[Database] 事务开始Failed: uuid={}, error={}",
                     config.connection_uuid,
                     e
                 );
 
-                // 日志：事务开始失败
+                // 日志：事务开始Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("事务开始失败: {}", e),
+                        message: format!("事务开始Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -263,7 +263,7 @@ impl DbBeginExecutor {
         }
     }
 
-    /// 构建成功输出数据
+    /// 构建Success输出数据
     fn build_success_output(
         &self,
         config: &DbBeginConfig,
@@ -271,7 +271,7 @@ impl DbBeginExecutor {
         total_ms: u64,
     ) -> serde_json::Value {
         json!({
-            // 统一成功标识
+            // 统一Success标识
             "success": true,
             "connection_uuid": config.connection_uuid,
             "isolation_level": isolation_level,
@@ -287,7 +287,7 @@ impl DbBeginExecutor {
         })
     }
 
-    /// 构建错误输出数据
+    /// 构建Error输出数据
     fn build_error_output(
         &self,
         config: &DbBeginConfig,
@@ -295,7 +295,7 @@ impl DbBeginExecutor {
         total_ms: u64,
     ) -> serde_json::Value {
         json!({
-            // 统一成功标识
+            // 统一Success标识
             "success": false,
             "connection_uuid": config.connection_uuid,
             "isolation_level": config.isolation_level,
@@ -324,7 +324,7 @@ mod tests {
     use flow_engine_core::node::{NodePosition};
     use crate::db::pool::DatabaseConnectionManager;
     use crate::db::pool::MockPool;
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -372,7 +372,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -415,7 +415,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 true 端口（事务开始成功）
+        // 应该返回 true 端口（事务开始Success）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["true"]);
@@ -531,8 +531,8 @@ mod tests {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbBeginExecutor::new(db_manager);
 
-        // 创建空 UUID 节点（会失败）
-        let node = create_test_node("test-6", "失败测试", "");
+        // 创建空 UUID 节点（会Failed）
+        let node = create_test_node("test-6", "Failed测试", "");
         let mut context = create_context("test-flow");
 
         // 创建 false 端口连接
@@ -579,13 +579,13 @@ mod tests {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbBeginExecutor::new(db_manager);
 
-        // 创建一个使用错误数据类型的节点
+        // 创建一个使用Error数据类型的节点
         let node = Node {
             uuid: "test-8".to_string(),
             node_type: "db_begin".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(), // 错误：使用 Entry 配置
+            data: NodeData::entry(), // Error：使用 Entry 配置
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -596,7 +596,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回错误
+        // 应该返回Error
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不是 DbBeginConfig"));
     }

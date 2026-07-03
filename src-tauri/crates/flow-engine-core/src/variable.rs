@@ -105,8 +105,8 @@ mod tests {
             description: Some("API响应数据".to_string()),
         };
 
-        let json_str = serde_json::to_string(&variable).expect("序列化失败");
-        let deserialized: Variable = serde_json::from_str(&json_str).expect("反序列化失败");
+        let json_str = serde_json::to_string(&variable).expect("序列化Failed");
+        let deserialized: Variable = serde_json::from_str(&json_str).expect("反序列化Failed");
 
         assert_eq!(deserialized.name, variable.name);
         assert_eq!(deserialized.value, variable.value);
@@ -124,7 +124,7 @@ mod tests {
             description: None,
         };
 
-        let json_str = serde_json::to_string(&variable).expect("序列化失败");
+        let json_str = serde_json::to_string(&variable).expect("序列化Failed");
         assert!(!json_str.contains("description"));
     }
 
@@ -132,7 +132,7 @@ mod tests {
     fn test_output_mapping_basic() {
         // 测试 OutputMapping 基本序列化/反序列化
         let json_str = r#"{"source": "body.id", "target": "user_id"}"#;
-        let mapping: OutputMapping = serde_json::from_str(json_str).expect("反序列化失败");
+        let mapping: OutputMapping = serde_json::from_str(json_str).expect("反序列化Failed");
 
         assert_eq!(mapping.source, "body.id");
         assert_eq!(mapping.target, "user_id");
@@ -147,8 +147,8 @@ mod tests {
             description: Some("HTTP状态码映射".to_string()),
         };
 
-        let json_str = serde_json::to_string(&mapping).expect("序列化失败");
-        let deserialized: OutputMapping = serde_json::from_str(&json_str).expect("反序列化失败");
+        let json_str = serde_json::to_string(&mapping).expect("序列化Failed");
+        let deserialized: OutputMapping = serde_json::from_str(&json_str).expect("反序列化Failed");
 
         assert_eq!(deserialized.source, "status");
         assert_eq!(deserialized.target, "http_status");
@@ -180,8 +180,8 @@ mod tests {
             ],
         };
 
-        let json_str = serde_json::to_string(&pool).expect("序列化失败");
-        let deserialized: VariablePool = serde_json::from_str(&json_str).expect("反序列化失败");
+        let json_str = serde_json::to_string(&pool).expect("序列化Failed");
+        let deserialized: VariablePool = serde_json::from_str(&json_str).expect("反序列化Failed");
 
         assert_eq!(deserialized.variables.len(), 2);
         assert_eq!(deserialized.variables[0].name, "var1");

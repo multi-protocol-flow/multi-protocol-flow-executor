@@ -26,16 +26,16 @@ use super::types::{
 ///
 /// # 返回
 /// - `Ok(StressTestReport)`: 生成的报告
-/// - `Err(String)`: 生成失败
+/// - `Err(String)`: 生成Failed
 ///
 /// # 功能
 /// - 从 `MetricsCollector` 获取统计数据
 /// - 从 config 获取配置快照
-/// - 计算汇总统计（总次数、成功/失败数、成功率）
+/// - 计算汇总统计（总次数、Success/Failed数、Success率）
 /// - 计算响应时间分布（平均值、最小值、最大值、P50/P90/P95/P99）
 /// - 计算实际 RPS
-/// - 提取错误分类统计
-/// - 提取前 10 条错误样例（由 `MetricsCollector` 限制）
+/// - 提取Error分类统计
+/// - 提取前 10 条Error样例（由 `MetricsCollector` 限制）
 /// - 如果提供了 `reports_dir，调用` `save_stress_report()` 持久化报告
 pub fn generate_report(
     flow: &Flow,
@@ -163,11 +163,11 @@ mod tests {
         assert_eq!(report.response_time_distribution.max_ms, 0);
         assert_eq!(report.response_time_distribution.p50_ms, 0);
 
-        // 验证错误统计（空）
+        // 验证Error统计（空）
         assert!(report.error_statistics.is_empty());
     }
 
-    /// 测试生成带成功数据的报告
+    /// 测试生成带Success数据的报告
     #[test]
     fn test_generate_report_with_success_data() {
         let flow = create_test_flow();
@@ -181,7 +181,7 @@ mod tests {
             .unwrap_or(0);
         metrics.set_start_time(start_time_ms);
 
-        // 记录一些成功执行
+        // 记录一些Success执行
         metrics.record_success(100);
         metrics.record_success(150);
         metrics.record_success(200);
@@ -208,7 +208,7 @@ mod tests {
         );
     }
 
-    /// 测试生成带错误数据的报告
+    /// 测试生成带Error数据的报告
     #[test]
     fn test_generate_report_with_errors() {
         let flow = create_test_flow();
@@ -222,7 +222,7 @@ mod tests {
             .unwrap_or(0);
         metrics.set_start_time(start_time_ms);
 
-        // 记录成功和失败
+        // 记录Success和Failed
         metrics.record_success(100);
         metrics.record_success(100);
 
@@ -243,21 +243,21 @@ mod tests {
         assert_eq!(report.statistics.total_iterations, 3);
         assert_eq!(report.statistics.successful, 2);
         assert_eq!(report.statistics.failed, 1);
-        // 成功率: 2/3 ≈ 0.6667
+        // Success率: 2/3 ≈ 0.6667
         assert!(
             (report.statistics.success_rate - 0.6667).abs() < 0.01,
             "success_rate 应该接近 0.6667，实际为 {}",
             report.statistics.success_rate
         );
 
-        // 验证错误统计
+        // 验证Error统计
         assert_eq!(report.error_statistics.len(), 1);
         assert_eq!(report.error_statistics[0].error_kind, "Timeout");
         assert_eq!(report.error_statistics[0].count, 1);
         assert_eq!(report.error_statistics[0].samples.len(), 1);
     }
 
-    /// 测试生成带多种错误类型的报告
+    /// 测试生成带多种Error类型的报告
     #[test]
     fn test_generate_report_with_multiple_error_kinds() {
         let flow = create_test_flow();
@@ -271,7 +271,7 @@ mod tests {
             .unwrap_or(0);
         metrics.set_start_time(start_time_ms);
 
-        // 记录多种错误
+        // 记录多种Error
         for i in 0..3 {
             let sample = ErrorSample {
                 iteration: i,
@@ -297,7 +297,7 @@ mod tests {
 
         let report = generate_report(&flow, &config, &metrics, start_time, None).unwrap();
 
-        // 验证错误统计
+        // 验证Error统计
         assert_eq!(report.error_statistics.len(), 2);
 
         let timeout_stat = report
@@ -407,16 +407,16 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(10));
 
         // 创建临时目录
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path();
 
         let report = generate_report(&flow, &config, &metrics, start_time, Some(reports_dir));
 
-        assert!(report.is_ok(), "生成报告应该成功");
+        assert!(report.is_ok(), "生成报告应该Success");
 
         // 验证文件已创建
         let files: Vec<_> = std::fs::read_dir(reports_dir)
-            .expect("读取目录失败")
+            .expect("读取目录Failed")
             .filter_map(|e| e.ok())
             .collect();
 
@@ -443,10 +443,10 @@ mod tests {
 
         let report = generate_report(&flow, &config, &metrics, start_time, None);
 
-        assert!(report.is_ok(), "生成报告应该成功");
+        assert!(report.is_ok(), "生成报告应该Success");
 
         // 不应该有任何文件操作
-        // 这里只验证报告生成成功，不涉及文件系统
+        // 这里只验证报告生成Success，不涉及文件系统
     }
 
     /// 测试报告 UUID 唯一性

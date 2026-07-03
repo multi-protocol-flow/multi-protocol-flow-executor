@@ -45,7 +45,7 @@ impl NodeExecutor for AmqpGetExecutor {
             NodeData::AmqpGet(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 AmqpGetConfig: {}",
+                    "Node data type is not AmqpGetConfig: {}",
                     node.uuid
                 )))
             }
@@ -53,9 +53,9 @@ impl NodeExecutor for AmqpGetExecutor {
 
         // 2. 变量替换（queue）
         let queue = replace_variables(&config.queue, context).map_err(|e| {
-            let error_msg = format!("queue 变量替换失败: {}", e);
+            let error_msg = format!("queue variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -66,7 +66,7 @@ impl NodeExecutor for AmqpGetExecutor {
 
         // 3. 日志：开始获取
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp_get, queue: {}, no_ack: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp_get, queue: {}, no_ack: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -77,7 +77,7 @@ impl NodeExecutor for AmqpGetExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("AMQP 获取节点 {} 开始执行", node.name),
+                message: format!("AMQP 获取节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
@@ -107,7 +107,7 @@ impl NodeExecutor for AmqpGetExecutor {
 
                 if output.success {
                     log::info!(
-                        "[AMQP] 获取成功: uuid={}, queue={}, 队列剩余={}, 耗时={}ms",
+                        "[AMQP] 获取Success: uuid={}, queue={}, 队列剩余={}, 耗时={}ms",
                         node.uuid,
                         resolved_config.queue,
                         output.message_count_remaining.unwrap_or(0),
@@ -115,7 +115,7 @@ impl NodeExecutor for AmqpGetExecutor {
                     );
                 } else {
                     log::warn!(
-                        "[AMQP] 获取失败: uuid={}, queue={}, error={:?} ({}ms)",
+                        "[AMQP] 获取Failed: uuid={}, queue={}, error={:?} ({}ms)",
                         node.uuid,
                         resolved_config.queue,
                         output.error,
@@ -160,14 +160,14 @@ impl NodeExecutor for AmqpGetExecutor {
                 let log_message = if output.success {
                     let has_msg = output.message.is_some();
                     format!(
-                        "AMQP 获取成功, {} ({}ms)",
+                        "AMQP 获取Success, {} ({}ms)",
                         if has_msg { "获取到消息" } else { "队列为空" },
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "AMQP 获取失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "AMQP 获取Failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -186,7 +186,7 @@ impl NodeExecutor for AmqpGetExecutor {
                     })
                     .await;
 
-                // 8. 路由：成功走 true 端口，失败走 false 端口
+                // 8. 路由：Success走 true 端口，Failed走 false 端口
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, port);
 
@@ -230,9 +230,9 @@ impl NodeExecutor for AmqpGetExecutor {
                 });
 
                 // 返回 false 端口
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP get 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("AMQP get Failed: {}", e)));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -274,13 +274,13 @@ mod tests {
         AmqpConnectOutput, AmqpConnectionInfo, AmqpGetOutput, AmqpMessage,
     };
 
-    /// Mock AmqpProvider（获取成功，返回消息）
+    /// Mock AmqpProvider（获取Success，返回消息）
     struct MockAmqpProvider {
         output: AmqpGetOutput,
     }
 
     impl MockAmqpProvider {
-        /// 创建成功获取 Mock，返回指定消息
+        /// 创建Success获取 Mock，返回指定消息
         fn new_success_with_message(message: AmqpMessage, remaining: u32) -> Self {
             Self {
                 output: AmqpGetOutput {
@@ -292,7 +292,7 @@ mod tests {
             }
         }
 
-        /// 创建成功获取 Mock，队列为空
+        /// 创建Success获取 Mock，队列为空
         fn new_success_empty_queue() -> Self {
             Self {
                 output: AmqpGetOutput {
@@ -304,7 +304,7 @@ mod tests {
             }
         }
 
-        /// 创建失败获取 Mock
+        /// 创建Failed获取 Mock
         fn new_failure(error: &str) -> Self {
             Self {
                 output: AmqpGetOutput {
@@ -632,7 +632,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, config: AmqpGetConfig) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -678,7 +678,7 @@ mod tests {
         }
     }
 
-    /// 测试：获取成功时输出 JSON 结构正确
+    /// 测试：获取Success时输出 JSON 结构正确
     #[tokio::test]
     async fn test_amqp_get_success_with_message() {
         let message = AmqpMessage {
@@ -701,7 +701,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
@@ -736,7 +736,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功（即使无消息）仍走 true 端口
+        // Success（即使无消息）仍走 true 端口
         assert_eq!(next_nodes, vec!["true"]);
 
         let data = output_data.unwrap();
@@ -746,12 +746,12 @@ mod tests {
         assert!(data["message"].is_null());
     }
 
-    /// 测试：获取失败时路由到 false 端口
+    /// 测试：获取Failed时路由到 false 端口
     #[tokio::test]
     async fn test_amqp_get_failure_routes_to_false() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_failure("队列不存在"));
         let executor = AmqpGetExecutor::new(amqp_manager);
-        let node = create_test_node("test-2", "失败测试", default_get_config());
+        let node = create_test_node("test-2", "Failed测试", default_get_config());
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -760,7 +760,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 失败应路由到 false 端口
+        // Failed应路由到 false 端口
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
@@ -770,7 +770,7 @@ mod tests {
         assert!(data["message"].is_null());
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_amqp_get_wrong_node_data_type() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success_empty_queue());
@@ -779,7 +779,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

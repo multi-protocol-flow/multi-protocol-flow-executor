@@ -44,12 +44,12 @@ impl NodePlugin for GrpcConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "连接成功".into(),
+                label: "Connect Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "连接失败".into(),
+                label: "connection failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -164,12 +164,12 @@ impl NodePlugin for GrpcCallPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "调用成功".into(),
+                label: "调用Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "调用失败".into(),
+                label: "调用Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -298,12 +298,12 @@ impl NodePlugin for GrpcClosePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -597,7 +597,7 @@ mod tests {
     fn test_call_resolve_port_with_streaming_output() {
         let plugin = GrpcCallPlugin;
 
-        // 模拟 streaming 成功输出（有 responses 数组）
+        // 模拟 streaming Success输出（有 responses 数组）
         let streaming_success = serde_json::json!({
             "success": true,
             "pattern": "server_streaming",
@@ -605,7 +605,7 @@ mod tests {
         });
         assert_eq!(plugin.resolve_port(&Some(streaming_success)), "true");
 
-        // 模拟 streaming 失败输出
+        // 模拟 streaming Failed输出
         let streaming_error = serde_json::json!({
             "success": false,
             "pattern": "bidi_streaming",
@@ -618,11 +618,11 @@ mod tests {
     fn test_connect_resolve_port_with_streaming_output() {
         let plugin = GrpcConnectPlugin;
 
-        // 连接成功
+        // 连接Success
         let success = serde_json::json!({"success": true, "services": []});
         assert_eq!(plugin.resolve_port(&Some(success)), "true");
 
-        // 连接失败
+        // connection failed
         let failure = serde_json::json!({"success": false, "error": "连接超时"});
         assert_eq!(plugin.resolve_port(&Some(failure)), "false");
     }
@@ -631,13 +631,13 @@ mod tests {
     fn test_close_resolve_port_with_various_outputs() {
         let plugin = GrpcClosePlugin;
 
-        // 关闭成功
+        // 关闭Success
         assert_eq!(
             plugin.resolve_port(&Some(serde_json::json!({"success": true}))),
             "true"
         );
 
-        // 关闭失败
+        // 关闭Failed
         assert_eq!(
             plugin.resolve_port(&Some(serde_json::json!({"success": false}))),
             "false"

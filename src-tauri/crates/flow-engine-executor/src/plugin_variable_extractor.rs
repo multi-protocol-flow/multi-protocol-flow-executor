@@ -19,7 +19,7 @@ impl NodePlugin for VariableExtractorPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "变量提取"
+        "Variable Extraction"
     }
 
     fn category(&self) -> &str {

@@ -43,14 +43,14 @@ impl NodeExecutor for McpConnectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::McpConnect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 McpConnectConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not McpConnectConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换（URL 和 Stdio 的 command/args 都需要替换）
         let url = replace_variables(&config.url, context).map_err(|e| {
-            let error_msg = format!("URL 变量替换失败: {}", e);
+            let error_msg = format!("URL variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -62,7 +62,7 @@ impl NodeExecutor for McpConnectExecutor {
         // Stdio 模式下替换 command 和 args 中的变量
         let command = match &config.command {
             Some(cmd) => Some(replace_variables(cmd, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("command 变量替换失败: {}", e))
+                ErrorDetail::execution_error(format!("command variable substitution failed: {}", e))
             })?),
             None => None,
         };
@@ -71,7 +71,7 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = Vec::new();
                 for arg in arg_list {
                     replaced.push(replace_variables(arg, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("args 变量替换失败: {}", e))
+                        ErrorDetail::execution_error(format!("args variable substitution failed: {}", e))
                     })?);
                 }
                 Some(replaced)
@@ -95,7 +95,7 @@ impl NodeExecutor for McpConnectExecutor {
         };
 
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: mcp_connect, URL: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mcp_connect, URL: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -105,10 +105,10 @@ impl NodeExecutor for McpConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("MCP 连接节点 {} 开始执行", node.name),
+                message: format!("MCP 连接节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -122,10 +122,10 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = HashMap::new();
                 for (key, value) in h {
                     let replaced_key = replace_variables(key, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("headers key 变量替换失败: {}", e))
+                        ErrorDetail::execution_error(format!("headers key variable substitution failed: {}", e))
                     })?;
                     let replaced_value = replace_variables(value, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("headers value 变量替换失败: {}", e))
+                        ErrorDetail::execution_error(format!("headers value variable substitution failed: {}", e))
                     })?;
                     replaced.insert(replaced_key, replaced_value);
                 }
@@ -139,10 +139,10 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = HashMap::new();
                 for (key, value) in h {
                     let replaced_key = replace_variables(key, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("custom_headers key 变量替换失败: {}", e))
+                        ErrorDetail::execution_error(format!("custom_headers key variable substitution failed: {}", e))
                     })?;
                     let replaced_value = replace_variables(value, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("custom_headers value 变量替换失败: {}", e))
+                        ErrorDetail::execution_error(format!("custom_headers value variable substitution failed: {}", e))
                     })?;
                     replaced.insert(replaced_key, replaced_value);
                 }
@@ -156,10 +156,10 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = HashMap::new();
                 for (key, value) in e {
                     let replaced_key = replace_variables(key, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("env key 变量替换失败: {}", e))
+                        ErrorDetail::execution_error(format!("env key variable substitution failed: {}", e))
                     })?;
                     let replaced_value = replace_variables(value, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("env value 变量替换失败: {}", e))
+                        ErrorDetail::execution_error(format!("env value variable substitution failed: {}", e))
                     })?;
                     replaced.insert(replaced_key, replaced_value);
                 }
@@ -192,7 +192,7 @@ impl NodeExecutor for McpConnectExecutor {
         match connect_result {
             Ok(conn_info) => {
                 log::info!(
-                    "[MCP] 连接成功: uuid={}, url={}, 工具数={}, 资源数={}",
+                    "[MCP] 连接Success: uuid={}, url={}, 工具数={}, 资源数={}",
                     node.uuid,
                     conn_info.url,
                     conn_info.tools.len(),
@@ -258,7 +258,7 @@ impl NodeExecutor for McpConnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "MCP 连接成功，发现 {} 个工具，{} 个资源，{} 个提示词 ({}ms)",
+                            "MCP 连接Success，发现 {} 个工具，{} 个资源，{} 个提示词 ({}ms)",
                             conn_info.tools.len(),
                             conn_info.resources.len(),
                             conn_info.prompts.len(),
@@ -266,7 +266,7 @@ impl NodeExecutor for McpConnectExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -274,7 +274,7 @@ impl NodeExecutor for McpConnectExecutor {
                     })
                     .await;
 
-                // 8. 成功时走 true 端口
+                // 8. Success时走 true 端口
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -295,20 +295,20 @@ impl NodeExecutor for McpConnectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[MCP] 连接失败: uuid={}, url={}, error={}",
+                    "[MCP] connection failed: uuid={}, url={}, error={}",
                     node.uuid,
                     display_url,
                     e
                 );
 
-                // 日志：连接失败
+                // 日志：connection failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MCP 连接失败: {}", e),
+                        message: format!("MCP connection failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -316,7 +316,7 @@ impl NodeExecutor for McpConnectExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let duration = start_time.elapsed();
                 let error_output = json!({
                     "success": false,
@@ -371,7 +371,7 @@ mod tests {
     use flow_engine_core::traits::{McpConnectionInfo, McpPromptInfo, McpResourceInfo, McpServerInfo, McpToolInfo};
     use crate::mcp_connection_manager::McpConnectionManager;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, url: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -405,7 +405,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -490,7 +490,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -527,7 +527,7 @@ mod tests {
         }
     }
 
-    /// 模拟 MCP Provider（连接成功）
+    /// 模拟 MCP Provider（连接Success）
     struct MockMcpProvider {
         connection_info: McpConnectionInfo,
     }
@@ -628,7 +628,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -656,12 +656,12 @@ mod tests {
         (context, event_receiver)
     }
 
-    /// 测试：连接失败时不发射 McpConnectionCreated 调试事件
+    /// 测试：connection failed时不发射 McpConnectionCreated 调试事件
     #[tokio::test]
     async fn test_debug_event_not_emitted_on_connect_failure() {
         let mcp_manager = Arc::new(McpConnectionManager::new());
         let executor = McpConnectExecutor::new(mcp_manager);
-        let node = create_test_node("test-fail", "失败测试", "http://192.0.2.1:9999/mcp");
+        let node = create_test_node("test-fail", "Failed测试", "http://192.0.2.1:9999/mcp");
         let (mut context, mut event_receiver) = create_context_with_debug_sender("test-flow");
 
         let result = executor
@@ -669,21 +669,21 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        // 连接失败，不应发射调试事件
+        // connection failed，不应发射调试事件
         let events: Vec<_> = (&mut event_receiver).try_recv().into_iter().collect();
         assert!(
             events.is_empty(),
-            "连接失败时不应发射调试事件，但收到: {:?}",
+            "connection failed时不应发射调试事件，但收到: {:?}",
             events
         );
     }
 
-    /// 测试：连接成功时发射 McpConnectionCreated 调试事件
+    /// 测试：连接Success时发射 McpConnectionCreated 调试事件
     #[tokio::test]
     async fn test_debug_event_mcp_connection_created() {
         let mcp_manager = Arc::new(MockMcpProvider::new());
         let executor = McpConnectExecutor::new(mcp_manager);
-        let node = create_test_node("test-ok", "成功测试", "http://mock-server/mcp");
+        let node = create_test_node("test-ok", "Success测试", "http://mock-server/mcp");
         let (mut context, mut event_receiver) = create_context_with_debug_sender("test-flow");
 
         let result = executor

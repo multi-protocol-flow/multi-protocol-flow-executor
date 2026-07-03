@@ -30,7 +30,7 @@ pub struct SaveFlowCommandInput {
 /// 保存流程命令的输出结果
 #[derive(Debug, serde::Serialize)]
 pub struct SaveFlowCommandOutput {
-    /// 是否保存成功
+    /// 是否保存Success
     pub success: bool,
 }
 
@@ -66,7 +66,7 @@ pub struct ExecuteFlowCommandOutput {
     pub data: Option<Value>,
     /// 执行报告（可选）
     pub flow_report: Option<FlowExecutionReport>,
-    /// 错误信息（可选）
+    /// Error信息（可选）
     pub error: Option<String>,
     /// 执行时间（毫秒）
     pub execution_time: u64,
@@ -86,9 +86,9 @@ pub struct UpdateNodeCommandInput {
 /// 更新节点命令的输出结果
 #[derive(Debug, serde::Serialize)]
 pub struct UpdateNodeCommandOutput {
-    /// 是否更新成功
+    /// 是否更新Success
     pub success: bool,
-    /// 错误信息（可选）
+    /// Error信息（可选）
     pub error: Option<String>,
 }
 
@@ -104,8 +104,8 @@ pub struct DeleteNodeCommandInput {
 /// 删除节点命令的输出结果
 #[derive(Debug, serde::Serialize)]
 pub struct DeleteNodeCommandOutput {
-    /// 是否删除成功
+    /// 是否删除Success
     pub success: bool,
-    /// 错误信息（可选）
+    /// Error信息（可选）
     pub error: Option<String>,
 }

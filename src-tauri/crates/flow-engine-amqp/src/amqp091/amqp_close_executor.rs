@@ -1,7 +1,7 @@
 //! AMQP 关闭连接节点执行器
 //!
 //! 实现 AMQP 0-9-1 连接关闭功能。
-//! 关闭始终走 "out" 端口（失败不阻塞流程）。
+//! 关闭始终走 "out" 端口（Failed不阻塞流程）。
 //! 共享模式下 close 为 no-op。
 
 use std::collections::HashMap;
@@ -46,7 +46,7 @@ impl NodeExecutor for AmqpCloseExecutor {
             NodeData::AmqpClose(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 AmqpCloseConfig: {}",
+                    "Node data type is not AmqpCloseConfig: {}",
                     node.uuid
                 )))
             }
@@ -54,9 +54,9 @@ impl NodeExecutor for AmqpCloseExecutor {
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -67,7 +67,7 @@ impl NodeExecutor for AmqpCloseExecutor {
 
         // 3. 日志：开始关闭
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp_close, 连接ID: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp_close, Connection ID: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -77,7 +77,7 @@ impl NodeExecutor for AmqpCloseExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("AMQP Close 节点 {} 开始执行", node.name),
+                message: format!("AMQP Close 节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
@@ -122,7 +122,7 @@ impl NodeExecutor for AmqpCloseExecutor {
         match close_result {
             Ok(()) => {
                 log::info!(
-                    "[AMQP] 连接关闭成功: connection_id={}",
+                    "[AMQP] 连接关闭Success: connection_id={}",
                     connection_id
                 );
 
@@ -145,7 +145,7 @@ impl NodeExecutor for AmqpCloseExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!("AMQP 连接关闭成功 ({}ms)", duration.as_millis()),
+                        message: format!("AMQP 连接关闭Success ({}ms)", duration.as_millis()),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap_or_default()
@@ -160,16 +160,16 @@ impl NodeExecutor for AmqpCloseExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[AMQP] 连接关闭失败: connection_id={}, error={}",
+                    "[AMQP] 连接关闭Failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
 
-                // 日志：关闭失败
+                // 日志：关闭Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("AMQP 连接关闭失败: {}", e),
+                        message: format!("AMQP 连接关闭Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap_or_default()
@@ -180,7 +180,7 @@ impl NodeExecutor for AmqpCloseExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据（仍然走 out 端口）
+                // 构建Error输出数据（仍然走 out 端口）
                 let error_output = json!({
                     "success": false,
                     "connection_id": connection_id,
@@ -209,7 +209,7 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -249,7 +249,7 @@ mod tests {
         }
     }
 
-    /// 测试：关闭不存在的连接，仍然路由到 "out" 端口（失败不阻塞流程）
+    /// 测试：关闭不存在的连接，仍然路由到 "out" 端口（Failed不阻塞流程）
     #[tokio::test]
     async fn test_amqp_close_nonexistent_connection_routes_to_out() {
         let amqp_manager = Arc::new(AmqpConnectionManager::new());
@@ -261,7 +261,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 Ok，走 out 端口（关闭失败不阻塞）
+        // 应该返回 Ok，走 out 端口（关闭Failed不阻塞）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["out"]);
@@ -272,7 +272,7 @@ mod tests {
         assert!(data["error"].is_string());
     }
 
-    /// 测试：NodeData 类型不匹配时返回错误
+    /// 测试：NodeData 类型不匹配时返回Error
     #[tokio::test]
     async fn test_amqp_close_wrong_node_data_type() {
         let amqp_manager = Arc::new(AmqpConnectionManager::new());
@@ -281,7 +281,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -330,7 +330,7 @@ mod tests {
         assert_eq!(data["success"], false);
     }
 
-    /// 测试：共享模式下关闭不存在的连接应成功（no-op）
+    /// 测试：共享模式下关闭不存在的连接应Success（no-op）
     #[tokio::test]
     async fn test_amqp_close_shared_mode_noop() {
         let amqp_manager = Arc::new(AmqpConnectionManager::new_shared());

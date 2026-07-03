@@ -18,7 +18,7 @@ impl NodePlugin for ConditionalPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "条件分支"
+        "Conditional Branch"
     }
 
     fn category(&self) -> &str {

@@ -22,7 +22,7 @@ pub(crate) fn json_to_dynamic_message(
 ) -> Result<DynamicMessage, String> {
     let mut deserializer = Deserializer::from_str(request_json);
     let msg = DynamicMessage::deserialize(descriptor, &mut deserializer)
-        .map_err(|e| format!("反序列化请求消息失败: {}", e))?;
+        .map_err(|e| format!("反序列化请求消息Failed: {}", e))?;
     deserializer
         .end()
         .map_err(|e| format!("请求 JSON 包含多余数据: {}", e))?;
@@ -35,8 +35,8 @@ pub(crate) fn dynamic_message_to_json(msg: &DynamicMessage) -> Result<serde_json
     let mut buf = Vec::new();
     let mut ser = serde_json::Serializer::new(&mut buf);
     msg.serialize_with_options(&mut ser, &options)
-        .map_err(|e| format!("序列化响应消息失败: {}", e))?;
-    serde_json::from_slice(&buf).map_err(|e| format!("解析响应 JSON 失败: {}", e))
+        .map_err(|e| format!("序列化响应消息Failed: {}", e))?;
+    serde_json::from_slice(&buf).map_err(|e| format!("解析响应 JSON Failed: {}", e))
 }
 
 /// 合并连接级默认 metadata 与调用级 metadata

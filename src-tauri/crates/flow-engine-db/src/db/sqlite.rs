@@ -41,8 +41,8 @@ impl SqliteConnection {
     ///
     /// # 返回
     ///
-    /// * `Ok(SqliteConnection)` - 连接池创建成功
-    /// * `Err(String)` - 连接池创建失败
+    /// * `Ok(SqliteConnection)` - 连接池创建Success
+    /// * `Err(String)` - 连接池创建Failed
     ///
     /// # 示例
     ///
@@ -76,9 +76,9 @@ impl SqliteConnection {
         let pool = pool_options
             .connect(&connection_string)
             .await
-            .map_err(|e| format!("SQLite 连接池创建失败: {}", e))?;
+            .map_err(|e| format!("SQLite 连接池创建Failed: {}", e))?;
 
-        log::info!("[SQLite] 连接池创建成功: name={}", name);
+        log::info!("[SQLite] 连接池创建Success: name={}", name);
 
         Ok(Self {
             pool,
@@ -97,8 +97,8 @@ impl SqliteConnection {
     ///
     /// # 返回
     ///
-    /// * `Ok(SqliteConnection)` - 连接池创建成功
-    /// * `Err(String)` - 连接池创建失败
+    /// * `Ok(SqliteConnection)` - 连接池创建Success
+    /// * `Err(String)` - 连接池创建Failed
     pub async fn from_config(config: &super::types::DbConnection) -> Result<Self, String> {
         // 获取连接字符串
         let connection_string = config.connection_string.clone().unwrap_or_else(|| {
@@ -138,8 +138,8 @@ impl DatabasePool for SqliteConnection {
     ///
     /// # 返回
     ///
-    /// * `Ok(QueryResult)` - 查询成功
-    /// * `Err(String)` - 查询失败
+    /// * `Ok(QueryResult)` - 查询Success
+    /// * `Err(String)` - 查询Failed
     async fn execute(&self, sql: &str, params: Vec<serde_json::Value>) -> Result<QueryResult, String> {
         log::debug!(
             "[SQLite] 执行查询: sql={}, params={:?}",
@@ -192,13 +192,13 @@ impl DatabasePool for SqliteConnection {
             .pool
             .acquire()
             .await
-            .map_err(|e| format!("SQLite 获取事务连接失败: {}", e))?;
+            .map_err(|e| format!("SQLite 获取事务connection failed: {}", e))?;
 
         // 执行 BEGIN
         sqlx::query("BEGIN")
             .execute(&mut *conn)
             .await
-            .map_err(|e| format!("SQLite BEGIN 失败: {}", e))?;
+            .map_err(|e| format!("SQLite BEGIN Failed: {}", e))?;
 
         *guard = Some(conn);
         log::info!("[SQLite] 事务已开始: name={}", self.name);
@@ -220,7 +220,7 @@ impl DatabasePool for SqliteConnection {
         sqlx::query("COMMIT")
             .execute(&mut *conn)
             .await
-            .map_err(|e| format!("SQLite COMMIT 失败: {}", e))?;
+            .map_err(|e| format!("SQLite COMMIT Failed: {}", e))?;
 
         // conn drop 后自动归还连接池
         drop(conn);
@@ -245,7 +245,7 @@ impl DatabasePool for SqliteConnection {
         sqlx::query("ROLLBACK")
             .execute(&mut *conn)
             .await
-            .map_err(|e| format!("SQLite ROLLBACK 失败: {}", e))?;
+            .map_err(|e| format!("SQLite ROLLBACK Failed: {}", e))?;
 
         // conn drop 后自动归还连接池
         drop(conn);
@@ -260,7 +260,7 @@ impl DatabasePool for SqliteConnection {
     /// # 返回
     ///
     /// * `Ok(())` - 连接正常
-    /// * `Err(String)` - 连接失败
+    /// * `Err(String)` - connection failed
     async fn test_connection(&self) -> Result<(), String> {
         log::info!("[SQLite] 测试连接: name={}", self.name);
 
@@ -269,11 +269,11 @@ impl DatabasePool for SqliteConnection {
 
         match result {
             Ok(_) => {
-                log::info!("[SQLite] 连接测试成功: name={}", self.name);
+                log::info!("[SQLite] 连接测试Success: name={}", self.name);
                 Ok(())
             }
             Err(e) => {
-                log::error!("[SQLite] 连接测试失败: name={}, error={}", self.name, e);
+                log::error!("[SQLite] 连接测试Failed: name={}, error={}", self.name, e);
                 Err(e)
             }
         }
@@ -326,7 +326,7 @@ impl SqliteConnection {
             let rows = query
                 .fetch_all(&self.pool)
                 .await
-                .map_err(|e| format!("SQLite 查询执行失败: {}", e))?;
+                .map_err(|e| format!("SQLite 查询执行Failed: {}", e))?;
 
             // 处理结果
             if rows.is_empty() {
@@ -374,7 +374,7 @@ impl SqliteConnection {
             let result = query
                 .execute(&self.pool)
                 .await
-                .map_err(|e| format!("SQLite 执行失败: {}", e))?;
+                .map_err(|e| format!("SQLite 执行Failed: {}", e))?;
 
             Ok(QueryResult::with_affected_rows(result.rows_affected()))
         }
@@ -400,7 +400,7 @@ impl SqliteConnection {
             let rows = query
                 .fetch_all(conn)
                 .await
-                .map_err(|e| format!("SQLite 查询执行失败: {}", e))?;
+                .map_err(|e| format!("SQLite 查询执行Failed: {}", e))?;
 
             if rows.is_empty() {
                 return Ok(QueryResult::empty());
@@ -441,7 +441,7 @@ impl SqliteConnection {
             let result = query
                 .execute(conn)
                 .await
-                .map_err(|e| format!("SQLite 执行失败: {}", e))?;
+                .map_err(|e| format!("SQLite 执行Failed: {}", e))?;
 
             Ok(QueryResult::with_affected_rows(result.rows_affected()))
         }

@@ -107,9 +107,9 @@ pub async fn connect_async(
 
     let connection = Connection::open(container_id, url)
         .await
-        .map_err(|e| format!("AMQP 1.0 连接失败: {}", e))?;
+        .map_err(|e| format!("AMQP 1.0 connection failed: {}", e))?;
 
-    info!("AMQP 1.0 连接成功: url={}", url);
+    info!("AMQP 1.0 连接Success: url={}", url);
     Ok(connection)
 }
 
@@ -123,7 +123,7 @@ pub async fn begin_session(
 ) -> Result<Amqp10Session, String> {
     Session::begin(connection)
         .await
-        .map_err(|e| format!("AMQP 1.0 创建会话失败: {}", e))
+        .map_err(|e| format!("AMQP 1.0 创建会话Failed: {}", e))
 }
 
 // ---------------------------------------------------------------------------
@@ -141,7 +141,7 @@ pub async fn attach_sender(
     info!("AMQP 1.0 创建 Sender: name={}, address={}", name, address);
     Sender::attach(session, name, address)
         .await
-        .map_err(|e| format!("AMQP 1.0 创建 Sender '{}' 失败: {}", name, e))
+        .map_err(|e| format!("AMQP 1.0 创建 Sender '{}' Failed: {}", name, e))
 }
 
 /// 创建 Receiver Link
@@ -155,7 +155,7 @@ pub async fn attach_receiver(
     info!("AMQP 1.0 创建 Receiver: name={}, address={}", name, address);
     Receiver::attach(session, name, address)
         .await
-        .map_err(|e| format!("AMQP 1.0 创建 Receiver '{}' 失败: {}", name, e))
+        .map_err(|e| format!("AMQP 1.0 创建 Receiver '{}' Failed: {}", name, e))
 }
 
 // ---------------------------------------------------------------------------
@@ -167,7 +167,7 @@ pub async fn send_string(sender: &mut Sender, body: &str) -> Result<(), String> 
     let outcome: Outcome = sender
         .send(body)
         .await
-        .map_err(|e| format!("AMQP 1.0 发送消息失败: {}", e))?;
+        .map_err(|e| format!("AMQP 1.0 发送消息Failed: {}", e))?;
 
     outcome
         .accepted_or_else(|state| format!("AMQP 1.0 消息被 Broker 拒绝: {:?}", state))
@@ -194,7 +194,7 @@ pub async fn send_message_with_properties(
     let outcome: Outcome = sender
         .send(message)
         .await
-        .map_err(|e| format!("AMQP 1.0 发送消息失败: {}", e))?;
+        .map_err(|e| format!("AMQP 1.0 发送消息Failed: {}", e))?;
 
     outcome
         .accepted_or_else(|state| format!("AMQP 1.0 消息被 Broker 拒绝: {:?}", state))
@@ -208,9 +208,9 @@ pub async fn receive_string(receiver: &mut Receiver) -> Result<Delivery<String>,
     let delivery = receiver
         .recv::<String>()
         .await
-        .map_err(|e| format!("AMQP 1.0 接收消息失败: {}", e))?;
+        .map_err(|e| format!("AMQP 1.0 接收消息Failed: {}", e))?;
 
-    info!("AMQP 1.0 接收消息成功: delivery_id={}", delivery.delivery_id());
+    info!("AMQP 1.0 接收消息Success: delivery_id={}", delivery.delivery_id());
     Ok(delivery)
 }
 
@@ -226,8 +226,8 @@ pub async fn accept_delivery(
     receiver
         .accept(delivery)
         .await
-        .map_err(|e| format!("AMQP 1.0 确认消息失败: {}", e))?;
-    info!("AMQP 1.0 确认消息成功: delivery_id={}", delivery.delivery_id());
+        .map_err(|e| format!("AMQP 1.0 确认消息Failed: {}", e))?;
+    info!("AMQP 1.0 确认消息Success: delivery_id={}", delivery.delivery_id());
     Ok(())
 }
 
@@ -240,8 +240,8 @@ pub async fn reject_delivery(
     receiver
         .reject(delivery, error)
         .await
-        .map_err(|e| format!("AMQP 1.0 拒绝消息失败: {}", e))?;
-    info!("AMQP 1.0 拒绝消息成功: delivery_id={}", delivery.delivery_id());
+        .map_err(|e| format!("AMQP 1.0 拒绝消息Failed: {}", e))?;
+    info!("AMQP 1.0 拒绝消息Success: delivery_id={}", delivery.delivery_id());
     Ok(())
 }
 
@@ -254,7 +254,7 @@ pub async fn close_connection(connection: &mut Amqp10Connection) -> Result<(), S
     connection
         .close()
         .await
-        .map_err(|e| format!("AMQP 1.0 关闭连接失败: {}", e))?;
+        .map_err(|e| format!("AMQP 1.0 关闭connection failed: {}", e))?;
     info!("AMQP 1.0 连接已关闭");
     Ok(())
 }
@@ -264,7 +264,7 @@ pub async fn end_session(session: &mut Amqp10Session) -> Result<(), String> {
     session
         .end()
         .await
-        .map_err(|e| format!("AMQP 1.0 关闭会话失败: {}", e))?;
+        .map_err(|e| format!("AMQP 1.0 关闭会话Failed: {}", e))?;
     info!("AMQP 1.0 会话已关闭");
     Ok(())
 }

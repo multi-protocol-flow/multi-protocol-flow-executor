@@ -13,7 +13,7 @@ pub enum LogLevel {
     Debug,
     /// 警告级别
     Warn,
-    /// 错误级别
+    /// Error级别
     Error,
 }
 

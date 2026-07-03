@@ -46,12 +46,12 @@ impl NodePlugin for McpConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "连接成功".into(),
+                label: "Connect Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "连接失败".into(),
+                label: "connection failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -186,12 +186,12 @@ impl NodePlugin for McpCallToolPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "调用成功".into(),
+                label: "调用Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "调用失败".into(),
+                label: "调用Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -301,12 +301,12 @@ impl NodePlugin for McpReadResourcePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "读取成功".into(),
+                label: "读取Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "读取失败".into(),
+                label: "读取Failed".into(),
                 position: "bottom".into(),
             },
         ]
@@ -502,12 +502,12 @@ impl NodePlugin for McpGetPromptPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "获取成功".into(),
+                label: "获取Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "获取失败".into(),
+                label: "获取Failed".into(),
                 position: "bottom".into(),
             },
         ]

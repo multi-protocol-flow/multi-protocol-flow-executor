@@ -33,8 +33,8 @@ pub fn get_json_type(value: &Value) -> &str {
 ///
 /// # 返回
 /// - `Ok(true)`: 断言通过
-/// - `Ok(false)`: 断言失败
-/// - `Err(String)`: 操作符执行错误（如类型不匹配）
+/// - `Ok(false)`: 断言Failed
+/// - `Err(String)`: 操作符执行Error（如类型不匹配）
 pub fn evaluate_operator(
     operator: &AssertionOperator,
     actual: &Value,

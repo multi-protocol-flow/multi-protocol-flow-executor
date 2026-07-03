@@ -25,11 +25,11 @@ pub use flow_engine_core::executor::{NodeExecutor, replace_variables};
 /// 执行结果
 #[derive(Debug, Clone)]
 pub struct ExecutionResult {
-    /// 执行是否成功
+    /// 执行是否Success
     pub success: bool,
     /// 返回数据
     pub data: Option<serde_json::Value>,
-    /// 错误信息
+    /// Error信息
     pub error: Option<String>,
     /// 已执行节点数量
     pub executed_count: u32,
@@ -306,7 +306,7 @@ impl FlowExecutor {
         let mut current_node_id = start_node.uuid.clone();
         let mut visited = std::collections::HashSet::new();
 
-        // 执行路径追踪（Task 14）：记录所有成功执行的节点 UUID
+        // 执行路径追踪（Task 14）：记录所有Success执行的节点 UUID
         let mut execution_path: Vec<String> = Vec::new();
 
         // 跳过节点记录（Task 15）：记录被跳过的节点及原因
@@ -335,7 +335,7 @@ impl FlowExecutor {
             // 非阻塞取消检查：每次迭代开始时检查取消信号
             if context.is_cancelled() {
                 log::info!(
-                    "[流程 {}] 执行在节点 {} 之前被取消",
+                    "[流程 {}] Execution cancelled on node {} ",
                     context.flow_uuid,
                     node.name
                 );
@@ -345,7 +345,7 @@ impl FlowExecutor {
             visited.insert(current_node_id.clone());
             context.current_node_uuid = Some(current_node_id.clone());
 
-            // 发送节点开始执行事件
+            // 发送节点start execution事件
             context.emit_execution_event(ExecutionEvent::NodeStarted {
                 node_uuid: node.uuid.clone(),
                 node_name: node.name.clone(),
@@ -380,13 +380,13 @@ impl FlowExecutor {
                             match result {
                                 Ok(inner) => Some(inner),
                                 Err(_) => {
-                                    log::info!("[流程 {}] 节点 {} 执行超时 ({}ms)", context.flow_uuid, node.name, ms);
+                                    log::info!("[流程 {}] Node {} execution timeout ({}ms)", context.flow_uuid, node.name, ms);
                                     Some(Err(ErrorDetail::new(ErrorKind::Timeout, format!("节点执行超时 ({}ms)", ms)).with_error_code_typed(ErrorCode::E_TIMEOUT)))
                                 }
                             }
                         }
                         _ = rx.changed() => {
-                            log::info!("[流程 {}] 节点 {} 执行期间收到取消信号", context.flow_uuid, node.name);
+                            log::info!("[流程 {}] 节点 {} received cancellation signal during execution", context.flow_uuid, node.name);
                             None
                         }
                     }
@@ -401,7 +401,7 @@ impl FlowExecutor {
                             Some(result)
                         }
                         _ = rx.changed() => {
-                            log::info!("[流程 {}] 节点 {} 执行期间收到取消信号", context.flow_uuid, node.name);
+                            log::info!("[流程 {}] 节点 {} received cancellation signal during execution", context.flow_uuid, node.name);
                             None
                         }
                     }
@@ -412,7 +412,7 @@ impl FlowExecutor {
                     match tokio::time::timeout(timeout_dur, self.execute_node(node, &mut context, &flow.connections, &node_map)).await {
                         Ok(result) => Some(result),
                         Err(_) => {
-                            log::info!("[流程 {}] 节点 {} 执行超时 ({}ms)", context.flow_uuid, node.name, ms);
+                            log::info!("[流程 {}] Node {} execution timeout ({}ms)", context.flow_uuid, node.name, ms);
                             Some(Err(ErrorDetail::new(ErrorKind::Timeout, format!("节点执行超时 ({}ms)", ms)).with_error_code_typed(ErrorCode::E_TIMEOUT)))
                         }
                     }
@@ -453,7 +453,7 @@ impl FlowExecutor {
                     // 记录输出数据日志（不自动设置为变量）
                     if let Some(ref data) = output_data {
                         log::info!(
-                            "[流程 {}] 节点 {} 输出数据: {}",
+                            "[流程 {}] Node {} output data: {}",
                             context.flow_uuid,
                             node.name,
                             data
@@ -467,7 +467,7 @@ impl FlowExecutor {
 
                     // 计算变量变更：对比前后的变量差异
                     // 变量只会通过以下方式设置：
-                    // 1. Entry 节点的 initial_variables
+                    // 1. Entry node的 initial_variables
                     // 2. HTTP/WebSocket 节点的 output_mappings
                     let variables_after = context.variables.get_merged_variables();
                     let variable_changes = compute_variable_changes(&variables_before, &variables_after);
@@ -478,11 +478,11 @@ impl FlowExecutor {
                         flow_engine_core::executor::resolve_variables_in_json(&raw_config, &context)
                     );
 
-                    // 追踪执行路径（Task 14）：记录成功执行的节点 UUID
+                    // 追踪执行路径（Task 14）：记录Success执行的节点 UUID
                     execution_path.push(node.uuid.clone());
 
-                    // Phase 2.5: 注入 runtime_variables（在 Entry 节点执行后）
-                    // runtime_variables 用于数据驱动执行时注入 CSV 行数据，覆盖 Entry 节点的同名变量
+                    // Phase 2.5: 注入 runtime_variables（在 Entry node执行后）
+                    // runtime_variables 用于数据驱动执行时注入 CSV 行数据，覆盖 Entry node的同名变量
                     if node.node_type == node_types::ENTRY {
                         if let Some(ref rt_vars) = runtime_variables {
                             if let Some(obj) = rt_vars.as_object() {
@@ -501,7 +501,7 @@ impl FlowExecutor {
                         start_time: node_start_ms,
                         end_time: node_end_ms,
                         duration_ms: node_duration,
-                        // 只要 used_port_id 为 "false"，即使 executor 返回 Ok 也视为失败
+                        // 只要 used_port_id 为 "false"，即使 executor 返回 Ok 也视为Failed
                         status: if used_port_id.as_deref() == Some("false") {
                             flow_engine_core::report::ExecutionStatus::Failed
                         } else {
@@ -528,7 +528,7 @@ impl FlowExecutor {
                     // 发送节点完成日志
                     context.emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!("节点 {} 执行完成", node.name),
+                        message: format!("节点 {} execution complete", node.name),
                         timestamp: node_end_ms,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -540,7 +540,7 @@ impl FlowExecutor {
                         && next_node_id_from_executor.is_empty()
                     {
                         log::info!(
-                            "[流程 {}] 条件节点 {} 返回 false，停止流程",
+                            "[流程 {}] Conditional node {} returned false, stopping flow",
                             context.flow_uuid,
                             node.name
                         );
@@ -555,7 +555,7 @@ impl FlowExecutor {
                             flow_uuid: context.flow_uuid.clone(),
                         }).await;
 
-                        // 条件为 false 是正常的流程终止，返回成功
+                        // 条件为 false 是正常的流程终止，返回Success
                         break;
                     }
 
@@ -573,7 +573,7 @@ impl FlowExecutor {
                         // 端口路由节点：如果执行器返回空列表，说明没有匹配的端口连接
                         // 不使用 connection_map 回退，直接终止
                         log::info!(
-                            "[流程 {}] 端口路由节点 {} 没有匹配的端口连接，执行完成",
+                            "[流程 {}] Port routing node {} has no matching port connection, execution complete",
                             context.flow_uuid,
                             node.name
                         );
@@ -592,9 +592,9 @@ impl FlowExecutor {
                     if let Some(next_id) = next_node_id {
                         current_node_id = next_id;
                     } else {
-                        // 节点没有输出连接或执行器返回空列表，执行完成
+                        // 节点没有输出连接或执行器返回空列表，execution complete
                         log::info!(
-                            "[流程 {}] 节点 {} 没有下一个节点，执行完成",
+                            "[流程 {}] 节点 {} 没有下一个节点，execution complete",
                             context.flow_uuid,
                             node.name
                         );
@@ -614,7 +614,7 @@ impl FlowExecutor {
                         && error.message == "条件评估为false，停止执行"
                     {
                         log::info!(
-                            "[流程 {}] 条件节点 {} 评估为 false，停止流程",
+                            "[流程 {}] Conditional node {} evaluated to false, stopping flow",
                             context.flow_uuid,
                             node.name
                         );
@@ -659,7 +659,7 @@ impl FlowExecutor {
                         break;
                     }
 
-                    // 错误已由协议执行器构造为 ErrorDetail，直接传递
+                    // Error已由协议执行器构造为 ErrorDetail，直接传递
                     let error_detail = error;
                     
                     // 查找节点插件用于后续 registry 查询
@@ -685,7 +685,7 @@ impl FlowExecutor {
                     let used_port_id = if false_port_next_node.is_some() {
                         Some("false".to_string())
                     } else {
-                        // 错误回退：通过 registry 查找 resolve_port
+                        // Error回退：通过 registry 查找 resolve_port
                         self.registry.get(&type_id)
                             .map(|plugin| plugin.resolve_port(&None))
                             .map(Some)
@@ -731,7 +731,7 @@ impl FlowExecutor {
                     if route_to_false {
                         if let Some(next_node_uuid) = false_port_next_node {
                             log::info!(
-                                "[流程 {}] 节点 {} 执行失败，但有 false 端口连接，继续执行节点 {}",
+                                "[流程 {}] 节点 {} 执行Failed，但有 false 端口连接，继续执行节点 {}",
                                 context.flow_uuid,
                                 node.name,
                                 next_node_uuid
@@ -742,7 +742,7 @@ impl FlowExecutor {
                         }
                     }
 
-                    // Ignore 策略: 忽略错误，继续 true/out 端口执行（如同成功）
+                    // Ignore 策略: 忽略Error，继续 true/out 端口执行（如同Success）
                     if is_ignore {
                         let next_node_id = flow.connections
                             .iter()
@@ -754,7 +754,7 @@ impl FlowExecutor {
 
                         if let Some(next_uuid) = next_node_id {
                             log::info!(
-                                "[流程 {}] 节点 {} 执行失败，但 on_error=Ignore，继续执行节点 {}",
+                                "[流程 {}] Node {} execution failed, on_error=Ignore, continuing to node {}",
                                 context.flow_uuid,
                                 node.name,
                                 next_uuid
@@ -766,19 +766,19 @@ impl FlowExecutor {
                         break;
                     }
 
-                    // 判断是否应终止流程（AbortFlow 策略或致命错误）
+                    // 判断是否应终止流程（AbortFlow 策略或致命Error）
                     if !is_ignore && (!route_to_false || error_detail.is_fatal()) {
                         if !route_to_false {
                             // AbortFlow 策略：立即终止流程
                             log::error!(
-                                "[流程 {}] 节点 {} 执行失败，on_error=AbortFlow，终止流程",
+                                "[流程 {}] 节点 {} 执行Failed，on_error=AbortFlow，终止流程",
                                 context.flow_uuid,
                                 node.name,
                             );
                         } else {
-                            // 致命错误（Configuration, ConditionSyntax）：立即终止流程
+                            // 致命Error（Configuration, ConditionSyntax）：立即终止流程
                             log::error!(
-                                "[流程 {}] 节点 {} 发生致命错误 ({:?}): {}",
+                                "[流程 {}] 节点 {} 发生致命Error ({:?}): {}",
                                 context.flow_uuid,
                                 node.name,
                                 error_detail.error_kind,
@@ -786,11 +786,11 @@ impl FlowExecutor {
                             );
                         }
 
-                        // 发送错误日志
+                        // 发送Error日志
                         let log_message = if !route_to_false {
                             format!("节点 {} on_error=AbortFlow，终止流程", node.name)
                         } else {
-                            format!("节点 {} 致命错误: {}", node.name, error_detail.message)
+                            format!("节点 {} 致命Error: {}", node.name, error_detail.message)
                         };
                         context.emit_log(LogEvent {
                             level: LogLevel::Error,
@@ -857,19 +857,19 @@ impl FlowExecutor {
                             flow_report: Some(flow_report),
                         };
                     } else {
-                        // 可恢复错误（Execution, Connection, Timeout 等）：记录失败，终止当前分支
+                        // 可恢复Error（Execution, Connection, Timeout 等）：记录Failed，, terminating current branch
                         log::warn!(
-                            "[流程 {}] 节点 {} 发生可恢复错误 ({:?}): {}，终止当前分支",
+                            "[流程 {}] Node {} recoverable error ({:?}): {}，, terminating current branch",
                             context.flow_uuid,
                             node.name,
                             error_detail.error_kind,
                             error_detail.message
                         );
 
-                        // 发送可恢复错误日志
+                        // 发送可恢复Error日志
                         context.emit_log(LogEvent {
                             level: LogLevel::Warn,
-                            message: format!("节点 {} 可恢复错误: {}", node.name, error_detail.message),
+                            message: format!("节点 {} 可恢复Error: {}", node.name, error_detail.message),
                             timestamp: std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
                                 .unwrap_or_default()
@@ -879,7 +879,7 @@ impl FlowExecutor {
                             flow_uuid: context.flow_uuid.clone(),
                         }).await;
 
-                        // 终止当前分支
+                        // , terminating current branch
                         break;
                     }
                 }
@@ -930,7 +930,7 @@ impl FlowExecutor {
             flow_engine_core::report::ExecutionStatus::Success
         };
 
-        // 在 flow_status 被 move 到 FlowExecutionReport 之前判断是否成功
+        // 在 flow_status 被 move 到 FlowExecutionReport 之前判断是否Success
         let flow_succeeded = !matches!(flow_status, flow_engine_core::report::ExecutionStatus::Failed);
 
         let flow_error = if is_cancelled {
@@ -1025,7 +1025,7 @@ impl FlowExecutor {
                 } else {
                     None
                 },
-                error: if flow_succeeded { None } else { Some("流程执行失败".to_string()) },
+                error: if flow_succeeded { None } else { Some("Flow execution failed".to_string()) },
                 executed_count,
                 node_reports,
                 flow_report: Some(flow_report),
@@ -1042,8 +1042,8 @@ impl FlowExecutor {
     ///
     /// # 返回
     /// - `Result<(Option<String>, Option<serde_json::Value>), String>`:
-    ///   - `Ok((next_node_id`, `output_data))`: 执行成功，返回下一个节点 ID 和输出数据
-    ///   - Err(error): 执行失败，返回错误信息
+    ///   - `Ok((next_node_id`, `output_data))`: 执行Success，返回下一个节点 ID 和输出数据
+    ///   - Err(error): 执行Failed，返回Error信息
     async fn execute_node(
         &self,
         node: &Node,
@@ -1068,7 +1068,7 @@ impl FlowExecutor {
         match self.registry.get(&type_id) {
             Some(plugin) => {
                 log::info!(
-                    "[流程 {}] 执行{}节点: {} ({})",
+                    "[流程 {}] Executing {} node: {} ({})",
                     context.flow_uuid,
                     plugin.display_name(),
                     node.name,
@@ -1302,7 +1302,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flow_executor_success() {
-        // 创建测试流程 - 单个 Entry 节点，无连接，正常终止
+        // 创建Test Flow - 单个 Entry node，无连接，正常终止
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -1315,12 +1315,12 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 验证执行结果（单个 Entry 节点无连接是正常终止）
+        // 验证执行结果（单个 Entry node无连接是正常终止）
         assert!(result.success);
         assert!(result.error.is_none());
         assert_eq!(result.executed_count, 1);
@@ -1328,7 +1328,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flow_executor_with_connection() {
-        // 创建测试流程
+        // 创建Test Flow
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -1344,7 +1344,7 @@ mod tests {
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -1360,7 +1360,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1391,21 +1391,21 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![http_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![http_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 验证执行失败
+        // 验证执行Failed
         assert!(!result.success);
         assert!(result.error.is_some());
-        assert!(result.error.unwrap().contains("流程验证失败"));
+        assert!(result.error.unwrap().contains("流程验证Failed"));
         assert_eq!(result.executed_count, 0);
     }
 
     #[tokio::test]
     async fn test_flow_executor_with_variables() {
-        // 创建测试流程
+        // 创建Test Flow
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -1421,7 +1421,7 @@ mod tests {
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -1437,7 +1437,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let variables = json!({
             "test_var": "test_value",
@@ -1447,7 +1447,7 @@ mod tests {
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, Some(variables), None, None).await;
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.success);
         assert!(result.error.is_none());
         assert_eq!(result.executed_count, 2);
@@ -1455,7 +1455,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flow_executor_start_node_execution_time() {
-        // 创建测试流程
+        // 创建Test Flow
 
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -1472,7 +1472,7 @@ mod tests {
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -1488,14 +1488,14 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let start_time = Instant::now();
         let result = executor.execute_flow(&flow, None, None, None).await;
         let elapsed = start_time.elapsed();
 
-        // 验证执行成功
+        // 验证执行Success
         assert!(result.success);
         // 验证执行时间 < 10ms（开始节点应该立即传递）
         assert!(
@@ -1520,19 +1520,19 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 验证上下文中的 flow_uuid 使用了 flow.uuid（单个 Entry 节点无连接是正常终止）
+        // 验证上下文中的 flow_uuid 使用了 flow.uuid（单个 Entry node无连接是正常终止）
         assert!(result.success);
         assert_eq!(result.executed_count, 1);
     }
 
     #[tokio::test]
     async fn test_node_map_uses_node_uuid() {
-        // 测试节点映射构建使用 node.uuid
+        // Test Node映射构建使用 node.uuid
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -1548,7 +1548,7 @@ mod tests {
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -1564,12 +1564,12 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 验证执行成功（节点映射通过 node.uuid 查找成功）
+        // 验证执行Success（节点映射通过 node.uuid 查找Success）
         assert!(result.success);
         assert!(result.data.is_some());
     }
@@ -1592,7 +1592,7 @@ mod tests {
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -1608,12 +1608,12 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 验证连接映射成功使用了 source_node_uuid 和 target_node_uuid
+        // 验证连接映射Success使用了 source_node_uuid 和 target_node_uuid
         assert!(result.success);
         assert_eq!(result.executed_count, 2);
     }
@@ -1636,7 +1636,7 @@ mod tests {
         let end_node = Node {
             uuid: "end-uuid-tracker".to_string(),
             node_type: "entry".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -1652,7 +1652,7 @@ mod tests {
             target_port_id: "in".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1664,7 +1664,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_error_message_uses_node_uuid() {
-        // 测试错误消息使用 node.uuid
+        // 测试Error消息使用 node.uuid
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: "loop-node-uuid".to_string(),
@@ -1677,7 +1677,7 @@ mod tests {
         on_error: None,
         };
 
-        // 创建自连接以触发循环错误
+        // 创建自连接以触发循环Error
         let connection = Connection {
             id: "loop-conn".to_string(),
             source_node_uuid: start_node.uuid.clone(),
@@ -1686,17 +1686,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 验证错误消息包含 node.uuid
+        // 验证Error消息包含 node.uuid
         assert!(!result.success);
         assert!(result.error.is_some());
         let error_msg = result.error.unwrap();
         assert!(error_msg.contains("检测到循环"));
-        assert!(error_msg.contains("loop-node-uuid")); // 错误消息包含 node.uuid
+        assert!(error_msg.contains("loop-node-uuid")); // Error消息包含 node.uuid
     }
 
     #[tokio::test]
@@ -1717,7 +1717,7 @@ mod tests {
         let end_node = Node {
             uuid: "end-1".to_string(),
             node_type: "entry".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -1733,7 +1733,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1798,12 +1798,12 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), description: None, nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 验证执行成功，连接映射正确使用了 UUID
+        // 验证执行Success，连接映射正确使用了 UUID
         assert!(result.success);
         assert_eq!(result.executed_count, 2);
     }
@@ -2026,7 +2026,7 @@ mod tests {
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
             node_type: "entry".to_string(),
-            name: "结束".to_string(),
+            name: "End".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
@@ -2042,7 +2042,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消测试流程".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         // 创建取消通道并立即发送取消信号
         let (tx, rx) = tokio::sync::watch::channel(false);
@@ -2052,7 +2052,7 @@ mod tests {
         let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证取消结果
-        assert!(!result.success, "取消后不应该成功");
+        assert!(!result.success, "取消后不应该Success");
         assert!(result.error.is_some());
         assert!(result.error.unwrap().contains("取消"));
 
@@ -2077,7 +2077,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "正常执行测试流程".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "正常执行Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         // 创建取消通道但不发送信号
         let (_tx, rx) = tokio::sync::watch::channel(false);
@@ -2091,7 +2091,7 @@ mod tests {
         assert_eq!(result.executed_count, 1);
     }
 
-    /// 测试取消时 flow_error 包含 Cancelled 错误
+    /// 测试取消时 flow_error 包含 Cancelled Error
     #[tokio::test]
     async fn test_cancel_generates_cancelled_error_detail() {
         let flow_id = Uuid::new_v4().to_string();
@@ -2106,7 +2106,7 @@ mod tests {
         on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消错误测试".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消Error测试".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
 
         let (tx, rx) = tokio::sync::watch::channel(false);
         let _ = tx.send(true);
@@ -2118,12 +2118,12 @@ mod tests {
         let report = result.flow_report.expect("应有报告");
         let error = report.flow_error.expect("取消时应有 flow_error");
         assert_eq!(error.error_kind, ErrorKind::Cancelled);
-        assert!(!error.is_fatal(), "Cancelled 不应是致命错误");
+        assert!(!error.is_fatal(), "Cancelled 不应是致命Error");
     }
 
-    /// 测试 runtime_variables 覆盖 Entry 节点的 initial_variables
+    /// 测试 runtime_variables 覆盖 Entry node的 initial_variables
     ///
-    /// 验证 runtime_variables 在 Entry 节点执行后注入，覆盖同名变量
+    /// 验证 runtime_variables 在 Entry node执行后注入，覆盖同名变量
     #[tokio::test]
     async fn test_runtime_variables_override_entry() {
         let flow_id = Uuid::new_v4().to_string();

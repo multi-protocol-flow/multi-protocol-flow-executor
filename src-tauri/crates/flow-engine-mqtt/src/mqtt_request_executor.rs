@@ -58,9 +58,9 @@ impl NodeExecutor for MqttRequestExecutor {
         // 2. 变量替换: connection_id, request_topic, response_topic, payload, correlation_data
         let connection_id =
             replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("连接 ID 变量替换失败: {}", e);
+                let error_msg = format!("连接 ID variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -71,9 +71,9 @@ impl NodeExecutor for MqttRequestExecutor {
 
         let request_topic =
             replace_variables(&config.request_topic, context).map_err(|e| {
-                let error_msg = format!("请求主题变量替换失败: {}", e);
+                let error_msg = format!("请求主题variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -84,9 +84,9 @@ impl NodeExecutor for MqttRequestExecutor {
 
         let response_topic =
             replace_variables(&config.response_topic, context).map_err(|e| {
-                let error_msg = format!("响应主题变量替换失败: {}", e);
+                let error_msg = format!("响应主题variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -99,7 +99,7 @@ impl NodeExecutor for MqttRequestExecutor {
             Some(p) => Some(replace_variables(p, context).map_err(|e| {
                 let error_msg = format!("Payload variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -112,9 +112,9 @@ impl NodeExecutor for MqttRequestExecutor {
 
         let resolved_correlation_data = match &config.correlation_data {
             Some(cd) => Some(replace_variables(cd, context).map_err(|e| {
-                let error_msg = format!("关联数据变量替换失败: {}", e);
+                let error_msg = format!("关联数据variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -128,7 +128,7 @@ impl NodeExecutor for MqttRequestExecutor {
 
         // 4. 日志：开始请求
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: mqtt_request, 连接ID: {}, 请求主题: {}, 响应主题: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mqtt_request, Connection ID: {}, 请求Topic: {}, 响应Topic: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -141,7 +141,7 @@ impl NodeExecutor for MqttRequestExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "MQTT 请求/响应节点 {} 开始执行 (请求: {} → 响应: {})",
+                    "MQTT 请求/响应节点 {} start execution (请求: {} → 响应: {})",
                     node.name, request_topic, response_topic
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -176,7 +176,7 @@ impl NodeExecutor for MqttRequestExecutor {
 
                 if output.success {
                     log::info!(
-                        "[MQTT] 请求/响应成功: connection_id={}, request_topic={}, response_topic={}, correlation_data={} ({}ms)",
+                        "[MQTT] 请求/响应Success: connection_id={}, request_topic={}, response_topic={}, correlation_data={} ({}ms)",
                         connection_id,
                         request_topic,
                         response_topic,
@@ -185,7 +185,7 @@ impl NodeExecutor for MqttRequestExecutor {
                     );
                 } else {
                     log::warn!(
-                        "[MQTT] 请求/响应返回错误: connection_id={}, request_topic={}, error={:?}",
+                        "[MQTT] 请求/响应返回Error: connection_id={}, request_topic={}, error={:?}",
                         connection_id,
                         request_topic,
                         output.error
@@ -224,7 +224,7 @@ impl NodeExecutor for MqttRequestExecutor {
                 };
                 let log_msg = if output.success {
                     format!(
-                        "MQTT 请求/响应成功: {} → {} ({} 条响应, {}ms)",
+                        "MQTT 请求/响应Success: {} → {} ({} 条响应, {}ms)",
                         request_topic,
                         response_topic,
                         output.messages.len(),
@@ -252,7 +252,7 @@ impl NodeExecutor for MqttRequestExecutor {
                     })
                     .await;
 
-                // 9. 端口路由：成功走 true，失败/超时走 false
+                // 9. 端口路由：Success走 true，Failed/超时走 false
                 if output.success {
                     route_to_true(node, connections, output_data)
                 } else {
@@ -262,7 +262,7 @@ impl NodeExecutor for MqttRequestExecutor {
             Err(e) => {
                 let duration = start_time.elapsed();
                 log::error!(
-                    "[MQTT] 请求/响应失败: connection_id={}, request_topic={}, error={}",
+                    "[MQTT] 请求/响应Failed: connection_id={}, request_topic={}, error={}",
                     connection_id,
                     request_topic,
                     e
@@ -282,7 +282,7 @@ impl NodeExecutor for MqttRequestExecutor {
                     })
                     .await;
 
-                // 构建错误输出（包含请求信息便于调试）
+                // 构建Error输出（包含请求信息便于调试）
                 let error_output = json!({
                     "success": false,
                     "request_topic": request_topic,
@@ -354,7 +354,7 @@ fn build_timing_json(
 // 端口路由辅助函数
 // ---------------------------------------------------------------------------
 
-/// 成功路由到 true 端口
+/// Success路由到 true 端口
 fn route_to_true(
     node: &Node,
     connections: &[Connection],
@@ -377,7 +377,7 @@ fn route_to_true(
     Ok((next_node_ids, Some(output_data)))
 }
 
-/// 失败路由到 false 端口
+/// Failed路由到 false 端口
 fn route_to_false(
     node: &Node,
     connections: &[Connection],
@@ -388,7 +388,7 @@ fn route_to_false(
         let error_msg = output_data
             .get("error")
             .and_then(|v| v.as_str())
-            .unwrap_or("节点执行失败 (AbortFlow)")
+            .unwrap_or("节点执行Failed (AbortFlow)")
             .to_string();
         return Err(ErrorDetail::execution_error(error_msg));
     }
@@ -427,7 +427,7 @@ mod tests {
 
     // ===== Mock Provider =====
 
-    /// 模拟 MQTT Provider（请求成功，返回一条响应消息）
+    /// 模拟 MQTT Provider（请求Success，返回一条响应消息）
     struct MockRequestSuccessProvider {
         response_messages: Vec<MqttReceivedMessage>,
     }
@@ -676,7 +676,7 @@ mod tests {
 
     // ===== 辅助函数 =====
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(
         uuid: &str,
         name: &str,
@@ -744,7 +744,7 @@ mod tests {
 
     // ===== 测试用例 =====
 
-    /// 测试：请求/响应成功时输出 JSON 结构正确，路由到 true 端口
+    /// 测试：请求/响应Success时输出 JSON 结构正确，路由到 true 端口
     #[tokio::test]
     async fn test_request_success_output_structure() {
         let mqtt_manager = Arc::new(MockRequestSuccessProvider::new());
@@ -766,7 +766,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
@@ -829,7 +829,7 @@ mod tests {
         assert_eq!(data["correlation_data"], "corr-123");
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_request_wrong_node_data_type() {
         let mqtt_manager = Arc::new(MockRequestSuccessProvider::new());
@@ -838,7 +838,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -902,7 +902,7 @@ mod tests {
         assert_eq!(data["request"]["response_topic"], "device/sensor-001/response");
     }
 
-    /// 测试：连接异常时路由到 false 端口并包含错误信息
+    /// 测试：connection error时路由到 false 端口并包含Error信息
     #[tokio::test]
     async fn test_request_error_routes_to_false() {
         let mqtt_manager = Arc::new(MockRequestErrorProvider);

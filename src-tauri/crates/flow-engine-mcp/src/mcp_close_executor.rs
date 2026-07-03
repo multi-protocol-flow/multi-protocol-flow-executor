@@ -1,7 +1,7 @@
 // MCP 关闭节点执行器
 //
 // 实现 MCP 连接关闭功能。
-// 关闭始终走 "out" 端口（失败不阻塞流程）。
+// 关闭始终走 "out" 端口（Failed不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::error::ErrorDetail;
@@ -43,14 +43,14 @@ impl NodeExecutor for McpCloseExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::McpClose(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 McpCloseConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not McpCloseConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -61,7 +61,7 @@ impl NodeExecutor for McpCloseExecutor {
 
         // 3. 日志：开始关闭
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: mcp_close, 连接ID: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mcp_close, Connection ID: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -71,10 +71,10 @@ impl NodeExecutor for McpCloseExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("MCP Close 节点 {} 开始执行", node.name),
+                message: format!("MCP Close 节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -114,7 +114,7 @@ impl NodeExecutor for McpCloseExecutor {
         match close_result {
             Ok(()) => {
                 log::info!(
-                    "[MCP] 连接关闭成功: connection_id={}",
+                    "[MCP] 连接关闭Success: connection_id={}",
                     connection_id
                 );
 
@@ -145,12 +145,12 @@ impl NodeExecutor for McpCloseExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "MCP 连接关闭成功 ({}ms)",
+                            "MCP 连接关闭Success ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -162,19 +162,19 @@ impl NodeExecutor for McpCloseExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[MCP] 连接关闭失败: connection_id={}, error={}",
+                    "[MCP] 连接关闭Failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
 
-                // 日志：关闭失败
+                // 日志：关闭Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MCP 连接关闭失败: {}", e),
+                        message: format!("MCP 连接关闭Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -182,7 +182,7 @@ impl NodeExecutor for McpCloseExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据（仍然走 out 端口）
+                // 构建Error输出数据（仍然走 out 端口）
                 let error_output = json!({
                     "success": false,
                     "connection_id": connection_id,
@@ -210,7 +210,7 @@ mod tests {
     use flow_engine_core::node_config::McpCloseConfig;
     use crate::mcp_connection_manager::McpConnectionManager;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -234,7 +234,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -272,7 +272,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 Ok，走 out 端口（关闭失败不阻塞）
+        // 应该返回 Ok，走 out 端口（关闭Failed不阻塞）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["out"]);
@@ -322,7 +322,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -359,7 +359,7 @@ mod tests {
         }
     }
 
-    /// 模拟 MCP Provider（close + get_connection_info 成功）
+    /// 模拟 MCP Provider（close + get_connection_info Success）
     struct MockMcpProvider {
         url: String,
     }
@@ -448,7 +448,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -476,12 +476,12 @@ mod tests {
         (context, event_receiver)
     }
 
-    /// 测试：关闭失败时不发射 McpConnectionClosed 调试事件
+    /// 测试：关闭Failed时不发射 McpConnectionClosed 调试事件
     #[tokio::test]
     async fn test_debug_event_not_emitted_on_close_failure() {
         let mcp_manager = Arc::new(McpConnectionManager::new());
         let executor = McpCloseExecutor::new(mcp_manager);
-        let node = create_test_node("test-fail", "失败测试", "nonexistent-conn");
+        let node = create_test_node("test-fail", "Failed测试", "nonexistent-conn");
         let (mut context, mut event_receiver) = create_context_with_debug_sender("test-flow");
 
         let result = executor
@@ -492,17 +492,17 @@ mod tests {
         let events: Vec<_> = (&mut event_receiver).try_recv().into_iter().collect();
         assert!(
             events.is_empty(),
-            "关闭失败时不应发射调试事件，但收到: {:?}",
+            "关闭Failed时不应发射调试事件，但收到: {:?}",
             events
         );
     }
 
-    /// 测试：关闭成功时发射 McpConnectionClosed 调试事件
+    /// 测试：关闭Success时发射 McpConnectionClosed 调试事件
     #[tokio::test]
     async fn test_debug_event_mcp_connection_closed() {
         let mcp_manager = Arc::new(MockMcpProvider::new());
         let executor = McpCloseExecutor::new(mcp_manager);
-        let node = create_test_node("test-ok", "成功测试", "mock-conn-1");
+        let node = create_test_node("test-ok", "Success测试", "mock-conn-1");
         let (mut context, mut event_receiver) = create_context_with_debug_sender("test-flow");
 
         let result = executor

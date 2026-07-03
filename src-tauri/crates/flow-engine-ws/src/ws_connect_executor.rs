@@ -201,7 +201,7 @@ impl NodeExecutor for WsConnectExecutor {
                     })
                     .await;
 
-                // 9. 返回 true 端口（连接成功，无论采集是否超时）
+                // 9. 返回 true 端口（连接Success，无论采集是否超时）
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -228,7 +228,7 @@ impl NodeExecutor for WsConnectExecutor {
                     e
                 );
 
-                // 日志：连接失败
+                // 日志：connection failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
@@ -243,7 +243,7 @@ impl NodeExecutor for WsConnectExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let error_output = json!({
                     "success": false,
                     "connected": false,
@@ -662,7 +662,7 @@ mod tests {
     use crate::websocket_manager::WebSocketConnectionManager;
     use std::sync::Arc;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, url: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -900,11 +900,11 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 网络测试：如果连接成功，应该返回 true 端口
+        // 网络测试：如果连接Success，应该返回 true 端口
         match result {
             Ok((next_nodes, output_data)) => {
                 if next_nodes == vec!["true"] {
-                    // 连接成功
+                    // 连接Success
                     assert!(output_data.is_some());
                     let data = output_data.unwrap();
                     assert_eq!(data["connected"], true);
@@ -931,18 +931,18 @@ mod tests {
                         .close("echo-test", 1000, Some("test complete".to_string()), 5000)
                         .await;
                 } else {
-                    // 连接失败（网络问题），跳过测试
+                    // connection failed（网络问题），跳过测试
                     println!("Skipping test: unable to connect to echo server");
                 }
             }
             Err(e) => {
-                // 不应该发生错误（应该返回 false 端口）
+                // 不应该发生Error（应该返回 false 端口）
                 panic!("Executor returned error instead of false port: {}", e);
             }
         }
     }
 
-    /// 测试：连接成功后创建 WsStreamSegment
+    /// 测试：连接Success后创建 WsStreamSegment
     #[tokio::test]
     async fn test_create_ws_stream_on_connect_success() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
@@ -982,7 +982,7 @@ mod tests {
         }
     }
 
-    /// 测试：连接失败时不创建 WsStreamSegment
+    /// 测试：connection failed时不创建 WsStreamSegment
     #[tokio::test]
     async fn test_no_ws_stream_on_connect_failure() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
@@ -1001,6 +1001,6 @@ mod tests {
 
         // 验证没有创建消息流
         let stream = context.get_ws_stream("fail-test").await;
-        assert!(stream.is_none(), "连接失败不应创建 WebSocket 消息流");
+        assert!(stream.is_none(), "connection failed不应创建 WebSocket 消息流");
     }
 }

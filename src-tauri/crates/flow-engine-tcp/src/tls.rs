@@ -89,7 +89,7 @@ fn ensure_crypto_provider() {
 /// - `skip_verify`: 是否跳过证书验证（用于开发/测试环境）
 ///
 /// # 返回
-/// 成功返回 `TlsConnector`，失败返回错误描述。
+/// Success返回 `TlsConnector`，Failed返回Error描述。
 pub fn create_tls_connector(skip_verify: bool) -> Result<TlsConnector, String> {
     ensure_crypto_provider();
 
@@ -140,7 +140,7 @@ fn create_standard_config() -> Result<ClientConfig, String> {
 /// - `ca_cert_pem`: 自定义 CA 证书（PEM 格式），None 时仅使用系统根证书
 ///
 /// # 返回
-/// 成功返回 `TlsConnector`，失败返回错误描述。
+/// Success返回 `TlsConnector`，Failed返回Error描述。
 pub fn create_tls_connector_with_ca(
     skip_verify: bool,
     ca_cert_pem: Option<&[u8]>,
@@ -189,7 +189,7 @@ mod tests {
         let result = create_tls_connector(true);
         assert!(
             result.is_ok(),
-            "跳过验证模式应成功创建 TLS 连接器: {:?}",
+            "跳过验证模式应Success创建 TLS 连接器: {:?}",
             result.err()
         );
     }
@@ -200,7 +200,7 @@ mod tests {
         let result = create_tls_connector(false);
         assert!(
             result.is_ok(),
-            "标准模式应成功创建 TLS 连接器: {:?}",
+            "标准模式应Success创建 TLS 连接器: {:?}",
             result.err()
         );
     }
@@ -219,7 +219,7 @@ mod tests {
     /// 测试 TLS 连接器可以克隆（TlsConnector 内部使用 Arc）
     #[test]
     fn test_tls_connector_clonable() {
-        let connector = create_tls_connector(true).expect("创建应成功");
+        let connector = create_tls_connector(true).expect("创建应Success");
         let _cloned = connector.clone();
     }
 
@@ -229,7 +229,7 @@ mod tests {
         let result = create_tls_connector_with_ca(true, None);
         assert!(
             result.is_ok(),
-            "跳过验证模式应成功: {:?}",
+            "跳过验证模式应Success: {:?}",
             result.err()
         );
     }
@@ -240,7 +240,7 @@ mod tests {
         let result = create_tls_connector_with_ca(false, None);
         assert!(
             result.is_ok(),
-            "标准模式（无自定义 CA）应成功: {:?}",
+            "标准模式（无自定义 CA）应Success: {:?}",
             result.err()
         );
     }

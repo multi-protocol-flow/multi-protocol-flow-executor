@@ -42,7 +42,7 @@ pub mod client;
 pub mod connector;
 /// Cookie 管理模块，提供 Cookie Jar 实现
 pub mod cookie;
-/// HTTP 错误类型定义，涵盖 DNS/TCP/TLS/HTTP 协议各阶段的错误
+/// HTTP Error类型定义，涵盖 DNS/TCP/TLS/HTTP 协议各阶段的Error
 pub mod error;
 /// HTTP 代理模块，支持通过 HTTP 代理发送请求
 pub mod proxy;

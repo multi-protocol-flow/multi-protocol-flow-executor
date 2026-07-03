@@ -59,7 +59,7 @@ mod tests {
         FlowExecutionReport {
             uuid: uuid.to_string(),
             flow_uuid: "test-flow-uuid".to_string(),
-            flow_name: "测试流程".to_string(),
+            flow_name: "Test Flow".to_string(),
             start_time: 1000,
             end_time: 2000,
             duration_ms: 1000,
@@ -119,13 +119,13 @@ mod tests {
     /// 测试保存流程执行报告
     #[test]
     fn test_save_flow_report() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path().to_string_lossy().to_string();
 
         let report = create_test_report("test-uuid-001", ExecutionStatus::Success);
         let result = save_flow_report(report, &reports_dir);
 
-        assert!(result.is_ok(), "保存报告应该成功");
+        assert!(result.is_ok(), "保存报告应该Success");
 
         // 验证文件已创建
         let report_path = temp_dir.path().join("test-uuid-001.json");
@@ -135,7 +135,7 @@ mod tests {
     /// 测试保存调试模式的报告
     #[test]
     fn test_save_flow_report_debug_mode() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path().to_string_lossy().to_string();
 
         let mut report = create_test_report("debug-uuid-001", ExecutionStatus::Success);
@@ -143,7 +143,7 @@ mod tests {
 
         let result = save_flow_report(report, &reports_dir);
 
-        assert!(result.is_ok(), "保存调试报告应该成功");
+        assert!(result.is_ok(), "保存调试报告应该Success");
 
         // 验证调试报告文件名格式
         let report_path = temp_dir.path().join("debug_debug-uuid-001.json");
@@ -153,23 +153,23 @@ mod tests {
     /// 测试加载流程执行报告
     #[test]
     fn test_load_flow_report() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path().to_string_lossy().to_string();
 
         // 先保存报告
         let original_report = create_test_report("test-uuid-002", ExecutionStatus::Success);
-        save_flow_report(original_report.clone(), &reports_dir).expect("保存报告失败");
+        save_flow_report(original_report.clone(), &reports_dir).expect("保存报告Failed");
 
         // 加载报告
         let result = load_flow_report("test-uuid-002", &reports_dir);
 
-        assert!(result.is_ok(), "加载报告应该成功");
+        assert!(result.is_ok(), "加载报告应该Success");
         let loaded_report = result.unwrap();
 
         // 验证报告内容
         assert_eq!(loaded_report.uuid, "test-uuid-002");
         assert_eq!(loaded_report.flow_uuid, "test-flow-uuid");
-        assert_eq!(loaded_report.flow_name, "测试流程");
+        assert_eq!(loaded_report.flow_name, "Test Flow");
         assert_eq!(loaded_report.total_nodes, 2);
         assert_eq!(loaded_report.node_reports.len(), 2);
     }
@@ -177,33 +177,33 @@ mod tests {
     /// 测试加载不存在的报告
     #[test]
     fn test_load_flow_report_not_found() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path().to_string_lossy().to_string();
 
         let result = load_flow_report("non-existent-uuid", &reports_dir);
 
-        assert!(result.is_err(), "加载不存在的报告应该失败");
+        assert!(result.is_err(), "加载不存在的报告应该Failed");
         let error_msg = result.unwrap_err();
-        assert!(error_msg.contains("不存在"), "错误消息应包含'不存在'");
+        assert!(error_msg.contains("不存在"), "Error消息应包含'不存在'");
     }
 
     /// 测试列出报告元数据
     #[test]
     fn test_list_flow_reports() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path().to_string_lossy().to_string();
 
         // 保存多个报告
         let report1 = create_test_report("list-test-001", ExecutionStatus::Success);
         let report2 = create_test_report("list-test-002", ExecutionStatus::Failed);
 
-        save_flow_report(report1, &reports_dir).expect("保存报告1失败");
-        save_flow_report(report2, &reports_dir).expect("保存报告2失败");
+        save_flow_report(report1, &reports_dir).expect("保存报告1Failed");
+        save_flow_report(report2, &reports_dir).expect("保存报告2Failed");
 
         // 列出报告
         let result = list_flow_reports(&reports_dir);
 
-        assert!(result.is_ok(), "列出报告应该成功");
+        assert!(result.is_ok(), "列出报告应该Success");
         let reports = result.unwrap();
         assert_eq!(reports.len(), 2, "应该有2个报告");
 
@@ -218,12 +218,12 @@ mod tests {
     /// 测试列出空目录的报告
     #[test]
     fn test_list_flow_reports_empty_directory() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path().to_string_lossy().to_string();
 
         let result = list_flow_reports(&reports_dir);
 
-        assert!(result.is_ok(), "列出空目录报告应该成功");
+        assert!(result.is_ok(), "列出空目录报告应该Success");
         let reports = result.unwrap();
         assert!(reports.is_empty(), "空目录应该返回空列表");
     }
@@ -231,12 +231,12 @@ mod tests {
     /// 测试删除流程执行报告
     #[test]
     fn test_delete_flow_report() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path().to_string_lossy().to_string();
 
         // 先保存报告
         let report = create_test_report("delete-test-001", ExecutionStatus::Success);
-        save_flow_report(report, &reports_dir).expect("保存报告失败");
+        save_flow_report(report, &reports_dir).expect("保存报告Failed");
 
         // 确认文件存在
         let report_path = temp_dir.path().join("delete-test-001.json");
@@ -245,37 +245,37 @@ mod tests {
         // 删除报告
         let result = delete_flow_report("delete-test-001", &reports_dir);
 
-        assert!(result.is_ok(), "删除报告应该成功");
+        assert!(result.is_ok(), "删除报告应该Success");
         assert!(!report_path.exists(), "删除后文件不应该存在");
     }
 
     /// 测试删除不存在的报告
     #[test]
     fn test_delete_flow_report_not_found() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path().to_string_lossy().to_string();
 
         let result = delete_flow_report("non-existent-delete", &reports_dir);
 
-        assert!(result.is_err(), "删除不存在的报告应该失败");
+        assert!(result.is_err(), "删除不存在的报告应该Failed");
         let error_msg = result.unwrap_err();
-        assert!(error_msg.contains("不存在"), "错误消息应包含'不存在'");
+        assert!(error_msg.contains("不存在"), "Error消息应包含'不存在'");
     }
 
     /// 测试报告保存和加载的完整周期
     #[test]
     fn test_report_save_load_roundtrip() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path().to_string_lossy().to_string();
 
         // 创建包含完整数据的报告
         let original_report = create_test_report("roundtrip-001", ExecutionStatus::Success);
 
         // 保存
-        save_flow_report(original_report.clone(), &reports_dir).expect("保存报告失败");
+        save_flow_report(original_report.clone(), &reports_dir).expect("保存报告Failed");
 
         // 加载
-        let loaded_report = load_flow_report("roundtrip-001", &reports_dir).expect("加载报告失败");
+        let loaded_report = load_flow_report("roundtrip-001", &reports_dir).expect("加载报告Failed");
 
         // 验证所有字段保持一致
         assert_eq!(loaded_report.uuid, original_report.uuid);
@@ -298,16 +298,16 @@ mod tests {
     /// 测试报告格式验证 - 验证序列化/反序列化正确性
     #[test]
     fn test_report_format_validation() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path().to_string_lossy().to_string();
 
         // 创建报告
         let report = create_test_report("format-test-001", ExecutionStatus::Success);
-        save_flow_report(report, &reports_dir).expect("保存报告失败");
+        save_flow_report(report, &reports_dir).expect("保存报告Failed");
 
         // 直接读取文件验证 JSON 格式
         let report_path = temp_dir.path().join("format-test-001.json");
-        let content = fs::read_to_string(&report_path).expect("读取文件失败");
+        let content = fs::read_to_string(&report_path).expect("读取文件Failed");
 
         // 验证是有效的 JSON
         let json_value: serde_json::Value =
@@ -337,7 +337,7 @@ mod tests {
     /// 测试报告存储到自定义目录
     #[test]
     fn test_report_storage_custom_directory() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let custom_dir = temp_dir.path().join("custom_reports");
         let reports_dir = custom_dir.to_string_lossy().to_string();
 
@@ -345,24 +345,24 @@ mod tests {
         let report = create_test_report("custom-dir-001", ExecutionStatus::Success);
         let result = save_flow_report(report, &reports_dir);
 
-        assert!(result.is_ok(), "保存到自定义目录应该成功");
+        assert!(result.is_ok(), "保存到自定义目录应该Success");
         assert!(custom_dir.exists(), "自定义目录应该被创建");
     }
 
-    /// 测试失败状态报告的处理
+    /// 测试Failed状态报告的处理
     #[test]
     fn test_failed_status_report() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
         let reports_dir = temp_dir.path().to_string_lossy().to_string();
 
         let report = create_test_report("failed-001", ExecutionStatus::Failed);
-        save_flow_report(report, &reports_dir).expect("保存失败状态报告失败");
+        save_flow_report(report, &reports_dir).expect("保存Failed状态报告Failed");
 
-        let loaded = load_flow_report("failed-001", &reports_dir).expect("加载报告失败");
+        let loaded = load_flow_report("failed-001", &reports_dir).expect("加载报告Failed");
         assert_eq!(loaded.status, ExecutionStatus::Failed);
 
         // 验证列表中的状态
-        let reports = list_flow_reports(&reports_dir).expect("列出报告失败");
+        let reports = list_flow_reports(&reports_dir).expect("列出报告Failed");
         assert_eq!(reports[0].status, "failed");
     }
 }

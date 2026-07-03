@@ -43,14 +43,14 @@ impl NodeExecutor for McpReadResourceExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::McpReadResource(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("节点数据类型不是 McpReadResourceConfig: {}", node.uuid))),
+            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not McpReadResourceConfig: {}", node.uuid))),
         };
 
         // 2. 变量替换 connection_id 和 resource_uri
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -60,9 +60,9 @@ impl NodeExecutor for McpReadResourceExecutor {
         })?;
 
         let resource_uri = replace_variables(&config.resource_uri, context).map_err(|e| {
-            let error_msg = format!("资源 URI 变量替换失败: {}", e);
+            let error_msg = format!("资源 URI variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -73,7 +73,7 @@ impl NodeExecutor for McpReadResourceExecutor {
 
         // 3. 日志：开始读取
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: mcp_read_resource, 连接ID: {}, 资源URI: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mcp_read_resource, Connection ID: {}, 资源URI: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -85,12 +85,12 @@ impl NodeExecutor for McpReadResourceExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "MCP 读取资源节点 {} 开始执行 (资源: {})",
+                    "MCP 读取资源节点 {} start execution (资源: {})",
                     node.name, resource_uri
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -107,7 +107,7 @@ impl NodeExecutor for McpReadResourceExecutor {
         match read_result {
             Ok(resource_result) => {
                 log::info!(
-                    "[MCP] 资源读取成功: connection_id={}, uri={}, 内容数={}",
+                    "[MCP] 资源读取Success: connection_id={}, uri={}, 内容数={}",
                     connection_id,
                     resource_uri,
                     resource_result.contents.len()
@@ -145,13 +145,13 @@ impl NodeExecutor for McpReadResourceExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "MCP 资源读取成功: {} ({}ms)",
+                            "MCP 资源读取Success: {} ({}ms)",
                             resource_uri,
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -159,7 +159,7 @@ impl NodeExecutor for McpReadResourceExecutor {
                     })
                     .await;
 
-                // 7. 成功走 true 端口
+                // 7. Success走 true 端口
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -180,20 +180,20 @@ impl NodeExecutor for McpReadResourceExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[MCP] 资源读取失败: connection_id={}, uri={}, error={}",
+                    "[MCP] 资源读取Failed: connection_id={}, uri={}, error={}",
                     connection_id,
                     resource_uri,
                     e
                 );
 
-                // 日志：读取失败
+                // 日志：读取Failed
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MCP 资源读取失败: {}", e),
+                        message: format!("MCP 资源读取Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -201,7 +201,7 @@ impl NodeExecutor for McpReadResourceExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建Error输出数据
                 let duration = start_time.elapsed();
                 let error_output = json!({
                     "success": false,
@@ -222,7 +222,7 @@ impl NodeExecutor for McpReadResourceExecutor {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
-                // 失败走 false 端口
+                // Failed走 false 端口
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -254,7 +254,7 @@ mod tests {
     use flow_engine_core::node_config::McpReadResourceConfig;
     use crate::mcp_connection_manager::McpConnectionManager;
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, resource_uri: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -279,7 +279,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -372,7 +372,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
@@ -409,7 +409,7 @@ mod tests {
         }
     }
 
-    /// 模拟 MCP Provider（read_resource 成功）
+    /// 模拟 MCP Provider（read_resource Success）
     struct MockMcpProvider;
 
     #[async_trait::async_trait]
@@ -479,7 +479,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -507,12 +507,12 @@ mod tests {
         (context, event_receiver)
     }
 
-    /// 测试：读取失败时不发射 McpResourceRead 调试事件
+    /// 测试：读取Failed时不发射 McpResourceRead 调试事件
     #[tokio::test]
     async fn test_debug_event_not_emitted_on_read_failure() {
         let mcp_manager = Arc::new(McpConnectionManager::new());
         let executor = McpReadResourceExecutor::new(mcp_manager);
-        let node = create_test_node("test-fail", "失败测试", "nonexistent", "resource://test");
+        let node = create_test_node("test-fail", "Failed测试", "nonexistent", "resource://test");
         let (mut context, mut event_receiver) = create_context_with_debug_sender("test-flow");
 
         let result = executor
@@ -523,17 +523,17 @@ mod tests {
         let events: Vec<_> = (&mut event_receiver).try_recv().into_iter().collect();
         assert!(
             events.is_empty(),
-            "读取失败时不应发射调试事件，但收到: {:?}",
+            "读取Failed时不应发射调试事件，但收到: {:?}",
             events
         );
     }
 
-    /// 测试：读取成功时发射 McpResourceRead 调试事件
+    /// 测试：读取Success时发射 McpResourceRead 调试事件
     #[tokio::test]
     async fn test_debug_event_mcp_resource_read() {
         let mcp_manager = Arc::new(MockMcpProvider);
         let executor = McpReadResourceExecutor::new(mcp_manager);
-        let node = create_test_node("test-ok", "成功测试", "mock-conn-1", "resource://config");
+        let node = create_test_node("test-ok", "Success测试", "mock-conn-1", "resource://config");
         let (mut context, mut event_receiver) = create_context_with_debug_sender("test-flow");
 
         let result = executor

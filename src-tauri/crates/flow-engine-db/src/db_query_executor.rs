@@ -73,7 +73,7 @@ impl NodeExecutor for DbQueryNodeExecutor {
         let start_time = Instant::now();
 
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: db_query",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: db_query",
             context.flow_uuid,
             node.uuid,
             node.name
@@ -83,10 +83,10 @@ impl NodeExecutor for DbQueryNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("数据库查询节点 {} 开始执行", node.name),
+                message: format!("数据库查询节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -98,9 +98,9 @@ impl NodeExecutor for DbQueryNodeExecutor {
         let db_config = match &node.data {
             NodeData::DbQuery(config) => config.clone(),
             _ => {
-                let error_msg = format!("节点数据类型不是 DbQueryConfig: {}", node.uuid);
+                let error_msg = format!("Node data type is not DbQueryConfig: {}", node.uuid);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -121,14 +121,14 @@ impl NodeExecutor for DbQueryNodeExecutor {
             }
 
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
                 error_msg
             );
 
-            // 返回失败输出，走 false 端口
+            // 返回Failed输出，走 false 端口
             let output_data = build_error_output(&error_msg, &DbQueryTiming::default());
             return Ok((get_false_port_nodes(node, connections), Some(output_data)));
         }
@@ -140,7 +140,7 @@ impl NodeExecutor for DbQueryNodeExecutor {
                 match replace_variables(sql, context) {
                     Ok(replaced) => replaced,
                     Err(e) => {
-                        let error_msg = format!("SQL 变量替换失败: {}", e);
+                        let error_msg = format!("SQL variable substitution failed: {}", e);
 
                         // 检查 on_error 策略
 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -148,14 +148,14 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                         }
 
                         log::error!(
-                            "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                            "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                             context.flow_uuid,
                             node.uuid,
                             node.name,
                             error_msg
                         );
 
-                        // 返回失败输出，走 false 端口
+                        // 返回Failed输出，走 false 端口
                         let output_data = build_error_output(&error_msg, &DbQueryTiming::default());
                         return Ok((get_false_port_nodes(node, connections), Some(output_data)));
                     }
@@ -170,14 +170,14 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                 }
 
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
                     error_msg
                 );
 
-                // 返回失败输出，走 false 端口
+                // 返回Failed输出，走 false 端口
                 let output_data = build_error_output(&error_msg, &DbQueryTiming::default());
                 return Ok((get_false_port_nodes(node, connections), Some(output_data)));
             }
@@ -197,7 +197,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                 message: format!("执行 SQL: {}", sql),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -212,13 +212,13 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                 for param_str in param_strings {
                     match replace_variables(param_str, context) {
                         Ok(replaced) => {
-                            // 尝试解析为 JSON 值，如果失败则作为字符串
+                            // 尝试解析为 JSON 值，如果Failed则作为字符串
                             let value = serde_json::from_str(&replaced)
                                 .unwrap_or(serde_json::Value::String(replaced));
                             resolved_params.push(value);
                         }
                         Err(e) => {
-                            let error_msg = format!("参数变量替换失败: {}", e);
+                            let error_msg = format!("参数variable substitution failed: {}", e);
 
                             // 检查 on_error 策略
                             if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -226,14 +226,14 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                             }
 
                             log::error!(
-                                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                                 context.flow_uuid,
                                 node.uuid,
                                 node.name,
                                 error_msg
                             );
 
-                            // 返回失败输出，走 false 端口
+                            // 返回Failed输出，走 false 端口
                             let output_data =
                                 build_error_output(&error_msg, &DbQueryTiming::default());
                             return Ok((
@@ -261,14 +261,14 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                     }
 
                     log::error!(
-                        "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                        "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                         context.flow_uuid,
                         node.uuid,
                         node.name,
                         error_msg
                     );
 
-                    // 返回失败输出，走 false 端口
+                    // 返回Failed输出，走 false 端口
                     let output_data = build_error_output(&error_msg, &DbQueryTiming::default());
                     return Ok((get_false_port_nodes(node, connections), Some(output_data)));
                 }
@@ -276,7 +276,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
         } else {
             // 没有配置 db_manager，使用 mock 实现
             log::warn!(
-                "[流程 {}] [警告] 节点ID: {}, 节点名称: {}, 使用 mock 连接池",
+                "[流程 {}] [警告] 节点ID: {}, NodeName: {}, 使用 mock 连接池",
                 context.flow_uuid,
                 node.uuid,
                 node.name
@@ -293,7 +293,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                 r = pool.execute(&sql, params) => r,
                 _ = cancel_rx.changed() => {
                     log::info!(
-                        "[流程 {}] [取消] 节点ID: {}, 节点名称: {}, 数据库查询被取消",
+                        "[流程 {}] [取消] 节点ID: {}, NodeName: {}, 数据库查询被取消",
                         context.flow_uuid,
                         node.uuid,
                         node.name
@@ -311,23 +311,23 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
         let query_result = match result {
             Ok(r) => r,
             Err(e) => {
-                let error_msg = format!("查询执行失败: {}", e);
+                let error_msg = format!("查询执行Failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
                     error_msg
                 );
 
-                // 发送错误日志到前端
+                // 发送Error日志到前端
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("查询执行失败: {}", e),
+                        message: format!("查询执行Failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("系统时间Error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -340,7 +340,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
                 }
 
-                // 返回失败输出，走 false 端口
+                // 返回Failed输出，走 false 端口
                 let timing = DbQueryTiming {
                     execute_ms,
                     total_ms: start_time.elapsed().as_millis() as u64,
@@ -353,7 +353,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
         // 应用 10000 行限制
         let (rows, truncated) = if query_result.rows.len() > MAX_ROWS {
             log::warn!(
-                "[流程 {}] [警告] 节点ID: {}, 节点名称: {}, 结果行数 {} 超过限制 {}, 已截断",
+                "[流程 {}] [警告] 节点ID: {}, NodeName: {}, 结果行数 {} 超过限制 {}, 已截断",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -372,7 +372,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                     ),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间错误")
+                        .expect("系统时间Error")
                         .as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -455,7 +455,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
 
         // 记录完成日志
         log::info!(
-            "[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 返回行数: {}",
+            "[流程 {}] [完成] 节点UUID: {}, Duration: {}ms, 返回行数: {}",
             context.flow_uuid,
             node.uuid,
             total_ms,
@@ -472,7 +472,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("系统时间Error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -480,7 +480,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
             })
             .await;
 
-        // 返回成功，走 true 端口
+        // 返回Success，走 true 端口
         let next_node_ids: Vec<String> = connections
             .iter()
             .filter(|conn| {
@@ -493,7 +493,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
     }
 }
 
-/// 构建错误输出
+/// 构建Error输出
 fn build_error_output(error: &str, timing: &DbQueryTiming) -> serde_json::Value {
     serde_json::json!({
         "success": false,
@@ -579,7 +579,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("系统时间Error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -884,7 +884,7 @@ mod tests {
         let node = create_db_query_node(
             "query-001",
             "Test Query",
-            "", // 空的 connection_uuid，会失败
+            "", // 空的 connection_uuid，会Failed
             "SELECT * FROM users",
             None,
             Some("all"),

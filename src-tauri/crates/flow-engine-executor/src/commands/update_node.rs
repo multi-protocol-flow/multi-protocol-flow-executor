@@ -15,11 +15,11 @@ use flow_engine_core::flow::Flow;
 /// - `UpdateNodeCommandOutput`: 包含更新结果
 ///
 /// # 桩实现说明
-/// - 返回错误信息 "暂未实现持久化"
+/// - 返回Error信息 "暂未实现持久化"
 /// - `说明原因：update_node` 需要先加载流程、更新节点、再保存流程
 /// - 这将在任务 2.5（保存流程）中完整实现
 pub fn update_node(_input: UpdateNodeCommandInput, _flow: Flow) -> UpdateNodeCommandOutput {
-    // 桩实现：返回持久化未实现的错误
+    // 桩实现：返回持久化未实现的Error
     UpdateNodeCommandOutput {
         success: false,
         error: Some("暂未实现持久化：update_node 需要先加载流程、更新节点、再保存流程".to_string()),
@@ -35,14 +35,14 @@ mod tests {
 
     /// 创建测试用的流程
     fn create_test_flow() -> Flow {
-        Flow { uuid: "test-flow-uuid".to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None }
+        Flow { uuid: "test-flow-uuid".to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None }
     }
 
-    /// 创建带有节点的测试流程
+    /// 创建带有节点的Test Flow
     fn create_test_flow_with_node() -> Flow {
         let node = Node {
             uuid: "test-node-uuid".to_string(),
-            name: "测试节点".to_string(),
+            name: "Test Node".to_string(),
             node_type: "entry".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -50,10 +50,10 @@ mod tests {
             has_breakpoint: None,
         on_error: None,
         };
-        Flow { uuid: "test-flow-uuid".to_string(), name: "测试流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![node], connections: vec![], hooks: None }
+        Flow { uuid: "test-flow-uuid".to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![node], connections: vec![], hooks: None }
     }
 
-    /// 测试：更新节点配置 - 桩实现返回错误
+    /// 测试：更新节点配置 - 桩实现返回Error
     #[test]
     fn test_update_node_config_stub_returns_error() {
         let flow = create_test_flow_with_node();
@@ -69,14 +69,14 @@ mod tests {
 
         let output = update_node(input, flow);
 
-        // 桩实现应该返回失败
+        // 桩实现应该返回Failed
         assert!(!output.success);
         assert!(output.error.is_some());
         let error_msg = output.error.unwrap();
         assert!(error_msg.contains("暂未实现持久化"));
     }
 
-    /// 测试：节点不存在 - 桩实现仍返回相同错误
+    /// 测试：节点不存在 - 桩实现仍返回相同Error
     #[test]
     fn test_update_node_not_found_stub_returns_error() {
         let flow = create_test_flow();
@@ -91,14 +91,14 @@ mod tests {
 
         let output = update_node(input, flow);
 
-        // 桩实现总是返回相同的错误
+        // 桩实现总是返回相同的Error
         assert!(!output.success);
         assert!(output.error.is_some());
         let error_msg = output.error.unwrap();
         assert!(error_msg.contains("暂未实现持久化"));
     }
 
-    /// 测试：部分更新 - 桩实现返回错误
+    /// 测试：部分更新 - 桩实现返回Error
     #[test]
     fn test_update_node_partial_update_stub_returns_error() {
         let flow = create_test_flow_with_node();
@@ -113,14 +113,14 @@ mod tests {
 
         let output = update_node(input, flow);
 
-        // 桩实现应该返回失败
+        // 桩实现应该返回Failed
         assert!(!output.success);
         assert!(output.error.is_some());
         let error_msg = output.error.unwrap();
         assert!(error_msg.contains("暂未实现持久化"));
     }
 
-    /// 测试：空数据更新 - 桩实现返回错误
+    /// 测试：空数据更新 - 桩实现返回Error
     #[test]
     fn test_update_node_empty_data_stub_returns_error() {
         let flow = create_test_flow_with_node();
@@ -161,11 +161,11 @@ mod tests {
     fn test_update_node_output_serialization() {
         let output = UpdateNodeCommandOutput {
             success: false,
-            error: Some("测试错误信息".to_string()),
+            error: Some("测试Error信息".to_string()),
         };
 
         let json = serde_json::to_string(&output).unwrap();
         assert!(json.contains("\"success\":false"));
-        assert!(json.contains("测试错误信息"));
+        assert!(json.contains("测试Error信息"));
     }
 }

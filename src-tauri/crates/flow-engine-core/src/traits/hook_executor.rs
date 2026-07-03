@@ -20,7 +20,7 @@ pub trait HookExecutor: Send + Sync {
     /// 批量执行所有匹配的钩子
     ///
     /// 遍历钩子列表，对每个启用且匹配当前状态的钩子调用 execute。
-    /// 钩子执行失败不应影响流程结果，仅记录错误日志。
+    /// 钩子执行Failed不应影响流程结果，仅记录Error日志。
     fn execute_all(&self, hooks: &[FlowHook], context: &HookContext) {
         for hook in hooks {
             if hook.should_trigger(&context.status) {

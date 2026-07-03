@@ -27,7 +27,7 @@ pub enum DatasetEvent {
         /// 数据集名称（文件名）
         dataset_name: String,
     },
-    /// 行执行完成（成功）
+    /// 行execution complete（Success）
     RowCompleted {
         /// 行索引
         row_index: u32,
@@ -36,11 +36,11 @@ pub enum DatasetEvent {
         /// 执行耗时（毫秒）
         duration_ms: u64,
     },
-    /// 行执行失败
+    /// 行执行Failed
     RowFailed {
         /// 行索引
         row_index: u32,
-        /// 错误信息
+        /// Error信息
         error: String,
         /// 执行耗时（毫秒）
         duration_ms: u64,
@@ -51,11 +51,11 @@ pub enum DatasetEvent {
         completed: u32,
         /// 总行数
         total: u32,
-        /// 成功数
+        /// Success数
         success_count: u32,
-        /// 失败数（Fail 状态）
+        /// Failed数（Fail 状态）
         fail_count: u32,
-        /// 错误数（Error 状态）
+        /// Error数（Error 状态）
         error_count: u32,
         /// 已消耗时间（毫秒）
         elapsed_ms: u64,
@@ -78,7 +78,7 @@ pub enum DatasetEvent {
 // 发送事件辅助函数
 // ============================================================================
 
-/// 尝试发送事件，忽略发送失败（接收端已关闭）
+/// 尝试发送事件，忽略发送Failed（接收端已关闭）
 pub fn send_event(
     event_sender: &Option<tokio::sync::mpsc::UnboundedSender<DatasetEvent>>,
     event: DatasetEvent,
@@ -217,41 +217,41 @@ pub fn save_report(
         .join("reports")
         .join(format!("dataset_{}", report.uuid));
     std::fs::create_dir_all(&report_dir)
-        .map_err(|e| format!("创建报告目录失败: {}", e))?;
+        .map_err(|e| format!("创建报告目录Failed: {}", e))?;
 
     // 保存 summary.json（原子写入）
     let summary_path = report_dir.join("summary.json");
     let json = serde_json::to_string_pretty(report)
-        .map_err(|e| format!("序列化报告失败: {}", e))?;
+        .map_err(|e| format!("序列化报告Failed: {}", e))?;
 
     let mut temp_file = tempfile::NamedTempFile::new_in(&report_dir)
-        .map_err(|e| format!("创建临时文件失败: {}", e))?;
+        .map_err(|e| format!("创建临时文件Failed: {}", e))?;
     temp_file
         .write_all(json.as_bytes())
-        .map_err(|e| format!("写入临时文件失败: {}", e))?;
+        .map_err(|e| format!("写入临时文件Failed: {}", e))?;
     temp_file
         .persist(&summary_path)
-        .map_err(|e| format!("保存报告文件失败: {}", e))?;
+        .map_err(|e| format!("保存报告文件Failed: {}", e))?;
 
     // 保存行详情
     if !row_details.is_empty() {
         let rows_dir = report_dir.join("rows");
         std::fs::create_dir_all(&rows_dir)
-            .map_err(|e| format!("创建行详情目录失败: {}", e))?;
+            .map_err(|e| format!("创建行详情目录Failed: {}", e))?;
 
         for (row_index, flow_report) in row_details {
             let row_path = rows_dir.join(format!("row_{}.json", row_index));
             let row_json = serde_json::to_string_pretty(flow_report)
-                .map_err(|e| format!("序列化行报告失败: {}", e))?;
+                .map_err(|e| format!("序列化行报告Failed: {}", e))?;
 
             let mut row_temp = tempfile::NamedTempFile::new_in(&rows_dir)
-                .map_err(|e| format!("创建行临时文件失败: {}", e))?;
+                .map_err(|e| format!("创建行临时文件Failed: {}", e))?;
             row_temp
                 .write_all(row_json.as_bytes())
-                .map_err(|e| format!("写入行临时文件失败: {}", e))?;
+                .map_err(|e| format!("写入行临时文件Failed: {}", e))?;
             row_temp
                 .persist(&row_path)
-                .map_err(|e| format!("保存行报告失败: {}", e))?;
+                .map_err(|e| format!("保存行报告Failed: {}", e))?;
         }
     }
 
@@ -280,12 +280,12 @@ mod tests {
             total_rows: 100,
             dataset_name: "test.csv".to_string(),
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("started"));
         assert!(json.contains("total_rows"));
         assert!(json.contains("test.csv"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
         if let DatasetEvent::Started { total_rows, dataset_name } = de {
             assert_eq!(total_rows, 100);
             assert_eq!(dataset_name, "test.csv");
@@ -301,10 +301,10 @@ mod tests {
             status: RowStatus::Success,
             duration_ms: 120,
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("row_completed"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
         if let DatasetEvent::RowCompleted { row_index, status, duration_ms } = de {
             assert_eq!(row_index, 5);
             assert_eq!(status, RowStatus::Success);
@@ -321,11 +321,11 @@ mod tests {
             error: "连接超时".to_string(),
             duration_ms: 5000,
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("row_failed"));
         assert!(json.contains("连接超时"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
         if let DatasetEvent::RowFailed { row_index, error, duration_ms } = de {
             assert_eq!(row_index, 2);
             assert_eq!(error, "连接超时");
@@ -346,11 +346,11 @@ mod tests {
             elapsed_ms: 5000,
             estimated_remaining_ms: Some(45000),
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("progress"));
         assert!(json.contains("estimated_remaining_ms"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
         if let DatasetEvent::Progress { completed, total, estimated_remaining_ms, .. } = de {
             assert_eq!(completed, 10);
             assert_eq!(total, 100);
@@ -366,10 +366,10 @@ mod tests {
         let event = DatasetEvent::Ended {
             report: Box::new(report),
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("ended"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
         if let DatasetEvent::Ended { report } = de {
             assert_eq!(report.total_rows, 3);
         } else {
@@ -383,10 +383,10 @@ mod tests {
         let event = DatasetEvent::Cancelled {
             report: Box::new(report),
         };
-        let json = serde_json::to_string(&event).expect("序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("cancelled"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
         if let DatasetEvent::Cancelled { report } = de {
             assert_eq!(report.total_rows, 5);
         } else {
@@ -401,19 +401,19 @@ mod tests {
                 total_rows: 10,
                 dataset_name: "data.csv".to_string(),
             })
-            .expect("序列化失败"),
+            .expect("序列化Failed"),
             serde_json::to_string(&DatasetEvent::RowCompleted {
                 row_index: 0,
                 status: RowStatus::Success,
                 duration_ms: 50,
             })
-            .expect("序列化失败"),
+            .expect("序列化Failed"),
             serde_json::to_string(&DatasetEvent::RowFailed {
                 row_index: 1,
                 error: "err".to_string(),
                 duration_ms: 100,
             })
-            .expect("序列化失败"),
+            .expect("序列化Failed"),
             serde_json::to_string(&DatasetEvent::Progress {
                 completed: 2,
                 total: 10,
@@ -423,19 +423,19 @@ mod tests {
                 elapsed_ms: 200,
                 estimated_remaining_ms: Some(800),
             })
-            .expect("序列化失败"),
+            .expect("序列化Failed"),
             serde_json::to_string(&DatasetEvent::Ended {
                 report: Box::new(create_test_report(2, 1, 0, 1)),
             })
-            .expect("序列化失败"),
+            .expect("序列化Failed"),
             serde_json::to_string(&DatasetEvent::Cancelled {
                 report: Box::new(create_test_report(1, 1, 0, 0)),
             })
-            .expect("序列化失败"),
+            .expect("序列化Failed"),
         ];
 
         for json in events_json {
-            let _: DatasetEvent = serde_json::from_str(&json).expect("反序列化失败");
+            let _: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
         }
     }
 
@@ -528,13 +528,13 @@ mod tests {
 
     #[test]
     fn test_save_report_creates_files() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
 
         let report = create_test_report(3, 2, 1, 0);
         let row_details = HashMap::new();
 
         let result = save_report(&report, temp_dir.path(), &row_details);
-        assert!(result.is_ok(), "保存报告应成功: {:?}", result.err());
+        assert!(result.is_ok(), "保存报告应Success: {:?}", result.err());
 
         // 验证 summary.json 存在
         let report_dir = temp_dir.path().join("reports").join(format!("dataset_{}", report.uuid));
@@ -546,9 +546,9 @@ mod tests {
 
         // 验证 summary.json 可反序列化
         let content =
-            std::fs::read_to_string(report_dir.join("summary.json")).expect("读取失败");
+            std::fs::read_to_string(report_dir.join("summary.json")).expect("读取Failed");
         let loaded: DatasetExecutionReport =
-            serde_json::from_str(&content).expect("反序列化失败");
+            serde_json::from_str(&content).expect("反序列化Failed");
         assert_eq!(loaded.uuid, report.uuid);
         assert_eq!(loaded.total_rows, 3);
 
@@ -561,7 +561,7 @@ mod tests {
 
     #[test]
     fn test_save_report_with_failed_rows() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
 
         let report = create_test_report(5, 3, 1, 1);
 
@@ -577,7 +577,7 @@ mod tests {
         );
 
         let result = save_report(&report, temp_dir.path(), &row_details);
-        assert!(result.is_ok(), "保存报告应成功");
+        assert!(result.is_ok(), "保存报告应Success");
 
         let report_dir = temp_dir.path().join("reports").join(format!("dataset_{}", report.uuid));
 
@@ -595,20 +595,20 @@ mod tests {
 
         // 验证行详情文件可反序列化
         let content =
-            std::fs::read_to_string(rows_dir.join("row_2.json")).expect("读取失败");
+            std::fs::read_to_string(rows_dir.join("row_2.json")).expect("读取Failed");
         let flow_report: FlowExecutionReport =
-            serde_json::from_str(&content).expect("反序列化失败");
+            serde_json::from_str(&content).expect("反序列化Failed");
         assert_eq!(flow_report.flow_uuid, "flow-001");
     }
 
     #[test]
     fn test_save_report_no_rows_dir_when_empty_map() {
-        let temp_dir = TempDir::new().expect("创建临时目录失败");
+        let temp_dir = TempDir::new().expect("创建临时目录Failed");
 
         let report = create_test_report(3, 3, 0, 0);
         let row_details = HashMap::new();
 
-        save_report(&report, temp_dir.path(), &row_details).expect("保存失败");
+        save_report(&report, temp_dir.path(), &row_details).expect("保存Failed");
 
         let report_dir = temp_dir.path().join("reports").join(format!("dataset_{}", report.uuid));
         assert!(!report_dir.join("rows").exists());
@@ -618,7 +618,7 @@ mod tests {
 
     #[test]
     fn test_expected_event_sequence_for_successful_run() {
-        // 模拟一个完整的成功执行过程应该产生的事件序列
+        // 模拟一个完整的Success执行过程应该产生的事件序列
         let total_rows = 3u32;
         let dataset_name = "test.csv".to_string();
 
@@ -667,8 +667,8 @@ mod tests {
 
         // 验证事件序列可序列化/反序列化
         for event in &events {
-            let json = serde_json::to_string(event).expect("序列化失败");
-            let _: DatasetEvent = serde_json::from_str(&json).expect("反序列化失败");
+            let json = serde_json::to_string(event).expect("序列化Failed");
+            let _: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
         }
 
         // 验证事件顺序: Started → Row* → Ended
@@ -697,8 +697,8 @@ mod tests {
             report: Box::new(report),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化失败");
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化失败");
+        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
 
         if let DatasetEvent::Cancelled { report } = de {
             assert_eq!(report.total_rows, 2);
@@ -718,7 +718,7 @@ mod tests {
             status,
             duration_ms,
             error_message: if is_error {
-                Some("测试错误".to_string())
+                Some("测试Error".to_string())
             } else {
                 None
             },

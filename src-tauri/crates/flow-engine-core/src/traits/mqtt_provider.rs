@@ -9,7 +9,7 @@ use crate::node_config::{
 /// MQTT 连接输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MqttConnectOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// Broker 信息
     #[serde(default)]
@@ -17,7 +17,7 @@ pub struct MqttConnectOutput {
     /// 原因码
     #[serde(default)]
     pub reason_code: Option<u8>,
-    /// 错误信息
+    /// Error信息
     #[serde(default)]
     pub error: Option<String>,
 }
@@ -54,12 +54,12 @@ pub struct MqttBrokerInfo {
 /// MQTT 发布输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MqttPublishOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 原因码
     #[serde(default)]
     pub reason_code: Option<u8>,
-    /// 错误信息
+    /// Error信息
     #[serde(default)]
     pub error: Option<String>,
 }
@@ -67,7 +67,7 @@ pub struct MqttPublishOutput {
 /// MQTT 订阅输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MqttSubscribeOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 原因码
     #[serde(default)]
@@ -75,7 +75,7 @@ pub struct MqttSubscribeOutput {
     /// 接收到的消息列表
     #[serde(default)]
     pub messages: Vec<MqttReceivedMessage>,
-    /// 错误信息
+    /// Error信息
     #[serde(default)]
     pub error: Option<String>,
 }
@@ -101,14 +101,14 @@ pub struct MqttReceivedMessage {
 /// MQTT 消息输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MqttMessageOutput {
-    /// 是否成功
+    /// 是否Success
     pub success: bool,
     /// 接收到的消息列表
     pub messages: Vec<MqttReceivedMessage>,
     /// 时间信息
     #[serde(default)]
     pub timing: Option<MqttTimingInfo>,
-    /// 错误信息
+    /// Error信息
     #[serde(default)]
     pub error: Option<String>,
 }
@@ -222,13 +222,13 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).expect("序列化应成功");
+        let json = serde_json::to_string(&output).expect("序列化应Success");
         assert!(json.contains("\"success\":true"));
         assert!(json.contains("MQTT 5.0"));
         assert!(json.contains("client-001"));
 
         let deserialized: MqttConnectOutput =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert!(deserialized.success);
         assert!(deserialized.broker_info.is_some());
     }
@@ -241,9 +241,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).expect("序列化应成功");
+        let json = serde_json::to_string(&output).expect("序列化应Success");
         let deserialized: MqttPublishOutput =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert!(deserialized.success);
         assert_eq!(deserialized.reason_code, Some(0));
     }
@@ -259,11 +259,11 @@ mod tests {
             timestamp_ms: 1700000000000,
         };
 
-        let json = serde_json::to_string(&msg).expect("序列化应成功");
+        let json = serde_json::to_string(&msg).expect("序列化应Success");
         assert!(json.contains("test/topic"));
 
         let deserialized: MqttReceivedMessage =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.topic, "test/topic");
         assert_eq!(deserialized.payload, vec![72, 101, 108, 108, 111]);
         assert_eq!(deserialized.qos, 1);
@@ -276,9 +276,9 @@ mod tests {
             first_message_ms: Some(50),
         };
 
-        let json = serde_json::to_string(&timing).expect("序列化应成功");
+        let json = serde_json::to_string(&timing).expect("序列化应Success");
         let deserialized: MqttTimingInfo =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.total_ms, 150);
         assert_eq!(deserialized.first_message_ms, Some(50));
     }
@@ -293,12 +293,12 @@ mod tests {
             connected_at: 1700000000000,
         };
 
-        let json = serde_json::to_string(&info).expect("序列化应成功");
+        let json = serde_json::to_string(&info).expect("序列化应Success");
         assert!(json.contains("conn-uuid-001"));
         assert!(json.contains("mqtt://localhost:1883"));
 
         let deserialized: MqttConnectionInfo =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.uuid, "conn-uuid-001");
         assert_eq!(deserialized.status, "connected");
     }
@@ -322,9 +322,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).expect("序列化应成功");
+        let json = serde_json::to_string(&output).expect("序列化应Success");
         let deserialized: MqttMessageOutput =
-            serde_json::from_str(&json).expect("反序列化应成功");
+            serde_json::from_str(&json).expect("反序列化应Success");
         assert!(deserialized.success);
         assert_eq!(deserialized.messages.len(), 1);
         assert_eq!(deserialized.timing.as_ref().expect("应有时间信息").total_ms, 200);

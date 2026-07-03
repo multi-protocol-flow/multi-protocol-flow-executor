@@ -49,8 +49,8 @@ impl PostgresConnection {
     ///
     /// # 返回
     ///
-    /// * `Ok(PostgresConnection)` - 连接池创建成功
-    /// * `Err(String)` - 连接池创建失败
+    /// * `Ok(PostgresConnection)` - 连接池创建Success
+    /// * `Err(String)` - 连接池创建Failed
     ///
     /// # 示例
     ///
@@ -86,9 +86,9 @@ impl PostgresConnection {
         let pool = pool_options
             .connect(&connection_string)
             .await
-            .map_err(|e| format!("PostgreSQL 连接池创建失败: {}", e))?;
+            .map_err(|e| format!("PostgreSQL 连接池创建Failed: {}", e))?;
 
-        log::info!("[PostgreSQL] 连接池创建成功: name={}", name);
+        log::info!("[PostgreSQL] 连接池创建Success: name={}", name);
 
         // 生成安全的连接字符串（隐藏密码）
         let connection_string_safe = Self::sanitize_connection_string(&connection_string);
@@ -110,8 +110,8 @@ impl PostgresConnection {
     ///
     /// # 返回
     ///
-    /// * `Ok(PostgresConnection)` - 连接池创建成功
-    /// * `Err(String)` - 连接池创建失败
+    /// * `Ok(PostgresConnection)` - 连接池创建Success
+    /// * `Err(String)` - 连接池创建Failed
     pub async fn from_config(config: &super::types::DbConnection) -> Result<Self, String> {
         // 构建 PostgreSQL 连接字符串
         let connection_string = Self::build_connection_string(config)?;
@@ -203,8 +203,8 @@ impl DatabasePool for PostgresConnection {
     ///
     /// # 返回
     ///
-    /// * `Ok(QueryResult)` - 查询成功
-    /// * `Err(String)` - 查询失败
+    /// * `Ok(QueryResult)` - 查询Success
+    /// * `Err(String)` - 查询Failed
     ///
     /// # 占位符格式
     ///
@@ -249,7 +249,7 @@ impl DatabasePool for PostgresConnection {
     /// # 返回
     ///
     /// * `Ok(())` - 连接正常
-    /// * `Err(String)` - 连接失败
+    /// * `Err(String)` - connection failed
     async fn test_connection(&self) -> Result<(), String> {
         log::info!("[PostgreSQL] 测试连接: name={}", self.name);
 
@@ -258,12 +258,12 @@ impl DatabasePool for PostgresConnection {
 
         match result {
             Ok(_) => {
-                log::info!("[PostgreSQL] 连接测试成功: name={}", self.name);
+                log::info!("[PostgreSQL] 连接测试Success: name={}", self.name);
                 Ok(())
             }
             Err(e) => {
                 log::error!(
-                    "[PostgreSQL] 连接测试失败: name={}, error={}",
+                    "[PostgreSQL] 连接测试Failed: name={}, error={}",
                     self.name,
                     e
                 );
@@ -324,7 +324,7 @@ impl DatabasePool for PostgresConnection {
             .pool
             .acquire()
             .await
-            .map_err(|e| format!("PostgreSQL 获取事务连接失败: {}", e))?;
+            .map_err(|e| format!("PostgreSQL 获取事务connection failed: {}", e))?;
 
         // 如果指定了隔离级别，先设置隔离级别
         if let Some(level) = isolation_level {
@@ -334,7 +334,7 @@ impl DatabasePool for PostgresConnection {
                 .await
                 .map_err(|e| {
                     format!(
-                        "PostgreSQL 设置事务隔离级别失败 ({}): {}",
+                        "PostgreSQL 设置事务隔离级别Failed ({}): {}",
                         level, e
                     )
                 })?;
@@ -349,7 +349,7 @@ impl DatabasePool for PostgresConnection {
         sqlx::query("BEGIN")
             .execute(&mut *conn)
             .await
-            .map_err(|e| format!("PostgreSQL BEGIN 失败: {}", e))?;
+            .map_err(|e| format!("PostgreSQL BEGIN Failed: {}", e))?;
 
         // 存入专用连接
         *guard = Some(conn);
@@ -375,7 +375,7 @@ impl DatabasePool for PostgresConnection {
         sqlx::query("COMMIT")
             .execute(&mut *conn)
             .await
-            .map_err(|e| format!("PostgreSQL COMMIT 失败: {}", e))?;
+            .map_err(|e| format!("PostgreSQL COMMIT Failed: {}", e))?;
 
         // 连接 drop 后自动归还连接池
         drop(conn);
@@ -402,7 +402,7 @@ impl DatabasePool for PostgresConnection {
         sqlx::query("ROLLBACK")
             .execute(&mut *conn)
             .await
-            .map_err(|e| format!("PostgreSQL ROLLBACK 失败: {}", e))?;
+            .map_err(|e| format!("PostgreSQL ROLLBACK Failed: {}", e))?;
 
         // 连接 drop 后自动归还连接池
         drop(conn);
@@ -455,7 +455,7 @@ impl PostgresConnection {
             let rows = query
                 .fetch_all(&self.pool)
                 .await
-                .map_err(|e| format!("PostgreSQL 查询执行失败: {}", e))?;
+                .map_err(|e| format!("PostgreSQL 查询执行Failed: {}", e))?;
 
             // 处理结果
             if rows.is_empty() {
@@ -503,7 +503,7 @@ impl PostgresConnection {
             let result = query
                 .execute(&self.pool)
                 .await
-                .map_err(|e| format!("PostgreSQL 执行失败: {}", e))?;
+                .map_err(|e| format!("PostgreSQL 执行Failed: {}", e))?;
 
             Ok(QueryResult::with_affected_rows(result.rows_affected()))
         }
@@ -540,7 +540,7 @@ impl PostgresConnection {
             let rows = query
                 .fetch_all(pg_conn)
                 .await
-                .map_err(|e| format!("PostgreSQL 事务查询执行失败: {}", e))?;
+                .map_err(|e| format!("PostgreSQL 事务查询执行Failed: {}", e))?;
 
             // 处理结果
             if rows.is_empty() {
@@ -589,7 +589,7 @@ impl PostgresConnection {
             let result = query
                 .execute(pg_conn)
                 .await
-                .map_err(|e| format!("PostgreSQL 事务执行失败: {}", e))?;
+                .map_err(|e| format!("PostgreSQL 事务执行Failed: {}", e))?;
 
             Ok(QueryResult::with_affected_rows(result.rows_affected()))
         }

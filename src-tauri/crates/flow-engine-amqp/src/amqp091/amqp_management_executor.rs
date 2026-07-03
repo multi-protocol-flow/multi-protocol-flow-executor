@@ -49,7 +49,7 @@ impl NodeExecutor for AmqpManagementExecutor {
             NodeData::AmqpManagement(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 AmqpManagementConfig: {}",
+                    "Node data type is not AmqpManagementConfig: {}",
                     node.uuid
                 ))
             }
@@ -57,9 +57,9 @@ impl NodeExecutor for AmqpManagementExecutor {
 
         // 2. 变量替换
         let management_url = replace_variables(&config.management_url, context).map_err(|e| {
-            let error_msg = format!("management_url 变量替换失败: {}", e);
+            let error_msg = format!("management_url variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -69,7 +69,7 @@ impl NodeExecutor for AmqpManagementExecutor {
         })?;
 
         let action = replace_variables(&config.action, context).map_err(|e| {
-            let error_msg = format!("action 变量替换失败: {}", e);
+            let error_msg = format!("action variable substitution failed: {}", e);
             ErrorDetail::execution_error(error_msg)
         })?;
 
@@ -78,14 +78,14 @@ impl NodeExecutor for AmqpManagementExecutor {
             .as_deref()
             .map(|v| replace_variables(v, context))
             .transpose()
-            .map_err(|e| ErrorDetail::execution_error(format!("vhost 变量替换失败: {}", e)))?;
+            .map_err(|e| ErrorDetail::execution_error(format!("vhost variable substitution failed: {}", e)))?;
 
         let queue_name = config
             .queue_name
             .as_deref()
             .map(|v| replace_variables(v, context))
             .transpose()
-            .map_err(|e| ErrorDetail::execution_error(format!("queue_name 变量替换失败: {}", e)))?;
+            .map_err(|e| ErrorDetail::execution_error(format!("queue_name variable substitution failed: {}", e)))?;
 
         let replaced_config = AmqpManagementConfig {
             management_url,
@@ -97,9 +97,9 @@ impl NodeExecutor for AmqpManagementExecutor {
             connection_id: config.connection_id.clone(),
         };
 
-        // 3. 日志：开始执行
+        // 3. 日志：start execution
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp_management, action: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp_management, action: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -110,7 +110,7 @@ impl NodeExecutor for AmqpManagementExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "AMQP Management 节点 {} 开始执行, action: {}",
+                    "AMQP Management 节点 {} start execution, action: {}",
                     node.name, replaced_config.action
                 ),
                 timestamp: std::time::SystemTime::now()
@@ -135,14 +135,14 @@ impl NodeExecutor for AmqpManagementExecutor {
 
                 if output.success {
                     log::info!(
-                        "[AMQP Management] 操作成功: uuid={}, action={}, 耗时={}ms",
+                        "[AMQP Management] 操作Success: uuid={}, action={}, 耗时={}ms",
                         node.uuid,
                         replaced_config.action,
                         duration.as_millis()
                     );
                 } else {
                     log::warn!(
-                        "[AMQP Management] 操作失败: uuid={}, action={}, error={:?}",
+                        "[AMQP Management] 操作Failed: uuid={}, action={}, error={:?}",
                         node.uuid,
                         replaced_config.action,
                         output.error
@@ -173,13 +173,13 @@ impl NodeExecutor for AmqpManagementExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "AMQP Management 操作成功 ({}ms)",
+                        "AMQP Management 操作Success ({}ms)",
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "AMQP Management 操作失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "AMQP Management 操作Failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -240,9 +240,9 @@ impl NodeExecutor for AmqpManagementExecutor {
                     "error": e,
                 });
 
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("AMQP management 失败: {}", e));
+                    return Err(format!("AMQP management Failed: {}", e));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -277,7 +277,7 @@ mod tests {
         AmqpManagementOutput, AmqpProvider,
     };
 
-    /// Mock AmqpProvider — 管理操作成功
+    /// Mock AmqpProvider — 管理操作Success
     struct MockManagementProvider {
         output: AmqpManagementOutput,
     }
@@ -541,7 +541,7 @@ mod tests {
             _uuid: &str,
             _config: &AmqpManagementConfig,
         ) -> Result<AmqpManagementOutput, String> {
-            Err("Management API 连接失败: Connection refused".to_string())
+            Err("Management API connection failed: Connection refused".to_string())
         }
 
         async fn amqp10_connect(
@@ -601,7 +601,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, action: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -646,7 +646,7 @@ mod tests {
         }
     }
 
-    /// 测试 1：overview 操作成功时输出 JSON 结构正确
+    /// 测试 1：overview 操作Success时输出 JSON 结构正确
     #[tokio::test]
     async fn test_amqp_management_overview_success() {
         let overview_data = json!({
@@ -665,7 +665,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
@@ -676,12 +676,12 @@ mod tests {
         assert!(data["error"].is_null());
     }
 
-    /// 测试 2：操作失败时路由到 false 端口
+    /// 测试 2：操作Failed时路由到 false 端口
     #[tokio::test]
     async fn test_amqp_management_failure_routes_to_false() {
         let provider = Arc::new(MockManagementProvider::new_failure("队列不存在"));
         let executor = AmqpManagementExecutor::new(provider);
-        let node = create_test_node("test-2", "失败测试", "queue_info");
+        let node = create_test_node("test-2", "Failed测试", "queue_info");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -690,7 +690,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 失败应路由到 false 端口
+        // Failed应路由到 false 端口
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
@@ -718,10 +718,10 @@ mod tests {
 
         let data = output_data.unwrap();
         assert_eq!(data["success"], false);
-        assert_eq!(data["error"], "Management API 连接失败: Connection refused");
+        assert_eq!(data["error"], "Management API connection failed: Connection refused");
     }
 
-    /// 测试 4：节点数据类型不匹配时返回错误
+    /// 测试 4：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_amqp_management_wrong_node_data_type() {
         let provider = Arc::new(MockManagementProvider::new_success(json!(null)));
@@ -730,7 +730,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(EntryConfig::default()),
             ports: None,

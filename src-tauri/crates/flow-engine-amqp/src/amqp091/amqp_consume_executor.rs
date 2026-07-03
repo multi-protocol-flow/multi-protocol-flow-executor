@@ -45,7 +45,7 @@ impl NodeExecutor for AmqpConsumeExecutor {
             NodeData::AmqpConsume(config) => config.clone(),
             _ => {
                 return Err(ErrorDetail::execution_error(format!(
-                    "节点数据类型不是 AmqpConsumeConfig: {}",
+                    "Node data type is not AmqpConsumeConfig: {}",
                     node.uuid
                 )))
             }
@@ -53,9 +53,9 @@ impl NodeExecutor for AmqpConsumeExecutor {
 
         // 2. 变量替换（queue, consumer_tag）
         let queue = replace_variables(&config.queue, context).map_err(|e| {
-            let error_msg = format!("queue 变量替换失败: {}", e);
+            let error_msg = format!("queue variable substitution failed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -66,9 +66,9 @@ impl NodeExecutor for AmqpConsumeExecutor {
 
         let consumer_tag = match &config.consumer_tag {
             Some(v) => Some(replace_variables(v, context).map_err(|e| {
-                let error_msg = format!("consumer_tag 变量替换失败: {}", e);
+                let error_msg = format!("consumer_tag variable substitution failed: {}", e);
                 log::error!(
-                    "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -81,7 +81,7 @@ impl NodeExecutor for AmqpConsumeExecutor {
 
         // 3. 日志：开始消费
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: amqp_consume, queue: {}, consumer_tag: {:?}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp_consume, queue: {}, consumer_tag: {:?}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -92,7 +92,7 @@ impl NodeExecutor for AmqpConsumeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("AMQP 消费节点 {} 开始执行", node.name),
+                message: format!("AMQP 消费节点 {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
@@ -131,7 +131,7 @@ impl NodeExecutor for AmqpConsumeExecutor {
 
                 if output.success {
                     log::info!(
-                        "[AMQP] 消费成功: uuid={}, queue={}, 消息数={}, 耗时={}ms",
+                        "[AMQP] 消费Success: uuid={}, queue={}, 消息数={}, 耗时={}ms",
                         node.uuid,
                         resolved_config.queue,
                         output.message_count,
@@ -139,7 +139,7 @@ impl NodeExecutor for AmqpConsumeExecutor {
                     );
                 } else {
                     log::warn!(
-                        "[AMQP] 消费失败: uuid={}, queue={}, error={:?} ({}ms)",
+                        "[AMQP] 消费Failed: uuid={}, queue={}, error={:?} ({}ms)",
                         node.uuid,
                         resolved_config.queue,
                         output.error,
@@ -185,14 +185,14 @@ impl NodeExecutor for AmqpConsumeExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "AMQP 消费成功, 消息数: {} ({}ms)",
+                        "AMQP 消费Success, 消息数: {} ({}ms)",
                         output.message_count,
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "AMQP 消费失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "AMQP 消费Failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("未知Error"),
                         duration.as_millis()
                     )
                 };
@@ -211,7 +211,7 @@ impl NodeExecutor for AmqpConsumeExecutor {
                     })
                     .await;
 
-                // 8. 路由：成功走 true 端口，失败走 false 端口
+                // 8. 路由：Success走 true 端口，Failed走 false 端口
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, port);
 
@@ -254,9 +254,9 @@ impl NodeExecutor for AmqpConsumeExecutor {
                     },
                 });
 
-                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP consume 失败: {}", e)));
+                    return Err(ErrorDetail::execution_error(format!("AMQP consume Failed: {}", e)));
                 }
 
                 // 返回 false 端口
@@ -299,13 +299,13 @@ mod tests {
         AmqpConnectOutput, AmqpConnectionInfo, AmqpConsumeOutput, AmqpMessage,
     };
 
-    /// Mock AmqpProvider（消费成功，返回多条消息）
+    /// Mock AmqpProvider（消费Success，返回多条消息）
     struct MockAmqpProvider {
         output: AmqpConsumeOutput,
     }
 
     impl MockAmqpProvider {
-        /// 创建成功消费 Mock，返回指定消息列表
+        /// 创建Success消费 Mock，返回指定消息列表
         fn new_success(messages: Vec<AmqpMessage>) -> Self {
             let count = messages.len() as u32;
             Self {
@@ -318,7 +318,7 @@ mod tests {
             }
         }
 
-        /// 创建失败消费 Mock
+        /// 创建Failed消费 Mock
         fn new_failure(error: &str) -> Self {
             Self {
                 output: AmqpConsumeOutput {
@@ -646,7 +646,7 @@ mod tests {
         }
     }
 
-    /// 创建测试节点
+    /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, config: AmqpConsumeConfig) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -699,7 +699,7 @@ mod tests {
         }
     }
 
-    /// 测试：消费成功时输出 JSON 结构正确
+    /// 测试：消费Success时输出 JSON 结构正确
     #[tokio::test]
     async fn test_amqp_consume_success_output_structure() {
         let messages = vec![AmqpMessage {
@@ -722,7 +722,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 成功应路由到 true 端口
+        // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
@@ -796,12 +796,12 @@ mod tests {
         assert_eq!(messages[2]["body"], "msg3");
     }
 
-    /// 测试：消费失败时路由到 false 端口
+    /// 测试：消费Failed时路由到 false 端口
     #[tokio::test]
     async fn test_amqp_consume_failure_routes_to_false() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_failure("队列不存在"));
         let executor = AmqpConsumeExecutor::new(amqp_manager);
-        let node = create_test_node("test-2", "失败测试", default_consume_config());
+        let node = create_test_node("test-2", "Failed测试", default_consume_config());
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -810,7 +810,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        // 失败应路由到 false 端口
+        // Failed应路由到 false 端口
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
@@ -820,7 +820,7 @@ mod tests {
         assert_eq!(data["message_count"], 0);
     }
 
-    /// 测试：节点数据类型不匹配时返回错误
+    /// 测试：节点数据类型不匹配时返回Error
     #[tokio::test]
     async fn test_amqp_consume_wrong_node_data_type() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success(vec![]));
@@ -829,7 +829,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
