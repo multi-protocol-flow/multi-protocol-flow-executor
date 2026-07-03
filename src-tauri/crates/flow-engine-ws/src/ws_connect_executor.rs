@@ -968,7 +968,7 @@ mod tests {
 
                 let segment = &stream.segments[0];
                 assert_eq!(segment.node_uuid, "stream-test");
-                assert_eq!(segment.node_name, "消息流测试");
+                assert_eq!(segment.node_name, "stream test");
                 assert_eq!(segment.node_type, "ws_connect");
                 assert!(segment.ended_at.is_none(), "初始段不应结束");
 
