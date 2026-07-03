@@ -1077,6 +1077,7 @@ mod tests {
                 is_server_streaming,
                 is_client_streaming,
             }],
+            message_definitions: Default::default(),
         }]
     }
 

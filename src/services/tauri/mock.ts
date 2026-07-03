@@ -382,6 +382,7 @@ export async function discoverGrpcServices(
     services: [
       {
         service_name: 'grpc.health.v1.Health',
+        message_definitions: {},
         methods: [
           {
             method_name: 'Check',
@@ -401,6 +402,7 @@ export async function discoverGrpcServices(
       },
       {
         service_name: 'example.Greeter',
+        message_definitions: {},
         methods: [
           {
             method_name: 'SayHello',
