@@ -548,7 +548,7 @@ mod tests {
         fn send_event(&self, event: DebugEvent) -> Result<(), String> {
             self.sender
                 .send(event)
-                .map_err(|e| ErrorDetail::execution_error(format!("Failed to send debug event: {}", e)))
+                .map_err(|e| format!("Failed to send debug event: {}", e))
         }
     }
 
@@ -565,21 +565,8 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None, redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -598,6 +585,7 @@ mod tests {
             data: NodeData::Assertion(config),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -945,7 +933,7 @@ mod tests {
 
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.find("Assertion failed").is_some());
+        assert!(error.message.find("Assertion failed").is_some());
     }
 
     // ========================================================================
@@ -1038,21 +1026,8 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None, redis_manager: None,
             last_node_output: None,
             debug_event_sender: Some(Arc::new(MpscDebugEventSender::new(event_sender))),
             execution_event_sender: None,
