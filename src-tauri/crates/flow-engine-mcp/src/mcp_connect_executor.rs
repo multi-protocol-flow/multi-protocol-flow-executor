@@ -393,6 +393,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -409,21 +410,8 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None, redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -432,8 +420,13 @@ mod tests {
         }
     }
 
+    fn init_rustls() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    }
+
     #[tokio::test]
     async fn test_connect_unreachable_url() {
+        init_rustls();
         let mcp_manager = Arc::new(McpConnectionManager::new());
         let executor = McpConnectExecutor::new(mcp_manager);
         let node = create_test_node("test-1", "测试连接", "http://192.0.2.1:9999/mcp");
@@ -455,6 +448,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_connect_with_variable_replacement() {
+        init_rustls();
         let mcp_manager = Arc::new(McpConnectionManager::new());
         let executor = McpConnectExecutor::new(mcp_manager);
 
@@ -495,6 +489,7 @@ mod tests {
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -503,7 +498,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("McpConnectConfig"));
+        assert!(result.unwrap_err().message.contains("McpConnectConfig"));
     }
 
     // ===== 调试事件测试 =====
@@ -632,21 +627,8 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None, redis_manager: None,
             last_node_output: None,
             debug_event_sender: Some(Arc::new(MpscDebugEventSender::new(event_sender))),
             execution_event_sender: None,
@@ -659,6 +641,7 @@ mod tests {
     /// 测试：connection failed时不发射 McpConnectionCreated 调试事件
     #[tokio::test]
     async fn test_debug_event_not_emitted_on_connect_failure() {
+        init_rustls();
         let mcp_manager = Arc::new(McpConnectionManager::new());
         let executor = McpConnectExecutor::new(mcp_manager);
         let node = create_test_node("test-fail", "Failed测试", "http://192.0.2.1:9999/mcp");
