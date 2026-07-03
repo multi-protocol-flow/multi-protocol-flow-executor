@@ -208,6 +208,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -224,21 +225,8 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -284,6 +272,7 @@ mod tests {
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -292,7 +281,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("SmtpDisconnectConfig"));
+        assert!(result.unwrap_err().message.contains("SmtpDisconnectConfig"));
     }
 
     /// 测试：变量替换 — connection_id 中的变量应被正确替换

@@ -562,6 +562,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -578,21 +579,8 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None, redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -695,7 +683,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false"]);
         let data = output_data.unwrap();
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().unwrap().contains("收件人"));
+        assert!(data["error"].as_str().unwrap().contains("Recipient"));
     }
 
     /// 测试：变量替换
@@ -785,6 +773,7 @@ mod tests {
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -793,7 +782,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("SmtpSendConfig"));
+        assert!(result.unwrap_err().message.contains("SmtpSendConfig"));
     }
 
     // ===== Mock Success场景 =====
@@ -1147,6 +1136,7 @@ mod tests {
             data: NodeData::SmtpSend(SmtpSendConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let connections = vec![Connection {
@@ -1173,6 +1163,7 @@ mod tests {
             data: NodeData::SmtpSend(SmtpSendConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let result = route_to_true(&node, &[], json!({"success": true}));
@@ -1193,6 +1184,7 @@ mod tests {
             data: NodeData::SmtpSend(SmtpSendConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let connections = vec![Connection {
@@ -1219,6 +1211,7 @@ mod tests {
             data: NodeData::SmtpSend(SmtpSendConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let result = route_to_false(&node, &[], json!({"success": false}));
