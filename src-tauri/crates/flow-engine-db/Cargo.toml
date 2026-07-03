@@ -17,5 +17,9 @@ uuid = { workspace = true }
 base64 = { workspace = true }
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
+[features]
+mysql-integration-tests = []
+postgres-integration-tests = []
+
 [lints]
 workspace = true
