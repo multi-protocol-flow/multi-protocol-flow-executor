@@ -100,11 +100,6 @@ impl NodePlugin for AmqpConnectPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "url": config.get("url"),
@@ -191,11 +186,6 @@ impl NodePlugin for AmqpClosePlugin {
 
     fn is_protocol_node(&self) -> bool {
         true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        false
     }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
@@ -300,11 +290,6 @@ impl NodePlugin for AmqpExchangeDeclarePlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -415,11 +400,6 @@ impl NodePlugin for AmqpExchangeDeletePlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -535,11 +515,6 @@ impl NodePlugin for AmqpQueueDeclarePlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -640,11 +615,6 @@ impl NodePlugin for AmqpQueueDeletePlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -756,11 +726,6 @@ impl NodePlugin for AmqpQueueBindPlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -885,11 +850,6 @@ impl NodePlugin for AmqpPublishPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -996,11 +956,6 @@ impl NodePlugin for AmqpConsumePlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -1115,11 +1070,6 @@ impl NodePlugin for AmqpGetPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -1227,11 +1177,6 @@ impl NodePlugin for AmqpAckPlugin {
     }
 
     fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
         true
     }
 
@@ -1344,11 +1289,6 @@ impl NodePlugin for AmqpManagementPlugin {
         true
     }
 
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "management_url": config.get("management_url"),
@@ -1425,8 +1365,6 @@ impl NodePlugin for Amqp10ConnectPlugin {
     }
 
     fn is_protocol_node(&self) -> bool { true }
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool { true }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1494,8 +1432,6 @@ impl NodePlugin for Amqp10SendPlugin {
     }
 
     fn is_protocol_node(&self) -> bool { true }
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool { true }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1569,8 +1505,6 @@ impl NodePlugin for Amqp10ReceivePlugin {
     }
 
     fn is_protocol_node(&self) -> bool { true }
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool { true }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1643,8 +1577,6 @@ impl NodePlugin for Amqp10AcceptPlugin {
     }
 
     fn is_protocol_node(&self) -> bool { true }
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool { true }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1710,8 +1642,6 @@ impl NodePlugin for Amqp10RejectPlugin {
     }
 
     fn is_protocol_node(&self) -> bool { true }
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool { true }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1767,8 +1697,6 @@ impl NodePlugin for Amqp10DisconnectPlugin {
     fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String { "out".to_string() }
 
     fn is_protocol_node(&self) -> bool { true }
-    #[allow(deprecated)]
-    fn supports_false_port(&self) -> bool { false }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1851,7 +1779,6 @@ mod tests {
         assert_eq!(plugin.icon(), "radio-tower");
         assert_eq!(plugin.color(), "#7c3aed");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -1868,7 +1795,6 @@ mod tests {
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#7c3aed");
         assert!(plugin.is_protocol_node());
-        assert!(!plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 1);
@@ -1884,7 +1810,6 @@ mod tests {
         assert_eq!(plugin.icon(), "shuffle");
         assert_eq!(plugin.color(), "#7c3aed");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -1898,7 +1823,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "amqp_exchange_delete");
         assert_eq!(plugin.display_name(), "AMQP 删除交换器");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
+        assert_eq!(plugin.ports().len(), 2);
     }
 
     #[test]
@@ -1907,7 +1832,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "amqp_queue_declare");
         assert_eq!(plugin.display_name(), "AMQP 声明队列");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
+        assert_eq!(plugin.ports().len(), 2);
     }
 
     #[test]
@@ -1916,7 +1841,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "amqp_queue_delete");
         assert_eq!(plugin.display_name(), "AMQP 删除队列");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
+        assert_eq!(plugin.ports().len(), 2);
     }
 
     #[test]
@@ -1925,7 +1850,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "amqp_queue_bind");
         assert_eq!(plugin.display_name(), "AMQP 队列绑定");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
+        assert_eq!(plugin.ports().len(), 2);
     }
 
     #[test]
@@ -1937,7 +1862,6 @@ mod tests {
         assert_eq!(plugin.icon(), "send");
         assert_eq!(plugin.color(), "#7c3aed");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
@@ -1951,7 +1875,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "amqp_consume");
         assert_eq!(plugin.display_name(), "AMQP 消费消息");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
+        assert_eq!(plugin.ports().len(), 2);
     }
 
     #[test]
@@ -1960,7 +1884,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "amqp_get");
         assert_eq!(plugin.display_name(), "AMQP 获取消息");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
+        assert_eq!(plugin.ports().len(), 2);
     }
 
     #[test]
@@ -1969,7 +1893,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "amqp_ack");
         assert_eq!(plugin.display_name(), "AMQP 确认消息");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
+        assert_eq!(plugin.ports().len(), 2);
     }
 
     // ---- resolve_port 测试 ----
@@ -2218,7 +2142,6 @@ mod tests {
         assert_eq!(plugin.icon(), "settings");
         assert_eq!(plugin.color(), "#7c3aed");
         assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
