@@ -37,7 +37,7 @@ impl NodePlugin for DbConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "数据库连接"
+        "Database Connect"
     }
 
     fn category(&self) -> &str {
@@ -112,58 +112,58 @@ impl NodePlugin for DbConnectPlugin {
             "properties": {
                 "connection_uuid": {
                     "type": "string",
-                    "title": "连接 UUID",
-                    "description": "数据库连接标识符"
+                    "title": "Connection UUID",
+                    "description": "Database connection identifier"
                 },
                 "driver": {
                     "type": "string",
-                    "title": "数据库驱动",
+                    "title": "Database Driver",
                     "enum": ["postgresql", "mysql", "sqlite"]
                 },
                 "connection_string": {
                     "type": "string",
-                    "title": "连接字符串"
+                    "title": "Connection String"
                 },
                 "host": {
                     "type": "string",
-                    "title": "主机地址"
+                    "title": "Host Address"
                 },
                 "port": {
                     "type": "integer",
-                    "title": "端口号"
+                    "title": "Port Number"
                 },
                 "database": {
                     "type": "string",
-                    "title": "数据库名"
+                    "title": "Database Name"
                 },
                 "username": {
                     "type": "string",
-                    "title": "用户名"
+                    "title": "Username"
                 },
                 "password": {
                     "type": "string",
-                    "title": "密码",
+                    "title": "Password",
                     "format": "password"
                 },
                 "min_connections": {
                     "type": "integer",
-                    "title": "最小连接数",
+                    "title": "Minimum Connections",
                     "minimum": 1,
                     "default": 1
                 },
                 "max_connections": {
                     "type": "integer",
-                    "title": "最大连接数",
+                    "title": "Maximum Connections",
                     "minimum": 1,
                     "default": 10
                 },
                 "test_query": {
                     "type": "string",
-                    "title": "测试查询语句"
+                    "title": "Test Query Statement"
                 },
                 "connect_timeout_ms": {
                     "type": "integer",
-                    "title": "连接超时（毫秒）"
+                    "title": "Connection Timeout (ms)"
                 }
             }
         }))
@@ -221,7 +221,7 @@ impl NodePlugin for DbQueryPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "数据库查询"
+        "Database Query"
     }
 
     fn category(&self) -> &str {
@@ -339,7 +339,7 @@ impl NodePlugin for DbBeginPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "事务开始"
+        "Transaction Begin"
     }
 
     fn category(&self) -> &str {
@@ -441,7 +441,7 @@ impl NodePlugin for DbCommitPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "事务提交"
+        "Transaction Commit"
     }
 
     fn category(&self) -> &str {
@@ -541,7 +541,7 @@ impl NodePlugin for DbRollbackPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "事务回滚"
+        "Transaction Rollback"
     }
 
     fn category(&self) -> &str {
@@ -643,7 +643,7 @@ impl NodePlugin for DbClosePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "关闭连接"
+        "Close Connection"
     }
 
     fn category(&self) -> &str {
@@ -661,7 +661,7 @@ impl NodePlugin for DbClosePlugin {
     fn ports(&self) -> Vec<PortDef> {
         vec![PortDef {
             id: "out".into(),
-            label: "输出".into(),
+            label: "Output".into(),
             position: "right".into(),
         }]
     }
