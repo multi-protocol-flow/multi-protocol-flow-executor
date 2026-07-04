@@ -281,7 +281,7 @@ export async function executeFlowWithChannel(
   // 发送流程完成日志
   onLog({
     level: 'INFO',
-    message: '流程执行成功',
+    message: 'Flow executed successfully',
     timestamp: endTime,
     flowUuid: flow.uuid,
   });
@@ -864,7 +864,7 @@ export async function loadDatasetReport(
   return {
     uuid: 'mock-report-001',
     flow_uuid: 'mock-flow-001',
-    flow_name: '测试流程 1',
+    flow_name: 'Test Flow 1',
     dataset_path: '/data/users.csv',
     dataset_name: 'users.csv',
     encoding: 'utf-8',
@@ -900,7 +900,7 @@ export async function loadDatasetRowDetail(
   return {
     uuid: 'mock-flow-report-001',
     flow_uuid: 'mock-flow-001',
-    flow_name: '测试流程 1',
+    flow_name: 'Test Flow 1',
     status: 'failed',
     error: 'Assertion failed: expected status 200, got 500',
   };

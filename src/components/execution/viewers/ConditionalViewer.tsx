@@ -132,8 +132,8 @@ export const ConditionalViewer = memo(function ConditionalViewer({ report }: Con
         defaultOpen={true}
       >
         <div className="space-y-3">
-          <ValueDisplay label="字段值 (field_value)" value={fieldValue} />
-          <ValueDisplay label="评估值 (evaluated_value)" value={evaluatedValue} />
+          <ValueDisplay label="Field Value" value={fieldValue} />
+          <ValueDisplay label="Evaluated Value" value={evaluatedValue} />
         </div>
       </CollapsibleSection>
 
