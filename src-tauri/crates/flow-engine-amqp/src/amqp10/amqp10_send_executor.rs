@@ -84,14 +84,14 @@ impl NodeExecutor for Amqp10SendExecutor {
 
         // 3. 日志：开始发送
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp10_send, Connection ID: {}, 地址: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: amqp10_send, Connection ID: {}, Address: {}",
             context.flow_uuid, node.uuid, node.name, connection_id, address
         );
 
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("AMQP 1.0 发送节点 {} start execution", node.name),
+                message: format!("AMQP 1.0 send node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
@@ -119,12 +119,12 @@ impl NodeExecutor for Amqp10SendExecutor {
             Ok(output) => {
                 if output.success {
                     log::info!(
-                        "[AMQP 1.0] 发送Success: connection_id={}, address={}",
+                        "[AMQP 1.0] Send succeeded: connection_id={}, address={}",
                         connection_id, address
                     );
                 } else {
                     log::warn!(
-                        "[AMQP 1.0] 发送Failed: connection_id={}, address={}, error={:?}",
+                        "[AMQP 1.0] Send failed: connection_id={}, address={}, error={:?}",
                         connection_id, address, output.error
                     );
                 }

@@ -44,7 +44,7 @@ impl NodePlugin for AmqpConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 连接"
+        "AMQP Connect"
     }
 
     fn category(&self) -> &str {
@@ -150,7 +150,7 @@ impl NodePlugin for AmqpClosePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 关闭连接"
+        "AMQP Close Connection"
     }
 
     fn category(&self) -> &str {
@@ -236,7 +236,7 @@ impl NodePlugin for AmqpExchangeDeclarePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 声明交换器"
+        "AMQP Declare Exchange"
     }
 
     fn category(&self) -> &str {
@@ -349,7 +349,7 @@ impl NodePlugin for AmqpExchangeDeletePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 删除交换器"
+        "AMQP Delete Exchange"
     }
 
     fn category(&self) -> &str {
@@ -458,7 +458,7 @@ impl NodePlugin for AmqpQueueDeclarePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 声明队列"
+        "AMQP Declare Queue"
     }
 
     fn category(&self) -> &str {
@@ -564,7 +564,7 @@ impl NodePlugin for AmqpQueueDeletePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 删除队列"
+        "AMQP Delete Queue"
     }
 
     fn category(&self) -> &str {
@@ -673,7 +673,7 @@ impl NodePlugin for AmqpQueueBindPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 队列绑定"
+        "AMQP Queue Bind"
     }
 
     fn category(&self) -> &str {
@@ -792,7 +792,7 @@ impl NodePlugin for AmqpPublishPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 发布消息"
+        "AMQP Publish Message"
     }
 
     fn category(&self) -> &str {
@@ -901,7 +901,7 @@ impl NodePlugin for AmqpConsumePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 消费消息"
+        "AMQP Consume Message"
     }
 
     fn category(&self) -> &str {
@@ -1015,7 +1015,7 @@ impl NodePlugin for AmqpGetPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 获取消息"
+        "AMQP Get Message"
     }
 
     fn category(&self) -> &str {
@@ -1125,7 +1125,7 @@ impl NodePlugin for AmqpAckPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 确认消息"
+        "AMQP Acknowledge"
     }
 
     fn category(&self) -> &str {
@@ -1232,7 +1232,7 @@ impl NodePlugin for AmqpManagementPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "AMQP 管理"
+        "AMQP Management"
     }
 
     fn category(&self) -> &str {
@@ -1336,7 +1336,7 @@ pub struct Amqp10ConnectPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10ConnectPlugin {
     fn type_id(&self) -> &str { "amqp10_connect" }
-    fn display_name(&self) -> &str { "AMQP 1.0 连接" }
+    fn display_name(&self) -> &str { "AMQP 1.0 Connect" }
     fn category(&self) -> &str { "amqp" }
     fn icon(&self) -> &str { "radio-tower" }
     fn color(&self) -> &str { "#7c3aed" }
@@ -1402,7 +1402,7 @@ pub struct Amqp10SendPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10SendPlugin {
     fn type_id(&self) -> &str { "amqp10_send" }
-    fn display_name(&self) -> &str { "AMQP 1.0 发送消息" }
+    fn display_name(&self) -> &str { "AMQP 1.0 Send Message" }
     fn category(&self) -> &str { "amqp" }
     fn icon(&self) -> &str { "send" }
     fn color(&self) -> &str { "#7c3aed" }
@@ -1474,7 +1474,7 @@ pub struct Amqp10ReceivePlugin;
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10ReceivePlugin {
     fn type_id(&self) -> &str { "amqp10_receive" }
-    fn display_name(&self) -> &str { "AMQP 1.0 接收消息" }
+    fn display_name(&self) -> &str { "AMQP 1.0 Receive Message" }
     fn category(&self) -> &str { "amqp" }
     fn icon(&self) -> &str { "inbox" }
     fn color(&self) -> &str { "#7c3aed" }
@@ -1548,7 +1548,7 @@ pub struct Amqp10AcceptPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10AcceptPlugin {
     fn type_id(&self) -> &str { "amqp10_accept" }
-    fn display_name(&self) -> &str { "AMQP 1.0 确认消息" }
+    fn display_name(&self) -> &str { "AMQP 1.0 Accept Message" }
     fn category(&self) -> &str { "amqp" }
     fn icon(&self) -> &str { "check-circle" }
     fn color(&self) -> &str { "#7c3aed" }
@@ -1613,7 +1613,7 @@ pub struct Amqp10RejectPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10RejectPlugin {
     fn type_id(&self) -> &str { "amqp10_reject" }
-    fn display_name(&self) -> &str { "AMQP 1.0 拒绝消息" }
+    fn display_name(&self) -> &str { "AMQP 1.0 Reject Message" }
     fn category(&self) -> &str { "amqp" }
     fn icon(&self) -> &str { "x-circle" }
     fn color(&self) -> &str { "#7c3aed" }
@@ -1678,7 +1678,7 @@ pub struct Amqp10DisconnectPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10DisconnectPlugin {
     fn type_id(&self) -> &str { "amqp10_disconnect" }
-    fn display_name(&self) -> &str { "AMQP 1.0 断开连接" }
+    fn display_name(&self) -> &str { "AMQP 1.0 Disconnect" }
     fn category(&self) -> &str { "amqp" }
     fn icon(&self) -> &str { "unplug" }
     fn color(&self) -> &str { "#7c3aed" }
@@ -1774,7 +1774,7 @@ mod tests {
     fn test_amqp_connect_plugin_metadata() {
         let plugin = AmqpConnectPlugin;
         assert_eq!(plugin.type_id(), "amqp_connect");
-        assert_eq!(plugin.display_name(), "AMQP 连接");
+        assert_eq!(plugin.display_name(), "AMQP Connect");
         assert_eq!(plugin.category(), "amqp");
         assert_eq!(plugin.icon(), "radio-tower");
         assert_eq!(plugin.color(), "#7c3aed");
@@ -1790,7 +1790,7 @@ mod tests {
     fn test_amqp_close_plugin_metadata() {
         let plugin = AmqpClosePlugin;
         assert_eq!(plugin.type_id(), "amqp_close");
-        assert_eq!(plugin.display_name(), "AMQP 关闭连接");
+        assert_eq!(plugin.display_name(), "AMQP Close Connection");
         assert_eq!(plugin.category(), "amqp");
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#7c3aed");
@@ -1805,7 +1805,7 @@ mod tests {
     fn test_amqp_exchange_declare_plugin_metadata() {
         let plugin = AmqpExchangeDeclarePlugin;
         assert_eq!(plugin.type_id(), "amqp_exchange_declare");
-        assert_eq!(plugin.display_name(), "AMQP 声明交换器");
+        assert_eq!(plugin.display_name(), "AMQP Declare Exchange");
         assert_eq!(plugin.category(), "amqp");
         assert_eq!(plugin.icon(), "shuffle");
         assert_eq!(plugin.color(), "#7c3aed");
@@ -1821,7 +1821,7 @@ mod tests {
     fn test_amqp_exchange_delete_plugin_metadata() {
         let plugin = AmqpExchangeDeletePlugin;
         assert_eq!(plugin.type_id(), "amqp_exchange_delete");
-        assert_eq!(plugin.display_name(), "AMQP 删除交换器");
+        assert_eq!(plugin.display_name(), "AMQP Delete Exchange");
         assert!(plugin.is_protocol_node());
         assert_eq!(plugin.ports().len(), 2);
     }
@@ -1830,7 +1830,7 @@ mod tests {
     fn test_amqp_queue_declare_plugin_metadata() {
         let plugin = AmqpQueueDeclarePlugin;
         assert_eq!(plugin.type_id(), "amqp_queue_declare");
-        assert_eq!(plugin.display_name(), "AMQP 声明队列");
+        assert_eq!(plugin.display_name(), "AMQP Declare Queue");
         assert!(plugin.is_protocol_node());
         assert_eq!(plugin.ports().len(), 2);
     }
@@ -1839,7 +1839,7 @@ mod tests {
     fn test_amqp_queue_delete_plugin_metadata() {
         let plugin = AmqpQueueDeletePlugin;
         assert_eq!(plugin.type_id(), "amqp_queue_delete");
-        assert_eq!(plugin.display_name(), "AMQP 删除队列");
+        assert_eq!(plugin.display_name(), "AMQP Delete Queue");
         assert!(plugin.is_protocol_node());
         assert_eq!(plugin.ports().len(), 2);
     }
@@ -1848,7 +1848,7 @@ mod tests {
     fn test_amqp_queue_bind_plugin_metadata() {
         let plugin = AmqpQueueBindPlugin;
         assert_eq!(plugin.type_id(), "amqp_queue_bind");
-        assert_eq!(plugin.display_name(), "AMQP 队列绑定");
+        assert_eq!(plugin.display_name(), "AMQP Queue Bind");
         assert!(plugin.is_protocol_node());
         assert_eq!(plugin.ports().len(), 2);
     }
@@ -1857,7 +1857,7 @@ mod tests {
     fn test_amqp_publish_plugin_metadata() {
         let plugin = AmqpPublishPlugin;
         assert_eq!(plugin.type_id(), "amqp_publish");
-        assert_eq!(plugin.display_name(), "AMQP 发布消息");
+        assert_eq!(plugin.display_name(), "AMQP Publish Message");
         assert_eq!(plugin.category(), "amqp");
         assert_eq!(plugin.icon(), "send");
         assert_eq!(plugin.color(), "#7c3aed");
@@ -1873,7 +1873,7 @@ mod tests {
     fn test_amqp_consume_plugin_metadata() {
         let plugin = AmqpConsumePlugin;
         assert_eq!(plugin.type_id(), "amqp_consume");
-        assert_eq!(plugin.display_name(), "AMQP 消费消息");
+        assert_eq!(plugin.display_name(), "AMQP Consume Message");
         assert!(plugin.is_protocol_node());
         assert_eq!(plugin.ports().len(), 2);
     }
@@ -1882,7 +1882,7 @@ mod tests {
     fn test_amqp_get_plugin_metadata() {
         let plugin = AmqpGetPlugin;
         assert_eq!(plugin.type_id(), "amqp_get");
-        assert_eq!(plugin.display_name(), "AMQP 获取消息");
+        assert_eq!(plugin.display_name(), "AMQP Get Message");
         assert!(plugin.is_protocol_node());
         assert_eq!(plugin.ports().len(), 2);
     }
@@ -1891,7 +1891,7 @@ mod tests {
     fn test_amqp_ack_plugin_metadata() {
         let plugin = AmqpAckPlugin;
         assert_eq!(plugin.type_id(), "amqp_ack");
-        assert_eq!(plugin.display_name(), "AMQP 确认消息");
+        assert_eq!(plugin.display_name(), "AMQP Acknowledge");
         assert!(plugin.is_protocol_node());
         assert_eq!(plugin.ports().len(), 2);
     }
@@ -2137,7 +2137,7 @@ mod tests {
     fn test_amqp_management_plugin_metadata() {
         let plugin = AmqpManagementPlugin;
         assert_eq!(plugin.type_id(), "amqp_management");
-        assert_eq!(plugin.display_name(), "AMQP 管理");
+        assert_eq!(plugin.display_name(), "AMQP Management");
         assert_eq!(plugin.category(), "amqp");
         assert_eq!(plugin.icon(), "settings");
         assert_eq!(plugin.color(), "#7c3aed");
