@@ -8,6 +8,20 @@
 // 类型定义
 // ============================================================================
 
+/** GraphQL 内省 Schema 响应结构 */
+interface IntrospectionSchema {
+  __schema?: {
+    types?: Array<{
+      name: string;
+      kind: string;
+      fields?: Array<Record<string, unknown>>;
+    }>;
+    queryType?: { name: string };
+    mutationType?: { name: string };
+    subscriptionType?: { name: string };
+  };
+}
+
 export interface FieldNode {
   /** 字段名 */
   name: string;
@@ -53,7 +67,7 @@ export interface FieldArg {
 /** 从 Schema JSON 构建类型索引 Map */
 export function buildTypesMap(schema: unknown): Map<string, any> {
   const map = new Map<string, any>();
-  const schemaObj = (schema as any)?.['__schema'];
+  const schemaObj = (schema as IntrospectionSchema)?.__schema;
   if (!schemaObj?.types) return map;
   for (const type of schemaObj.types) {
     if (type?.name && !type.name.startsWith('__')) {
@@ -65,7 +79,7 @@ export function buildTypesMap(schema: unknown): Map<string, any> {
 
 /** 获取 Query / Mutation / Subscription 的根类型名 */
 export function getRootTypeName(schema: unknown, operation: 'query' | 'mutation' | 'subscription'): string | null {
-  const schemaObj = (schema as any)?.['__schema'];
+  const schemaObj = (schema as IntrospectionSchema)?.__schema;
   if (!schemaObj) return null;
   const key = operation === 'query' ? 'queryType' : operation === 'mutation' ? 'mutationType' : 'subscriptionType';
   return schemaObj[key]?.name ?? null;

@@ -4,13 +4,13 @@
  */
 import type { NodeMetadata } from '@/types/nodeRegistry';
 import { i18nObject } from '@/i18n/i18n-util';
-import type { TranslationFunctions } from '@/i18n/i18n-types';
+import type { Locales, TranslationFunctions } from '@/i18n/i18n-types';
 
 // 懒加载 i18n 对象
 let LL_cache: TranslationFunctions | null = null;
 function getLL() {
   if (!LL_cache) {
-    const locale = (localStorage.getItem('locale') as any) || 'en-US';
+    const locale = (localStorage.getItem('locale') || 'en-US') as Locales;
     LL_cache = i18nObject(locale);
   }
   return LL_cache;

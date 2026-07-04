@@ -19440,6 +19440,10 @@ type RootTranslation = {
 		 * @param {unknown} host
 		 */
 		E_PROXY_FAILED: RequiredParams<'host'>
+		/**
+		 * 剪​贴​板​保​存​失​败
+		 */
+		clipboard_save_failed: string
 	}
 }
 
@@ -38563,6 +38567,10 @@ export type TranslationFunctions = {
 		 * 代理失败: {host}
 		 */
 		E_PROXY_FAILED: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * 剪贴板保存失败
+		 */
+		clipboard_save_failed: () => LocalizedString
 	}
 }
 

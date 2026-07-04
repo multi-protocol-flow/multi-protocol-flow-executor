@@ -32,7 +32,7 @@ import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore, selectIsExecuting, selectFlow, selectIsDirty } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
 import { MapIcon, ArrowRightLeft, Search } from 'lucide-react';
-import type { NodeType } from '@/types';
+import type { NodeData, NodeType } from '@/types';
 import type { NodeMetadata } from '@/types/nodeRegistry';
 import { getNodeMetadata } from '@/lib/NodeRegistry';
 import { getLayoutedPositions, type LayoutDirection } from './layout';
@@ -47,6 +47,7 @@ import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import { flowStorage } from '@/services/storage';
 import { inferDefaults } from '@/lib/nodeDefaults';
+import { toast } from 'sonner';
 
 /** 节点配置剪贴板 key */
 const NODE_CONFIG_CLIPBOARD_KEY = 'node-config-clipboard';
@@ -57,6 +58,29 @@ interface NodeConfigClipboard {
   data: Record<string, unknown>;
   copiedAt: number;
   sourceNodeName: string;
+}
+
+/** 敏感字段列表，复制节点配置时需要脱敏 */
+const SENSITIVE_FIELDS: readonly string[] = [
+  'password', 'token', 'authorization', 'secret', 'api_key',
+  'private_key', 'certificate', 'jwt',
+];
+
+/**
+ * 脱敏节点数据：将敏感字段的值替换为占位符
+ */
+function sanitizeNodeData(data: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (SENSITIVE_FIELDS.includes(key)) {
+      result[key] = '***redacted***';
+    } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      result[key] = sanitizeNodeData(value as Record<string, unknown>);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 /**
@@ -872,7 +896,7 @@ function FlowCanvasInner() {
 
       const clipData: NodeConfigClipboard = {
         nodeType: sourceNode.type,
-        data: JSON.parse(JSON.stringify(sourceNode.data)),
+        data: sanitizeNodeData(JSON.parse(JSON.stringify(sourceNode.data))),
         copiedAt: Date.now(),
         sourceNodeName: sourceNode.name,
       };
@@ -880,7 +904,8 @@ function FlowCanvasInner() {
       try {
         localStorage.setItem(NODE_CONFIG_CLIPBOARD_KEY, JSON.stringify(clipData));
       } catch {
-        // 忽略写入错误
+        console.warn('Failed to save node config to localStorage');
+        toast.error(getLL().errors.clipboard_save_failed());
       }
     },
     []
@@ -1043,7 +1068,7 @@ function FlowCanvasInner() {
       const selectedNode = getSelectedNode();
       const inferred = selectedNode
         ? inferDefaults(
-            { id: selectedNode.uuid, type: selectedNode.type, data: selectedNode.data as unknown as Record<string, unknown> },
+            { id: selectedNode.uuid, type: selectedNode.type, data: selectedNode.data as NodeData & Record<string, unknown> },
             nodeType as NodeType
           )
         : {};
@@ -1088,7 +1113,7 @@ function FlowCanvasInner() {
     const selectedNode = getSelectedNode();
     const inferred = selectedNode
       ? inferDefaults(
-          { id: selectedNode.uuid, type: selectedNode.type, data: selectedNode.data as unknown as Record<string, unknown> },
+          { id: selectedNode.uuid, type: selectedNode.type, data: selectedNode.data as NodeData & Record<string, unknown> },
           pendingAddNodeType
         )
       : {};

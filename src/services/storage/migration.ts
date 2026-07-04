@@ -76,7 +76,7 @@ export async function migrateFlowsToFiles(): Promise<void> {
     localStorage.setItem(MIGRATION_FLAG_KEY, 'true');
     localStorage.removeItem(LEGACY_KEYS.FLOWS);
     localStorage.removeItem(LEGACY_KEYS.FLOW_LIST);
-    console.log(`Successfully migrated ${flows.length} flows to file storage`);
+    console.info(`Successfully migrated ${flows.length} flows to file storage`);
   } else {
     // 部分失败 — 保留 localStorage 数据，不设置标记，下次可重试
     console.error(

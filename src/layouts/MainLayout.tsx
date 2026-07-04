@@ -36,6 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { usePanelDrag } from '@/hooks';
 import { toast } from 'sonner';
 import { loadReport } from '@/services/storage/reportStorage';
 import { stressTestStorage } from '@/services/storage/stressTestStorage';
@@ -217,11 +218,6 @@ export function MainLayout() {
     toast.error(getLL().flow.report_no_snapshot());
   }, [reportDir]);
 
-  // 底部面板拖拽调整高度相关状态
-  const [isDragging, setIsDragging] = useState(false);
-  const startYRef = useRef(0);
-  const startHeightRef = useRef(0);
-
   // 对比对话框状态
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareSnapshotFlow, setCompareSnapshotFlow] = useState<Flow | null>(null);
@@ -233,129 +229,24 @@ export function MainLayout() {
   const [bottomPanelContentReady, setBottomPanelContentReady] = useState(isBottomPanelExpanded);
   const bottomPanelTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 右侧面板拖拽调整宽度相关状态
-  const [isRightPanelDragging, setIsRightPanelDragging] = useState(false);
-  const startXRef = useRef(0);
-  const startWidthRef = useRef(0);
+  // 拖拽调整面板大小
+  const bottomDrag = usePanelDrag({
+    axis: 'vertical', min: 100, max: 500, sign: 1,
+    initialSize: bottomPanelHeight,
+    onResize: setBottomPanelHeight,
+  });
 
-  // 左侧面板拖拽调整宽度相关状态
-  const [isLeftPanelDragging, setIsLeftPanelDragging] = useState(false);
-  const startLeftXRef = useRef(0);
-  const startLeftWidthRef = useRef(0);
+  const rightDrag = usePanelDrag({
+    axis: 'horizontal', min: 250, max: 500,
+    initialSize: configPanelWidth,
+    onResize: setConfigPanelWidth,
+  });
 
-  // 底部面板开始拖拽
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-    startYRef.current = e.clientY;
-    startHeightRef.current = bottomPanelHeight;
-    document.body.style.cursor = 'row-resize';
-    document.body.style.userSelect = 'none';
-  }, [bottomPanelHeight]);
-
-  // 底部面板拖拽中
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
-    const deltaY = startYRef.current - e.clientY;
-    const newHeight = Math.max(100, Math.min(500, startHeightRef.current + deltaY));
-    setBottomPanelHeight(newHeight);
-  }, [isDragging, setBottomPanelHeight]);
-
-  // 底部面板结束拖拽
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  }, []);
-
-  // 右侧面板开始拖拽
-  const handleRightPanelMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsRightPanelDragging(true);
-    startXRef.current = e.clientX;
-    startWidthRef.current = configPanelWidth;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, [configPanelWidth]);
-
-  // 右侧面板拖拽中
-  const handleRightPanelMouseMove = useCallback((e: MouseEvent) => {
-    if (!isRightPanelDragging) return;
-    const deltaX = startXRef.current - e.clientX;
-    const newWidth = Math.max(250, Math.min(500, startWidthRef.current + deltaX));
-    setConfigPanelWidth(newWidth);
-  }, [isRightPanelDragging, setConfigPanelWidth]);
-
-  // 右侧面板结束拖拽
-  const handleRightPanelMouseUp = useCallback(() => {
-    setIsRightPanelDragging(false);
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  }, []);
-
-  // 左侧面板开始拖拽
-  const handleLeftPanelMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsLeftPanelDragging(true);
-    startLeftXRef.current = e.clientX;
-    startLeftWidthRef.current = sidebarWidth;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, [sidebarWidth]);
-
-  // 左侧面板拖拽中
-  const handleLeftPanelMouseMove = useCallback((e: MouseEvent) => {
-    if (!isLeftPanelDragging) return;
-    const deltaX = e.clientX - startLeftXRef.current;
-    const newWidth = Math.max(200, Math.min(400, startLeftWidthRef.current + deltaX));
-    setSidebarWidth(newWidth);
-  }, [isLeftPanelDragging, setSidebarWidth]);
-
-  // 左侧面板结束拖拽
-  const handleLeftPanelMouseUp = useCallback(() => {
-    setIsLeftPanelDragging(false);
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  }, []);
-
-  // 使用 useEffect 管理底部面板事件监听
-  useEffect(() => {
-    if (!isDragging) return;
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, handleMouseMove, handleMouseUp]);
-
-  // 使用 useEffect 管理右侧面板事件监听
-  useEffect(() => {
-    if (!isRightPanelDragging) return;
-
-    window.addEventListener('mousemove', handleRightPanelMouseMove);
-    window.addEventListener('mouseup', handleRightPanelMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleRightPanelMouseMove);
-      window.removeEventListener('mouseup', handleRightPanelMouseUp);
-    };
-  }, [isRightPanelDragging, handleRightPanelMouseMove, handleRightPanelMouseUp]);
-
-  // 使用 useEffect 管理左侧面板事件监听
-  useEffect(() => {
-    if (!isLeftPanelDragging) return;
-
-    window.addEventListener('mousemove', handleLeftPanelMouseMove);
-    window.addEventListener('mouseup', handleLeftPanelMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleLeftPanelMouseMove);
-      window.removeEventListener('mouseup', handleLeftPanelMouseUp);
-    };
-  }, [isLeftPanelDragging, handleLeftPanelMouseMove, handleLeftPanelMouseUp]);
+  const leftDrag = usePanelDrag({
+    axis: 'horizontal', min: 200, max: 400, sign: -1,
+    initialSize: sidebarWidth,
+    onResize: setSidebarWidth,
+  });
 
   // 底部面板内容延迟渲染：展开动画结束后渲染，收起时立即移除
   useEffect(() => {
@@ -524,20 +415,20 @@ export function MainLayout() {
             'shrink-0 border-r border-border flex flex-col bg-background overflow-hidden relative',
             'transition-all duration-300 ease-out',
             isFlowListPanelOpen ? 'min-w-0' : 'w-0 min-w-0',
-            isLeftPanelDragging && '!transition-none'
+            leftDrag.isDragging && '!transition-none'
           )}
           style={{ width: isFlowListPanelOpen ? sidebarWidth : 0 }}
         >
           {/* 可拖拽调整宽度的 handle - 放在面板内部右边缘 */}
           {isFlowListPanelOpen && (
             <div
-              onMouseDown={handleLeftPanelMouseDown}
+              onMouseDown={leftDrag.handleMouseDown}
               className={cn(
                 'absolute right-0 top-0 bottom-0 w-2 z-10',
                 'bg-transparent hover:bg-border active:bg-input',
                 'cursor-col-resize flex items-center justify-center',
                 'transition-colors duration-150',
-                isLeftPanelDragging && 'bg-input'
+                leftDrag.isDragging && 'bg-input'
               )}
               title={getLL().common.drag_resize_width()}
             >
@@ -583,13 +474,13 @@ export function MainLayout() {
             {/* 拖拽调整高度的 handle - 只在展开时显示 */}
             {isBottomPanelExpanded && (
               <div
-                onMouseDown={handleMouseDown}
+                onMouseDown={bottomDrag.handleMouseDown}
                 className={cn(
                   'h-2 shrink-0',
                   'bg-transparent hover:bg-border active:bg-input',
                   'cursor-row-resize flex items-center justify-center',
                   'transition-colors duration-150',
-                  isDragging && 'bg-input'
+                  bottomDrag.isDragging && 'bg-input'
                 )}
                 title={getLL().common.drag_resize_height()}
               >
@@ -654,7 +545,7 @@ export function MainLayout() {
             <div
               className={cn(
                 'overflow-hidden transition-all duration-300 ease-out',
-                isDragging && '!transition-none'
+                bottomDrag.isDragging && '!transition-none'
               )}
               style={{ height: isBottomPanelExpanded ? bottomPanelHeight : 0 }}
             >
@@ -735,20 +626,20 @@ export function MainLayout() {
             'shrink-0 border-l border-border bg-background overflow-hidden relative',
             'transition-all duration-300 ease-out',
             isConfigPanelOpen ? 'min-w-0' : 'w-0 min-w-0',
-            isRightPanelDragging && '!transition-none'
+            rightDrag.isDragging && '!transition-none'
           )}
           style={{ width: isConfigPanelOpen ? configPanelWidth : 0 }}
         >
           {/* 可拖拽调整宽度的 handle - 放在面板内部左边缘 */}
           {isConfigPanelOpen && (
             <div
-              onMouseDown={handleRightPanelMouseDown}
+              onMouseDown={rightDrag.handleMouseDown}
               className={cn(
                 'absolute left-0 top-0 bottom-0 w-2 z-10',
                 'bg-transparent hover:bg-border active:bg-input',
                 'cursor-col-resize flex items-center justify-center',
                 'transition-colors duration-150',
-                isRightPanelDragging && 'bg-input'
+                rightDrag.isDragging && 'bg-input'
               )}
               title={getLL().common.drag_resize_width()}
             >

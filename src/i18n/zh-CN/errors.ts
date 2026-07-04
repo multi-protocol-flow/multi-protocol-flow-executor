@@ -118,6 +118,9 @@ const zh_CN_errors: BaseTranslation = {
   // Non-protocol
   E_VARIABLE_EXTRACTOR_FAILED: '变量提取失败: {path}',
   E_PROXY_FAILED: '代理失败: {host}',
+
+  // UI
+  clipboard_save_failed: '节点配置保存到剪贴板失败',
 };
 
 export default zh_CN_errors;

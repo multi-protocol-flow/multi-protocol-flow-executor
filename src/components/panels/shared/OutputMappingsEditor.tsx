@@ -2,7 +2,7 @@
  * 共享输出映射编辑器组件
  * 从 HttpConfig.tsx 提取的通用 output_mapping 编辑 UI
  */
-import { useFieldArray, type Control, type FieldErrors, type UseFormWatch, type UseFormRegister } from 'react-hook-form';
+import { useFieldArray, type Control, type FieldErrors, type FieldError, type UseFormWatch, type UseFormRegister } from 'react-hook-form';
 import { useCallback, useEffect, useRef } from 'react';
 import { Plus, Trash2, ArrowRightFromLine, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -116,8 +116,7 @@ export function OutputMappingsEditor({
           </div>
         ) : (
           fields.map((field, index) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const mappingErrors = (errors.output_mappings as any)?.[index];
+            const mappingErrors = (errors.output_mappings as Array<Record<string, FieldError>> | undefined)?.[index];
             const targetError = mappingErrors?.target;
             const sourceError = mappingErrors?.source;
 

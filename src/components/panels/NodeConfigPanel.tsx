@@ -230,7 +230,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
     if (!latestFlow) return;
     const node = latestFlow.nodes.find((n) => n.uuid === renderNodeUuid);
     // 合并：面板输出覆盖原始值，但面板不认识的字段从原始值保留
-    const merged = node ? mergeNodeData(node.data as unknown as Record<string, unknown>, data as unknown as Record<string, unknown>) : data;
+    const merged = node ? mergeNodeData(node.data as NodeData & Record<string, unknown>, data as NodeData & Record<string, unknown>) : data;
     if (node && deepEqual(node.data, merged as NodeData)) {
       return;
     }
@@ -300,8 +300,8 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                   <SchemaConfigPanel
                     key={selectedNode.uuid}
                     schema={{}}
-                    data={nodeData as unknown as Record<string, unknown>}
-                    onSave={(data) => handleSave(data as unknown as NodeData)}
+                    data={nodeData as NodeData & Record<string, unknown>}
+                    onSave={(data: Record<string, unknown>) => handleSave(data as NodeData & Record<string, unknown>)}
                   />
                 );
               }

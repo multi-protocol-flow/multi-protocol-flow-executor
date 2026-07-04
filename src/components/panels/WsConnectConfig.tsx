@@ -388,8 +388,8 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                   setValue('ping_interval_ms', 30000, { shouldDirty: true });
                   setValue('ping_timeout_ms', 10000, { shouldDirty: true });
                 } else {
-                  setValue('ping_interval_ms', undefined as unknown as number, { shouldDirty: true });
-                  setValue('ping_timeout_ms', undefined as unknown as number, { shouldDirty: true });
+                  setValue('ping_interval_ms', undefined, { shouldDirty: true });
+                  setValue('ping_timeout_ms', undefined, { shouldDirty: true });
                 }
                 saveData();
               }}
@@ -441,9 +441,9 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
             setValue('collect_message', checked, { shouldDirty: true });
             if (!checked) {
               // 关闭采集消息时，清除所有关联字段，避免 schema 验证失败
-              setValue('collect_mode', undefined as unknown as WsCollectMode, { shouldDirty: true });
-              setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string }, { shouldDirty: true });
-              setValue('collect_timeout_ms', undefined as unknown as number, { shouldDirty: true });
+              setValue('collect_mode', undefined, { shouldDirty: true });
+              setValue('collect_condition', undefined, { shouldDirty: true });
+              setValue('collect_timeout_ms', undefined, { shouldDirty: true });
             }
             saveData();
           }}
@@ -470,7 +470,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                   setValue('collect_condition', { match_type: 'json_path', expression: '' }, { shouldDirty: true });
                 } else {
                   // 切换到非 condition_match 模式时，清除 collect_condition，避免 schema 验证失败
-                  setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string }, { shouldDirty: true });
+                  setValue('collect_condition', undefined, { shouldDirty: true });
                 }
                 saveData();
               }}

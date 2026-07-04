@@ -161,14 +161,6 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
     setTestResult(null);
     setTestError(null);
 
-    console.log('[数据库连接测试] 开始测试...', {
-      driver: formData.driver,
-      host: formData.host,
-      port: formData.port,
-      database: formData.database,
-      username: formData.username,
-    });
-
     try {
       if (!isTauriEnv()) {
         console.warn('[数据库连接测试] 非 Tauri 环境，跳过真实连接测试');
@@ -188,12 +180,6 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
         formData.connection_string,
         varMap,
       );
-
-      console.log('[数据库连接测试] 变量替换后:', {
-        host: resolvedHost,
-        database: resolvedDatabase,
-        username: resolvedUsername,
-      });
 
       // 动态导入 invoke，避免非 Tauri 环境加载报错
       const { invoke } = await import('@tauri-apps/api/core');
@@ -219,8 +205,6 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
           lastTestedAt: null,
         },
       });
-
-      console.log('[数据库连接测试] 结果:', result);
 
       if (result.success) {
         setTestResult('success');

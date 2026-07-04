@@ -116,6 +116,9 @@ const en_US_errors = {
   // Non-protocol
   E_VARIABLE_EXTRACTOR_FAILED: 'Variable extraction failed: {path}',
   E_PROXY_FAILED: 'Proxy failed: {host}',
+
+  // UI
+  clipboard_save_failed: 'Failed to save node configuration to clipboard',
 };
 
 export default en_US_errors;
