@@ -29,7 +29,7 @@ impl NodePlugin for SseConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "SSE 连接"
+        "SSE Connect"
     }
 
     fn category(&self) -> &str {
@@ -135,7 +135,7 @@ impl NodePlugin for SseListenPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "SSE 监听"
+        "SSE Listen"
     }
 
     fn category(&self) -> &str {
@@ -242,7 +242,7 @@ impl NodePlugin for SseDisconnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "SSE 断开连接"
+        "SSE Disconnect"
     }
 
     fn category(&self) -> &str {
@@ -345,7 +345,7 @@ mod tests {
     fn test_sse_connect_plugin_metadata() {
         let plugin = SseConnectPlugin;
         assert_eq!(plugin.type_id(), "sse_connect");
-        assert_eq!(plugin.display_name(), "SSE 连接");
+        assert_eq!(plugin.display_name(), "SSE Connect");
         assert_eq!(plugin.category(), "sse");
         assert_eq!(plugin.icon(), "radio-tower");
         assert_eq!(plugin.color(), "#f43f5e");
@@ -362,7 +362,7 @@ mod tests {
     fn test_sse_listen_plugin_metadata() {
         let plugin = SseListenPlugin;
         assert_eq!(plugin.type_id(), "sse_listen");
-        assert_eq!(plugin.display_name(), "SSE 监听");
+        assert_eq!(plugin.display_name(), "SSE Listen");
         assert_eq!(plugin.category(), "sse");
         assert_eq!(plugin.icon(), "ear");
         assert_eq!(plugin.color(), "#f43f5e");
@@ -379,7 +379,7 @@ mod tests {
     fn test_sse_disconnect_plugin_metadata() {
         let plugin = SseDisconnectPlugin;
         assert_eq!(plugin.type_id(), "sse_disconnect");
-        assert_eq!(plugin.display_name(), "SSE 断开连接");
+        assert_eq!(plugin.display_name(), "SSE Disconnect");
         assert_eq!(plugin.category(), "sse");
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#f43f5e");

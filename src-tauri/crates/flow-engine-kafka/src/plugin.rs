@@ -33,7 +33,7 @@ impl NodePlugin for KafkaConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "Kafka 连接"
+        "Kafka Connect"
     }
 
     fn category(&self) -> &str {
@@ -144,7 +144,7 @@ impl NodePlugin for KafkaProducePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "Kafka 生产"
+        "Kafka Produce"
     }
 
     fn category(&self) -> &str {
@@ -266,7 +266,7 @@ impl NodePlugin for KafkaConsumePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "Kafka 消费"
+        "Kafka Consume"
     }
 
     fn category(&self) -> &str {
@@ -389,7 +389,7 @@ impl NodePlugin for KafkaConsumeBatchPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "Kafka 批量消费"
+        "Kafka Batch Consume"
     }
 
     fn category(&self) -> &str {
@@ -513,7 +513,7 @@ impl NodePlugin for KafkaAdminPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "Kafka 管理"
+        "Kafka Admin"
     }
 
     fn category(&self) -> &str {
@@ -757,7 +757,7 @@ impl NodePlugin for KafkaClosePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "Kafka 关闭"
+        "Kafka Close"
     }
 
     fn category(&self) -> &str {
@@ -866,7 +866,7 @@ mod tests {
     fn test_kafka_connect_plugin_metadata() {
         let plugin = KafkaConnectPlugin;
         assert_eq!(plugin.type_id(), "kafka_connect");
-        assert_eq!(plugin.display_name(), "Kafka 连接");
+        assert_eq!(plugin.display_name(), "Kafka Connect");
         assert_eq!(plugin.category(), "kafka");
         assert_eq!(plugin.icon(), "radio");
         assert_eq!(plugin.color(), "#f43f5e");
@@ -882,7 +882,7 @@ mod tests {
     fn test_kafka_produce_plugin_metadata() {
         let plugin = KafkaProducePlugin;
         assert_eq!(plugin.type_id(), "kafka_produce");
-        assert_eq!(plugin.display_name(), "Kafka 生产");
+        assert_eq!(plugin.display_name(), "Kafka Produce");
         assert_eq!(plugin.category(), "kafka");
         assert_eq!(plugin.icon(), "send");
         assert_eq!(plugin.color(), "#f43f5e");
@@ -898,7 +898,7 @@ mod tests {
     fn test_kafka_consume_plugin_metadata() {
         let plugin = KafkaConsumePlugin;
         assert_eq!(plugin.type_id(), "kafka_consume");
-        assert_eq!(plugin.display_name(), "Kafka 消费");
+        assert_eq!(plugin.display_name(), "Kafka Consume");
         assert_eq!(plugin.category(), "kafka");
         assert_eq!(plugin.icon(), "download");
         assert_eq!(plugin.color(), "#f43f5e");
@@ -914,7 +914,7 @@ mod tests {
     fn test_kafka_consume_batch_plugin_metadata() {
         let plugin = KafkaConsumeBatchPlugin;
         assert_eq!(plugin.type_id(), "kafka_consume_batch");
-        assert_eq!(plugin.display_name(), "Kafka 批量消费");
+        assert_eq!(plugin.display_name(), "Kafka Batch Consume");
         assert_eq!(plugin.category(), "kafka");
         assert_eq!(plugin.icon(), "layers");
         assert_eq!(plugin.color(), "#f43f5e");
@@ -930,7 +930,7 @@ mod tests {
     fn test_kafka_admin_plugin_metadata() {
         let plugin = KafkaAdminPlugin;
         assert_eq!(plugin.type_id(), "kafka_admin");
-        assert_eq!(plugin.display_name(), "Kafka 管理");
+        assert_eq!(plugin.display_name(), "Kafka Admin");
         assert_eq!(plugin.category(), "kafka");
         assert_eq!(plugin.icon(), "settings");
         assert_eq!(plugin.color(), "#f43f5e");
@@ -962,7 +962,7 @@ mod tests {
     fn test_kafka_close_plugin_metadata() {
         let plugin = KafkaClosePlugin;
         assert_eq!(plugin.type_id(), "kafka_close");
-        assert_eq!(plugin.display_name(), "Kafka 关闭");
+        assert_eq!(plugin.display_name(), "Kafka Close");
         assert_eq!(plugin.category(), "kafka");
         assert_eq!(plugin.icon(), "x-circle");
         assert_eq!(plugin.color(), "#f43f5e");

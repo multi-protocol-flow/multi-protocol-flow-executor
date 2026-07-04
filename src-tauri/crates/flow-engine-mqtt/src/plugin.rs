@@ -33,7 +33,7 @@ impl NodePlugin for MqttConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MQTT 连接"
+        "MQTT Connect"
     }
 
     fn category(&self) -> &str {
@@ -147,7 +147,7 @@ impl NodePlugin for MqttPublishPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MQTT 发布"
+        "MQTT Publish"
     }
 
     fn category(&self) -> &str {
@@ -267,7 +267,7 @@ impl NodePlugin for MqttSubscribePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MQTT 订阅"
+        "MQTT Subscribe"
     }
 
     fn category(&self) -> &str {
@@ -389,7 +389,7 @@ impl NodePlugin for MqttUnsubscribePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MQTT 取消订阅"
+        "MQTT Unsubscribe"
     }
 
     fn category(&self) -> &str {
@@ -504,7 +504,7 @@ impl NodePlugin for MqttDisconnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MQTT 断开连接"
+        "MQTT Disconnect"
     }
 
     fn category(&self) -> &str {
@@ -593,7 +593,7 @@ impl NodePlugin for MqttWaitMessagePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MQTT 等待消息"
+        "MQTT Wait for Message"
     }
 
     fn category(&self) -> &str {
@@ -712,7 +712,7 @@ impl NodePlugin for MqttRequestPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MQTT 请求/响应"
+        "MQTT Request/Response"
     }
 
     fn category(&self) -> &str {
@@ -862,7 +862,7 @@ mod tests {
     fn test_mqtt_connect_plugin_metadata() {
         let plugin = MqttConnectPlugin;
         assert_eq!(plugin.type_id(), "mqtt_connect");
-        assert_eq!(plugin.display_name(), "MQTT 连接");
+        assert_eq!(plugin.display_name(), "MQTT Connect");
         assert_eq!(plugin.category(), "mqtt");
         assert_eq!(plugin.icon(), "radio");
         assert_eq!(plugin.color(), "#06b6d4");
@@ -878,7 +878,7 @@ mod tests {
     fn test_mqtt_publish_plugin_metadata() {
         let plugin = MqttPublishPlugin;
         assert_eq!(plugin.type_id(), "mqtt_publish");
-        assert_eq!(plugin.display_name(), "MQTT 发布");
+        assert_eq!(plugin.display_name(), "MQTT Publish");
         assert_eq!(plugin.category(), "mqtt");
         assert_eq!(plugin.icon(), "send");
         assert_eq!(plugin.color(), "#06b6d4");
@@ -894,7 +894,7 @@ mod tests {
     fn test_mqtt_subscribe_plugin_metadata() {
         let plugin = MqttSubscribePlugin;
         assert_eq!(plugin.type_id(), "mqtt_subscribe");
-        assert_eq!(plugin.display_name(), "MQTT 订阅");
+        assert_eq!(plugin.display_name(), "MQTT Subscribe");
         assert_eq!(plugin.category(), "mqtt");
         assert_eq!(plugin.icon(), "arrow-down-to-line");
         assert_eq!(plugin.color(), "#06b6d4");
@@ -910,7 +910,7 @@ mod tests {
     fn test_mqtt_disconnect_plugin_metadata() {
         let plugin = MqttDisconnectPlugin;
         assert_eq!(plugin.type_id(), "mqtt_disconnect");
-        assert_eq!(plugin.display_name(), "MQTT 断开连接");
+        assert_eq!(plugin.display_name(), "MQTT Disconnect");
         assert_eq!(plugin.category(), "mqtt");
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#06b6d4");
@@ -925,7 +925,7 @@ mod tests {
     fn test_mqtt_wait_message_plugin_metadata() {
         let plugin = MqttWaitMessagePlugin;
         assert_eq!(plugin.type_id(), "mqtt_wait_message");
-        assert_eq!(plugin.display_name(), "MQTT 等待消息");
+        assert_eq!(plugin.display_name(), "MQTT Wait for Message");
         assert_eq!(plugin.category(), "mqtt");
         assert_eq!(plugin.icon(), "timer");
         assert_eq!(plugin.color(), "#06b6d4");
@@ -941,7 +941,7 @@ mod tests {
     fn test_mqtt_request_plugin_metadata() {
         let plugin = MqttRequestPlugin;
         assert_eq!(plugin.type_id(), "mqtt_request");
-        assert_eq!(plugin.display_name(), "MQTT 请求/响应");
+        assert_eq!(plugin.display_name(), "MQTT Request/Response");
         assert_eq!(plugin.category(), "mqtt");
         assert_eq!(plugin.icon(), "message-square");
         assert_eq!(plugin.color(), "#06b6d4");
@@ -1177,7 +1177,7 @@ mod tests {
     fn test_mqtt_unsubscribe_plugin_metadata() {
         let plugin = MqttUnsubscribePlugin;
         assert_eq!(plugin.type_id(), "mqtt_unsubscribe");
-        assert_eq!(plugin.display_name(), "MQTT 取消订阅");
+        assert_eq!(plugin.display_name(), "MQTT Unsubscribe");
         assert_eq!(plugin.category(), "mqtt");
         assert_eq!(plugin.icon(), "x-circle");
         assert_eq!(plugin.color(), "#06b6d4");
