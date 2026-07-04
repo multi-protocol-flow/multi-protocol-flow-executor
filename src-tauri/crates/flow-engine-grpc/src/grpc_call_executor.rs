@@ -119,7 +119,7 @@ impl NodeExecutor for GrpcCallExecutor {
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID variable substitution failed: {}", e);
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
                 "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
@@ -132,7 +132,7 @@ impl NodeExecutor for GrpcCallExecutor {
 
         // 3. 变量替换 request_json
         let request_json = replace_variables(&config.request_json, context).map_err(|e| {
-            let error_msg = format!("请求 JSON variable substitution failed: {}", e);
+            let error_msg = format!("Request JSON variable substitution failed: {}", e);
             log::error!(
                 "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
@@ -183,7 +183,7 @@ impl NodeExecutor for GrpcCallExecutor {
 
         // 7. 日志：开始调用
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: grpc_call, 模式: {}, Connection ID: {}, 服务: {}/{}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: grpc_call, pattern: {}, Connection ID: {}, service: {}/{}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -197,12 +197,12 @@ impl NodeExecutor for GrpcCallExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "gRPC 调用节点 {} start execution: {}/{} ({})",
+                    "gRPC call node {} start execution: {}/{} ({})",
                     node.name, config.service_name, config.method_name, pattern_str
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -270,7 +270,7 @@ impl NodeExecutor for GrpcCallExecutor {
                             if attempt < max_retries && is_retryable_error(&e) {
                                 let backoff_ms = calculate_backoff_ms(initial_backoff_ms, attempt);
                                 log::warn!(
-                                    "[gRPC] Unary 调用Failed（可重试），第 {} 次重试，等待 {}ms: {}",
+                                    "[gRPC] Unary call failed (retryable), retry {}, waiting {}ms: {}",
                                     attempt + 1,
                                     backoff_ms,
                                     e
@@ -279,13 +279,13 @@ impl NodeExecutor for GrpcCallExecutor {
                                     .emit_log(LogEvent {
                                         level: LogLevel::Warn,
                                         message: format!(
-                                            "gRPC 调用Failed，第 {} 次重试（等待 {}ms）",
+                                            "gRPC call failed, retry {} (waiting {}ms)",
                                             attempt + 1,
                                             backoff_ms
                                         ),
                                         timestamp: std::time::SystemTime::now()
                                             .duration_since(std::time::UNIX_EPOCH)
-                                            .expect("系统时间Error")
+                                            .expect("system time error")
                                             .as_millis() as u64,
                                         node_uuid: Some(node.uuid.clone()),
                                         node_name: Some(node.name.clone()),
@@ -342,7 +342,7 @@ impl NodeExecutor for GrpcCallExecutor {
                             if attempt < max_retries && is_retryable_error(&e) {
                                 let backoff_ms = calculate_backoff_ms(initial_backoff_ms, attempt);
                                 log::warn!(
-                                    "[gRPC] Server Streaming 调用Failed（可重试），第 {} 次重试，等待 {}ms: {}",
+                                    "[gRPC] Server streaming call failed (retryable), retry {}, waiting {}ms: {}",
                                     attempt + 1,
                                     backoff_ms,
                                     e
@@ -351,13 +351,13 @@ impl NodeExecutor for GrpcCallExecutor {
                                     .emit_log(LogEvent {
                                         level: LogLevel::Warn,
                                         message: format!(
-                                            "gRPC 调用Failed，第 {} 次重试（等待 {}ms）",
+                                            "gRPC call failed, retry {} (waiting {}ms)",
                                             attempt + 1,
                                             backoff_ms
                                         ),
                                         timestamp: std::time::SystemTime::now()
                                             .duration_since(std::time::UNIX_EPOCH)
-                                            .expect("系统时间Error")
+                                            .expect("system time error")
                                             .as_millis() as u64,
                                         node_uuid: Some(node.uuid.clone()),
                                         node_name: Some(node.name.clone()),
@@ -377,7 +377,7 @@ impl NodeExecutor for GrpcCallExecutor {
                 // Client Streaming 不支持重试（复杂状态）
                 if max_retries > 0 {
                     log::warn!(
-                        "[gRPC] Client Streaming 模式不支持重试，忽略重试配置 (max_retries={})",
+                        "[gRPC] Client streaming mode does not support retry, ignoring retry config (max_retries={})",
                         max_retries
                     );
                 }
@@ -421,7 +421,7 @@ impl NodeExecutor for GrpcCallExecutor {
                 // Bidi Streaming 不支持重试（复杂状态）
                 if max_retries > 0 {
                     log::warn!(
-                        "[gRPC] Bidi Streaming 模式不支持重试，忽略重试配置 (max_retries={})",
+                        "[gRPC] Bidi streaming mode does not support retry, ignoring retry config (max_retries={})",
                         max_retries
                     );
                 }
@@ -470,7 +470,7 @@ impl NodeExecutor for GrpcCallExecutor {
         match call_result {
             Ok((pattern_str, response_data, responses, sent_count, received_count, trailers, streaming_timing, response_metadata, cancelled)) => {
                 log::info!(
-                    "[gRPC] 调用Success: connection_id={}, service={}, method={}, 模式={}, 耗时={}ms",
+                    "[gRPC] Call succeeded: connection_id={}, service={}, method={}, pattern={}, duration={}ms",
                     connection_id,
                     config.service_name,
                     config.method_name,
@@ -525,7 +525,7 @@ impl NodeExecutor for GrpcCallExecutor {
                 if cancelled {
                     output_data["cancelled"] = json!(true);
                     output_data["status"] = json!("cancelled");
-                    output_data["status_message"] = json!("用户取消");
+                    output_data["status_message"] = json!("User cancelled");
                 }
 
                 // Unary/Client: 单个响应在 response_data
@@ -539,7 +539,7 @@ impl NodeExecutor for GrpcCallExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "gRPC 调用Success: {}/{} ({}) ({}ms)",
+                            "gRPC call succeeded: {}/{} ({}) ({}ms)",
                             config.service_name,
                             config.method_name,
                             pattern_str,
@@ -547,7 +547,7 @@ impl NodeExecutor for GrpcCallExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -592,7 +592,7 @@ impl NodeExecutor for GrpcCallExecutor {
                     crate::error_detail::parse_error_details(&e);
 
                 log::error!(
-                    "[gRPC] 调用Failed: connection_id={}, service={}, method={}, 模式={}, error={}",
+                    "[gRPC] Call failed: connection_id={}, service={}, method={}, pattern={}, error={}",
                     connection_id,
                     config.service_name,
                     config.method_name,
@@ -605,12 +605,12 @@ impl NodeExecutor for GrpcCallExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!(
-                            "gRPC 调用Failed: {}/{} ({}) - {}",
+                            "gRPC call failed: {}/{} ({}) - {}",
                             config.service_name, config.method_name, pattern_str, error_message
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -710,7 +710,7 @@ mod tests {
             flow_id.to_string(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
         )
     }

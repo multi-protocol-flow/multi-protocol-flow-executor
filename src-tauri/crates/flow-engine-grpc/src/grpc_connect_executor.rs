@@ -71,10 +71,10 @@ impl NodeExecutor for GrpcConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("gRPC 连接节点 {} start execution", node.name),
+                message: format!("gRPC connect node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -133,7 +133,7 @@ impl NodeExecutor for GrpcConnectExecutor {
         match connect_result {
             Ok(services) => {
                 log::info!(
-                    "[gRPC] 连接Success: uuid={}, url={}, 服务数={}",
+                    "[gRPC] Connection succeeded: uuid={}, url={}, service_count={}",
                     node.uuid,
                     url,
                     services.len()
@@ -155,13 +155,13 @@ impl NodeExecutor for GrpcConnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "gRPC 连接Success，发现 {} 个服务 ({}ms)",
+                            "gRPC connect succeeded, discovered {} services ({}ms)",
                             services.len(),
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -214,7 +214,7 @@ impl NodeExecutor for GrpcConnectExecutor {
                         message: format!("gRPC connection failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -363,7 +363,7 @@ mod tests {
             flow_id.to_string(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
         )
     }

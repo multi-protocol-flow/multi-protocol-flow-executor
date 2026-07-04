@@ -48,7 +48,7 @@ impl NodeExecutor for GrpcCloseExecutor {
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID variable substitution failed: {}", e);
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
                 "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
@@ -71,10 +71,10 @@ impl NodeExecutor for GrpcCloseExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("gRPC Close 节点 {} start execution", node.name),
+                message: format!("gRPC close node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -88,7 +88,7 @@ impl NodeExecutor for GrpcCloseExecutor {
         match close_result {
             Ok(()) => {
                 log::info!(
-                    "[gRPC] 连接关闭Success: connection_id={}",
+                    "[gRPC] Close succeeded: connection_id={}",
                     connection_id
                 );
 
@@ -111,12 +111,12 @@ impl NodeExecutor for GrpcCloseExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "gRPC 连接关闭Success ({}ms)",
+                            "gRPC close succeeded ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -146,7 +146,7 @@ impl NodeExecutor for GrpcCloseExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[gRPC] 连接关闭Failed: connection_id={}, error={}",
+                    "[gRPC] Close failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
@@ -155,10 +155,10 @@ impl NodeExecutor for GrpcCloseExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("gRPC 连接关闭Failed: {}", e),
+                        message: format!("gRPC close failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -230,7 +230,7 @@ mod tests {
             flow_id.to_string(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
         )
     }
