@@ -21,7 +21,7 @@ impl NodePlugin for ScriptPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "脚本"
+        "Script"
     }
 
     fn category(&self) -> &str {

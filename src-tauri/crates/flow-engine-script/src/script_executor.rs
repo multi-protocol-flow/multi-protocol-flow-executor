@@ -79,10 +79,10 @@ impl NodeExecutor for ScriptNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("脚本节点 {} start execution", node.name),
+                message: format!("Script node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -91,7 +91,7 @@ impl NodeExecutor for ScriptNodeExecutor {
             .await;
 
         log::info!(
-            "[流程 {}] 执行脚本节点: {} ({})",
+            "[Flow {}] Executing script node: {} ({})",
             context.flow_uuid,
             node.name,
             node.uuid
@@ -100,7 +100,7 @@ impl NodeExecutor for ScriptNodeExecutor {
         // 1. 获取配置
         let config = match &node.data {
             NodeData::Script(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error("节点配置类型不匹配，期望 ScriptNodeConfig".to_string())),
+            _ => return Err(ErrorDetail::execution_error("Node config type mismatch, expected ScriptNodeConfig".to_string())),
         };
 
         // 2. 准备脚本上下文数据（在主线程提取，避免跨线程问题）
@@ -137,7 +137,7 @@ impl NodeExecutor for ScriptNodeExecutor {
         // ScriptExecutionContext 使用 Rc<RefCell>（非 Send），必须在闭包内创建
         let result = tokio::task::spawn_blocking(move || {
             // 创建 QuickJS Runtime 并设置内存/超时限制
-            let rt = JsRuntime::new().map_err(|e| ErrorDetail::execution_error(format!("创建 JS Runtime Failed: {}", e)))?;
+            let rt = JsRuntime::new().map_err(|e| ErrorDetail::execution_error(format!("Creating JS Runtime failed: {}", e)))?;
             rt.set_memory_limit((memory_limit_mb * 1024 * 1024) as usize);
 
             // 设置超时中断处理器
@@ -146,7 +146,7 @@ impl NodeExecutor for ScriptNodeExecutor {
             })));
 
             // 创建 JS Context
-            let ctx = JsContext::full(&rt).map_err(|e| ErrorDetail::execution_error(format!("创建 JS Context Failed: {}", e)))?;
+            let ctx = JsContext::full(&rt).map_err(|e| ErrorDetail::execution_error(format!("Creating JS Context failed: {}", e)))?;
 
             ctx.with(|ctx| {
                 // 构建脚本执行上下文（在闭包内创建，因为使用 Rc<RefCell>）
@@ -177,13 +177,13 @@ impl NodeExecutor for ScriptNodeExecutor {
                 // 注册全部 fn.* API
                 script_ctx
                     .register_all_apis(&ctx)
-                    .map_err(|e| ErrorDetail::execution_error(format!("注册脚本 API Failed: {}", e)))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("Registering script API failed: {}", e)))?;
 
                 // 执行脚本
                 let _: () = ctx
                     .eval(script.as_bytes())
                     .catch(&ctx)
-                    .map_err(|e| ErrorDetail::execution_error(format!("脚本执行Error: {}", e)))?;
+                    .map_err(|e| ErrorDetail::execution_error(format!("Script execution error: {}", e)))?;
 
                 // 收集执行结果
                 let result_vars = script_ctx.variables.borrow().clone();
@@ -222,7 +222,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                 // 脚本执行Success，同步变量回 ExecutionContext
                 for (key, value) in exec_result.variables {
                     log::debug!(
-                        "[流程 {}] 同步变量: {} = {:?}",
+                        "[Flow {}] Syncing variable: {} = {:?}",
                         context.flow_uuid,
                         key,
                         value
@@ -244,7 +244,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                             message: format!("[console.{}] {}", log_entry.level, log_entry.message),
                             timestamp: std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
-                                .expect("系统时间Error")
+                                .expect("system time error")
                                 .as_millis() as u64,
                             node_uuid: Some(node.uuid.clone()),
                             node_name: Some(node.name.clone()),
@@ -257,7 +257,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                 if exec_result.should_abort {
                     let msg = exec_result
                         .abort_message
-                        .unwrap_or_else(|| "流程被脚本终止 (fn.flow.abort)".to_string());
+                        .unwrap_or_else(|| "Flow terminated by script (fn.flow.abort)".to_string());
                     return self
                         .handle_error(
                             ErrorDetail::new(ErrorKind::ScriptRuntime, msg),
@@ -273,10 +273,10 @@ impl NodeExecutor for ScriptNodeExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!("脚本节点 {} execution complete", node.name),
+                        message: format!("Script node {} execution complete", node.name),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -328,7 +328,7 @@ impl NodeExecutor for ScriptNodeExecutor {
             }
             Ok(Err(e)) => {
                 // spawn_blocking Error
-                let error_msg = format!("脚本执行任务Failed: {}", e);
+                let error_msg = format!("Script execution task failed: {}", e);
                 self.handle_error(
                     ErrorDetail::new(ErrorKind::ScriptRuntime, error_msg),
                     &config,
@@ -341,7 +341,7 @@ impl NodeExecutor for ScriptNodeExecutor {
             Err(_) => {
                 // 超时
                 timeout_flag.store(true, Ordering::Relaxed);
-                let error_msg = format!("脚本执行超时 ({}ms)", timeout_ms);
+                let error_msg = format!("Script execution timeout ({}ms)", timeout_ms);
 
                 // 发送超时日志
                 context
@@ -350,7 +350,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                         message: error_msg.clone(),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -477,7 +477,7 @@ impl ScriptNodeExecutor {
         connections: &[Connection],
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         log::error!(
-            "[流程 {}] 脚本节点 {} 执行Error: {}",
+            "[Flow {}] Script node {} execution error: {}",
             context.flow_uuid,
             node.name,
             error.message
@@ -487,10 +487,10 @@ impl ScriptNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Error,
-                message: format!("脚本节点 {} Error: {}", node.name, error.message),
+                message: format!("Script node {} error: {}", node.name, error.message),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -772,7 +772,7 @@ mod tests {
         assert!(output_data.is_some());
         let output = output_data.unwrap();
         assert_eq!(output["success"], false);
-        assert!(output["error"].as_str().unwrap().contains("超时"));
+        assert!(output["error"].as_str().unwrap().contains("timeout"));
     }
 
     #[tokio::test]
