@@ -21,7 +21,7 @@ export function SandboxBanner() {
   return (
     <div
       role="alert"
-      className="sticky top-0 z-50 flex items-center gap-3 bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 text-xs leading-relaxed text-amber-700 dark:text-amber-400"
+      className="flex items-center gap-3 bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 text-xs leading-relaxed text-amber-700 dark:text-amber-400"
     >
       <span className="inline-flex items-center justify-center size-6 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-sm font-bold shrink-0">
         !
