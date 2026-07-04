@@ -76,12 +76,12 @@ impl ConditionalNodeExecutor {
                             )
                         }
                     })
-                    .map_err(|e| format!("无法解析为数字: {}", e))
+                    .map_err(|e| format!("Cannot parse as number: {}", e))
             }
             ExpectedValueType::Boolean => match value_str.to_lowercase().as_str() {
                 "true" => Ok(serde_json::Value::Bool(true)),
                 "false" => Ok(serde_json::Value::Bool(false)),
-                _ => Err(format!("无法解析为布尔值: {}", value_str)),
+                _ => Err(format!("Cannot parse as boolean: {}", value_str)),
             },
             ExpectedValueType::Null => {
                 if value_str.is_empty() || value_str.to_lowercase() == "null" {
@@ -1621,7 +1621,7 @@ mod tests {
             Some(&ExpectedValueType::Boolean),
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("无法解析为布尔值"));
+        assert!(result.unwrap_err().contains("Cannot parse as boolean"));
     }
 
     #[test]
@@ -1631,7 +1631,7 @@ mod tests {
             Some(&ExpectedValueType::Number),
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("无法解析为数字"));
+        assert!(result.unwrap_err().contains("Cannot parse as number"));
     }
 
     #[test]
