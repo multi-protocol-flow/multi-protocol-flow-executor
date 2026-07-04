@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PlayCircle, Plus, Trash2, FileText, AlertTriangle, Table, Bell } from 'lucide-react';
-import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { datasetService } from '@/services/dataset';
 import type { EntryConfig as EntryConfigType } from '@/types';
 import type { FlowHook } from '@/types';
@@ -56,6 +55,16 @@ function fromFormData(formData: EntryConfigFormData): EntryConfigType {
     dataset_path: formData.dataset_path || undefined,
     dataset_encoding: formData.dataset_encoding || undefined,
   };
+}
+
+/** 动态导入 Tauri 文件对话框 */
+async function openFileDialog(options?: Record<string, unknown>) {
+  try {
+    const { open } = await import('@tauri-apps/plugin-dialog');
+    return await open(options);
+  } catch {
+    return null;
+  }
 }
 
 export function EntryConfig({ data, onSave }: EntryConfigProps) {
@@ -271,7 +280,7 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
    */
   const handleSelectFile = useCallback(async () => {
     try {
-      const selected = await openDialog({
+      const selected = await openFileDialog({
         filters: [{ name: 'CSV', extensions: ['csv'] }],
         multiple: false,
       });

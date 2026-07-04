@@ -6,7 +6,6 @@ import { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 import {
   Dialog,
   DialogContent,
@@ -91,6 +90,16 @@ function getStrategyOptions(): { value: DataPickStrategy; label: string; descrip
     { value: 'random', label: ll.flow.strategy_random(), description: ll.flow.strategy_random_desc() },
     { value: 'unique', label: ll.flow.strategy_unique(), description: ll.flow.strategy_unique_desc() },
   ];
+}
+
+/** 动态导入 Tauri 文件对话框 */
+async function openFileDialog(options?: Record<string, unknown>) {
+  try {
+    const { open } = await import('@tauri-apps/plugin-dialog');
+    return await open(options);
+  } catch {
+    return null;
+  }
 }
 
 // ============================================================================

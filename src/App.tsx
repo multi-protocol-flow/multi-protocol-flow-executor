@@ -18,11 +18,8 @@ import { useUpdaterStore, selectUpdateAvailable } from '@/stores/updater';
 import { useUIStore } from '@/stores/ui';
 import { getLL } from '@/i18n/i18n-lazy';
 import { toast } from 'sonner';
-
-// 检测是否在 Tauri 环境中
-function isTauriEnv(): boolean {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-}
+import { isTauriEnv } from '@/lib/platform';
+import { SandboxBanner } from '@/components/common/SandboxBanner';
 
 /**
  * I18nBridge - 当 locale 变化时强制整个子树重渲染
@@ -150,6 +147,7 @@ function App() {
   return (
     <TypesafeI18n locale={currentLocale}>
       <I18nBridge>
+        <SandboxBanner />
         <WelcomeWizard>
           <MainLayout />
         </WelcomeWizard>

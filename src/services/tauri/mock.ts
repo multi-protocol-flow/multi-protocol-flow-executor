@@ -6,6 +6,7 @@
 import type { Flow } from '@/types/flow';
 import type { ExecuteFlowCommandOutput } from '@/types/ipc';
 import type { FlowExecutionReport } from '@/types/report';
+import type { ReportMetadata } from '@/types/ipc';
 import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
 
@@ -904,6 +905,65 @@ export async function deleteDatasetReport(
   _reportId: string,
   _reportsDir: string
 ): Promise<void> {
+  // Mock 环境 - 无操作
+}
+
+// ============================================================================
+// 流程执行报告 Mock
+// ============================================================================
+
+/**
+ * Mock 保存流程执行报告
+ * @param _report 流程执行报告（Mock 中未使用）
+ * @param _reportsDir 报告存储目录（Mock 中未使用）
+ */
+export async function saveFlowReport(_report: FlowExecutionReport, _reportsDir: string): Promise<void> {
+  // Mock 环境 - 无操作
+}
+
+/**
+ * Mock 加载流程执行报告
+ * @param _uuid 报告 UUID（Mock 中未使用）
+ * @param _reportsDir 报告存储目录（Mock 中未使用）
+ */
+export async function loadFlowReport(_uuid: string, _reportsDir: string): Promise<FlowExecutionReport> {
+  return {
+    uuid: 'mock-report',
+    flow_uuid: 'mock-flow-uuid',
+    flow_name: 'Mock Report',
+    start_time: Date.now() - 1000,
+    end_time: Date.now(),
+    duration_ms: 1000,
+    total_nodes: 1,
+    executed_count: 1,
+    status: 'success',
+    node_reports: [],
+    statistics: {
+      success_count: 1,
+      failed_count: 0,
+      avg_node_duration_ms: 1000,
+      max_node_duration_ms: 1000,
+      min_node_duration_ms: 1000,
+      completion_rate: 1,
+      error_rate: 0,
+    },
+  };
+}
+
+/**
+ * Mock 列出所有报告元数据
+ * @param _reportsDir 报告存储目录（Mock 中未使用）
+ */
+export async function listFlowReports(_reportsDir: string): Promise<ReportMetadata[]> {
+  return [];
+}
+
+/**
+ * Mock 删除流程执行报告
+ * @param _uuid 报告 UUID（Mock 中未使用）
+ * @param _reportsDir 报告存储目录（Mock 中未使用）
+ */
+export async function deleteFlowReport(_uuid: string, _reportsDir: string): Promise<void> {
   // Mock 环境 - 无操作
 }
 

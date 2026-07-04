@@ -2,7 +2,6 @@
  * 节点注册表服务
  * 从后端动态获取节点元数据，缓存并按分类分组
  */
-import { invoke } from '@tauri-apps/api/core';
 import type { NodeMetadata } from '@/types/nodeRegistry';
 import { i18nObject } from '@/i18n/i18n-util';
 import type { TranslationFunctions } from '@/i18n/i18n-types';
@@ -31,6 +30,7 @@ let cachedMetadata: NodeMetadata[] | null = null;
 export async function getNodeMetadata(): Promise<NodeMetadata[]> {
   if (cachedMetadata) return cachedMetadata;
   try {
+    const { invoke } = await import('@tauri-apps/api/core');
     cachedMetadata = await invoke<NodeMetadata[]>('get_registered_node_types');
     return cachedMetadata;
   } catch {

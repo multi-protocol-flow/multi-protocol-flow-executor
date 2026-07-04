@@ -35,6 +35,12 @@ describe('FlowStorage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // 设置 Tauri 环境标志：使 isTauriEnv() 返回 true，路由到 invoke() 路径
+    (window as any).__TAURI__ = true;
+  });
+
+  afterEach(() => {
+    delete (window as any).__TAURI__;
   });
 
   describe('saveFlow', () => {

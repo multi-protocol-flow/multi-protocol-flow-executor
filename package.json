@@ -5,8 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:web": "vite",
+    "dev:tauri": "vite --mode tauri",
     "build": "npm-run-all -p typecheck build:vite",
-    "build:vite": "vite build",
+    "build:vite": "vite build --mode tauri",
+    "build:web": "vite build --mode browser",
+    "build:tauri": "vite build --mode tauri",
     "preview": "vite preview",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

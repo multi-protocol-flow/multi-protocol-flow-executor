@@ -21,13 +21,11 @@ import { Loader2, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 import { VariableInput } from '@/components/ui/VariableInput';
 import { useFlowVariables } from '@/hooks';
 import { getLL } from '@/i18n/i18n-lazy';
+import { isTauriEnv } from '@/lib/platform';
 
 /**
  * 检查是否在 Tauri 环境
  */
-function isTauriEnv(): boolean {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-}
 
 /**
  * 解析字符串中的 {{variable}} 引用，替换为变量实际值

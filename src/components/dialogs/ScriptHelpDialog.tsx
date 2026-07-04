@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   BookOpen,
   ExternalLink,
@@ -26,6 +25,16 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
+
+/** 动态导入 Tauri URL 打开器 */
+async function openUrl(url: string) {
+  try {
+    const { openUrl } = await import('@tauri-apps/plugin-opener');
+    await openUrl(url);
+  } catch {
+    // 非 Tauri 环境，静默忽略
+  }
+}
 
 export interface ScriptHelpDialogProps {
   /** 是否显示弹窗 */

@@ -3,102 +3,124 @@
  * 使用 tauri-plugin-store 和后端 open_directory 命令
  */
 
-import { LazyStore } from '@tauri-apps/plugin-store';
-import { open } from '@tauri-apps/plugin-dialog';
-import { invoke } from '@tauri-apps/api/core';
+import { isTauriEnv } from '@/lib/platform';
 import type { Settings, ThemeMode, Locale } from '@/types/settings';
+
 const SETTINGS_FILE = 'settings.bin';
-
-let store: LazyStore | null = null;
-
-/**
- * 获取 Store 实例（延迟加载）
- */
-async function getStore(): Promise<LazyStore> {
-  if (!store) {
-    const appDataDir = await invoke<string>('get_app_data_dir');
-    store = new LazyStore(`${appDataDir}/store/${SETTINGS_FILE}`);
-  }
-  return store;
-}
 
 /**
  * 加载设置
  */
 export async function loadSettings(): Promise<Settings> {
-  const s = await getStore();
-  const reportDir = await s.get<string>('reportDir');
-  const logDir = await s.get<string>('logDir');
-  const flowsDir = await s.get<string>('flowsDir');
-  const theme = await s.get<string>('theme');
-  const locale = await s.get<string>('locale');
-  const appDataDir = await invoke<string>('get_app_data_dir');
-  return {
-    reportDir: reportDir ?? `${appDataDir}/reports/`,
-    logDir: logDir ?? `${appDataDir}/logs/`,
-    flowsDir: flowsDir ?? `${appDataDir}/flows/`,
-    theme: (theme as ThemeMode) ?? 'system',
-    locale: (locale as Locale) ?? 'zh-CN',
-  };
+  if (isTauriEnv()) {
+    const [{ LazyStore }, { invoke }] = await Promise.all([
+      import('@tauri-apps/plugin-store'),
+      import('@tauri-apps/api/core'),
+    ]);
+    const appDataDir = await invoke<string>('get_app_data_dir');
+    const store = new LazyStore(`${appDataDir}/store/${SETTINGS_FILE}`);
+    const reportDir = await store.get<string>('reportDir');
+    const logDir = await store.get<string>('logDir');
+    const flowsDir = await store.get<string>('flowsDir');
+    const theme = await store.get<string>('theme');
+    const locale = await store.get<string>('locale');
+    return {
+      reportDir: reportDir ?? `${appDataDir}/reports/`,
+      logDir: logDir ?? `${appDataDir}/logs/`,
+      flowsDir: flowsDir ?? `${appDataDir}/flows/`,
+      theme: (theme as ThemeMode) ?? 'system',
+      locale: (locale as Locale) ?? 'zh-CN',
+    };
+  }
+  const { loadSettings: loadSettingsImpl } = await import('./settings.mock');
+  return loadSettingsImpl();
 }
 
 /**
  * 保存设置
  */
 export async function saveSettings(settings: Partial<Settings>): Promise<void> {
-  const s = await getStore();
-  if (settings.reportDir !== undefined) {
-    await s.set('reportDir', settings.reportDir);
+  if (isTauriEnv()) {
+    const [{ LazyStore }, { invoke }] = await Promise.all([
+      import('@tauri-apps/plugin-store'),
+      import('@tauri-apps/api/core'),
+    ]);
+    const appDataDir = await invoke<string>('get_app_data_dir');
+    const store = new LazyStore(`${appDataDir}/store/${SETTINGS_FILE}`);
+    if (settings.reportDir !== undefined) {
+      await store.set('reportDir', settings.reportDir);
+    }
+    if (settings.logDir !== undefined) {
+      await store.set('logDir', settings.logDir);
+    }
+    if (settings.flowsDir !== undefined) {
+      await store.set('flowsDir', settings.flowsDir);
+    }
+    if (settings.theme !== undefined) {
+      await store.set('theme', settings.theme);
+    }
+    if (settings.locale !== undefined) {
+      await store.set('locale', settings.locale);
+    }
+    await store.save();
+    return;
   }
-  if (settings.logDir !== undefined) {
-    await s.set('logDir', settings.logDir);
-  }
-  if (settings.flowsDir !== undefined) {
-    await s.set('flowsDir', settings.flowsDir);
-  }
-  if (settings.theme !== undefined) {
-    await s.set('theme', settings.theme);
-  }
-  if (settings.locale !== undefined) {
-    await s.set('locale', settings.locale);
-  }
-  await s.save();
+  const { saveSettings: saveSettingsImpl } = await import('./settings.mock');
+  return saveSettingsImpl(settings);
 }
 
 /**
  * 选择目录对话框
  */
 export async function selectDirectory(currentPath: string): Promise<string | null> {
-  const result = await open({
-    directory: true,
-    defaultPath: currentPath,
-  });
-  return result as string | null;
+  if (isTauriEnv()) {
+    const { open } = await import('@tauri-apps/plugin-dialog');
+    const result = await open({
+      directory: true,
+      defaultPath: currentPath,
+    });
+    return result as string | null;
+  }
+  const { selectDirectory: selectDirectoryImpl } = await import('./settings.mock');
+  return selectDirectoryImpl(currentPath);
 }
 
 /**
  * 在文件管理器中打开目录
  */
-/**
- * 在文件管理器中打开目录
- */
 export async function openDirectory(path: string): Promise<void> {
-  await invoke('open_directory', { path });
+  if (isTauriEnv()) {
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('open_directory', { path });
+    return;
+  }
+  const { openDirectory: openDirectoryImpl } = await import('./settings.mock');
+  return openDirectoryImpl(path);
 }
 
 /**
  * 获取配置文件路径
  */
 export async function getConfigPath(): Promise<string> {
-  const appDataDir = await invoke<string>('get_app_data_dir');
-  return `${appDataDir}/store/${SETTINGS_FILE}`;
+  if (isTauriEnv()) {
+    const { invoke } = await import('@tauri-apps/api/core');
+    const appDataDir = await invoke<string>('get_app_data_dir');
+    return `${appDataDir}/store/${SETTINGS_FILE}`;
+  }
+  const { getConfigPath: getConfigPathImpl } = await import('./settings.mock');
+  return getConfigPathImpl();
 }
 
 /**
  * 获取应用数据目录
  */
 export async function getAppDataDir(): Promise<string> {
-  return invoke<string>('get_app_data_dir');
+  if (isTauriEnv()) {
+    const { invoke } = await import('@tauri-apps/api/core');
+    return invoke<string>('get_app_data_dir');
+  }
+  const { getAppDataDir: getAppDataDirImpl } = await import('./settings.mock');
+  return getAppDataDirImpl();
 }
 
 /**
@@ -106,5 +128,10 @@ export async function getAppDataDir(): Promise<string> {
  * @returns 写入的文件绝对路径
  */
 export async function saveCsvTemplate(filename: string, content: string): Promise<string> {
-  return invoke<string>('save_csv_template', { filename, content });
+  if (isTauriEnv()) {
+    const { invoke } = await import('@tauri-apps/api/core');
+    return invoke<string>('save_csv_template', { filename, content });
+  }
+  const { saveCsvTemplate: saveCsvTemplateImpl } = await import('./settings.mock');
+  return saveCsvTemplateImpl(filename, content);
 }

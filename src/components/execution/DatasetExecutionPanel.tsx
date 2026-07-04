@@ -18,7 +18,6 @@ import {
   Download,
 } from 'lucide-react';
 import { getLL } from '@/i18n/i18n-lazy';
-import { open } from '@tauri-apps/plugin-dialog';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,6 +62,16 @@ interface VariableMatch {
 // 辅助函数
 // ============================================================================
 
+/** 动态导入 Tauri 文件对话框 */
+async function openFileDialog(options?: Record<string, unknown>) {
+  try {
+    const { open } = await import('@tauri-apps/plugin-dialog');
+    return await open(options);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 根据流程的 Entry 初始变量生成 CSV 模板内容
  * 使用初始变量名作为列头，示例值填充前 3 行
@@ -93,11 +102,12 @@ function generateCsvTemplate(flow: {
   return [header, ...rows].join('\n');
 }
 
+import { isTauriEnv } from '@/lib/platform';
+
 /** 触发 CSV 模板下载（通过 Tauri 后端写入文件） */
 async function downloadCsvTemplate(content: string, filename: string): Promise<string> {
   // 动态检测环境，选择对应的 saveCsvTemplate 实现
-  const isTauriEnv = typeof window !== 'undefined' && '__TAURI__' in window;
-  if (isTauriEnv) {
+  if (isTauriEnv()) {
     const { saveCsvTemplate } = await import('@/services/tauri/settings');
     return saveCsvTemplate(filename, content);
   }
@@ -474,10 +484,9 @@ export function DatasetExecutionPanel({
         duration: 8000,
         action: {
           label: ll.execution.toast.open_dir(),
-          onClick: async () => {
+            onClick: async () => {
             try {
-              const isTauriEnv = typeof window !== 'undefined' && '__TAURI__' in window;
-              if (isTauriEnv) {
+              if (isTauriEnv()) {
                 const { openDirectory } = await import('@/services/tauri/settings');
                 await openDirectory(dirPath);
               }
@@ -535,7 +544,7 @@ export function DatasetExecutionPanel({
   // 选择 CSV 文件
   const handleFileSelect = useCallback(async () => {
     try {
-      const selected = await open({
+      const selected = await openFileDialog({
         multiple: false,
         filters: [
           { name: ll.execution.dataset.csv_filter(), extensions: ['csv'] },

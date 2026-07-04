@@ -7,8 +7,6 @@
  * Channel 在 IPC 命令返回后会被清理。
  */
 
-import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { Flow } from '@/types/flow';
 import type {
   DatasetExecutionConfig,
@@ -17,6 +15,12 @@ import type {
   DatasetReportSummary,
   DatasetEvent,
 } from '@/types/dataset';
+
+import { isTauriEnv } from '@/lib/platform';
+
+// ============================================================================
+// 环境检测
+// ============================================================================
 
 // ============================================================================
 // 数据集执行服务
@@ -29,8 +33,15 @@ export const datasetService = {
    * @param encoding 指定编码（可选）
    * @param delimiter 分隔符（可选）
    */
-  validateCsv: (path: string, encoding?: string, delimiter?: string): Promise<CsvInfo> =>
-    invoke<CsvInfo>('validate_dataset_csv', { path, encoding, delimiter }),
+  validateCsv: async (path: string, encoding?: string, delimiter?: string): Promise<CsvInfo> => {
+    if (isTauriEnv()) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      return invoke<CsvInfo>('validate_dataset_csv', { path, encoding, delimiter });
+    } else {
+      const { validateDatasetCsv } = await import('./tauri/mock');
+      return validateDatasetCsv(path, encoding, delimiter);
+    }
+  },
 
   /**
    * 启动数据驱动执行
@@ -44,44 +55,75 @@ export const datasetService = {
     flow: Flow,
     config: DatasetExecutionConfig,
     onEvent: (event: DatasetEvent) => void
-  ): Promise<UnlistenFn> => {
-    // 先注册事件监听器（确保在命令启动前注册完毕）
-    const unlisten = await listen<DatasetEvent>('dataset-event', (event) => {
-      onEvent(event.payload);
-    });
+  ): Promise<() => void> => {
+    if (isTauriEnv()) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const { listen } = await import('@tauri-apps/api/event');
 
-    try {
-      await invoke<void>('execute_flow_with_dataset', {
-        input: { flow, config },
+      // 先注册事件监听器（确保在命令启动前注册完毕）
+      const unlisten = await listen<DatasetEvent>('dataset-event', (event) => {
+        onEvent(event.payload);
       });
-    } catch (error) {
-      // 启动失败时清理监听器
-      unlisten();
-      throw error;
-    }
 
-    return unlisten;
+      try {
+        await invoke<void>('execute_flow_with_dataset', {
+          input: { flow, config },
+        });
+      } catch (error) {
+        // 启动失败时清理监听器
+        unlisten();
+        throw error;
+      }
+
+      return unlisten;
+    } else {
+      const { executeFlowWithDataset } = await import('./tauri/mock');
+      await executeFlowWithDataset(flow, config, onEvent);
+      return () => {};
+    }
   },
 
   /**
    * 取消数据驱动执行
    */
-  cancelExecution: (): Promise<void> => invoke<void>('cancel_dataset_execution'),
+  cancelExecution: async (): Promise<void> => {
+    if (isTauriEnv()) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      return invoke<void>('cancel_dataset_execution');
+    } else {
+      const { cancelDatasetExecution } = await import('./tauri/mock');
+      return cancelDatasetExecution();
+    }
+  },
 
   /**
    * 列出数据集报告
    * @param reportsDir 报告存储目录
    */
-  listReports: (reportsDir: string): Promise<DatasetReportSummary[]> =>
-    invoke<DatasetReportSummary[]>('list_dataset_reports', { reportsDir }),
+  listReports: async (reportsDir: string): Promise<DatasetReportSummary[]> => {
+    if (isTauriEnv()) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      return invoke<DatasetReportSummary[]>('list_dataset_reports', { reportsDir });
+    } else {
+      const { listDatasetReports } = await import('./tauri/mock');
+      return listDatasetReports(reportsDir);
+    }
+  },
 
   /**
    * 加载数据集报告
    * @param reportId 报告 ID
    * @param reportsDir 报告存储目录
    */
-  loadReport: (reportId: string, reportsDir: string): Promise<DatasetExecutionReport> =>
-    invoke<DatasetExecutionReport>('load_dataset_report', { reportId, reportsDir }),
+  loadReport: async (reportId: string, reportsDir: string): Promise<DatasetExecutionReport> => {
+    if (isTauriEnv()) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      return invoke<DatasetExecutionReport>('load_dataset_report', { reportId, reportsDir });
+    } else {
+      const { loadDatasetReport } = await import('./tauri/mock');
+      return loadDatasetReport(reportId, reportsDir);
+    }
+  },
 
   /**
    * 加载失败行详情
@@ -89,26 +131,51 @@ export const datasetService = {
    * @param rowIndex 行索引
    * @param reportsDir 报告存储目录
    */
-  loadRowDetail: (
+  loadRowDetail: async (
     reportId: string,
     rowIndex: number,
     reportsDir: string
-  ): Promise<unknown | null> =>
-    invoke<unknown | null>('load_dataset_row_detail', { reportId, rowIndex, reportsDir }),
+  ): Promise<unknown | null> => {
+    if (isTauriEnv()) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      return invoke<unknown | null>('load_dataset_row_detail', {
+        reportId,
+        rowIndex,
+        reportsDir,
+      });
+    } else {
+      const { loadDatasetRowDetail } = await import('./tauri/mock');
+      return loadDatasetRowDetail(reportId, rowIndex, reportsDir);
+    }
+  },
 
   /**
    * 删除数据集报告
    * @param reportId 报告 ID
    * @param reportsDir 报告存储目录
    */
-  deleteReport: (reportId: string, reportsDir: string): Promise<void> =>
-    invoke<void>('delete_dataset_report', { reportId, reportsDir }),
+  deleteReport: async (reportId: string, reportsDir: string): Promise<void> => {
+    if (isTauriEnv()) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      return invoke<void>('delete_dataset_report', { reportId, reportsDir });
+    } else {
+      const { deleteDatasetReport } = await import('./tauri/mock');
+      return deleteDatasetReport(reportId, reportsDir);
+    }
+  },
 
   /**
    * 保存数据集报告到磁盘
    * @param report 数据集执行报告
    * @param reportsDir 报告存储目录
    */
-  saveReport: (report: DatasetExecutionReport, reportsDir: string): Promise<string> =>
-    invoke<string>('save_dataset_report', { report, reportsDir }),
+  saveReport: async (report: DatasetExecutionReport, reportsDir: string): Promise<string> => {
+    if (isTauriEnv()) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      return invoke<string>('save_dataset_report', { report, reportsDir });
+    } else {
+      const { saveDatasetReport } = await import('./tauri/mock');
+      return saveDatasetReport(report, reportsDir);
+    }
+  },
 };

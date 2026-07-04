@@ -11,10 +11,9 @@ const ZOOM_STEP = 0.1;
 const ZOOM_DEFAULT = 1.0;
 const STORAGE_KEY = 'app-zoom-level';
 
+import { isTauriEnv } from '@/lib/platform';
+
 /** 检测是否在 Tauri 环境中 */
-function isTauriEnv(): boolean {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-}
 
 /** 从 localStorage 恢复缩放值 */
 function loadZoomFromStorage(): number {

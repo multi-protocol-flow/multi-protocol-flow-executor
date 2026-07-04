@@ -7,10 +7,9 @@ import { create } from 'zustand';
 import type { SettingsStore, ThemeMode, Locale } from '@/types/settings';
 import { switchLocale } from '@/i18n';
 
+import { isTauriEnv } from '@/lib/platform';
+
 // 检测是否在 Tauri 环境中
-function isTauriEnv(): boolean {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-}
 
 // 动态导入服务
 async function getSettingsService() {

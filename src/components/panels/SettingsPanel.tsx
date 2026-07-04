@@ -16,9 +16,11 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { useUpdaterStore } from '@/stores/updater';
 import { useUIStore } from '@/stores/ui';
 
+import { isTauriEnv } from '@/lib/platform';
+
 // 动态导入设置服务（根据环境）
 async function getSettingsService() {
-  if (typeof window !== 'undefined' && '__TAURI__' in window) {
+  if (isTauriEnv()) {
     return import('@/services/tauri/settings');
   }
   return import('@/services/tauri/settings.mock');

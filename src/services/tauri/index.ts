@@ -9,10 +9,9 @@ import { invoke } from '@tauri-apps/api/core';
 import type { FlowExecutionReport } from '@/types/report';
 import type { ReportMetadata } from '@/types/ipc';
 
+import { isTauriEnv } from '@/lib/platform';
+
 // 检测是否在 Tauri 环境中运行
-function isTauriEnv(): boolean {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-}
 
 // 动态导入正确的服务
 async function getService() {
@@ -102,7 +101,9 @@ export async function executeFlowWithChannel(
  * @param reportsDir 报告存储目录
  */
 export async function saveFlowReport(report: FlowExecutionReport, reportsDir: string): Promise<void> {
-  return await invoke<void>('save_flow_report', { report, reportsDir });
+  if (isTauriEnv()) {
+    await invoke<void>('save_flow_report', { report, reportsDir });
+  }
 }
 
 /**
@@ -111,7 +112,12 @@ export async function saveFlowReport(report: FlowExecutionReport, reportsDir: st
  * @param reportsDir 报告存储目录
  */
 export async function loadFlowReport(uuid: string, reportsDir: string): Promise<FlowExecutionReport> {
-  return await invoke<FlowExecutionReport>('load_flow_report', { uuid, reportsDir });
+  if (isTauriEnv()) {
+    return await invoke<FlowExecutionReport>('load_flow_report', { uuid, reportsDir });
+  } else {
+    const { loadFlowReport: loadFlowReportImpl } = await import('./mock');
+    return loadFlowReportImpl(uuid, reportsDir);
+  }
 }
 
 /**
@@ -119,7 +125,12 @@ export async function loadFlowReport(uuid: string, reportsDir: string): Promise<
  * @param reportsDir 报告存储目录
  */
 export async function listFlowReports(reportsDir: string): Promise<ReportMetadata[]> {
-  return await invoke<ReportMetadata[]>('list_flow_reports', { reportsDir });
+  if (isTauriEnv()) {
+    return await invoke<ReportMetadata[]>('list_flow_reports', { reportsDir });
+  } else {
+    const { listFlowReports: listFlowReportsImpl } = await import('./mock');
+    return listFlowReportsImpl(reportsDir);
+  }
 }
 
 /**
@@ -128,7 +139,9 @@ export async function listFlowReports(reportsDir: string): Promise<ReportMetadat
  * @param reportsDir 报告存储目录
  */
 export async function deleteFlowReport(uuid: string, reportsDir: string): Promise<void> {
-  return await invoke<void>('delete_flow_report', { uuid, reportsDir });
+  if (isTauriEnv()) {
+    await invoke<void>('delete_flow_report', { uuid, reportsDir });
+  }
 }
 
 // ============================================================================

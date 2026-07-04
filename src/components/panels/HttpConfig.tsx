@@ -6,7 +6,6 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { httpConfigSchema, type HttpConfigFormData, type HeaderEntry, type HttpBodyType } from './schemas';
-import { open } from '@tauri-apps/plugin-dialog';
 import { Input } from '@/components/ui/input';
 import { VariableInput } from '@/components/ui/VariableInput';
 import { VariableValidationWarning } from '@/components/ui/VariableValidationWarning';
@@ -30,10 +29,18 @@ import {
 import { toast } from 'sonner';
 import { parseCurlToFormData } from '@/lib/curlParser';
 import { generateCurlCommand, type CurlExportOptions } from '@/lib/curlExporter';
+import { isTauriEnv } from '@/lib/platform';
 /** 检测是否在 Tauri 环境中运行 */
-const isTauriEnv = () => {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-};
+
+/** 动态导入 Tauri 文件对话框 */
+async function openTauriDialog(options?: Record<string, unknown>) {
+  try {
+    const { open } = await import('@tauri-apps/plugin-dialog');
+    return await open(options);
+  } catch {
+    return null;
+  }
+}
 interface HttpConfigProps {
   /** 当前节点数据 */
   data: HttpConfigType;
@@ -484,7 +491,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   const handleSelectFile = useCallback(async () => {
     if (isTauriEnv()) {
       // Tauri 环境：使用原生文件对话框
-      const selected = await open({
+      const selected = await openTauriDialog({
         multiple: false,
         filters: [{ name: '*', extensions: ['*'] }],
       });
@@ -519,7 +526,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
    */
   const handleSelectTlsCaCert = useCallback(async () => {
     if (isTauriEnv()) {
-      const selected = await open({
+      const selected = await openTauriDialog({
         multiple: false,
         filters: [{ name: 'Certificate files', extensions: ['pem', 'crt', 'cer', 'cert', 'p12', 'pfx'] }],
       });
@@ -537,7 +544,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
    */
   const handleSelectTlsClientCert = useCallback(async () => {
     if (isTauriEnv()) {
-      const selected = await open({
+      const selected = await openTauriDialog({
         multiple: false,
         filters: [{ name: 'Certificate files', extensions: ['pem', 'crt', 'cer', 'cert'] }],
       });
@@ -555,7 +562,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
    */
   const handleSelectTlsClientKey = useCallback(async () => {
     if (isTauriEnv()) {
-      const selected = await open({
+      const selected = await openTauriDialog({
         multiple: false,
         filters: [{ name: 'Key files', extensions: ['pem', 'key', 'pk8'] }],
       });
@@ -586,7 +593,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   const handleSelectFormFieldFile = useCallback(async (index: number) => {
     if (isTauriEnv()) {
       // Tauri 环境：使用原生文件对话框
-      const selected = await open({
+      const selected = await openTauriDialog({
         multiple: false,
         filters: [{ name: '*', extensions: ['*'] }],
       });
