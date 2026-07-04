@@ -44,7 +44,7 @@ protocol-redis = ["flow-engine-executor/protocol-redis"]
 # 子 crate 依赖（facade 只做 re-export）
 flow-engine-core = { path = "../flow-engine-core" }
 flow-engine-crypto = { path = "../flow-engine-crypto" }
-flow-engine-executor = { path = "../flow-engine-executor" }
+flow-engine-executor = { path = "../flow-engine-executor", default-features = false }
 
 # facade 自身代码需要的最小依赖（仅用于 re-export 类型的序列化边界）
 serde = { workspace = true }
