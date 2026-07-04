@@ -105,10 +105,10 @@ impl NodeExecutor for McpConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("MCP 连接节点 {} start execution", node.name),
+                message: format!("MCP connect node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -192,7 +192,7 @@ impl NodeExecutor for McpConnectExecutor {
         match connect_result {
             Ok(conn_info) => {
                 log::info!(
-                    "[MCP] 连接Success: uuid={}, url={}, 工具数={}, 资源数={}",
+                    "[MCP] Connection succeeded: uuid={}, url={}, tool_count={}, resource_count={}",
                     node.uuid,
                     conn_info.url,
                     conn_info.tools.len(),
@@ -258,7 +258,7 @@ impl NodeExecutor for McpConnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "MCP 连接Success，发现 {} 个工具，{} 个资源，{} 个提示词 ({}ms)",
+                            "MCP connect succeeded, discovered {} tools, {} resources, {} prompts ({}ms)",
                             conn_info.tools.len(),
                             conn_info.resources.len(),
                             conn_info.prompts.len(),
@@ -266,7 +266,7 @@ impl NodeExecutor for McpConnectExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -308,7 +308,7 @@ impl NodeExecutor for McpConnectExecutor {
                         message: format!("MCP connection failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -406,7 +406,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -623,7 +623,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
