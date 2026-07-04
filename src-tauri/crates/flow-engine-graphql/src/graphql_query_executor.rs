@@ -119,7 +119,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
             .as_ref()
             .is_some_and(|f| !f.is_empty());
 
-        let query_type = if has_files { "mutation (文件上传)" } else { "query" };
+        let query_type = if has_files { "mutation (file upload)" } else { "query" };
 
         log::info!(
             "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql_query ({}), connection_id: {}",
@@ -133,10 +133,10 @@ impl NodeExecutor for GraphqlQueryExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("GraphQL {} 节点 {} start execution", query_type, node.name),
+                message: format!("GraphQL {} node {} start execution", query_type, node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -172,21 +172,21 @@ impl NodeExecutor for GraphqlQueryExecutor {
 
                 if output.success {
                     log::info!(
-                        "[GraphQL] 查询Success: uuid={}, connection_id={}, 耗时={}ms",
+                        "[GraphQL] Query succeeded: uuid={}, connection_id={}, duration={}ms",
                         node.uuid,
                         config.connection_id,
                         duration.as_millis()
                     );
                 } else if is_network_error {
                     log::warn!(
-                        "[GraphQL] 查询网络Error: uuid={}, connection_id={}, error={:?}",
+                        "[GraphQL] Query network error: uuid={}, connection_id={}, error={:?}",
                         node.uuid,
                         config.connection_id,
                         output.error
                     );
                 } else {
                     log::warn!(
-                        "[GraphQL] 查询包含Error: uuid={}, connection_id={}, errors={:?}",
+                        "[GraphQL] Query contains errors: uuid={}, connection_id={}, errors={:?}",
                         node.uuid,
                         config.connection_id,
                         output.errors
@@ -225,18 +225,18 @@ impl NodeExecutor for GraphqlQueryExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "GraphQL 查询Success ({}ms){}",
+                        "GraphQL query succeeded ({}ms){}",
                         duration.as_millis(),
                         if has_graphql_errors {
-                            format!(" (含 {} 个 GraphQL Error)", output.errors.len())
+                            format!(" (contains {} GraphQL errors)", output.errors.len())
                         } else {
                             String::new()
                         }
                     )
                 } else {
                     format!(
-                        "GraphQL 查询Failed: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知Error"),
+                        "GraphQL query failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("unknown error"),
                         duration.as_millis()
                     )
                 };
@@ -247,7 +247,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
                         message: log_message,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -264,7 +264,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("GraphQL 查询Failed")
+                        .unwrap_or("GraphQL query failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -277,7 +277,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
                 // Provider 返回 Err（如连接不存在）→ 网络/系统Error
                 let duration = start_time.elapsed();
                 log::error!(
-                    "[GraphQL] 查询异常: uuid={}, connection_id={}, error={}",
+                    "[GraphQL] Query error: uuid={}, connection_id={}, error={}",
                     node.uuid,
                     config.connection_id,
                     e
@@ -287,10 +287,10 @@ impl NodeExecutor for GraphqlQueryExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("GraphQL 查询异常: {}", e),
+                        message: format!("GraphQL query error: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -559,7 +559,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

@@ -97,10 +97,10 @@ impl NodeExecutor for GraphqlConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("GraphQL 连接节点 {} start execution", node.name),
+                message: format!("GraphQL connect node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -135,7 +135,7 @@ impl NodeExecutor for GraphqlConnectExecutor {
 
                 if output.success {
                     log::info!(
-                        "[GraphQL] 连接Success: uuid={}, endpoint={}, connection_id={}",
+                        "[GraphQL] Connection succeeded: uuid={}, endpoint={}, connection_id={}",
                         node.uuid,
                         connect_config.endpoint,
                         output.connection_id
@@ -179,13 +179,13 @@ impl NodeExecutor for GraphqlConnectExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "GraphQL 连接Success ({}ms)",
+                        "GraphQL connect succeeded ({}ms)",
                         duration.as_millis()
                     )
                 } else {
                     format!(
                         "GraphQL connection failed: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知Error"),
+                        output.error.as_deref().unwrap_or("unknown error"),
                         duration.as_millis()
                     )
                 };
@@ -196,7 +196,7 @@ impl NodeExecutor for GraphqlConnectExecutor {
                         message: log_message,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -251,7 +251,7 @@ impl NodeExecutor for GraphqlConnectExecutor {
                         message: format!("GraphQL connection error: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -474,7 +474,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

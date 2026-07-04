@@ -104,10 +104,10 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("GraphQL Schema 探索节点 {} start execution", node.name),
+                message: format!("GraphQL schema introspection node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -133,14 +133,14 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
 
                 if output.success {
                     log::info!(
-                        "[GraphQL] Schema 探索Success: uuid={}, connection_id={}, 耗时={}ms",
+                        "[GraphQL] Introspection succeeded: uuid={}, connection_id={}, duration={}ms",
                         node.uuid,
                         connection_id,
                         duration.as_millis()
                     );
                 } else {
                     log::warn!(
-                        "[GraphQL] Schema 探索Failed: uuid={}, connection_id={}, error={:?}",
+                        "[GraphQL] Introspection failed: uuid={}, connection_id={}, error={:?}",
                         node.uuid,
                         connection_id,
                         output.error
@@ -192,14 +192,14 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                         .map(|t| t.len())
                         .unwrap_or(0);
                     format!(
-                        "GraphQL Schema 探索Success ({}ms), 生成 {} 个查询模板",
+                        "GraphQL schema introspection succeeded ({}ms), generated {} query templates",
                         duration.as_millis(),
                         template_count
                     )
                 } else {
                     format!(
-                        "GraphQL Schema 探索Failed: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知Error"),
+                        "GraphQL schema introspection failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("unknown error"),
                         duration.as_millis()
                     )
                 };
@@ -210,7 +210,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                         message: log_message,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -227,7 +227,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("GraphQL 内省查询Failed")
+                        .unwrap_or("GraphQL introspection query failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -240,7 +240,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                 // Provider 返回 Err（如连接不存在）→ 异常
                 let duration = start_time.elapsed();
                 log::error!(
-                    "[GraphQL] Schema 探索异常: uuid={}, connection_id={}, error={}",
+                    "[GraphQL] Introspection error: uuid={}, connection_id={}, error={}",
                     node.uuid,
                     connection_id,
                     e
@@ -250,10 +250,10 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("GraphQL Schema 探索异常: {}", e),
+                        message: format!("GraphQL schema introspection error: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -509,7 +509,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

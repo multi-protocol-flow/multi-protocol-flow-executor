@@ -124,10 +124,10 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("GraphQL 订阅节点 {} start execution", node.name),
+                message: format!("GraphQL subscribe node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -157,7 +157,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
 
                 if output.success {
                     log::info!(
-                        "[GraphQL] 订阅Success: uuid={}, connection_id={}, 事件数={}, 耗时={}ms",
+                        "[GraphQL] Subscribe succeeded: uuid={}, connection_id={}, event_count={}, duration={}ms",
                         node.uuid,
                         config.connection_id,
                         output.event_count,
@@ -165,7 +165,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                     );
                 } else {
                     log::warn!(
-                        "[GraphQL] 订阅Failed: uuid={}, connection_id={}, error={:?}",
+                        "[GraphQL] Subscribe failed: uuid={}, connection_id={}, error={:?}",
                         node.uuid,
                         config.connection_id,
                         output.error
@@ -213,14 +213,14 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "GraphQL 订阅Success: 收到 {} 个事件 ({}ms)",
+                        "GraphQL subscribe succeeded: received {} events ({}ms)",
                         output.event_count,
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "GraphQL 订阅Failed: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知Error"),
+                        "GraphQL subscribe failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("unknown error"),
                         duration.as_millis()
                     )
                 };
@@ -231,7 +231,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                         message: log_message,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -248,7 +248,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                     let error_msg = output
                         .error
                         .as_deref()
-                        .unwrap_or("GraphQL 订阅Failed")
+                        .unwrap_or("GraphQL subscribe failed")
                         .to_string();
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
@@ -260,7 +260,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
             Err(e) => {
                 let duration = start_time.elapsed();
                 log::error!(
-                    "[GraphQL] 订阅异常: uuid={}, connection_id={}, error={}",
+                    "[GraphQL] Subscribe error: uuid={}, connection_id={}, error={}",
                     node.uuid,
                     config.connection_id,
                     e
@@ -270,10 +270,10 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("GraphQL 订阅异常: {}", e),
+                        message: format!("GraphQL subscribe error: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -533,7 +533,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
