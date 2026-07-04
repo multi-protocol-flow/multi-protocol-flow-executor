@@ -48,7 +48,7 @@ impl NodeExecutor for McpReadResourceExecutor {
 
         // 2. 变量替换 connection_id 和 resource_uri
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID variable substitution failed: {}", e);
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
                 "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
@@ -60,7 +60,7 @@ impl NodeExecutor for McpReadResourceExecutor {
         })?;
 
         let resource_uri = replace_variables(&config.resource_uri, context).map_err(|e| {
-            let error_msg = format!("资源 URI variable substitution failed: {}", e);
+            let error_msg = format!("Resource URI variable substitution failed: {}", e);
             log::error!(
                 "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
@@ -73,7 +73,7 @@ impl NodeExecutor for McpReadResourceExecutor {
 
         // 3. 日志：开始读取
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mcp_read_resource, Connection ID: {}, 资源URI: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mcp_read_resource, Connection ID: {}, resource URI: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -85,12 +85,12 @@ impl NodeExecutor for McpReadResourceExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "MCP 读取资源节点 {} start execution (资源: {})",
+                    "MCP read resource node {} start execution (resource: {})",
                     node.name, resource_uri
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -107,7 +107,7 @@ impl NodeExecutor for McpReadResourceExecutor {
         match read_result {
             Ok(resource_result) => {
                 log::info!(
-                    "[MCP] 资源读取Success: connection_id={}, uri={}, 内容数={}",
+                    "[MCP] Resource read succeeded: connection_id={}, uri={}, content_count={}",
                     connection_id,
                     resource_uri,
                     resource_result.contents.len()
@@ -145,13 +145,13 @@ impl NodeExecutor for McpReadResourceExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "MCP 资源读取Success: {} ({}ms)",
+                            "MCP resource read succeeded: {} ({}ms)",
                             resource_uri,
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -180,7 +180,7 @@ impl NodeExecutor for McpReadResourceExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[MCP] 资源读取Failed: connection_id={}, uri={}, error={}",
+                    "[MCP] Resource read failed: connection_id={}, uri={}, error={}",
                     connection_id,
                     resource_uri,
                     e
@@ -190,10 +190,10 @@ impl NodeExecutor for McpReadResourceExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MCP 资源读取Failed: {}", e),
+                        message: format!("MCP resource read failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -280,7 +280,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -468,7 +468,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

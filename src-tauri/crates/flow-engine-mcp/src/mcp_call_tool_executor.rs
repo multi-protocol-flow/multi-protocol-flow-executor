@@ -48,7 +48,7 @@ impl NodeExecutor for McpCallToolExecutor {
 
         // 2. 变量替换 connection_id 和 tool_name
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID variable substitution failed: {}", e);
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
                 "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
@@ -60,7 +60,7 @@ impl NodeExecutor for McpCallToolExecutor {
         })?;
 
         let tool_name = replace_variables(&config.tool_name, context).map_err(|e| {
-            let error_msg = format!("工具名称variable substitution failed: {}", e);
+            let error_msg = format!("Tool name variable substitution failed: {}", e);
             log::error!(
                 "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
@@ -73,7 +73,7 @@ impl NodeExecutor for McpCallToolExecutor {
 
         // 3. 日志：开始调用
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mcp_call_tool, Connection ID: {}, 工具: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mcp_call_tool, Connection ID: {}, tool: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -84,10 +84,10 @@ impl NodeExecutor for McpCallToolExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("MCP 调用工具节点 {} start execution (工具: {})", node.name, tool_name),
+                message: format!("MCP call tool node {} start execution (tool: {})", node.name, tool_name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -109,14 +109,14 @@ impl NodeExecutor for McpCallToolExecutor {
 
                 if is_error {
                     log::warn!(
-                        "[MCP] 工具调用返回Error: connection_id={}, tool={}, error_content={:?}",
+                        "[MCP] Tool call returned error: connection_id={}, tool={}, error_content={:?}",
                         connection_id,
                         tool_name,
                         tool_result.content
                     );
                 } else {
                     log::info!(
-                        "[MCP] 工具调用Success: connection_id={}, tool={} ({}ms)",
+                        "[MCP] Tool call succeeded: connection_id={}, tool={} ({}ms)",
                         connection_id,
                         tool_name,
                         duration.as_millis()
@@ -162,10 +162,10 @@ impl NodeExecutor for McpCallToolExecutor {
                     LogLevel::Info
                 };
                 let log_msg = if is_error {
-                    format!("MCP 工具调用返回Error: {}", tool_name)
+                    format!("MCP tool call returned error: {}", tool_name)
                 } else {
                     format!(
-                        "MCP 工具调用Success: {} ({}ms)",
+                        "MCP tool call succeeded: {} ({}ms)",
                         tool_name,
                         duration.as_millis()
                     )
@@ -177,7 +177,7 @@ impl NodeExecutor for McpCallToolExecutor {
                         message: log_msg,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -208,7 +208,7 @@ impl NodeExecutor for McpCallToolExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[MCP] 工具调用Failed: connection_id={}, tool={}, error={}",
+                    "[MCP] Tool call failed: connection_id={}, tool={}, error={}",
                     connection_id,
                     tool_name,
                     e
@@ -218,10 +218,10 @@ impl NodeExecutor for McpCallToolExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MCP 工具调用Failed: {}", e),
+                        message: format!("MCP tool call failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -311,7 +311,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -496,7 +496,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

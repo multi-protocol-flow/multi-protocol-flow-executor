@@ -53,7 +53,7 @@ impl NodeExecutor for McpGetPromptExecutor {
 
         // 2. 变量替换 connection_id 和 prompt_name
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID variable substitution failed: {}", e);
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
                 "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
@@ -65,7 +65,7 @@ impl NodeExecutor for McpGetPromptExecutor {
         })?;
 
         let prompt_name = replace_variables(&config.prompt_name, context).map_err(|e| {
-            let error_msg = format!("提示词名称variable substitution failed: {}", e);
+            let error_msg = format!("Prompt name variable substitution failed: {}", e);
             log::error!(
                 "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
@@ -80,7 +80,7 @@ impl NodeExecutor for McpGetPromptExecutor {
         let mut resolved_arguments = HashMap::new();
         for (key, value) in &config.arguments {
             let resolved_value = replace_variables(value, context).map_err(|e| {
-                let error_msg = format!("参数 '{}' variable substitution failed: {}", key, e);
+                let error_msg = format!("Argument '{}' variable substitution failed: {}", key, e);
                 log::error!(
                     "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
@@ -95,7 +95,7 @@ impl NodeExecutor for McpGetPromptExecutor {
 
         // 3. 日志：开始获取
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mcp_get_prompt, Connection ID: {}, 提示词: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: mcp_get_prompt, Connection ID: {}, prompt: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -107,12 +107,12 @@ impl NodeExecutor for McpGetPromptExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "MCP 获取提示词节点 {} start execution (提示词: {})",
+                    "MCP get prompt node {} start execution (prompt: {})",
                     node.name, prompt_name
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -129,7 +129,7 @@ impl NodeExecutor for McpGetPromptExecutor {
         match prompt_result {
             Ok(result) => {
                 log::info!(
-                    "[MCP] 提示词获取Success: connection_id={}, prompt={}, 消息数={}",
+                    "[MCP] Prompt get succeeded: connection_id={}, prompt={}, message_count={}",
                     connection_id,
                     prompt_name,
                     result.messages.len()
@@ -171,13 +171,13 @@ impl NodeExecutor for McpGetPromptExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "MCP 提示词获取Success: {} ({}ms)",
+                            "MCP prompt get succeeded: {} ({}ms)",
                             prompt_name,
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -206,7 +206,7 @@ impl NodeExecutor for McpGetPromptExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[MCP] 提示词获取Failed: connection_id={}, prompt={}, error={}",
+                    "[MCP] Prompt get failed: connection_id={}, prompt={}, error={}",
                     connection_id,
                     prompt_name,
                     e
@@ -216,10 +216,10 @@ impl NodeExecutor for McpGetPromptExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MCP 提示词获取Failed: {}", e),
+                        message: format!("MCP prompt get failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -313,7 +313,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -497,7 +497,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
