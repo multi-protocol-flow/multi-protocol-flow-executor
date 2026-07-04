@@ -50,7 +50,7 @@ impl NodeExecutor for DbCloseExecutor {
         if config.connection_uuid.is_empty() {
             // 空连接 UUID 时，直接返回Success（无操作）
             log::warn!(
-                "[流程 {}] [警告] 节点ID: {}, NodeName: {}, connection_uuid 为空，跳过关闭",
+                "[Flow {}] [Warn] NodeID: {}, NodeName: {}, connection_uuid is empty, skipping close",
                 context.flow_uuid,
                 node.uuid,
                 node.name
@@ -63,10 +63,10 @@ impl NodeExecutor for DbCloseExecutor {
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Warn,
-                    message: format!("数据库关闭节点 {} 跳过：connection_uuid 为空", node.name),
+                    message: format!("Database close node {} skipped: connection_uuid is empty", node.name),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间Error")
+                        .expect("system time error")
                         .as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -90,10 +90,10 @@ impl NodeExecutor for DbCloseExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("数据库关闭节点 {} start execution", node.name),
+                message: format!("Database close node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -110,7 +110,7 @@ impl NodeExecutor for DbCloseExecutor {
         match close_result {
             Ok(()) => {
                 log::info!(
-                    "[Database] 连接池关闭Success: uuid={}",
+                    "[Database] Pool closed: uuid={}",
                     config.connection_uuid
                 );
 
@@ -125,12 +125,12 @@ impl NodeExecutor for DbCloseExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "数据库连接池关闭Success ({}ms)",
+                            "Database pool closed ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -144,7 +144,7 @@ impl NodeExecutor for DbCloseExecutor {
             Err(e) => {
                 // 连接池不存在时也返回Success（幂等操作）
                 log::warn!(
-                    "[Database] 连接池关闭Failed（可能已关闭）: uuid={}, error={}",
+                    "[Database] Pool close failed (may already be closed): uuid={}, error={}",
                     config.connection_uuid,
                     e
                 );
@@ -160,12 +160,12 @@ impl NodeExecutor for DbCloseExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Warn,
                         message: format!(
-                            "数据库连接池关闭完成 ({}ms) - 连接池可能已关闭",
+                            "Database pool closed ({}ms) - pool may already be closed",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -280,7 +280,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

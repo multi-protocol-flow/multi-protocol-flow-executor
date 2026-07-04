@@ -87,10 +87,10 @@ impl NodeExecutor for DbBeginExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("事务开始节点 {} start execution", node.name),
+                message: format!("Transaction begin node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -104,9 +104,9 @@ impl NodeExecutor for DbBeginExecutor {
             if !level_str.is_empty() {
                 // 验证隔离级别是否有效
                 if IsolationLevel::from_str(level_str).is_err() {
-                    let error_msg = format!("无效的隔离级别: {}", level_str);
+                    let error_msg = format!("Invalid isolation level: {}", level_str);
                     log::error!(
-                        "[Database] 无效的隔离级别: uuid={}, level={}",
+                        "[Database] Invalid isolation level: uuid={}, level={}",
                         config.connection_uuid,
                         level_str
                     );
@@ -115,10 +115,10 @@ impl NodeExecutor for DbBeginExecutor {
                     context
                         .emit_log(LogEvent {
                             level: LogLevel::Error,
-                            message: format!("无效的隔离级别: {}", level_str),
+                            message: format!("Invalid isolation level: {}", level_str),
                             timestamp: std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
-                                .expect("系统时间Error")
+                                .expect("system time error")
                                 .as_millis() as u64,
                             node_uuid: Some(node.uuid.clone()),
                             node_name: Some(node.name.clone()),
@@ -149,7 +149,7 @@ impl NodeExecutor for DbBeginExecutor {
         match begin_result {
             Ok(()) => {
                 log::info!(
-                    "[Database] 事务开始Success: uuid={}, isolation_level={:?}",
+                    "[Database] Transaction began: uuid={}, isolation_level={:?}",
                     config.connection_uuid,
                     isolation_level_str
                 );
@@ -167,12 +167,12 @@ impl NodeExecutor for DbBeginExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "事务开始Success ({}ms)",
+                            "Transaction began ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -187,7 +187,7 @@ impl NodeExecutor for DbBeginExecutor {
                 ))
             }
             Err(e) => {
-                let error_msg = format!("事务开始Failed: {}", e);
+                let error_msg = format!("Transaction begin failed: {}", e);
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -196,7 +196,7 @@ impl NodeExecutor for DbBeginExecutor {
 
                 // 事务开始Failed
                 log::error!(
-                    "[Database] 事务开始Failed: uuid={}, error={}",
+                    "[Database] Transaction begin failed: uuid={}, error={}",
                     config.connection_uuid,
                     e
                 );
@@ -205,10 +205,10 @@ impl NodeExecutor for DbBeginExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("事务开始Failed: {}", e),
+                        message: format!("Transaction begin failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -372,7 +372,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -489,7 +489,7 @@ mod tests {
 
         let data = output_data.unwrap();
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().unwrap().contains("无效的隔离级别"));
+        assert!(data["error"].as_str().unwrap().contains("Invalid isolation level"));
     }
 
     #[tokio::test]

@@ -83,10 +83,10 @@ impl NodeExecutor for DbQueryNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("数据库查询节点 {} start execution", node.name),
+                message: format!("Database query node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -185,7 +185,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
 
         // 记录 SQL 日志
         log::info!(
-            "[流程 {}] [DB Query] SQL: {}",
+            "[Flow {}] [DB Query] SQL: {}",
             context.flow_uuid,
             sql
         );
@@ -194,10 +194,10 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("执行 SQL: {}", sql),
+                message: format!("Executing SQL: {}", sql),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -218,7 +218,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                             resolved_params.push(value);
                         }
                         Err(e) => {
-                            let error_msg = format!("参数variable substitution failed: {}", e);
+                            let error_msg = format!("Parameter variable substitution failed: {}", e);
 
                             // 检查 on_error 策略
                             if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -253,7 +253,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
             match db_manager.get_pool(&connection_uuid).await {
                 Some(pool) => pool,
                 None => {
-                    let error_msg = format!("连接池不存在: {}", connection_uuid);
+                    let error_msg = format!("Connection pool not found: {}", connection_uuid);
 
                     // 检查 on_error 策略
                     if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -276,7 +276,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
         } else {
             // 没有配置 db_manager，使用 mock 实现
             log::warn!(
-                "[流程 {}] [警告] 节点ID: {}, NodeName: {}, 使用 mock 连接池",
+                "[Flow {}] [Warn] NodeID: {}, NodeName: {}, using mock pool",
                 context.flow_uuid,
                 node.uuid,
                 node.name
@@ -293,12 +293,12 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                 r = pool.execute(&sql, params) => r,
                 _ = cancel_rx.changed() => {
                     log::info!(
-                        "[流程 {}] [取消] 节点ID: {}, NodeName: {}, 数据库查询被取消",
+                        "[Flow {}] [Cancel] NodeID: {}, NodeName: {}, database query cancelled",
                         context.flow_uuid,
                         node.uuid,
                         node.name
                     );
-                    return Err(ErrorDetail::execution_error("流程已取消".to_string()));
+                    return Err(ErrorDetail::execution_error("Flow cancelled".to_string()));
                 }
             }
         } else {
@@ -311,7 +311,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
         let query_result = match result {
             Ok(r) => r,
             Err(e) => {
-                let error_msg = format!("查询执行Failed: {}", e);
+                let error_msg = format!("Query execution failed: {}", e);
                 log::error!(
                     "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
@@ -324,10 +324,10 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("查询执行Failed: {}", e),
+                        message: format!("Query execution failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -353,7 +353,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
         // 应用 10000 行限制
         let (rows, truncated) = if query_result.rows.len() > MAX_ROWS {
             log::warn!(
-                "[流程 {}] [警告] 节点ID: {}, NodeName: {}, 结果行数 {} 超过限制 {}, 已截断",
+                "[Flow {}] [Warn] NodeID: {}, NodeName: {}, result count {} exceeds limit {}, truncated",
                 context.flow_uuid,
                 node.uuid,
                 node.name,
@@ -366,13 +366,13 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                 .emit_log(LogEvent {
                     level: LogLevel::Warn,
                     message: format!(
-                        "结果行数 {} 超过限制 {}, 已截断",
+                        "Result count {} exceeds limit {}, truncated",
                         query_result.rows.len(),
                         MAX_ROWS
                     ),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间Error")
+                        .expect("system time error")
                         .as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -455,7 +455,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
 
         // 记录完成日志
         log::info!(
-            "[流程 {}] [完成] 节点UUID: {}, Duration: {}ms, 返回行数: {}",
+            "[Flow {}] [Complete] NodeUUID: {}, Duration: {}ms, rows returned: {}",
             context.flow_uuid,
             node.uuid,
             total_ms,
@@ -467,12 +467,12 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "数据库查询节点 {} 完成 ({}ms, {} 行)",
+                    "Database query node {} completed ({}ms, {} rows)",
                     node.name, total_ms, row_count
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -579,7 +579,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -876,7 +876,7 @@ mod tests {
         let (_, output) = result.unwrap();
         let output = output.unwrap();
         assert_eq!(output["success"], false);
-        assert!(output["error"].as_str().unwrap().contains("连接池不存在"));
+        assert!(output["error"].as_str().unwrap().contains("Connection pool not found"));
     }
 
     #[tokio::test]

@@ -66,7 +66,7 @@ impl NodeExecutor for DbConnectExecutor {
                         Ok(replaced) => Ok(Some(replaced)),
                         Err(e) => {
                             let err_msg = format!("{} variable substitution failed: {}", label, e);
-                            log::error!("[流程 {}] [Error] 节点ID: {}, Error: {}", context.flow_uuid, node.uuid, err_msg);
+                            log::error!("[Flow {}] [Error] NodeID: {}, Error: {}", context.flow_uuid, node.uuid, err_msg);
                             Err(ErrorDetail::execution_error(err_msg))
                         }
                     }
@@ -119,10 +119,10 @@ impl NodeExecutor for DbConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("数据库连接节点 {} start execution", node.name),
+                message: format!("Database connect node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -162,7 +162,7 @@ impl NodeExecutor for DbConnectExecutor {
                 };
 
                 log::info!(
-                    "[Database] 创建 SQLite 连接池: uuid={}, connection_string={}",
+                    "[Database] Creating SQLite pool: uuid={}, connection_string={}",
                     pool_key,
                     replaced_connection_string.as_deref().unwrap_or(":memory:")
                 );
@@ -171,7 +171,7 @@ impl NodeExecutor for DbConnectExecutor {
                 match SqliteConnection::from_config(&db_config).await {
                     Ok(conn) => {
                         log::info!(
-                            "[Database] SQLite 连接池创建Success: uuid={}",
+                            "[Database] SQLite pool created: uuid={}",
                             pool_key
                         );
                         Arc::new(conn) as Arc<dyn DatabasePool>
@@ -185,7 +185,7 @@ impl NodeExecutor for DbConnectExecutor {
                         }
 
                         log::error!(
-                            "[Database] SQLite 连接池创建Failed: uuid={}, error={}",
+                            "[Database] SQLite pool creation failed: uuid={}, error={}",
                             pool_key,
                             e
                         );
@@ -197,7 +197,7 @@ impl NodeExecutor for DbConnectExecutor {
                                 message: format!("SQLite connection failed: {}", e),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间Error")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -242,7 +242,7 @@ impl NodeExecutor for DbConnectExecutor {
                 };
 
                 log::info!(
-                    "[Database] 创建 MySQL 连接池: uuid={}, host={:?}",
+                    "[Database] Creating MySQL pool: uuid={}, host={:?}",
                     pool_key,
                     replaced_host
                 );
@@ -251,7 +251,7 @@ impl NodeExecutor for DbConnectExecutor {
                 match crate::db::MySqlConnection::from_config(&db_config).await {
                     Ok(conn) => {
                         log::info!(
-                            "[Database] MySQL 连接池创建Success: uuid={}",
+                            "[Database] MySQL pool created: uuid={}",
                             pool_key
                         );
                         Arc::new(conn) as Arc<dyn DatabasePool>
@@ -265,7 +265,7 @@ impl NodeExecutor for DbConnectExecutor {
                         }
 
                         log::error!(
-                            "[Database] MySQL 连接池创建Failed: uuid={}, error={}",
+                            "[Database] MySQL pool creation failed: uuid={}, error={}",
                             pool_key,
                             e
                         );
@@ -276,7 +276,7 @@ impl NodeExecutor for DbConnectExecutor {
                                 message: format!("MySQL connection failed: {}", e),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间Error")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -319,7 +319,7 @@ impl NodeExecutor for DbConnectExecutor {
                 };
 
                 log::info!(
-                    "[Database] 创建 PostgreSQL 连接池: uuid={}, host={:?}",
+                    "[Database] Creating PostgreSQL pool: uuid={}, host={:?}",
                     pool_key,
                     replaced_host
                 );
@@ -328,7 +328,7 @@ impl NodeExecutor for DbConnectExecutor {
                 match crate::db::PostgresConnection::from_config(&db_config).await {
                     Ok(conn) => {
                         log::info!(
-                            "[Database] PostgreSQL 连接池创建Success: uuid={}",
+                            "[Database] PostgreSQL pool created: uuid={}",
                             pool_key
                         );
                         Arc::new(conn) as Arc<dyn DatabasePool>
@@ -342,7 +342,7 @@ impl NodeExecutor for DbConnectExecutor {
                         }
 
                         log::error!(
-                            "[Database] PostgreSQL 连接池创建Failed: uuid={}, error={}",
+                            "[Database] PostgreSQL pool creation failed: uuid={}, error={}",
                             pool_key,
                             e
                         );
@@ -353,7 +353,7 @@ impl NodeExecutor for DbConnectExecutor {
                                 message: format!("PostgreSQL connection failed: {}", e),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间Error")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -376,7 +376,7 @@ impl NodeExecutor for DbConnectExecutor {
             _ => {
                 // 其他数据库类型暂未实现，使用 MockPool
                 log::warn!(
-                    "[Database] 数据库类型 '{}' 暂未实现，使用 MockPool: uuid={}",
+                    "[Database] Database type '{}' not yet implemented, using MockPool: uuid={}",
                     db_type,
                     pool_key
                 );
@@ -399,7 +399,7 @@ impl NodeExecutor for DbConnectExecutor {
         match create_result {
             Ok(()) => {
                 log::info!(
-                    "[Database] 连接池创建Success: uuid={}",
+                    "[Database] Pool created: uuid={}",
                     pool_key
                 );
 
@@ -407,7 +407,7 @@ impl NodeExecutor for DbConnectExecutor {
                 let test_query_result = if let Some(ref test_query) = replaced_test_query {
                     if !test_query.is_empty() {
                         log::info!(
-                            "[Database] 执行测试查询: uuid={}, query={}",
+                            "[Database] Executing test query: uuid={}, query={}",
                             pool_key,
                             test_query
                         );
@@ -415,14 +415,14 @@ impl NodeExecutor for DbConnectExecutor {
                         match pool.test_connection().await {
                             Ok(()) => {
                                 log::info!(
-                                    "[Database] 测试查询Success: uuid={}",
+                                    "[Database] Test query succeeded: uuid={}",
                                     pool_key
                                 );
                                 Ok(())
                             }
                             Err(e) => {
                                 log::error!(
-                                    "[Database] 测试查询Failed: uuid={}, error={}",
+                                    "[Database] Test query failed: uuid={}, error={}",
                                     pool_key,
                                     e
                                 );
@@ -455,12 +455,12 @@ impl NodeExecutor for DbConnectExecutor {
                             .emit_log(LogEvent {
                                 level: LogLevel::Info,
                                 message: format!(
-                                    "数据库连接Success ({}ms)",
+                                    "Database connect succeeded ({}ms)",
                                     duration.as_millis()
                                 ),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间Error")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -475,7 +475,7 @@ impl NodeExecutor for DbConnectExecutor {
                         ))
                     }
                     Err(e) => {
-                        let error_msg = format!("测试查询Failed: {}", e);
+                        let error_msg = format!("Test query failed: {}", e);
 
                         // 检查 on_error 策略
                         if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -484,7 +484,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                         // 测试查询Failed
                         log::error!(
-                            "[Database] 测试查询Failed: uuid={}, error={}",
+                            "[Database] Test query failed: uuid={}, error={}",
                             pool_key,
                             e
                         );
@@ -493,10 +493,10 @@ impl NodeExecutor for DbConnectExecutor {
                         context
                             .emit_log(LogEvent {
                                 level: LogLevel::Error,
-                                message: format!("数据库测试查询Failed: {}", e),
+                                message: format!("Database test query failed: {}", e),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间Error")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -521,7 +521,7 @@ impl NodeExecutor for DbConnectExecutor {
                 }
             }
             Err(e) => {
-                let error_msg = format!("数据库连接池创建Failed: {}", e);
+                let error_msg = format!("Database pool creation failed: {}", e);
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -530,7 +530,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                 // 连接池创建Failed
                 log::error!(
-                    "[Database] 连接池创建Failed: uuid={}, error={}",
+                    "[Database] Pool creation failed: uuid={}, error={}",
                     pool_key,
                     e
                 );
@@ -539,10 +539,10 @@ impl NodeExecutor for DbConnectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("数据库连接池创建Failed: {}", e),
+                        message: format!("Database pool creation failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -773,7 +773,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

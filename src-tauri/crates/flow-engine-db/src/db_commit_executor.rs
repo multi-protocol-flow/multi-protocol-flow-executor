@@ -50,7 +50,7 @@ impl NodeExecutor for DbCommitExecutor {
         if config.connection_uuid.is_empty() {
             // 空连接 UUID 时，直接返回Success（无操作）
             log::warn!(
-                "[流程 {}] [警告] 节点ID: {}, NodeName: {}, connection_uuid 为空，跳过提交",
+                "[Flow {}] [Warn] NodeID: {}, NodeName: {}, connection_uuid is empty, skipping commit",
                 context.flow_uuid,
                 node.uuid,
                 node.name
@@ -63,10 +63,10 @@ impl NodeExecutor for DbCommitExecutor {
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Warn,
-                    message: format!("数据库提交节点 {} 跳过：connection_uuid 为空", node.name),
+                    message: format!("Database commit node {} skipped: connection_uuid is empty", node.name),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间Error")
+                        .expect("system time error")
                         .as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -91,10 +91,10 @@ impl NodeExecutor for DbCommitExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("数据库提交节点 {} start execution", node.name),
+                message: format!("Database commit node {} start execution", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -111,7 +111,7 @@ impl NodeExecutor for DbCommitExecutor {
         match commit_result {
             Ok(()) => {
                 log::info!(
-                    "[Database] 事务提交Success: uuid={}",
+                    "[Database] Transaction committed: uuid={}",
                     config.connection_uuid
                 );
 
@@ -126,12 +126,12 @@ impl NodeExecutor for DbCommitExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "数据库事务提交Success ({}ms)",
+                            "Database transaction committed ({}ms)",
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -144,9 +144,9 @@ impl NodeExecutor for DbCommitExecutor {
                 Ok((next_nodes, Some(output_data)))
             }
             Err(e) => {
-                let error_msg = format!("事务提交Failed: {}", e);
+                let error_msg = format!("Transaction commit failed: {}", e);
                 log::warn!(
-                    "[Database] 事务提交Failed: uuid={}, error={}",
+                    "[Database] Transaction commit failed: uuid={}, error={}",
                     config.connection_uuid,
                     e
                 );
@@ -161,7 +161,7 @@ impl NodeExecutor for DbCommitExecutor {
                                 message: error_msg.clone(),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间Error")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -174,7 +174,7 @@ impl NodeExecutor for DbCommitExecutor {
                     _ => {
                         // RouteToFalse（或 None）：路由到 false 端口，仍视为幂等Success
                         log::warn!(
-                            "[Database] 事务提交Failed，路由到 false 端口: uuid={}, error={}",
+                            "[Database] Transaction commit failed, routing to false port: uuid={}, error={}",
                             config.connection_uuid,
                             e
                         );
@@ -190,12 +190,12 @@ impl NodeExecutor for DbCommitExecutor {
                             .emit_log(LogEvent {
                                 level: LogLevel::Warn,
                                 message: format!(
-                                    "数据库事务提交Failed，路由到 false 端口 ({}ms)",
+                                    "Database transaction commit failed, routing to false port ({}ms)",
                                     duration.as_millis()
                                 ),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间Error")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -306,7 +306,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
