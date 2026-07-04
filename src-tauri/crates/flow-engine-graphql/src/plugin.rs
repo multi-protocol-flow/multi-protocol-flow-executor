@@ -32,7 +32,7 @@ impl NodePlugin for GraphqlConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "GraphQL 连接"
+        "GraphQL Connect"
     }
 
     fn category(&self) -> &str {
@@ -137,7 +137,7 @@ impl NodePlugin for GraphqlQueryPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "GraphQL 查询"
+        "GraphQL Query"
     }
 
     fn category(&self) -> &str {
@@ -249,7 +249,7 @@ impl NodePlugin for GraphqlSubscribePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "GraphQL 订阅"
+        "GraphQL Subscribe"
     }
 
     fn category(&self) -> &str {
@@ -361,7 +361,7 @@ impl NodePlugin for GraphqlIntrospectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "GraphQL Schema 探索"
+        "GraphQL Schema Introspection"
     }
 
     fn category(&self) -> &str {
@@ -464,7 +464,7 @@ impl NodePlugin for GraphqlDisconnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "GraphQL 断开连接"
+        "GraphQL Disconnect"
     }
 
     fn category(&self) -> &str {
@@ -569,7 +569,7 @@ mod tests {
     fn test_graphql_connect_plugin_metadata() {
         let plugin = GraphqlConnectPlugin;
         assert_eq!(plugin.type_id(), "graphql_connect");
-        assert_eq!(plugin.display_name(), "GraphQL 连接");
+        assert_eq!(plugin.display_name(), "GraphQL Connect");
         assert_eq!(plugin.category(), "graphql");
         assert_eq!(plugin.icon(), "plug");
         assert_eq!(plugin.color(), "#6366f1");
@@ -586,7 +586,7 @@ mod tests {
     fn test_graphql_query_plugin_metadata() {
         let plugin = GraphqlQueryPlugin;
         assert_eq!(plugin.type_id(), "graphql_query");
-        assert_eq!(plugin.display_name(), "GraphQL 查询");
+        assert_eq!(plugin.display_name(), "GraphQL Query");
         assert_eq!(plugin.category(), "graphql");
         assert_eq!(plugin.icon(), "search");
         assert_eq!(plugin.color(), "#6366f1");
@@ -603,7 +603,7 @@ mod tests {
     fn test_graphql_subscribe_plugin_metadata() {
         let plugin = GraphqlSubscribePlugin;
         assert_eq!(plugin.type_id(), "graphql_subscribe");
-        assert_eq!(plugin.display_name(), "GraphQL 订阅");
+        assert_eq!(plugin.display_name(), "GraphQL Subscribe");
         assert_eq!(plugin.category(), "graphql");
         assert_eq!(plugin.icon(), "eye");
         assert_eq!(plugin.color(), "#6366f1");
@@ -620,7 +620,7 @@ mod tests {
     fn test_graphql_introspect_plugin_metadata() {
         let plugin = GraphqlIntrospectPlugin;
         assert_eq!(plugin.type_id(), "graphql_introspect");
-        assert_eq!(plugin.display_name(), "GraphQL Schema 探索");
+        assert_eq!(plugin.display_name(), "GraphQL Schema Introspection");
         assert_eq!(plugin.category(), "graphql");
         assert_eq!(plugin.icon(), "file-search");
         assert_eq!(plugin.color(), "#6366f1");
@@ -637,7 +637,7 @@ mod tests {
     fn test_graphql_disconnect_plugin_metadata() {
         let plugin = GraphqlDisconnectPlugin;
         assert_eq!(plugin.type_id(), "graphql_disconnect");
-        assert_eq!(plugin.display_name(), "GraphQL 断开连接");
+        assert_eq!(plugin.display_name(), "GraphQL Disconnect");
         assert_eq!(plugin.category(), "graphql");
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#6366f1");
