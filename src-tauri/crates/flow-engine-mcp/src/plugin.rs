@@ -27,7 +27,7 @@ impl NodePlugin for McpConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MCP 连接"
+        "MCP Connect"
     }
 
     fn category(&self) -> &str {
@@ -162,7 +162,7 @@ impl NodePlugin for McpCallToolPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MCP 调用工具"
+        "MCP Call Tool"
     }
 
     fn category(&self) -> &str {
@@ -272,7 +272,7 @@ impl NodePlugin for McpReadResourcePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MCP 读取资源"
+        "MCP Read Resource"
     }
 
     fn category(&self) -> &str {
@@ -380,7 +380,7 @@ impl NodePlugin for McpClosePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MCP 关闭"
+        "MCP Close"
     }
 
     fn category(&self) -> &str {
@@ -463,7 +463,7 @@ impl NodePlugin for McpGetPromptPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "MCP 获取提示词"
+        "MCP Get Prompt"
     }
 
     fn category(&self) -> &str {
@@ -585,7 +585,7 @@ mod tests {
     fn test_mcp_connect_plugin_metadata() {
         let plugin = McpConnectPlugin;
         assert_eq!(plugin.type_id(), "mcp_connect");
-        assert_eq!(plugin.display_name(), "MCP 连接");
+        assert_eq!(plugin.display_name(), "MCP Connect");
         assert_eq!(plugin.category(), "mcp");
         assert_eq!(plugin.icon(), "puzzle");
         assert_eq!(plugin.color(), "#F59E0B");
@@ -601,7 +601,7 @@ mod tests {
     fn test_mcp_call_tool_plugin_metadata() {
         let plugin = McpCallToolPlugin;
         assert_eq!(plugin.type_id(), "mcp_call_tool");
-        assert_eq!(plugin.display_name(), "MCP 调用工具");
+        assert_eq!(plugin.display_name(), "MCP Call Tool");
         assert_eq!(plugin.category(), "mcp");
         assert_eq!(plugin.icon(), "wrench");
         assert_eq!(plugin.color(), "#F59E0B");
@@ -617,7 +617,7 @@ mod tests {
     fn test_mcp_read_resource_plugin_metadata() {
         let plugin = McpReadResourcePlugin;
         assert_eq!(plugin.type_id(), "mcp_read_resource");
-        assert_eq!(plugin.display_name(), "MCP 读取资源");
+        assert_eq!(plugin.display_name(), "MCP Read Resource");
         assert_eq!(plugin.category(), "mcp");
         assert_eq!(plugin.icon(), "file-search");
         assert_eq!(plugin.color(), "#F59E0B");
@@ -633,7 +633,7 @@ mod tests {
     fn test_mcp_close_plugin_metadata() {
         let plugin = McpClosePlugin;
         assert_eq!(plugin.type_id(), "mcp_close");
-        assert_eq!(plugin.display_name(), "MCP 关闭");
+        assert_eq!(plugin.display_name(), "MCP Close");
         assert_eq!(plugin.category(), "mcp");
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#F59E0B");
@@ -791,7 +791,7 @@ mod tests {
     fn test_mcp_get_prompt_plugin_metadata() {
         let plugin = McpGetPromptPlugin;
         assert_eq!(plugin.type_id(), "mcp_get_prompt");
-        assert_eq!(plugin.display_name(), "MCP 获取提示词");
+        assert_eq!(plugin.display_name(), "MCP Get Prompt");
         assert_eq!(plugin.category(), "mcp");
         assert_eq!(plugin.icon(), "message-square");
         assert_eq!(plugin.color(), "#F59E0B");
