@@ -3,7 +3,7 @@
  * 测试 flowStorage 对象 API (async IPC-based)
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   flowStorage,
 } from '@/services/storage';

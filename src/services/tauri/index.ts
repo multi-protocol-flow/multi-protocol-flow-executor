@@ -103,6 +103,9 @@ export async function executeFlowWithChannel(
 export async function saveFlowReport(report: FlowExecutionReport, reportsDir: string): Promise<void> {
   if (isTauriEnv()) {
     await invoke<void>('save_flow_report', { report, reportsDir });
+  } else {
+    const { saveFlowReport: saveFlowReportImpl } = await import('./mock');
+    return saveFlowReportImpl(report, reportsDir);
   }
 }
 
@@ -141,6 +144,9 @@ export async function listFlowReports(reportsDir: string): Promise<ReportMetadat
 export async function deleteFlowReport(uuid: string, reportsDir: string): Promise<void> {
   if (isTauriEnv()) {
     await invoke<void>('delete_flow_report', { uuid, reportsDir });
+  } else {
+    const { deleteFlowReport: deleteFlowReportImpl } = await import('./mock');
+    return deleteFlowReportImpl(uuid, reportsDir);
   }
 }
 
@@ -636,6 +642,9 @@ export async function getStressTestStatus(): Promise<import('@/types/stressTest'
 export async function startTcpRecording(connectionId: string): Promise<void> {
   if (isTauriEnv()) {
     await invoke<void>('start_tcp_recording', { connectionId });
+  } else {
+    const { startTcpRecording: startTcpRecordingImpl } = await import('./mock');
+    return startTcpRecordingImpl(connectionId);
   }
 }
 

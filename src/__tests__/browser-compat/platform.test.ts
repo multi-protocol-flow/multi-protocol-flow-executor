@@ -7,8 +7,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { isTauriEnv } from '@/lib/platform';
 
 describe('isTauriEnv', () => {
-  const originalWindow = globalThis.window;
-
   beforeEach(() => {
     // 确保 __TAURI__ 不在 window 上 (jsdom 默认)
     delete (globalThis as Record<string, unknown>).__TAURI__;

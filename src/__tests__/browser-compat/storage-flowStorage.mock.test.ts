@@ -20,7 +20,7 @@ import {
   moveFolder,
 } from '@/services/storage/flowStorage.mock';
 import type { Flow } from '@/types/flow';
-import type { FlowMeta, FlowMetadata } from '@/services/storage/flowStorage';
+import type { FlowMeta } from '@/services/storage/flowStorage';
 
 /** 创建测试用的空流程 */
 function createTestFlow(uuid: string, name: string): Flow {

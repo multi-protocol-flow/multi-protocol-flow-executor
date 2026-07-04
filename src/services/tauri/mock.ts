@@ -686,6 +686,14 @@ export async function stopTcpRecording(_connectionId: string): Promise<import('@
 }
 
 /**
+ * Mock 开始 TCP/UDP 录制
+ * @param _connectionId 连接 ID（Mock 中未使用）
+ */
+export async function startTcpRecording(_connectionId: string): Promise<void> {
+  // Mock 环境 - 无操作
+}
+
+/**
  * Mock 保存 TCP 录制
  * @param _recording 录制数据（Mock 中未使用）
  * @param _dir 目标目录（Mock 中未使用）

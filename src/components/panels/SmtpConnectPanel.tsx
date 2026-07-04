@@ -17,6 +17,7 @@ import { Mail, Info, ChevronDown, Shield, Loader2 } from 'lucide-react';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { SmtpConnectConfig as SmtpConnectConfigType } from '@/types';
 import { cn } from '@/lib/utils';
+import { isTauriEnv } from '@/lib/platform';
 
 interface SmtpConnectConfigProps {
   /** 当前节点数据 */
@@ -192,6 +193,11 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
     setTestResult(null);
 
     try {
+      if (!isTauriEnv()) {
+        setTestResult({ success: false, message: 'Connection test not available in browser mode. This feature requires the Tauri desktop app.' });
+        setIsTesting(false);
+        return;
+      }
       // 动态导入，避免后端命令不存在时编译报错
       const { invoke } = await import('@tauri-apps/api/core');
       const result = await invoke<{ success: boolean; server_info?: string; error?: string }>('test_smtp_connection', {

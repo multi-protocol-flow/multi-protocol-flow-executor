@@ -8,16 +8,28 @@ import type { Settings, ThemeMode, Locale } from '@/types/settings';
 
 const SETTINGS_FILE = 'settings.bin';
 
+/** 缓存 appDataDir，避免重复 IPC 调用 */
+let cachedAppDataDir: string | null = null;
+
+/**
+ * 获取应用数据目录（带缓存）
+ */
+async function getAppDataDirCached(): Promise<string> {
+  if (cachedAppDataDir) return cachedAppDataDir;
+  const { invoke } = await import('@tauri-apps/api/core');
+  cachedAppDataDir = await invoke<string>('get_app_data_dir');
+  return cachedAppDataDir;
+}
+
 /**
  * 加载设置
  */
 export async function loadSettings(): Promise<Settings> {
   if (isTauriEnv()) {
-    const [{ LazyStore }, { invoke }] = await Promise.all([
+    const [{ LazyStore }] = await Promise.all([
       import('@tauri-apps/plugin-store'),
-      import('@tauri-apps/api/core'),
     ]);
-    const appDataDir = await invoke<string>('get_app_data_dir');
+    const appDataDir = await getAppDataDirCached();
     const store = new LazyStore(`${appDataDir}/store/${SETTINGS_FILE}`);
     const reportDir = await store.get<string>('reportDir');
     const logDir = await store.get<string>('logDir');
@@ -41,11 +53,10 @@ export async function loadSettings(): Promise<Settings> {
  */
 export async function saveSettings(settings: Partial<Settings>): Promise<void> {
   if (isTauriEnv()) {
-    const [{ LazyStore }, { invoke }] = await Promise.all([
+    const [{ LazyStore }] = await Promise.all([
       import('@tauri-apps/plugin-store'),
-      import('@tauri-apps/api/core'),
     ]);
-    const appDataDir = await invoke<string>('get_app_data_dir');
+    const appDataDir = await getAppDataDirCached();
     const store = new LazyStore(`${appDataDir}/store/${SETTINGS_FILE}`);
     if (settings.reportDir !== undefined) {
       await store.set('reportDir', settings.reportDir);
@@ -103,8 +114,7 @@ export async function openDirectory(path: string): Promise<void> {
  */
 export async function getConfigPath(): Promise<string> {
   if (isTauriEnv()) {
-    const { invoke } = await import('@tauri-apps/api/core');
-    const appDataDir = await invoke<string>('get_app_data_dir');
+    const appDataDir = await getAppDataDirCached();
     return `${appDataDir}/store/${SETTINGS_FILE}`;
   }
   const { getConfigPath: getConfigPathImpl } = await import('./settings.mock');
@@ -116,8 +126,7 @@ export async function getConfigPath(): Promise<string> {
  */
 export async function getAppDataDir(): Promise<string> {
   if (isTauriEnv()) {
-    const { invoke } = await import('@tauri-apps/api/core');
-    return invoke<string>('get_app_data_dir');
+    return getAppDataDirCached();
   }
   const { getAppDataDir: getAppDataDirImpl } = await import('./settings.mock');
   return getAppDataDirImpl();

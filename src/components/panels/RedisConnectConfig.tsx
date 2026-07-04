@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useFlowVariables } from '@/hooks/useFlowVariables';
 import type { RedisConnectConfig as RedisConnectConfigType } from '@/types';
+import { isTauriEnv } from '@/lib/platform';
 
 /** 表单数据类型 */
 interface RedisConnectFormData {
@@ -95,6 +96,11 @@ export function RedisConnectConfig({ data, onSave }: RedisConnectConfigProps) {
     const resolvedPassword = resolveVar(formData.password || '');
 
     try {
+      if (!isTauriEnv()) {
+        setTestResult({ success: false, message: 'Connection test not available in browser mode. This feature requires the Tauri desktop app.' });
+        setIsTesting(false);
+        return;
+      }
       const { invoke } = await import('@tauri-apps/api/core');
       const result = await invoke<boolean>('test_redis_connection', {
         host: resolvedHost,
