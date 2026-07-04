@@ -44,7 +44,7 @@ impl SmtpConnectExecutor {
         }
         let auth: EmailAuthConfig =
             serde_json::from_value(auth_value.clone())
-                .map_err(|e| ErrorDetail::execution_error(format!("解析认证配置Failed: {}", e)))?;
+                .map_err(|e| ErrorDetail::execution_error(format!("Failed to parse auth config: {}", e)))?;
         Ok(Some(auth))
     }
 
@@ -71,7 +71,7 @@ impl SmtpConnectExecutor {
     fn current_timestamp() -> u64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .expect("系统时间Error")
+            .expect("system time error")
             .as_millis() as u64
     }
 }
@@ -136,7 +136,7 @@ impl NodeExecutor for SmtpConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("SMTP 连接节点 {} start execution", node.name),
+                message: format!("SMTP connect node {} start execution", node.name),
                 timestamp: Self::current_timestamp(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -156,7 +156,7 @@ impl NodeExecutor for SmtpConnectExecutor {
 
                 if output.success {
                     log::info!(
-                        "[SMTP] 连接Success: uuid={}, host={}:{}, connection_id={}",
+                        "[SMTP] Connection succeeded: uuid={}, host={}:{}, connection_id={}",
                         node.uuid,
                         smtp_config.host,
                         smtp_config.port,
@@ -168,7 +168,7 @@ impl NodeExecutor for SmtpConnectExecutor {
                         node.uuid,
                         smtp_config.host,
                         smtp_config.port,
-                        output.error.as_deref().unwrap_or("未知Error")
+                        output.error.as_deref().unwrap_or("Unknown error")
                     );
                 }
 
@@ -197,13 +197,13 @@ impl NodeExecutor for SmtpConnectExecutor {
                 };
                 let log_message = if output.success {
                     format!(
-                        "SMTP 连接Success ({}ms)",
+                        "SMTP connection succeeded ({}ms)",
                         duration.as_millis()
                     )
                 } else {
                     format!(
                         "SMTP connection failed: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知Error"),
+                        output.error.as_deref().unwrap_or("Unknown error"),
                         duration.as_millis()
                     )
                 };
@@ -385,7 +385,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

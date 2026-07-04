@@ -29,7 +29,7 @@ impl NodePlugin for SmtpConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "SMTP 连接"
+        "SMTP Connect"
     }
 
     fn category(&self) -> &str {
@@ -141,7 +141,7 @@ impl NodePlugin for SmtpSendPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "SMTP 发送"
+        "SMTP Send"
     }
 
     fn category(&self) -> &str {
@@ -268,7 +268,7 @@ impl NodePlugin for SmtpDisconnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "SMTP 断开"
+        "SMTP Disconnect"
     }
 
     fn category(&self) -> &str {
@@ -370,7 +370,7 @@ mod tests {
     fn test_smtp_connect_plugin_metadata() {
         let plugin = SmtpConnectPlugin;
         assert_eq!(plugin.type_id(), "smtp_connect");
-        assert_eq!(plugin.display_name(), "SMTP 连接");
+        assert_eq!(plugin.display_name(), "SMTP Connect");
         assert_eq!(plugin.category(), "email");
         assert_eq!(plugin.icon(), "mail");
         assert_eq!(plugin.color(), "#ea580c");
@@ -389,7 +389,7 @@ mod tests {
     fn test_smtp_send_plugin_metadata() {
         let plugin = SmtpSendPlugin;
         assert_eq!(plugin.type_id(), "smtp_send");
-        assert_eq!(plugin.display_name(), "SMTP 发送");
+        assert_eq!(plugin.display_name(), "SMTP Send");
         assert_eq!(plugin.category(), "email");
         assert_eq!(plugin.icon(), "mail");
         assert_eq!(plugin.color(), "#ea580c");
@@ -408,7 +408,7 @@ mod tests {
     fn test_smtp_disconnect_plugin_metadata() {
         let plugin = SmtpDisconnectPlugin;
         assert_eq!(plugin.type_id(), "smtp_disconnect");
-        assert_eq!(plugin.display_name(), "SMTP 断开");
+        assert_eq!(plugin.display_name(), "SMTP Disconnect");
         assert_eq!(plugin.category(), "email");
         assert_eq!(plugin.icon(), "mail");
         assert_eq!(plugin.color(), "#ea580c");

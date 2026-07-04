@@ -56,7 +56,7 @@ impl NodeExecutor for SmtpSendExecutor {
         // 2. 变量替换: connection_id
         let connection_id =
             replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("连接 ID variable substitution failed: {}", e);
+                let error_msg = format!("Connection ID variable substitution failed: {}", e);
                 log::error!(
                     "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
@@ -70,7 +70,7 @@ impl NodeExecutor for SmtpSendExecutor {
         // 3. 变量替换: from
         let from = match &config.from {
             Some(f) => Some(replace_variables(f, context).map_err(|e| {
-                let error_msg = format!("发件人variable substitution failed: {}", e);
+                let error_msg = format!("From address variable substitution failed: {}", e);
                 log::error!(
                     "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
@@ -90,7 +90,7 @@ impl NodeExecutor for SmtpSendExecutor {
             .map(|addr| replace_variables(addr, context))
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| {
-                let error_msg = format!("收件人variable substitution failed: {}", e);
+                let error_msg = format!("Recipient variable substitution failed: {}", e);
                 log::error!(
                     "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
@@ -108,7 +108,7 @@ impl NodeExecutor for SmtpSendExecutor {
                 .map(|addr| replace_variables(addr, context))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|e| {
-                    let error_msg = format!("抄送variable substitution failed: {}", e);
+                    let error_msg = format!("CC variable substitution failed: {}", e);
                     log::error!(
                         "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                         context.flow_uuid,
@@ -128,7 +128,7 @@ impl NodeExecutor for SmtpSendExecutor {
                 .map(|addr| replace_variables(addr, context))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|e| {
-                    let error_msg = format!("密送variable substitution failed: {}", e);
+                    let error_msg = format!("BCC variable substitution failed: {}", e);
                     log::error!(
                         "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                         context.flow_uuid,
@@ -144,7 +144,7 @@ impl NodeExecutor for SmtpSendExecutor {
         // 7. 变量替换: subject
         let subject = match &config.subject {
             Some(s) => replace_variables(s, context).map_err(|e| {
-                let error_msg = format!("主题variable substitution failed: {}", e);
+                let error_msg = format!("Subject variable substitution failed: {}", e);
                 log::error!(
                     "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
@@ -160,7 +160,7 @@ impl NodeExecutor for SmtpSendExecutor {
         // 8. 变量替换: body
         let body = match &config.body {
             Some(b) => replace_variables(b, context).map_err(|e| {
-                let error_msg = format!("正文variable substitution failed: {}", e);
+                let error_msg = format!("Body variable substitution failed: {}", e);
                 log::error!(
                     "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
@@ -176,7 +176,7 @@ impl NodeExecutor for SmtpSendExecutor {
         // 9. 变量替换: html_body
         let html_body = match &config.html_body {
             Some(h) => replace_variables(h, context).map_err(|e| {
-                let error_msg = format!("HTML 正文variable substitution failed: {}", e);
+                let error_msg = format!("HTML body variable substitution failed: {}", e);
                 log::error!(
                     "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
@@ -195,7 +195,7 @@ impl NodeExecutor for SmtpSendExecutor {
 
         // 11. 日志：开始发送
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: smtp_send, Connection ID: {}, 收件人: {:?}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: smtp_send, Connection ID: {}, recipients: {:?}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -207,13 +207,13 @@ impl NodeExecutor for SmtpSendExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "SMTP 发送节点 {} start execution (收件人: {})",
+                    "SMTP send node {} start execution (recipients: {})",
                     node.name,
                     to.join(", ")
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间Error")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -226,7 +226,7 @@ impl NodeExecutor for SmtpSendExecutor {
             let duration = start_time.elapsed();
             let error_msg = "Sender address is required";
             log::error!(
-                "[SMTP] 发送Failed: connection_id={}, error={}",
+                "[SMTP] Send failed: connection_id={}, error={}",
                 connection_id,
                 error_msg
             );
@@ -234,10 +234,10 @@ impl NodeExecutor for SmtpSendExecutor {
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Error,
-                    message: format!("SMTP 发送Failed: {}", error_msg),
+                    message: format!("SMTP send failed: {}", error_msg),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间Error")
+                        .expect("system time error")
                         .as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -271,7 +271,7 @@ impl NodeExecutor for SmtpSendExecutor {
             let duration = start_time.elapsed();
             let error_msg = "Recipient list cannot be empty";
             log::error!(
-                "[SMTP] 发送Failed: connection_id={}, error={}",
+                "[SMTP] Send failed: connection_id={}, error={}",
                 connection_id,
                 error_msg
             );
@@ -279,10 +279,10 @@ impl NodeExecutor for SmtpSendExecutor {
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Error,
-                    message: format!("SMTP 发送Failed: {}", error_msg),
+                    message: format!("SMTP send failed: {}", error_msg),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间Error")
+                        .expect("system time error")
                         .as_millis() as u64,
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -342,14 +342,14 @@ impl NodeExecutor for SmtpSendExecutor {
 
                 if output.success {
                     log::info!(
-                        "[SMTP] 邮件发送Success: connection_id={}, message_id={:?} ({}ms)",
+                        "[SMTP] Email sent: connection_id={}, message_id={:?} ({}ms)",
                         connection_id,
                         output.message_id,
                         duration.as_millis()
                     );
                 } else {
                     log::warn!(
-                        "[SMTP] 邮件发送返回Error: connection_id={}, error={:?}",
+                        "[SMTP] Email send returned error: connection_id={}, error={:?}",
                         connection_id,
                         output.error
                     );
@@ -383,14 +383,14 @@ impl NodeExecutor for SmtpSendExecutor {
                 };
                 let log_msg = if output.success {
                     format!(
-                        "SMTP 邮件发送Success: {} → {:?} ({}ms)",
+                        "SMTP email sent: {} → {:?} ({}ms)",
                         from_str,
                         to,
                         duration.as_millis()
                     )
                 } else {
-                    let err = output.error.as_deref().unwrap_or("未知Error");
-                    format!("SMTP 邮件发送Failed: {} - {}", subject, err)
+                    let err = output.error.as_deref().unwrap_or("Unknown error");
+                    format!("SMTP email send failed: {} - {}", subject, err)
                 };
 
                 context
@@ -399,7 +399,7 @@ impl NodeExecutor for SmtpSendExecutor {
                         message: log_msg,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -417,7 +417,7 @@ impl NodeExecutor for SmtpSendExecutor {
             Err(e) => {
                 let duration = start_time.elapsed();
                 log::error!(
-                    "[SMTP] 邮件发送Failed: connection_id={}, error={}",
+                    "[SMTP] Email send failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
@@ -425,10 +425,10 @@ impl NodeExecutor for SmtpSendExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("SMTP 邮件发送Failed: {}", e),
+                        message: format!("SMTP email send failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间Error")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -575,7 +575,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间Error")
+                .expect("system time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
