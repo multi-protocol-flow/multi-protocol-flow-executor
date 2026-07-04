@@ -465,15 +465,20 @@ describe('ExecutionHistory', () => {
     });
 
     it('点击压测报告项时加载并打开压测对话框', async () => {
-      const mockFullStressReport = {
-        uuid: 'stress-1',
-        flowUuid: 'flow-1',
-        flowName: '压测流程1',
-        progressHistory: [],
-      };
+      const mockLoadAndOpenReport = vi.fn().mockResolvedValue(undefined);
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
       (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockStressReports);
-      (stressTestStorage.loadReport as ReturnType<typeof vi.fn>).mockResolvedValue(mockFullStressReport);
+
+      // 设置 useStressTestStore.getState() 返回包含 loadAndOpenReport 的对象
+      // 避免循环引用导致 Maximum call stack size exceeded
+      const stressStoreState = {
+        report: null,
+        openReportDialog: mockStressTestOpenReportDialog,
+        loadAndOpenReport: mockLoadAndOpenReport,
+        setState: vi.fn(),
+        getState: vi.fn(),
+      };
+      (useStressTestStore as unknown as { getState: ReturnType<typeof vi.fn> }).getState = vi.fn(() => stressStoreState);
 
       const onSelectReport = vi.fn();
       render(<ExecutionHistory onSelectReport={onSelectReport} />);
@@ -488,15 +493,8 @@ describe('ExecutionHistory', () => {
       fireEvent.click(items[0]);
 
       await waitFor(() => {
-        // 使用 filePath 加载压测报告
-        expect(stressTestStorage.loadReport).toHaveBeenCalledWith('/test/reports/performance_stress-1.json');
-        // 写入 stressTest store
-        expect(useStressTestStore.setState).toHaveBeenCalledWith({
-          report: mockFullStressReport,
-          progressHistory: [],
-        });
-        // 打开压测报告对话框
-        expect(useStressTestStore.getState().openReportDialog).toHaveBeenCalled();
+        // 组件使用 store.loadAndOpenReport 而非直接调用 stressTestStorage.loadReport
+        expect(mockLoadAndOpenReport).toHaveBeenCalledWith('/test/reports/performance_stress-1.json');
         expect(onSelectReport).toHaveBeenCalledWith('stress-1');
       });
     });

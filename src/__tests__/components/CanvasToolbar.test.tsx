@@ -17,6 +17,8 @@ vi.mock('@/stores', () => ({
   useUIStore: vi.fn(),
   useDebugStore: vi.fn(),
   useStressTestStore: vi.fn(),
+  selectFlow: vi.fn((state) => state.flow),
+  selectNodes: vi.fn((state) => state.nodes ?? []),
   selectIsDebugging: vi.fn((state) => state.status !== 'idle' && state.status !== 'ended'),
   selectCanUndo: vi.fn((state) => state.past?.length > 0),
   selectCanRedo: vi.fn((state) => state.future?.length > 0),
@@ -54,7 +56,7 @@ describe('CanvasToolbar', () => {
 
     // Default mocks for disabled state (no flow)
     (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { flow: null; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: null, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
+      (selector: (state: { flow: null; nodes: never[]; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: null, nodes: [], undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
     );
     const mockExecutionState = {
       setReport: mockSetReport,
@@ -178,13 +180,13 @@ describe('CanvasToolbar', () => {
       // 前两个是添加节点按钮和分隔线
       expect(children?.[0]).toHaveAttribute('title', '添加节点（也可右键画布空白处）');
       expect(children?.[1]).toHaveClass('bg-border');
-      // 第三/四个是撤销/重做按钮
+      // 第三/四个是撤销/重做按钮（i18n 已包含快捷键）
       expect(children?.[2]).toHaveAttribute('title', '撤销 (Ctrl+Z)');
       expect(children?.[3]).toHaveAttribute('title', '重做 (Ctrl+Shift+Z)');
       // 第五个是分隔线
       expect(children?.[4]).toHaveClass('bg-border');
       // 第六个是执行按钮
-      expect(children?.[5]).toHaveAttribute('title', '执行流程');
+      expect(children?.[5]).toHaveAttribute('title', '执行流程 (Ctrl+Enter)');
       // 第七个是调试按钮
       expect(children?.[6]).toHaveAttribute('title', '开始调试');
       // 第八个是压测按钮
@@ -219,7 +221,7 @@ describe('CanvasToolbar', () => {
       };
 
       (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-        (selector: (state: { flow: typeof mockFlow; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
+        (selector: (state: { flow: typeof mockFlow; nodes: typeof mockFlow.nodes; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, nodes: mockFlow.nodes, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
       );
 
       render(<CanvasToolbar />);
@@ -245,7 +247,7 @@ describe('CanvasToolbar', () => {
       };
 
       (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-        (selector: (state: { flow: typeof mockFlow; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
+        (selector: (state: { flow: typeof mockFlow; nodes: typeof mockFlow.nodes; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, nodes: mockFlow.nodes, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
       );
 
       render(<CanvasToolbar />);
@@ -271,7 +273,7 @@ describe('CanvasToolbar', () => {
       };
 
       (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-        (selector: (state: { flow: typeof mockFlow; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
+        (selector: (state: { flow: typeof mockFlow; nodes: typeof mockFlow.nodes; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, nodes: mockFlow.nodes, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
       );
 
       render(<CanvasToolbar />);
@@ -326,7 +328,7 @@ describe('CanvasToolbar', () => {
       };
 
       (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-        (selector: (state: { flow: typeof mockFlow; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
+        (selector: (state: { flow: typeof mockFlow; nodes: typeof mockFlow.nodes; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, nodes: mockFlow.nodes, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
       );
 
       const { executeFlowWithChannel } = await import('@/services/tauri');

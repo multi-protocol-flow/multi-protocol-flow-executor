@@ -50,6 +50,18 @@ async function expandSection(user: ReturnType<typeof userEvent.setup>, title: st
   }
 }
 
+// 更精确的展开面板：匹配标题文本但不包含排除文本
+async function expandSectionExact(user: ReturnType<typeof userEvent.setup>, include: string, exclude?: string) {
+  const buttons = screen.getAllByRole('button');
+  const btn = buttons.find(b => {
+    const text = b.textContent ?? '';
+    return text.includes(include) && (!exclude || !text.includes(exclude));
+  });
+  if (btn && btn.getAttribute('aria-expanded') === 'false') {
+    await user.click(btn);
+  }
+}
+
 describe('GrpcViewer', () => {
   describe('gRPC Connect 节点', () => {
     it('显示连接配置 URL', () => {
@@ -142,8 +154,8 @@ describe('GrpcViewer', () => {
       });
       render(<GrpcViewer report={report} />);
 
-      // 展开响应数据
-      await expandSection(user, '响应数据');
+      // 展开响应面板（section_response = '响应'，排除"响应状态"）
+      await expandSectionExact(user, '响应', '响应状态');
       expect(screen.getByTestId('json-view')).toBeDefined();
     });
   });
@@ -204,8 +216,8 @@ describe('GrpcViewer', () => {
       });
       render(<GrpcViewer report={report} />);
 
-      // 响应消息面板标题包含数量
-      expect(screen.getByText('响应消息 (2 条)')).toBeDefined();
+      // 响应消息面板标题包含数量（格式: "响应消息 (2)"）
+      expect(screen.getByText('响应消息 (2)')).toBeDefined();
 
       await expandSection(user, '响应消息');
       // 检查时间线显示（格式: +Nms）
@@ -243,7 +255,7 @@ describe('GrpcViewer', () => {
       });
       render(<GrpcViewer report={report} />);
 
-      await expandSection(user, '响应数据');
+      await expandSectionExact(user, '响应', '响应状态');
       expect(screen.getByTestId('json-view')).toBeDefined();
     });
   });
@@ -289,7 +301,7 @@ describe('GrpcViewer', () => {
       expect(screen.getByText('流式统计')).toBeDefined();
 
       // 响应消息
-      expect(screen.getByText('响应消息 (2 条)')).toBeDefined();
+      expect(screen.getByText('响应消息 (2)')).toBeDefined();
       await expandSection(user, '响应消息');
       expect(screen.getByText('+10ms')).toBeDefined();
     });

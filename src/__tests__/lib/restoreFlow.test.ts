@@ -121,7 +121,7 @@ describe('restoreFlowFromSnapshot', () => {
     const expectedFlow: Flow = {
       ...snapshot,
       uuid: 'new-copy-uuid',
-      name: '测试流程(恢复副本)',
+      name: '测试流程 (Restored Copy)',
     };
 
     expect(result).toEqual({
@@ -155,7 +155,7 @@ describe('restoreFlowFromSnapshot', () => {
     if (result.success) {
       expect(result.action).toBe('created_copy');
       expect(result.flow.uuid).toBe('new-copy-uuid');
-      expect(result.flow.name).toBe('测试流程(恢复副本)');
+      expect(result.flow.name).toBe('测试流程 (Restored Copy)');
       // 节点和连接完整保留
       expect(result.flow.nodes).toEqual(snapshot.nodes);
       expect(result.flow.connections).toEqual(snapshot.connections);
@@ -251,7 +251,7 @@ describe('restoreFlowFromSnapshot', () => {
     if (result.success) {
       expect(result.action).toBe('created_copy');
       expect(result.flow.uuid).toBe('new-uuid-456');
-      expect(result.flow.name).toBe('测试流程(恢复副本)');
+      expect(result.flow.name).toBe('测试流程 (Restored Copy)');
     }
     expect(deps.showConfirm).toHaveBeenCalledTimes(2);
   });

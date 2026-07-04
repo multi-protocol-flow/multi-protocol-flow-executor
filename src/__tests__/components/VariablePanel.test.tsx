@@ -44,8 +44,9 @@ describe('VariablePanel', () => {
 
   it('renders variable panel with groups', () => {
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
-    // 验证节点分组显示
-    expect(screen.getByText('入口节点')).toBeInTheDocument();
+    // 分组按变量来源: 流程级别变量('流程变量') + variable_extractor('HTTP请求')
+    // Entry 节点无 output_mappings → 不生成分组
+    expect(screen.getByText('流程变量')).toBeInTheDocument();
     expect(screen.getByText('HTTP请求')).toBeInTheDocument();
   });
 
@@ -66,7 +67,8 @@ describe('VariablePanel', () => {
   });
 
   it('shows empty state when no variables', () => {
-    const emptyFlow: Flow = { ...mockFlow, nodes: [] };
+    // 既无节点也无 initial_variables
+    const emptyFlow: Flow = { ...mockFlow, nodes: [], initial_variables: {} };
     render(<VariablePanel flow={emptyFlow} nodes={[]} />);
     expect(screen.getByText('暂无变量')).toBeInTheDocument();
   });
@@ -114,13 +116,13 @@ describe('VariablePanel', () => {
     const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     
-    // 点击入口节点分组标题切换展开状态
-    const entryGroupHeader = screen.getByText('入口节点').closest('button');
-    if (entryGroupHeader) {
-      await user.click(entryGroupHeader);
+    // 点击 HTTP请求 分组标题切换展开状态
+    const groupHeader = screen.getByText('HTTP请求').closest('button');
+    if (groupHeader) {
+      await user.click(groupHeader);
     }
     // 分组状态应该切换（内部状态变化）
-    expect(entryGroupHeader).toBeDefined();
+    expect(groupHeader).toBeDefined();
   });
 
   it('shows expand all and collapse all buttons', () => {
@@ -153,8 +155,10 @@ describe('VariablePanel', () => {
     const collapseAllBtn = screen.getByText('全部折叠');
     await user.click(collapseAllBtn);
     
-    // 变量内容应该隐藏
-    expect(screen.getByText('入口节点')).toBeInTheDocument();
+    // 分组标题应该可见但变量内容隐藏
+    expect(screen.getByText('流程变量')).toBeInTheDocument();
+    // 折叠后 api_base 不再可见
+    expect(screen.queryByText('api_base')).not.toBeInTheDocument();
   });
 
   it('displays variable description when available', async () => {
@@ -191,7 +195,8 @@ describe('VariablePanel', () => {
     
     render(<VariablePanel flow={entryOnlyFlow} nodes={[mockNodes[0]]} />);
     
-    expect(screen.getByText('入口节点')).toBeInTheDocument();
+    // 只有流程变量分组（api_base from initial_variables）
+    expect(screen.getByText('流程变量')).toBeInTheDocument();
     // 先展开分组
     await user.click(screen.getByText('全部展开'));
     expect(screen.getByText('api_base')).toBeInTheDocument();

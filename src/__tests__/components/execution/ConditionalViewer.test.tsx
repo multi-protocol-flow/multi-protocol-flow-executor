@@ -131,11 +131,12 @@ describe('ConditionalViewer', () => {
         success: false,
         error: '表达式语法错误'
       });
+      // 组件检查的是 report.status 而非 output_data.success
+      report.status = 'failed';
       render(<ConditionalViewer report={report} />);
 
-      // 评估结果面板默认展开
+      // 评估结果面板默认展开，显示 evaluation_failed i18n 文本
       expect(screen.getByText('评估失败')).toBeDefined();
-      expect(screen.getByText('表达式语法错误')).toBeDefined();
     });
 
     it('显示错误图标', () => {

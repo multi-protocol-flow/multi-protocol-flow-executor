@@ -210,7 +210,8 @@ describe('VariableInput', () => {
         containerClassName="custom-container"
       />
     );
-    const container = screen.getByRole('textbox').parentElement;
+    // containerClassName 应用在最外层 <div>（textbox 的祖父节点）
+    const container = screen.getByRole('textbox').parentElement?.parentElement;
     expect(container?.className).toContain('custom-container');
   });
 

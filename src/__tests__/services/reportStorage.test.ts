@@ -83,7 +83,7 @@ describe('ReportStorage Mock', () => {
     });
 
     it('加载不存在的报告抛出错误', async () => {
-      await expect(loadReport('non-existent-uuid', testDir)).rejects.toThrow('报告不存在');
+      await expect(loadReport('non-existent-uuid', testDir)).rejects.toThrow('Report not found: non-existent-uuid');
     });
 
     it('加载的报告包含完整数据', async () => {
@@ -220,11 +220,11 @@ describe('ReportStorage Mock', () => {
       await deleteReport(report.uuid, testDir);
 
       expect(getReportCount()).toBe(0);
-      await expect(loadReport(report.uuid, testDir)).rejects.toThrow('报告不存在');
+      await expect(loadReport(report.uuid, testDir)).rejects.toThrow(/Report not found/);
     });
 
     it('删除不存在的报告抛出错误', async () => {
-      await expect(deleteReport('non-existent-uuid', testDir)).rejects.toThrow('报告不存在');
+      await expect(deleteReport('non-existent-uuid', testDir)).rejects.toThrow('Report not found: non-existent-uuid');
     });
 
     it('删除后不影响其他报告', async () => {

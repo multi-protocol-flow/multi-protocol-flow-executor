@@ -7,60 +7,35 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import type { NodeData } from '@/types';
+import type { ComponentType } from 'react';
+
+// 创建一个简单的 Mock 配置组件工厂
+function createMockConfig(testId: string, displayText: string) {
+  const MockConfig = ({ data, onSave }: { data: unknown; onSave: (data: unknown) => void }) => (
+    <div data-testid={testId}>
+      <span>{displayText}</span>
+      <button onClick={() => onSave(data)}>Mock Save</button>
+    </div>
+  );
+  return MockConfig;
+}
 
 // Mock 配置组件（简化测试，不需要测试具体配置逻辑）
-vi.mock('@/components/panels/EntryConfig', () => ({
-  EntryConfig: ({ data, onSave }: { data: unknown; onSave: (data: unknown) => void }) => (
-    <div data-testid="entry-config">
-      <span>Entry Config</span>
-      <button onClick={() => onSave(data)}>Mock Save</button>
-    </div>
-  ),
-}));
-
-vi.mock('@/components/panels/HttpConfig', () => ({
-  HttpConfig: ({ data, onSave }: { data: unknown; onSave: (data: unknown) => void }) => (
-    <div data-testid="http-config">
-      <span>HTTP Config</span>
-      <button onClick={() => onSave(data)}>Mock Save</button>
-    </div>
-  ),
-}));
-
-vi.mock('@/components/panels/ConditionalConfig', () => ({
-  ConditionalConfig: ({ data, onSave }: { data: unknown; onSave: (data: unknown) => void }) => (
-    <div data-testid="conditional-config">
-      <span>Conditional Config</span>
-      <button onClick={() => onSave(data)}>Mock Save</button>
-    </div>
-  ),
-}));
-
-vi.mock('@/components/panels/WsConnectConfig', () => ({
-  WsConnectConfig: ({ data, onSave }: { data: unknown; onSave: (data: unknown) => void }) => (
-    <div data-testid="ws-connect-config">
-      <span>WS Connect Config</span>
-      <button onClick={() => onSave(data)}>Mock Save</button>
-    </div>
-  ),
-}));
-
-vi.mock('@/components/panels/WsSendCollectConfig', () => ({
-  WsSendCollectConfig: ({ data, onSave }: { data: unknown; onSave: (data: unknown) => void }) => (
-    <div data-testid="ws-send-collect-config">
-      <span>WS SendCollect Config</span>
-      <button onClick={() => onSave(data)}>Mock Save</button>
-    </div>
-  ),
-}));
-
-vi.mock('@/components/panels/WsCloseConfig', () => ({
-  WsCloseConfig: ({ data, onSave }: { data: unknown; onSave: (data: unknown) => void }) => (
-    <div data-testid="ws-close-config">
-      <span>WS Close Config</span>
-      <button onClick={() => onSave(data)}>Mock Save</button>
-    </div>
-  ),
+// 注: DebugNodeConfigDialog 和 NodeConfigPanel 使用 configPanelRegistry 动态加载面板，
+// 因此直接 mock configPanelRegistry 使其返回同步加载器
+vi.mock('@/lib/configPanelRegistry', () => ({
+  getPanelLoader: vi.fn((type: string) => {
+    const panelMap: Record<string, () => Promise<ComponentType<any>>> = {
+      entry: () => Promise.resolve(createMockConfig('entry-config', 'Entry Config')),
+      http: () => Promise.resolve(createMockConfig('http-config', 'HTTP Config')),
+      conditional: () => Promise.resolve(createMockConfig('conditional-config', 'Conditional Config')),
+      ws_connect: () => Promise.resolve(createMockConfig('ws-connect-config', 'WS Connect Config')),
+      ws_send_collect: () => Promise.resolve(createMockConfig('ws-send-collect-config', 'WS SendCollect Config')),
+      ws_close: () => Promise.resolve(createMockConfig('ws-close-config', 'WS Close Config')),
+    };
+    return panelMap[type] ?? null;
+  }),
+  isSchemaDriven: vi.fn(() => false),
 }));
 
 // Mock toast
@@ -134,13 +109,15 @@ describe('DebugNodeConfigDialog', () => {
   });
 
   describe('节点类型分发', () => {
-    it('HTTP 节点渲染 HttpConfig 组件', () => {
+    it('HTTP 节点渲染 HttpConfig 组件', async () => {
       render(<DebugNodeConfigDialog {...defaultProps} nodeData={httpNodeData} />);
 
-      expect(screen.getByTestId('http-config')).toBeDefined();
+      await waitFor(() => {
+        expect(screen.getByTestId('http-config')).toBeDefined();
+      });
     });
 
-    it('Entry 节点渲染 EntryConfig 组件', () => {
+    it('Entry 节点渲染 EntryConfig 组件', async () => {
       render(
         <DebugNodeConfigDialog
           {...defaultProps}
@@ -148,10 +125,12 @@ describe('DebugNodeConfigDialog', () => {
         />
       );
 
-      expect(screen.getByTestId('entry-config')).toBeDefined();
+      await waitFor(() => {
+        expect(screen.getByTestId('entry-config')).toBeDefined();
+      });
     });
 
-    it('Conditional 节点渲染 ConditionalConfig 组件', () => {
+    it('Conditional 节点渲染 ConditionalConfig 组件', async () => {
       render(
         <DebugNodeConfigDialog
           {...defaultProps}
@@ -159,10 +138,12 @@ describe('DebugNodeConfigDialog', () => {
         />
       );
 
-      expect(screen.getByTestId('conditional-config')).toBeDefined();
+      await waitFor(() => {
+        expect(screen.getByTestId('conditional-config')).toBeDefined();
+      });
     });
 
-    it('WS Connect 节点渲染 WsConnectConfig 组件', () => {
+    it('WS Connect 节点渲染 WsConnectConfig 组件', async () => {
       const wsConnectData: NodeData = {
         type: 'ws_connect',
         url: 'wss://example.com',
@@ -175,10 +156,12 @@ describe('DebugNodeConfigDialog', () => {
         />
       );
 
-      expect(screen.getByTestId('ws-connect-config')).toBeDefined();
+      await waitFor(() => {
+        expect(screen.getByTestId('ws-connect-config')).toBeDefined();
+      });
     });
 
-    it('WS SendCollect 节点渲染 WsSendCollectConfig 组件', () => {
+    it('WS SendCollect 节点渲染 WsSendCollectConfig 组件', async () => {
       const wsSendCollectData: NodeData = {
         type: 'ws_send_collect',
         connection_id: 'conn-1',
@@ -193,10 +176,12 @@ describe('DebugNodeConfigDialog', () => {
         />
       );
 
-      expect(screen.getByTestId('ws-send-collect-config')).toBeDefined();
+      await waitFor(() => {
+        expect(screen.getByTestId('ws-send-collect-config')).toBeDefined();
+      });
     });
 
-    it('WS Close 节点渲染 WsCloseConfig 组件', () => {
+    it('WS Close 节点渲染 WsCloseConfig 组件', async () => {
       const wsCloseData: NodeData = {
         type: 'ws_close',
         connection_id: 'conn-1',
@@ -209,7 +194,9 @@ describe('DebugNodeConfigDialog', () => {
         />
       );
 
-      expect(screen.getByTestId('ws-close-config')).toBeDefined();
+      await waitFor(() => {
+        expect(screen.getByTestId('ws-close-config')).toBeDefined();
+      });
     });
   });
 
@@ -326,6 +313,11 @@ describe('DebugNodeConfigDialog', () => {
     it('配置组件的 onSave 更新内部状态', async () => {
       const user = userEvent.setup();
       render(<DebugNodeConfigDialog {...defaultProps} />);
+
+      // 等待懒加载的配置组件渲染完成
+      await waitFor(() => {
+        expect(screen.getByText('Mock Save')).toBeDefined();
+      });
 
       // 点击配置组件内的 Mock Save 按钮
       await user.click(screen.getByText('Mock Save'));

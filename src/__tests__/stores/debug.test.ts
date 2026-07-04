@@ -696,8 +696,8 @@ describe('DebugStore', () => {
       await useDebugStore.getState().continueExecution();
 
       const state = useDebugStore.getState();
-      // 新的错误格式包含操作前缀
-      expect(state.error).toBe('Continue execution failed: IPC 错误');
+      // 错误信息使用 i18n 国际化文本
+      expect(state.error).toBe('继续执行失败: IPC 错误');
       // 命令失败时应回滚到之前状态
       expect(state.status).toBe('paused');
     });
@@ -754,7 +754,7 @@ describe('DebugStore', () => {
       await useDebugStore.getState().setBreakpointDynamic('node-789', true);
 
       const state = useDebugStore.getState();
-      expect(state.error).toBe('Set breakpoint failed: IPC 断点错误');
+      expect(state.error).toBe('设置断点失败: IPC 断点错误');
     });
   });
 

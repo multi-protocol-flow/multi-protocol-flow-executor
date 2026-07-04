@@ -228,7 +228,15 @@ describe('FlowCompareDialog', () => {
 
     render(<FlowCompareDialog {...defaultProps} onOpenChange={onOpenChange} />);
 
-    await user.click(screen.getByRole('button', { name: '关闭' }));
+    // 找到包含"关闭"文本的 button（非图标按钮）
+    const closeButtons = screen.getAllByRole('button', { name: '关闭' });
+    // 取带可见文本的关闭按钮（对话框底部的操作按钮）
+    const closeBtn = closeButtons.find(b => b.tagName === 'BUTTON' && !b.querySelector('svg.lucide-x'));
+    if (closeBtn) {
+      await user.click(closeBtn);
+    } else {
+      await user.click(closeButtons[0]);
+    }
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 

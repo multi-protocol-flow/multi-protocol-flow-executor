@@ -255,7 +255,7 @@ export function CanvasToolbar() {
           type="button"
           onClick={undo}
           disabled={!canUndo}
-          title={`${getLL().flow.undo()} (${hotkeyLabel(['Ctrl+Z'])})`}
+          title={getLL().flow.undo()}
           className={cn(
             'flex items-center justify-center transition-all duration-150',
             canUndo && 'text-muted-foreground hover:text-foreground hover:scale-110 cursor-pointer',
@@ -268,7 +268,7 @@ export function CanvasToolbar() {
           type="button"
           onClick={redo}
           disabled={!canRedo}
-          title={`${getLL().flow.redo()} (${hotkeyLabel(['Ctrl+Shift+Z'])})`}
+          title={getLL().flow.redo()}
           className={cn(
             'flex items-center justify-center transition-all duration-150',
             canRedo && 'text-muted-foreground hover:text-foreground hover:scale-110 cursor-pointer',
