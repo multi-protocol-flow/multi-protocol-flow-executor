@@ -436,12 +436,12 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
             <div className="flex flex-wrap gap-2">
               {requestConfig.transport && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  传输: {requestConfig.transport === 'stdio' ? 'Stdio' : 'Streamable HTTP'}
+                  {ll.viewer.mcp.label_transport()}: {requestConfig.transport === 'stdio' ? 'Stdio' : 'Streamable HTTP'}
                 </Badge>
               )}
               {requestConfig.protocol_version && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  版本: {requestConfig.protocol_version}
+                  {ll.viewer.mcp.label_protocol_version()}: {requestConfig.protocol_version}
                 </Badge>
               )}
             </div>
@@ -503,7 +503,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {tools.length} 个工具
+              {ll.viewer.mcp.tools_count({ count: tools.length })}
             </Badge>
           }
         >
@@ -530,7 +530,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {resources.length} 个资源
+              {ll.viewer.mcp.resources_count({ count: resources.length })}
             </Badge>
           }
         >
@@ -567,7 +567,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {prompts.length} 个提示词
+              {ll.viewer.mcp.prompts_count({ count: prompts.length })}
             </Badge>
           }
         >
@@ -612,13 +612,13 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-cyan-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label={getLL().viewer.common.timing_connect()} value={connectDuration} />
-            <TimingMetric label={getLL().viewer.common.timing_total()} value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_connect()} value={connectDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -659,7 +659,7 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <McpBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {toolName || <span className="text-muted-foreground italic">未配置工具名称</span>}
+              {toolName || <span className="text-muted-foreground italic">{ll.viewer.mcp.no_tool_name()}</span>}
             </code>
           </div>
 
@@ -668,7 +668,7 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
             <div className="flex flex-wrap gap-2">
               {requestConfig.connection_id && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  连接: {requestConfig.connection_id}
+                  {ll.viewer.mcp.label_connection()}: {requestConfig.connection_id}
                 </Badge>
               )}
             </div>
@@ -677,7 +677,7 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
           {/* 参数 JSON */}
           {requestConfig?.arguments && Object.keys(requestConfig.arguments).length > 0 && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">调用参数</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.viewer.mcp.label_call_arguments()}</div>
               <div className="bg-muted rounded p-2">
                 <RawJsonViewer data={requestConfig.arguments} />
               </div>
@@ -701,8 +701,8 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
             />
             <span className="text-sm text-muted-foreground">
               {isSuccess && !isError
-                ? `${toolName} 调用成功`
-                : output?.error ?? getLL().viewer.mcp.call_tool_error()}
+                ? ll.viewer.mcp.call_tool_success_msg({ toolName })
+                : output?.error ?? ll.viewer.mcp.call_tool_error()}
             </span>
           </div>
 
@@ -718,7 +718,7 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={true}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {contentBlocks.length} 个内容块
+              {ll.viewer.mcp.content_blocks_count({ count: contentBlocks.length })}
             </Badge>
           }
         >
@@ -738,13 +738,13 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-cyan-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label={getLL().viewer.common.timing_call()} value={callDuration} />
-            <TimingMetric label={getLL().viewer.common.timing_total()} value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_call()} value={callDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -784,14 +784,14 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <McpBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {resourceUri || <span className="text-muted-foreground italic">未配置资源 URI</span>}
+              {resourceUri || <span className="text-muted-foreground italic">{ll.viewer.mcp.no_resource_uri()}</span>}
             </code>
           </div>
 
           {requestConfig?.connection_id && (
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="font-mono text-xs">
-                连接: {requestConfig.connection_id}
+                {ll.viewer.mcp.label_connection()}: {requestConfig.connection_id}
               </Badge>
             </div>
           )}
@@ -809,8 +809,8 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mcp.status_read_success()} failText={ll.viewer.mcp.status_read_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `资源读取成功，${contents.length} 个内容块`
-                : output?.error ?? getLL().viewer.mcp.read_resource_error()}
+                ? ll.viewer.mcp.read_resource_success_msg({ count: contents.length })
+                : output?.error ?? ll.viewer.mcp.read_resource_error()}
             </span>
           </div>
 
@@ -826,7 +826,7 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={true}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {contents.length} 个内容块
+              {ll.viewer.mcp.content_blocks_count({ count: contents.length })}
             </Badge>
           }
         >
@@ -861,7 +861,7 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
                 {/* Base64/Blob 数据 */}
                 {typeof content.data === 'string' && content.text === undefined && (
                   <p className="text-xs text-muted-foreground italic">
-                    {getLL().viewer.mcp.label_content_type_blob()} ({content.data.length} 字符)
+                    {getLL().viewer.mcp.label_content_type_blob()} ({ll.viewer.mcp.characters_count({ count: content.data.length })})
                   </p>
                 )}
 
@@ -885,13 +885,13 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-cyan-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label={getLL().viewer.common.timing_read()} value={readDuration} />
-            <TimingMetric label={getLL().viewer.common.timing_total()} value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_read()} value={readDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -932,14 +932,14 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <McpBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {promptName || <span className="text-muted-foreground italic">未配置提示词名称</span>}
+              {promptName || <span className="text-muted-foreground italic">{ll.viewer.mcp.no_prompt_name()}</span>}
             </code>
           </div>
 
           {requestConfig?.connection_id && (
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="font-mono text-xs">
-                连接: {requestConfig.connection_id}
+                {ll.viewer.mcp.label_connection()}: {requestConfig.connection_id}
               </Badge>
             </div>
           )}
@@ -947,7 +947,7 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
           {/* 调用参数 */}
           {requestConfig?.arguments && Object.keys(requestConfig.arguments).length > 0 && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">调用参数</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.viewer.mcp.label_call_arguments()}</div>
               <div className="bg-muted rounded p-2">
                 <RawJsonViewer data={requestConfig.arguments} />
               </div>
@@ -967,8 +967,8 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mcp.status_get_success()} failText={ll.viewer.mcp.status_get_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `提示词获取成功，${messages.length} 条消息`
-                : output?.error ?? getLL().viewer.mcp.get_prompt_error()}
+                ? ll.viewer.mcp.get_prompt_success_msg({ count: messages.length })
+                : output?.error ?? ll.viewer.mcp.get_prompt_error()}
             </span>
           </div>
 
@@ -979,7 +979,7 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
       {/* 提示词描述 */}
       {description && (
         <div className="px-3 py-2 bg-muted/30 rounded-lg">
-          <div className="text-xs text-muted-foreground mb-1">描述</div>
+          <div className="text-xs text-muted-foreground mb-1">{ll.viewer.mcp.label_tool_description()}</div>
           <p className="text-sm text-foreground">{description}</p>
         </div>
       )}
@@ -992,7 +992,7 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={true}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {messages.length} 条消息
+              {ll.viewer.common.messages({ count: messages.length })}
             </Badge>
           }
         >
@@ -1044,13 +1044,13 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-cyan-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label={getLL().viewer.common.timing_call()} value={callDuration} />
-            <TimingMetric label={getLL().viewer.common.timing_total()} value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_call()} value={callDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -1089,7 +1089,7 @@ function McpCloseSection({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <McpBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {connectionId || <span className="text-muted-foreground italic">未指定连接 ID</span>}
+              {connectionId || <span className="text-muted-foreground italic">{ll.viewer.mcp.no_connection_id()}</span>}
             </code>
           </div>
         </div>
@@ -1123,13 +1123,13 @@ function McpCloseSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-cyan-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label={getLL().viewer.common.timing_close()} value={closeDuration} />
-            <TimingMetric label={getLL().viewer.common.timing_total()} value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_close()} value={closeDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}

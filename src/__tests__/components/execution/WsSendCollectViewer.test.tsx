@@ -7,7 +7,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WsSendCollectViewer } from '@/components/execution/viewers/WsSendCollectViewer';
-import { getLL } from '@/i18n/i18n-lazy';
 import type { NodeExecutionReport } from '@/types';
 
 // Mock react-json-view-lite
@@ -48,7 +47,7 @@ describe('WsSendCollectViewer', () => {
       // WsSendCollectViewer 不直接渲染 execution_failed 文本，
       // 该文本由父组件 NodeExecutionDetails 渲染。
       // 这里只验证错误信息在 output_data 中存在
-      expect(report.output_data?.error).toBe('连接已关闭');
+      expect((report.output_data as Record<string, unknown>)?.error).toBe('连接已关闭');
     });
 
     it('无错误时不显示错误区域', () => {
@@ -56,7 +55,7 @@ describe('WsSendCollectViewer', () => {
       render(<WsSendCollectViewer report={report} />);
 
       // viewer 本身不渲染 execution_failed 文本
-      expect(report.output_data?.error).toBeUndefined();
+      expect((report.output_data as Record<string, unknown>)?.error).toBeUndefined();
     });
   });
 

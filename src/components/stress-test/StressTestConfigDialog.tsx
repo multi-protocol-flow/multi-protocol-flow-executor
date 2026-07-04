@@ -149,7 +149,7 @@ export function StressTestConfigDialog({
       setDatasetName(fileName);
       setCsvInfo(info);
     } catch (err) {
-      setDatasetError((err as Error).message || 'CSV 文件验证失败');
+      setDatasetError((err as Error).message || getLL().common.csv_validation_failed());
       setDatasetPath(null);
       setDatasetName('');
       setCsvInfo(null);
@@ -179,7 +179,7 @@ export function StressTestConfigDialog({
         const info = await datasetService.validateCsv(datasetPath, encodingParam);
         setCsvInfo(info);
       } catch (err) {
-        setDatasetError((err as Error).message || 'CSV 验证失败');
+        setDatasetError((err as Error).message || getLL().common.csv_validation_error());
         setCsvInfo(null);
       } finally {
         setIsValidating(false);
@@ -356,7 +356,7 @@ export function StressTestConfigDialog({
                         onClick={handleClearDataset}
                         disabled={isValidating}
                       >
-                        清除
+                        {getLL().common.clear()}
                       </Button>
                     </div>
 

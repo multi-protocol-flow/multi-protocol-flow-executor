@@ -3,6 +3,8 @@
  * 根据平台显示 Cmd/Ctrl 等修饰键
  */
 
+import { getLL } from '@/i18n/i18n-lazy';
+
 /** 检测当前平台是否为 macOS */
 function isMac(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -43,7 +45,7 @@ export function hotkeyLabel(keys: string[]): string {
     return result;
   };
 
-  return keys.map(platformKey).join(' 或 ');
+  return keys.map(platformKey).join(` ${getLL().common.or()} `);
 }
 
 /**

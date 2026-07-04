@@ -211,7 +211,7 @@ export function useKeyboardShortcuts() {
           state.addNode({
             uuid: newUuid,
             type: selectedNode.type,
-            name: `${selectedNode.name} (副本)`,
+            name: `${selectedNode.name}${ll.common.node_copy_suffix()}`,
             position: {
               x: selectedNode.position.x + offset,
               y: selectedNode.position.y + offset,

@@ -203,7 +203,7 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
       const result = await invoke<TestDbConnectionResult>('test_db_connection', {
         connection: {
           id: `test-${Date.now()}`,
-          name: formData.name || '测试连接',
+          name: formData.name || LL.common.label_test_connection(),
           driver: formData.driver,
           host: resolvedHost || null,
           port: formData.port || null,

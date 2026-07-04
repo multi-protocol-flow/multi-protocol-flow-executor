@@ -26,6 +26,16 @@ const zh_CN_common: Partial<BaseTranslation> = {
   ctrl_zoom: 'Ctrl + - / =',
   collapse_panel_aria: '折叠{title}',
   expand_panel_aria: '展开{title}',
+  flow_initial_variables: '流程初始变量',
+  environment_variable: '环境变量 ({name})',
+  label_flow_variables: '流程变量',
+  label_environment_variables: '环境变量',
+  node_copy_suffix: ' (副本)',
+  label_browser_storage: '浏览器本地存储 (localStorage)',
+  label_test_connection: '测试连接',
+  csv_validation_failed: 'CSV 文件验证失败',
+  csv_validation_error: 'CSV 验证失败',
+  variable_name_example: '变量名',
 };
 
 export default zh_CN_common;

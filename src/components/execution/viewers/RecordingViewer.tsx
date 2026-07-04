@@ -162,7 +162,7 @@ function RecordingEntryRow({ entry, index }: { entry: RecordingEntry; index: num
           {/* 元信息 */}
           <div className="flex flex-wrap gap-2 mb-3">
             <Badge variant="outline" className="font-mono text-xs">
-              连接: {entry.connection_id}
+              {getLL().viewer.recording.label_connection()}: {entry.connection_id}
             </Badge>
             <Badge variant="outline" className="font-mono text-xs">
               {entry.data_size} bytes
@@ -208,7 +208,7 @@ function RecordingMetaCard({ recording }: { recording: TcpUdpRecording }) {
           <ArrowUpFromLine className="w-3 h-3" /> {ll.execution.viewers.recording_send()}
         </div>
         <div className="text-sm font-mono text-sky-600 dark:text-sky-400">
-          {recording.entries.filter(e => e.direction === 'send').length} 条 / {formatBytes(totalSent)}
+          {ll.viewer.recording.send_summary({count: recording.entries.filter(e => e.direction === 'send').length, size: formatBytes(totalSent)})}
         </div>
       </div>
       <div className="space-y-1">
@@ -216,7 +216,7 @@ function RecordingMetaCard({ recording }: { recording: TcpUdpRecording }) {
           <ArrowDownToLine className="w-3 h-3" /> {ll.execution.viewers.recording_receive()}
         </div>
         <div className="text-sm font-mono text-emerald-600 dark:text-emerald-400">
-          {recording.entries.filter(e => e.direction === 'receive').length} 条 / {formatBytes(totalReceived)}
+          {ll.viewer.recording.receive_summary({count: recording.entries.filter(e => e.direction === 'receive').length, size: formatBytes(totalReceived)})}
         </div>
       </div>
     </div>

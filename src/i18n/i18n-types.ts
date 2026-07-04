@@ -109,6 +109,47 @@ type RootTranslation = {
 		 * @param {unknown} title
 		 */
 		expand_panel_aria: RequiredParams<'title'>
+		/**
+		 * 流​程​初​始​变​量
+		 */
+		flow_initial_variables: string
+		/**
+		 * 环​境​变​量​ ​(​{​n​a​m​e​}​)
+		 * @param {unknown} name
+		 */
+		environment_variable: RequiredParams<'name'>
+		/**
+		 * 流​程​变​量
+		 */
+		label_flow_variables: string
+		/**
+		 * 环​境​变​量
+		 */
+		label_environment_variables: string
+		/**
+		 *  ​(​副​本​)
+		 */
+		node_copy_suffix: string
+		/**
+		 * 浏​览​器​本​地​存​储​ ​(​l​o​c​a​l​S​t​o​r​a​g​e​)
+		 */
+		label_browser_storage: string
+		/**
+		 * 测​试​连​接
+		 */
+		label_test_connection: string
+		/**
+		 * C​S​V​ ​文​件​验​证​失​败
+		 */
+		csv_validation_failed: string
+		/**
+		 * C​S​V​ ​验​证​失​败
+		 */
+		csv_validation_error: string
+		/**
+		 * 变​量​名
+		 */
+		variable_name_example: string
 	}
 	nodes: {
 		/**
@@ -15997,6 +16038,63 @@ type RootTranslation = {
 			 * 耗​时
 			 */
 			label_duration: string
+			/**
+			 * 传​输​模​式
+			 */
+			label_transport: string
+			/**
+			 * 版​本
+			 */
+			label_protocol_version: string
+			/**
+			 * 未​配​置​工​具​名​称
+			 */
+			no_tool_name: string
+			/**
+			 * 连​接
+			 */
+			label_connection: string
+			/**
+			 * 调​用​参​数
+			 */
+			label_call_arguments: string
+			/**
+			 * {​t​o​o​l​N​a​m​e​}​ ​调​用​成​功
+			 * @param {unknown} toolName
+			 */
+			call_tool_success_msg: RequiredParams<'toolName'>
+			/**
+			 * {​c​o​u​n​t​}​ ​个​内​容​块
+			 * @param {unknown} count
+			 */
+			content_blocks_count: RequiredParams<'count'>
+			/**
+			 * 未​配​置​资​源​ ​U​R​I
+			 */
+			no_resource_uri: string
+			/**
+			 * 资​源​读​取​成​功​，​{​c​o​u​n​t​}​ ​个​内​容​块
+			 * @param {unknown} count
+			 */
+			read_resource_success_msg: RequiredParams<'count'>
+			/**
+			 * {​c​o​u​n​t​}​ ​字​符
+			 * @param {unknown} count
+			 */
+			characters_count: RequiredParams<'count'>
+			/**
+			 * 未​配​置​提​示​词​名​称
+			 */
+			no_prompt_name: string
+			/**
+			 * 提​示​词​获​取​成​功​，​{​c​o​u​n​t​}​ ​条​消​息
+			 * @param {unknown} count
+			 */
+			get_prompt_success_msg: RequiredParams<'count'>
+			/**
+			 * 未​指​定​连​接​ ​I​D
+			 */
+			no_connection_id: string
 		}
 		mqtt: {
 			/**
@@ -16233,6 +16331,78 @@ type RootTranslation = {
 			 * @param {unknown} type
 			 */
 			unknown_node_type: RequiredParams<'type'>
+			/**
+			 * 连​接​ ​I​D
+			 */
+			label_connection_id: string
+			/**
+			 * 版​本
+			 */
+			label_version: string
+			/**
+			 * 会​话​恢​复
+			 */
+			label_session_resume: string
+			/**
+			 * 未​配​置​ ​T​o​p​i​c
+			 */
+			no_topic: string
+			/**
+			 * {​s​i​z​e​}​ ​字​节
+			 * @param {unknown} size
+			 */
+			payload_size_bytes: RequiredParams<'size'>
+			/**
+			 * 消​息​已​成​功​发​布​到​ ​{​t​o​p​i​c​}
+			 * @param {unknown} topic
+			 */
+			publish_success_to: RequiredParams<'topic'>
+			/**
+			 * 订​阅​成​功​，​收​到​ ​{​c​o​u​n​t​}​ ​条​消​息
+			 * @param {unknown} count
+			 */
+			subscribe_success_msg: RequiredParams<'count'>
+			/**
+			 * 已​成​功​取​消​订​阅​ ​{​t​o​p​i​c​}
+			 * @param {unknown} topic
+			 */
+			unsubscribe_success_msg: RequiredParams<'topic'>
+			/**
+			 * 已​断​开​连​接​:​ ​{​r​e​a​s​o​n​}
+			 * @param {unknown} reason
+			 */
+			disconnect_with_reason: RequiredParams<'reason'>
+			/**
+			 * 原​因
+			 */
+			label_reason: string
+			/**
+			 * 未​配​置​ ​T​o​p​i​c​ ​F​i​l​t​e​r
+			 */
+			no_topic_filter: string
+			/**
+			 * 超​时
+			 */
+			label_timeout: string
+			/**
+			 * 匹​配​到​ ​{​c​o​u​n​t​}​ ​条​消​息
+			 * @param {unknown} count
+			 */
+			matched_messages_count: RequiredParams<'count'>
+			/**
+			 * 未​配​置​请​求​ ​T​o​p​i​c
+			 */
+			no_request_topic: string
+			/**
+			 * 请​求​-​响​应​完​成​，​收​到​ ​{​c​o​u​n​t​}​ ​条​响​应
+			 * @param {unknown} count
+			 */
+			request_complete: RequiredParams<'count'>
+			/**
+			 * {​c​o​u​n​t​}​ ​条​响​应
+			 * @param {unknown} count
+			 */
+			response_count: RequiredParams<'count'>
 		}
 		redis: {
 			/**
@@ -16471,6 +16641,22 @@ type RootTranslation = {
 			 */
 			status_admin_failed: string
 			/**
+			 * K​a​f​k​a​ ​连​接​建​立​成​功
+			 */
+			connect_success: string
+			/**
+			 * K​a​f​k​a​ ​连​接​失​败
+			 */
+			connect_error: string
+			/**
+			 * K​a​f​k​a​ ​连​接​已​关​闭
+			 */
+			close_success: string
+			/**
+			 * K​a​f​k​a​ ​关​闭​失​败
+			 */
+			close_error: string
+			/**
 			 * 消​息​已​生​产
 			 */
 			produce_success: string
@@ -16589,6 +16775,54 @@ type RootTranslation = {
 			 * @param {unknown} type
 			 */
 			unknown_node_type: RequiredParams<'type'>
+			/**
+			 * 连​接​ ​I​D
+			 */
+			label_connection_id: string
+			/**
+			 * 未​配​置​ ​T​o​p​i​c
+			 */
+			no_topic: string
+			/**
+			 * {​s​i​z​e​}​ ​字​节
+			 * @param {unknown} size
+			 */
+			key_size_bytes: RequiredParams<'size'>
+			/**
+			 * {​s​i​z​e​}​ ​字​节
+			 * @param {unknown} size
+			 */
+			value_size_bytes: RequiredParams<'size'>
+			/**
+			 * 消​息​已​成​功​发​送​到​ ​{​t​o​p​i​c​}​ ​[​P​{​p​a​r​t​i​t​i​o​n​}​@​{​o​f​f​s​e​t​}​]
+			 * @param {unknown} offset
+			 * @param {unknown} partition
+			 * @param {unknown} topic
+			 */
+			produce_success_to: RequiredParams<'offset' | 'partition' | 'topic'>
+			/**
+			 * 批​量​策​略
+			 */
+			label_batch_strategy: string
+			/**
+			 * 批​量​消​费​成​功​，​共​ ​{​c​o​u​n​t​}​ ​条​消​息
+			 * @param {unknown} count
+			 */
+			batch_consume_success: RequiredParams<'count'>
+			/**
+			 * 管​理​操​作​ ​{​o​p​e​r​a​t​i​o​n​}​ ​执​行​成​功
+			 * @param {unknown} operation
+			 */
+			admin_success_msg: RequiredParams<'operation'>
+			/**
+			 * S​c​h​e​m​a​ ​操​作​ ​{​o​p​e​r​a​t​i​o​n​}​ ​执​行​成​功
+			 * @param {unknown} operation
+			 */
+			schema_success_msg: RequiredParams<'operation'>
+			/**
+			 * S​c​h​e​m​a​ ​操​作​执​行​失​败
+			 */
+			schema_error_msg: string
 		}
 		grpc: {
 			/**
@@ -16769,6 +17003,71 @@ type RootTranslation = {
 			 * 无​可​用​服​务
 			 */
 			no_services: string
+			/**
+			 * 最​后​一​条
+			 */
+			label_last_one: string
+			/**
+			 * 空​消​息​体
+			 */
+			no_message_body: string
+			/**
+			 * 未​配​置​服​务​方​法
+			 */
+			no_service_method: string
+			/**
+			 * 连​接
+			 */
+			label_connection: string
+			/**
+			 * 超​时
+			 */
+			label_timeout: string
+			/**
+			 * M​e​t​a​d​a​t​a
+			 */
+			label_metadata_count: string
+			/**
+			 * 请​求​体
+			 */
+			label_request_body: string
+			/**
+			 * {​s​e​r​v​i​c​e​P​a​t​h​}​ ​调​用​成​功
+			 * @param {unknown} servicePath
+			 */
+			call_success_msg: RequiredParams<'servicePath'>
+			/**
+			 * 调​用​失​败
+			 */
+			call_failed_details: string
+			/**
+			 * 发​送​消​息​数
+			 */
+			label_sent_count: string
+			/**
+			 * 接​收​消​息​数
+			 */
+			label_received_count: string
+			/**
+			 * 首​响​应​耗​时
+			 */
+			label_first_response_time: string
+			/**
+			 * 流​式​总​耗​时
+			 */
+			label_streaming_total_time: string
+			/**
+			 * 实​时
+			 */
+			label_realtime: string
+			/**
+			 * 未​指​定​连​接​ ​I​D
+			 */
+			no_connection_id: string
+			/**
+			 * 调​用​耗​时
+			 */
+			label_call_duration: string
 			/**
 			 * 未​知​ ​g​R​P​C​ ​节​点​类​型​:​ ​{​t​y​p​e​}
 			 * @param {unknown} type
@@ -16989,6 +17288,29 @@ type RootTranslation = {
 			 * @param {unknown} count
 			 */
 			templates_found: RequiredParams<'count'>
+			/**
+			 * 连​接​ ​I​D
+			 */
+			label_connection_id: string
+			/**
+			 * 服​务​器​信​息
+			 */
+			label_server_info: string
+			/**
+			 * {​c​o​u​n​t​}​ ​个​错​误
+			 * @param {unknown} count
+			 */
+			error_count: RequiredParams<'count'>
+			/**
+			 * {​c​o​u​n​t​}​ ​个​事​件
+			 * @param {unknown} count
+			 */
+			event_count: RequiredParams<'count'>
+			/**
+			 * {​c​o​u​n​t​}​ ​个​模​板
+			 * @param {unknown} count
+			 */
+			template_count: RequiredParams<'count'>
 		}
 		ws: {
 			/**
@@ -17691,6 +18013,16 @@ type RootTranslation = {
 			 */
 			mode_any: string
 			/**
+			 * {​c​o​u​n​t​}​ ​条
+			 * @param {unknown} count
+			 */
+			failed_items: RequiredParams<'count'>
+			/**
+			 * {​c​o​u​n​t​}​ ​条
+			 * @param {unknown} count
+			 */
+			total_items: RequiredParams<'count'>
+			/**
 			 * 未​知​断​言​节​点​类​型​:​ ​{​t​y​p​e​}
 			 * @param {unknown} type
 			 */
@@ -17800,6 +18132,22 @@ type RootTranslation = {
 			 * 展​开
 			 */
 			expand: string
+			/**
+			 * 连​接
+			 */
+			label_connection: string
+			/**
+			 * {​c​o​u​n​t​}​ ​条​ ​/​ ​{​s​i​z​e​}
+			 * @param {unknown} count
+			 * @param {unknown} size
+			 */
+			send_summary: RequiredParams<'count' | 'size'>
+			/**
+			 * {​c​o​u​n​t​}​ ​条​ ​/​ ​{​s​i​z​e​}
+			 * @param {unknown} count
+			 * @param {unknown} size
+			 */
+			receive_summary: RequiredParams<'count' | 'size'>
 		}
 		generic: {
 			/**
@@ -19189,6 +19537,46 @@ export type TranslationFunctions = {
 		 * 展开{title}
 		 */
 		expand_panel_aria: (arg: { title: unknown }) => LocalizedString
+		/**
+		 * 流程初始变量
+		 */
+		flow_initial_variables: () => LocalizedString
+		/**
+		 * 环境变量 ({name})
+		 */
+		environment_variable: (arg: { name: unknown }) => LocalizedString
+		/**
+		 * 流程变量
+		 */
+		label_flow_variables: () => LocalizedString
+		/**
+		 * 环境变量
+		 */
+		label_environment_variables: () => LocalizedString
+		/**
+		 *  (副本)
+		 */
+		node_copy_suffix: () => LocalizedString
+		/**
+		 * 浏览器本地存储 (localStorage)
+		 */
+		label_browser_storage: () => LocalizedString
+		/**
+		 * 测试连接
+		 */
+		label_test_connection: () => LocalizedString
+		/**
+		 * CSV 文件验证失败
+		 */
+		csv_validation_failed: () => LocalizedString
+		/**
+		 * CSV 验证失败
+		 */
+		csv_validation_error: () => LocalizedString
+		/**
+		 * 变量名
+		 */
+		variable_name_example: () => LocalizedString
 	}
 	nodes: {
 		/**
@@ -34922,6 +35310,58 @@ export type TranslationFunctions = {
 			 * 耗时
 			 */
 			label_duration: () => LocalizedString
+			/**
+			 * 传输模式
+			 */
+			label_transport: () => LocalizedString
+			/**
+			 * 版本
+			 */
+			label_protocol_version: () => LocalizedString
+			/**
+			 * 未配置工具名称
+			 */
+			no_tool_name: () => LocalizedString
+			/**
+			 * 连接
+			 */
+			label_connection: () => LocalizedString
+			/**
+			 * 调用参数
+			 */
+			label_call_arguments: () => LocalizedString
+			/**
+			 * {toolName} 调用成功
+			 */
+			call_tool_success_msg: (arg: { toolName: unknown }) => LocalizedString
+			/**
+			 * {count} 个内容块
+			 */
+			content_blocks_count: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 未配置资源 URI
+			 */
+			no_resource_uri: () => LocalizedString
+			/**
+			 * 资源读取成功，{count} 个内容块
+			 */
+			read_resource_success_msg: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * {count} 字符
+			 */
+			characters_count: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 未配置提示词名称
+			 */
+			no_prompt_name: () => LocalizedString
+			/**
+			 * 提示词获取成功，{count} 条消息
+			 */
+			get_prompt_success_msg: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 未指定连接 ID
+			 */
+			no_connection_id: () => LocalizedString
 		}
 		mqtt: {
 			/**
@@ -35156,6 +35596,70 @@ export type TranslationFunctions = {
 			 * 未知 MQTT 节点类型: {type}
 			 */
 			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+			/**
+			 * 连接 ID
+			 */
+			label_connection_id: () => LocalizedString
+			/**
+			 * 版本
+			 */
+			label_version: () => LocalizedString
+			/**
+			 * 会话恢复
+			 */
+			label_session_resume: () => LocalizedString
+			/**
+			 * 未配置 Topic
+			 */
+			no_topic: () => LocalizedString
+			/**
+			 * {size} 字节
+			 */
+			payload_size_bytes: (arg: { size: unknown }) => LocalizedString
+			/**
+			 * 消息已成功发布到 {topic}
+			 */
+			publish_success_to: (arg: { topic: unknown }) => LocalizedString
+			/**
+			 * 订阅成功，收到 {count} 条消息
+			 */
+			subscribe_success_msg: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 已成功取消订阅 {topic}
+			 */
+			unsubscribe_success_msg: (arg: { topic: unknown }) => LocalizedString
+			/**
+			 * 已断开连接: {reason}
+			 */
+			disconnect_with_reason: (arg: { reason: unknown }) => LocalizedString
+			/**
+			 * 原因
+			 */
+			label_reason: () => LocalizedString
+			/**
+			 * 未配置 Topic Filter
+			 */
+			no_topic_filter: () => LocalizedString
+			/**
+			 * 超时
+			 */
+			label_timeout: () => LocalizedString
+			/**
+			 * 匹配到 {count} 条消息
+			 */
+			matched_messages_count: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 未配置请求 Topic
+			 */
+			no_request_topic: () => LocalizedString
+			/**
+			 * 请求-响应完成，收到 {count} 条响应
+			 */
+			request_complete: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * {count} 条响应
+			 */
+			response_count: (arg: { count: unknown }) => LocalizedString
 		}
 		redis: {
 			/**
@@ -35393,6 +35897,22 @@ export type TranslationFunctions = {
 			 */
 			status_admin_failed: () => LocalizedString
 			/**
+			 * Kafka 连接建立成功
+			 */
+			connect_success: () => LocalizedString
+			/**
+			 * Kafka 连接失败
+			 */
+			connect_error: () => LocalizedString
+			/**
+			 * Kafka 连接已关闭
+			 */
+			close_success: () => LocalizedString
+			/**
+			 * Kafka 关闭失败
+			 */
+			close_error: () => LocalizedString
+			/**
 			 * 消息已生产
 			 */
 			produce_success: () => LocalizedString
@@ -35508,6 +36028,46 @@ export type TranslationFunctions = {
 			 * 未知 Kafka 节点类型: {type}
 			 */
 			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+			/**
+			 * 连接 ID
+			 */
+			label_connection_id: () => LocalizedString
+			/**
+			 * 未配置 Topic
+			 */
+			no_topic: () => LocalizedString
+			/**
+			 * {size} 字节
+			 */
+			key_size_bytes: (arg: { size: unknown }) => LocalizedString
+			/**
+			 * {size} 字节
+			 */
+			value_size_bytes: (arg: { size: unknown }) => LocalizedString
+			/**
+			 * 消息已成功发送到 {topic} [P{partition}@{offset}]
+			 */
+			produce_success_to: (arg: { offset: unknown, partition: unknown, topic: unknown }) => LocalizedString
+			/**
+			 * 批量策略
+			 */
+			label_batch_strategy: () => LocalizedString
+			/**
+			 * 批量消费成功，共 {count} 条消息
+			 */
+			batch_consume_success: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 管理操作 {operation} 执行成功
+			 */
+			admin_success_msg: (arg: { operation: unknown }) => LocalizedString
+			/**
+			 * Schema 操作 {operation} 执行成功
+			 */
+			schema_success_msg: (arg: { operation: unknown }) => LocalizedString
+			/**
+			 * Schema 操作执行失败
+			 */
+			schema_error_msg: () => LocalizedString
 		}
 		grpc: {
 			/**
@@ -35686,6 +36246,70 @@ export type TranslationFunctions = {
 			 * 无可用服务
 			 */
 			no_services: () => LocalizedString
+			/**
+			 * 最后一条
+			 */
+			label_last_one: () => LocalizedString
+			/**
+			 * 空消息体
+			 */
+			no_message_body: () => LocalizedString
+			/**
+			 * 未配置服务方法
+			 */
+			no_service_method: () => LocalizedString
+			/**
+			 * 连接
+			 */
+			label_connection: () => LocalizedString
+			/**
+			 * 超时
+			 */
+			label_timeout: () => LocalizedString
+			/**
+			 * Metadata
+			 */
+			label_metadata_count: () => LocalizedString
+			/**
+			 * 请求体
+			 */
+			label_request_body: () => LocalizedString
+			/**
+			 * {servicePath} 调用成功
+			 */
+			call_success_msg: (arg: { servicePath: unknown }) => LocalizedString
+			/**
+			 * 调用失败
+			 */
+			call_failed_details: () => LocalizedString
+			/**
+			 * 发送消息数
+			 */
+			label_sent_count: () => LocalizedString
+			/**
+			 * 接收消息数
+			 */
+			label_received_count: () => LocalizedString
+			/**
+			 * 首响应耗时
+			 */
+			label_first_response_time: () => LocalizedString
+			/**
+			 * 流式总耗时
+			 */
+			label_streaming_total_time: () => LocalizedString
+			/**
+			 * 实时
+			 */
+			label_realtime: () => LocalizedString
+			/**
+			 * 未指定连接 ID
+			 */
+			no_connection_id: () => LocalizedString
+			/**
+			 * 调用耗时
+			 */
+			label_call_duration: () => LocalizedString
 			/**
 			 * 未知 gRPC 节点类型: {type}
 			 */
@@ -35900,6 +36524,26 @@ export type TranslationFunctions = {
 			 * 发现 {count} 个查询模板
 			 */
 			templates_found: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 连接 ID
+			 */
+			label_connection_id: () => LocalizedString
+			/**
+			 * 服务器信息
+			 */
+			label_server_info: () => LocalizedString
+			/**
+			 * {count} 个错误
+			 */
+			error_count: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * {count} 个事件
+			 */
+			event_count: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * {count} 个模板
+			 */
+			template_count: (arg: { count: unknown }) => LocalizedString
 		}
 		ws: {
 			/**
@@ -36589,6 +37233,14 @@ export type TranslationFunctions = {
 			 */
 			mode_any: () => LocalizedString
 			/**
+			 * {count} 条
+			 */
+			failed_items: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * {count} 条
+			 */
+			total_items: (arg: { count: unknown }) => LocalizedString
+			/**
 			 * 未知断言节点类型: {type}
 			 */
 			unknown_node_type: (arg: { type: unknown }) => LocalizedString
@@ -36696,6 +37348,18 @@ export type TranslationFunctions = {
 			 * 展开
 			 */
 			expand: () => LocalizedString
+			/**
+			 * 连接
+			 */
+			label_connection: () => LocalizedString
+			/**
+			 * {count} 条 / {size}
+			 */
+			send_summary: (arg: { count: unknown, size: unknown }) => LocalizedString
+			/**
+			 * {count} 条 / {size}
+			 */
+			receive_summary: (arg: { count: unknown, size: unknown }) => LocalizedString
 		}
 		generic: {
 			/**

@@ -479,7 +479,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          {getLL().panels.dbQuery.resultVariableHelp('{{变量名}}')}
+          {getLL().panels.dbQuery.resultVariableHelp(getLL().common.variable_name_example())}
         </p>
         {errors.result_to && (
           <p className="text-xs text-rose-500">{errors.result_to.message}</p>

@@ -403,6 +403,7 @@ function AmqpMessageCard({ message, index }: { message: AmqpMessage; index: numb
 
 /** AMQP 1.0 消息卡片 */
 function Amqp10MessageCard({ message, index }: { message: Amqp10Message; index: number }) {
+  const ll = getLL();
   return (
     <div className="border border-border rounded-lg p-2.5">
       {/* 消息头部 */}
@@ -425,7 +426,7 @@ function Amqp10MessageCard({ message, index }: { message: Amqp10Message; index: 
       {/* application-properties */}
       {message.application_properties && Object.keys(message.application_properties).length > 0 && (
         <div className="mb-1.5">
-          <span className="text-[10px] text-muted-foreground font-medium">应用属性:</span>
+          <span className="text-[10px] text-muted-foreground font-medium">{ll.viewer.amqp.label_application_properties()}:</span>
           <div className="grid grid-cols-2 gap-1 text-xs mt-0.5">
             {Object.entries(message.application_properties).map(([key, value]) => (
               <div key={key} className="flex items-center gap-1.5">
@@ -440,7 +441,7 @@ function Amqp10MessageCard({ message, index }: { message: Amqp10Message; index: 
       {/* message-annotations */}
       {message.message_annotations && Object.keys(message.message_annotations).length > 0 && (
         <div className="mb-1.5">
-          <span className="text-[10px] text-muted-foreground font-medium">消息注解:</span>
+          <span className="text-[10px] text-muted-foreground font-medium">{ll.viewer.amqp.label_message_annotations()}:</span>
           <div className="grid grid-cols-2 gap-1 text-xs mt-0.5">
             {Object.entries(message.message_annotations).map(([key, value]) => (
               <div key={key} className="flex items-center gap-1.5">

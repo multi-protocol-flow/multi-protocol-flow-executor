@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 import { useFlowStore } from '@/stores';
 import type { Variable } from '@/types/variable';
 import { isVariableExtractorConfig } from '@/types/node';
+import { getLL } from '@/i18n/i18n-lazy';
 /** 流程变量提取结果 */
 export interface FlowVariablesResult {
   /** 所有可用变量（合并所有来源） */
@@ -32,6 +33,7 @@ export function useFlowVariables(): FlowVariablesResult {
       return { variables: [], availableVariableNames: [], nodeLabels: {} };
     }
 
+    const ll = getLL();
     const vars: Variable[] = [];
 
     // 1. 变量提取节点的 output_mappings
@@ -58,7 +60,7 @@ export function useFlowVariables(): FlowVariablesResult {
           name: key,
           value,
           sourceNodeUuid: '__flow__',
-          description: '流程初始变量',
+          description: ll.common.flow_initial_variables(),
         });
       });
     }
@@ -74,7 +76,7 @@ export function useFlowVariables(): FlowVariablesResult {
             name: key,
             value,
             sourceNodeUuid: '__environment__',
-            description: `环境变量 (${env.name})`,
+            description: ll.common.environment_variable({ name: env.name }),
           });
         });
       }
@@ -88,8 +90,8 @@ export function useFlowVariables(): FlowVariablesResult {
     flow.nodes.forEach((node) => {
       nodeLabels[node.uuid] = node.name;
     });
-    nodeLabels['__flow__'] = '流程变量';
-    nodeLabels['__environment__'] = '环境变量';
+    nodeLabels['__flow__'] = ll.common.label_flow_variables();
+    nodeLabels['__environment__'] = ll.common.label_environment_variables();
 
     return { variables: vars, availableVariableNames, nodeLabels };
   }, [flow]);

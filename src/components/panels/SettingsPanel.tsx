@@ -66,7 +66,7 @@ export function SettingsPanel() {
       }
     } catch {
       // 非Tauri环境，使用默认值
-      setConfigFilePath('浏览器本地存储 (localStorage)');
+      setConfigFilePath(ll.common.label_browser_storage());
     }
   };
 

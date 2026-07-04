@@ -265,7 +265,7 @@ function GraphqlConnectView({ report }: { report: NodeExecutionReport }) {
 
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.viewer.graphql.label_connection_id()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -274,7 +274,7 @@ function GraphqlConnectView({ report }: { report: NodeExecutionReport }) {
 
           {output?.server_info && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">服务器信息:</span>
+              <span className="text-muted-foreground">{ll.viewer.graphql.label_server_info()}:</span>
               <span className="text-xs text-foreground">{output.server_info}</span>
             </div>
           )}
@@ -363,7 +363,7 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={true}
           extra={
             <Badge variant="outline" className="font-mono text-xs text-red-600 dark:text-red-400">
-              {output!.errors!.length} 个错误
+              {ll.viewer.graphql.error_count({count: output!.errors!.length})}
             </Badge>
           }
         >
@@ -397,7 +397,7 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
           extra={
             timing.total_ms !== undefined && (
               <span className="text-xs font-mono text-indigo-600 font-medium">
-                总计 {timing.total_ms}ms
+                {ll.viewer.common.total_duration_ms({ms: timing.total_ms})}
               </span>
             )
           }
@@ -450,7 +450,7 @@ function GraphqlSubscribeView({ report }: { report: NodeExecutionReport }) {
 
           {output?.duration_ms !== undefined && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">持续时间:</span>
+              <span className="text-muted-foreground">{ll.viewer.graphql.label_duration()}:</span>
               <span className="font-mono text-xs text-foreground">{output.duration_ms}ms</span>
             </div>
           )}
@@ -467,7 +467,7 @@ function GraphqlSubscribeView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {eventCount} 个事件
+              {ll.viewer.graphql.event_count({count: eventCount})}
             </Badge>
           }
         >
@@ -542,7 +542,7 @@ function GraphqlIntrospectView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {templates.length} 个模板
+              {ll.viewer.graphql.template_count({count: templates.length})}
             </Badge>
           }
         >

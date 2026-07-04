@@ -25,6 +25,16 @@ const en_US_common: Partial<Translation['common']> = {
   ctrl_zoom: 'Ctrl + - / =',
   collapse_panel_aria: 'Collapse {title}',
   expand_panel_aria: 'Expand {title}',
+  flow_initial_variables: 'Flow Initial Variables',
+  environment_variable: 'Environment ({name})',
+  label_flow_variables: 'Flow Variables',
+  label_environment_variables: 'Environment Variables',
+  node_copy_suffix: ' (Copy)',
+  label_browser_storage: 'Browser Storage (localStorage)',
+  label_test_connection: 'Test Connection',
+  csv_validation_failed: 'CSV file validation failed',
+  csv_validation_error: 'CSV validation error',
+  variable_name_example: 'variableName',
 };
 
 export default en_US_common;

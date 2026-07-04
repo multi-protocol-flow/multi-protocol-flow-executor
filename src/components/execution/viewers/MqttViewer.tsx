@@ -325,7 +325,7 @@ function MqttConnectView({ report }: { report: NodeExecutionReport }) {
           {/* 连接 ID */}
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.viewer.mqtt.label_connection_id()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -346,12 +346,12 @@ function MqttConnectView({ report }: { report: NodeExecutionReport }) {
           <div className="flex flex-wrap gap-2">
             {brokerInfo.version && (
               <Badge variant="outline" className="font-mono text-xs">
-                版本: {brokerInfo.version}
+                {ll.viewer.mqtt.label_version()}: {brokerInfo.version}
               </Badge>
             )}
             {brokerInfo.session_present !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                会话恢复: {brokerInfo.session_present ? '是' : '否'}
+                {ll.viewer.mqtt.label_session_resume()}: {brokerInfo.session_present ? ll.viewer.common.yes() : ll.viewer.common.no()}
               </Badge>
             )}
             {brokerInfo.client_id && (
@@ -376,7 +376,7 @@ function MqttConnectView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-teal-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -417,7 +417,7 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <MqttBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {output?.topic || <span className="text-muted-foreground italic">未配置 Topic</span>}
+              {output?.topic || <span className="text-muted-foreground italic">{ll.viewer.mqtt.no_topic()}</span>}
             </code>
           </div>
 
@@ -430,12 +430,12 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
             )}
             {output?.retain !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                {ll.viewer.mqtt.label_retain()}: {output.retain ? '是' : '否'}
+                {ll.viewer.mqtt.label_retain()}: {output.retain ? ll.viewer.common.yes() : ll.viewer.common.no()}
               </Badge>
             )}
             {output?.payload_size !== undefined && (
               <Badge variant="secondary" className="font-mono text-xs">
-                载荷大小: {output.payload_size} 字节
+                {ll.viewer.mqtt.payload_size_bytes({size: output.payload_size})}
               </Badge>
             )}
           </div>
@@ -453,7 +453,7 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_published()} failText={ll.viewer.mqtt.status_publish_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `消息已成功发布到 ${output?.topic ?? 'topic'}`
+                ? ll.viewer.mqtt.publish_success_to({topic: output?.topic ?? 'topic'})
                 : output?.error ?? ll.viewer.mqtt.publish_error()}
             </span>
           </div>
@@ -480,7 +480,7 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-teal-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -523,7 +523,7 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <MqttBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {output?.topic || <span className="text-muted-foreground italic">未配置 Topic</span>}
+              {output?.topic || <span className="text-muted-foreground italic">{ll.viewer.mqtt.no_topic()}</span>}
             </code>
           </div>
 
@@ -548,7 +548,7 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_subscribed()} failText={ll.viewer.mqtt.status_subscribe_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `订阅成功，收到 ${messageCount} 条消息`
+                ? ll.viewer.mqtt.subscribe_success_msg({count: messageCount})
                 : output?.error ?? ll.viewer.mqtt.subscribe_error()}
             </span>
           </div>
@@ -565,7 +565,7 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {messageCount} 条消息
+              {ll.viewer.common.messages({count: messageCount})}
             </Badge>
           }
         >
@@ -585,7 +585,7 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-teal-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -622,7 +622,7 @@ function MqttUnsubscribeView({ report }: { report: NodeExecutionReport }) {
         <div className="flex items-center gap-2">
           <MqttBadge />
           <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-            {output?.topic || <span className="text-muted-foreground italic">未配置 Topic</span>}
+            {output?.topic || <span className="text-muted-foreground italic">{ll.viewer.mqtt.no_topic()}</span>}
           </code>
         </div>
       </CollapsibleSection>
@@ -638,7 +638,7 @@ function MqttUnsubscribeView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_unsubscribed()} failText={ll.viewer.mqtt.status_unsubscribe_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `已成功取消订阅 ${output?.topic ?? 'topic'}`
+                ? ll.viewer.mqtt.unsubscribe_success_msg({topic: output?.topic ?? 'topic'})
                 : output?.error ?? ll.viewer.mqtt.unsubscribe_error()}
             </span>
           </div>
@@ -678,7 +678,7 @@ function MqttDisconnectView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? output?.reason
-                  ? `已断开连接: ${output.reason}`
+                  ? ll.viewer.mqtt.disconnect_with_reason({reason: output.reason})
                   : ll.viewer.mqtt.disconnect_success()
                 : output?.error ?? ll.viewer.mqtt.disconnect_error()}
             </span>
@@ -687,7 +687,7 @@ function MqttDisconnectView({ report }: { report: NodeExecutionReport }) {
           {/* 断开原因 */}
           {isSuccess && output?.reason && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">原因:</span>
+              <span className="text-muted-foreground">{ll.viewer.mqtt.label_reason()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.reason}
               </code>
@@ -706,7 +706,7 @@ function MqttDisconnectView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-teal-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -749,14 +749,14 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <MqttBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {output?.topic_filter || <span className="text-muted-foreground italic">未配置 Topic Filter</span>}
+              {output?.topic_filter || <span className="text-muted-foreground italic">{ll.viewer.mqtt.no_topic_filter()}</span>}
             </code>
           </div>
 
           {output?.timeout_ms !== undefined && (
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="font-mono text-xs">
-                超时: {output.timeout_ms}ms
+                {ll.viewer.mqtt.label_timeout()}: {output.timeout_ms}ms
               </Badge>
             </div>
           )}
@@ -774,7 +774,7 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_wait_success()} failText={ll.viewer.mqtt.status_wait_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `匹配到 ${matchedCount} 条消息`
+                ? ll.viewer.mqtt.matched_messages_count({count: matchedCount})
                 : output?.error ?? ll.viewer.mqtt.status_wait_failed()}
             </span>
           </div>
@@ -791,7 +791,7 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {matchedCount} 条消息
+              {ll.viewer.common.messages({count: matchedCount})}
             </Badge>
           }
         >
@@ -811,7 +811,7 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-teal-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -854,7 +854,7 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <MqttBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {output?.request_topic || <span className="text-muted-foreground italic">未配置请求 Topic</span>}
+              {output?.request_topic || <span className="text-muted-foreground italic">{ll.viewer.mqtt.no_request_topic()}</span>}
             </code>
           </div>
 
@@ -862,7 +862,7 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
           <div className="flex flex-wrap gap-2">
             {output?.response_topic && (
               <Badge variant="outline" className="font-mono text-xs">
-                响应 Topic: {output.response_topic}
+                {ll.viewer.mqtt.label_response_topic()}: {output.response_topic}
               </Badge>
             )}
             {output?.correlation_data && (
@@ -885,7 +885,7 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_request_success()} failText={ll.viewer.mqtt.status_request_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `请求-响应完成，收到 ${responseCount} 条响应`
+                ? ll.viewer.mqtt.request_complete({count: responseCount})
                 : output?.error ?? ll.viewer.mqtt.status_request_failed()}
             </span>
           </div>
@@ -902,7 +902,7 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {responseCount} 条响应
+              {ll.viewer.mqtt.response_count({count: responseCount})}
             </Badge>
           }
         >
@@ -922,7 +922,7 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-teal-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >

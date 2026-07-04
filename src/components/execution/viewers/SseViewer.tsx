@@ -266,7 +266,7 @@ function SseConnectView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-rose-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -370,7 +370,7 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-rose-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -437,7 +437,7 @@ function SseDisconnectView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-rose-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >

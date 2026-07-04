@@ -262,7 +262,7 @@ export const AssertionViewer = memo(function AssertionViewer({ report }: Asserti
           defaultOpen={true}
           badge={
             <Badge className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800 font-mono text-xs">
-              {failed_count} 条
+              {getLL().viewer.assert.failed_items({count: failed_count})}
             </Badge>
           }
         >
@@ -286,7 +286,7 @@ export const AssertionViewer = memo(function AssertionViewer({ report }: Asserti
           defaultOpen={false}
           badge={
             <Badge variant="outline" className="font-mono text-xs">
-              {results.length} 条
+              {getLL().viewer.assert.total_items({count: results.length})}
             </Badge>
           }
         >

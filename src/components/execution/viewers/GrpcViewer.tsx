@@ -452,7 +452,7 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
           <div className="grid grid-cols-2 gap-2 text-sm">
             {connectDuration !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">连接耗时</span>
+                <span className="text-muted-foreground">{ll.viewer.common.timing_connect()}</span>
                 <span className="font-mono text-foreground">{connectDuration}ms</span>
               </div>
             )}
@@ -482,6 +482,7 @@ interface GrpcRealtimeMessageItemProps {
 }
 
 function GrpcRealtimeMessageItem({ message }: GrpcRealtimeMessageItemProps) {
+  const ll = getLL();
   const [isOpen, setIsOpen] = useState(false);
 
   // 解析 JSON 数据用于格式化显示
@@ -506,7 +507,7 @@ function GrpcRealtimeMessageItem({ message }: GrpcRealtimeMessageItemProps) {
         </span>
         {message.is_last && (
           <Badge variant="outline" className="text-[10px] px-1 py-0 font-mono text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
-            最后一条
+            {ll.viewer.grpc.label_last_one()}
           </Badge>
         )}
         <button
@@ -582,7 +583,7 @@ function GrpcErrorDetailsCard({ details }: { details: GrpcErrorDetail[] }) {
                     </code>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground italic">空消息体</p>
+                  <p className="text-xs text-muted-foreground italic">{ll.viewer.grpc.no_message_body()}</p>
                 )}
               </div>
             </div>
@@ -677,7 +678,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
               {serviceName && methodName
                 ? `${serviceName}/${methodName}`
-                : <span className="text-muted-foreground italic">未配置服务方法</span>}
+                : <span className="text-muted-foreground italic">{ll.viewer.grpc.no_service_method()}</span>}
             </code>
           </div>
 
@@ -686,17 +687,17 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
             <div className="flex flex-wrap gap-2">
               {requestConfig.connection_id && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  连接: {requestConfig.connection_id}
+                  {ll.viewer.grpc.label_connection()}: {requestConfig.connection_id}
                 </Badge>
               )}
               {requestConfig.timeout_ms !== undefined && (
                 <Badge variant="secondary" className="font-mono text-xs">
-                  超时: {requestConfig.timeout_ms}ms
+                  {ll.viewer.grpc.label_timeout()}: {requestConfig.timeout_ms}ms
                 </Badge>
               )}
               {requestConfig.metadata_count !== undefined && requestConfig.metadata_count > 0 && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  Metadata: {requestConfig.metadata_count} 项
+                  {ll.viewer.grpc.label_metadata_count()}: {requestConfig.metadata_count}{ll.viewer.common.items({ count: requestConfig.metadata_count })}
                 </Badge>
               )}
             </div>
@@ -705,7 +706,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
           {/* 请求 JSON */}
           {requestConfig?.request_json && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">请求体</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.viewer.grpc.label_request_body()}</div>
               <div className="bg-muted rounded p-2">
                 <RawJsonViewer data={requestConfig.request_json} />
               </div>
@@ -734,8 +735,8 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
             </Badge>
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `${serviceName}/${methodName} 调用成功`
-                : output?.status_message ?? output?.error ?? '调用失败'}
+                ? ll.viewer.grpc.call_success_msg({ servicePath: `${serviceName}/${methodName}` })
+                : output?.status_message ?? output?.error ?? ll.viewer.grpc.call_failed_details()}
             </span>
           </div>
 
@@ -763,25 +764,25 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
           <div className="grid grid-cols-2 gap-2 text-sm">
             {output?.sent_count !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">发送消息数</span>
+                <span className="text-muted-foreground">{ll.viewer.grpc.label_sent_count()}</span>
                 <span className="font-mono text-blue-600 font-medium">{output.sent_count}</span>
               </div>
             )}
             {output?.received_count !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">接收消息数</span>
+                <span className="text-muted-foreground">{ll.viewer.grpc.label_received_count()}</span>
                 <span className="font-mono text-emerald-600 font-medium">{output.received_count}</span>
               </div>
             )}
             {output?.streaming_timing?.first_response_ms !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">首响应耗时</span>
+                <span className="text-muted-foreground">{ll.viewer.grpc.label_first_response_time()}</span>
                 <span className="font-mono text-foreground">{output.streaming_timing.first_response_ms}ms</span>
               </div>
             )}
             {output?.streaming_timing?.total_ms !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">流式总耗时</span>
+                <span className="text-muted-foreground">{ll.viewer.grpc.label_streaming_total_time()}</span>
                 <span className="font-mono text-foreground">{output.streaming_timing.total_ms}ms</span>
               </div>
             )}
@@ -797,7 +798,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={true}
           extra={
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-emerald-600 animate-pulse">实时</span>
+              <span className="text-xs font-mono text-emerald-600 animate-pulse">{ll.viewer.grpc.label_realtime()}</span>
               <Badge variant="outline" className="font-mono text-xs">
                 {realtimeMessages.length}{ll.viewer.common.items({ count: realtimeMessages.length })}
               </Badge>
@@ -908,14 +909,14 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-violet-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
             {callDuration !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">调用耗时</span>
+                <span className="text-muted-foreground">{ll.viewer.common.timing_call()}</span>
                 <span className="font-mono text-foreground">{callDuration}ms</span>
               </div>
             )}
@@ -963,7 +964,7 @@ function GrpcCloseSection({ report }: { report: NodeExecutionReport }) {
               gRPC
             </Badge>
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {connectionId || <span className="text-muted-foreground italic">未指定连接 ID</span>}
+              {connectionId || <span className="text-muted-foreground italic">{ll.viewer.grpc.no_connection_id()}</span>}
             </code>
           </div>
         </div>
@@ -1002,14 +1003,14 @@ function GrpcCloseSection({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-violet-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ ms: totalDuration })}
             </span>
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
             {closeDuration !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">关闭耗时</span>
+                <span className="text-muted-foreground">{ll.viewer.common.timing_close()}</span>
                 <span className="font-mono text-foreground">{closeDuration}ms</span>
               </div>
             )}

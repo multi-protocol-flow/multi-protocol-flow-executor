@@ -376,7 +376,7 @@ export const EmailViewer = memo(function EmailViewer({ report }: EmailViewerProp
               )}
               {result.capabilities && result.capabilities.length > 0 && (
                 <CollapsibleSection title={ll.viewer.email.section_capabilities()} icon={<Cable className="w-4 h-4" />} defaultOpen={false}
-                  extra={<Badge variant="outline" className="font-mono text-xs">{result.capabilities.length} 项</Badge>}
+                  extra={<Badge variant="outline" className="font-mono text-xs">{ll.viewer.common.items({count: result.capabilities.length})}</Badge>}
                 >
                   <div className="flex flex-wrap gap-1">
                     {result.capabilities.map((cap, i) => (

@@ -340,7 +340,7 @@ function KafkaConnectView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_connected()} failText={ll.viewer.kafka.status_connection_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'Kafka 连接建立成功'
+                ? ll.viewer.kafka.connect_success()
                 : output?.error ?? ll.viewer.kafka.status_connection_failed()}
             </span>
           </div>
@@ -348,7 +348,7 @@ function KafkaConnectView({ report }: { report: NodeExecutionReport }) {
           {/* 连接 ID */}
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.viewer.kafka.label_connection_id()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -399,7 +399,7 @@ function KafkaConnectView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-orange-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -440,7 +440,7 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <KafkaBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {output?.topic || <span className="text-muted-foreground italic">未配置 Topic</span>}
+              {output?.topic || <span className="text-muted-foreground italic">{ll.viewer.kafka.no_topic()}</span>}
             </code>
           </div>
 
@@ -458,12 +458,12 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
             )}
             {output?.key_size !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                Key 大小: {output.key_size} 字节
+                {ll.viewer.kafka.key_size_bytes({size: output.key_size})}
               </Badge>
             )}
             {output?.value_size !== undefined && (
               <Badge variant="secondary" className="font-mono text-xs">
-                Value 大小: {output.value_size} 字节
+                {ll.viewer.kafka.value_size_bytes({size: output.value_size})}
               </Badge>
             )}
           </div>
@@ -481,7 +481,7 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_produced()} failText={ll.viewer.kafka.status_produce_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `消息已成功发送到 ${output?.topic ?? 'topic'} [P${output?.partition ?? 0}@${output?.offset ?? 0}]`
+                ? ll.viewer.kafka.produce_success_to({topic: output?.topic ?? 'topic', partition: output?.partition ?? 0, offset: output?.offset ?? 0})
                 : output?.error ?? ll.viewer.kafka.produce_error()}
             </span>
           </div>
@@ -489,7 +489,7 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
           {/* Timestamp */}
           {isSuccess && output?.timestamp !== undefined && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">时间戳:</span>
+              <span className="text-muted-foreground">{ll.viewer.kafka.label_timestamp()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.timestamp}
               </code>
@@ -508,7 +508,7 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-orange-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -551,7 +551,7 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <KafkaBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {output?.topic || <span className="text-muted-foreground italic">未配置 Topic</span>}
+              {output?.topic || <span className="text-muted-foreground italic">{ll.viewer.kafka.no_topic()}</span>}
             </code>
           </div>
 
@@ -576,7 +576,7 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_consumed()} failText={ll.viewer.kafka.status_consume_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `消费成功，收到 ${messageCount} 条消息`
+                ? ll.viewer.kafka.consume_success({count: messageCount})
                 : output?.error ?? ll.viewer.kafka.consume_error()}
             </span>
           </div>
@@ -593,7 +593,7 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {messageCount} 条消息
+              {ll.viewer.kafka.messages_count({count: messageCount})}
             </Badge>
           }
         >
@@ -613,7 +613,7 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-orange-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -656,14 +656,14 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <KafkaBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {output?.topic || <span className="text-muted-foreground italic">未配置 Topic</span>}
+              {output?.topic || <span className="text-muted-foreground italic">{ll.viewer.kafka.no_topic()}</span>}
             </code>
           </div>
 
           <div className="flex flex-wrap gap-2">
             {output?.batch_strategy && (
               <Badge variant="outline" className="font-mono text-xs">
-                策略: {output.batch_strategy}
+                {ll.viewer.kafka.label_batch_strategy()}: {output.batch_strategy}
               </Badge>
             )}
           </div>
@@ -681,7 +681,7 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_consumed()} failText={ll.viewer.kafka.status_consume_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `批量消费成功，共 ${messageCount} 条消息`
+                ? ll.viewer.kafka.batch_consume_success({count: messageCount})
                 : output?.error ?? ll.viewer.kafka.consume_error()}
             </span>
           </div>
@@ -698,7 +698,7 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {messageCount} 条消息
+              {ll.viewer.kafka.messages_count({count: messageCount})}
             </Badge>
           }
         >
@@ -718,7 +718,7 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-orange-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -759,14 +759,16 @@ function KafkaAdminView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_admin_success()} failText={ll.viewer.kafka.status_admin_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `管理操作${output?.operation ? ` (${output.operation})` : ''}执行成功`
+                ? output?.operation
+                  ? ll.viewer.kafka.admin_success_msg({operation: output.operation})
+                  : ll.viewer.kafka.admin_success()
                 : output?.error ?? ll.viewer.kafka.admin_error()}
             </span>
           </div>
 
           {output?.operation && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">操作:</span>
+              <span className="text-muted-foreground">{ll.viewer.kafka.label_operation()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.operation}
               </code>
@@ -798,7 +800,7 @@ function KafkaAdminView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-orange-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -839,14 +841,16 @@ function KafkaSchemaRegistryView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_admin_success()} failText={ll.viewer.kafka.status_admin_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `Schema 操作${output?.operation ? ` (${output.operation})` : ''}执行成功`
-                : output?.error ?? 'Schema 操作执行失败'}
+                ? output?.operation
+                  ? ll.viewer.kafka.schema_success_msg({operation: output.operation})
+                  : ll.viewer.kafka.admin_success()
+                : output?.error ?? ll.viewer.kafka.schema_error_msg()}
             </span>
           </div>
 
           {output?.operation && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">操作:</span>
+              <span className="text-muted-foreground">{ll.viewer.kafka.label_operation()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.operation}
               </code>
@@ -878,7 +882,7 @@ function KafkaSchemaRegistryView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-orange-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >
@@ -919,7 +923,7 @@ function KafkaCloseView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_closed()} failText={ll.viewer.kafka.status_close_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'Kafka 连接已成功关闭'
+                ? ll.viewer.kafka.close_success()
                 : output?.error ?? ll.viewer.kafka.status_close_failed()}
             </span>
           </div>
@@ -927,7 +931,7 @@ function KafkaCloseView({ report }: { report: NodeExecutionReport }) {
           {/* 连接 ID */}
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.viewer.kafka.label_connection_id()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -946,7 +950,7 @@ function KafkaCloseView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-orange-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.viewer.common.total_duration_ms({ms: totalDuration})}
             </span>
           )}
         >

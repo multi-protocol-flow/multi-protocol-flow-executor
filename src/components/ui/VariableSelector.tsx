@@ -225,7 +225,7 @@ export function VariableSelector({
         {/* 底部提示 */}
         <div className="px-3 py-2 border-t border-border bg-muted/50">
           <p className="text-[10px] text-muted-foreground">
-            {LL.flow.variable_selector_hint()} <code className="px-1 py-0.5 bg-muted rounded text-muted-foreground">{"{{变量名}}"}</code>
+            {LL.flow.variable_selector_hint()} <code className="px-1 py-0.5 bg-muted rounded text-muted-foreground">{"{{" + LL.common.variable_name_example() + "}}"}</code>
           </p>
         </div>
       </PopoverContent>
