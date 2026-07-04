@@ -20,7 +20,7 @@ R2_ENDPOINT="$3"
 R2_BUCKET="$4"
 
 PREFIX="releases/v${VERSION}"
-DOWNLOAD_BASE="https://download.mpe.sunanzhi"
+DOWNLOAD_BASE="https://download.mpe.run"
 
 echo "update-manifest: platform=${PLATFORM} version=${VERSION}"
 
