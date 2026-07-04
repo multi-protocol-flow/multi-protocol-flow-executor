@@ -2113,6 +2113,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_connect_to_echo_server() {
         let manager = WebSocketConnectionManager::new();
 
@@ -2121,7 +2122,7 @@ mod tests {
             .connect(
                 "echo-conn".to_string(),
                 "Echo Test".to_string(),
-                "wss://echo.websocket.org".to_string(),
+                "ws://localhost:19091".to_string(),
                 vec![], // headers
                 vec![], // subprotocols
                 30000,
@@ -2171,6 +2172,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_send_binary_message() {
         let manager = WebSocketConnectionManager::new();
 
@@ -2179,7 +2181,7 @@ mod tests {
             .connect(
                 "binary-conn".to_string(),
                 "binary test".to_string(),
-                "wss://echo.websocket.org".to_string(),
+                "ws://localhost:19091".to_string(),
                 vec![], // headers
                 vec![], // subprotocols
                 30000,
@@ -2217,6 +2219,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_receive_timeout() {
         let manager = WebSocketConnectionManager::new();
 
@@ -2225,7 +2228,7 @@ mod tests {
             .connect(
                 "timeout-conn".to_string(),
                 "timeout test".to_string(),
-                "wss://echo.websocket.org".to_string(),
+                "ws://localhost:19091".to_string(),
                 vec![], // headers
                 vec![], // subprotocols
                 30000,

@@ -171,6 +171,7 @@ async fn test_input_data_timing_with_initial_variables() {
 ///
 /// 使用本地 echo 服务 (http://localhost:19090) 替代外部 httpbin
 #[tokio::test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 async fn test_input_data_timing_http_node() {
     ensure_crypto_provider();
     // 创建 Entry 节点

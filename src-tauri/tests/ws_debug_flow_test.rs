@@ -60,7 +60,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
                 name: "WS 连接".to_string(),
                 position: NodePosition { x: 200.0, y: 0.0 },
                 data: NodeData::WsConnect(WsConnectConfig {
-                    url: "wss://echo.websocket.org".to_string(),
+                    url: "ws://localhost:19091".to_string(),
                     headers: vec![],
                     subprotocols: vec![],
                     connect_timeout_ms: 5000,
@@ -149,6 +149,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
 /// - 执行堆栈记录正确
 /// - 调试事件正确发送
 #[tokio::test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 async fn test_debug_flow_with_breakpoint() {
     ensure_crypto_provider();
     let flow_uuid = "test-debug-breakpoint-001";
@@ -251,6 +252,7 @@ async fn test_debug_flow_with_breakpoint() {
 /// - WsClose 节点正确关闭连接
 /// - 消息流段正确记录
 #[tokio::test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 async fn test_ownership_transfer() {
     let flow_uuid = "test-ownership-transfer-001";
     let connection_id = format!("ws-connect-{}", flow_uuid);
@@ -339,6 +341,7 @@ async fn test_ownership_transfer() {
 /// - ws_streams 包含正确的连接信息
 /// - 消息统计正确
 #[tokio::test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 async fn test_report_includes_ws_streams() {
     let flow_uuid = "test-report-ws-streams-001";
     let connection_id = "test-conn-001";
@@ -466,6 +469,7 @@ async fn test_report_includes_ws_streams() {
 /// - 消息仍然被记录到 ws_streams
 /// - 执行正常完成
 #[tokio::test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 async fn test_normal_mode_no_debug_events() {
     let flow_uuid = "test-normal-mode-001";
     let connection_id = "test-conn-normal";
@@ -555,6 +559,7 @@ async fn test_normal_mode_no_debug_events() {
 /// - WsStreamOwnerChanged 事件正确发送
 /// - WsStreamClosed 事件正确发送
 #[tokio::test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 async fn test_ws_debug_events() {
     // 创建调试事件通道
     let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
@@ -650,6 +655,7 @@ async fn test_ws_debug_events() {
 /// - 消息方向正确区分
 /// - 所有权转移后消息记录到新段
 #[tokio::test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 async fn test_ws_stream_message_recording() {
     let connection_id = "test-conn-recording";
     let flow_uuid = format!("test-ws-recording-{}", uuid::Uuid::new_v4());

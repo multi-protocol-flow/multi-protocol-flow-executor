@@ -887,12 +887,13 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_connect_to_echo_server() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager.clone());
 
         // 连接到公共 WebSocket echo 服务器
-        let node = create_test_node("echo-test", "Echo Test", "wss://echo.websocket.org");
+        let node = create_test_node("echo-test", "Echo Test", "ws://localhost:19091");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -917,7 +918,7 @@ mod tests {
                     );
                     let stream = stream.unwrap();
                     assert_eq!(stream.connection_id, "echo-test");
-                    assert_eq!(stream.url, "wss://echo.websocket.org");
+                    assert_eq!(stream.url, "ws://localhost:19091");
                     assert_eq!(
                         stream.current_owner_node_uuid,
                         Some("echo-test".to_string())
@@ -943,11 +944,12 @@ mod tests {
 
     /// 测试：连接Success后创建 WsStreamSegment
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_create_ws_stream_on_connect_success() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager.clone());
 
-        let node = create_test_node("stream-test", "stream test", "wss://echo.websocket.org");
+        let node = create_test_node("stream-test", "stream test", "ws://localhost:19091");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -961,7 +963,7 @@ mod tests {
 
                 let stream = stream.unwrap();
                 assert_eq!(stream.connection_id, "stream-test");
-                assert_eq!(stream.url, "wss://echo.websocket.org");
+                assert_eq!(stream.url, "ws://localhost:19091");
                 assert_eq!(stream.current_owner_node_uuid, Some("stream-test".to_string()));
                 assert_eq!(stream.segments.len(), 1, "应该有一个初始段");
 

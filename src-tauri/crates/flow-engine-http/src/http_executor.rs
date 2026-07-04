@@ -847,6 +847,7 @@ mod tests {
     // ============================================================================
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试GET请求Success场景（2xx -> true 端口）
     async fn test_http_success_get() {
         let node = create_http_node(
@@ -878,6 +879,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试POST请求Success场景（2xx -> true 端口）
     async fn test_http_success_post() {
         let mut headers = HashMap::new();
@@ -916,6 +918,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试PUT请求Success场景（2xx -> true 端口）
     async fn test_http_success_put() {
         let mut headers = HashMap::new();
@@ -945,6 +948,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试DELETE请求Success场景（2xx -> true 端口）
     async fn test_http_success_delete() {
         let node = create_http_node(
@@ -971,6 +975,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试PATCH请求Success场景
     async fn test_http_success_patch() {
         let mut headers = HashMap::new();
@@ -1004,6 +1009,7 @@ mod tests {
     // ============================================================================
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试HTTP 404Error场景（非2xx -> false 端口）
     async fn test_http_failure_404() {
         let node = create_http_node(
@@ -1034,6 +1040,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试HTTP 500服务器Error场景（非2xx -> false 端口）
     async fn test_http_failure_500() {
         let node = create_http_node(
@@ -1061,6 +1068,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试HTTP 403禁止访问Error场景（非2xx -> false 端口）
     async fn test_http_failure_403() {
         let node = create_http_node(
@@ -1088,6 +1096,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试HTTP 401未授权Error场景（非2xx -> false 端口）
     async fn test_http_failure_401() {
         let node = create_http_node(
@@ -1119,6 +1128,7 @@ mod tests {
     // ============================================================================
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试DNS解析Failed场景（网络Error -> false 端口）
     async fn test_http_error_dns_failure() {
         let node = create_http_node(
@@ -1161,6 +1171,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试连接超时场景（网络Error -> false 端口）
     async fn test_http_error_connection_timeout() {
         // 使用192.0.2.1（RFC 3330定义的测试地址，不可路由）
@@ -1206,6 +1217,7 @@ mod tests {
     // ============================================================================
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试URL变量替换
     async fn test_http_variable_replacement_url() {
         let node = create_http_node(
@@ -1253,6 +1265,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试请求头变量替换
     async fn test_http_variable_replacement_headers() {
         let mut headers = HashMap::new();
@@ -1306,6 +1319,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试请求体变量替换
     async fn test_http_variable_replacement_body() {
         let mut headers = HashMap::new();
@@ -1370,6 +1384,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试URL、请求头和请求体同时进行变量替换
     async fn test_http_variable_replacement_all() {
         let mut headers = HashMap::new();
@@ -1439,6 +1454,7 @@ mod tests {
     // ============================================================================
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试JSON响应解析
     async fn test_http_response_json_parsing() {
         let node = create_http_node(
@@ -1471,6 +1487,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试 JSON 响应解析（echo 服务返回 JSON）
     async fn test_http_response_json_handling() {
         let node = create_http_node(
@@ -1499,6 +1516,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试响应头收集
     async fn test_http_response_headers_collection() {
         let node = create_http_node(
@@ -1536,6 +1554,7 @@ mod tests {
     // ============================================================================
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试空请求头
     async fn test_http_empty_headers() {
         let node = create_http_node(
@@ -1560,6 +1579,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试空请求体
     async fn test_http_empty_body() {
         let mut headers = HashMap::new();
@@ -1587,6 +1607,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试URL编码处理
     async fn test_http_url_encoding() {
         let node = create_http_node(
@@ -1629,6 +1650,7 @@ mod tests {
     // ============================================================================
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_get_request() {
         // 创建HTTP GET请求节点
         let flow_id = "test-flow".to_string();
@@ -1673,6 +1695,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_post_request() {
         // 创建HTTP POST请求节点
         let flow_id = "test-flow".to_string();
@@ -1716,6 +1739,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_404_error() {
         // 创建HTTP 404Error请求
         let flow_id = "test-flow".to_string();
@@ -1756,6 +1780,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_200_success() {
         // 测试HTTP 200Success状态码
         let flow_id = "test-flow".to_string();
@@ -1795,6 +1820,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_500_error() {
         // 测试HTTP 500服务器Error
         let flow_id = "test-flow".to_string();
@@ -1835,6 +1861,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_variable_replacement() {
         // 测试变量替换（URL、headers、body）
         let flow_id = "test-flow".to_string();
@@ -1892,6 +1919,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_network_error() {
         // 测试网络Error（无效URL）
         let flow_id = "test-flow".to_string();
@@ -1946,6 +1974,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_json_response() {
         // 测试JSON响应解析
         let flow_id = "test-flow".to_string();
@@ -1992,6 +2021,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_json_parsing_alt() {
         // 测试JSON响应解析（echo 服务返回 JSON）
         let flow_id = "test-flow".to_string();
@@ -2034,6 +2064,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_put_request() {
         // 测试PUT请求
         let flow_id = "test-flow".to_string();
@@ -2077,6 +2108,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_delete_request() {
         // 测试DELETE请求
         let flow_id = "test-flow".to_string();
@@ -2116,6 +2148,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_patch_request() {
         // 测试PATCH请求
         let flow_id = "test-flow".to_string();
@@ -2159,6 +2192,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_http_executor_response_headers() {
         // 测试响应头处理
         let flow_id = "test-flow".to_string();
@@ -2206,6 +2240,7 @@ mod tests {
     // ============================================================================
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试 output_data 包含 request 字段（向后兼容 + 新增）
     async fn test_output_contains_request_info() {
         let node = create_http_node(
@@ -2261,6 +2296,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试 POST 请求的 request.body 记录
     async fn test_request_info_body_for_post() {
         let mut headers = HashMap::new();
@@ -2305,6 +2341,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试变量替换后的 URL 记录在 request.url
     async fn test_request_info_url_after_variable_replacement() {
         let node = create_http_node(
@@ -2333,6 +2370,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试请求头变量替换记录在 request.headers
     async fn test_request_info_headers_includes_replaced_variables() {
         let mut headers = HashMap::new();
@@ -2537,6 +2575,7 @@ mod tests {
     // ============================================================================
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试请求头 key 变量替换
     async fn test_http_header_key_variable_replacement() {
         let mut headers = HashMap::new();
@@ -2589,6 +2628,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试请求头 key 部分变量替换
     async fn test_http_header_key_partial_variable_replacement() {
         let mut headers = HashMap::new();
@@ -2640,6 +2680,7 @@ mod tests {
     // ============================================================================
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试Success响应（2xx）路由到 true 端口
     async fn test_http_port_routing_success_to_true() {
         use flow_engine_core::connection::Connection;
@@ -2689,6 +2730,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试Failed响应（非2xx）路由到 false 端口
     async fn test_http_port_routing_failure_to_false() {
         use flow_engine_core::connection::Connection;
@@ -2738,6 +2780,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     /// 测试网络Error路由到 false 端口
     async fn test_http_port_routing_network_error_to_false() {
         use flow_engine_core::connection::Connection;

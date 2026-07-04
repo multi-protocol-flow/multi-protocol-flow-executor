@@ -603,6 +603,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_client_http_get() {
         let client = HttpClient::new(10000);
         let config = HttpRequestConfig {
@@ -632,6 +633,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_client_post_with_body() {
         let client = HttpClient::new(10000);
         let mut headers = HashMap::new();
@@ -661,6 +663,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_client_404_error() {
         let client = HttpClient::new(10000);
         let config = HttpRequestConfig {
@@ -683,6 +686,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_client_dns_failure() {
         let client = HttpClient::new(5000);
         let config = HttpRequestConfig {
@@ -707,6 +711,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_client_timeout() {
         let client = HttpClient::new(1000); // 1 秒超时
         let config = HttpRequestConfig {
@@ -726,6 +731,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_client_all_methods() {
         let client = HttpClient::new(10000);
 

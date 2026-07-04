@@ -159,6 +159,7 @@ fn create_invalid_json_file() -> NamedTempFile {
 // ============ 参数解析测试 ============
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_run_flow_long_format() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -171,6 +172,7 @@ fn test_run_flow_long_format() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_run_flow_short_format() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -248,6 +250,7 @@ fn test_run_empty_flow_file() {
 // ============ 文件加载测试 ============
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_load_valid_json_flow_file() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -260,6 +263,7 @@ fn test_load_valid_json_flow_file() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_load_flow_with_uuid_field() {
     let file = create_flow_with_uuid();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -274,6 +278,7 @@ fn test_load_flow_with_uuid_field() {
 // ============ 执行输出测试 ============
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_success_execution_json_output() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -287,6 +292,7 @@ fn test_success_execution_json_output() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_json_output_is_parseable() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -313,6 +319,7 @@ fn test_json_output_is_parseable() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_cli_output_has_success_data_error_fields() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -338,6 +345,7 @@ fn test_cli_output_has_success_data_error_fields() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_execution_output_contains_execution_time() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -364,6 +372,7 @@ fn test_execution_output_contains_execution_time() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_execution_output_contains_executed_count() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -390,6 +399,7 @@ fn test_execution_output_contains_executed_count() {
 // ============ 边界情况测试 ============
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_large_flow_file() {
     let file = create_large_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -402,6 +412,7 @@ fn test_large_flow_file() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_concurrent_execution() {
     let file1 = create_valid_flow_file();
     let file2 = create_valid_flow_file();
@@ -429,6 +440,7 @@ fn test_concurrent_execution() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_execution_with_single_entry_node() {
     let file = NamedTempFile::new().unwrap();
     let flow_content = r#"{
@@ -462,6 +474,7 @@ fn test_execution_with_single_entry_node() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_flow_with_connections() {
     let file = NamedTempFile::new().unwrap();
     let flow_content = r#"{
@@ -511,6 +524,7 @@ fn test_flow_with_connections() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_execution_time_reasonable() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -540,6 +554,7 @@ fn test_execution_time_reasonable() {
 // ============ 错误输出测试 ============
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_error_output_on_invalid_flow() {
     let file = create_empty_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -551,6 +566,7 @@ fn test_error_output_on_invalid_flow() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_error_handling_invalid_json_file() {
     let file = create_invalid_json_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -563,6 +579,7 @@ fn test_error_handling_invalid_json_file() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_flow_with_missing_uuid() {
     let file = NamedTempFile::new().unwrap();
     // 创建 FlowFile 包装但 Flow 内缺少 uuid 字段（反序列化失败）
@@ -1048,6 +1065,7 @@ fn test_report_list() {
 // ============ 日志输出验证测试 ============
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_log_output_to_stderr() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -1061,6 +1079,7 @@ fn test_log_output_to_stderr() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_log_output_contains_execution_info() {
     let file = create_flow_with_uuid();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -1074,6 +1093,7 @@ fn test_log_output_contains_execution_info() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_log_level_debug() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -1090,6 +1110,7 @@ fn test_log_level_debug() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_log_level_info() {
     let file = create_valid_flow_file();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -1480,6 +1501,7 @@ fn create_assertion_fail_throw_flow() -> NamedTempFile {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_assertion_pass_routes_to_true() {
     let file = create_assertion_pass_flow();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -1515,6 +1537,7 @@ fn test_assertion_pass_routes_to_true() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_assertion_fail_routes_to_false() {
     let file = create_assertion_fail_route_false_flow();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -1562,6 +1585,7 @@ fn test_assertion_fail_routes_to_false() {
 }
 
 #[test]
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_assertion_fail_throw_terminates_flow() {
     let file = create_assertion_fail_throw_flow();
     let mut cmd = cargo::cargo_bin_cmd!("mpe");

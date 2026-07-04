@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 //! WebSocket dependency verification tests
-//! Ensures tokio-tungstenite with rustls TLS is correctly configured
+//! Ensures tokio-tungstenite WebSocket connectivity with echo Docker service
 
 use futures_util::{SinkExt, StreamExt};
 use rustls::crypto::ring::default_provider;
@@ -16,31 +16,31 @@ fn ensure_crypto_provider() {
     });
 }
 
-/// Verify WebSocket TLS support by connecting to a secure WebSocket server
-/// This test validates that the rustls TLS backend is working correctly
+/// Verify WebSocket connectivity to the echo Docker service
+/// This test validates that the local echo WS server is reachable
 #[tokio::test]
-async fn test_websocket_tls_connection() {
+#[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
+async fn test_websocket_echo_connection() {
     ensure_crypto_provider();
-    // Use a public WebSocket echo server with TLS
-    let ws_url = "wss://echo.websocket.org";
+    // Use a local echo Docker service
+    let ws_url = "ws://localhost:19091";
 
-    // Attempt to establish a WebSocket connection over TLS
+    // Attempt to establish a WebSocket connection
     let result = connect_async(ws_url).await;
 
     match result {
         Ok((ws_stream, _response)) => {
-            // Connection successful - TLS is working!
-            // This is the main verification: we successfully connected via wss://
+            // Connection successful! echo server is running.
             
             // Send a test message
             let (mut tx, mut rx) = ws_stream.split();
-            let test_message = "Hello, WebSocket TLS!";
+            let test_message = "Hello, WebSocket!";
             tx.send(Message::Text(test_message.into()))
                 .await
                 .expect("Failed to send message");
 
             // Receive any response (server may send greeting first)
-            // The key verification is that TLS works, not the exact echo behavior
+            // The key verification is that the echo server works, not the exact echo behavior
             if let Some(Ok(_msg)) = rx.next().await {
                 // Successfully received a message - TLS and WebSocket are working
             }

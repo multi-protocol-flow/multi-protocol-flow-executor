@@ -366,6 +366,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_close_to_echo_server() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsCloseExecutor::new(ws_manager.clone());
@@ -375,7 +376,7 @@ mod tests {
             .connect(
                 "echo-close-conn".to_string(),
                 "Echo Close Test".to_string(),
-                "wss://echo.websocket.org".to_string(),
+                "ws://localhost:19091".to_string(),
                 vec![],
                 vec![],
                 30000,
@@ -396,7 +397,7 @@ mod tests {
             let mut context = create_context("test-flow");
             
             // 设置 URL 映射
-            context.set_ws_url("echo-close-conn".to_string(), "wss://echo.websocket.org".to_string());
+            context.set_ws_url("echo-close-conn".to_string(), "ws://localhost:19091".to_string());
 
             let result = executor
                 .execute(&node, &mut context, &[], &HashMap::new())
@@ -411,7 +412,7 @@ mod tests {
                     assert_eq!(data["connection_id"], "echo-close-conn");
                     assert_eq!(data["close_code"], 1000);
                     assert_eq!(data["success"], true);
-                    assert_eq!(data["url"], "wss://echo.websocket.org");
+                    assert_eq!(data["url"], "ws://localhost:19091");
                 }
                 Err(e) => {
                     // 不应该发生Error
@@ -424,6 +425,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_close_with_reason() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsCloseExecutor::new(ws_manager.clone());
@@ -433,7 +435,7 @@ mod tests {
             .connect(
                 "close-reason-conn".to_string(),
                 "close reason test".to_string(),
-                "wss://echo.websocket.org".to_string(),
+                "ws://localhost:19091".to_string(),
                 vec![],
                 vec![],
                 30000,
@@ -468,7 +470,7 @@ mod tests {
             let mut context = create_context("test-flow");
             
             // 设置 URL 映射
-            context.set_ws_url("close-reason-conn".to_string(), "wss://echo.websocket.org".to_string());
+            context.set_ws_url("close-reason-conn".to_string(), "ws://localhost:19091".to_string());
 
             let result = executor
                 .execute(&node, &mut context, &[], &HashMap::new())
@@ -482,7 +484,7 @@ mod tests {
                     let data = output_data.unwrap();
                     assert_eq!(data["connection_id"], "close-reason-conn");
                     assert_eq!(data["close_reason"], "test complete");
-                    assert_eq!(data["url"], "wss://echo.websocket.org");
+                    assert_eq!(data["url"], "ws://localhost:19091");
                 }
                 Err(e) => {
                     // 不应该发生Error

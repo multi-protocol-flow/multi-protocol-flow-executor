@@ -1136,6 +1136,7 @@ mod tests {
         assert!(data["error"].as_str().unwrap().contains("Connection not found"));
     }
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_send_wait_to_echo_server() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsSendCollectExecutor::new(ws_manager.clone());
@@ -1145,7 +1146,7 @@ mod tests {
             .connect(
                 "echo-conn".to_string(),
                 "Echo Connection".to_string(),
-                "wss://echo.websocket.org".to_string(),
+                "ws://localhost:19091".to_string(),
                 vec![],
                 vec![],
                 30000,
@@ -1196,6 +1197,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_send_wait_with_response_to_echo_server() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsSendCollectExecutor::new(ws_manager.clone());
@@ -1205,7 +1207,7 @@ mod tests {
             .connect(
                 "echo-conn-2".to_string(),
                 "Echo Connection 2".to_string(),
-                "wss://echo.websocket.org".to_string(),
+                "ws://localhost:19091".to_string(),
                 vec![],
                 vec![],
                 30000,

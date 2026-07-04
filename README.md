@@ -361,6 +361,18 @@ cargo test -p flow-engine-grpc --test grpc_integration  # gRPC 集成测试
 cargo test --lib -- --nocapture              # 所有单测 + 打印输出
 cargo test -p flow-engine-core               # core 全部测试（含集成）
 cargo test --workspace                       # workspace 所有包的全部测试
+
+# ── 外部服务集成测试（依赖 echo Docker 服务） ────────────────
+# 部分测试（HTTP、WebSocket、gRPC 等）依赖本地 echo Docker 服务，
+# 已在代码中标记 #[ignore]，默认不执行。
+# 如需运行，先启动 echo 服务，再使用 --include-ignored：
+#
+#   cd echo && docker compose up -d    # 启动所有 echo 服务
+#   bash echo/scripts/verify.sh        # 验证全部服务就绪
+#   cargo test -- --include-ignored    # 运行所有测试（含 ignored）
+#   cargo test -p flow-engine-http -- --include-ignored  # 仅 HTTP
+#   cargo test -p flow-engine-ws -- --include-ignored    # 仅 WebSocket
+#   cargo test cli_tests -- --include-ignored             # 仅 CLI
 ```
 
 ### 前端测试

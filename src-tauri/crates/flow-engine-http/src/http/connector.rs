@@ -596,6 +596,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_connector_http() {
         let connector = HttpConnector::new(5000);
         let mut timing = TimingContext::new();
@@ -615,6 +616,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_connector_dns_failure() {
         let connector = HttpConnector::new(5000);
         let mut timing = TimingContext::new();
@@ -646,6 +648,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_timing_connector_http() {
         let timing = Arc::new(std::sync::Mutex::new(TimingContext::new()));
         let mut connector = TimingConnector::new(10000, timing.clone());
