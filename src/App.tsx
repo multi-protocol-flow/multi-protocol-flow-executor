@@ -19,7 +19,6 @@ import { useUIStore } from '@/stores/ui';
 import { getLL } from '@/i18n/i18n-lazy';
 import { toast } from 'sonner';
 import { isTauriEnv } from '@/lib/platform';
-import { SandboxBanner } from '@/components/common/SandboxBanner';
 
 /**
  * I18nBridge - 当 locale 变化时强制整个子树重渲染
@@ -147,7 +146,6 @@ function App() {
   return (
     <TypesafeI18n locale={currentLocale}>
       <I18nBridge>
-        <SandboxBanner />
         <WelcomeWizard>
           <MainLayout />
         </WelcomeWizard>

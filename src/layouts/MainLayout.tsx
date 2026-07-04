@@ -3,6 +3,7 @@
  * 整合所有面板：左侧流程列表/节点库、中间画布、右侧配置、底部历史
  */
 import { Toaster } from '@/components/ui/sonner';
+import { SandboxBanner } from '@/components/common/SandboxBanner';
 
 import { LeftSidebarPanel } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
@@ -383,6 +384,7 @@ export function MainLayout() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+      <SandboxBanner />
       {/* ===== 顶部工具栏 ===== */}
       <header className="h-14 shrink-0 border-b border-border flex items-center justify-between px-4 bg-background">
         {/* 左侧：Logo */}
