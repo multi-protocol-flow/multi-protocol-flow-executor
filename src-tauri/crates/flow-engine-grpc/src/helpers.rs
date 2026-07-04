@@ -12,7 +12,7 @@ use serde_json::de::Deserializer;
 pub(crate) fn build_method_path(service_name: &str, method_name: &str) -> Result<PathAndQuery, String> {
     let path = format!("/{}/{}", service_name, method_name);
     path.parse()
-        .map_err(|e| format!("无效的 gRPC 路径 '{}': {}", path, e))
+        .map_err(|e| format!("Invalid gRPC path '{}': {}", path, e))
 }
 
 /// 将 JSON 字符串反序列化为 `DynamicMessage`
@@ -22,10 +22,10 @@ pub(crate) fn json_to_dynamic_message(
 ) -> Result<DynamicMessage, String> {
     let mut deserializer = Deserializer::from_str(request_json);
     let msg = DynamicMessage::deserialize(descriptor, &mut deserializer)
-        .map_err(|e| format!("反序列化请求消息Failed: {}", e))?;
+        .map_err(|e| format!("Failed to deserialize request message: {}", e))?;
     deserializer
         .end()
-        .map_err(|e| format!("请求 JSON 包含多余数据: {}", e))?;
+        .map_err(|e| format!("Request JSON contains extra data: {}", e))?;
     Ok(msg)
 }
 
@@ -35,8 +35,8 @@ pub(crate) fn dynamic_message_to_json(msg: &DynamicMessage) -> Result<serde_json
     let mut buf = Vec::new();
     let mut ser = serde_json::Serializer::new(&mut buf);
     msg.serialize_with_options(&mut ser, &options)
-        .map_err(|e| format!("序列化响应消息Failed: {}", e))?;
-    serde_json::from_slice(&buf).map_err(|e| format!("解析响应 JSON Failed: {}", e))
+        .map_err(|e| format!("Failed to serialize response message: {}", e))?;
+    serde_json::from_slice(&buf).map_err(|e| format!("Failed to parse response JSON: {}", e))
 }
 
 /// 合并连接级默认 metadata 与调用级 metadata

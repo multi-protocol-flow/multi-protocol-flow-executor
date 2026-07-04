@@ -25,7 +25,7 @@ impl NodePlugin for GrpcConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "gRPC 连接"
+        "gRPC Connect"
     }
 
     fn category(&self) -> &str {
@@ -140,7 +140,7 @@ impl NodePlugin for GrpcCallPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "gRPC 调用"
+        "gRPC Call"
     }
 
     fn category(&self) -> &str {
@@ -269,7 +269,7 @@ impl NodePlugin for GrpcClosePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "gRPC 关闭"
+        "gRPC Close"
     }
 
     fn category(&self) -> &str {
@@ -380,7 +380,7 @@ mod tests {
     fn test_grpc_connect_plugin_metadata() {
         let plugin = GrpcConnectPlugin;
         assert_eq!(plugin.type_id(), "grpc_connect");
-        assert_eq!(plugin.display_name(), "gRPC 连接");
+        assert_eq!(plugin.display_name(), "gRPC Connect");
         assert_eq!(plugin.category(), "grpc");
         assert_eq!(plugin.icon(), "cable");
         assert_eq!(plugin.color(), "#8B5CF6");
@@ -396,23 +396,23 @@ mod tests {
     fn test_grpc_call_plugin_metadata() {
         let plugin = GrpcCallPlugin;
         assert_eq!(plugin.type_id(), "grpc_call");
-        assert_eq!(plugin.display_name(), "gRPC 调用");
-        assert_eq!(plugin.category(), "grpc");
-        assert_eq!(plugin.icon(), "phone-outgoing");
-        assert_eq!(plugin.color(), "#8B5CF6");
-        assert!(plugin.is_protocol_node());
+assert_eq!(plugin.display_name(), "gRPC Call");
+assert_eq!(plugin.category(), "grpc");
+assert_eq!(plugin.icon(), "phone-outgoing");
+assert_eq!(plugin.color(), "#8B5CF6");
+assert!(plugin.is_protocol_node());
 
-        let ports = plugin.ports();
-        assert_eq!(ports.len(), 2);
-        assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[1].id, "false");
-    }
+let ports = plugin.ports();
+assert_eq!(ports.len(), 2);
+assert_eq!(ports[0].id, "true");
+assert_eq!(ports[1].id, "false");
+}
 
-    #[test]
-    fn test_grpc_close_plugin_metadata() {
-        let plugin = GrpcClosePlugin;
-        assert_eq!(plugin.type_id(), "grpc_close");
-        assert_eq!(plugin.display_name(), "gRPC 关闭");
+#[test]
+fn test_grpc_close_plugin_metadata() {
+let plugin = GrpcClosePlugin;
+assert_eq!(plugin.type_id(), "grpc_close");
+assert_eq!(plugin.display_name(), "gRPC Close");
         assert_eq!(plugin.category(), "grpc");
         assert_eq!(plugin.icon(), "phone-off");
         assert_eq!(plugin.color(), "#8B5CF6");

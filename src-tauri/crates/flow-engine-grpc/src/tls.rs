@@ -79,7 +79,7 @@ fn apply_standard_tls(
         .with_webpki_roots();
     endpoint
         .tls_config(tls_config)
-        .map_err(|e| format!("TLS 配置Failed: {}", e))
+        .map_err(|e| format!("TLS configuration failed: {}", e))
 }
 
 /// 从 PEM 文件内容加载证书链
@@ -89,7 +89,7 @@ fn load_certs_from_pem(pem_data: &str) -> Result<Vec<rustls::pki_types::Certific
     let mut reader = std::io::BufReader::new(pem_data.as_bytes());
     rustls_pemfile::certs(&mut reader)
         .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("解析证书 PEM Failed: {}", e))
+        .map_err(|e| format!("Failed to parse certificate PEM: {}", e))
 }
 
 /// 从 PEM 文件内容加载私钥
@@ -100,18 +100,18 @@ fn load_key_from_pem(pem_data: &str) -> Result<rustls::pki_types::PrivateKeyDer<
 
     // 先尝试 PKCS#8 格式
     if let Some(key) = rustls_pemfile::private_key(&mut reader)
-        .map_err(|e| format!("解析私钥 PEM Failed: {}", e))?
+        .map_err(|e| format!("Failed to parse private key PEM: {}", e))?
     {
         return Ok(key);
     }
 
-    Err("未找到有效的私钥（支持 PKCS#8/PKCS#1 格式）".to_string())
+    Err("No valid private key found (supports PKCS#8/PKCS#1 format)".to_string())
 }
 
 /// 从文件路径读取内容
 fn read_file_content(path: &str) -> Result<String, String> {
     std::fs::read_to_string(path)
-        .map_err(|e| format!("读取文件 '{}' Failed: {}", path, e))
+        .map_err(|e| format!("Failed to read file '{}': {}", path, e))
 }
 
 /// 构建包含自定义 CA 和/或客户端证书的 rustls `ClientConfig`
@@ -136,10 +136,10 @@ fn build_custom_tls_config(
         let ca_pem = read_file_content(ca_cert_path)?;
         let ca_certs = load_certs_from_pem(&ca_pem)?;
         if ca_certs.is_empty() {
-            return Err("CA 证书文件不包含有效证书".to_string());
+            return Err("CA certificate file does not contain a valid certificate".to_string());
         }
         for cert in ca_certs {
-            root_store.add(cert).map_err(|e| format!("添加自定义 CA 证书Failed: {}", e))?;
+            root_store.add(cert).map_err(|e| format!("Failed to add custom CA certificate: {}", e))?;
         }
     }
 
@@ -152,13 +152,13 @@ fn build_custom_tls_config(
         let client_key = load_key_from_pem(&key_pem)?;
 
         if client_certs.is_empty() {
-            return Err("客户端证书文件不包含有效证书".to_string());
+            return Err("Client certificate file does not contain a valid certificate".to_string());
         }
 
         rustls::ClientConfig::builder()
             .with_root_certificates(root_store)
             .with_client_auth_cert(client_certs, client_key)
-            .map_err(|e| format!("配置 mTLS 客户端证书Failed: {}", e))?
+            .map_err(|e| format!("Failed to configure mTLS client certificate: {}", e))?
     } else {
         // 仅 CA 验证（无客户端证书）
         rustls::ClientConfig::builder()
@@ -186,30 +186,29 @@ fn build_custom_tls_channel(
     // 解析 URL 获取 host 和 port
     let original_uri: http::Uri = url_with_scheme
         .parse()
-        .map_err(|e| format!("解析 URL Failed: {}", e))?;
+        .map_err(|e| format!("Failed to parse URL: {}", e))?;
     let host = original_uri
         .host()
-        .ok_or_else(|| format!("URL 缺少 host: {}", url_with_scheme))?
-        .to_string();
+        .ok_or_else(|| format!("URL is missing host: {}", url_with_scheme))?;
     let port = original_uri.port_u16().unwrap_or(443);
 
     // SNI 名称：使用覆盖值或 URL host
     let sni_name = tls_server_name_override
         .map(|s| s.to_string())
-        .unwrap_or_else(|| host.clone());
+        .unwrap_or_else(|| host.to_string());
 
     // 构建 TLS 配置
     let client_config = build_custom_tls_config(tls_ca_cert, tls_client_cert, tls_client_key)?;
 
     // TLS SNI 名称
     let server_name = rustls::pki_types::ServerName::try_from(sni_name.clone())
-        .map_err(|e| format!("无效的 TLS 服务器名 '{}': {}", sni_name, e))?
+        .map_err(|e| format!("Invalid TLS server name '{}': {}", sni_name, e))?
         .to_owned();
 
     // 使用 http:// 方案创建端点（绕过 tonic 的内置 TLS）
     let http_url = format!("http://{}:{}", host, port);
     let mut endpoint = tonic::transport::Endpoint::from_shared(http_url)
-        .map_err(|e| format!("创建 gRPC 端点Failed: {}", e))?;
+        .map_err(|e| format!("Failed to create gRPC endpoint: {}", e))?;
 
     if connect_timeout_ms > 0 {
         endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
@@ -224,7 +223,7 @@ fn build_custom_tls_channel(
 
         async move {
             let host = uri.host().ok_or_else(|| {
-                std::io::Error::new(std::io::ErrorKind::InvalidInput, "URI 缺少 host")
+                std::io::Error::new(std::io::ErrorKind::InvalidInput, "URI is missing host")
             })?;
             let port = uri.port_u16().unwrap_or(443);
             let addr = format!("{}:{}", host, port);
@@ -254,17 +253,16 @@ fn build_skip_verify_channel(
     // 解析原始 URL 获取 host（用于 TLS SNI）
     let original_uri: http::Uri = url_with_scheme
         .parse()
-        .map_err(|e| format!("解析 URL Failed: {}", e))?;
+        .map_err(|e| format!("Failed to parse URL: {}", e))?;
     let host = original_uri
         .host()
-        .ok_or_else(|| format!("URL 缺少 host: {}", url_with_scheme))?
-        .to_string();
+        .ok_or_else(|| format!("URL is missing host: {}", url_with_scheme))?;
     let port = original_uri.port_u16().unwrap_or(443);
 
     // SNI 名称：使用覆盖值或 URL host
     let sni_name = tls_server_name_override
         .map(|s| s.to_string())
-        .unwrap_or_else(|| host.clone());
+        .unwrap_or_else(|| host.to_string());
 
     // 构建 dangerous verifier 的 rustls ClientConfig
     let client_config = {
@@ -278,13 +276,13 @@ fn build_skip_verify_channel(
 
     // TLS SNI 名称
     let server_name = rustls::pki_types::ServerName::try_from(sni_name.clone())
-        .map_err(|e| format!("无效的 TLS 服务器名 '{}': {}", sni_name, e))?
+        .map_err(|e| format!("Invalid TLS server name '{}': {}", sni_name, e))?
         .to_owned();
 
     // 使用 http:// 方案创建端点（绕过 tonic 的内置 TLS）
     let http_url = format!("http://{}:{}", host, port);
     let mut endpoint = tonic::transport::Endpoint::from_shared(http_url)
-        .map_err(|e| format!("创建 gRPC 端点Failed: {}", e))?;
+        .map_err(|e| format!("Failed to create gRPC endpoint: {}", e))?;
 
     if connect_timeout_ms > 0 {
         endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
@@ -299,7 +297,7 @@ fn build_skip_verify_channel(
 
         async move {
             let host = uri.host().ok_or_else(|| {
-                std::io::Error::new(std::io::ErrorKind::InvalidInput, "URI 缺少 host")
+                std::io::Error::new(std::io::ErrorKind::InvalidInput, "URI is missing host")
             })?;
             let port = uri.port_u16().unwrap_or(443);
             let addr = format!("{}:{}", host, port);
@@ -353,7 +351,7 @@ fn build_plaintext_endpoint(
     keepalive_permit_without_streams: Option<bool>,
 ) -> Result<tonic::transport::Endpoint, String> {
     let mut endpoint = tonic::transport::Endpoint::from_shared(url.to_string())
-        .map_err(|e| format!("创建 gRPC 端点Failed '{}': {}", url, e))?;
+        .map_err(|e| format!("Failed to create gRPC endpoint '{}': {}", url, e))?;
     if connect_timeout_ms > 0 {
         endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
     }
@@ -370,7 +368,7 @@ fn build_standard_tls_endpoint(
     keepalive_permit_without_streams: Option<bool>,
 ) -> Result<tonic::transport::Endpoint, String> {
     let mut endpoint = tonic::transport::Endpoint::from_shared(url.to_string())
-        .map_err(|e| format!("创建 gRPC 端点Failed '{}': {}", url, e))?;
+        .map_err(|e| format!("Failed to create gRPC endpoint '{}': {}", url, e))?;
     endpoint = apply_standard_tls(endpoint)?;
     if connect_timeout_ms > 0 {
         endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
@@ -406,7 +404,7 @@ pub(crate) fn create_balanced_channel(
         || tls_server_name_override.is_some());
 
     if has_custom_tls {
-        return Err("负载均衡模式不支持跳过证书验证或自定义 TLS 配置（CA/mTLS/SNI）。请移除额外端点或简化 TLS 配置。".to_string());
+        return Err("Load balancing mode does not support skipping certificate verification or custom TLS configuration (CA/mTLS/SNI). Please remove extra endpoints or simplify TLS configuration.".to_string());
     }
 
     // 规范化 URL（确保包含 scheme）
@@ -435,7 +433,7 @@ pub(crate) fn create_balanced_channel(
 
         let mut endpoints: Vec<tonic::transport::Endpoint> = vec![primary_ep];
         for (i, ep_url) in additional_endpoints.iter().enumerate() {
-            let normalized = normalize_url(ep_url).map_err(|e| format!("额外端点[{}] {}", i, e))?;
+            let normalized = normalize_url(ep_url).map_err(|e| format!("Extra endpoint[{}] {}", i, e))?;
             let ep = build_standard_tls_endpoint(
                 &normalized, connect_timeout_ms,
                 keepalive_time_ms, keepalive_timeout_ms, keepalive_permit_without_streams,
@@ -457,7 +455,7 @@ pub(crate) fn create_balanced_channel(
 
         let mut endpoints: Vec<tonic::transport::Endpoint> = vec![primary_ep];
         for (i, ep_url) in additional_endpoints.iter().enumerate() {
-            let normalized = normalize_url(ep_url).map_err(|e| format!("额外端点[{}] {}", i, e))?;
+            let normalized = normalize_url(ep_url).map_err(|e| format!("Extra endpoint[{}] {}", i, e))?;
             let ep = build_plaintext_endpoint(
                 &normalized, connect_timeout_ms,
                 keepalive_time_ms, keepalive_timeout_ms, keepalive_permit_without_streams,
@@ -492,7 +490,7 @@ pub(crate) fn create_channel(
     // 明文模式
     if !use_tls {
         let mut endpoint = tonic::transport::Endpoint::from_shared(url_with_scheme.to_string())
-            .map_err(|e| format!("创建 gRPC 端点Failed: {}", e))?;
+        .map_err(|e| format!("Failed to create gRPC endpoint: {}", e))?;
         if connect_timeout_ms > 0 {
             endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
         }
@@ -534,7 +532,7 @@ pub(crate) fn create_channel(
 
     // 标准 TLS 模式: webpki-roots + 系统原生证书
     let mut endpoint = tonic::transport::Endpoint::from_shared(url_with_scheme.to_string())
-        .map_err(|e| format!("创建 gRPC 端点Failed: {}", e))?;
+        .map_err(|e| format!("Failed to create gRPC endpoint: {}", e))?;
     endpoint = apply_standard_tls(endpoint)?;
     if connect_timeout_ms > 0 {
         endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
