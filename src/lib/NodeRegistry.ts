@@ -10,7 +10,7 @@ import type { TranslationFunctions } from '@/i18n/i18n-types';
 let LL_cache: TranslationFunctions | null = null;
 function getLL() {
   if (!LL_cache) {
-    const locale = (localStorage.getItem('locale') as any) || 'zh-CN';
+    const locale = (localStorage.getItem('locale') as any) || 'en-US';
     LL_cache = i18nObject(locale);
   }
   return LL_cache;

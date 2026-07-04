@@ -38,7 +38,7 @@ export async function createFlow(name: string): Promise<Flow> {
       {
         uuid: `start-${flowId}`,
         type: 'entry',
-        name: '开始',
+        name: 'Start',
         position: { x: 0, y: 0 },
         data: { type: 'entry' },
       },
@@ -71,7 +71,7 @@ export async function executeFlowWithChannel(
   // 发送流程开始日志
   onLog({
     level: 'INFO',
-    message: `流程 '${flow.name}' 开始执行`,
+      message: `Flow '${flow.name}' started execution`,
     timestamp: startTime,
     flowUuid: flow.uuid,
   });
@@ -88,13 +88,13 @@ export async function executeFlowWithChannel(
   if (!startNode) {
     onLog({
       level: 'ERROR',
-      message: '流程缺少开始节点',
+      message: 'Flow is missing a start node',
       timestamp: Date.now(),
       flowUuid: flow.uuid,
     });
     return {
       success: false,
-      error: '流程缺少开始节点',
+      error: 'Flow is missing a start node',
       execution_time: Date.now() - startTime,
     };
   }
@@ -102,7 +102,7 @@ export async function executeFlowWithChannel(
   // 发送节点开始日志
   onLog({
     level: 'INFO',
-    message: `执行节点 ${startNode.name} (entry)`,
+      message: `Executing node ${startNode.name} (entry)`,
     timestamp: Date.now(),
     flowUuid: flow.uuid,
     nodeUuid: startNode.uuid,
@@ -115,7 +115,7 @@ export async function executeFlowWithChannel(
   // 发送节点完成日志
   onLog({
     level: 'INFO',
-    message: `节点 ${startNode.name} 执行完成`,
+      message: `Node ${startNode.name} completed`,
     timestamp: Date.now(),
     flowUuid: flow.uuid,
     nodeUuid: startNode.uuid,
@@ -148,7 +148,7 @@ export async function executeFlowWithChannel(
   if (!hasConnection) {
     onLog({
       level: 'INFO',
-      message: `节点 ${startNode.name} 没有下一个节点，执行完成`,
+      message: `Node ${startNode.name} has no next node, execution finished`,
       timestamp: Date.now(),
       flowUuid: flow.uuid,
       nodeUuid: startNode.uuid,
@@ -158,7 +158,7 @@ export async function executeFlowWithChannel(
     const endTime = Date.now();
     onLog({
       level: 'INFO',
-      message: '流程执行成功',
+      message: 'Flow executed successfully',
       timestamp: endTime,
       flowUuid: flow.uuid,
     });
@@ -234,7 +234,7 @@ export async function executeFlowWithChannel(
     // 发送节点开始日志
     onLog({
       level: 'INFO',
-      message: `执行节点 ${node.name} (${node.type})`,
+      message: `Executing node ${node.name} (${node.type})`,
       timestamp: nodeStartTime,
       flowUuid: flow.uuid,
       nodeUuid: node.uuid,
@@ -249,7 +249,7 @@ export async function executeFlowWithChannel(
     // 发送节点完成日志
     onLog({
       level: 'INFO',
-      message: `节点 ${node.name} 执行完成`,
+      message: `Node ${node.name} completed`,
       timestamp: nodeEndTime,
       flowUuid: flow.uuid,
       nodeUuid: node.uuid,
@@ -492,7 +492,7 @@ export async function discoverMcpTools(
       },
     ],
     prompts: [
-      { name: 'example_prompt', description: '示例提示词', arguments: [{ name: 'topic', description: '主题', required: true }] }
+      { name: 'example_prompt', description: 'Example prompt template', arguments: [{ name: 'topic', description: 'Topic', required: true }] }
     ],
     server_info: {
       name: 'Mock MCP Server',
@@ -595,14 +595,14 @@ export async function introspectSchema(
           {
             kind: 'OBJECT',
             name: 'Query',
-            description: '根查询类型',
+            description: 'Root query type',
             fields: [
               {
                 name: 'user',
-                description: '获取用户信息',
+                description: 'Get user information',
                 type: { kind: 'OBJECT', name: 'User', ofType: null },
                 args: [
-                  { name: 'id', description: '用户 ID', type: { kind: 'NON_NULL', name: null, ofType: { kind: 'SCALAR', name: 'ID' } }, defaultValue: null },
+                  { name: 'id', description: 'User ID', type: { kind: 'NON_NULL', name: null, ofType: { kind: 'SCALAR', name: 'ID' } }, defaultValue: null },
                 ],
               },
             ],
@@ -612,11 +612,11 @@ export async function introspectSchema(
           {
             kind: 'OBJECT',
             name: 'User',
-            description: '用户类型',
+            description: 'User type',
             fields: [
-              { name: 'id', description: '用户 ID', type: { kind: 'NON_NULL', name: null, ofType: { kind: 'SCALAR', name: 'ID' } }, args: [] },
-              { name: 'name', description: '用户名', type: { kind: 'SCALAR', name: 'String', ofType: null }, args: [] },
-              { name: 'email', description: '邮箱', type: { kind: 'SCALAR', name: 'String', ofType: null }, args: [] },
+              { name: 'id', description: 'User ID', type: { kind: 'NON_NULL', name: null, ofType: { kind: 'SCALAR', name: 'ID' } }, args: [] },
+              { name: 'name', description: 'Username', type: { kind: 'SCALAR', name: 'String', ofType: null }, args: [] },
+              { name: 'email', description: 'Email', type: { kind: 'SCALAR', name: 'String', ofType: null }, args: [] },
             ],
             inputFields: null,
             enumValues: null,
@@ -636,7 +636,7 @@ export async function introspectSchema(
 function createMockRecording(): import('@/types/node').TcpUdpRecording {
   return {
     id: 'rec_mock_001',
-    name: '模拟 TCP 录制',
+    name: 'Mock TCP Recording',
     created_at: Date.now(),
     entries: [
       {
@@ -801,7 +801,7 @@ export async function executeFlowWithDataset(
     report: {
       uuid: `mock-report-${now}`,
       flow_uuid: 'mock-flow-uuid',
-      flow_name: 'Mock 测试流程',
+      flow_name: 'Mock Test Flow',
       dataset_path: '/mock/data.csv',
       dataset_name: datasetName,
       encoding: 'utf-8',
@@ -842,7 +842,7 @@ export async function listDatasetReports(
   return [
     {
       report_id: 'mock-report-001',
-      flow_name: '测试流程 1',
+      flow_name: 'Test Flow 1',
       dataset_name: 'users.csv',
       executed_at: Date.now() - 86400000,
       total_rows: 100,
@@ -883,7 +883,7 @@ export async function loadDatasetReport(
       input_data: { id: String(i + 1), name: `user_${i}` },
       status: i < 4 ? ('success' as const) : ('fail' as const),
       duration_ms: 40 + i * 5,
-      error_message: i >= 4 ? '断言失败' : undefined,
+      error_message: i >= 4 ? 'Assertion failed' : undefined,
       has_detail_report: i >= 4,
     })),
   };
@@ -902,7 +902,7 @@ export async function loadDatasetRowDetail(
     flow_uuid: 'mock-flow-001',
     flow_name: '测试流程 1',
     status: 'failed',
-    error: '断言失败: 状态码期望 200，实际 500',
+    error: 'Assertion failed: expected status 200, got 500',
   };
 }
 

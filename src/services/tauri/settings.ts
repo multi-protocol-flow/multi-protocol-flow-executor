@@ -41,7 +41,7 @@ export async function loadSettings(): Promise<Settings> {
       logDir: logDir ?? `${appDataDir}/logs/`,
       flowsDir: flowsDir ?? `${appDataDir}/flows/`,
       theme: (theme as ThemeMode) ?? 'system',
-      locale: (locale as Locale) ?? 'zh-CN',
+      locale: (locale as Locale) ?? 'en-US',
     };
   }
   const { loadSettings: loadSettingsImpl } = await import('./settings.mock');

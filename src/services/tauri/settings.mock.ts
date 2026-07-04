@@ -33,7 +33,7 @@ export async function loadSettings(): Promise<Settings> {
     logDir: stored.logDir ?? DEFAULT_LOG_DIR,
     flowsDir: stored.flowsDir ?? DEFAULT_FLOWS_DIR,
     theme: stored.theme ?? DEFAULT_THEME,
-    locale: stored.locale ?? 'zh-CN',
+    locale: stored.locale ?? 'en-US',
   };
 }
 

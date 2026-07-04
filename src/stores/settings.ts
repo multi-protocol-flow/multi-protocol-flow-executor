@@ -31,7 +31,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   logDir: '',
   flowsDir: '',
   theme: 'system' as ThemeMode,
-  locale: 'zh-CN' as Locale,
+  locale: 'en-US' as Locale,
   isLoading: true,
   error: null,
 
