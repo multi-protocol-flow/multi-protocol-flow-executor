@@ -174,6 +174,22 @@ cp src-tauri/target/release/mpe-cli /usr/local/bin/mpe   # 或 /root/bin/mpe
 mpe --help
 ```
 
+### 浏览器模式（前端独立运行，无需 Tauri 后端）
+
+前端支持在浏览器中独立运行，所有 Tauri 后端调用会自动降级为 Mock 实现。
+
+```bash
+# 浏览器模式开发（热重载）
+npm run dev:web
+
+# 构建为静态站点，产物输出到 website/playground/
+npm run build:web
+
+# 如果使用 VSCode 或其他编辑器，直接 npm run dev 效果等同
+```
+
+构建产物位于 `website/playground/`，可直接部署到任何静态文件服务器或 GitHub Pages。
+
 ### 使用 CLI
 
 ```bash
