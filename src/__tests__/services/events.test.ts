@@ -13,7 +13,7 @@ const createTestFlow = (hasConnection = false): Flow => ({
   uuid: 'test-flow-uuid',
   name: '测试流程',
   nodes: [
-    { uuid: 'start-node', type: 'entry', name: '开始', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+    { uuid: 'start-node', type: 'entry', name: 'Start', position: { x: 0, y: 0 }, data: { type: 'entry' } },
   ],
   connections: hasConnection
     ? [{ id: 'conn-1', source_node_uuid: 'start-node', target_node_uuid: 'other-node', source_port_id: 'out', target_port_id: 'in' }]
@@ -58,7 +58,7 @@ describe('executeFlowWithChannel (Mock)', () => {
       const result = await executeFlowWithChannel(flow, onLog);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('缺少开始节点');
+      expect(result.error).toContain('missing a start node');
     });
 
     it('单个 Entry 节点无连接应该成功', async () => {
@@ -79,7 +79,7 @@ describe('executeFlowWithChannel (Mock)', () => {
       await executeFlowWithChannel(flow, onLog);
 
       const startLog = onLog.mock.calls.find(
-        (call) => call[0].message.includes('开始执行')
+        (call) => call[0].message.includes('started execution')
       );
       expect(startLog).toBeDefined();
     });
@@ -91,7 +91,7 @@ describe('executeFlowWithChannel (Mock)', () => {
       await executeFlowWithChannel(flow, onLog);
 
       const endLog = onLog.mock.calls.find(
-        (call) => call[0].message.includes('执行成功')
+        (call) => call[0].message.includes('executed successfully')
       );
       expect(endLog).toBeDefined();
     });

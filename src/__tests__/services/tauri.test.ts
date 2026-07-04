@@ -24,7 +24,7 @@ describe('Tauri IPC Mock 服务', () => {
       const flow = await createFlow('测试流程');
       expect(flow.nodes).toHaveLength(1);
       expect(flow.nodes[0].type).toBe('entry');
-      expect(flow.nodes[0].name).toBe('开始');
+      expect(flow.nodes[0].name).toBe('Start');
     });
 
     it('开始节点 ID 应该包含流程 UUID', async () => {
@@ -51,7 +51,7 @@ describe('Tauri IPC Mock 服务', () => {
       const startNode = {
         uuid: `start-${flowId}`,
         type: 'entry' as const,
-        name: '开始',
+        name: 'Start',
         position: { x: 0, y: 0 },
         data: { type: 'entry' as const },
       };
@@ -127,7 +127,7 @@ describe('Tauri IPC Mock 服务', () => {
       const result = await executeFlowWithChannel(flow, onLog);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('流程缺少开始节点');
+      expect(result.error).toBe('Flow is missing a start node');
     });
 
     it('应该调用日志回调', async () => {
@@ -140,7 +140,7 @@ describe('Tauri IPC Mock 服务', () => {
       expect(onLog).toHaveBeenCalledWith(
         expect.objectContaining({
           level: 'INFO',
-          message: expect.stringContaining('开始执行'),
+          message: expect.stringContaining('started execution'),
         })
       );
     });

@@ -90,7 +90,7 @@ describe('ConditionalViewer', () => {
       render(<ConditionalViewer report={report} />);
 
       // 评估值面板默认展开
-      expect(screen.getByText('字段值 (field_value)')).toBeDefined();
+      expect(screen.getByText('Field Value')).toBeDefined();
     });
 
     it('显示评估后的值', () => {
@@ -100,7 +100,7 @@ describe('ConditionalViewer', () => {
       render(<ConditionalViewer report={report} />);
 
       // 评估值面板默认展开
-      expect(screen.getByText('评估值 (evaluated_value)')).toBeDefined();
+      expect(screen.getByText('Evaluated Value')).toBeDefined();
     });
 
     it('未设置值时显示提示', () => {
@@ -166,7 +166,7 @@ describe('ConditionalViewer', () => {
       render(<ConditionalViewer report={report} />);
 
       // 字段值标题应该可见
-      expect(screen.getByText('字段值 (field_value)')).toBeDefined();
+      expect(screen.getByText('Field Value')).toBeDefined();
     });
 
     it('评估结果面板默认展开', () => {
