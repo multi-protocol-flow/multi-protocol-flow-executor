@@ -34,9 +34,8 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
-    define: {
-      __TAURI__: isTauri ? JSON.stringify(true) : JSON.stringify(false),
-    },
+    // 不使用 define: { __TAURI__ }，因为 @tauri-apps/api/core 包内部也引用 __TAURI__
+    // 全局变量，define 替换会破坏包内部逻辑。运行时靠 isTauriEnv() 检测即可。
     base: isTauri ? '/' : './',
     build: {
       outDir: isTauri ? 'dist' : 'website/playground',
