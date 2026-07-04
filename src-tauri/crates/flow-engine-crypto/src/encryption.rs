@@ -46,31 +46,31 @@ const KEY_SIZE: usize = 32;
 #[derive(Error, Debug)]
 pub enum EncryptionError {
     /// 加密操作Failed
-    #[error("加密Failed: {0}")]
+    #[error("Encryption failed: {0}")]
     EncryptionFailed(String),
 
     /// 解密操作Failed
-    #[error("解密Failed: {0}")]
+    #[error("Decryption failed: {0}")]
     DecryptionFailed(String),
 
     /// Keychain 操作Failed
-    #[error("Keychain 操作Failed: {0}")]
+    #[error("Keychain operation failed: {0}")]
     KeyringError(String),
 
     /// Base64 编解码Failed
-    #[error("Base64 编解码Failed: {0}")]
+    #[error("Base64 encoding/decoding failed: {0}")]
     Base64Error(String),
 
     /// 密钥生成Failed
-    #[error("密钥生成Failed: {0}")]
+    #[error("Key generation failed: {0}")]
     KeyGenerationFailed(String),
 
     /// UTF-8 编解码Failed
-    #[error("UTF-8 编解码Failed: {0}")]
+    #[error("UTF-8 encoding/decoding failed: {0}")]
     Utf8Error(String),
 
     /// 密文格式无效
-    #[error("密文格式无效: {0}")]
+    #[error("Invalid ciphertext format: {0}")]
     InvalidFormat(String),
 }
 
@@ -241,7 +241,7 @@ fn get_or_create_key() -> Result<[u8; KEY_SIZE], EncryptionError> {
     // 尝试获取现有密钥
     match entry.get_password() {
         Ok(key_b64) => {
-            log::debug!("从 keychain 获取到现有密钥");
+            log::debug!("Retrieved existing key from keychain");
 
             // 解码现有密钥
             let mut key_bytes = BASE64
@@ -251,7 +251,7 @@ fn get_or_create_key() -> Result<[u8; KEY_SIZE], EncryptionError> {
             if key_bytes.len() != KEY_SIZE {
                 key_bytes.zeroize();
                 return Err(EncryptionError::KeyringError(format!(
-                    "密钥长度应为 {} 字节，实际为 {} 字节",
+                    "Key length should be {} bytes, actual: {} bytes",
                     KEY_SIZE,
                     key_bytes.len()
                 )));
@@ -267,7 +267,7 @@ fn get_or_create_key() -> Result<[u8; KEY_SIZE], EncryptionError> {
             Ok(key)
         }
         Err(e) => {
-            log::debug!("密钥不存在，生成新密钥: {}", e);
+            log::debug!("Key not found, generating new key: {}", e);
 
             // 密钥不存在，生成新密钥
             let mut key = [0u8; KEY_SIZE];
@@ -280,7 +280,7 @@ fn get_or_create_key() -> Result<[u8; KEY_SIZE], EncryptionError> {
                 .set_password(&key_b64)
                 .map_err(|e| EncryptionError::KeyringError(e.to_string()))?;
 
-            log::debug!("新密钥已存储到 keychain");
+            log::debug!("New key stored in keychain");
 
             Ok(key)
         }
@@ -374,7 +374,7 @@ mod tests {
         let parts: Vec<&str> = ciphertext.split(':').collect();
         if parts.len() != 2 {
             return Err(EncryptionError::InvalidFormat(
-                "密文格式应为 base64(nonce):base64(ciphertext)".to_string(),
+            "Expected ciphertext format: base64(nonce):base64(ciphertext)".to_string(),
             ));
         }
 
@@ -386,7 +386,7 @@ mod tests {
         if nonce_bytes.len() != NONCE_SIZE {
             nonce_bytes.zeroize();
             return Err(EncryptionError::InvalidFormat(format!(
-                "Nonce 长度应为 {} 字节，实际为 {} 字节",
+            "Nonce length should be {} bytes, actual: {} bytes",
                 NONCE_SIZE,
                 nonce_bytes.len()
             )));
@@ -407,7 +407,7 @@ mod tests {
         let mut plaintext = cipher
             .decrypt(nonce, ciphertext_bytes.as_slice())
             .map_err(|_| {
-                EncryptionError::DecryptionFailed("解密Failed：密钥Error或密文已被篡改".to_string())
+            EncryptionError::DecryptionFailed("Decryption failed: key error or ciphertext tampered".to_string())
             })?;
 
         // 转换为字符串

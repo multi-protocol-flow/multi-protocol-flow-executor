@@ -1015,7 +1015,7 @@ mod tests {
 
         let result = ctx.push_ws_message("conn-1", msg).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("已关闭"));
+        assert!(result.unwrap_err().contains("closed"));
     }
 
     /// 测试 is_cancelled 默认返回 false

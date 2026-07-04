@@ -229,7 +229,7 @@ impl WsStreamSegment {
         // 检查消息大小
         if message.size > MAX_MESSAGE_SIZE {
             return Err(format!(
-                "消息大小 ({}) 超过上限 ({} 字节)",
+                "Message size ({}) exceeds limit ({} bytes)",
                 message.size, MAX_MESSAGE_SIZE
             ));
         }
@@ -383,18 +383,18 @@ impl WsConnectionStream {
     pub fn push_message(&mut self, message: WsMessage) -> Result<(), String> {
         // 检查是否已关闭
         if self.is_closed {
-            return Err("连接已关闭，无法推送消息".to_string());
+            return Err("Connection closed, cannot push message".to_string());
         }
 
         // 检查是否有段
         if self.segments.is_empty() {
-            return Err("没有当前消息段".to_string());
+            return Err("No current message segment".to_string());
         }
 
         // 检查消息大小
         if message.size > MAX_MESSAGE_SIZE {
             return Err(format!(
-                "消息大小 ({}) 超过上限 ({} 字节)",
+                "Message size ({}) exceeds limit ({} bytes)",
                 message.size, MAX_MESSAGE_SIZE
             ));
         }
@@ -457,7 +457,7 @@ impl WsConnectionStream {
                 return Ok(());
             }
         }
-        Err("没有可丢弃的消息".to_string())
+        Err("No messages to discard".to_string())
     }
 }
 
@@ -638,7 +638,7 @@ mod tests {
 
         let result = segment.push_message(msg);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("超过上限"));
+        assert!(result.unwrap_err().contains("exceeds limit"));
     }
 
     #[test]
@@ -794,7 +794,7 @@ mod tests {
 
         let result = stream.push_message(msg);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("没有当前消息段"));
+        assert!(result.unwrap_err().contains("No current message segment"));
     }
 
     #[test]
@@ -819,7 +819,7 @@ mod tests {
 
         let result = stream.push_message(msg);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("连接已关闭"));
+        assert!(result.unwrap_err().contains("closed"));
     }
 
     #[test]
