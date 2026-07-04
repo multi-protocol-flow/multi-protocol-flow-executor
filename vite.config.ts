@@ -9,12 +9,24 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    optimizeDeps: {
+      // 限制 dep-scan 范围，避免扫到 src-tauri/target/ 下数万 Rust 产物触发 EMFILE
+      entries: ['src/**/*.{ts,tsx,mts,cts}'],
+    },
     server: {
       host: '0.0.0.0',
       port: 5173,
       strictPort: true,
       watch: {
-        ignored: ['**/src-tauri/target/**'],
+        ignored: [
+          '**/src-tauri/target/**',
+          '**/.git/**',
+          '**/node_modules/**',
+        ],
+      },
+      fs: {
+        // 只允许提供 src/ 和 public/ 下的文件
+        allow: ['.', 'src', 'public'],
       },
     },
     resolve: {
