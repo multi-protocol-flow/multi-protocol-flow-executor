@@ -444,7 +444,12 @@ impl ScriptNodeExecutor {
             body,
             raw_body,
             size,
-            time: 0, // TODO: 从 output 提取实际时间
+            time: output
+                .get("timing")
+                .and_then(|t| t.get("total_ms"))
+                .and_then(|v| v.as_u64())
+                .or_else(|| output.get("duration_ms").and_then(|v| v.as_u64()))
+                .unwrap_or(0),
             raw_output: output.clone(),
         })
     }
