@@ -96,10 +96,7 @@ impl NodeExecutor for AmqpQueueDeleteExecutor {
                     "AMQP QueueDelete 节点 {} start execution (queue={}, action={:?})",
                     node.name, queue, config.action
                 ),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -186,10 +183,7 @@ impl NodeExecutor for AmqpQueueDeleteExecutor {
                     .emit_log(LogEvent {
                         level: log_level,
                         message: log_message,
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap_or_default()
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -214,10 +208,7 @@ impl NodeExecutor for AmqpQueueDeleteExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("AMQP 队列删除异常: {}", e),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap_or_default()
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -649,10 +640,7 @@ mod tests {
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender: None,
             flow_file_path: None,
             ws_connection_urls: HashMap::new(),

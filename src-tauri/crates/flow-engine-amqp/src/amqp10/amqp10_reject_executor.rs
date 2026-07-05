@@ -67,7 +67,7 @@ impl NodeExecutor for Amqp10RejectExecutor {
         context.emit_log(LogEvent {
             level: LogLevel::Info,
             message: format!("AMQP 1.0 拒绝节点 {} start execution", node.name),
-            timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
+            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
             node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone(),
         }).await;
@@ -212,7 +212,7 @@ mod tests {
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext {
             flow_uuid: flow_id.to_string(), current_node_uuid: None, variables: VariableStorage::new(),
-            node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
+            node_reports: vec![], flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None,

@@ -206,17 +206,11 @@ impl RecordingManager {
         self.sequence += 1;
         let id = format!(
             "rec_{}_{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_millis() as u64)
-                .unwrap_or(0),
+            flow_engine_core::utils::unix_timestamp_ms(),
             self.sequence
         );
 
-        let created_at = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+        let created_at = flow_engine_core::utils::unix_timestamp_ms();
 
         let recording = TcpRecording {
             id: id.clone(),

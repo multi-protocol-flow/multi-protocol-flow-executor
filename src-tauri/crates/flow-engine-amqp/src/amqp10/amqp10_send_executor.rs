@@ -92,10 +92,7 @@ impl NodeExecutor for Amqp10SendExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("AMQP 1.0 send node {} start execution", node.name),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -152,7 +149,7 @@ impl NodeExecutor for Amqp10SendExecutor {
                 context.emit_log(LogEvent {
                     level: log_level,
                     message: log_message,
-                    timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
+                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
@@ -171,7 +168,7 @@ impl NodeExecutor for Amqp10SendExecutor {
                 context.emit_log(LogEvent {
                     level: LogLevel::Error,
                     message: format!("AMQP 1.0 发送异常: {}", e),
-                    timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
+                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
@@ -315,7 +312,7 @@ mod tests {
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None,

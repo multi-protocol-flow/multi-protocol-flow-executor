@@ -518,10 +518,7 @@ fn parse_token_response(resp: &serde_json::Value) -> Result<EmailOAuthTokens, St
         .get("expires_in")
         .and_then(|v| v.as_u64())
         .map(|secs| {
-            let now_ms = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64;
+            let now_ms = flow_engine_core::utils::unix_timestamp_ms();
             now_ms + secs * 1000
         });
 
@@ -795,10 +792,7 @@ mod tests {
         assert_eq!(tokens.scope, Some("https://mail.google.com/".to_string()));
 
         // expires_at 应该是未来时间
-        let now_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        let now_ms = flow_engine_core::utils::unix_timestamp_ms();
         assert!(tokens.expires_at.unwrap() > now_ms);
     }
 

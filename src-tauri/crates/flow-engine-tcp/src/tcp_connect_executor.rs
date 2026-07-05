@@ -77,10 +77,7 @@ impl NodeExecutor for TcpConnectExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("TCP Connect node {} started execution", node.name),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_millis() as u64)
-                    .unwrap_or(0),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -139,10 +136,7 @@ impl NodeExecutor for TcpConnectExecutor {
                             "TCP connection successful {}:{} ({}ms)",
                             host, config.port, total_ms
                         ),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .map(|d| d.as_millis() as u64)
-                            .unwrap_or(0),
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -168,10 +162,7 @@ impl NodeExecutor for TcpConnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("TCP connection failed: {}", e),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .map(|d| d.as_millis() as u64)
-                            .unwrap_or(0),
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -343,10 +334,7 @@ mod tests {
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext::new(
             flow_id.to_string(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_millis() as u64)
-                .unwrap_or(0),
+            flow_engine_core::utils::unix_timestamp_ms(),
         )
     }
 

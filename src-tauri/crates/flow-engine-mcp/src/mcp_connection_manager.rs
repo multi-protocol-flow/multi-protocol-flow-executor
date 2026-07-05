@@ -125,10 +125,7 @@ impl McpProvider for McpConnectionManager {
         // 创建 MCP 客户端
         let result = mcp_client::create_mcp_client(&config).await?;
 
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+        let now = flow_engine_core::utils::unix_timestamp_ms();
 
         let server_info = McpServerInfo {
             name: result.server_name.clone(),

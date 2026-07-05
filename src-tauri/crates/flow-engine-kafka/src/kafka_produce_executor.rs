@@ -117,10 +117,7 @@ impl NodeExecutor for KafkaProduceExecutor {
                     "Kafka 生产节点 {} start execution (Topic: {})",
                     node.name, topic
                 ),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_millis() as u64)
-                    .unwrap_or(0),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -209,10 +206,7 @@ impl NodeExecutor for KafkaProduceExecutor {
                     .emit_log(LogEvent {
                         level: log_level,
                         message: log_msg,
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .map(|d| d.as_millis() as u64)
-                            .unwrap_or(0),
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -249,10 +243,7 @@ impl NodeExecutor for KafkaProduceExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("Kafka 生产Failed: {}", e),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .map(|d| d.as_millis() as u64)
-                            .unwrap_or(0),
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -366,10 +357,7 @@ mod tests {
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_millis() as u64)
-                .unwrap_or(0),
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender: None,
             flow_file_path: None,
             ws_connection_urls: HashMap::new(),
