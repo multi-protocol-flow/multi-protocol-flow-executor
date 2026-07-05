@@ -489,10 +489,7 @@ fn create_test_context(flow_id: &str) -> flow_engine_core::context::ExecutionCon
 
     flow_engine_core::context::ExecutionContext::new(
         flow_id.to_string(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system time error")
-            .as_millis() as u64,
+        flow_engine_core::utils::unix_timestamp_ms(),
     )
 }
 

@@ -23,10 +23,7 @@ fn create_context(flow_id: &str) -> ExecutionContext {
         current_node_uuid: None,
         variables: VariableStorage::new(),
         node_reports: Vec::new(),
-        flow_trigger_time: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system time error")
-            .as_millis() as u64,
+        flow_trigger_time: flow_engine::utils::unix_timestamp_ms(),
         log_sender: None,
         flow_file_path: None,
         ws_connection_urls: std::collections::HashMap::new(),

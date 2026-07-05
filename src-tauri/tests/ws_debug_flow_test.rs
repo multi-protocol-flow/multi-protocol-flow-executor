@@ -258,10 +258,7 @@ async fn test_ownership_transfer() {
     let connection_id = format!("ws-connect-{}", flow_uuid);
     
     // 创建执行上下文
-    let trigger_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("system time error")
-        .as_millis() as u64;
+    let trigger_time = flow_engine::utils::unix_timestamp_ms();
     let context = ExecutionContext::new(flow_uuid.to_string(), trigger_time);
     
     // 模拟 WsConnect 节点创建消息流
@@ -347,10 +344,7 @@ async fn test_report_includes_ws_streams() {
     let connection_id = "test-conn-001";
     
     // 创建执行上下文
-    let trigger_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("system time error")
-        .as_millis() as u64;
+    let trigger_time = flow_engine::utils::unix_timestamp_ms();
     let context = ExecutionContext::new(flow_uuid.to_string(), trigger_time);
     
     // 创建 WebSocket 消息流
@@ -475,10 +469,7 @@ async fn test_normal_mode_no_debug_events() {
     let connection_id = "test-conn-normal";
     
     // 创建执行上下文（不设置 debug_event_sender）
-    let trigger_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("system time error")
-        .as_millis() as u64;
+    let trigger_time = flow_engine::utils::unix_timestamp_ms();
     let context = ExecutionContext::new(flow_uuid.to_string(), trigger_time);
     
     // 验证 debug_event_sender 为 None
@@ -661,10 +652,7 @@ async fn test_ws_stream_message_recording() {
     let flow_uuid = format!("test-ws-recording-{}", uuid::Uuid::new_v4());
     
     // 创建执行上下文
-    let trigger_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("system time error")
-        .as_millis() as u64;
+    let trigger_time = flow_engine::utils::unix_timestamp_ms();
     let context = ExecutionContext::new(flow_uuid.to_string(), trigger_time);
     
     // 创建 WebSocket 消息流
