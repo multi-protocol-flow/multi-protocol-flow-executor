@@ -96,10 +96,7 @@ impl WsMessage {
         };
 
         // 获取当前时间戳（毫秒）
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+        let timestamp = crate::utils::unix_timestamp_ms();
 
         Self {
             timestamp,
@@ -174,10 +171,7 @@ impl WsStreamSegment {
     /// 新创建的 `WsStreamSegment` 实例
     pub fn new(node_uuid: String, node_name: String, node_type: String) -> Self {
         // 获取当前时间戳（毫秒）
-        let started_at = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+        let started_at = crate::utils::unix_timestamp_ms();
 
         Self {
             node_uuid,
@@ -248,12 +242,7 @@ impl WsStreamSegment {
     ///
     /// 设置段的结束时间
     pub fn end(&mut self) {
-        self.ended_at = Some(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_millis() as u64)
-                .unwrap_or(0),
-        );
+        self.ended_at = Some(crate::utils::unix_timestamp_ms());
     }
 
     /// 获取当前消息数量

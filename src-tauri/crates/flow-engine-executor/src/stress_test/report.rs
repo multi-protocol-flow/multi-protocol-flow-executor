@@ -49,10 +49,7 @@ pub fn generate_report(
     let duration_ms = end_time.duration_since(start_time).as_millis() as u64;
 
     // 计算开始时间戳（毫秒）
-    let start_time_ms = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64 - duration_ms)
-        .unwrap_or(0);
+    let start_time_ms = flow_engine_core::utils::unix_timestamp_ms() - duration_ms;
 
     let end_time_ms = start_time_ms + duration_ms;
 
@@ -175,10 +172,7 @@ mod tests {
         let metrics = MetricsCollector::new();
 
         // 设置开始时间
-        let start_time_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+        let start_time_ms = flow_engine_core::utils::unix_timestamp_ms();
         metrics.set_start_time(start_time_ms);
 
         // 记录一些Success执行
@@ -216,10 +210,7 @@ mod tests {
         let metrics = MetricsCollector::new();
 
         // 设置开始时间
-        let start_time_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+        let start_time_ms = flow_engine_core::utils::unix_timestamp_ms();
         metrics.set_start_time(start_time_ms);
 
         // 记录Success和Failed
@@ -265,10 +256,7 @@ mod tests {
         let metrics = MetricsCollector::new();
 
         // 设置开始时间
-        let start_time_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+        let start_time_ms = flow_engine_core::utils::unix_timestamp_ms();
         metrics.set_start_time(start_time_ms);
 
         // 记录多种Error
@@ -348,10 +336,7 @@ mod tests {
         let metrics = MetricsCollector::new();
 
         // 设置开始时间
-        let start_time_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+        let start_time_ms = flow_engine_core::utils::unix_timestamp_ms();
         metrics.set_start_time(start_time_ms);
 
         // 记录 1-100 的延迟
@@ -393,10 +378,7 @@ mod tests {
         let metrics = MetricsCollector::new();
 
         // 设置开始时间
-        let start_time_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0);
+        let start_time_ms = flow_engine_core::utils::unix_timestamp_ms();
         metrics.set_start_time(start_time_ms);
 
         // 记录一些数据

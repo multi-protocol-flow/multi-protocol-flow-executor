@@ -180,10 +180,7 @@ impl MultipartBody {
     /// 生成 boundary 字符串
     pub fn generate_boundary() -> String {
         // 使用时间戳和随机数生成 boundary
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_nanos())
-            .unwrap_or(0);
+        let timestamp = flow_engine_core::utils::unix_timestamp_ms();
         format!("----WebKitFormBoundary{:016x}", timestamp)
     }
 

@@ -671,12 +671,7 @@ impl MetricsCollector {
 
     /// 获取当前时间戳（毫秒）
     fn current_time_ms() -> u64 {
-        use std::time::{SystemTime, UNIX_EPOCH};
-
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64)
-            .unwrap_or(0)
+        flow_engine_core::utils::unix_timestamp_ms()
     }
 }
 

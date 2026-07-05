@@ -158,10 +158,7 @@ pub fn generate_report(
     let p99 = calculate_percentile(&durations, 99.0);
 
     // 执行时间戳
-    let executed_at = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0);
+    let executed_at = flow_engine_core::utils::unix_timestamp_ms();
 
     DatasetExecutionReport {
         uuid: Uuid::new_v4().to_string(),

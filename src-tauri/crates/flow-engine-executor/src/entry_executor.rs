@@ -60,10 +60,7 @@ impl NodeExecutor for EntryNodeExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("Entry node {} 开始", node.name),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_millis() as u64)
-                    .unwrap_or(0),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -93,10 +90,7 @@ impl NodeExecutor for EntryNodeExecutor {
                 .emit_log(LogEvent {
                     level: LogLevel::Info,
                     message: "Entry node无后续连接，流程终止".to_string(),
-                    timestamp: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .map(|d| d.as_millis() as u64)
-                        .unwrap_or(0),
+                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
@@ -121,10 +115,7 @@ impl NodeExecutor for EntryNodeExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("Entry node {} 完成", node.name),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_millis() as u64)
-                    .unwrap_or(0),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),

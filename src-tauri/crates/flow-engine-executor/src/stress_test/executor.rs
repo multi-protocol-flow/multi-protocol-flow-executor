@@ -175,10 +175,7 @@ impl StressTestExecutor {
             };
 
             // 设置指标收集器的开始时间
-            let start_time_ms = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_millis() as u64)
-                .unwrap_or(0);
+            let start_time_ms = flow_engine_core::utils::unix_timestamp_ms();
             state.metrics.set_start_time(start_time_ms);
 
             (Arc::clone(&state.metrics), Arc::clone(&state.stop_flag))
@@ -570,10 +567,7 @@ impl StressTestExecutor {
         let end_time = Instant::now();
         let duration_ms = end_time.duration_since(start_time).as_millis() as u64;
 
-        let start_time_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis() as u64 - duration_ms)
-            .unwrap_or(0);
+        let start_time_ms = flow_engine_core::utils::unix_timestamp_ms() - duration_ms;
 
         let end_time_ms = start_time_ms + duration_ms;
 

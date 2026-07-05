@@ -345,10 +345,7 @@ impl DatasetExecutor {
 
         // 共享开始时间戳（毫秒），用于计算进度事件的 elapsed_ms
         let start_time_ms = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_millis() as u64)
-                .unwrap_or(0),
+            flow_engine_core::utils::unix_timestamp_ms(),
         ));
 
         let mut handles: Vec<tokio::task::JoinHandle<()>> = Vec::new();
@@ -479,10 +476,7 @@ impl DatasetExecutor {
                     }
                 }
 
-                let current_ms = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_millis() as u64)
-                    .unwrap_or(0);
+                let current_ms = flow_engine_core::utils::unix_timestamp_ms();
                 let elapsed_ms = current_ms.saturating_sub(start_time_ms.load(std::sync::atomic::Ordering::SeqCst));
                 let sc = success_count.load(std::sync::atomic::Ordering::SeqCst);
                 let fc = fail_count.load(std::sync::atomic::Ordering::SeqCst);

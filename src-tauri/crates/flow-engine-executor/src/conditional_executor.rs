@@ -115,10 +115,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
         context.emit_log(LogEvent {
             level: LogLevel::Info,
             message: format!("条件节点 {} 开始评估", node.name),
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
+            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
             node_uuid: Some(node.uuid.clone()),
             node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone(),
@@ -161,10 +158,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 context.emit_log(LogEvent {
                     level: LogLevel::Debug,
                     message: "条件类型: Simple".to_string(),
-                    timestamp: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
@@ -245,10 +239,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 context.emit_log(LogEvent {
                     level: LogLevel::Debug,
                     message: format!("表达式: {} = {}", expression, result),
-                    timestamp: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
@@ -266,10 +257,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 context.emit_log(LogEvent {
                     level: LogLevel::Debug,
                     message: "条件类型: Advanced".to_string(),
-                    timestamp: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
@@ -288,10 +276,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 context.emit_log(LogEvent {
                     level: LogLevel::Debug,
                     message: format!("表达式: {} = {}", expression, result),
-                    timestamp: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
@@ -313,10 +298,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
         context.emit_log(LogEvent {
             level: LogLevel::Info,
             message: format!("条件结果: {}", condition_result),
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
+            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
             node_uuid: Some(node.uuid.clone()),
             node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone(),

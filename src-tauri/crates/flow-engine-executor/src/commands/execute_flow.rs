@@ -34,10 +34,7 @@ pub async fn execute_flow(
     let flow_name = flow.name.clone();
 
     // 发送流程开始事件
-    let start_timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64;
+    let start_timestamp = flow_engine_core::utils::unix_timestamp_ms();
 
     if let Some(ref sender) = log_sender {
         let _ = sender
@@ -75,10 +72,7 @@ pub async fn execute_flow(
         .await;
 
     // 发送流程结束事件
-    let end_timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64;
+    let end_timestamp = flow_engine_core::utils::unix_timestamp_ms();
 
     if let Some(sender) = log_sender {
         let _ = sender
