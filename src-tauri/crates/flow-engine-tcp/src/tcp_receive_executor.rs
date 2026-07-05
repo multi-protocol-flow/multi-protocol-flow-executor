@@ -83,10 +83,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                     "TCP Receive node {} started execution (connection: {}, timeout: {}ms)",
                     node.name, connection_id, config.receive_timeout_ms
                 ),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -136,10 +133,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                             data.len(),
                             total_ms
                         ),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -172,10 +166,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!("TCP Receive timeout, no data (total: {}ms)", total_ms),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -216,10 +207,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("TCP Receive failed: {}", e),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -298,10 +286,7 @@ mod tests {
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext::new(
             flow_id.to_string(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time error")
-                .as_millis() as u64,
+            flow_engine_core::utils::unix_timestamp_ms(),
         )
     }
 

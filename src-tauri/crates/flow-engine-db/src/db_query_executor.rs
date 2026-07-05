@@ -84,10 +84,7 @@ impl NodeExecutor for DbQueryNodeExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("Database query node {} start execution", node.name),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -195,10 +192,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("Executing SQL: {}", sql),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -325,10 +319,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("Query execution failed: {}", e),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -370,10 +361,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                         query_result.rows.len(),
                         MAX_ROWS
                     ),
-                    timestamp: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .expect("system time error")
-                        .as_millis() as u64,
+                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
@@ -470,10 +458,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                     "Database query node {} completed ({}ms, {} rows)",
                     node.name, total_ms, row_count
                 ),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -577,10 +562,7 @@ mod tests {
             current_node_uuid: None,
             variables: var_storage,
             node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time error")
-                .as_millis() as u64,
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender: None,
             flow_file_path: None,
             ws_connection_urls: HashMap::new(),

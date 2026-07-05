@@ -81,10 +81,7 @@ impl NodeExecutor for WsConnectExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("WebSocket connect node {} started", node.name),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -191,10 +188,7 @@ impl NodeExecutor for WsConnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!("WebSocket connect succeeded ({}ms)", duration.as_millis()),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -233,10 +227,7 @@ impl NodeExecutor for WsConnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("WebSocket connect failed: {}", e),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -348,10 +339,7 @@ impl WsConnectExecutor {
                             .emit_log(LogEvent {
                                 level: LogLevel::Info,
                                 message: format!("Initial message received: {}", message),
-                                timestamp: std::time::SystemTime::now()
-                                    .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("system time error")
-                                    .as_millis() as u64,
+                                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
                                 flow_uuid: context.flow_uuid.clone(),
@@ -438,10 +426,7 @@ impl WsConnectExecutor {
                                             .emit_log(LogEvent {
                                                 level: LogLevel::Info,
                                                 message: format!("Message matched: {}", message),
-                                                timestamp: std::time::SystemTime::now()
-                                                    .duration_since(std::time::UNIX_EPOCH)
-                                                    .expect("system time error")
-                                                    .as_millis() as u64,
+                                                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                                                 node_uuid: Some(node.uuid.clone()),
                                                 node_name: Some(node.name.clone()),
                                                 flow_uuid: context.flow_uuid.clone(),
@@ -471,10 +456,7 @@ impl WsConnectExecutor {
                             .emit_log(LogEvent {
                                 level: LogLevel::Error,
                                 message: error_msg.clone(),
-                                timestamp: std::time::SystemTime::now()
-                                    .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("system time error")
-                                    .as_millis() as u64,
+                                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
                                 flow_uuid: context.flow_uuid.clone(),
@@ -494,10 +476,7 @@ impl WsConnectExecutor {
                             .emit_log(LogEvent {
                                 level: LogLevel::Error,
                                 message: error_msg.clone(),
-                                timestamp: std::time::SystemTime::now()
-                                    .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("system time error")
-                                    .as_millis() as u64,
+                                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
                                 flow_uuid: context.flow_uuid.clone(),
@@ -690,10 +669,7 @@ mod tests {
 
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
-        ExecutionContext::new(flow_id.to_string(), std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system time error")
-            .as_millis() as u64)
+        ExecutionContext::new(flow_id.to_string(), flow_engine_core::utils::unix_timestamp_ms())
     }
 
     #[tokio::test]

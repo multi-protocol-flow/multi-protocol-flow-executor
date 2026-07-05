@@ -106,10 +106,7 @@ impl NodeExecutor for McpConnectExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("MCP connect node {} start execution", node.name),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -264,10 +261,7 @@ impl NodeExecutor for McpConnectExecutor {
                             conn_info.prompts.len(),
                             duration.as_millis()
                         ),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -306,10 +300,7 @@ impl NodeExecutor for McpConnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("MCP connection failed: {}", e),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -404,10 +395,7 @@ mod tests {
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time error")
-                .as_millis() as u64,
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender: None,
             flow_file_path: None,
             ws_connection_urls: HashMap::new(),
@@ -621,10 +609,7 @@ mod tests {
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time error")
-                .as_millis() as u64,
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender: None,
             flow_file_path: None,
             ws_connection_urls: HashMap::new(),

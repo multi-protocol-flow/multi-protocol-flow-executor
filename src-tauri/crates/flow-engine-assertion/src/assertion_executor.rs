@@ -72,10 +72,7 @@ impl NodeExecutor for AssertionNodeExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("Assertion node {} started execution", node.name),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -163,10 +160,7 @@ impl NodeExecutor for AssertionNodeExecutor {
                 .emit_log(LogEvent {
                     level: LogLevel::Warn,
                     message: format!("Assertion node {}: {}", node.name, warning_msg),
-                    timestamp: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64,
+                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone(),
@@ -235,10 +229,7 @@ impl NodeExecutor for AssertionNodeExecutor {
                     LogLevel::Warn
                 },
                 message: format!("Assertion node {}: {}", node.name, result_msg),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -277,10 +268,7 @@ impl NodeExecutor for AssertionNodeExecutor {
                         .emit_log(LogEvent {
                             level: LogLevel::Error,
                             message: format!("Assertion node {} failed: {}", node.name, error_msg),
-                            timestamp: std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .unwrap_or_default()
-                                .as_millis() as u64,
+                            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                             node_uuid: Some(node.uuid.clone()),
                             node_name: Some(node.name.clone()),
                             flow_uuid: context.flow_uuid.clone(),
@@ -559,10 +547,7 @@ mod tests {
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: Vec::new(),
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time error")
-                .as_millis() as u64,
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender: None,
             flow_file_path: None,
             ws_connection_urls: HashMap::new(),
@@ -1020,10 +1005,7 @@ mod tests {
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: Vec::new(),
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time error")
-                .as_millis() as u64,
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender: None,
             flow_file_path: None,
             ws_connection_urls: HashMap::new(),

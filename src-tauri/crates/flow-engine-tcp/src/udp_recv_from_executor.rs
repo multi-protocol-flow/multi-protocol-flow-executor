@@ -82,10 +82,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                     "UDP RecvFrom node {} started execution (connection: {}, timeout: {}ms)",
                     node.name, connection_id, config.receive_timeout_ms
                 ),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -139,10 +136,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                             data.len(),
                             total_ms
                         ),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -181,10 +175,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Warn,
                         message: error_msg.clone(),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -227,10 +218,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("UDP receive failed: {}", e),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),

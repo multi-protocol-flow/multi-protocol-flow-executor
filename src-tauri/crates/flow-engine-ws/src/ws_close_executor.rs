@@ -73,10 +73,7 @@ impl NodeExecutor for WsCloseExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("WebSocket Close node {} started", node.name),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -148,10 +145,7 @@ impl NodeExecutor for WsCloseExecutor {
                             duration.as_millis(),
                             config.close_code
                         ),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -181,10 +175,7 @@ impl NodeExecutor for WsCloseExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("WebSocket connection close failed: {}", e),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -262,10 +253,7 @@ mod tests {
 
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
-        ExecutionContext::new(flow_id.to_string(), std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system time error")
-            .as_millis() as u64)
+        ExecutionContext::new(flow_id.to_string(), flow_engine_core::utils::unix_timestamp_ms())
     }
 
     #[tokio::test]

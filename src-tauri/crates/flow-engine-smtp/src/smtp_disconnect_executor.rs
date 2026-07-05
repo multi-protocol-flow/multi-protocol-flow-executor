@@ -76,10 +76,7 @@ impl NodeExecutor for SmtpDisconnectExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("SMTP disconnect node {} start execution", node.name),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -134,15 +131,12 @@ impl NodeExecutor for SmtpDisconnectExecutor {
                             "SMTP connection disconnected ({}ms)",
                             duration.as_millis()
                         ),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
-                        node_uuid: Some(node.uuid.clone()),
-                        node_name: Some(node.name.clone()),
-                        flow_uuid: context.flow_uuid.clone(),
-                    })
-                    .await;
+                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                    node_uuid: Some(node.uuid.clone()),
+                    node_name: Some(node.name.clone()),
+                    flow_uuid: context.flow_uuid.clone(),
+                })
+                .await;
 
                 Ok((next_node_ids, Some(output_data)))
             }
@@ -158,15 +152,12 @@ impl NodeExecutor for SmtpDisconnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("SMTP disconnect failed: {}", e),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
-                        node_uuid: Some(node.uuid.clone()),
-                        node_name: Some(node.name.clone()),
-                        flow_uuid: context.flow_uuid.clone(),
-                    })
-                    .await;
+                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                    node_uuid: Some(node.uuid.clone()),
+                    node_name: Some(node.name.clone()),
+                    flow_uuid: context.flow_uuid.clone(),
+                })
+                .await;
 
                 // 构建Error输出数据（仍然走 out 端口）
                 let error_output = json!({
@@ -219,10 +210,7 @@ mod tests {
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time error")
-                .as_millis() as u64,
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender: None,
             flow_file_path: None,
             ws_connection_urls: HashMap::new(),

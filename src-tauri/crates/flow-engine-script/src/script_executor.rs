@@ -80,10 +80,7 @@ impl NodeExecutor for ScriptNodeExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("Script node {} start execution", node.name),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -242,10 +239,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                         .emit_log(LogEvent {
                             level,
                             message: format!("[console.{}] {}", log_entry.level, log_entry.message),
-                            timestamp: std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .expect("system time error")
-                                .as_millis() as u64,
+                            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                             node_uuid: Some(node.uuid.clone()),
                             node_name: Some(node.name.clone()),
                             flow_uuid: context.flow_uuid.clone(),
@@ -274,10 +268,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!("Script node {} execution complete", node.name),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -348,10 +339,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: error_msg.clone(),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -493,10 +481,7 @@ impl ScriptNodeExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Error,
                 message: format!("Script node {} error: {}", node.name, error.message),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),

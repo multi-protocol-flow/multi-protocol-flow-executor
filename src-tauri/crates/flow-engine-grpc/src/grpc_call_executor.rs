@@ -200,10 +200,7 @@ impl NodeExecutor for GrpcCallExecutor {
                     "gRPC call node {} start execution: {}/{} ({})",
                     node.name, config.service_name, config.method_name, pattern_str
                 ),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -283,10 +280,7 @@ impl NodeExecutor for GrpcCallExecutor {
                                             attempt + 1,
                                             backoff_ms
                                         ),
-                                        timestamp: std::time::SystemTime::now()
-                                            .duration_since(std::time::UNIX_EPOCH)
-                                            .expect("system time error")
-                                            .as_millis() as u64,
+                                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                                         node_uuid: Some(node.uuid.clone()),
                                         node_name: Some(node.name.clone()),
                                         flow_uuid: context.flow_uuid.clone(),
@@ -355,10 +349,7 @@ impl NodeExecutor for GrpcCallExecutor {
                                             attempt + 1,
                                             backoff_ms
                                         ),
-                                        timestamp: std::time::SystemTime::now()
-                                            .duration_since(std::time::UNIX_EPOCH)
-                                            .expect("system time error")
-                                            .as_millis() as u64,
+                                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                                         node_uuid: Some(node.uuid.clone()),
                                         node_name: Some(node.name.clone()),
                                         flow_uuid: context.flow_uuid.clone(),
@@ -545,10 +536,7 @@ impl NodeExecutor for GrpcCallExecutor {
                             pattern_str,
                             duration.as_millis()
                         ),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -608,10 +596,7 @@ impl NodeExecutor for GrpcCallExecutor {
                             "gRPC call failed: {}/{} ({}) - {}",
                             config.service_name, config.method_name, pattern_str, error_message
                         ),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("system time error")
-                            .as_millis() as u64,
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
                         flow_uuid: context.flow_uuid.clone(),
@@ -708,10 +693,7 @@ mod tests {
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext::new(
             flow_id.to_string(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time error")
-                .as_millis() as u64,
+            flow_engine_core::utils::unix_timestamp_ms(),
         )
     }
 

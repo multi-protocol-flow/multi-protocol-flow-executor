@@ -69,10 +69,7 @@ impl ImapConnectExecutor {
 
     /// 构建当前时间戳（毫秒）
     fn current_timestamp() -> u64 {
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system time went backwards")
-            .as_millis() as u64
+        flow_engine_core::utils::unix_timestamp_ms()
     }
 }
 
@@ -420,10 +417,7 @@ mod tests {
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender: None,
             flow_file_path: None,
             ws_connection_urls: HashMap::new(),
