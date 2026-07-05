@@ -1,4 +1,4 @@
-name: Release - Linux CLI
+name: Release - Linux CLI (musl static)
 
 on:
   push:
@@ -10,27 +10,40 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: alpine:3.21
     outputs:
       version: ${{ steps.version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v7
 
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libcurl4-openssl-dev \
-            libssl-dev \
-            libsasl2-dev \
-            cmake \
-            pkg-config
+          apk add --no-cache \
+            curl bash git gcc musl-dev cmake make g++ \
+            openssl-dev openssl-libs-static \
+            perl curl-dev zlib-dev zlib-static \
+            aws-cli
+
+      - uses: actions/cache@v4
+        id: cargo-cache
+        with:
+          path: |
+            /root/.cargo/bin
+            /root/.cargo/registry
+          key: musl-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: musl-cargo-
+
+      - uses: actions/cache@v4
+        with:
+          path: src-tauri/target
+          key: musl-target-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: musl-target-
+
+      - name: Install Rust
+        if: steps.cargo-cache.outputs.cache-hit != 'true'
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
       - name: Set version
         id: version
@@ -42,8 +55,10 @@ jobs:
           sed -i "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" src-tauri/Cargo.toml
           sed -i "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" src-tauri/crates/mpe-cli/Cargo.toml
 
-      - name: Build mpe-cli
-        run: cd src-tauri && cargo build -p mpe-cli --release
+      - name: Build mpe-cli (musl static)
+        run: |
+          export PATH=/root/.cargo/bin:$PATH
+          cd src-tauri && cargo build -p mpe-cli --release
 
       - name: Package
         run: |

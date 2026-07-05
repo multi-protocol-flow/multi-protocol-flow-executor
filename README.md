@@ -139,6 +139,28 @@ cargo build -p mpe-cli --release --no-default-features -F protocol-http -F proto
 
 产物：`src-tauri/target/release/mpe-cli`
 
+##### musl 静态编译（兼容所有 Linux 系统）
+
+如需一个不依赖 glibc 版本、可在任何 Linux 上直接运行的二进制，用 Docker 进行 musl 静态编译：
+
+```bash
+# 构建 Docker 编译镜像（首次需等待 rustup 安装）
+docker build -t mpe-musl-builder -f Dockerfile.musl .
+
+# 编译 musl 静态 mpe-cli
+docker run --rm \
+  -v $PWD:/src \
+  -v musl-cargo:/root/.cargo/registry \
+  mpe-musl-builder \
+  sh -c "cd src-tauri && cargo build -p mpe-cli --release"
+
+# 产物在 src-tauri/target/release/mpe-cli
+file src-tauri/target/release/mpe-cli
+# 输出：ELF ... static-pie linked（不依赖 glibc）
+```
+
+> GitHub Release 中 `mpe-v*-linux-x86_64.tar.gz` 即为 musl 静态编译版本。
+
 #### Windows 交叉编译 Linux CLI
 
 从 Windows 构建 Linux 独立 CLI 有两种方式：

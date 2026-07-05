@@ -1,0 +1,12 @@
+FROM alpine:3.21
+
+RUN apk add --no-cache \
+    curl bash gcc musl-dev cmake make g++ \
+    openssl-dev openssl-libs-static \
+    perl curl-dev zlib-dev zlib-static
+
+# 用 rustup 装最新稳定版 Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH=/root/.cargo/bin:$PATH
+
+WORKDIR /src
