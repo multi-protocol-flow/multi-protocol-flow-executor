@@ -51,27 +51,6 @@ impl ErrorDetail {
         }
     }
 
-    /// 设置Error代码（向后兼容，接受字符串）
-    ///
-    /// 尝试将字符串解析为 ErrorCode 变体名称（如 "E_EXECUTION_ERROR"），
-    /// 如果无法识别则回退到 `ErrorCode::E_EXECUTION_ERROR`。
-    /// 此方法将在后续版本中移除，请使用 `with_error_code_typed` 代替。
-    ///
-    /// # 参数
-    ///
-    /// * `code` - Error代码字符串
-    ///
-    /// # 返回
-    ///
-    /// 自身的可变引用，支持链式调用
-    pub fn with_error_code(mut self, code: String) -> Self {
-        self.error_code = Some(
-            serde_json::from_str::<ErrorCode>(&format!("\"{}\"", code))
-                .unwrap_or(ErrorCode::E_EXECUTION_ERROR),
-        );
-        self
-    }
-
     /// 设置类型化Error代码
     ///
     /// # 参数
@@ -1062,16 +1041,11 @@ mod tests {
     }
 
     #[test]
-    fn test_error_detail_backward_compat_with_error_code() {
-        // with_error_code(String) should accept a string matching an ErrorCode name
+    fn test_error_detail_with_error_code_typed_compat() {
+        // with_error_code_typed should accept an ErrorCode enum value
         let error = ErrorDetail::new(ErrorKind::Execution, "test".to_string())
-            .with_error_code("E_HTTP_REQUEST_FAILED".to_string());
+            .with_error_code_typed(ErrorCode::E_HTTP_REQUEST_FAILED);
         assert_eq!(error.error_code, Some(ErrorCode::E_HTTP_REQUEST_FAILED));
-
-        // Unknown string falls back to E_EXECUTION_ERROR
-        let error2 = ErrorDetail::new(ErrorKind::Execution, "test".to_string())
-            .with_error_code("UNKNOWN_CODE_123".to_string());
-        assert_eq!(error2.error_code, Some(ErrorCode::E_EXECUTION_ERROR));
     }
 
     #[test]
