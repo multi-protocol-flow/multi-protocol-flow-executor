@@ -321,28 +321,10 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
 /// 检查流程结构是否正确，返回带有Error码的结构化验证结果。
 /// 每个Error项包含 `code`（Error码，前端用于 i18n 映射）、`message`（详细描述）和可选的 `field`。
 #[tauri::command]
-pub fn validate_flow(flow: Flow) -> serde_json::Value {
+pub fn validate_flow(flow: Flow) -> flow_engine::validator::ValidationResult {
     let validator = flow_engine::validator::FlowValidator::new();
     let registry = flow_engine::default_registry::default_registry();
-    let result = validator.validate_with_registry(&flow, &registry);
-
-    let structured_errors: Vec<serde_json::Value> = result
-        .errors
-        .iter()
-        .map(|entry| {
-            serde_json::json!({
-                "code": entry.code,
-                "message": entry.message,
-                "field": entry.field,
-            })
-        })
-        .collect();
-
-    serde_json::json!({
-        "valid": result.valid,
-        "errors": structured_errors,
-        "warnings": result.warnings,
-    })
+    validator.validate_with_registry(&flow, &registry)
 }
 
 // ============================================================================

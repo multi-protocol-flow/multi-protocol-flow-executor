@@ -20,7 +20,7 @@ pub struct ValidationEntry {
 }
 
 /// 验证结果
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ValidationResult {
     /// 验证是否通过
     pub valid: bool,
