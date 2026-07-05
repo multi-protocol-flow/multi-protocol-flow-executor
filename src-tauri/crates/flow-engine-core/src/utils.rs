@@ -2,6 +2,18 @@
 
 use serde_json_path::JsonPath;
 
+/// 获取当前 Unix 时间戳（毫秒）
+///
+/// 使用 `unwrap_or_default()` 而非 `unwrap()`/`expect()`，
+/// 避免系统时间异常（如 NTP 回跳）时导致 panic。
+/// 系统时间异常时返回 `0`。
+pub fn unix_timestamp_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
+}
+
 /// 按 `JSONPath` 从 JSON 中提取值
 ///
 /// 支持的路径格式：
@@ -207,5 +219,25 @@ mod tests {
         let token_var = context.variables.variables.iter().find(|v| v.name == "auth_token");
         assert!(token_var.is_some());
         assert_eq!(token_var.unwrap().value, serde_json::json!("abc"));
+    }
+
+    #[test]
+    fn test_unix_timestamp_ms_returns_recent_value() {
+        let ts = super::unix_timestamp_ms();
+        // 2023-01-01 in milliseconds: 1672531200000
+        // Any value less than this means the clock is not set to a recent time
+        assert!(
+            ts > 1_672_531_200_000,
+            "unix_timestamp_ms() returned {} which is before 2023-01-01",
+            ts
+        );
+    }
+
+    #[test]
+    fn test_unix_timestamp_ms_increases_over_time() {
+        let t1 = super::unix_timestamp_ms();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        let t2 = super::unix_timestamp_ms();
+        assert!(t2 >= t1, "timestamps should not go backwards: t1={}, t2={}", t1, t2);
     }
 }

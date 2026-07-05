@@ -73,32 +73,35 @@ impl GrpcCancelSessionManager {
     }
 
     /// 设置当前活跃的 gRPC manager
-    pub fn set_manager(&self, manager: Arc<dyn GrpcProvider>) {
-        let mut guard = self.grpc_manager.lock().expect("lock should not fail");
+    pub fn set_manager(&self, manager: Arc<dyn GrpcProvider>) -> Result<(), String> {
+        let mut guard = self.grpc_manager.lock().map_err(|e| format!("gRPC manager lock poisoned: {}", e))?;
         *guard = Some(manager);
+        Ok(())
     }
 
     /// 设置当前活跃的具体类型 GrpcConnectionManager（用于 Channelz）
-    pub fn set_channelz_manager(&self, manager: Arc<flow_engine::grpc_connection_manager::GrpcConnectionManager>) {
-        let mut guard = self.channelz_manager.lock().expect("lock should not fail");
+    pub fn set_channelz_manager(&self, manager: Arc<flow_engine::grpc_connection_manager::GrpcConnectionManager>) -> Result<(), String> {
+        let mut guard = self.channelz_manager.lock().map_err(|e| format!("gRPC channelz manager lock poisoned: {}", e))?;
         *guard = Some(manager);
+        Ok(())
     }
 
     /// 清除当前活跃的 gRPC manager（执行结束时清理）
-    pub fn clear(&self) {
+    pub fn clear(&self) -> Result<(), String> {
         {
-            let mut guard = self.grpc_manager.lock().expect("lock should not fail");
+            let mut guard = self.grpc_manager.lock().map_err(|e| format!("gRPC manager lock poisoned: {}", e))?;
             *guard = None;
         }
         {
-            let mut guard = self.channelz_manager.lock().expect("lock should not fail");
+            let mut guard = self.channelz_manager.lock().map_err(|e| format!("gRPC channelz manager lock poisoned: {}", e))?;
             *guard = None;
         }
+        Ok(())
     }
 
     /// 取消指定调用
     pub fn cancel_stream(&self, connection_id: &str, call_id: &str) -> Result<(), String> {
-        let guard = self.grpc_manager.lock().map_err(|e| e.to_string())?;
+        let guard = self.grpc_manager.lock().map_err(|e| format!("gRPC manager lock poisoned: {}", e))?;
         match guard.as_ref() {
             Some(manager) => manager.cancel_stream(connection_id, call_id),
             None => Err("No active execution session".to_string()),
@@ -164,9 +167,9 @@ pub async fn execute_flow(
         flow_engine::grpc_connection_manager::GrpcConnectionManager::new()
     );
     let grpc_manager: Arc<dyn GrpcProvider> = concrete_grpc_manager.clone();
-    grpc_state.set_manager(grpc_manager.clone());
+    grpc_state.set_manager(grpc_manager.clone())?;
     // 注册具体类型引用（用于 Channelz 内省，共享同一个连接池）
-    grpc_state.set_channelz_manager(concrete_grpc_manager);
+    grpc_state.set_channelz_manager(concrete_grpc_manager)?;
 
     // 创建队列日志发送器（调试模式同步，发布模式异步）
     let (log_sender, log_worker) = create_log_sender(on_event);
@@ -226,7 +229,7 @@ pub async fn execute_flow(
         *guard = None;
     }
     // 清理 gRPC 取消会话
-    grpc_state.clear();
+    grpc_state.clear()?;
 
     Ok(output)
 }
