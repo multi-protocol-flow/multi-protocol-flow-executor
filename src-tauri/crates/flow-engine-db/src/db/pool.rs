@@ -49,10 +49,7 @@ impl std::fmt::Debug for ActivePool {
 impl ActivePool {
     /// 创建新的活跃连接池
     pub fn new(connection_uuid: String, name: String, db_type: String) -> Self {
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        let now = flow_engine_core::utils::unix_timestamp_ms();
 
         Self {
             connection_uuid,
@@ -77,10 +74,7 @@ impl ActivePool {
 
     /// 更新最后使用时间
     pub fn touch(&mut self) {
-        self.last_used_at = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        self.last_used_at = flow_engine_core::utils::unix_timestamp_ms();
     }
 
     /// 设置Error信息
@@ -115,10 +109,7 @@ pub struct TransactionInfo {
 impl TransactionInfo {
     /// 创建新的事务信息
     pub fn new(connection_uuid: String, isolation_level: Option<String>) -> Self {
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        let now = flow_engine_core::utils::unix_timestamp_ms();
 
         Self {
             connection_uuid,

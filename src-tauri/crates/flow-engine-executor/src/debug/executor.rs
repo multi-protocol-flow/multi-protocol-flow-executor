@@ -93,10 +93,7 @@ impl DebuggableFlowExecutor {
         debug_state.set_breakpoints(breakpoints);
         debug_state.status = DebugStatus::Running;
         // 记录调试开始时间
-        debug_state.start_time_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        debug_state.start_time_ms = flow_engine_core::utils::unix_timestamp_ms();
 
         // 创建共享状态（用于心跳任务读取当前状态）
         let shared_state = Arc::new(RwLock::new(debug_state.clone()));
@@ -119,10 +116,7 @@ impl DebuggableFlowExecutor {
                     _ = interval.tick() => {
                         // 读取当前状态并发送心跳
                         if let Ok(state) = heartbeat_state.read() {
-                            let timestamp = std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .unwrap()
-                                .as_millis() as u64;
+                            let timestamp = flow_engine_core::utils::unix_timestamp_ms();
                             
                             let _ = heartbeat_sender.send(DebugEvent::Heartbeat {
                                 status: state.status.clone(),
@@ -165,10 +159,7 @@ impl DebuggableFlowExecutor {
             current_node_uuid: None,
             variables: var_storage,
             node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as u64,
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender,
             flow_file_path: self.flow_file_path.clone(),
             ws_connection_urls: HashMap::new(),
@@ -306,10 +297,7 @@ impl DebuggableFlowExecutor {
 
             // 非暂停模式（RunToEnd）：立即发送心跳，让前端知道当前执行的节点
             if !should_pause {
-                let now = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis() as u64;
+                let now = flow_engine_core::utils::unix_timestamp_ms();
                 let _ = event_sender.send(DebugEvent::Heartbeat {
                     status: DebugStatus::Running,
                     current_node_uuid: Some(current_node_id.clone()),
@@ -370,10 +358,7 @@ impl DebuggableFlowExecutor {
                 match command_result {
                     Ok(Some((next_node_uuid_opt, simulated_output))) => {
                         // 跳过节点，创建堆栈条目并发送事件
-                        let node_end_ms = std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap()
-                            .as_millis() as u64;
+                        let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
 
                         // 解析节点配置为 JSON（用于 resolved_config 字段）
                         let resolved_config = serde_json::to_value(&node.data).ok();
@@ -469,10 +454,7 @@ impl DebuggableFlowExecutor {
             }
 
             // 执行当前节点
-            let node_start_ms = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as u64;
+            let node_start_ms = flow_engine_core::utils::unix_timestamp_ms();
 
             // 解析节点配置为 JSON（用于 resolved_config 字段）
             let resolved_config = serde_json::to_value(&node.data).ok();
@@ -575,10 +557,7 @@ impl DebuggableFlowExecutor {
                     let variable_changes = compute_variable_changes(&variables_before, &variables_after);
 
                     // 更新堆栈条目
-                    let node_end_ms = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_millis() as u64;
+                    let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
 
                     // 根据节点类型和输出数据确定 used_port_id（通过 registry 查找）
                     let type_id = node.data.type_name();
@@ -635,10 +614,7 @@ impl DebuggableFlowExecutor {
                     let variable_changes = compute_variable_changes(&variables_before, &variables_after);
 
                     // 更新堆栈条目
-                    let node_end_ms = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_millis() as u64;
+                    let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
 
                     // 根据节点 on_error 策略决定执行行为
                     let route_to_false = node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse);
@@ -1000,10 +976,7 @@ impl DebuggableFlowExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!("Executing node {} ({})", node.name, node.node_type),
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .expect("system time error")
-                    .as_millis() as u64,
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
                 flow_uuid: context.flow_uuid.clone(),
@@ -1045,10 +1018,7 @@ impl DebuggableFlowExecutor {
     ) -> flow_engine_core::report::FlowExecutionReport {
         use flow_engine_core::report::{ExecutionMode, ExecutionStatus, NodeExecutionReport};
 
-        let end_time_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        let end_time_ms = flow_engine_core::utils::unix_timestamp_ms();
 
         // 将临时节点配置合并到 flow 副本中，使 flow_snapshot 反映运行时实际配置
         let mut flow_snapshot = flow.clone();

@@ -227,10 +227,7 @@ impl FlowExecutor {
             current_node_uuid: None,
             variables: var_storage,
             node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as u64,
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
             log_sender,
             flow_file_path: self.flow_file_path.clone(),
             ws_connection_urls: std::collections::HashMap::new(),
@@ -354,10 +351,7 @@ impl FlowExecutor {
 
             // 记录节点开始时间
             let node_start_time = tokio::time::Instant::now();
-            let node_start_ms = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as u64;
+            let node_start_ms = flow_engine_core::utils::unix_timestamp_ms();
 
             // 快照执行前的变量状态（必须在 execute_node 之前）
             // 用于计算节点执行期间的变量变更
@@ -433,10 +427,7 @@ impl FlowExecutor {
             {
                 Ok((next_node_id_from_executor, output_data)) => {
                     // 记录节点结束时间
-                    let node_end_ms = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_millis() as u64;
+                    let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
                     let node_duration = node_start_time.elapsed().as_millis() as u64;
 
                     executed_count += 1;
@@ -607,10 +598,7 @@ impl FlowExecutor {
                 }
                 Err(error) => {
                     // 记录节点结束时间
-                    let node_end_ms = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_millis() as u64;
+                    let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
                     let node_duration = node_start_time.elapsed().as_millis() as u64;
 
                     // 检查是否是条件节点返回 false 的情况
@@ -799,20 +787,14 @@ impl FlowExecutor {
                         context.emit_log(LogEvent {
                             level: LogLevel::Error,
                             message: log_message,
-                            timestamp: std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .unwrap_or_default()
-                                .as_millis() as u64,
+                            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                             node_uuid: Some(node.uuid.clone()),
                             node_name: Some(node.name.clone()),
                             flow_uuid: context.flow_uuid.clone(),
                         }).await;
 
                         // 生成部分报告（包含已执行节点）
-                        let end_time_ms = std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap()
-                            .as_millis() as u64;
+                        let end_time_ms = flow_engine_core::utils::unix_timestamp_ms();
                         let flow_status = flow_engine_core::report::ExecutionStatus::Failed;
 
                         // 获取最终变量快照（Task 16）
@@ -874,10 +856,7 @@ impl FlowExecutor {
                         context.emit_log(LogEvent {
                             level: LogLevel::Warn,
                             message: format!("节点 {} 可恢复Error: {}", node.name, error_detail.message),
-                            timestamp: std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .unwrap_or_default()
-                                .as_millis() as u64,
+                            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                             node_uuid: Some(node.uuid.clone()),
                             node_name: Some(node.name.clone()),
                             flow_uuid: context.flow_uuid.clone(),
@@ -891,10 +870,7 @@ impl FlowExecutor {
         }
 
         // 生成流程执行报告
-        let end_time = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        let end_time = flow_engine_core::utils::unix_timestamp_ms();
         let start_time_ms = start_time.elapsed().as_millis() as u64;
 
         // 获取最终变量快照
@@ -1059,10 +1035,7 @@ impl FlowExecutor {
         context.emit_log(LogEvent {
             level: LogLevel::Info,
             message: format!("执行节点 {} ({})", node.name, node.node_type),
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
+            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
             node_uuid: Some(node.uuid.clone()),
             node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone(),
@@ -1102,10 +1075,7 @@ impl FlowExecutor {
         variables: Option<serde_json::Value>,
         _log_sender: Option<Arc<dyn LogSender>>,
     ) -> ExecutionResult {
-        let now_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        let now_ms = flow_engine_core::utils::unix_timestamp_ms();
 
         // 1. Get type_id and validate
         let type_id = node.data.type_name();
@@ -1136,10 +1106,7 @@ impl FlowExecutor {
         let plugin = match self.registry.get(&type_id) {
             Some(p) => p,
             None => {
-                let end_ms = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis() as u64;
+                let end_ms = flow_engine_core::utils::unix_timestamp_ms();
                 return ExecutionResult {
                     success: false,
                     data: None,
@@ -1183,10 +1150,7 @@ impl FlowExecutor {
 
         let result = tokio::time::timeout(timeout_duration, execute_future).await;
 
-        let end_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        let end_ms = flow_engine_core::utils::unix_timestamp_ms();
         let duration_ms = end_ms.saturating_sub(now_ms);
 
         match result {
@@ -1864,7 +1828,7 @@ mod tests {
             json!("test-key"),
             String::new(),
         );
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64, log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(), log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Bearer test-key");
@@ -1884,7 +1848,7 @@ mod tests {
             }),
             String::new(),
         );
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64, log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(), log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Hello Alice");
@@ -1895,7 +1859,7 @@ mod tests {
         // 测试严格模式（变量不存在时报错）
         let template = "{{nonexistent.var}}";
         let variables = VariableStorage::new();
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64, log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(), log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Variable not found"));
@@ -1907,7 +1871,7 @@ mod tests {
         let template = "{{items[0]}}";
         let mut variables = VariableStorage::new();
         variables.set_variable("items".to_string(), json!(["a", "b", "c"]), String::new());
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64, log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(), log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Index access not supported"));
