@@ -42,8 +42,10 @@ jobs:
           restore-keys: musl-target-
 
       - name: Install Rust
-        if: steps.cargo-cache.outputs.cache-hit != 'true'
-        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        run: |
+          if [ ! -f /root/.cargo/bin/cargo ]; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          fi
 
       - name: Set version
         id: version
@@ -55,9 +57,11 @@ jobs:
           sed -i "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" src-tauri/Cargo.toml
           sed -i "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" src-tauri/crates/mpe-cli/Cargo.toml
 
+      - name: Setup PATH
+        run: echo "/root/.cargo/bin" >> $GITHUB_PATH
+
       - name: Build mpe-cli (musl static)
         run: |
-          export PATH=/root/.cargo/bin:$PATH
           cd src-tauri && cargo build -p mpe-cli --release
 
       - name: Package
