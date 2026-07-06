@@ -3,7 +3,7 @@ name = "mpe-cli"
 version = "0.1.0"
 description = "Multi-Protocol Executor CLI — standalone binary without GUI dependencies"
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.82.0"
 default-run = "mpe-cli"
 
 [[bin]]

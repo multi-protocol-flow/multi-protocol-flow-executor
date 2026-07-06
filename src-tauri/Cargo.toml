@@ -74,6 +74,10 @@ doc_markdown = "warn"
 too_many_arguments = "allow"
 type_complexity = "allow"
 
+# Unwrap/expect 治理 — unwrap 禁止，expect 警告
+unwrap_used = "deny"
+expect_used = "warn"
+
 [package]
 name = "app"
 version = "0.1.1-beta.1"
@@ -82,7 +86,7 @@ authors = ["you"]
 license = ""
 repository = ""
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.82.0"
 default-run = "mpe"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -278,15 +282,3 @@ debug = false                   # 依赖项去掉调试符号，加速编译
 # 允许 unsafe（FreeConsole 等平台 API 需要）
 unsafe_code = "allow"
 missing_docs = "warn"
-
-[lints.clippy]
-all = { level = "warn", priority = -1 }
-correctness = { level = "deny", priority = -1 }
-suspicious = { level = "warn", priority = -1 }
-style = { level = "warn", priority = -1 }
-complexity = { level = "warn", priority = -1 }
-perf = { level = "warn", priority = -1 }
-missing_docs_in_private_items = "allow"
-doc_markdown = "warn"
-too_many_arguments = "allow"
-type_complexity = "allow"

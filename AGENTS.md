@@ -104,7 +104,7 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 - 无 `unwrap()` 生产代码（用 `?` 或 `expect`）
 - `missing_docs = "warn"`, `correctness = "deny"`
 - Clippy: all/style/complexity/perf = warn, `too_many_arguments`/`type_complexity` = allow
-- 格式化: `cargo fmt`, edition 2021, min rust 1.77.2
+- 格式化: `cargo fmt`, edition 2021, min rust 1.82.0
 - 16 个协议 crate 均为可选 feature (`protocol-*`)，默认 `all-protocols` 启用
 
 ## 反模式 (本项目禁止)
