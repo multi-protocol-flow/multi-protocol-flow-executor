@@ -5,20 +5,23 @@
 //!
 //! 所有 rmcp 类型保持内部可见，公共 API 仅暴露 core 类型。
 
-pub mod mcp_client;
-pub mod mcp_connection_manager;
-/// MCP 连接节点执行器
-pub mod mcp_connect_executor;
 /// MCP 调用工具节点执行器
 pub mod mcp_call_tool_executor;
-/// MCP 读取资源节点执行器
-pub mod mcp_read_resource_executor;
-/// MCP 获取提示词节点执行器
-pub mod mcp_get_prompt_executor;
+pub mod mcp_client;
 /// MCP 关闭节点执行器
 pub mod mcp_close_executor;
+/// MCP 连接节点执行器
+pub mod mcp_connect_executor;
+pub mod mcp_connection_manager;
+/// MCP 获取提示词节点执行器
+pub mod mcp_get_prompt_executor;
+/// MCP 读取资源节点执行器
+pub mod mcp_read_resource_executor;
 /// MCP 节点插件（NodePlugin 实现 + [`McpPluginGroup`]）
 pub mod plugin;
 
 pub use mcp_connection_manager::{McpConnection, McpConnectionManager};
-pub use plugin::{McpPluginGroup, McpConnectPlugin, McpCallToolPlugin, McpReadResourcePlugin, McpGetPromptPlugin, McpClosePlugin};
+pub use plugin::{
+    McpCallToolPlugin, McpClosePlugin, McpConnectPlugin, McpGetPromptPlugin, McpPluginGroup,
+    McpReadResourcePlugin,
+};

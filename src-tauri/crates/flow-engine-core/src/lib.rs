@@ -4,20 +4,20 @@
 //! 作为 workspace 的叶子 crate，不依赖任何其他 workspace crate，
 //! 也不包含具体的协议客户端实现（HTTP/WS/DB 客户端）。
 
-/// 数据集类型定义，包括 CSV 配置、行取策略和数据驱动执行报告
-pub mod dataset;
 /// 节点间的连接定义，描述数据流向
 pub mod connection;
 /// 流程执行上下文，管理变量存储与运行时状态
 pub mod context;
+/// 数据集类型定义，包括 CSV 配置、行取策略和数据驱动执行报告
+pub mod dataset;
 /// 数据库连接类型定义，包括驱动类型、连接配置和状态枚举
 pub mod db_types;
 /// 调试模式相关类型，支持断点、单步执行和执行栈追踪
 pub mod debug_types;
-/// 邮件协议共享类型定义（SMTP/IMAP 通用）
-pub mod email_types;
 /// `OAuth2` + SASL 认证工具模块（服务商预设配置、SASL 字符串构建）
 pub mod email_auth;
+/// 邮件协议共享类型定义（SMTP/IMAP 通用）
+pub mod email_types;
 /// Error类型定义，区分致命Error和可恢复Error
 pub mod error;
 /// 正常执行模式的事件类型，用于实时推送节点和流程完成状态到前端
@@ -32,14 +32,14 @@ pub mod hook;
 pub mod log_event;
 /// 节点定义，包括节点类型、端口和位置信息
 pub mod node;
-/// 节点插件 trait 定义，所有节点类型的统一接口
-pub mod plugin;
-/// 节点注册表，管理所有已注册的节点插件
-pub mod registry;
 /// 节点配置枚举，14 种节点类型的差异化配置数据
 pub mod node_config;
 /// 节点类型常量，提供所有已注册节点类型的字符串常量
 pub mod node_types;
+/// 节点插件 trait 定义，所有节点类型的统一接口
+pub mod plugin;
+/// 节点注册表，管理所有已注册的节点插件
+pub mod registry;
 /// 执行报告结构，包含节点级和流程级的执行结果与统计数据
 pub mod report;
 /// 流程统计信息，记录执行时间、节点数等聚合指标
@@ -56,12 +56,10 @@ pub mod ws_stream;
 // Re-export key trait types
 pub use traits::{
     AppDirProvider, ConsoleLogSender, DatabasePool, DbProvider, DebugEventSender,
-    DefaultAppDirProvider, DirectoryOpener, NoopDirectoryOpener,
-    ExecutionEventSender, NoopExecutionEventSender,
-    LogSender, NoopLogSender,
-    QueuedLogSender, UnderlyingLogSender, LogWorker,
+    DefaultAppDirProvider, DirectoryOpener, ExecutionEventSender, LogSender, LogWorker,
     McpConnectionInfo, McpProvider, McpResourceInfo, McpResourceReadResult, McpServerInfo,
-    McpToolCallResult, McpToolInfo,
+    McpToolCallResult, McpToolInfo, NoopDirectoryOpener, NoopExecutionEventSender, NoopLogSender,
+    QueuedLogSender, UnderlyingLogSender,
 };
 
 // Re-export debug types
@@ -79,9 +77,7 @@ pub use ws_stream::{
 };
 
 // Re-export db_types
-pub use db_types::{
-    DbConnection, DbConnectionStatus, DbDriver, TestDbConnectionResult,
-};
+pub use db_types::{DbConnection, DbConnectionStatus, DbDriver, TestDbConnectionResult};
 
 // Re-export hook types
 pub use hook::{FlowHook, HookAction, HookContext, HookTrigger};
@@ -91,12 +87,14 @@ pub use traits::{HookExecutor, NoopHookExecutor};
 
 // Re-export email types
 pub use email_types::{
-    EmailAddress, EmailAttachment, EmailAuthConfig, EmailBodyType, EmailOAuthTokens,
-    EmailProvider, ImapConfig, OAuth2Method, SmtpConfig, TlsMode,
+    EmailAddress, EmailAttachment, EmailAuthConfig, EmailBodyType, EmailOAuthTokens, EmailProvider,
+    ImapConfig, OAuth2Method, SmtpConfig, TlsMode,
 };
 
 // Re-export email auth
-pub use email_auth::{EmailProviderPreset, get_provider_preset, xoauth2_string, plain_string, login_strings};
+pub use email_auth::{
+    get_provider_preset, login_strings, plain_string, xoauth2_string, EmailProviderPreset,
+};
 
 // Re-export node types
-pub use node::{ExecutionErrorStrategy};
+pub use node::ExecutionErrorStrategy;

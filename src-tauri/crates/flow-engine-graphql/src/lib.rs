@@ -14,5 +14,8 @@ pub mod graphql_subscribe_executor;
 #[allow(missing_docs)]
 pub mod plugin;
 
-pub use graphql_client::{GraphqlClient, GraphqlError, GraphqlResponse, GraphqlSubscriptionEvent, GraphqlSubscriptionResponse, GraphqlTiming};
+pub use graphql_client::{
+    GraphqlClient, GraphqlError, GraphqlResponse, GraphqlSubscriptionEvent,
+    GraphqlSubscriptionResponse, GraphqlTiming,
+};
 pub use graphql_connection_manager::{GraphqlConnection, GraphqlConnectionManager};

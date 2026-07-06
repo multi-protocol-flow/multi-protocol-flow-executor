@@ -5,12 +5,10 @@
 pub use flow_engine_executor::commands;
 
 // Re-exports from flow-engine-core
-pub use flow_engine_core::dataset;
-pub use flow_engine_core::email_types;
-pub use flow_engine_core::email_auth;
 pub use flow_engine_core::connection;
-pub use flow_engine_core::plugin;
-pub use flow_engine_core::registry;
+pub use flow_engine_core::dataset;
+pub use flow_engine_core::email_auth;
+pub use flow_engine_core::email_types;
 pub use flow_engine_core::error;
 pub use flow_engine_core::execution_event;
 pub use flow_engine_core::flow;
@@ -18,6 +16,8 @@ pub use flow_engine_core::log_event;
 pub use flow_engine_core::node;
 pub use flow_engine_core::node_config;
 pub use flow_engine_core::node_types;
+pub use flow_engine_core::plugin;
+pub use flow_engine_core::registry;
 pub use flow_engine_core::report;
 pub use flow_engine_core::statistics;
 pub use flow_engine_core::traits;
@@ -48,25 +48,37 @@ pub use flow_engine_executor::flow_engine_http::{http, http_executor};
 #[cfg(feature = "protocol-ws")]
 pub use flow_engine_executor::flow_engine_ws;
 #[cfg(feature = "protocol-ws")]
-pub use flow_engine_executor::flow_engine_ws::{websocket_manager, ws_close_executor, ws_connect_executor, ws_send_collect_executor};
+pub use flow_engine_executor::flow_engine_ws::{
+    websocket_manager, ws_close_executor, ws_connect_executor, ws_send_collect_executor,
+};
 
 // DB (flow-engine-db)
 #[cfg(feature = "protocol-db")]
 pub use flow_engine_executor::flow_engine_db;
 #[cfg(feature = "protocol-db")]
-pub use flow_engine_executor::flow_engine_db::{db, db_begin_executor, db_close_executor, db_commit_executor, db_connect_executor, db_query_executor, db_rollback_executor};
+pub use flow_engine_executor::flow_engine_db::{
+    db, db_begin_executor, db_close_executor, db_commit_executor, db_connect_executor,
+    db_query_executor, db_rollback_executor,
+};
 
 // gRPC (flow-engine-grpc)
 #[cfg(feature = "protocol-grpc")]
 pub use flow_engine_executor::flow_engine_grpc;
 #[cfg(feature = "protocol-grpc")]
-pub use flow_engine_executor::flow_engine_grpc::{grpc_close_executor, grpc_connect_executor, grpc_connection_manager, grpc_call_executor, proto_parser, reflection};
+pub use flow_engine_executor::flow_engine_grpc::{
+    grpc_call_executor, grpc_close_executor, grpc_connect_executor, grpc_connection_manager,
+    proto_parser, reflection,
+};
 
 // TCP/UDP (flow-engine-tcp)
 #[cfg(feature = "protocol-tcp")]
 pub use flow_engine_executor::flow_engine_tcp;
 #[cfg(feature = "protocol-tcp")]
-pub use flow_engine_executor::flow_engine_tcp::{tcp_close_executor, tcp_connect_executor, tcp_connection_manager, tcp_send_executor, templates, parser, recording, udp_bind_executor, udp_close_executor, udp_recv_from_executor, udp_send_to_executor, udp_socket_manager};
+pub use flow_engine_executor::flow_engine_tcp::{
+    parser, recording, tcp_close_executor, tcp_connect_executor, tcp_connection_manager,
+    tcp_send_executor, templates, udp_bind_executor, udp_close_executor, udp_recv_from_executor,
+    udp_send_to_executor, udp_socket_manager,
+};
 
 // MCP (flow-engine-mcp)
 #[cfg(feature = "protocol-mcp")]
@@ -76,45 +88,71 @@ pub use flow_engine_executor::flow_engine_mcp;
 #[cfg(feature = "protocol-mqtt")]
 pub use flow_engine_executor::flow_engine_mqtt;
 #[cfg(feature = "protocol-mqtt")]
-pub use flow_engine_executor::flow_engine_mqtt::{mqtt_connect_executor, mqtt_publish_executor, mqtt_subscribe_executor, mqtt_unsubscribe_executor, mqtt_disconnect_executor, mqtt_wait_message_executor, mqtt_request_executor, mqtt_connection_manager};
+pub use flow_engine_executor::flow_engine_mqtt::{
+    mqtt_connect_executor, mqtt_connection_manager, mqtt_disconnect_executor,
+    mqtt_publish_executor, mqtt_request_executor, mqtt_subscribe_executor,
+    mqtt_unsubscribe_executor, mqtt_wait_message_executor,
+};
 
 // Kafka (flow-engine-kafka)
 #[cfg(feature = "protocol-kafka")]
 pub use flow_engine_executor::flow_engine_kafka;
 #[cfg(feature = "protocol-kafka")]
-pub use flow_engine_executor::flow_engine_kafka::{kafka_connect_executor, kafka_produce_executor, kafka_consume_executor, kafka_consume_batch_executor, kafka_admin_executor, kafka_schema_registry_executor, kafka_close_executor, kafka_connection_manager};
+pub use flow_engine_executor::flow_engine_kafka::{
+    kafka_admin_executor, kafka_close_executor, kafka_connect_executor, kafka_connection_manager,
+    kafka_consume_batch_executor, kafka_consume_executor, kafka_produce_executor,
+    kafka_schema_registry_executor,
+};
 
 // SSE (flow-engine-sse)
 #[cfg(feature = "protocol-sse")]
 pub use flow_engine_executor::flow_engine_sse;
 #[cfg(feature = "protocol-sse")]
-pub use flow_engine_executor::flow_engine_sse::{sse_connect_executor, sse_listen_executor, sse_disconnect_executor, sse_connection_manager};
+pub use flow_engine_executor::flow_engine_sse::{
+    sse_connect_executor, sse_connection_manager, sse_disconnect_executor, sse_listen_executor,
+};
 
 // GraphQL (flow-engine-graphql)
 #[cfg(feature = "protocol-graphql")]
 pub use flow_engine_executor::flow_engine_graphql;
 #[cfg(feature = "protocol-graphql")]
-pub use flow_engine_executor::flow_engine_graphql::{graphql_connect_executor, graphql_query_executor, graphql_subscribe_executor, graphql_introspect_executor, graphql_disconnect_executor, graphql_connection_manager};
+pub use flow_engine_executor::flow_engine_graphql::{
+    graphql_connect_executor, graphql_connection_manager, graphql_disconnect_executor,
+    graphql_introspect_executor, graphql_query_executor, graphql_subscribe_executor,
+};
 
 // AMQP (flow-engine-amqp)
 #[cfg(feature = "protocol-amqp")]
 pub use flow_engine_executor::flow_engine_amqp;
 #[cfg(feature = "protocol-amqp")]
-pub use flow_engine_executor::flow_engine_amqp::AmqpConnectionManager;
+pub use flow_engine_executor::flow_engine_amqp::amqp091::{
+    amqp_ack_executor, amqp_close_executor, amqp_connect_executor, amqp_consume_executor,
+    amqp_exchange_declare_executor, amqp_exchange_delete_executor, amqp_get_executor,
+    amqp_publish_executor, amqp_queue_bind_executor, amqp_queue_declare_executor,
+    amqp_queue_delete_executor,
+};
 #[cfg(feature = "protocol-amqp")]
-pub use flow_engine_executor::flow_engine_amqp::amqp091::{amqp_connect_executor, amqp_close_executor, amqp_exchange_declare_executor, amqp_exchange_delete_executor, amqp_queue_declare_executor, amqp_queue_delete_executor, amqp_queue_bind_executor, amqp_publish_executor, amqp_consume_executor, amqp_get_executor, amqp_ack_executor};
+pub use flow_engine_executor::flow_engine_amqp::AmqpConnectionManager;
 
 // SMTP (flow-engine-smtp)
 #[cfg(feature = "protocol-smtp")]
 pub use flow_engine_executor::flow_engine_smtp;
 #[cfg(feature = "protocol-smtp")]
-pub use flow_engine_executor::flow_engine_smtp::{oauth2, smtp_connection_manager, smtp_connect_executor, smtp_send_executor, smtp_disconnect_executor, plugin as smtp_plugin};
+pub use flow_engine_executor::flow_engine_smtp::{
+    oauth2, plugin as smtp_plugin, smtp_connect_executor, smtp_connection_manager,
+    smtp_disconnect_executor, smtp_send_executor,
+};
 
 // IMAP (flow-engine-imap)
 #[cfg(feature = "protocol-imap")]
 pub use flow_engine_executor::flow_engine_imap;
 #[cfg(feature = "protocol-imap")]
-pub use flow_engine_executor::flow_engine_imap::{imap_connection_manager, imap_connect_executor, imap_select_executor, imap_search_executor, imap_fetch_executor, imap_store_flags_executor, imap_copy_executor, imap_move_executor, imap_expunge_executor, imap_list_executor, imap_folder_create_executor, imap_folder_delete_executor, imap_idle_executor, imap_close_executor, plugin as imap_plugin};
+pub use flow_engine_executor::flow_engine_imap::{
+    imap_close_executor, imap_connect_executor, imap_connection_manager, imap_copy_executor,
+    imap_expunge_executor, imap_fetch_executor, imap_folder_create_executor,
+    imap_folder_delete_executor, imap_idle_executor, imap_list_executor, imap_move_executor,
+    imap_search_executor, imap_select_executor, imap_store_flags_executor, plugin as imap_plugin,
+};
 
 // Script (flow-engine-script)
 #[cfg(feature = "protocol-script")]
@@ -126,13 +164,15 @@ pub use flow_engine_executor::flow_engine_script::{script_api, script_executor};
 #[cfg(feature = "protocol-redis")]
 pub use flow_engine_executor::flow_engine_redis;
 #[cfg(feature = "protocol-redis")]
-pub use flow_engine_executor::flow_engine_redis::{redis_connect_executor, redis_command_executor, redis_close_executor, redis_connection_manager};
+pub use flow_engine_executor::flow_engine_redis::{
+    redis_close_executor, redis_command_executor, redis_connect_executor, redis_connection_manager,
+};
 
 // Assertion (flow-engine-assertion)
 #[cfg(feature = "protocol-assertion")]
 pub use flow_engine_executor::flow_engine_assertion;
 #[cfg(feature = "protocol-assertion")]
-pub use flow_engine_executor::flow_engine_assertion::{assertion_executor, assertion};
+pub use flow_engine_executor::flow_engine_assertion::{assertion, assertion_executor};
 
 // Wave 4: 调试模块
 pub use flow_engine_executor::debug;
@@ -144,8 +184,8 @@ pub use flow_engine_executor::stress_test;
 pub use flow_engine_executor::default_registry;
 
 // 数据集执行模块
-pub use flow_engine_executor::dataset_executor;
 pub use flow_engine_executor::csv_parser;
+pub use flow_engine_executor::dataset_executor;
 
 // 钩子执行器模块
 pub use flow_engine_core::hook;
@@ -284,7 +324,7 @@ pub mod test_utils {
     /// - `flow_id`: 流程 ID
     ///
     /// # 返回
-    /// 配置好的执行上下文（不包含 WebSocket 管理器，因为 WebSocketConnectionManager 在 Task 4）
+    /// 配置好的执行上下文（不包含 WebSocket 管理器，因为 `WebSocketConnectionManager` 在 Task 4）
     pub fn create_context_with_ws_manager(flow_id: &str) -> ExecutionContext {
         ExecutionContext::new(flow_id.to_string(), 0)
     }

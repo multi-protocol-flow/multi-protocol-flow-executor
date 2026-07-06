@@ -411,7 +411,13 @@ async fn async_main() -> Result<(), CliError> {
 pub fn run_cli() -> i32 {
     setup_logging();
 
-    let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+    let rt = match tokio::runtime::Runtime::new() {
+        Ok(rt) => rt,
+        Err(e) => {
+            eprintln!("Failed to create Tokio runtime: {e}");
+            return output::EXIT_FAILURE;
+        }
+    };
 
     let result = rt.block_on(async_main());
 

@@ -6,10 +6,10 @@
 pub mod plugin;
 /// SSE 客户端封装，处理 Server-Sent Events 流解析
 pub mod sse_client;
-/// SSE 连接管理器，管理流程级别的连接生命周期
-pub mod sse_connection_manager;
 /// SSE 连接节点执行器，建立与服务端的 SSE 连接
 pub mod sse_connect_executor;
+/// SSE 连接管理器，管理流程级别的连接生命周期
+pub mod sse_connection_manager;
 /// SSE 断开连接节点执行器，关闭指定连接
 pub mod sse_disconnect_executor;
 /// SSE 监听节点执行器，监听并采集服务端推送的事件

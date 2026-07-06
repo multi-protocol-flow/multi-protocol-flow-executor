@@ -4,10 +4,10 @@
 
 /// MQTT 客户端封装，支持 TCP/TLS/WebSocket 传输
 pub mod mqtt_client;
-/// MQTT 连接池管理器，管理流程级别的连接生命周期
-pub mod mqtt_connection_manager;
 /// MQTT 连接节点执行器，建立与 Broker 的连接
 pub mod mqtt_connect_executor;
+/// MQTT 连接池管理器，管理流程级别的连接生命周期
+pub mod mqtt_connection_manager;
 /// MQTT 断开连接节点执行器，关闭指定连接
 pub mod mqtt_disconnect_executor;
 /// MQTT 发布节点执行器，发布消息到指定主题
