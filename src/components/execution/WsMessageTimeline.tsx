@@ -418,7 +418,7 @@ function MessageRow({ message, isSelected, onClick }: Omit<MessageRowProps, 'glo
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2 px-3 h-full w-full cursor-pointer transition-colors border-b border-border/30 text-left',
+        'flex items-center gap-3 px-3 h-full w-full cursor-pointer transition-colors border-b border-border/30 text-left',
         isSelected
           ? isSent
             ? 'bg-emerald-600/5 border-l-2 border-l-emerald-600'
@@ -444,7 +444,7 @@ function MessageRow({ message, isSelected, onClick }: Omit<MessageRowProps, 'glo
       {/* 方向标签 */}
       <span
         className={cn(
-          'text-[11px] font-medium shrink-0 w-6',
+          'text-[11px] font-medium shrink-0 w-8 text-center',
           isSent ? 'text-emerald-600' : 'text-blue-600',
         )}
       >
