@@ -301,11 +301,11 @@ impl FlowValidator {
                     }
 
                     // 验证超时配置
-                    if config.connect_timeout_ms < 1000 || config.connect_timeout_ms > 60000 {
+                    if config.connect_timeout_ms < 1000 || config.connect_timeout_ms > 300000 {
                         errors.push(ValidationEntry {
                             code: ErrorCode::E_CONFIG_ERROR,
                             message: format!(
-                                "Node '{}' connect timeout must be between 1000-60000ms",
+                                "Node '{}' connect timeout must be between 1000-300000ms",
                                 node.name
                             ),
                             field: Some("connect_timeout_ms".to_string()),
@@ -343,11 +343,11 @@ impl FlowValidator {
                     }
 
                     // 验证超时配置
-                    if config.send_timeout_ms < 1000 || config.send_timeout_ms > 30000 {
+                    if config.send_timeout_ms < 1000 || config.send_timeout_ms > 300000 {
                         errors.push(ValidationEntry {
                             code: ErrorCode::E_CONFIG_ERROR,
                             message: format!(
-                                "Node '{}' send timeout must be between 1000-30000ms",
+                                "Node '{}' send timeout must be between 1000-300000ms",
                                 node.name
                             ),
                             field: Some("send_timeout_ms".to_string()),
@@ -388,11 +388,11 @@ impl FlowValidator {
                     }
 
                     // 验证关闭超时
-                    if config.close_timeout_ms < 1000 || config.close_timeout_ms > 30000 {
+                    if config.close_timeout_ms < 1000 || config.close_timeout_ms > 300000 {
                         errors.push(ValidationEntry {
                             code: ErrorCode::E_CONFIG_ERROR,
                             message: format!(
-                                "Node '{}' close timeout must be between 1000-30000ms",
+                                "Node '{}' close timeout must be between 1000-300000ms",
                                 node.name
                             ),
                             field: Some("close_timeout_ms".to_string()),
