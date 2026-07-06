@@ -400,7 +400,9 @@ impl StressTestExecutor {
                     }
                 };
 
-                let _ = event_sender.send(StressTestEvent::Progress { progress: progress.clone() });
+                let _ = event_sender.send(StressTestEvent::Progress {
+                    progress: progress.clone(),
+                });
                 progress_history.push(progress);
                 last_progress_time = Instant::now();
             }
@@ -443,7 +445,9 @@ impl StressTestExecutor {
         }
 
         // 发送结束事件
-        let _ = event_sender.send(StressTestEvent::Ended { report: Box::new(report) });
+        let _ = event_sender.send(StressTestEvent::Ended {
+            report: Box::new(report),
+        });
 
         log::info!("[压测] 压力测试完成: flow={}", flow.uuid);
     }
@@ -531,7 +535,9 @@ impl StressTestExecutor {
                         node_latency,
                     );
                 } else {
-                    let node_error = node_report.error.as_ref()
+                    let node_error = node_report
+                        .error
+                        .as_ref()
                         .map(|e| format!("{:?}", e))
                         .unwrap_or_else(|| "未知节点Error".to_string());
                     let node_sample = ErrorSample {
@@ -699,19 +705,29 @@ mod tests {
         use flow_engine_core::node::{Node, NodePosition};
         use flow_engine_core::node_config::NodeData;
 
-        Flow { uuid: "test-flow-001".to_string(), name: "Test Flow".to_string(), description: None, nodes: vec![Node {
-            uuid: "entry-001".to_string(),
-            node_type: "entry".to_string(),
-            name: "Entry".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        }], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None }
+        Flow {
+            uuid: "test-flow-001".to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![Node {
+                uuid: "entry-001".to_string(),
+                node_type: "entry".to_string(),
+                name: "Entry".to_string(),
+                position: NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::entry(),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
+            }],
+            connections: vec![],
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
+        }
     }
 
-    /// 测试 StressTestExecutor 创建
+    /// 测试 `StressTestExecutor` 创建
     #[tokio::test]
     async fn test_executor_creation() {
         let flow = create_test_flow();
@@ -817,7 +833,7 @@ mod tests {
         let result = executor.start().await;
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.find("并发用户数").is_some());
+        assert!(error.contains("并发用户数"));
     }
 
     /// 测试停止未运行的压测Failed
@@ -930,7 +946,7 @@ mod tests {
         file
     }
 
-    /// 测试 RoundRobin 策略：3 行数据，6 次迭代，模式应为 0,1,2,0,1,2
+    /// 测试 `RoundRobin` 策略：3 行数据，6 次迭代，模式应为 0,1,2,0,1,2
     #[test]
     fn test_round_robin_strategy_pattern() {
         use flow_engine_core::dataset::DataPickStrategy;
@@ -954,7 +970,10 @@ mod tests {
             results.push(row["name"].as_str().unwrap().to_string());
         }
 
-        assert_eq!(results, vec!["row0", "row1", "row2", "row0", "row1", "row2"]);
+        assert_eq!(
+            results,
+            vec!["row0", "row1", "row2", "row0", "row1", "row2"]
+        );
     }
 
     /// 测试 Unique 策略：2 个用户，3 行数据
@@ -977,7 +996,7 @@ mod tests {
         assert_eq!(row1["name"].as_str().unwrap(), "row1");
     }
 
-    /// 测试无 CSV 时行为不变（runtime_variables 为 None）
+    /// 测试无 CSV `时行为不变（runtime_variables` 为 None）
     #[test]
     fn test_no_csv_runtime_vars_is_none() {
         let csv_rows: Arc<Vec<serde_json::Value>> = Arc::new(Vec::new());
@@ -989,10 +1008,13 @@ mod tests {
             None
         };
 
-        assert!(runtime_vars.is_none(), "无 CSV 数据时 runtime_variables 应为 None");
+        assert!(
+            runtime_vars.is_none(),
+            "无 CSV 数据时 runtime_variables 应为 None"
+        );
     }
 
-    /// 测试 StressTestConfig 新字段的序列化/反序列化（向后兼容）
+    /// 测试 `StressTestConfig` 新字段的序列化/反序列化（向后兼容）
     #[test]
     fn test_config_new_fields_serialization() {
         use flow_engine_core::dataset::DataPickStrategy;
@@ -1016,9 +1038,15 @@ mod tests {
 
         // 反序列化往返
         let deserialized: StressTestConfig = serde_json::from_str(&json).expect("反序列化Failed");
-        assert_eq!(deserialized.dataset_path, Some("/data/test.csv".to_string()));
+        assert_eq!(
+            deserialized.dataset_path,
+            Some("/data/test.csv".to_string())
+        );
         assert_eq!(deserialized.dataset_encoding, Some("utf-8".to_string()));
-        assert_eq!(deserialized.dataset_strategy, Some(DataPickStrategy::RoundRobin));
+        assert_eq!(
+            deserialized.dataset_strategy,
+            Some(DataPickStrategy::RoundRobin)
+        );
     }
 
     /// 测试旧 JSON（缺少新字段）反序列化时的默认值
@@ -1042,7 +1070,11 @@ mod tests {
     #[tokio::test]
     async fn test_stress_test_with_csv_dataset() {
         let csv_file = create_temp_csv(b"name,value\nAlice,1\nBob,2\nCharlie,3\n");
-        let csv_path = csv_file.path().to_str().expect("路径转换Failed").to_string();
+        let csv_path = csv_file
+            .path()
+            .to_str()
+            .expect("路径转换Failed")
+            .to_string();
 
         let flow = create_test_flow();
         let config = StressTestConfig {

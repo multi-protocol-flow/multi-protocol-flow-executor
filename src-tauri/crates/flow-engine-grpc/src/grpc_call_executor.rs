@@ -4,15 +4,15 @@
 // 变量替换、统一输出映射和重试功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{GrpcCallConfig, NodeData};
 use flow_engine_core::traits::{GrpcPattern, GrpcProvider};
+use flow_engine_core::ExecutionErrorStrategy;
 use rand::Rng;
 use serde_json::json;
 use std::collections::HashMap;
@@ -24,7 +24,7 @@ const MAX_BACKOFF_CAP_MS: u64 = 30_000;
 
 /// 检查 gRPC Error是否可重试
 ///
-/// 可重试的状态码：UNAVAILABLE、DEADLINE_EXCEEDED
+/// `可重试的状态码：UNAVAILABLE、DEADLINE_EXCEEDED`
 /// 这些 code 出现在 tonic Status 的字符串表示中，格式为 "message (CODE)"
 fn is_retryable_error(error: &str) -> bool {
     // Extract the gRPC status code from the parenthesized suffix in tonic error strings
@@ -83,7 +83,9 @@ fn resolve_retry_config(
 
     // Call 级覆盖 Connect 级
     let max_retries = call_config.max_retries.unwrap_or(default_max_retries);
-    let initial_backoff_ms = call_config.initial_backoff_ms.unwrap_or(default_initial_backoff_ms);
+    let initial_backoff_ms = call_config
+        .initial_backoff_ms
+        .unwrap_or(default_initial_backoff_ms);
 
     (max_retries, initial_backoff_ms)
 }
@@ -114,7 +116,12 @@ impl NodeExecutor for GrpcCallExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::GrpcCall(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not GrpcCallConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not GrpcCallConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换 connection_id
@@ -148,7 +155,8 @@ impl NodeExecutor for GrpcCallExecutor {
             .metadata
             .iter()
             .map(|m| {
-                let value = replace_variables(&m.value, context).unwrap_or_else(|_| m.value.clone());
+                let value =
+                    replace_variables(&m.value, context).unwrap_or_else(|_| m.value.clone());
                 (m.key.clone(), value)
             })
             .collect();
@@ -166,9 +174,10 @@ impl NodeExecutor for GrpcCallExecutor {
                     })
             });
             match method_info {
-                Some(info) => {
-                    GrpcPattern::from_method_info(info.is_client_streaming, info.is_server_streaming)
-                }
+                Some(info) => GrpcPattern::from_method_info(
+                    info.is_client_streaming,
+                    info.is_server_streaming,
+                ),
                 None => GrpcPattern::Unary, // 无方法信息时默认 Unary
             }
         };
@@ -459,7 +468,17 @@ impl NodeExecutor for GrpcCallExecutor {
         let call_duration_ms = call_start.elapsed().as_millis() as u64;
 
         match call_result {
-            Ok((pattern_str, response_data, responses, sent_count, received_count, trailers, streaming_timing, response_metadata, cancelled)) => {
+            Ok((
+                pattern_str,
+                response_data,
+                responses,
+                sent_count,
+                received_count,
+                trailers,
+                streaming_timing,
+                response_metadata,
+                cancelled,
+            )) => {
                 log::info!(
                     "[gRPC] Call succeeded: connection_id={}, service={}, method={}, pattern={}, duration={}ms",
                     connection_id,
@@ -505,7 +524,8 @@ impl NodeExecutor for GrpcCallExecutor {
                     output_data["trailers"] = json!(trailers);
                 }
                 // 添加响应 Initial Metadata
-                let meta_map: std::collections::HashMap<String, String> = response_metadata.into_iter().collect();
+                let meta_map: std::collections::HashMap<String, String> =
+                    response_metadata.into_iter().collect();
                 if !meta_map.is_empty() {
                     output_data["response_metadata"] = json!(meta_map);
                 }
@@ -576,8 +596,7 @@ impl NodeExecutor for GrpcCallExecutor {
             }
             Err(e) => {
                 // 解析Error消息和结构化Error详情
-                let (error_message, error_details) =
-                    crate::error_detail::parse_error_details(&e);
+                let (error_message, error_details) = crate::error_detail::parse_error_details(&e);
 
                 log::error!(
                     "[gRPC] Call failed: connection_id={}, service={}, method={}, pattern={}, error={}",
@@ -635,8 +654,15 @@ impl NodeExecutor for GrpcCallExecutor {
                 }
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_message)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "Flow aborted: {}",
+                        error_message
+                    )));
                 }
 
                 // 返回 false 端口
@@ -665,9 +691,9 @@ impl NodeExecutor for GrpcCallExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::grpc_connection_manager::GrpcConnectionManager;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{GrpcCallConfig, GrpcMetadataEntry};
-    use crate::grpc_connection_manager::GrpcConnectionManager;
 
     /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
@@ -676,13 +702,16 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: connection_id.to_string(),
-            service_name: "test.TestService".to_string(),
-            method_name: "GetUser".to_string(),
-            request_json: r#"{"user_id": "1"}"#.to_string(),
-            timeout_ms: 30000,
-            metadata: vec![],
-            request_messages: vec![], ..Default::default() }),
+            data: NodeData::GrpcCall(GrpcCallConfig {
+                connection_id: connection_id.to_string(),
+                service_name: "test.TestService".to_string(),
+                method_name: "GetUser".to_string(),
+                request_json: r#"{"user_id": "1"}"#.to_string(),
+                timeout_ms: 30000,
+                metadata: vec![],
+                request_messages: vec![],
+                ..Default::default()
+            }),
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -730,13 +759,16 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "变量替换测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "{{conn_id}}".to_string(),
-            service_name: "test.TestService".to_string(),
-            method_name: "GetUser".to_string(),
-            request_json: r#"{"user_id": "{{uid}}"}"#.to_string(),
-            timeout_ms: 30000,
-            metadata: vec![],
-            request_messages: vec![], ..Default::default() }),
+            data: NodeData::GrpcCall(GrpcCallConfig {
+                connection_id: "{{conn_id}}".to_string(),
+                service_name: "test.TestService".to_string(),
+                method_name: "GetUser".to_string(),
+                request_json: r#"{"user_id": "{{uid}}"}"#.to_string(),
+                timeout_ms: 30000,
+                metadata: vec![],
+                request_messages: vec![],
+                ..Default::default()
+            }),
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -749,11 +781,9 @@ mod tests {
             json!("grpc-connection-123"),
             String::new(),
         );
-        context.variables.set_variable(
-            "uid".to_string(),
-            json!("user-456"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("uid".to_string(), json!("user-456"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -779,16 +809,19 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "Metadata 替换测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "test-conn".to_string(),
-            service_name: "test.TestService".to_string(),
-            method_name: "GetUser".to_string(),
-            request_json: "{}".to_string(),
-            timeout_ms: 30000,
-            metadata: vec![GrpcMetadataEntry {
-                key: "authorization".to_string(),
-                value: "Bearer {{token}}".to_string(),
-            }],
-            request_messages: vec![], ..Default::default() }),
+            data: NodeData::GrpcCall(GrpcCallConfig {
+                connection_id: "test-conn".to_string(),
+                service_name: "test.TestService".to_string(),
+                method_name: "GetUser".to_string(),
+                request_json: "{}".to_string(),
+                timeout_ms: 30000,
+                metadata: vec![GrpcMetadataEntry {
+                    key: "authorization".to_string(),
+                    value: "Bearer {{token}}".to_string(),
+                }],
+                request_messages: vec![],
+                ..Default::default()
+            }),
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -843,10 +876,12 @@ mod tests {
     // MockGrpcProvider — 用于测试路由逻辑，无需网络连接
     // ========================================================================
 
+    use flow_engine_core::traits::{
+        GrpcMethodInfo, GrpcServiceInfo, GrpcStreamingResult, GrpcTimingInfo, HealthCheckResponse,
+    };
     use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
-    use flow_engine_core::traits::{GrpcMethodInfo, GrpcServiceInfo, GrpcStreamingResult, GrpcTimingInfo, HealthCheckResponse};
 
-    /// 记录 MockGrpcProvider 各方法的调用次数和参数
+    /// 记录 `MockGrpcProvider` 各方法的调用次数和参数
     struct MockCallLog {
         call_unary_count: AtomicUsize,
         call_server_streaming_count: AtomicUsize,
@@ -898,7 +933,9 @@ mod tests {
                 client_streaming_response: Ok(serde_json::json!({"aggregated": true})),
                 bidi_streaming_response: Ok(GrpcStreamingResult {
                     status: 0,
-                    responses: vec![serde_json::json!({"index": 1, "data": {"resp": "bidi1"}, "received_at_ms": 50, "size_bytes": 10})],
+                    responses: vec![
+                        serde_json::json!({"index": 1, "data": {"resp": "bidi1"}, "received_at_ms": 50, "size_bytes": 10}),
+                    ],
                     sent_count: 2,
                     received_count: 1,
                     trailers: std::collections::HashMap::new(),
@@ -929,11 +966,19 @@ mod tests {
     #[async_trait::async_trait]
     impl GrpcProvider for MockGrpcProvider {
         async fn connect(
-            &self, _uuid: String, _url: String, _use_tls: bool, _tls_skip_verify: bool,
-            _enable_reflection: bool, _proto_files: Vec<(String, String)>,
-            _metadata: Vec<(String, String)>, _connect_timeout_ms: u64,
-            _tls_ca_cert: Option<String>, _tls_client_cert: Option<String>,
-            _tls_client_key: Option<String>, _tls_server_name_override: Option<String>,
+            &self,
+            _uuid: String,
+            _url: String,
+            _use_tls: bool,
+            _tls_skip_verify: bool,
+            _enable_reflection: bool,
+            _proto_files: Vec<(String, String)>,
+            _metadata: Vec<(String, String)>,
+            _connect_timeout_ms: u64,
+            _tls_ca_cert: Option<String>,
+            _tls_client_cert: Option<String>,
+            _tls_client_key: Option<String>,
+            _tls_server_name_override: Option<String>,
             _reflection_metadata: Vec<(String, String)>,
             _compression_encoding: Option<String>,
             _keepalive_time_ms: Option<u64>,
@@ -945,52 +990,88 @@ mod tests {
         }
 
         async fn call_unary(
-            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-            _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+            &self,
+            _connection_id: &str,
+            _service_name: &str,
+            _method_name: &str,
+            _request_json: &str,
+            _metadata: Vec<(String, String)>,
+            _timeout_ms: u64,
             _compression_encoding: Option<String>,
             _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
             _node_uuid: &str,
             _call_id: &str,
         ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
-            self.call_log.call_unary_count.fetch_add(1, AtomicOrdering::SeqCst);
+            self.call_log
+                .call_unary_count
+                .fetch_add(1, AtomicOrdering::SeqCst);
             self.unary_response.clone().map(|v| (v, vec![]))
         }
 
         async fn call_server_streaming(
-            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-            _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+            &self,
+            _connection_id: &str,
+            _service_name: &str,
+            _method_name: &str,
+            _request_json: &str,
+            _metadata: Vec<(String, String)>,
+            _timeout_ms: u64,
             _compression_encoding: Option<String>,
             _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
             _node_uuid: &str,
             _call_id: &str,
         ) -> Result<(Vec<serde_json::Value>, Vec<(String, String)>), String> {
-            self.call_log.call_server_streaming_count.fetch_add(1, AtomicOrdering::SeqCst);
+            self.call_log
+                .call_server_streaming_count
+                .fetch_add(1, AtomicOrdering::SeqCst);
             self.server_streaming_response.clone().map(|v| (v, vec![]))
         }
 
         async fn call_client_streaming(
-            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-            request_messages: Vec<String>, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+            &self,
+            _connection_id: &str,
+            _service_name: &str,
+            _method_name: &str,
+            request_messages: Vec<String>,
+            _metadata: Vec<(String, String)>,
+            _timeout_ms: u64,
             _compression_encoding: Option<String>,
             _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
             _node_uuid: &str,
             _call_id: &str,
         ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
-            self.call_log.call_client_streaming_count.fetch_add(1, AtomicOrdering::SeqCst);
-            *self.call_log.last_client_messages.lock().expect("锁不应Failed") = request_messages;
+            self.call_log
+                .call_client_streaming_count
+                .fetch_add(1, AtomicOrdering::SeqCst);
+            *self
+                .call_log
+                .last_client_messages
+                .lock()
+                .expect("锁不应Failed") = request_messages;
             self.client_streaming_response.clone().map(|v| (v, vec![]))
         }
 
         async fn call_bidi_streaming(
-            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-            request_messages: Vec<String>, _metadata: Vec<(String, String)>,
-            _timeout_ms: u64, _compression_encoding: Option<String>,
+            &self,
+            _connection_id: &str,
+            _service_name: &str,
+            _method_name: &str,
+            request_messages: Vec<String>,
+            _metadata: Vec<(String, String)>,
+            _timeout_ms: u64,
+            _compression_encoding: Option<String>,
             _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
             _node_uuid: &str,
             _call_id: &str,
         ) -> Result<GrpcStreamingResult, String> {
-            self.call_log.call_bidi_streaming_count.fetch_add(1, AtomicOrdering::SeqCst);
-            *self.call_log.last_bidi_messages.lock().expect("锁不应Failed") = request_messages;
+            self.call_log
+                .call_bidi_streaming_count
+                .fetch_add(1, AtomicOrdering::SeqCst);
+            *self
+                .call_log
+                .last_bidi_messages
+                .lock()
+                .expect("锁不应Failed") = request_messages;
             self.bidi_streaming_response.clone()
         }
 
@@ -1042,7 +1123,10 @@ mod tests {
     }
 
     /// 创建带 gRPC manager 的执行上下文
-    fn create_context_with_grpc<T: 'static + Send + Sync>(flow_id: &str, grpc_manager: Arc<T>) -> ExecutionContext {
+    fn create_context_with_grpc<T: 'static + Send + Sync>(
+        flow_id: &str,
+        grpc_manager: Arc<T>,
+    ) -> ExecutionContext {
         let mut ctx = create_context(flow_id);
         ctx.set_provider("grpc", grpc_manager);
         ctx
@@ -1078,7 +1162,9 @@ mod tests {
             1
         );
         assert_eq!(
-            mock.call_log.call_server_streaming_count.load(AtomicOrdering::SeqCst),
+            mock.call_log
+                .call_server_streaming_count
+                .load(AtomicOrdering::SeqCst),
             0
         );
     }
@@ -1099,13 +1185,16 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "Server Streaming 调用".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "conn-1".to_string(),
-            service_name: "test.TestService".to_string(),
-            method_name: "ListItems".to_string(),
-            request_json: "{}".to_string(),
-            timeout_ms: 30000,
-            metadata: vec![],
-            request_messages: vec![], ..Default::default() }),
+            data: NodeData::GrpcCall(GrpcCallConfig {
+                connection_id: "conn-1".to_string(),
+                service_name: "test.TestService".to_string(),
+                method_name: "ListItems".to_string(),
+                request_json: "{}".to_string(),
+                timeout_ms: 30000,
+                metadata: vec![],
+                request_messages: vec![],
+                ..Default::default()
+            }),
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -1135,7 +1224,9 @@ mod tests {
         assert_eq!(data["received_count"], 2);
 
         assert_eq!(
-            mock.call_log.call_server_streaming_count.load(AtomicOrdering::SeqCst),
+            mock.call_log
+                .call_server_streaming_count
+                .load(AtomicOrdering::SeqCst),
             1
         );
     }
@@ -1156,26 +1247,29 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "Client Streaming 调用".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "conn-1".to_string(),
-            service_name: "test.TestService".to_string(),
-            method_name: "UploadItems".to_string(),
-            request_json: "{}".to_string(),
-            timeout_ms: 30000,
-            metadata: vec![],
-            request_messages: vec![
-                flow_engine_core::node_config::StreamMessage {
-                    enabled: true,
-                    content: r#"{"item": 1}"#.to_string(),
-                },
-                flow_engine_core::node_config::StreamMessage {
-                    enabled: false,
-                    content: r#"{"item": 2}"#.to_string(),
-                },
-                flow_engine_core::node_config::StreamMessage {
-                    enabled: true,
-                    content: r#"{"item": 3}"#.to_string(),
-                },
-            ], ..Default::default() }),
+            data: NodeData::GrpcCall(GrpcCallConfig {
+                connection_id: "conn-1".to_string(),
+                service_name: "test.TestService".to_string(),
+                method_name: "UploadItems".to_string(),
+                request_json: "{}".to_string(),
+                timeout_ms: 30000,
+                metadata: vec![],
+                request_messages: vec![
+                    flow_engine_core::node_config::StreamMessage {
+                        enabled: true,
+                        content: r#"{"item": 1}"#.to_string(),
+                    },
+                    flow_engine_core::node_config::StreamMessage {
+                        enabled: false,
+                        content: r#"{"item": 2}"#.to_string(),
+                    },
+                    flow_engine_core::node_config::StreamMessage {
+                        enabled: true,
+                        content: r#"{"item": 3}"#.to_string(),
+                    },
+                ],
+                ..Default::default()
+            }),
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -1197,7 +1291,11 @@ mod tests {
         assert_eq!(data["received_count"], 1);
 
         // 验证发送的消息确实被过滤了
-        let msgs = mock.call_log.last_client_messages.lock().expect("锁不应Failed");
+        let msgs = mock
+            .call_log
+            .last_client_messages
+            .lock()
+            .expect("锁不应Failed");
         assert_eq!(msgs.len(), 2);
         assert!(msgs[0].contains("item\": 1"));
         assert!(msgs[1].contains("item\": 3"));
@@ -1218,18 +1316,19 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "Bidi Streaming 调用".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "conn-1".to_string(),
-            service_name: "test.TestService".to_string(),
-            method_name: "Chat".to_string(),
-            request_json: "{}".to_string(),
-            timeout_ms: 5000,
-            metadata: vec![],
-            request_messages: vec![
-                flow_engine_core::node_config::StreamMessage {
+            data: NodeData::GrpcCall(GrpcCallConfig {
+                connection_id: "conn-1".to_string(),
+                service_name: "test.TestService".to_string(),
+                method_name: "Chat".to_string(),
+                request_json: "{}".to_string(),
+                timeout_ms: 5000,
+                metadata: vec![],
+                request_messages: vec![flow_engine_core::node_config::StreamMessage {
                     enabled: true,
                     content: r#"{"msg": "hello"}"#.to_string(),
-                },
-            ], ..Default::default() }),
+                }],
+                ..Default::default()
+            }),
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -1274,26 +1373,29 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "消息过滤测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "conn-1".to_string(),
-            service_name: "test.TestService".to_string(),
-            method_name: "Upload".to_string(),
-            request_json: "{}".to_string(),
-            timeout_ms: 30000,
-            metadata: vec![],
-            request_messages: vec![
-                flow_engine_core::node_config::StreamMessage {
-                    enabled: false,
-                    content: r#"{"skip": 1}"#.to_string(),
-                },
-                flow_engine_core::node_config::StreamMessage {
-                    enabled: true,
-                    content: r#"{"keep": 2}"#.to_string(),
-                },
-                flow_engine_core::node_config::StreamMessage {
-                    enabled: false,
-                    content: r#"{"skip": 3}"#.to_string(),
-                },
-            ], ..Default::default() }),
+            data: NodeData::GrpcCall(GrpcCallConfig {
+                connection_id: "conn-1".to_string(),
+                service_name: "test.TestService".to_string(),
+                method_name: "Upload".to_string(),
+                request_json: "{}".to_string(),
+                timeout_ms: 30000,
+                metadata: vec![],
+                request_messages: vec![
+                    flow_engine_core::node_config::StreamMessage {
+                        enabled: false,
+                        content: r#"{"skip": 1}"#.to_string(),
+                    },
+                    flow_engine_core::node_config::StreamMessage {
+                        enabled: true,
+                        content: r#"{"keep": 2}"#.to_string(),
+                    },
+                    flow_engine_core::node_config::StreamMessage {
+                        enabled: false,
+                        content: r#"{"skip": 3}"#.to_string(),
+                    },
+                ],
+                ..Default::default()
+            }),
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -1309,7 +1411,11 @@ mod tests {
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["sent_count"], 1); // 只有 1 条启用的
 
-        let msgs = mock.call_log.last_client_messages.lock().expect("锁不应Failed");
+        let msgs = mock
+            .call_log
+            .last_client_messages
+            .lock()
+            .expect("锁不应Failed");
         assert_eq!(msgs.len(), 1);
         assert!(msgs[0].contains("keep"));
     }
@@ -1401,7 +1507,10 @@ mod tests {
         assert!(data.get("pattern").is_some(), "缺少 pattern 字段");
         assert!(data.get("timing").is_some(), "缺少 timing 字段");
         assert!(data.get("request").is_some(), "缺少 request 字段");
-        assert!(data.get("connection_id").is_some(), "缺少 connection_id 字段");
+        assert!(
+            data.get("connection_id").is_some(),
+            "缺少 connection_id 字段"
+        );
         assert!(data.get("service_name").is_some(), "缺少 service_name 字段");
         assert!(data.get("method_name").is_some(), "缺少 method_name 字段");
 
@@ -1474,8 +1583,11 @@ mod tests {
         }
     }
 
-    /// 创建带 debug_event_sender 的执行上下文
-    fn create_context_with_debug(flow_id: &str, sender: Arc<dyn DebugEventSender>) -> ExecutionContext {
+    /// 创建带 `debug_event_sender` 的执行上下文
+    fn create_context_with_debug(
+        flow_id: &str,
+        sender: Arc<dyn DebugEventSender>,
+    ) -> ExecutionContext {
         let mut ctx = create_context(flow_id);
         ctx.debug_event_sender = Some(sender);
         ctx
@@ -1519,7 +1631,7 @@ mod tests {
                 assert_eq!(service, "test.TestService");
                 assert_eq!(method, "GetUser");
                 assert_eq!(pattern, "unary");
-                assert!(duration_ms > &0 || duration_ms == &0, "duration_ms 应为非负数");
+                assert!(duration_ms >= &0, "duration_ms 应为非负数");
             }
             other => panic!("期望 GrpcMethodCalled 事件，实际为: {:?}", other),
         }
@@ -1552,18 +1664,26 @@ mod tests {
 
     #[test]
     fn test_is_retryable_error_unavailable() {
-        assert!(is_retryable_error("gRPC Unary 调用Failed: service unavailable (UNAVAILABLE)"));
+        assert!(is_retryable_error(
+            "gRPC Unary 调用Failed: service unavailable (UNAVAILABLE)"
+        ));
     }
 
     #[test]
     fn test_is_retryable_error_deadline_exceeded() {
-        assert!(is_retryable_error("gRPC Unary 调用Failed: timeout (DEADLINE_EXCEEDED)"));
+        assert!(is_retryable_error(
+            "gRPC Unary 调用Failed: timeout (DEADLINE_EXCEEDED)"
+        ));
     }
 
     #[test]
     fn test_is_retryable_error_not_retryable() {
-        assert!(!is_retryable_error("gRPC Unary 调用Failed: not found (NOT_FOUND)"));
-        assert!(!is_retryable_error("gRPC Unary 调用Failed: permission denied (PERMISSION_DENIED)"));
+        assert!(!is_retryable_error(
+            "gRPC Unary 调用Failed: not found (NOT_FOUND)"
+        ));
+        assert!(!is_retryable_error(
+            "gRPC Unary 调用Failed: permission denied (PERMISSION_DENIED)"
+        ));
         assert!(!is_retryable_error("连接 'xxx' 不存在"));
     }
 
@@ -1571,22 +1691,37 @@ mod tests {
     fn test_calculate_backoff_exponential() {
         // initial_backoff_ms=1000, attempt=0 → 1000 + jitter(0-500)
         let backoff = calculate_backoff_ms(1000, 0);
-        assert!(backoff >= 1000 && backoff <= 1500, "attempt 0: {} should be in [1000, 1500]", backoff);
+        assert!(
+            (1000..=1500).contains(&backoff),
+            "attempt 0: {} should be in [1000, 1500]",
+            backoff
+        );
 
         // attempt=1 → 2000 + jitter(0-1000)
         let backoff = calculate_backoff_ms(1000, 1);
-        assert!(backoff >= 2000 && backoff <= 3000, "attempt 1: {} should be in [2000, 3000]", backoff);
+        assert!(
+            (2000..=3000).contains(&backoff),
+            "attempt 1: {} should be in [2000, 3000]",
+            backoff
+        );
 
         // attempt=2 → 4000 + jitter(0-2000)
         let backoff = calculate_backoff_ms(1000, 2);
-        assert!(backoff >= 4000 && backoff <= 6000, "attempt 2: {} should be in [4000, 6000]", backoff);
+        assert!(
+            (4000..=6000).contains(&backoff),
+            "attempt 2: {} should be in [4000, 6000]",
+            backoff
+        );
     }
 
     #[test]
     fn test_calculate_backoff_capped_at_30s() {
         // initial_backoff_ms=1000, attempt=10 → 1000*1024 > 30000, cap at 30000
         let backoff = calculate_backoff_ms(1000, 10);
-        assert!(backoff >= 30000 && backoff <= 45000, "should be capped at 30000 + jitter");
+        assert!(
+            (30000..=45000).contains(&backoff),
+            "should be capped at 30000 + jitter"
+        );
     }
 
     #[test]
@@ -1708,11 +1843,19 @@ mod tests {
     #[async_trait::async_trait]
     impl GrpcProvider for RetryThenSuccessMock {
         async fn connect(
-            &self, _uuid: String, _url: String, _use_tls: bool, _tls_skip_verify: bool,
-            _enable_reflection: bool, _proto_files: Vec<(String, String)>,
-            _metadata: Vec<(String, String)>, _connect_timeout_ms: u64,
-            _tls_ca_cert: Option<String>, _tls_client_cert: Option<String>,
-            _tls_client_key: Option<String>, _tls_server_name_override: Option<String>,
+            &self,
+            _uuid: String,
+            _url: String,
+            _use_tls: bool,
+            _tls_skip_verify: bool,
+            _enable_reflection: bool,
+            _proto_files: Vec<(String, String)>,
+            _metadata: Vec<(String, String)>,
+            _connect_timeout_ms: u64,
+            _tls_ca_cert: Option<String>,
+            _tls_client_cert: Option<String>,
+            _tls_client_key: Option<String>,
+            _tls_server_name_override: Option<String>,
             _reflection_metadata: Vec<(String, String)>,
             _compression_encoding: Option<String>,
             _keepalive_time_ms: Option<u64>,
@@ -1724,8 +1867,13 @@ mod tests {
         }
 
         async fn call_unary(
-            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-            _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+            &self,
+            _connection_id: &str,
+            _service_name: &str,
+            _method_name: &str,
+            _request_json: &str,
+            _metadata: Vec<(String, String)>,
+            _timeout_ms: u64,
             _compression_encoding: Option<String>,
             _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
             _node_uuid: &str,
@@ -1740,8 +1888,13 @@ mod tests {
         }
 
         async fn call_server_streaming(
-            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-            _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+            &self,
+            _connection_id: &str,
+            _service_name: &str,
+            _method_name: &str,
+            _request_json: &str,
+            _metadata: Vec<(String, String)>,
+            _timeout_ms: u64,
             _compression_encoding: Option<String>,
             _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
             _node_uuid: &str,
@@ -1751,8 +1904,13 @@ mod tests {
         }
 
         async fn call_client_streaming(
-            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-            _request_messages: Vec<String>, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+            &self,
+            _connection_id: &str,
+            _service_name: &str,
+            _method_name: &str,
+            _request_messages: Vec<String>,
+            _metadata: Vec<(String, String)>,
+            _timeout_ms: u64,
             _compression_encoding: Option<String>,
             _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
             _node_uuid: &str,
@@ -1762,9 +1920,14 @@ mod tests {
         }
 
         async fn call_bidi_streaming(
-            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-            _request_messages: Vec<String>, _metadata: Vec<(String, String)>,
-            _timeout_ms: u64, _compression_encoding: Option<String>,
+            &self,
+            _connection_id: &str,
+            _service_name: &str,
+            _method_name: &str,
+            _request_messages: Vec<String>,
+            _metadata: Vec<(String, String)>,
+            _timeout_ms: u64,
+            _compression_encoding: Option<String>,
             _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
             _node_uuid: &str,
             _call_id: &str,
@@ -1785,9 +1948,13 @@ mod tests {
         }
 
         async fn health_check(
-            &self, _connection_id: &str, _service: &str,
+            &self,
+            _connection_id: &str,
+            _service: &str,
         ) -> Result<HealthCheckResponse, String> {
-            Ok(HealthCheckResponse { status: "SERVING".to_string() })
+            Ok(HealthCheckResponse {
+                status: "SERVING".to_string(),
+            })
         }
 
         fn cancel_stream(&self, _connection_id: &str, _call_id: &str) -> Result<(), String> {
@@ -1899,11 +2066,19 @@ mod tests {
         #[async_trait::async_trait]
         impl GrpcProvider for AlwaysUnavailableMock {
             async fn connect(
-                &self, _uuid: String, _url: String, _use_tls: bool, _tls_skip_verify: bool,
-                _enable_reflection: bool, _proto_files: Vec<(String, String)>,
-                _metadata: Vec<(String, String)>, _connect_timeout_ms: u64,
-                _tls_ca_cert: Option<String>, _tls_client_cert: Option<String>,
-                _tls_client_key: Option<String>, _tls_server_name_override: Option<String>,
+                &self,
+                _uuid: String,
+                _url: String,
+                _use_tls: bool,
+                _tls_skip_verify: bool,
+                _enable_reflection: bool,
+                _proto_files: Vec<(String, String)>,
+                _metadata: Vec<(String, String)>,
+                _connect_timeout_ms: u64,
+                _tls_ca_cert: Option<String>,
+                _tls_client_cert: Option<String>,
+                _tls_client_key: Option<String>,
+                _tls_server_name_override: Option<String>,
                 _reflection_metadata: Vec<(String, String)>,
                 _compression_encoding: Option<String>,
                 _keepalive_time_ms: Option<u64>,
@@ -1915,10 +2090,17 @@ mod tests {
             }
 
             async fn call_unary(
-                &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-                _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+                &self,
+                _connection_id: &str,
+                _service_name: &str,
+                _method_name: &str,
+                _request_json: &str,
+                _metadata: Vec<(String, String)>,
+                _timeout_ms: u64,
                 _compression_encoding: Option<String>,
-                _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+                _debug_sender: Option<
+                    std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>,
+                >,
                 _node_uuid: &str,
                 _call_id: &str,
             ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
@@ -1927,10 +2109,17 @@ mod tests {
             }
 
             async fn call_server_streaming(
-                &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-                _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+                &self,
+                _connection_id: &str,
+                _service_name: &str,
+                _method_name: &str,
+                _request_json: &str,
+                _metadata: Vec<(String, String)>,
+                _timeout_ms: u64,
                 _compression_encoding: Option<String>,
-                _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+                _debug_sender: Option<
+                    std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>,
+                >,
                 _node_uuid: &str,
                 _call_id: &str,
             ) -> Result<(Vec<serde_json::Value>, Vec<(String, String)>), String> {
@@ -1938,10 +2127,17 @@ mod tests {
             }
 
             async fn call_client_streaming(
-                &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-                _request_messages: Vec<String>, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+                &self,
+                _connection_id: &str,
+                _service_name: &str,
+                _method_name: &str,
+                _request_messages: Vec<String>,
+                _metadata: Vec<(String, String)>,
+                _timeout_ms: u64,
                 _compression_encoding: Option<String>,
-                _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+                _debug_sender: Option<
+                    std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>,
+                >,
                 _node_uuid: &str,
                 _call_id: &str,
             ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
@@ -1949,10 +2145,17 @@ mod tests {
             }
 
             async fn call_bidi_streaming(
-                &self, _connection_id: &str, _service_name: &str, _method_name: &str,
-                _request_messages: Vec<String>, _metadata: Vec<(String, String)>,
-                _timeout_ms: u64, _compression_encoding: Option<String>,
-                _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+                &self,
+                _connection_id: &str,
+                _service_name: &str,
+                _method_name: &str,
+                _request_messages: Vec<String>,
+                _metadata: Vec<(String, String)>,
+                _timeout_ms: u64,
+                _compression_encoding: Option<String>,
+                _debug_sender: Option<
+                    std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>,
+                >,
                 _node_uuid: &str,
                 _call_id: &str,
             ) -> Result<GrpcStreamingResult, String> {
@@ -1976,7 +2179,9 @@ mod tests {
                 _connection_id: &str,
                 _service: &str,
             ) -> Result<HealthCheckResponse, String> {
-                Ok(HealthCheckResponse { status: "SERVING".to_string() })
+                Ok(HealthCheckResponse {
+                    status: "SERVING".to_string(),
+                })
             }
 
             fn cancel_stream(&self, _connection_id: &str, _call_id: &str) -> Result<(), String> {
@@ -2021,7 +2226,7 @@ mod tests {
         assert!(result.is_ok());
         let (next_nodes, _) = result.expect("执行应Success");
         assert_eq!(next_nodes, vec!["false"]); // 全部重试Failed，走 false 端口
-        // 验证调用了 3 次（初始 1 次 + 2 次重试）
+                                               // 验证调用了 3 次（初始 1 次 + 2 次重试）
         assert_eq!(
             mock.call_count.load(AtomicOrdering::SeqCst),
             3,
@@ -2029,4 +2234,3 @@ mod tests {
         );
     }
 }
-

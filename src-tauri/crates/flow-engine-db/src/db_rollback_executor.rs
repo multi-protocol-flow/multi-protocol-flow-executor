@@ -4,8 +4,8 @@
 // Wave 2: 与执行器集成
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::{ExecutionErrorStrategy, Node};
@@ -43,7 +43,12 @@ impl NodeExecutor for DbRollbackExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::DbRollback(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not DbRollbackConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not DbRollbackConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 验证 connection_uuid
@@ -57,13 +62,17 @@ impl NodeExecutor for DbRollbackExecutor {
             );
 
             // 构建输出数据（跳过回滚）
-            let output_data = self.build_skipped_output(&config, start_time.elapsed().as_millis() as u64);
+            let output_data =
+                self.build_skipped_output(&config, start_time.elapsed().as_millis() as u64);
 
             // 发送日志
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Warn,
-                    message: format!("Database rollback node {} skipped: connection_uuid is empty", node.name),
+                    message: format!(
+                        "Database rollback node {} skipped: connection_uuid is empty",
+                        node.name
+                    ),
                     timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -98,7 +107,10 @@ impl NodeExecutor for DbRollbackExecutor {
 
         // 4. 回滚事务
         // 注意：回滚总是Success，即使没有活跃事务也返回Success（幂等操作）
-        let rollback_result = self.db_manager.rollback_transaction(&config.connection_uuid).await;
+        let rollback_result = self
+            .db_manager
+            .rollback_transaction(&config.connection_uuid)
+            .await;
 
         let duration = start_time.elapsed();
 
@@ -110,10 +122,7 @@ impl NodeExecutor for DbRollbackExecutor {
                 );
 
                 // 5. 构建输出数据（Success）
-                let output_data = self.build_success_output(
-                    &config,
-                    duration.as_millis() as u64,
-                );
+                let output_data = self.build_success_output(&config, duration.as_millis() as u64);
 
                 // 6. 日志：回滚完成
                 context
@@ -168,10 +177,8 @@ impl NodeExecutor for DbRollbackExecutor {
                         );
 
                         // 构建输出数据（仍视为Success，幂等操作）
-                        let output_data = self.build_success_output(
-                            &config,
-                            duration.as_millis() as u64,
-                        );
+                        let output_data =
+                            self.build_success_output(&config, duration.as_millis() as u64);
 
                         // 日志：回滚Failed（警告）
                         context
@@ -199,11 +206,7 @@ impl NodeExecutor for DbRollbackExecutor {
 
 impl DbRollbackExecutor {
     /// 构建Success输出数据
-    fn build_success_output(
-        &self,
-        config: &DbRollbackConfig,
-        total_ms: u64,
-    ) -> serde_json::Value {
+    fn build_success_output(&self, config: &DbRollbackConfig, total_ms: u64) -> serde_json::Value {
         json!({
             // 统一Success标识
             "success": true,
@@ -220,11 +223,7 @@ impl DbRollbackExecutor {
     }
 
     /// 构建跳过输出数据（空 `connection_uuid` 时）
-    fn build_skipped_output(
-        &self,
-        config: &DbRollbackConfig,
-        total_ms: u64,
-    ) -> serde_json::Value {
+    fn build_skipped_output(&self, config: &DbRollbackConfig, total_ms: u64) -> serde_json::Value {
         json!({
             // 统一Success标识（跳过也视为Success）
             "success": true,
@@ -262,10 +261,10 @@ fn get_nodes_by_port(node: &Node, connections: &[Connection], port_id: &str) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
-    use flow_engine_core::node::{NodePosition};
     use crate::db::pool::DatabaseConnectionManager;
     use crate::db::pool::MockPool;
+    use flow_engine_core::context::VariableStorage;
+    use flow_engine_core::node::NodePosition;
     /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
         Node {
@@ -307,12 +306,20 @@ mod tests {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let pool = Arc::new(MockPool::new("test-pool".to_string()));
         db_manager
-            .create_pool("conn-001".to_string(), "Test".to_string(), "mock".to_string(), pool)
+            .create_pool(
+                "conn-001".to_string(),
+                "Test".to_string(),
+                "mock".to_string(),
+                pool,
+            )
             .await
             .unwrap();
-        
+
         // 先开始一个事务
-        db_manager.begin_transaction("conn-001", None).await.unwrap();
+        db_manager
+            .begin_transaction("conn-001", None)
+            .await
+            .unwrap();
 
         let executor = DbRollbackExecutor::new(db_manager.clone());
         let node = create_test_node("test-1", "测试回滚", "conn-001");
@@ -394,12 +401,20 @@ mod tests {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let pool = Arc::new(MockPool::new("test-pool".to_string()));
         db_manager
-            .create_pool("conn-004".to_string(), "Test".to_string(), "mock".to_string(), pool)
+            .create_pool(
+                "conn-004".to_string(),
+                "Test".to_string(),
+                "mock".to_string(),
+                pool,
+            )
             .await
             .unwrap();
-        
+
         // 先开始一个事务
-        db_manager.begin_transaction("conn-004", None).await.unwrap();
+        db_manager
+            .begin_transaction("conn-004", None)
+            .await
+            .unwrap();
 
         let executor = DbRollbackExecutor::new(db_manager);
 
@@ -502,6 +517,9 @@ mod tests {
 
         // 应该返回Error
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("Node data type is not DbRollbackConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("Node data type is not DbRollbackConfig"));
     }
 }

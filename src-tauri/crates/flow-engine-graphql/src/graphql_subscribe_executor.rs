@@ -3,8 +3,8 @@
 //! 实现 GraphQL Subscription 操作，通过 WebSocket 接收事件流。
 //! 支持变量替换、操作名称指定、最大事件数和超时配置。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use flow_engine_core::connection::Connection;
@@ -41,9 +41,7 @@ impl GraphqlSubscribeExecutor {
     ) -> Vec<String> {
         let targets: Vec<String> = connections
             .iter()
-            .filter(|conn| {
-                conn.source_node_uuid == node_uuid && conn.source_port_id == port
-            })
+            .filter(|conn| conn.source_node_uuid == node_uuid && conn.source_port_id == port)
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 
@@ -92,8 +90,12 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
 
         let operation_name = match &config.operation_name {
             Some(op_name) => {
-                let replaced = replace_variables(op_name, context)
-                    .map_err(|e| ErrorDetail::execution_error(format!("operation_name variable substitution failed: {}", e)))?;
+                let replaced = replace_variables(op_name, context).map_err(|e| {
+                    ErrorDetail::execution_error(format!(
+                        "operation_name variable substitution failed: {}",
+                        e
+                    ))
+                })?;
                 Some(replaced)
             }
             None => None,
@@ -103,8 +105,12 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
         let variables = match &config.variables {
             Some(vars) => {
                 let vars_str = serde_json::to_string(vars).unwrap_or_default();
-                let replaced_str = replace_variables(&vars_str, context)
-                    .map_err(|e| ErrorDetail::execution_error(format!("variables variable substitution failed: {}", e)))?;
+                let replaced_str = replace_variables(&vars_str, context).map_err(|e| {
+                    ErrorDetail::execution_error(format!(
+                        "variables variable substitution failed: {}",
+                        e
+                    ))
+                })?;
                 let replaced_vars: serde_json::Value =
                     serde_json::from_str(&replaced_str).unwrap_or_else(|_| vars.clone());
                 Some(replaced_vars)
@@ -235,9 +241,10 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
 
                 // 8. 路由：Success走 true 端口，Failed走 false 端口
                 if !output.success
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output
                         .error
@@ -290,15 +297,16 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 走 false 端口
-                let next_node_ids =
-                    Self::resolve_port_targets(&node.uuid, "false", connections);
+                let next_node_ids = Self::resolve_port_targets(&node.uuid, "false", connections);
 
                 Ok((next_node_ids, Some(error_output)))
             }
@@ -312,12 +320,12 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
-        GraphqlConnectConfig, GraphqlDisconnectConfig, GraphqlIntrospectConfig,
-        GraphqlQueryConfig, GraphqlSubscribeConfig,
+        GraphqlConnectConfig, GraphqlDisconnectConfig, GraphqlIntrospectConfig, GraphqlQueryConfig,
+        GraphqlSubscribeConfig,
     };
     use flow_engine_core::traits::{
-        GraphqlConnectOutput, GraphqlConnectionInfo, GraphqlIntrospectOutput,
-        GraphqlQueryOutput, GraphqlSubscribeOutput, GraphqlSubscriptionEvent,
+        GraphqlConnectOutput, GraphqlConnectionInfo, GraphqlIntrospectOutput, GraphqlQueryOutput,
+        GraphqlSubscribeOutput, GraphqlSubscriptionEvent,
     };
 
     // ---------------------------------------------------------------------------
@@ -539,7 +547,7 @@ mod tests {
     // 测试
     // ---------------------------------------------------------------------------
 
-    /// 测试：配置提取Success（正确的 NodeData 变体）
+    /// 测试：配置提取Success（正确的 `NodeData` 变体）
     #[tokio::test]
     async fn test_graphql_subscribe_config_extraction_success() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -563,7 +571,7 @@ mod tests {
         assert!(output_data.is_some());
     }
 
-    /// 测试：配置提取拒绝Error的 NodeData 变体
+    /// 测试：配置提取拒绝Error的 `NodeData` 变体
     #[tokio::test]
     async fn test_graphql_subscribe_config_extraction_wrong_variant() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -586,10 +594,13 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("GraphqlSubscribeConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("GraphqlSubscribeConfig"));
     }
 
-    /// 测试：变量替换在 subscription、variables 和 operation_name 中生效
+    /// 测试：变量替换在 subscription、variables 和 `operation_name` 中生效
     #[tokio::test]
     async fn test_graphql_subscribe_with_variable_replacement() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -617,16 +628,12 @@ mod tests {
         };
 
         let mut context = create_context("test-flow");
-        context.variables.set_variable(
-            "room_id".to_string(),
-            json!("42"),
-            String::new(),
-        );
-        context.variables.set_variable(
-            "suffix".to_string(),
-            json!("v1"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("room_id".to_string(), json!("42"), String::new());
+        context
+            .variables
+            .set_variable("suffix".to_string(), json!("v1"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -669,7 +676,9 @@ mod tests {
         assert_eq!(next_nodes, vec!["true"]);
 
         // 测试Failed → false
-        let graphql_manager_fail = Arc::new(MockGraphqlProvider::new_failure("WebSocket connection failed"));
+        let graphql_manager_fail = Arc::new(MockGraphqlProvider::new_failure(
+            "WebSocket connection failed",
+        ));
         let executor_fail = GraphqlSubscribeExecutor::new(graphql_manager_fail);
         let node_fail = create_test_node(
             "test-false",
@@ -741,7 +750,10 @@ mod tests {
         // 验证 request 子结构
         let request = &data["request"];
         assert_eq!(request["connection_id"], "conn-1");
-        assert_eq!(request["subscription"], "subscription { messageAdded { text } }");
+        assert_eq!(
+            request["subscription"],
+            "subscription { messageAdded { text } }"
+        );
         assert_eq!(request["operation_name"], "OnMessage");
         assert_eq!(request["max_events"], 5);
         assert_eq!(request["timeout_ms"], 10000);

@@ -6,10 +6,10 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use flow_engine::{ExecutionEventSender, ExecutionEvent};
+use flow_engine::{ExecutionEvent, ExecutionEventSender};
 
-use super::{CliError, config, output};
 use super::output::CliOutput;
+use super::{config, output, CliError};
 
 // ── Variable parsing ────────────────────────────────────────────────
 
@@ -22,8 +22,8 @@ fn parse_vars(vars: &[String]) -> Result<HashMap<String, serde_json::Value>, Cli
         let (key, val) = v.split_once('=').ok_or_else(|| {
             CliError::InvalidArgs(format!("--var format error (expected key=value): {}", v))
         })?;
-        let json_val = serde_json::from_str(val)
-            .unwrap_or(serde_json::Value::String(val.to_string()));
+        let json_val =
+            serde_json::from_str(val).unwrap_or(serde_json::Value::String(val.to_string()));
         map.insert(key.to_string(), json_val);
     }
     Ok(map)
@@ -41,7 +41,9 @@ struct CliExecutionEventSender {
 
 impl ExecutionEventSender for CliExecutionEventSender {
     fn send_event(&self, event: ExecutionEvent) -> Result<(), String> {
-        self.tx.send(event).map_err(|e| format!("Failed to send event: {}", e))
+        self.tx
+            .send(event)
+            .map_err(|e| format!("Failed to send event: {}", e))
     }
 }
 
@@ -97,16 +99,20 @@ pub async fn execute(
         .unwrap_or(0);
 
     // Extract node-level execution results (for test validation)
-    let node_results: Vec<serde_json::Value> = result.node_reports.iter().map(|r| {
-        serde_json::json!({
-            "uuid": r.node_uuid,
-            "node_type": r.node_type,
-            "name": r.node_name,
-            "status": r.status,
-            "output": r.output_data,
-            "error": r.error,
+    let node_results: Vec<serde_json::Value> = result
+        .node_reports
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "uuid": r.node_uuid,
+                "node_type": r.node_type,
+                "name": r.node_name,
+                "status": r.status,
+                "output": r.output_data,
+                "error": r.error,
+            })
         })
-    }).collect();
+        .collect();
 
     let output_data = serde_json::json!({
         "success": result.success,
@@ -132,7 +138,8 @@ pub async fn execute(
     // Save report
     if !no_report {
         if let Some(ref flow_report) = result.flow_report {
-            if let Err(e) = flow_engine::storage::save_report(flow_report, &app_config.reports_dir) {
+            if let Err(e) = flow_engine::storage::save_report(flow_report, &app_config.reports_dir)
+            {
                 eprintln!("Failed to save report: {}", e);
             }
         }
@@ -158,7 +165,9 @@ async fn execute_simple(
 ) -> Result<flow_engine::executor::ExecutionResult, CliError> {
     let executor = flow_engine::executor::FlowExecutor::new()
         .with_flow_file_path(path)
-        .with_hook_executor(Arc::new(flow_engine::hook_runner::DefaultHookExecutor::new()))
+        .with_hook_executor(Arc::new(
+            flow_engine::hook_runner::DefaultHookExecutor::new(),
+        ))
         .with_cancel_receiver(cancel_rx);
     Ok(executor.execute_flow(flow, variables, None, None).await)
 }
@@ -177,14 +186,15 @@ async fn execute_with_streaming(
     let executor = flow_engine::executor::FlowExecutor::new()
         .with_flow_file_path(path)
         .with_execution_event_sender(sender)
-        .with_hook_executor(Arc::new(flow_engine::hook_runner::DefaultHookExecutor::new()))
+        .with_hook_executor(Arc::new(
+            flow_engine::hook_runner::DefaultHookExecutor::new(),
+        ))
         .with_cancel_receiver(cancel_rx);
 
     // Start execution in background, consume event stream simultaneously
     let flow = flow.clone();
-    let handle = tokio::spawn(async move {
-        executor.execute_flow(&flow, variables, None, None).await
-    });
+    let handle =
+        tokio::spawn(async move { executor.execute_flow(&flow, variables, None, None).await });
 
     // Output NDJSON events in real time
     while let Some(event) = event_rx.recv().await {

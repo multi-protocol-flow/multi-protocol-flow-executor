@@ -11,8 +11,8 @@
 // 以及 MqttPluginGroup 批量注册辅助。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
@@ -125,11 +125,11 @@ impl NodePlugin for MqttConnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
-            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
+            });
         let executor = crate::mqtt_connect_executor::MqttConnectExecutor::new(mqtt_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -245,11 +245,11 @@ impl NodePlugin for MqttPublishPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
-            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
+            });
         let executor = crate::mqtt_publish_executor::MqttPublishExecutor::new(mqtt_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -367,11 +367,11 @@ impl NodePlugin for MqttSubscribePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
-            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
+            });
         let executor = crate::mqtt_subscribe_executor::MqttSubscribeExecutor::new(mqtt_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -482,11 +482,11 @@ impl NodePlugin for MqttUnsubscribePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
-            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
+            });
         let executor = crate::mqtt_unsubscribe_executor::MqttUnsubscribeExecutor::new(mqtt_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -571,11 +571,11 @@ impl NodePlugin for MqttDisconnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
-            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
+            });
         let executor = crate::mqtt_disconnect_executor::MqttDisconnectExecutor::new(mqtt_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -690,11 +690,12 @@ impl NodePlugin for MqttWaitMessagePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
-            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
-        let executor = crate::mqtt_wait_message_executor::MqttWaitMessageExecutor::new(mqtt_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
+            });
+        let executor =
+            crate::mqtt_wait_message_executor::MqttWaitMessageExecutor::new(mqtt_manager);
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -820,11 +821,11 @@ impl NodePlugin for MqttRequestPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mqtt_manager = context
             .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
-            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
+            });
         let executor = crate::mqtt_request_executor::MqttRequestExecutor::new(mqtt_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -867,7 +868,7 @@ mod tests {
         assert_eq!(plugin.icon(), "radio");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        
+
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -883,7 +884,7 @@ mod tests {
         assert_eq!(plugin.icon(), "send");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        
+
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -899,7 +900,7 @@ mod tests {
         assert_eq!(plugin.icon(), "arrow-down-to-line");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        
+
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -915,7 +916,7 @@ mod tests {
         assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        
+
         let ports = plugin.ports();
         assert_eq!(ports.len(), 1);
         assert_eq!(ports[0].id, "out");
@@ -930,7 +931,7 @@ mod tests {
         assert_eq!(plugin.icon(), "timer");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        
+
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -946,7 +947,7 @@ mod tests {
         assert_eq!(plugin.icon(), "message-square");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        
+
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
@@ -1027,10 +1028,7 @@ mod tests {
         );
 
         // 空 object → false
-        assert_eq!(
-            plugin.resolve_port(&Some(serde_json::json!({}))),
-            "false"
-        );
+        assert_eq!(plugin.resolve_port(&Some(serde_json::json!({}))), "false");
 
         // 非 object → false
         assert_eq!(
@@ -1182,7 +1180,7 @@ mod tests {
         assert_eq!(plugin.icon(), "x-circle");
         assert_eq!(plugin.color(), "#06b6d4");
         assert!(plugin.is_protocol_node());
-        
+
         let ports = plugin.ports();
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");

@@ -160,28 +160,32 @@ mod tests {
 
         // 验证计时值在合理范围内（允许 ±10ms 误差）
         let dns = result.dns_ms.unwrap();
-        assert!(dns >= 5 && dns <= 20, "DNS 应在 10ms 左右，实际: {}", dns);
+        assert!((5..=20).contains(&dns), "DNS 应在 10ms 左右，实际: {}", dns);
 
         let connect = result.connect_ms.unwrap();
         assert!(
-            connect >= 10 && connect <= 25,
+            (10..=25).contains(&connect),
             "Connect 应在 15ms 左右，实际: {}",
             connect
         );
 
         let tls = result.tls_ms.unwrap();
-        assert!(tls >= 15 && tls <= 30, "TLS 应在 20ms 左右，实际: {}", tls);
+        assert!(
+            (15..=30).contains(&tls),
+            "TLS 应在 20ms 左右，实际: {}",
+            tls
+        );
 
         let ttfb = result.ttfb_ms.unwrap();
         assert!(
-            ttfb >= 25 && ttfb <= 40,
+            (25..=40).contains(&ttfb),
             "TTFB 应在 30ms 左右，实际: {}",
             ttfb
         );
 
         let download = result.download_ms.unwrap();
         assert!(
-            download >= 20 && download <= 35,
+            (20..=35).contains(&download),
             "Download 应在 25ms 左右，实际: {}",
             download
         );

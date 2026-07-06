@@ -6,8 +6,8 @@
 //! 实际的请求/响应生命周期由 provider.request() 处理，
 //! 本执行器负责配置解析、变量替换、correlation_data 自动生成及输出构建。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -56,44 +56,41 @@ impl NodeExecutor for MqttRequestExecutor {
         };
 
         // 2. 变量替换: connection_id, request_topic, response_topic, payload, correlation_data
-        let connection_id =
-            replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("连接 ID variable substitution failed: {}", e);
-                log::error!(
-                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
-                    context.flow_uuid,
-                    node.uuid,
-                    node.name,
-                    error_msg
-                );
-                ErrorDetail::execution_error(error_msg)
-            })?;
+        let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
+            log::error!(
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
+            );
+            ErrorDetail::execution_error(error_msg)
+        })?;
 
-        let request_topic =
-            replace_variables(&config.request_topic, context).map_err(|e| {
-                let error_msg = format!("请求主题variable substitution failed: {}", e);
-                log::error!(
-                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
-                    context.flow_uuid,
-                    node.uuid,
-                    node.name,
-                    error_msg
-                );
-                ErrorDetail::execution_error(error_msg)
-            })?;
+        let request_topic = replace_variables(&config.request_topic, context).map_err(|e| {
+            let error_msg = format!("请求主题variable substitution failed: {}", e);
+            log::error!(
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
+            );
+            ErrorDetail::execution_error(error_msg)
+        })?;
 
-        let response_topic =
-            replace_variables(&config.response_topic, context).map_err(|e| {
-                let error_msg = format!("响应主题variable substitution failed: {}", e);
-                log::error!(
-                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
-                    context.flow_uuid,
-                    node.uuid,
-                    node.name,
-                    error_msg
-                );
-                ErrorDetail::execution_error(error_msg)
-            })?;
+        let response_topic = replace_variables(&config.response_topic, context).map_err(|e| {
+            let error_msg = format!("响应主题variable substitution failed: {}", e);
+            log::error!(
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
+            );
+            ErrorDetail::execution_error(error_msg)
+        })?;
 
         let resolved_payload = match &config.payload {
             Some(p) => Some(replace_variables(p, context).map_err(|e| {
@@ -231,7 +228,10 @@ impl NodeExecutor for MqttRequestExecutor {
                     let err = output.error.as_deref().unwrap_or("Unknown error");
                     format!(
                         "MQTT request/response failed: {} → {} - {} ({}ms)",
-                        request_topic, response_topic, err, duration.as_millis()
+                        request_topic,
+                        response_topic,
+                        err,
+                        duration.as_millis()
                     )
                 };
 
@@ -346,6 +346,7 @@ fn build_timing_json(
 // ---------------------------------------------------------------------------
 
 /// Success路由到 true 端口
+#[allow(clippy::result_large_err)]
 fn route_to_true(
     node: &Node,
     connections: &[Connection],
@@ -353,9 +354,7 @@ fn route_to_true(
 ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     let filtered: Vec<String> = connections
         .iter()
-        .filter(|conn| {
-            conn.source_node_uuid == node.uuid && conn.source_port_id == "true"
-        })
+        .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "true")
         .map(|conn| conn.target_node_uuid.clone())
         .collect();
 
@@ -369,13 +368,18 @@ fn route_to_true(
 }
 
 /// Failed路由到 false 端口
+#[allow(clippy::result_large_err)]
 fn route_to_false(
     node: &Node,
     connections: &[Connection],
     output_data: serde_json::Value,
 ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     // 检查 on_error 策略
-    if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+    if !node
+        .on_error
+        .as_ref()
+        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+    {
         let error_msg = output_data
             .get("error")
             .and_then(|v| v.as_str())
@@ -386,9 +390,7 @@ fn route_to_false(
 
     let filtered: Vec<String> = connections
         .iter()
-        .filter(|conn| {
-            conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
-        })
+        .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "false")
         .map(|conn| conn.target_node_uuid.clone())
         .collect();
 
@@ -751,7 +753,9 @@ mod tests {
         assert_eq!(data["request_topic"], "request/device");
         assert_eq!(data["response_topic"], "response/device");
         // correlation_data 应自动生成（UUID 格式）
-        let cd = data["correlation_data"].as_str().expect("应有 correlation_data");
+        let cd = data["correlation_data"]
+            .as_str()
+            .expect("应有 correlation_data");
         assert!(!cd.is_empty(), "correlation_data 不应为空");
         assert!(
             uuid::Uuid::parse_str(cd).is_ok(),
@@ -800,7 +804,13 @@ mod tests {
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "响应超时");
         assert_eq!(data["response_count"], 0);
-        assert_eq!(data["response_messages"].as_array().expect("应为数组").len(), 0);
+        assert_eq!(
+            data["response_messages"]
+                .as_array()
+                .expect("应为数组")
+                .len(),
+            0
+        );
         // 提供的 correlation_data 应保留
         assert_eq!(data["correlation_data"], "corr-123");
     }
@@ -831,7 +841,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("MqttRequestConfig"));
     }
 
-    /// 测试：变量替换在 connection_id、request_topic、response_topic、payload 中生效
+    /// 测试：变量替换在 `connection_id、request_topic、response_topic、payload` 中生效
     #[tokio::test]
     async fn test_request_with_variable_replacement() {
         let mqtt_manager = Arc::new(MockRequestSuccessProvider::new());
@@ -853,11 +863,9 @@ mod tests {
             json!("mqtt-connection-123"),
             String::new(),
         );
-        context.variables.set_variable(
-            "device_id".to_string(),
-            json!("sensor-001"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("device_id".to_string(), json!("sensor-001"), String::new());
         context
             .variables
             .set_variable("action".to_string(), json!("read"), String::new());
@@ -875,8 +883,14 @@ mod tests {
         assert_eq!(data["request_topic"], "device/sensor-001/request");
         assert_eq!(data["response_topic"], "device/sensor-001/response");
         assert_eq!(data["request"]["connection_id"], "mqtt-connection-123");
-        assert_eq!(data["request"]["request_topic"], "device/sensor-001/request");
-        assert_eq!(data["request"]["response_topic"], "device/sensor-001/response");
+        assert_eq!(
+            data["request"]["request_topic"],
+            "device/sensor-001/request"
+        );
+        assert_eq!(
+            data["request"]["response_topic"],
+            "device/sensor-001/response"
+        );
     }
 
     /// 测试：connection error时路由到 false 端口并包含Error信息
@@ -908,7 +922,7 @@ mod tests {
         assert_eq!(data["response_count"], 0);
     }
 
-    /// 测试：显式提供 correlation_data 时保持原值不变
+    /// 测试：显式提供 `correlation_data` 时保持原值不变
     #[tokio::test]
     async fn test_request_explicit_correlation_data_preserved() {
         let mqtt_manager = Arc::new(MockRequestSuccessProvider::new());
@@ -933,7 +947,10 @@ mod tests {
         let data = output_data.unwrap();
         // 显式提供的 correlation_data 应保持原值
         assert_eq!(data["correlation_data"], "my-custom-correlation-id");
-        assert_eq!(data["request"]["correlation_data"], "my-custom-correlation-id");
+        assert_eq!(
+            data["request"]["correlation_data"],
+            "my-custom-correlation-id"
+        );
     }
 
     /// 测试：连接端口路由

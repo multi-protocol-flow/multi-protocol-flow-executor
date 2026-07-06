@@ -113,11 +113,11 @@ impl NodePlugin for SseConnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let sse_manager = context
             .get_provider::<crate::sse_connection_manager::SseConnectionManager>("sse")
-            .unwrap_or_else(|| Arc::new(crate::sse_connection_manager::SseConnectionManager::new()));
+            .unwrap_or_else(
+                || Arc::new(crate::sse_connection_manager::SseConnectionManager::new()),
+            );
         let executor = crate::sse_connect_executor::SseConnectExecutor::new(sse_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -220,11 +220,11 @@ impl NodePlugin for SseListenPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let sse_manager = context
             .get_provider::<crate::sse_connection_manager::SseConnectionManager>("sse")
-            .unwrap_or_else(|| Arc::new(crate::sse_connection_manager::SseConnectionManager::new()));
+            .unwrap_or_else(
+                || Arc::new(crate::sse_connection_manager::SseConnectionManager::new()),
+            );
         let executor = crate::sse_listen_executor::SseListenExecutor::new(sse_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -307,11 +307,11 @@ impl NodePlugin for SseDisconnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let sse_manager = context
             .get_provider::<crate::sse_connection_manager::SseConnectionManager>("sse")
-            .unwrap_or_else(|| Arc::new(crate::sse_connection_manager::SseConnectionManager::new()));
+            .unwrap_or_else(
+                || Arc::new(crate::sse_connection_manager::SseConnectionManager::new()),
+            );
         let executor = crate::sse_disconnect_executor::SseDisconnectExecutor::new(sse_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 

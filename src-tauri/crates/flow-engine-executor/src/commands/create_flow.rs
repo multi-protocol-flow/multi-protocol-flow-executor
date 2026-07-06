@@ -44,7 +44,17 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
     };
 
     // 创建流程对象
-    let flow = Flow { uuid: flow_id.clone(), name: input.name, description: None, nodes: vec![start_node, end_node], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None };
+    let flow = Flow {
+        uuid: flow_id.clone(),
+        name: input.name,
+        description: None,
+        nodes: vec![start_node, end_node],
+        connections: vec![],
+        initial_variables: None,
+        environments: vec![],
+        active_environment: None,
+        hooks: None,
+    };
 
     CreateFlowCommandOutput { flow }
 }

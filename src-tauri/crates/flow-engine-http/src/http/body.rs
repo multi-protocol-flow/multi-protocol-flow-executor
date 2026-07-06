@@ -87,7 +87,7 @@ impl BodyType {
                 "application/x-www-form-urlencoded".to_string(),
             )),
             Self::Multipart(_) => {
-                let boundary = boundary.expect("multipart 需要 boundary");
+                let boundary = boundary?;
                 Some((
                     "Content-Type",
                     format!("multipart/form-data; boundary={}", boundary),

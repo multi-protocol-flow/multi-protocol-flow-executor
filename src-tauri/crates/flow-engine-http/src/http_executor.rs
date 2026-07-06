@@ -1,11 +1,11 @@
-use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
-use flow_engine_core::context::ExecutionContext;
-use flow_engine_core::executor::NodeExecutor;
 use crate::http::{BodyType, HttpClient, HttpRequestConfig, MultipartBody};
+use base64::Engine;
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
+use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use base64::Engine;
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -31,7 +31,9 @@ impl HttpNodeExecutor {
 }
 
 /// Convert `ContentType` to Content-Type header value
-fn content_type_to_string(content_type: &flow_engine_core::node_config::ContentType) -> &'static str {
+fn content_type_to_string(
+    content_type: &flow_engine_core::node_config::ContentType,
+) -> &'static str {
     match content_type {
         flow_engine_core::node_config::ContentType::Json => "application/json",
         flow_engine_core::node_config::ContentType::Text => "text/plain",
@@ -49,7 +51,6 @@ fn has_content_type_header(headers: &Option<std::collections::HashMap<String, St
     }
 }
 
-
 #[async_trait::async_trait]
 impl NodeExecutor for HttpNodeExecutor {
     async fn execute(
@@ -61,23 +62,36 @@ impl NodeExecutor for HttpNodeExecutor {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         // 执行前日志
         let start_time = Instant::now();
-        log::info!("[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: http", context.flow_uuid, node.uuid, node.name);
+        log::info!(
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: http",
+            context.flow_uuid,
+            node.uuid,
+            node.name
+        );
 
         // Send execution start log to frontend
-        context.emit_log(LogEvent {
-            level: LogLevel::Info,
-            message: format!("HTTP node {} execution started", node.name),
-            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-            node_uuid: Some(node.uuid.clone()),
-            node_name: Some(node.name.clone()),
-            flow_uuid: context.flow_uuid.clone(),
-        }).await;
+        context
+            .emit_log(LogEvent {
+                level: LogLevel::Info,
+                message: format!("HTTP node {} execution started", node.name),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                node_uuid: Some(node.uuid.clone()),
+                node_name: Some(node.name.clone()),
+                flow_uuid: context.flow_uuid.clone(),
+            })
+            .await;
         // Extract HttpConfig from Node's data field
         let http_config = match &node.data {
             flow_engine_core::node_config::NodeData::Http(config) => config.clone(),
             _ => {
                 let error_msg = format!("Node data type is not HttpConfig: {}", node.uuid);
-                log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                log::error!(
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                    context.flow_uuid,
+                    node.uuid,
+                    node.name,
+                    error_msg
+                );
                 return Err(ErrorDetail::execution_error(error_msg));
             }
         };
@@ -86,26 +100,40 @@ impl NodeExecutor for HttpNodeExecutor {
         let mut url = flow_engine_core::executor::replace_variables(&http_config.url, context)
             .map_err(|e| {
                 let error_msg = format!("URL variable replacement failed: {}", e);
-                log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                log::error!(
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                    context.flow_uuid,
+                    node.uuid,
+                    node.name,
+                    error_msg
+                );
                 ErrorDetail::execution_error(error_msg)
             })?;
 
         // HTTP request log
         let method_str = format!("{:?}", http_config.method).to_uppercase();
-        log::info!("[Flow {}] [HTTP Request] URL: {}, Method: {}", context.flow_uuid, url, method_str);
+        log::info!(
+            "[Flow {}] [HTTP Request] URL: {}, Method: {}",
+            context.flow_uuid,
+            url,
+            method_str
+        );
 
         // 发送HTTP请求日志到前端
-        context.emit_log(LogEvent {
-            level: LogLevel::Info,
-            message: format!("HTTP {} {}", method_str, url),
-            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-            node_uuid: Some(node.uuid.clone()),
-            node_name: Some(node.name.clone()),
-            flow_uuid: context.flow_uuid.clone(),
-        }).await;
+        context
+            .emit_log(LogEvent {
+                level: LogLevel::Info,
+                message: format!("HTTP {} {}", method_str, url),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                node_uuid: Some(node.uuid.clone()),
+                node_name: Some(node.name.clone()),
+                flow_uuid: context.flow_uuid.clone(),
+            })
+            .await;
 
         // 创建HTTP客户端（超时可配置，默认30秒，范围1-300秒）
-        let timeout_ms = http_config.timeout_ms
+        let timeout_ms = http_config
+            .timeout_ms
             .map(|t| t.clamp(1000, 300000))
             .unwrap_or(30000);
 
@@ -118,12 +146,14 @@ impl NodeExecutor for HttpNodeExecutor {
         let cookie_jar_arc: Option<Arc<std::sync::Mutex<crate::http::cookie::CookieJar>>> =
             if http_config.enable_cookies.unwrap_or(false) {
                 let shared_jar = context
-                    .get_provider::<std::sync::Mutex<crate::http::cookie::CookieJar>>("http_cookie_jar")
+                    .get_provider::<std::sync::Mutex<crate::http::cookie::CookieJar>>(
+                        "http_cookie_jar",
+                    )
                     .unwrap_or_else(|| {
                         let new_jar = Arc::new(std::sync::Mutex::new(
                             crate::http::cookie::CookieJar::from_initial(
                                 http_config.cookie_jar.as_deref().unwrap_or(&[]),
-                            )
+                            ),
                         ));
                         context.providers.insert(
                             "http_cookie_jar".to_string(),
@@ -145,9 +175,15 @@ impl NodeExecutor for HttpNodeExecutor {
             ) {
                 (true, None, None, None) => {
                     use crate::http::connector::TlsOptions;
-                    let c = HttpClient::with_tls(timeout_ms, TlsOptions {
-                        skip_verify: true, ca_cert_path: None, client_cert_path: None, client_key_path: None,
-                    });
+                    let c = HttpClient::with_tls(
+                        timeout_ms,
+                        TlsOptions {
+                            skip_verify: true,
+                            ca_cert_path: None,
+                            client_cert_path: None,
+                            client_key_path: None,
+                        },
+                    );
                     match proxy_state {
                         Some(ps) => c.with_proxy(ps),
                         None => c,
@@ -155,12 +191,15 @@ impl NodeExecutor for HttpNodeExecutor {
                 }
                 (_, Some(_), _, _) | (_, _, Some(_), _) | (_, _, _, Some(_)) => {
                     use crate::http::connector::TlsOptions;
-                    let c = HttpClient::with_tls(timeout_ms, TlsOptions {
-                        skip_verify: http_config.tls_skip_verify.unwrap_or(false),
-                        ca_cert_path: http_config.tls_ca_cert_path.clone(),
-                        client_cert_path: http_config.tls_client_cert_path.clone(),
-                        client_key_path: http_config.tls_client_key_path.clone(),
-                    });
+                    let c = HttpClient::with_tls(
+                        timeout_ms,
+                        TlsOptions {
+                            skip_verify: http_config.tls_skip_verify.unwrap_or(false),
+                            ca_cert_path: http_config.tls_ca_cert_path.clone(),
+                            client_cert_path: http_config.tls_client_cert_path.clone(),
+                            client_key_path: http_config.tls_client_key_path.clone(),
+                        },
+                    );
                     match proxy_state {
                         Some(ps) => c.with_proxy(ps),
                         None => c,
@@ -183,10 +222,10 @@ impl NodeExecutor for HttpNodeExecutor {
 
         // 记录发送的请求头
         let mut sent_headers: HashMap<String, String> = HashMap::new();
-        
+
         // 记录请求体信息（用于输出）
         let mut request_body_json: Option<serde_json::Value> = None;
-        
+
         // 处理请求头（替换变量）
         let mut headers: HashMap<String, String> = HashMap::new();
         if let Some(config_headers) = &http_config.headers {
@@ -194,15 +233,33 @@ impl NodeExecutor for HttpNodeExecutor {
                 // Replace variables in header key
                 let replaced_key = flow_engine_core::executor::replace_variables(key, context)
                     .map_err(|e| {
-                        let error_msg = format!("Request header key variable replacement failed ({}): {}", key, e);
-                        log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                        let error_msg = format!(
+                            "Request header key variable replacement failed ({}): {}",
+                            key, e
+                        );
+                        log::error!(
+                            "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                            context.flow_uuid,
+                            node.uuid,
+                            node.name,
+                            error_msg
+                        );
                         ErrorDetail::execution_error(error_msg)
                     })?;
                 // Replace variables in header value
                 let replaced_value = flow_engine_core::executor::replace_variables(value, context)
                     .map_err(|e| {
-                        let error_msg = format!("Request header value variable replacement failed ({}): {}", key, e);
-                        log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                        let error_msg = format!(
+                            "Request header value variable replacement failed ({}): {}",
+                            key, e
+                        );
+                        log::error!(
+                            "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                            context.flow_uuid,
+                            node.uuid,
+                            node.name,
+                            error_msg
+                        );
                         ErrorDetail::execution_error(error_msg)
                     })?;
                 headers.insert(replaced_key.clone(), replaced_value.clone());
@@ -216,30 +273,64 @@ impl NodeExecutor for HttpNodeExecutor {
                 flow_engine_core::node_config::HttpAuthType::None => {}
                 flow_engine_core::node_config::HttpAuthType::Basic => {
                     if let (Some(username), Some(password)) = (&auth.username, &auth.password) {
-                        let replaced_user = flow_engine_core::executor::replace_variables(username, context)
-                            .map_err(|e| ErrorDetail::execution_error(format!("Auth username variable replacement failed: {}", e)))?;
-                        let replaced_pass = flow_engine_core::executor::replace_variables(password, context)
-                            .map_err(|e| ErrorDetail::execution_error(format!("Auth password variable replacement failed: {}", e)))?;
+                        let replaced_user =
+                            flow_engine_core::executor::replace_variables(username, context)
+                                .map_err(|e| {
+                                    ErrorDetail::execution_error(format!(
+                                        "Auth username variable replacement failed: {}",
+                                        e
+                                    ))
+                                })?;
+                        let replaced_pass =
+                            flow_engine_core::executor::replace_variables(password, context)
+                                .map_err(|e| {
+                                    ErrorDetail::execution_error(format!(
+                                        "Auth password variable replacement failed: {}",
+                                        e
+                                    ))
+                                })?;
                         let credentials = base64::engine::general_purpose::STANDARD
                             .encode(format!("{}:{}", replaced_user, replaced_pass));
-                        headers.insert("Authorization".to_string(), format!("Basic {}", credentials));
-                        sent_headers.insert("Authorization".to_string(), "[Basic Auth]".to_string());
+                        headers.insert(
+                            "Authorization".to_string(),
+                            format!("Basic {}", credentials),
+                        );
+                        sent_headers
+                            .insert("Authorization".to_string(), "[Basic Auth]".to_string());
                     }
                 }
                 flow_engine_core::node_config::HttpAuthType::Bearer => {
                     if let Some(token) = &auth.token {
-                        let replaced = flow_engine_core::executor::replace_variables(token, context)
-                            .map_err(|e| ErrorDetail::execution_error(format!("Bearer Token variable replacement failed: {}", e)))?;
+                        let replaced = flow_engine_core::executor::replace_variables(
+                            token, context,
+                        )
+                        .map_err(|e| {
+                            ErrorDetail::execution_error(format!(
+                                "Bearer Token variable replacement failed: {}",
+                                e
+                            ))
+                        })?;
                         headers.insert("Authorization".to_string(), format!("Bearer {}", replaced));
-                        sent_headers.insert("Authorization".to_string(), "[Bearer Token]".to_string());
+                        sent_headers
+                            .insert("Authorization".to_string(), "[Bearer Token]".to_string());
                     }
                 }
                 flow_engine_core::node_config::HttpAuthType::ApiKeyHeader => {
                     if let (Some(name), Some(value)) = (&auth.api_key_name, &auth.api_key_value) {
                         let rn = flow_engine_core::executor::replace_variables(name, context)
-                            .map_err(|e| ErrorDetail::execution_error(format!("API Key name variable replacement failed: {}", e)))?;
+                            .map_err(|e| {
+                                ErrorDetail::execution_error(format!(
+                                    "API Key name variable replacement failed: {}",
+                                    e
+                                ))
+                            })?;
                         let rv = flow_engine_core::executor::replace_variables(value, context)
-                            .map_err(|e| ErrorDetail::execution_error(format!("API Key value variable replacement failed: {}", e)))?;
+                            .map_err(|e| {
+                                ErrorDetail::execution_error(format!(
+                                    "API Key value variable replacement failed: {}",
+                                    e
+                                ))
+                            })?;
                         headers.insert(rn.clone(), rv);
                         sent_headers.insert(rn, "[API Key]".to_string());
                     }
@@ -247,15 +338,28 @@ impl NodeExecutor for HttpNodeExecutor {
                 flow_engine_core::node_config::HttpAuthType::ApiKeyQuery => {
                     if let (Some(name), Some(value)) = (&auth.api_key_name, &auth.api_key_value) {
                         let rn = flow_engine_core::executor::replace_variables(name, context)
-                            .map_err(|e| ErrorDetail::execution_error(format!("API Key name variable replacement failed: {}", e)))?;
+                            .map_err(|e| {
+                                ErrorDetail::execution_error(format!(
+                                    "API Key name variable replacement failed: {}",
+                                    e
+                                ))
+                            })?;
                         let rv = flow_engine_core::executor::replace_variables(value, context)
-                            .map_err(|e| ErrorDetail::execution_error(format!("API Key value variable replacement failed: {}", e)))?;
+                            .map_err(|e| {
+                                ErrorDetail::execution_error(format!(
+                                    "API Key value variable replacement failed: {}",
+                                    e
+                                ))
+                            })?;
                         let sep = if url.contains('?') { "&" } else { "?" };
                         url = format!("{}{}{}={}", url, sep, rn, rv);
                     }
                 }
                 flow_engine_core::node_config::HttpAuthType::Digest => {
-                    log::warn!("[Flow {}] [HTTP] Digest authentication is not supported yet", context.flow_uuid);
+                    log::warn!(
+                        "[Flow {}] [HTTP] Digest authentication is not supported yet",
+                        context.flow_uuid
+                    );
                 }
             }
         }
@@ -269,40 +373,62 @@ impl NodeExecutor for HttpNodeExecutor {
             flow_engine_core::node_config::HttpBodyType::None => "none",
             flow_engine_core::node_config::HttpBodyType::Body => "body",
             flow_engine_core::node_config::HttpBodyType::FormData => "form-data",
-            flow_engine_core::node_config::HttpBodyType::XWwwFormUrlencoded => "x-www-form-urlencoded",
+            flow_engine_core::node_config::HttpBodyType::XWwwFormUrlencoded => {
+                "x-www-form-urlencoded"
+            }
             flow_engine_core::node_config::HttpBodyType::Binary => "binary",
         };
 
         // 构建请求体
         let body: BodyType = match http_config.body_type {
             flow_engine_core::node_config::HttpBodyType::None => {
-                log::info!("[Flow {}] [HTTP] body_type=none, no request body added", context.flow_uuid);
+                log::info!(
+                    "[Flow {}] [HTTP] body_type=none, no request body added",
+                    context.flow_uuid
+                );
                 BodyType::None
             }
             flow_engine_core::node_config::HttpBodyType::Body => {
                 if let Some(body_content) = &http_config.body {
-                    let replaced_body = flow_engine_core::executor::replace_variables(body_content, context)
-                        .map_err(|e| {
-                            let error_msg = format!("Request body variable replacement failed: {}", e);
-                            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", 
-                                context.flow_uuid, node.uuid, node.name, error_msg);
-                            ErrorDetail::execution_error(error_msg)
-                        })?;
-                    
+                    let replaced_body =
+                        flow_engine_core::executor::replace_variables(body_content, context)
+                            .map_err(|e| {
+                                let error_msg =
+                                    format!("Request body variable replacement failed: {}", e);
+                                log::error!(
+                                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                                    context.flow_uuid,
+                                    node.uuid,
+                                    node.name,
+                                    error_msg
+                                );
+                                ErrorDetail::execution_error(error_msg)
+                            })?;
+
                     // Set Content-Type header only if user hasn't set it manually
                     if !user_set_content_type {
                         let content_type_str = content_type_to_string(&http_config.content_type);
                         headers.insert("Content-Type".to_string(), content_type_str.to_string());
-                        sent_headers.insert("Content-Type".to_string(), content_type_str.to_string());
-                        log::info!("[Flow {}] [HTTP] Auto-set Content-Type: {}", 
-                            context.flow_uuid, content_type_str);
+                        sent_headers
+                            .insert("Content-Type".to_string(), content_type_str.to_string());
+                        log::info!(
+                            "[Flow {}] [HTTP] Auto-set Content-Type: {}",
+                            context.flow_uuid,
+                            content_type_str
+                        );
                     }
-                    
+
                     request_body_json = Some(replaced_body.clone().into());
-                    log::info!("[Flow {}] [HTTP] body_type=body, request body added", context.flow_uuid);
+                    log::info!(
+                        "[Flow {}] [HTTP] body_type=body, request body added",
+                        context.flow_uuid
+                    );
                     BodyType::raw(replaced_body.into_bytes())
                 } else {
-                    log::info!("[Flow {}] [HTTP] body_type=body, but body field is empty, skipping", context.flow_uuid);
+                    log::info!(
+                        "[Flow {}] [HTTP] body_type=body, but body field is empty, skipping",
+                        context.flow_uuid
+                    );
                     BodyType::None
                 }
             }
@@ -311,27 +437,54 @@ impl NodeExecutor for HttpNodeExecutor {
                     let mut multipart = MultipartBody::new();
                     let mut text_field_count = 0;
                     let mut file_field_count = 0;
-                    
+
                     for field in form_fields {
                         match field.field_type {
                             flow_engine_core::node_config::FormFieldType::Text => {
-                                let replaced_key = flow_engine_core::executor::replace_variables(&field.key, context)
-                                    .map_err(|e| ErrorDetail::execution_error(format!("Form field key variable replacement failed: {}", e)))?;
-                                let replaced_value = flow_engine_core::executor::replace_variables(&field.value, context)
-                                    .map_err(|e| ErrorDetail::execution_error(format!("Form field value variable replacement failed: {}", e)))?;
-                                
+                                let replaced_key = flow_engine_core::executor::replace_variables(
+                                    &field.key, context,
+                                )
+                                .map_err(|e| {
+                                    ErrorDetail::execution_error(format!(
+                                        "Form field key variable replacement failed: {}",
+                                        e
+                                    ))
+                                })?;
+                                let replaced_value = flow_engine_core::executor::replace_variables(
+                                    &field.value,
+                                    context,
+                                )
+                                .map_err(|e| {
+                                    ErrorDetail::execution_error(format!(
+                                        "Form field value variable replacement failed: {}",
+                                        e
+                                    ))
+                                })?;
+
                                 multipart = multipart.text(replaced_key, replaced_value);
                                 text_field_count += 1;
                             }
                             flow_engine_core::node_config::FormFieldType::File => {
                                 if let Some(file_path) = &field.file_path {
-                                    let replaced_path = flow_engine_core::executor::replace_variables(file_path, context)
-                                        .map_err(|e| ErrorDetail::execution_error(format!("File path variable replacement failed: {}", e)))?;
-                                    
+                                    let replaced_path =
+                                        flow_engine_core::executor::replace_variables(
+                                            file_path, context,
+                                        )
+                                        .map_err(|e| {
+                                            ErrorDetail::execution_error(format!(
+                                                "File path variable replacement failed: {}",
+                                                e
+                                            ))
+                                        })?;
+
                                     let resolved_path = context.resolve_file_path(&replaced_path);
-                                    
-                                    log::info!("[Flow {}] [HTTP] Reading form file: {:?}", context.flow_uuid, resolved_path);
-                                    
+
+                                    log::info!(
+                                        "[Flow {}] [HTTP] Reading form file: {:?}",
+                                        context.flow_uuid,
+                                        resolved_path
+                                    );
+
                                     let file_content = tokio::fs::read(&resolved_path).await
                                         .map_err(|e| {
                                             let error_msg = format!("Failed to read file ({}): {}", resolved_path.display(), e);
@@ -339,18 +492,26 @@ impl NodeExecutor for HttpNodeExecutor {
                                                 context.flow_uuid, node.uuid, node.name, error_msg);
                                             ErrorDetail::execution_error(error_msg)
                                         })?;
-                                    
+
                                     let mime_type = mime_guess::from_path(&resolved_path)
                                         .first_or_octet_stream();
-                                    
+
                                     let file_name = resolved_path
                                         .file_name()
                                         .and_then(|n| n.to_str())
                                         .unwrap_or("upload");
-                                    
-                                    let replaced_key = flow_engine_core::executor::replace_variables(&field.key, context)
-                                        .map_err(|e| ErrorDetail::execution_error(format!("Form field key variable replacement failed: {}", e)))?;
-                                    
+
+                                    let replaced_key =
+                                        flow_engine_core::executor::replace_variables(
+                                            &field.key, context,
+                                        )
+                                        .map_err(|e| {
+                                            ErrorDetail::execution_error(format!(
+                                                "Form field key variable replacement failed: {}",
+                                                e
+                                            ))
+                                        })?;
+
                                     multipart = multipart.file(
                                         replaced_key,
                                         file_name.to_string(),
@@ -365,15 +526,22 @@ impl NodeExecutor for HttpNodeExecutor {
                             }
                         }
                     }
-                    
+
                     if !user_set_content_type {
-                        sent_headers.insert("Content-Type".to_string(), "multipart/form-data (boundary auto-generated)".to_string());
-                        log::info!("[Flow {}] [HTTP] Will auto-set Content-Type: multipart/form-data", context.flow_uuid);
+                        sent_headers.insert(
+                            "Content-Type".to_string(),
+                            "multipart/form-data (boundary auto-generated)".to_string(),
+                        );
+                        log::info!(
+                            "[Flow {}] [HTTP] Will auto-set Content-Type: multipart/form-data",
+                            context.flow_uuid
+                        );
                     }
-                    
+
                     // 记录 form-data 字段元数据
-                    let fields_metadata: Vec<serde_json::Value> = form_fields.iter().map(|f| {
-                        match f.field_type {
+                    let fields_metadata: Vec<serde_json::Value> = form_fields
+                        .iter()
+                        .map(|f| match f.field_type {
                             flow_engine_core::node_config::FormFieldType::Text => {
                                 serde_json::json!({
                                     "type": "text",
@@ -388,53 +556,90 @@ impl NodeExecutor for HttpNodeExecutor {
                                     "path": f.file_path
                                 })
                             }
-                        }
-                    }).collect();
+                        })
+                        .collect();
                     request_body_json = Some(serde_json::json!({
                         "type": "form-data",
                         "fields": fields_metadata
                     }));
-                    
-                    log::info!("[Flow {}] [HTTP] body_type=form-data, {} text fields, {} file fields", 
-                        context.flow_uuid, text_field_count, file_field_count);
+
+                    log::info!(
+                        "[Flow {}] [HTTP] body_type=form-data, {} text fields, {} file fields",
+                        context.flow_uuid,
+                        text_field_count,
+                        file_field_count
+                    );
                     BodyType::multipart(multipart)
                 } else {
-                    log::warn!("[Flow {}] [HTTP] body_type=form-data, but form_fields is empty", context.flow_uuid);
+                    log::warn!(
+                        "[Flow {}] [HTTP] body_type=form-data, but form_fields is empty",
+                        context.flow_uuid
+                    );
                     BodyType::None
                 }
             }
             flow_engine_core::node_config::HttpBodyType::XWwwFormUrlencoded => {
                 if let Some(form_fields) = &http_config.form_fields {
                     let mut form_data: Vec<(String, String)> = Vec::new();
-                    
+
                     for field in form_fields {
-                        if matches!(field.field_type, flow_engine_core::node_config::FormFieldType::Text) {
-                            let replaced_key = flow_engine_core::executor::replace_variables(&field.key, context)
-                                .map_err(|e| ErrorDetail::execution_error(format!("Form field key variable replacement failed: {}", e)))?;
-                            let replaced_value = flow_engine_core::executor::replace_variables(&field.value, context)
-                                .map_err(|e| ErrorDetail::execution_error(format!("Form field value variable replacement failed: {}", e)))?;
+                        if matches!(
+                            field.field_type,
+                            flow_engine_core::node_config::FormFieldType::Text
+                        ) {
+                            let replaced_key =
+                                flow_engine_core::executor::replace_variables(&field.key, context)
+                                    .map_err(|e| {
+                                        ErrorDetail::execution_error(format!(
+                                            "Form field key variable replacement failed: {}",
+                                            e
+                                        ))
+                                    })?;
+                            let replaced_value = flow_engine_core::executor::replace_variables(
+                                &field.value,
+                                context,
+                            )
+                            .map_err(|e| {
+                                ErrorDetail::execution_error(format!(
+                                    "Form field value variable replacement failed: {}",
+                                    e
+                                ))
+                            })?;
                             form_data.push((replaced_key, replaced_value));
                         }
                     }
-                    
+
                     if !user_set_content_type {
-                        headers.insert("Content-Type".to_string(), "application/x-www-form-urlencoded".to_string());
-                        sent_headers.insert("Content-Type".to_string(), "application/x-www-form-urlencoded".to_string());
+                        headers.insert(
+                            "Content-Type".to_string(),
+                            "application/x-www-form-urlencoded".to_string(),
+                        );
+                        sent_headers.insert(
+                            "Content-Type".to_string(),
+                            "application/x-www-form-urlencoded".to_string(),
+                        );
                         log::info!("[Flow {}] [HTTP] Auto-set Content-Type: application/x-www-form-urlencoded", context.flow_uuid);
                     }
-                    
-                    let fields_metadata: Vec<serde_json::Value> = form_data.iter().map(|(k, v)| {
-                        serde_json::json!({
-                            "key": k,
-                            "value": v
+
+                    let fields_metadata: Vec<serde_json::Value> = form_data
+                        .iter()
+                        .map(|(k, v)| {
+                            serde_json::json!({
+                                "key": k,
+                                "value": v
+                            })
                         })
-                    }).collect();
+                        .collect();
                     request_body_json = Some(serde_json::json!({
                         "type": "urlencoded",
                         "fields": fields_metadata
                     }));
-                    
-                    log::info!("[Flow {}] [HTTP] body_type=x-www-form-urlencoded, {} fields", context.flow_uuid, form_data.len());
+
+                    log::info!(
+                        "[Flow {}] [HTTP] body_type=x-www-form-urlencoded, {} fields",
+                        context.flow_uuid,
+                        form_data.len()
+                    );
                     BodyType::urlencoded(form_data)
                 } else {
                     log::warn!("[Flow {}] [HTTP] body_type=x-www-form-urlencoded, but form_fields is empty", context.flow_uuid);
@@ -444,42 +649,73 @@ impl NodeExecutor for HttpNodeExecutor {
             flow_engine_core::node_config::HttpBodyType::Binary => {
                 if let Some(file_path) = &http_config.file_path {
                     let resolved_path = context.resolve_file_path(file_path);
-                    
-                    log::info!("[Flow {}] [HTTP] body_type=binary, reading file: {:?}", context.flow_uuid, resolved_path);
-                    
+
+                    log::info!(
+                        "[Flow {}] [HTTP] body_type=binary, reading file: {:?}",
+                        context.flow_uuid,
+                        resolved_path
+                    );
+
                     let file_content = match tokio::fs::read(&resolved_path).await {
                         Ok(content) => content,
                         Err(e) => {
-                            let error_msg = format!("Failed to read file ({}): {}", resolved_path.display(), e);
-                            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", 
-                                context.flow_uuid, node.uuid, node.name, error_msg);
+                            let error_msg =
+                                format!("Failed to read file ({}): {}", resolved_path.display(), e);
+                            log::error!(
+                                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                                context.flow_uuid,
+                                node.uuid,
+                                node.name,
+                                error_msg
+                            );
                             return Err(ErrorDetail::execution_error(error_msg));
                         }
                     };
-                    
+
                     if file_content.len() > 10 * 1024 * 1024 {
-                        log::warn!("[Flow {}] [HTTP] Large file ({} bytes), may use significant memory", 
-                            context.flow_uuid, file_content.len());
+                        log::warn!(
+                            "[Flow {}] [HTTP] Large file ({} bytes), may use significant memory",
+                            context.flow_uuid,
+                            file_content.len()
+                        );
                     }
-                    
+
                     if !user_set_content_type {
-                        headers.insert("Content-Type".to_string(), "application/octet-stream".to_string());
-                        sent_headers.insert("Content-Type".to_string(), "application/octet-stream".to_string());
-                        log::info!("[Flow {}] [HTTP] Auto-set Content-Type: application/octet-stream", context.flow_uuid);
+                        headers.insert(
+                            "Content-Type".to_string(),
+                            "application/octet-stream".to_string(),
+                        );
+                        sent_headers.insert(
+                            "Content-Type".to_string(),
+                            "application/octet-stream".to_string(),
+                        );
+                        log::info!(
+                            "[Flow {}] [HTTP] Auto-set Content-Type: application/octet-stream",
+                            context.flow_uuid
+                        );
                     }
-                    
+
                     let file_size = file_content.len();
                     request_body_json = Some(serde_json::json!({
                         "type": "binary",
                         "path": file_path,
                         "size": file_size
                     }));
-                    log::info!("[Flow {}] [HTTP] body_type=binary, file size: {} bytes", context.flow_uuid, file_size);
+                    log::info!(
+                        "[Flow {}] [HTTP] body_type=binary, file size: {} bytes",
+                        context.flow_uuid,
+                        file_size
+                    );
                     BodyType::raw(file_content)
                 } else {
                     let error_msg = "body_type=binary but file_path is empty".to_string();
-                    log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", 
-                        context.flow_uuid, node.uuid, node.name, error_msg);
+                    log::error!(
+                        "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                        context.flow_uuid,
+                        node.uuid,
+                        node.name,
+                        error_msg
+                    );
                     return Err(ErrorDetail::execution_error(error_msg));
                 }
             }
@@ -520,16 +756,22 @@ impl NodeExecutor for HttpNodeExecutor {
         let http_result: Result<crate::http::HttpResult, String> = loop {
             let result = tokio::time::timeout(
                 std::time::Duration::from_millis(timeout_ms),
-                client.execute(&config)
-            ).await;
+                client.execute(&config),
+            )
+            .await;
 
             match result {
                 Ok(Ok(res)) => {
                     let status = res.response.status;
                     if retry_statuses.contains(&status) && actual_retry_count < retry_max {
                         actual_retry_count += 1;
-                        log::info!("[Flow {}] [HTTP] Retry {}/{}, status code: {}",
-                            context.flow_uuid, actual_retry_count, retry_max, status);
+                        log::info!(
+                            "[Flow {}] [HTTP] Retry {}/{}, status code: {}",
+                            context.flow_uuid,
+                            actual_retry_count,
+                            retry_max,
+                            status
+                        );
                         if retry_delay > 0 {
                             tokio::time::sleep(std::time::Duration::from_millis(retry_delay)).await;
                         }
@@ -540,8 +782,13 @@ impl NodeExecutor for HttpNodeExecutor {
                 Ok(Err(e)) => {
                     if actual_retry_count < retry_max {
                         actual_retry_count += 1;
-                        log::info!("[Flow {}] [HTTP] Network error retry {}/{}: {}",
-                            context.flow_uuid, actual_retry_count, retry_max, e);
+                        log::info!(
+                            "[Flow {}] [HTTP] Network error retry {}/{}: {}",
+                            context.flow_uuid,
+                            actual_retry_count,
+                            retry_max,
+                            e
+                        );
                         if retry_delay > 0 {
                             tokio::time::sleep(std::time::Duration::from_millis(retry_delay)).await;
                         }
@@ -552,8 +799,12 @@ impl NodeExecutor for HttpNodeExecutor {
                 Err(_elapsed) => {
                     if actual_retry_count < retry_max {
                         actual_retry_count += 1;
-                        log::info!("[Flow {}] [HTTP] Timeout retry {}/{}",
-                            context.flow_uuid, actual_retry_count, retry_max);
+                        log::info!(
+                            "[Flow {}] [HTTP] Timeout retry {}/{}",
+                            context.flow_uuid,
+                            actual_retry_count,
+                            retry_max
+                        );
                         if retry_delay > 0 {
                             tokio::time::sleep(std::time::Duration::from_millis(retry_delay)).await;
                         }
@@ -563,22 +814,30 @@ impl NodeExecutor for HttpNodeExecutor {
                 }
             }
         };
-        
+
         // 处理超时和网络Error - 走 false 端口
         let http_result = match http_result {
             Ok(res) => res,
             Err(error_msg) => {
-                log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                log::error!(
+                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                    context.flow_uuid,
+                    node.uuid,
+                    node.name,
+                    error_msg
+                );
                 // Send error log to frontend
-                context.emit_log(LogEvent {
-                    level: LogLevel::Error,
-                    message: error_msg.clone(),
-                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                    node_uuid: Some(node.uuid.clone()),
-                    node_name: Some(node.name.clone()),
-                    flow_uuid: context.flow_uuid.clone(),
-                }).await;
-                
+                context
+                    .emit_log(LogEvent {
+                        level: LogLevel::Error,
+                        message: error_msg.clone(),
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                        node_uuid: Some(node.uuid.clone()),
+                        node_name: Some(node.name.clone()),
+                        flow_uuid: context.flow_uuid.clone(),
+                    })
+                    .await;
+
                 // Error: build failure output, route to false port
                 let output_data = serde_json::json!({
                     "success": false,
@@ -596,14 +855,16 @@ impl NodeExecutor for HttpNodeExecutor {
                     "timing": HttpTiming::default(),
                     "retry_count": actual_retry_count
                 });
-                
+
                 // 根据端口过滤连接
                 let next_node_ids: Vec<String> = connections
                     .iter()
-                    .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "false")
+                    .filter(|conn| {
+                        conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
+                    })
                     .map(|conn| conn.target_node_uuid.clone())
                     .collect();
-                
+
                 return Ok((next_node_ids, Some(output_data)));
             }
         };
@@ -620,14 +881,16 @@ impl NodeExecutor for HttpNodeExecutor {
         );
 
         // Send HTTP response log to frontend
-        context.emit_log(LogEvent {
-            level: LogLevel::Info,
-            message: format!("HTTP {} ({}ms)", status_code, http_duration_ms),
-            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-            node_uuid: Some(node.uuid.clone()),
-            node_name: Some(node.name.clone()),
-            flow_uuid: context.flow_uuid.clone(),
-        }).await;
+        context
+            .emit_log(LogEvent {
+                level: LogLevel::Info,
+                message: format!("HTTP {} ({}ms)", status_code, http_duration_ms),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                node_uuid: Some(node.uuid.clone()),
+                node_name: Some(node.name.clone()),
+                flow_uuid: context.flow_uuid.clone(),
+            })
+            .await;
 
         // 获取响应头
         let headers_map = http_result.response.headers.clone();
@@ -635,14 +898,18 @@ impl NodeExecutor for HttpNodeExecutor {
         // 从共享 Cookie Jar 中提取所有 Cookie（已由 HttpClient 在重定向过程中自动处理）
         let cookies_received = cookie_jar_arc.as_ref().and_then(|jar| {
             jar.lock().ok().map(|guard| {
-                guard.all_cookies().iter().map(|c| {
-                    serde_json::json!({
-                        "name": c.name,
-                        "value": c.value,
-                        "domain": c.domain,
-                        "path": c.path,
+                guard
+                    .all_cookies()
+                    .iter()
+                    .map(|c| {
+                        serde_json::json!({
+                            "name": c.name,
+                            "value": c.value,
+                            "domain": c.domain,
+                            "path": c.path,
+                        })
                     })
-                }).collect::<Vec<_>>()
+                    .collect::<Vec<_>>()
             })
         });
 
@@ -658,11 +925,16 @@ impl NodeExecutor for HttpNodeExecutor {
 
         // Parse response body as JSON (if Content-Type is application/json)
         let body_json = if is_json {
-            serde_json::from_str(&body_text)
-                .unwrap_or_else(|e| {
-                    log::warn!("[Flow {}] [Warning] NodeID: {}, NodeName: {}, JSON parse failed: {}", context.flow_uuid, node.uuid, node.name, e);
-                    serde_json::Value::String(body_text)
-                })
+            serde_json::from_str(&body_text).unwrap_or_else(|e| {
+                log::warn!(
+                    "[Flow {}] [Warning] NodeID: {}, NodeName: {}, JSON parse failed: {}",
+                    context.flow_uuid,
+                    node.uuid,
+                    node.name,
+                    e
+                );
+                serde_json::Value::String(body_text)
+            })
         } else {
             serde_json::Value::String(body_text)
         };
@@ -670,23 +942,28 @@ impl NodeExecutor for HttpNodeExecutor {
         // Determine success (2xx status codes)
         let is_success = (200..300).contains(&status_code);
         let port_id = if is_success { "true" } else { "false" };
-        
+
         // Non-2xx status code log
         if !is_success {
-            let error_msg = format!(
-                "HTTP request failed, status code: {}",
-                status_code
+            let error_msg = format!("HTTP request failed, status code: {}", status_code);
+            log::error!(
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
             );
-            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
             // Send HTTP status code error log to frontend
-            context.emit_log(LogEvent {
-                level: LogLevel::Error,
-                message: format!("HTTP request failed: {}", error_msg),
-                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                node_uuid: Some(node.uuid.clone()),
-                node_name: Some(node.name.clone()),
-                flow_uuid: context.flow_uuid.clone(),
-            }).await;
+            context
+                .emit_log(LogEvent {
+                    level: LogLevel::Error,
+                    message: format!("HTTP request failed: {}", error_msg),
+                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                    node_uuid: Some(node.uuid.clone()),
+                    node_name: Some(node.name.clone()),
+                    flow_uuid: context.flow_uuid.clone(),
+                })
+                .await;
         }
 
         // 使用来自 HttpClient 的真实计时数据
@@ -715,17 +992,29 @@ impl NodeExecutor for HttpNodeExecutor {
         let _duration_ms = start_time.elapsed().as_millis();
 
         // Post-execution log
-        log::info!("[Flow {}] [Complete] NodeUUID: {}, Duration: {}ms, Port: {}", context.flow_uuid, node.uuid, _duration_ms, port_id);
+        log::info!(
+            "[Flow {}] [Complete] NodeUUID: {}, Duration: {}ms, Port: {}",
+            context.flow_uuid,
+            node.uuid,
+            _duration_ms,
+            port_id
+        );
 
         // Send execution completion log to frontend
-        context.emit_log(LogEvent {
-            level: LogLevel::Info,
-            message: format!("HTTP node {} completed ({})", node.name, if is_success { "Success" } else { "Failure" }),
-            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-            node_uuid: Some(node.uuid.clone()),
-            node_name: Some(node.name.clone()),
-            flow_uuid: context.flow_uuid.clone(),
-        }).await;
+        context
+            .emit_log(LogEvent {
+                level: LogLevel::Info,
+                message: format!(
+                    "HTTP node {} completed ({})",
+                    node.name,
+                    if is_success { "Success" } else { "Failure" }
+                ),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                node_uuid: Some(node.uuid.clone()),
+                node_name: Some(node.name.clone()),
+                flow_uuid: context.flow_uuid.clone(),
+            })
+            .await;
 
         // 根据端口过滤连接，返回下一个节点
         let next_node_ids: Vec<String> = connections
@@ -738,19 +1027,18 @@ impl NodeExecutor for HttpNodeExecutor {
     }
 }
 
-
 // Re-export extract_value_by_path from core utils
 pub use flow_engine_core::utils::extract_value_by_path;
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use flow_engine_core::context::VariableStorage;
+    use flow_engine_core::node::*;
+    use flow_engine_core::node_config::*;
     use serde_json::json;
     use std::collections::HashMap;
     use std::sync::Arc;
-    use flow_engine_core::context::VariableStorage;
-    use flow_engine_core::node_config::*;
-    use flow_engine_core::node::*;
 
     // ============================================================================
     // 测试辅助函数
@@ -771,7 +1059,7 @@ mod tests {
         } else {
             HttpBodyType::None
         };
-        
+
         Node {
             uuid: uuid.to_string(),
             node_type: "http".to_string(),
@@ -841,8 +1129,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok(), "GET请求应该Success");
@@ -876,8 +1165,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok(), "POST请求应该Success");
@@ -891,7 +1181,10 @@ mod tests {
         if let Some(body) = output["body"].as_object() {
             assert!(body.contains_key("json"), "响应应该包含json字段");
             if let Some(json_data) = body.get("json").and_then(|v| v.as_object()) {
-                assert_eq!(json_data.get("test_key").and_then(|v| v.as_str()), Some("test_value"));
+                assert_eq!(
+                    json_data.get("test_key").and_then(|v| v.as_str()),
+                    Some("test_value")
+                );
             }
         }
     }
@@ -915,8 +1208,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok(), "PUT请求应该Success");
         let output_data = result.unwrap().1;
@@ -942,8 +1236,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok(), "DELETE请求应该Success");
         let output_data = result.unwrap().1;
@@ -955,7 +1250,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
-    /// 测试PATCH请求Success场景
+    /// `测试PATCH请求Success场景`
     async fn test_http_success_patch() {
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());
@@ -972,8 +1267,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok(), "PATCH请求应该Success");
         let output_data = result.unwrap().1;
@@ -1003,14 +1299,15 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "404Error应该返回Ok（走false端口）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty(), "没有连接时next_node_ids应该为空");
-        
+
         // 验证输出数据
         assert!(output_data.is_some(), "应该有输出数据");
         let output = output_data.unwrap();
@@ -1034,8 +1331,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "500Error应该返回Ok（走false端口）");
@@ -1062,8 +1360,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "403Error应该返回Ok（走false端口）");
@@ -1090,8 +1389,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "401Error应该返回Ok（走false端口）");
@@ -1122,8 +1422,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "DNS解析Failed应该返回Ok（走false端口）");
@@ -1133,17 +1434,20 @@ mod tests {
         assert_eq!(output["success"], false, "success 应该为 false");
         assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
         assert!(output["body"].is_null(), "网络Error时 body 应该为 null");
-        assert!(output["headers"].is_null(), "网络Error时 headers 应该为 null");
+        assert!(
+            output["headers"].is_null(),
+            "网络Error时 headers 应该为 null"
+        );
         assert!(output["error"].is_string(), "网络Error时应该有 error 字段");
         let error_msg = output["error"].as_str().unwrap();
         assert!(
-            error_msg.contains("HTTP请求Failed") ||
-            error_msg.contains("HTTP request failed") ||
-            error_msg.contains("dns") ||
-            error_msg.contains("connect") ||
-            error_msg.contains("timeout") ||
-            error_msg.contains("timed out") ||
-            error_msg.contains("no such host"),
+            error_msg.contains("HTTP请求Failed")
+                || error_msg.contains("HTTP request failed")
+                || error_msg.contains("dns")
+                || error_msg.contains("connect")
+                || error_msg.contains("timeout")
+                || error_msg.contains("timed out")
+                || error_msg.contains("no such host"),
             "Error消息应该包含网络Error信息: {}",
             error_msg
         );
@@ -1166,8 +1470,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "连接超时应该返回Ok（走false端口）");
@@ -1177,15 +1482,18 @@ mod tests {
         assert_eq!(output["success"], false, "success 应该为 false");
         assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
         assert!(output["body"].is_null(), "网络Error时 body 应该为 null");
-        assert!(output["headers"].is_null(), "网络Error时 headers 应该为 null");
+        assert!(
+            output["headers"].is_null(),
+            "网络Error时 headers 应该为 null"
+        );
         assert!(output["error"].is_string(), "网络Error时应该有 error 字段");
         let error_msg = output["error"].as_str().unwrap();
         assert!(
-            error_msg.contains("HTTP请求Failed") ||
-            error_msg.contains("HTTP request failed") ||
-            error_msg.contains("timeout") ||
-            error_msg.contains("connect") ||
-            error_msg.contains("timed out"),
+            error_msg.contains("HTTP请求Failed")
+                || error_msg.contains("HTTP request failed")
+                || error_msg.contains("timeout")
+                || error_msg.contains("connect")
+                || error_msg.contains("timed out"),
             "Error消息应该包含超时或连接Error信息: {}",
             error_msg
         );
@@ -1216,8 +1524,9 @@ mod tests {
         let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok(), "变量替换应该Success");
@@ -1248,7 +1557,10 @@ mod tests {
     /// 测试请求头变量替换
     async fn test_http_variable_replacement_headers() {
         let mut headers = HashMap::new();
-        headers.insert("X-Custom-Header".to_string(), "{{custom_header}}".to_string());
+        headers.insert(
+            "X-Custom-Header".to_string(),
+            "{{custom_header}}".to_string(),
+        );
         headers.insert("Authorization".to_string(), "Bearer {{token}}".to_string());
 
         let node = create_http_node(
@@ -1268,8 +1580,9 @@ mod tests {
         let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok(), "请求头变量替换应该Success");
@@ -1282,12 +1595,15 @@ mod tests {
         if let Some(body) = output["body"].as_object() {
             if let Some(response_headers) = body.get("headers").and_then(|v| v.as_object()) {
                 assert_eq!(
-                    response_headers.get("x-custom-header").and_then(|v| v.as_str()),
+                    response_headers
+                        .get("x-custom-header")
+                        .and_then(|v| v.as_str()),
                     Some("header_value_123"),
                     "请求头应该被替换"
                 );
                 assert!(
-                    response_headers.get("authorization")
+                    response_headers
+                        .get("authorization")
                         .and_then(|v| v.as_str())
                         .map(|s| s.contains("secret_token_456"))
                         .unwrap_or(false),
@@ -1310,13 +1626,16 @@ mod tests {
             "http://localhost:19090/api/mirror",
             HttpMethod::Post,
             Some(headers),
-            Some(json!({
-                "username": "{{username}}",
-                "email": "{{email}}",
-                "metadata": {
-                    "id": "{{user_id}}"
-                }
-            }).to_string())
+            Some(
+                json!({
+                    "username": "{{username}}",
+                    "email": "{{email}}",
+                    "metadata": {
+                        "id": "{{user_id}}"
+                    }
+                })
+                .to_string(),
+            ),
         );
 
         let variables = json!({
@@ -1328,8 +1647,9 @@ mod tests {
         let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok(), "请求体变量替换应该Success");
@@ -1376,10 +1696,13 @@ mod tests {
             "http://localhost:19090/api/mirror?env={{env}}",
             HttpMethod::Post,
             Some(headers),
-            Some(json!({
-                "user": "{{username}}",
-                "action": "{{action}}"
-            }).to_string())
+            Some(
+                json!({
+                    "user": "{{username}}",
+                    "action": "{{action}}"
+                })
+                .to_string(),
+            ),
         );
 
         let variables = json!({
@@ -1392,8 +1715,9 @@ mod tests {
         let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok(), "全部变量替换应该Success");
@@ -1402,30 +1726,30 @@ mod tests {
         let output = output_data.unwrap();
         assert_eq!(output["status"], 200);
 
-            // 验证URL参数被替换
-            if let Some(body) = output["body"].as_object() {
-                if let Some(args) = body.get("args").and_then(|v| v.as_object()) {
-                    assert_eq!(
-                        args.get("env").and_then(|v| v.as_str()),
-                        Some("production"),
-                        "URL参数应该被替换"
-                    );
-                }
-
-                // 验证请求体被替换
-                if let Some(json_data) = body.get("json").and_then(|v| v.as_object()) {
-                    assert_eq!(
-                        json_data.get("user").and_then(|v| v.as_str()),
-                        Some("alice"),
-                        "请求体字段应该被替换"
-                    );
-                    assert_eq!(
-                        json_data.get("action").and_then(|v| v.as_str()),
-                        Some("create"),
-                        "请求体字段应该被替换"
-                    );
-                }
+        // 验证URL参数被替换
+        if let Some(body) = output["body"].as_object() {
+            if let Some(args) = body.get("args").and_then(|v| v.as_object()) {
+                assert_eq!(
+                    args.get("env").and_then(|v| v.as_str()),
+                    Some("production"),
+                    "URL参数应该被替换"
+                );
             }
+
+            // 验证请求体被替换
+            if let Some(json_data) = body.get("json").and_then(|v| v.as_object()) {
+                assert_eq!(
+                    json_data.get("user").and_then(|v| v.as_str()),
+                    Some("alice"),
+                    "请求体字段应该被替换"
+                );
+                assert_eq!(
+                    json_data.get("action").and_then(|v| v.as_str()),
+                    Some("create"),
+                    "请求体字段应该被替换"
+                );
+            }
+        }
     }
 
     // ============================================================================
@@ -1448,8 +1772,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
@@ -1462,7 +1787,10 @@ mod tests {
         // 验证响应头存在
         assert!(output["headers"].is_object(), "响应头应该存在");
         let headers = output["headers"].as_object().unwrap();
-        assert!(headers.contains_key("content-type"), "应该包含content-type头");
+        assert!(
+            headers.contains_key("content-type"),
+            "应该包含content-type头"
+        );
     }
 
     #[tokio::test]
@@ -1481,8 +1809,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
@@ -1491,7 +1820,10 @@ mod tests {
 
         // 验证 JSON 响应被解析为对象
         assert!(output["body"].is_object(), "JSON 响应应该被解析为对象");
-        assert!(output["body"].get("status").and_then(|v| v.as_str()) == Some("ok"), "应包含 status 字段");
+        assert!(
+            output["body"].get("status").and_then(|v| v.as_str()) == Some("ok"),
+            "应包含 status 字段"
+        );
     }
 
     #[tokio::test]
@@ -1510,8 +1842,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
@@ -1548,8 +1881,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok(), "空请求头应该Success");
         let output_data = result.unwrap().1;
@@ -1576,8 +1910,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok(), "空请求体应该Success");
         let output_data = result.unwrap().1;
@@ -1601,8 +1936,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok(), "URL编码应该被正确处理");
         let output_data = result.unwrap().1;
@@ -1655,10 +1991,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok());
@@ -1704,10 +2057,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok());
@@ -1744,10 +2114,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "404Error应该返回Ok（走false端口）");
@@ -1785,10 +2172,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok());
@@ -1825,10 +2229,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "500Error应该返回Ok（走false端口）");
@@ -1872,12 +2293,33 @@ mod tests {
 
         let mut storage = VariableStorage::new();
         storage.set_variable("test_param".to_string(), json!("value123"), String::new());
-        storage.set_variable("test_header".to_string(), json!("header_value"), String::new());
+        storage.set_variable(
+            "test_header".to_string(),
+            json!("header_value"),
+            String::new(),
+        );
         storage.set_variable("test_body".to_string(), json!("body_value"), String::new());
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: storage, node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: storage,
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok());
@@ -1892,7 +2334,10 @@ mod tests {
                 assert_eq!(args.get("param").and_then(|v| v.as_str()), Some("value123"));
             }
             if let Some(headers) = body.get("headers").and_then(|v| v.as_object()) {
-                assert_eq!(headers.get("x-custom-header").and_then(|v| v.as_str()), Some("header_value"));
+                assert_eq!(
+                    headers.get("x-custom-header").and_then(|v| v.as_str()),
+                    Some("header_value")
+                );
             }
         }
     }
@@ -1924,10 +2369,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "网络Error应该返回Ok（走false端口）");
@@ -1937,16 +2399,19 @@ mod tests {
         assert_eq!(output["success"], false, "success 应该为 false");
         assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
         assert!(output["body"].is_null(), "网络Error时 body 应该为 null");
-        assert!(output["headers"].is_null(), "网络Error时 headers 应该为 null");
+        assert!(
+            output["headers"].is_null(),
+            "网络Error时 headers 应该为 null"
+        );
         assert!(output["error"].is_string(), "网络Error时应该有 error 字段");
         let error_msg = output["error"].as_str().unwrap();
         assert!(
-            error_msg.contains("HTTP请求Failed") ||
-            error_msg.contains("HTTP request failed") ||
-            error_msg.contains("dns") ||
-            error_msg.contains("connect") ||
-            error_msg.contains("timeout") ||
-            error_msg.contains("timed out"),
+            error_msg.contains("HTTP请求Failed")
+                || error_msg.contains("HTTP request failed")
+                || error_msg.contains("dns")
+                || error_msg.contains("connect")
+                || error_msg.contains("timeout")
+                || error_msg.contains("timed out"),
             "Error消息应该包含网络Error信息: {}",
             error_msg
         );
@@ -1983,10 +2448,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok());
@@ -2026,10 +2508,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok());
@@ -2073,10 +2572,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok());
@@ -2113,10 +2629,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok());
@@ -2157,10 +2690,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok());
@@ -2197,10 +2747,27 @@ mod tests {
             on_error: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&http_node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok());
@@ -2220,7 +2787,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
-    /// 测试 output_data 包含 request 字段（向后兼容 + 新增）
+    /// 测试 `output_data` 包含 request 字段（向后兼容 + 新增）
     async fn test_output_contains_request_info() {
         let node = create_http_node(
             "test-request-info",
@@ -2234,7 +2801,9 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok(), "GET请求应该Success");
@@ -2243,35 +2812,70 @@ mod tests {
         let output = output_data.unwrap();
 
         // ===== 向后兼容性验证 =====
-        assert!(output.get("status").is_some(), "output_data 应包含 status 字段");
-        assert!(output.get("headers").is_some(), "output_data 应包含 headers 字段");
+        assert!(
+            output.get("status").is_some(),
+            "output_data 应包含 status 字段"
+        );
+        assert!(
+            output.get("headers").is_some(),
+            "output_data 应包含 headers 字段"
+        );
         assert!(output.get("body").is_some(), "output_data 应包含 body 字段");
         assert_eq!(output["status"], 200, "状态码应该是 200");
 
         // ===== 新增 request 字段验证 =====
-        assert!(output.get("request").is_some(), "output_data 应包含 request 字段");
+        assert!(
+            output.get("request").is_some(),
+            "output_data 应包含 request 字段"
+        );
         let request = output.get("request").unwrap();
-        
+
         // 验证 request.url
         assert!(request.get("url").is_some(), "request 应包含 url 字段");
         let url = request.get("url").unwrap().as_str().unwrap();
-        assert!(url.contains("localhost:19090/api/status"), "request.url 应包含请求地址");
-        
+        assert!(
+            url.contains("localhost:19090/api/status"),
+            "request.url 应包含请求地址"
+        );
+
         // 验证 request.method
-        assert!(request.get("method").is_some(), "request 应包含 method 字段");
-        assert_eq!(request.get("method").unwrap().as_str().unwrap(), "GET", "request.method 应该是 GET");
-        
+        assert!(
+            request.get("method").is_some(),
+            "request 应包含 method 字段"
+        );
+        assert_eq!(
+            request.get("method").unwrap().as_str().unwrap(),
+            "GET",
+            "request.method 应该是 GET"
+        );
+
         // 验证 request.headers
-        assert!(request.get("headers").is_some(), "request 应包含 headers 字段");
-        assert!(request.get("headers").unwrap().is_object(), "request.headers 应该是对象");
-        
+        assert!(
+            request.get("headers").is_some(),
+            "request 应包含 headers 字段"
+        );
+        assert!(
+            request.get("headers").unwrap().is_object(),
+            "request.headers 应该是对象"
+        );
+
         // 验证 request.body_type
-        assert!(request.get("body_type").is_some(), "request 应包含 body_type 字段");
-        assert_eq!(request.get("body_type").unwrap().as_str().unwrap(), "none", "GET 请求的 body_type 应该是 none");
-        
+        assert!(
+            request.get("body_type").is_some(),
+            "request 应包含 body_type 字段"
+        );
+        assert_eq!(
+            request.get("body_type").unwrap().as_str().unwrap(),
+            "none",
+            "GET 请求的 body_type 应该是 none"
+        );
+
         // 验证 request.body (GET 请求应该是 null)
         assert!(request.get("body").is_some(), "request 应包含 body 字段");
-        assert!(request.get("body").unwrap().is_null(), "GET 请求的 request.body 应该是 null");
+        assert!(
+            request.get("body").unwrap().is_null(),
+            "GET 请求的 request.body 应该是 null"
+        );
     }
 
     #[tokio::test]
@@ -2294,25 +2898,37 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok(), "POST请求应该Success");
         let output = result.unwrap().1.unwrap();
 
         // 验证 request 字段
         let request = output.get("request").unwrap();
-        
+
         // 验证 method
         assert_eq!(request.get("method").unwrap().as_str().unwrap(), "POST");
-        
+
         // 验证 headers 包含自定义头
         let req_headers = request.get("headers").unwrap().as_object().unwrap();
-        assert_eq!(req_headers.get("X-Custom-Header").unwrap().as_str().unwrap(), "custom-value");
-        assert_eq!(req_headers.get("Content-Type").unwrap().as_str().unwrap(), "application/json");
-        
+        assert_eq!(
+            req_headers
+                .get("X-Custom-Header")
+                .unwrap()
+                .as_str()
+                .unwrap(),
+            "custom-value"
+        );
+        assert_eq!(
+            req_headers.get("Content-Type").unwrap().as_str().unwrap(),
+            "application/json"
+        );
+
         // 验证 body_type
         assert_eq!(request.get("body_type").unwrap().as_str().unwrap(), "body");
-        
+
         // 验证 body 包含发送的数据
         let req_body = request.get("body").unwrap().as_str().unwrap();
         assert!(req_body.contains("test_key"));
@@ -2336,16 +2952,24 @@ mod tests {
         let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok());
         let output = result.unwrap().1.unwrap();
         let request = output.get("request").unwrap();
-        
+
         // 验证 request.url 是变量替换后的值
         let url = request.get("url").unwrap().as_str().unwrap();
-        assert!(url.contains("param=replaced_value"), "request.url 应该包含替换后的变量值");
-        assert!(!url.contains("{{test_param}}"), "request.url 不应该包含未替换的变量");
+        assert!(
+            url.contains("param=replaced_value"),
+            "request.url 应该包含替换后的变量值"
+        );
+        assert!(
+            !url.contains("{{test_param}}"),
+            "request.url 不应该包含未替换的变量"
+        );
     }
 
     #[tokio::test]
@@ -2353,7 +2977,10 @@ mod tests {
     /// 测试请求头变量替换记录在 request.headers
     async fn test_request_info_headers_includes_replaced_variables() {
         let mut headers = HashMap::new();
-        headers.insert("X-Auth-Token".to_string(), "Bearer {{api_token}}".to_string());
+        headers.insert(
+            "X-Auth-Token".to_string(),
+            "Bearer {{api_token}}".to_string(),
+        );
 
         let node = create_http_node(
             "test-var-headers",
@@ -2368,24 +2995,32 @@ mod tests {
         let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         assert!(result.is_ok());
         let output = result.unwrap().1.unwrap();
         let request = output.get("request").unwrap();
-        
+
         // 验证 request.headers 包含替换后的值
         let req_headers = request.get("headers").unwrap().as_object().unwrap();
         let auth_header = req_headers.get("X-Auth-Token").unwrap().as_str().unwrap();
-        assert!(auth_header.contains("secret_token_123"), "request.headers 应该包含替换后的变量值");
-        assert!(!auth_header.contains("{{api_token}}"), "request.headers 不应该包含未替换的变量");
+        assert!(
+            auth_header.contains("secret_token_123"),
+            "request.headers 应该包含替换后的变量值"
+        );
+        assert!(
+            !auth_header.contains("{{api_token}}"),
+            "request.headers 不应该包含未替换的变量"
+        );
     }
 
     // ============================================================================
     // 测试：JSONPath 提取功能（TDD: 先写测试）
     // ============================================================================
 
-    /// 测试 extract_value_by_path 使用 JSONPath 语法
+    /// 测试 `extract_value_by_path` 使用 `JSONPath` 语法
     #[test]
     fn test_extract_value_by_jsonpath_basic() {
         let data = json!({
@@ -2434,7 +3069,7 @@ mod tests {
         );
     }
 
-    /// 测试 JSONPath 数组索引访问
+    /// 测试 `JSONPath` 数组索引访问
     #[test]
     fn test_extract_value_by_jsonpath_array_index() {
         let data = json!({
@@ -2484,7 +3119,7 @@ mod tests {
         );
     }
 
-    /// 测试 JSONPath 边界情况
+    /// 测试 `JSONPath` 边界情况
     #[test]
     fn test_extract_value_by_jsonpath_edge_cases() {
         let data = json!({
@@ -2530,7 +3165,7 @@ mod tests {
         );
     }
 
-    /// 测试 JSONPath 无效语法处理
+    /// 测试 `JSONPath` 无效语法处理
     #[test]
     fn test_extract_value_by_jsonpath_invalid_syntax() {
         let data = json!({"status": 200});
@@ -2560,7 +3195,10 @@ mod tests {
         let mut headers = HashMap::new();
         // 使用变量作为 header key
         headers.insert("{{header_name}}".to_string(), "header_value".to_string());
-        headers.insert("X-Static-Header".to_string(), "{{header_value}}".to_string());
+        headers.insert(
+            "X-Static-Header".to_string(),
+            "{{header_value}}".to_string(),
+        );
 
         let node = create_http_node(
             "test-header-key-var",
@@ -2579,8 +3217,9 @@ mod tests {
         let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok(), "Header key 变量替换应该Success");
@@ -2593,12 +3232,16 @@ mod tests {
         if let Some(body) = output["body"].as_object() {
             if let Some(response_headers) = body.get("headers").and_then(|v| v.as_object()) {
                 assert_eq!(
-                    response_headers.get("x-custom-header").and_then(|v| v.as_str()),
+                    response_headers
+                        .get("x-custom-header")
+                        .and_then(|v| v.as_str()),
                     Some("header_value"),
                     "Header key 应该被替换"
                 );
                 assert_eq!(
-                    response_headers.get("x-static-header").and_then(|v| v.as_str()),
+                    response_headers
+                        .get("x-static-header")
+                        .and_then(|v| v.as_str()),
                     Some("dynamic_value"),
                     "Header value 应该被替换"
                 );
@@ -2630,8 +3273,9 @@ mod tests {
         let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
-        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> =
-            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result: Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
 
         // 验证执行Success
         assert!(result.is_ok(), "Header key 部分变量替换应该Success");
@@ -2641,7 +3285,7 @@ mod tests {
         assert_eq!(output["status"], 200);
 
         // 验证 request.headers 中包含替换后的 header key
-            // 注意：echo 服务的 /api/mirror 端点返回小写 header key
+        // 注意：echo 服务的 /api/mirror 端点返回小写 header key
         // 所以我们验证 request.headers 而不是 body.headers
         if let Some(request) = output.get("request") {
             if let Some(sent_headers) = request.get("headers").and_then(|v| v.as_object()) {
@@ -2694,13 +3338,19 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result = executor.execute(&node, &mut context, &connections, &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &connections, &HashMap::new())
+            .await;
 
         assert!(result.is_ok(), "请求应该Success");
         let (next_node_ids, output_data) = result.unwrap();
 
         // 验证：应该路由到 true 端口连接的节点
-        assert_eq!(next_node_ids, vec!["node-true"], "2xx 响应应该路由到 true 端口");
+        assert_eq!(
+            next_node_ids,
+            vec!["node-true"],
+            "2xx 响应应该路由到 true 端口"
+        );
 
         // 验证输出数据
         let output = output_data.unwrap();
@@ -2744,13 +3394,19 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result = executor.execute(&node, &mut context, &connections, &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &connections, &HashMap::new())
+            .await;
 
         assert!(result.is_ok(), "请求应该返回Ok");
         let (next_node_ids, output_data) = result.unwrap();
 
         // 验证：应该路由到 false 端口连接的节点
-        assert_eq!(next_node_ids, vec!["node-false"], "非2xx 响应应该路由到 false 端口");
+        assert_eq!(
+            next_node_ids,
+            vec!["node-false"],
+            "非2xx 响应应该路由到 false 端口"
+        );
 
         // 验证输出数据
         let output = output_data.unwrap();
@@ -2794,13 +3450,19 @@ mod tests {
         let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result = executor.execute(&node, &mut context, &connections, &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &connections, &HashMap::new())
+            .await;
 
         assert!(result.is_ok(), "网络Error应该返回Ok");
         let (next_node_ids, output_data) = result.unwrap();
 
         // 验证：应该路由到 false 端口连接的节点
-        assert_eq!(next_node_ids, vec!["node-false"], "网络Error应该路由到 false 端口");
+        assert_eq!(
+            next_node_ids,
+            vec!["node-false"],
+            "网络Error应该路由到 false 端口"
+        );
 
         // 验证输出数据
         let output = output_data.unwrap();

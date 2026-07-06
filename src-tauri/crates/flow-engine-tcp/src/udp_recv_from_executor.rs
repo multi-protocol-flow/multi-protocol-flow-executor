@@ -155,7 +155,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                 if !node
                     .on_error
                     .as_ref()
-                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     return Err(ErrorDetail::execution_error(format!(
                         "Flow aborted: {}",
@@ -201,7 +201,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                 if !node
                     .on_error
                     .as_ref()
-                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }

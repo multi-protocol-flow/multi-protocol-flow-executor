@@ -164,7 +164,11 @@ mod tests {
         for err in errors {
             let msg = err.to_string();
             // All error messages should be non-empty
-            assert!(!msg.is_empty(), "Error message should not be empty: {:?}", err);
+            assert!(
+                !msg.is_empty(),
+                "Error message should not be empty: {:?}",
+                err
+            );
         }
     }
 

@@ -213,13 +213,12 @@ pub fn save_report(
     let report_dir = app_data_dir
         .join("reports")
         .join(format!("dataset_{}", report.uuid));
-    std::fs::create_dir_all(&report_dir)
-        .map_err(|e| format!("创建报告目录Failed: {}", e))?;
+    std::fs::create_dir_all(&report_dir).map_err(|e| format!("创建报告目录Failed: {}", e))?;
 
     // 保存 summary.json（原子写入）
     let summary_path = report_dir.join("summary.json");
-    let json = serde_json::to_string_pretty(report)
-        .map_err(|e| format!("序列化报告Failed: {}", e))?;
+    let json =
+        serde_json::to_string_pretty(report).map_err(|e| format!("序列化报告Failed: {}", e))?;
 
     let mut temp_file = tempfile::NamedTempFile::new_in(&report_dir)
         .map_err(|e| format!("创建临时文件Failed: {}", e))?;
@@ -233,8 +232,7 @@ pub fn save_report(
     // 保存行详情
     if !row_details.is_empty() {
         let rows_dir = report_dir.join("rows");
-        std::fs::create_dir_all(&rows_dir)
-            .map_err(|e| format!("创建行详情目录Failed: {}", e))?;
+        std::fs::create_dir_all(&rows_dir).map_err(|e| format!("创建行详情目录Failed: {}", e))?;
 
         for (row_index, flow_report) in row_details {
             let row_path = rows_dir.join(format!("row_{}.json", row_index));
@@ -283,7 +281,11 @@ mod tests {
         assert!(json.contains("test.csv"));
 
         let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
-        if let DatasetEvent::Started { total_rows, dataset_name } = de {
+        if let DatasetEvent::Started {
+            total_rows,
+            dataset_name,
+        } = de
+        {
             assert_eq!(total_rows, 100);
             assert_eq!(dataset_name, "test.csv");
         } else {
@@ -302,7 +304,12 @@ mod tests {
         assert!(json.contains("row_completed"));
 
         let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
-        if let DatasetEvent::RowCompleted { row_index, status, duration_ms } = de {
+        if let DatasetEvent::RowCompleted {
+            row_index,
+            status,
+            duration_ms,
+        } = de
+        {
             assert_eq!(row_index, 5);
             assert_eq!(status, RowStatus::Success);
             assert_eq!(duration_ms, 120);
@@ -323,7 +330,12 @@ mod tests {
         assert!(json.contains("连接超时"));
 
         let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
-        if let DatasetEvent::RowFailed { row_index, error, duration_ms } = de {
+        if let DatasetEvent::RowFailed {
+            row_index,
+            error,
+            duration_ms,
+        } = de
+        {
             assert_eq!(row_index, 2);
             assert_eq!(error, "连接超时");
             assert_eq!(duration_ms, 5000);
@@ -348,7 +360,13 @@ mod tests {
         assert!(json.contains("estimated_remaining_ms"));
 
         let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
-        if let DatasetEvent::Progress { completed, total, estimated_remaining_ms, .. } = de {
+        if let DatasetEvent::Progress {
+            completed,
+            total,
+            estimated_remaining_ms,
+            ..
+        } = de
+        {
             assert_eq!(completed, 10);
             assert_eq!(total, 100);
             assert_eq!(estimated_remaining_ms, Some(45000));
@@ -454,13 +472,13 @@ mod tests {
         // 1..=100 已排序
         let data: Vec<u64> = (1..=100).collect();
         let p50 = calculate_percentile(&data, 50.0);
-        assert!(p50 >= 49 && p50 <= 51, "P50 应接近 50，实际 {}", p50);
+        assert!((49..=51).contains(&p50), "P50 应接近 50，实际 {}", p50);
 
         let p95 = calculate_percentile(&data, 95.0);
-        assert!(p95 >= 94 && p95 <= 96, "P95 应接近 95，实际 {}", p95);
+        assert!((94..=96).contains(&p95), "P95 应接近 95，实际 {}", p95);
 
         let p99 = calculate_percentile(&data, 99.0);
-        assert!(p99 >= 98 && p99 <= 100, "P99 应接近 99，实际 {}", p99);
+        assert!((98..=100).contains(&p99), "P99 应接近 99，实际 {}", p99);
     }
 
     // ===== 报告生成测试 =====
@@ -534,7 +552,10 @@ mod tests {
         assert!(result.is_ok(), "保存报告应Success: {:?}", result.err());
 
         // 验证 summary.json 存在
-        let report_dir = temp_dir.path().join("reports").join(format!("dataset_{}", report.uuid));
+        let report_dir = temp_dir
+            .path()
+            .join("reports")
+            .join(format!("dataset_{}", report.uuid));
         assert!(report_dir.exists(), "报告目录应存在");
         assert!(
             report_dir.join("summary.json").exists(),
@@ -542,8 +563,7 @@ mod tests {
         );
 
         // 验证 summary.json 可反序列化
-        let content =
-            std::fs::read_to_string(report_dir.join("summary.json")).expect("读取Failed");
+        let content = std::fs::read_to_string(report_dir.join("summary.json")).expect("读取Failed");
         let loaded: DatasetExecutionReport =
             serde_json::from_str(&content).expect("反序列化Failed");
         assert_eq!(loaded.uuid, report.uuid);
@@ -564,35 +584,25 @@ mod tests {
 
         // 构造行详情
         let mut row_details = HashMap::new();
-        row_details.insert(
-            2,
-            create_flow_report("flow-001", "Test Flow"),
-        );
-        row_details.insert(
-            4,
-            create_flow_report("flow-001", "Test Flow"),
-        );
+        row_details.insert(2, create_flow_report("flow-001", "Test Flow"));
+        row_details.insert(4, create_flow_report("flow-001", "Test Flow"));
 
         let result = save_report(&report, temp_dir.path(), &row_details);
         assert!(result.is_ok(), "保存报告应Success");
 
-        let report_dir = temp_dir.path().join("reports").join(format!("dataset_{}", report.uuid));
+        let report_dir = temp_dir
+            .path()
+            .join("reports")
+            .join(format!("dataset_{}", report.uuid));
 
         // 验证 rows 目录和文件存在
         let rows_dir = report_dir.join("rows");
         assert!(rows_dir.exists(), "rows 目录应存在");
-        assert!(
-            rows_dir.join("row_2.json").exists(),
-            "row_2.json 应存在"
-        );
-        assert!(
-            rows_dir.join("row_4.json").exists(),
-            "row_4.json 应存在"
-        );
+        assert!(rows_dir.join("row_2.json").exists(), "row_2.json 应存在");
+        assert!(rows_dir.join("row_4.json").exists(), "row_4.json 应存在");
 
         // 验证行详情文件可反序列化
-        let content =
-            std::fs::read_to_string(rows_dir.join("row_2.json")).expect("读取Failed");
+        let content = std::fs::read_to_string(rows_dir.join("row_2.json")).expect("读取Failed");
         let flow_report: FlowExecutionReport =
             serde_json::from_str(&content).expect("反序列化Failed");
         assert_eq!(flow_report.flow_uuid, "flow-001");
@@ -607,7 +617,10 @@ mod tests {
 
         save_report(&report, temp_dir.path(), &row_details).expect("保存Failed");
 
-        let report_dir = temp_dir.path().join("reports").join(format!("dataset_{}", report.uuid));
+        let report_dir = temp_dir
+            .path()
+            .join("reports")
+            .join(format!("dataset_{}", report.uuid));
         assert!(!report_dir.join("rows").exists());
     }
 
@@ -670,7 +683,10 @@ mod tests {
 
         // 验证事件顺序: Started → Row* → Ended
         assert!(matches!(events[0], DatasetEvent::Started { .. }));
-        assert!(matches!(events[events.len() - 1], DatasetEvent::Ended { .. }));
+        assert!(matches!(
+            events[events.len() - 1],
+            DatasetEvent::Ended { .. }
+        ));
     }
 
     #[test]

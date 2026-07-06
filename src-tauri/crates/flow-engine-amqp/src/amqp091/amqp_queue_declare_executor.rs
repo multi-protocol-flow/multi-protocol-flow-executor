@@ -3,8 +3,8 @@
 //! 实现 AMQP 0-9-1 队列声明、变量替换和输出构建功能。
 //! Success路由到 true 端口，Failed路由到 false 端口。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -13,9 +13,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{AmqpQueueDeclareConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// AMQP 声明队列节点执行器
@@ -90,8 +90,12 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
                 let mut resolved = HashMap::new();
                 for (k, v) in args {
                     if let Some(s) = v.as_str() {
-                        let replaced = replace_variables(s, context)
-                            .map_err(|e| ErrorDetail::execution_error(format!("arguments[{}] variable substitution failed: {}", k, e)))?;
+                        let replaced = replace_variables(s, context).map_err(|e| {
+                            ErrorDetail::execution_error(format!(
+                                "arguments[{}] variable substitution failed: {}",
+                                k, e
+                            ))
+                        })?;
                         resolved.insert(k.clone(), json!(replaced));
                     } else {
                         resolved.insert(k.clone(), v.clone());
@@ -199,10 +203,7 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
                 let log_message = if output.success {
                     format!(
                         "AMQP 队列声明Success: {} ({}ms)",
-                        output
-                            .queue_name
-                            .as_deref()
-                            .unwrap_or("(auto-generated)"),
+                        output.queue_name.as_deref().unwrap_or("(auto-generated)"),
                         duration.as_millis()
                     )
                 } else {
@@ -266,8 +267,15 @@ impl NodeExecutor for AmqpQueueDeclareExecutor {
                 });
 
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP queue_declare Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "AMQP queue_declare Failed: {}",
+                        e
+                    )));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -300,16 +308,15 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
         Amqp10AcceptConfig, Amqp10ConnectConfig, Amqp10DisconnectConfig, Amqp10ReceiveConfig,
-        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig,
-        AmqpConsumeConfig, AmqpConnectConfig, AmqpExchangeDeclareConfig,
-        AmqpExchangeDeleteConfig, AmqpGetConfig, AmqpManagementConfig, AmqpPublishConfig,
-        AmqpQueueBindConfig, AmqpQueueDeleteConfig,
+        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig, AmqpConnectConfig,
+        AmqpConsumeConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig, AmqpGetConfig,
+        AmqpManagementConfig, AmqpPublishConfig, AmqpQueueBindConfig, AmqpQueueDeleteConfig,
     };
     use flow_engine_core::traits::{
         AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider, AmqpQueueDeclareOutput,
     };
 
-    /// Mock AmqpProvider（queue_declare Success）
+    /// Mock `AmqpProvider（queue_declare` Success）
     struct MockAmqpProvider {
         output: AmqpQueueDeclareOutput,
     }
@@ -508,7 +515,7 @@ mod tests {
         }
     }
 
-    /// Mock AmqpProvider（queue_declare 返回 Err）
+    /// Mock `AmqpProvider（queue_declare` 返回 Err）
     struct MockAmqpProviderError;
 
     #[async_trait::async_trait]
@@ -773,10 +780,13 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("AmqpQueueDeclareConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("AmqpQueueDeclareConfig"));
     }
 
-    /// 测试：变量替换在 queue 和 connection_id 中生效
+    /// 测试：变量替换在 queue 和 `connection_id` 中生效
     #[tokio::test]
     async fn test_queue_declare_with_variable_replacement() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());

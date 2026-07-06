@@ -19,9 +19,9 @@
 //! contains the concrete manager struct; `get_provider::<T>()` must be called
 //! with the concrete type, not the trait object.
 
-use std::sync::Arc;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::traits::GrpcProvider;
+use std::sync::Arc;
 
 /// Extension trait adding protocol provider construction methods to `ExecutionContext`.
 ///
@@ -33,12 +33,12 @@ pub trait ProviderBuilderExt: Sized {
     ///
     /// Each manager is feature-gated. Protocols whose feature flags are
     /// disabled are simply skipped — providers won't be inserted into
-    /// the HashMap.
+    /// the `HashMap`.
     fn with_default_providers(self) -> Self;
 
     /// Create and inject all protocol providers, with optional external gRPC manager.
     ///
-    /// gRPC is special because the FlowExecutor has an externally-injected
+    /// gRPC is special because the `FlowExecutor` has an externally-injected
     /// `grpc_manager` (used for IPC `cancel_stream` etc). If `grpc` is `Some`,
     /// that instance is used; otherwise a fresh one is created (when feature is enabled).
     fn with_default_providers_and_grpc(self, _grpc: Option<Arc<dyn GrpcProvider>>) -> Self;
@@ -67,7 +67,8 @@ impl ProviderBuilderExt for ExecutionContext {
 
         #[cfg(feature = "protocol-tcp")]
         {
-            let tcp = Arc::new(flow_engine_tcp::tcp_connection_manager::TcpConnectionManager::new());
+            let tcp =
+                Arc::new(flow_engine_tcp::tcp_connection_manager::TcpConnectionManager::new());
             self.set_provider("tcp", tcp);
         }
 
@@ -79,25 +80,31 @@ impl ProviderBuilderExt for ExecutionContext {
 
         #[cfg(feature = "protocol-mqtt")]
         {
-            let mqtt = Arc::new(flow_engine_mqtt::mqtt_connection_manager::MqttConnectionManager::new());
+            let mqtt =
+                Arc::new(flow_engine_mqtt::mqtt_connection_manager::MqttConnectionManager::new());
             self.set_provider("mqtt", mqtt);
         }
 
         #[cfg(feature = "protocol-kafka")]
         {
-            let kafka = Arc::new(flow_engine_kafka::kafka_connection_manager::KafkaConnectionManager::new());
+            let kafka = Arc::new(
+                flow_engine_kafka::kafka_connection_manager::KafkaConnectionManager::new(),
+            );
             self.set_provider("kafka", kafka);
         }
 
         #[cfg(feature = "protocol-sse")]
         {
-            let sse = Arc::new(flow_engine_sse::sse_connection_manager::SseConnectionManager::new());
+            let sse =
+                Arc::new(flow_engine_sse::sse_connection_manager::SseConnectionManager::new());
             self.set_provider("sse", sse);
         }
 
         #[cfg(feature = "protocol-graphql")]
         {
-            let graphql = Arc::new(flow_engine_graphql::graphql_connection_manager::GraphqlConnectionManager::new());
+            let graphql = Arc::new(
+                flow_engine_graphql::graphql_connection_manager::GraphqlConnectionManager::new(),
+            );
             self.set_provider("graphql", graphql);
         }
 
@@ -132,7 +139,8 @@ impl ProviderBuilderExt for ExecutionContext {
     fn with_default_providers_and_grpc(mut self, _grpc: Option<Arc<dyn GrpcProvider>>) -> Self {
         #[cfg(feature = "protocol-grpc")]
         {
-            let grpc = Arc::new(flow_engine_grpc::grpc_connection_manager::GrpcConnectionManager::new());
+            let grpc =
+                Arc::new(flow_engine_grpc::grpc_connection_manager::GrpcConnectionManager::new());
             self.set_provider("grpc", grpc);
         }
 

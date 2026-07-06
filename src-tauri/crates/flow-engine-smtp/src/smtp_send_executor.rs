@@ -4,8 +4,8 @@
 //! 参照 `mqtt_publish_executor.rs` 模式实现。
 //! 从配置中提取收件人、正文等信息，执行变量替换，委托给 SmtpProvider::send()。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -14,9 +14,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::SmtpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// SMTP 发送邮件节点执行器
@@ -54,18 +54,17 @@ impl NodeExecutor for SmtpSendExecutor {
         };
 
         // 2. 变量替换: connection_id
-        let connection_id =
-            replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("Connection ID variable substitution failed: {}", e);
-                log::error!(
-                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
-                    context.flow_uuid,
-                    node.uuid,
-                    node.name,
-                    error_msg
-                );
-                ErrorDetail::execution_error(error_msg)
-            })?;
+        let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
+            log::error!(
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
+            );
+            ErrorDetail::execution_error(error_msg)
+        })?;
 
         // 3. 变量替换: from
         let from = match &config.from {
@@ -190,8 +189,7 @@ impl NodeExecutor for SmtpSendExecutor {
         };
 
         // 10. 附件（不做变量替换，直接透传）
-        let attachments: Vec<serde_json::Value> =
-            config.attachments.clone().unwrap_or_default();
+        let attachments: Vec<serde_json::Value> = config.attachments.clone().unwrap_or_default();
 
         // 11. 日志：开始发送
         log::info!(
@@ -441,8 +439,15 @@ impl NodeExecutor for SmtpSendExecutor {
                 });
 
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("SMTP send Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "SMTP send Failed: {}",
+                        e
+                    )));
                 }
 
                 route_to_false(node, connections, error_output)
@@ -456,6 +461,7 @@ impl NodeExecutor for SmtpSendExecutor {
 // ---------------------------------------------------------------------------
 
 /// Success路由到 true 端口
+#[allow(clippy::result_large_err)]
 fn route_to_true(
     node: &Node,
     connections: &[Connection],
@@ -477,6 +483,7 @@ fn route_to_true(
 }
 
 /// Failed路由到 false 端口
+#[allow(clippy::result_large_err)]
 fn route_to_false(
     node: &Node,
     connections: &[Connection],
@@ -504,14 +511,12 @@ fn route_to_false(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::smtp_connection_manager::SmtpConnectionManager;
     use flow_engine_core::context::VariableStorage;
+    use flow_engine_core::email_types::SmtpConfig;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::SmtpSendConfig;
-    use flow_engine_core::traits::{
-        SmtpConnectOutput, SmtpDisconnectOutput, SmtpSendOutput,
-    };
-    use flow_engine_core::email_types::SmtpConfig;
-    use crate::smtp_connection_manager::SmtpConnectionManager;
+    use flow_engine_core::traits::{SmtpConnectOutput, SmtpDisconnectOutput, SmtpSendOutput};
 
     /// 创建Test Node
     fn create_test_node(
@@ -693,36 +698,24 @@ mod tests {
             json!("smtp-conn-123"),
             String::new(),
         );
-        context.variables.set_variable(
-            "sender".to_string(),
-            json!("alice"),
-            String::new(),
-        );
-        context.variables.set_variable(
-            "recipient".to_string(),
-            json!("bob"),
-            String::new(),
-        );
-        context.variables.set_variable(
-            "cc_user".to_string(),
-            json!("charlie"),
-            String::new(),
-        );
-        context.variables.set_variable(
-            "bcc_user".to_string(),
-            json!("dave"),
-            String::new(),
-        );
-        context.variables.set_variable(
-            "report_name".to_string(),
-            json!("Q4 财报"),
-            String::new(),
-        );
-        context.variables.set_variable(
-            "user_name".to_string(),
-            json!("Bob"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("sender".to_string(), json!("alice"), String::new());
+        context
+            .variables
+            .set_variable("recipient".to_string(), json!("bob"), String::new());
+        context
+            .variables
+            .set_variable("cc_user".to_string(), json!("charlie"), String::new());
+        context
+            .variables
+            .set_variable("bcc_user".to_string(), json!("dave"), String::new());
+        context
+            .variables
+            .set_variable("report_name".to_string(), json!("Q4 财报"), String::new());
+        context
+            .variables
+            .set_variable("user_name".to_string(), json!("Bob"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -803,10 +796,7 @@ mod tests {
             })
         }
 
-        async fn disconnect(
-            &self,
-            _connection_id: &str,
-        ) -> Result<SmtpDisconnectOutput, String> {
+        async fn disconnect(&self, _connection_id: &str) -> Result<SmtpDisconnectOutput, String> {
             Ok(SmtpDisconnectOutput {
                 success: true,
                 error: None,
@@ -852,10 +842,7 @@ mod tests {
             })
         }
 
-        async fn disconnect(
-            &self,
-            _connection_id: &str,
-        ) -> Result<SmtpDisconnectOutput, String> {
+        async fn disconnect(&self, _connection_id: &str) -> Result<SmtpDisconnectOutput, String> {
             Ok(SmtpDisconnectOutput {
                 success: true,
                 error: None,
@@ -896,10 +883,7 @@ mod tests {
             Err("连接超时".to_string())
         }
 
-        async fn disconnect(
-            &self,
-            _connection_id: &str,
-        ) -> Result<SmtpDisconnectOutput, String> {
+        async fn disconnect(&self, _connection_id: &str) -> Result<SmtpDisconnectOutput, String> {
             Ok(SmtpDisconnectOutput {
                 success: true,
                 error: None,
@@ -1040,30 +1024,21 @@ mod tests {
         // 验证所有预期字段存在
         assert!(data.get("success").is_some(), "应有 success 字段");
         assert!(data.get("message_id").is_some(), "应有 message_id 字段");
-        assert!(data.get("response_code").is_some(), "应有 response_code 字段");
+        assert!(
+            data.get("response_code").is_some(),
+            "应有 response_code 字段"
+        );
         assert!(data.get("timing").is_some(), "应有 timing 字段");
         assert!(data.get("request").is_some(), "应有 request 字段");
         assert!(
             data["request"]["connection_id"].is_string(),
             "request 中应有 connection_id"
         );
-        assert!(
-            data["request"]["from"].is_string(),
-            "request 中应有 from"
-        );
-        assert!(
-            data["request"]["to"].is_array(),
-            "request 中应有 to 数组"
-        );
+        assert!(data["request"]["from"].is_string(), "request 中应有 from");
+        assert!(data["request"]["to"].is_array(), "request 中应有 to 数组");
         assert_eq!(data["request"]["to"].as_array().unwrap().len(), 2);
-        assert!(
-            data["request"]["cc"].is_array(),
-            "request 中应有 cc 数组"
-        );
-        assert!(
-            data["request"]["bcc"].is_array(),
-            "request 中应有 bcc 数组"
-        );
+        assert!(data["request"]["cc"].is_array(), "request 中应有 cc 数组");
+        assert!(data["request"]["bcc"].is_array(), "request 中应有 bcc 数组");
         assert!(
             data["request"]["subject"].is_string(),
             "request 中应有 subject"
@@ -1074,7 +1049,7 @@ mod tests {
         );
     }
 
-    /// 测试：默认 body_type 应为 "plain_text"
+    /// 测试：默认 `body_type` 应为 "`plain_text`"
     #[tokio::test]
     async fn test_send_default_body_type() {
         let smtp_manager = Arc::new(MockSmtpProvider);

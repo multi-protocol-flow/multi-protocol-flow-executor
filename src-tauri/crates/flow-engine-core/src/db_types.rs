@@ -20,7 +20,6 @@ pub enum DbDriver {
     Redis,
 }
 
-
 impl std::fmt::Display for DbDriver {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -118,7 +117,6 @@ pub enum DbConnectionStatus {
     /// 正在测试连接中
     Testing,
 }
-
 
 /// 测试数据库连接结果
 #[derive(Debug, Clone, Serialize, Deserialize)]

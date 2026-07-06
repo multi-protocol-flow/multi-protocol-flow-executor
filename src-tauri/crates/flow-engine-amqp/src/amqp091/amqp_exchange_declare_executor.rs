@@ -3,8 +3,8 @@
 //! 实现 AMQP 0-9-1 交换器声明、变量替换和输出构建功能。
 //! Success路由到 true 端口，Failed路由到 false 端口。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -13,9 +13,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{AmqpExchangeDeclareConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// AMQP 声明交换器节点执行器
@@ -84,7 +84,10 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
                 for (k, v) in args {
                     if let Some(s) = v.as_str() {
                         let replaced = replace_variables(s, context).map_err(|e| {
-                            ErrorDetail::execution_error(format!("arguments[{}] variable substitution failed: {}", k, e))
+                            ErrorDetail::execution_error(format!(
+                                "arguments[{}] variable substitution failed: {}",
+                                k, e
+                            ))
                         })?;
                         resolved.insert(k.clone(), json!(replaced));
                     } else {
@@ -257,8 +260,15 @@ impl NodeExecutor for AmqpExchangeDeclareExecutor {
                 });
 
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP exchange_declare Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "AMQP exchange_declare Failed: {}",
+                        e
+                    )));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -291,16 +301,15 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
         Amqp10AcceptConfig, Amqp10ConnectConfig, Amqp10DisconnectConfig, Amqp10ReceiveConfig,
-        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig,
+        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig, AmqpConnectConfig,
         AmqpConsumeConfig, AmqpExchangeDeleteConfig, AmqpGetConfig, AmqpManagementConfig,
         AmqpPublishConfig, AmqpQueueBindConfig, AmqpQueueDeclareConfig, AmqpQueueDeleteConfig,
-        AmqpConnectConfig,
     };
     use flow_engine_core::traits::{
         AmqpConnectOutput, AmqpConnectionInfo, AmqpExchangeOutput, AmqpProvider,
     };
 
-    /// Mock AmqpProvider（exchange_declare Success）
+    /// Mock `AmqpProvider（exchange_declare` Success）
     struct MockAmqpProvider {
         output: AmqpExchangeOutput,
     }
@@ -485,7 +494,7 @@ mod tests {
         }
     }
 
-    /// Mock AmqpProvider（exchange_declare 返回 Err）
+    /// Mock `AmqpProvider（exchange_declare` 返回 Err）
     struct MockAmqpProviderError;
 
     #[async_trait::async_trait]
@@ -749,10 +758,13 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("AmqpExchangeDeclareConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("AmqpExchangeDeclareConfig"));
     }
 
-    /// 测试：变量替换在 exchange 和 connection_id 中生效
+    /// 测试：变量替换在 exchange 和 `connection_id` 中生效
     #[tokio::test]
     async fn test_exchange_declare_with_variable_replacement() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -864,9 +876,7 @@ mod tests {
                 durable: true,
                 auto_delete: false,
                 internal: false,
-                arguments: Some(HashMap::from([
-                    ("x-ha-policy".to_string(), json!("all")),
-                ])),
+                arguments: Some(HashMap::from([("x-ha-policy".to_string(), json!("all"))])),
             }),
             ports: None,
             has_breakpoint: None,

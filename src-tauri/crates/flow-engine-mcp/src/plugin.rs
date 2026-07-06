@@ -9,8 +9,8 @@
 // 以及 McpPluginGroup 批量注册辅助。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
@@ -144,11 +144,11 @@ impl NodePlugin for McpConnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mcp_manager = context
             .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
-            .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
+            .unwrap_or_else(
+                || Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()),
+            );
         let executor = crate::mcp_connect_executor::McpConnectExecutor::new(mcp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -233,7 +233,7 @@ impl NodePlugin for McpCallToolPlugin {
             _ => errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "Connection ID is required".into(),
-            })
+            }),
         }
         match config.get("tool_name").and_then(|v| v.as_str()) {
             Some(name) if !name.is_empty() => {}
@@ -254,11 +254,11 @@ impl NodePlugin for McpCallToolPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mcp_manager = context
             .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
-            .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
+            .unwrap_or_else(
+                || Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()),
+            );
         let executor = crate::mcp_call_tool_executor::McpCallToolExecutor::new(mcp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -362,11 +362,11 @@ impl NodePlugin for McpReadResourcePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mcp_manager = context
             .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
-            .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
+            .unwrap_or_else(
+                || Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()),
+            );
         let executor = crate::mcp_read_resource_executor::McpReadResourceExecutor::new(mcp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -445,11 +445,11 @@ impl NodePlugin for McpClosePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mcp_manager = context
             .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
-            .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
+            .unwrap_or_else(
+                || Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()),
+            );
         let executor = crate::mcp_close_executor::McpCloseExecutor::new(mcp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -555,11 +555,11 @@ impl NodePlugin for McpGetPromptPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mcp_manager = context
             .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
-            .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
+            .unwrap_or_else(
+                || Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()),
+            );
         let executor = crate::mcp_get_prompt_executor::McpGetPromptExecutor::new(mcp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -857,10 +857,7 @@ mod tests {
         );
 
         // 空 object → false
-        assert_eq!(
-            plugin.resolve_port(&Some(serde_json::json!({}))),
-            "false"
-        );
+        assert_eq!(plugin.resolve_port(&Some(serde_json::json!({}))), "false");
 
         // 非 object → false
         assert_eq!(

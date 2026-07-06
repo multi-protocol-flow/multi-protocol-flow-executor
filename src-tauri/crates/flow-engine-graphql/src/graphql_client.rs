@@ -9,10 +9,10 @@ use std::time::{Duration, Instant};
 
 use futures_util::{SinkExt, StreamExt};
 use log::{info, warn};
+use serde::{Deserialize, Serialize};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::Message as WsMessage;
-use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
 // 公共类型
@@ -247,10 +247,7 @@ impl GraphqlClient {
         // map 字段：文件索引到变量路径的映射
         let mut map: HashMap<String, Vec<String>> = HashMap::new();
         for (i, _file) in files.iter().enumerate() {
-            map.insert(
-                i.to_string(),
-                vec![format!("variables.file.{}", i)],
-            );
+            map.insert(i.to_string(), vec![format!("variables.file.{}", i)]);
         }
         let map_json =
             serde_json::to_string(&map).map_err(|e| format!("序列化文件映射Failed: {}", e))?;
@@ -270,11 +267,7 @@ impl GraphqlClient {
         }
 
         // 构建请求
-        let mut builder = self
-            .client
-            .post(endpoint)
-            .timeout(timeout)
-            .multipart(form);
+        let mut builder = self.client.post(endpoint).timeout(timeout).multipart(form);
 
         builder = Self::apply_auth(builder, auth);
         builder = Self::apply_headers(builder, headers);
@@ -313,10 +306,7 @@ impl GraphqlClient {
         let start = Instant::now();
 
         // 1. 构建 WebSocket 升级请求
-        info!(
-            "GraphQL WebSocket 连接: endpoint={}",
-            ws_endpoint
-        );
+        info!("GraphQL WebSocket 连接: endpoint={}", ws_endpoint);
 
         // 先用 IntoClientRequest 从 URL 构建标准请求（自动设置 Host、Method、URI 等）
         let mut request = ws_endpoint
@@ -324,9 +314,10 @@ impl GraphqlClient {
             .map_err(|e| format!("构建 WebSocket 请求Failed: {}", e))?;
 
         // 添加 graphql-ws 子协议头
-        request
-            .headers_mut()
-            .insert("Sec-WebSocket-Protocol", "graphql-transport-ws".parse().unwrap());
+        request.headers_mut().insert(
+            "Sec-WebSocket-Protocol",
+            reqwest::header::HeaderValue::from_static("graphql-transport-ws"),
+        );
 
         let (ws_stream, _response) = connect_async(request)
             .await
@@ -351,9 +342,7 @@ impl GraphqlClient {
                 if msg_type == "connection_ack" {
                     true
                 } else if msg_type == "connection_error" {
-                    let error_msg = parsed["payload"]
-                        .as_str()
-                        .unwrap_or("连接被拒绝");
+                    let error_msg = parsed["payload"].as_str().unwrap_or("连接被拒绝");
                     return Err(format!("GraphQL 连接被拒绝: {}", error_msg));
                 } else {
                     // 某些服务器不发送 connection_ack，直接忽略
@@ -416,10 +405,7 @@ impl GraphqlClient {
             .await
             .map_err(|e| format!("发送 subscribe Failed: {}", e))?;
 
-        info!(
-            "GraphQL subscribe 已发送: id={}",
-            sub_id
-        );
+        info!("GraphQL subscribe 已发送: id={}", sub_id);
 
         // 6. 收集事件
         let actual_timeout = if timeout_ms > 0 {
@@ -447,10 +433,7 @@ impl GraphqlClient {
 
             // 检查最大事件数
             if max_events > 0 && events.len() as u32 >= max_events {
-                info!(
-                    "GraphQL 订阅达到最大事件数 {}，发送 complete",
-                    max_events
-                );
+                info!("GraphQL 订阅达到最大事件数 {}，发送 complete", max_events);
                 let _ = write
                     .send(WsMessage::Text(
                         serde_json::json!({"type": "complete", "id": sub_id})
@@ -500,15 +483,9 @@ impl GraphqlClient {
                             // 检查是否有 GraphQL Error
                             let has_errors = !event.errors.is_empty();
                             if has_errors {
-                                let error_msgs: Vec<String> = event
-                                    .errors
-                                    .iter()
-                                    .map(|e| e.message.clone())
-                                    .collect();
-                                log::warn!(
-                                    "GraphQL 订阅事件包含Error: {:?}",
-                                    error_msgs
-                                );
+                                let error_msgs: Vec<String> =
+                                    event.errors.iter().map(|e| e.message.clone()).collect();
+                                log::warn!("GraphQL 订阅事件包含Error: {:?}", error_msgs);
                             }
 
                             events.push(event);
@@ -525,9 +502,7 @@ impl GraphqlClient {
                                 .await;
                         }
                         "error" => {
-                            let error_msg = parsed["payload"]
-                                .as_str()
-                                .unwrap_or("未知订阅Error");
+                            let error_msg = parsed["payload"].as_str().unwrap_or("未知订阅Error");
                             return Err(format!("GraphQL 订阅Error: {}", error_msg));
                         }
                         _ => {
@@ -596,10 +571,7 @@ impl GraphqlClient {
         let mut current_url = endpoint.to_string();
 
         for _ in 0..=max_redirects {
-            let mut builder = client
-                .post(&current_url)
-                .timeout(timeout)
-                .json(body);
+            let mut builder = client.post(&current_url).timeout(timeout).json(body);
 
             builder = Self::apply_auth(builder, auth);
             builder = Self::apply_headers(builder, headers);
@@ -618,34 +590,40 @@ impl GraphqlClient {
             let elapsed = start.elapsed();
 
             if status.is_redirection() {
-                let next = resp.headers()
+                let next = resp
+                    .headers()
                     .get("location")
                     .and_then(|v| v.to_str().ok())
                     .map(|loc| {
                         if loc.starts_with('/') {
                             // 相对 origin 解析
-                            let origin = current_url.split('/')
-                                .take(3)
-                                .collect::<Vec<_>>()
-                                .join("/");
+                            let origin =
+                                current_url.split('/').take(3).collect::<Vec<_>>().join("/");
                             format!("{}{}", origin, loc)
                         } else {
                             loc.to_string()
                         }
                     });
                 match next {
-                    Some(url) => { current_url = url; continue; }
+                    Some(url) => {
+                        current_url = url;
+                        continue;
+                    }
                     None => return Err("重定向无 Location 头".to_string()),
                 }
             }
 
             let status_code = status.as_u16();
-            let response_text = resp.text().await
+            let response_text = resp
+                .text()
+                .await
                 .map_err(|e| format!("读取响应体Failed: {}", e))?;
 
             info!(
                 "GraphQL 请求完成: endpoint={}, status={}, elapsed={}ms",
-                current_url, status_code, elapsed.as_millis()
+                current_url,
+                status_code,
+                elapsed.as_millis()
             );
 
             return Self::parse_graphql_response(response_text, status_code, elapsed);
@@ -674,9 +652,8 @@ impl GraphqlClient {
             operation_name,
         };
 
-        Self::send_post_with_redirects(
-            &self.client, endpoint, &body, headers, auth, timeout, start,
-        ).await
+        Self::send_post_with_redirects(&self.client, endpoint, &body, headers, auth, timeout, start)
+            .await
     }
 
     /// 解析 GraphQL HTTP 响应
@@ -686,14 +663,13 @@ impl GraphqlClient {
         elapsed: Duration,
     ) -> Result<GraphqlResponse, String> {
         // 尝试解析为 GraphQL 标准响应格式
-        let parsed: serde_json::Value =
-            serde_json::from_str(&response_text).map_err(|e| {
-                format!(
-                    "GraphQL 响应 JSON 解析Failed: {} (响应长度: {})",
-                    e,
-                    response_text.len()
-                )
-            })?;
+        let parsed: serde_json::Value = serde_json::from_str(&response_text).map_err(|e| {
+            format!(
+                "GraphQL 响应 JSON 解析Failed: {} (响应长度: {})",
+                e,
+                response_text.len()
+            )
+        })?;
 
         let data = parsed.get("data").cloned();
         let errors: Option<Vec<GraphqlError>> = parsed
@@ -726,10 +702,7 @@ impl GraphqlClient {
     }
 
     /// 应用认证到请求构建器
-    fn apply_auth(
-        builder: reqwest::RequestBuilder,
-        auth: &GraphqlAuth,
-    ) -> reqwest::RequestBuilder {
+    fn apply_auth(builder: reqwest::RequestBuilder, auth: &GraphqlAuth) -> reqwest::RequestBuilder {
         match auth {
             GraphqlAuth::None => builder,
             GraphqlAuth::Bearer(token) => builder.bearer_auth(token),
@@ -820,10 +793,7 @@ mod tests {
             data: Some(serde_json::json!(null)),
             errors: Some(vec![GraphqlError {
                 message: "Field 'foo' not found".to_string(),
-                locations: Some(vec![GraphqlErrorLocation {
-                    line: 1,
-                    column: 5,
-                }]),
+                locations: Some(vec![GraphqlErrorLocation { line: 1, column: 5 }]),
                 path: Some(serde_json::json!(["query", "foo"])),
                 extensions: None,
             }]),
@@ -880,9 +850,7 @@ mod tests {
     fn test_graphql_error_with_all_fields() {
         let error = GraphqlError {
             message: "Validation Error".to_string(),
-            locations: Some(vec![
-                GraphqlErrorLocation { line: 2, column: 3 },
-            ]),
+            locations: Some(vec![GraphqlErrorLocation { line: 2, column: 3 }]),
             path: Some(serde_json::json!("query.user")),
             extensions: Some(serde_json::json!({"code": "VALIDATION_ERROR"})),
         };
@@ -1005,8 +973,11 @@ mod tests {
     #[test]
     fn test_parse_graphql_response_success() {
         let body = r#"{"data": {"user": {"id": 1, "name": "Alice"}}}"#;
-        let result =
-            GraphqlClient::parse_graphql_response(body.to_string(), 200, Duration::from_millis(100));
+        let result = GraphqlClient::parse_graphql_response(
+            body.to_string(),
+            200,
+            Duration::from_millis(100),
+        );
         assert!(result.is_ok());
         let response = result.expect("响应解析Failed");
         assert_eq!(response.status_code, 200);
@@ -1054,10 +1025,7 @@ mod tests {
 
     #[test]
     fn test_error_location() {
-        let loc = GraphqlErrorLocation {
-            line: 3,
-            column: 7,
-        };
+        let loc = GraphqlErrorLocation { line: 3, column: 7 };
         let json = serde_json::to_string(&loc).expect("序列化Failed");
         assert!(json.contains("\"line\":3"));
         assert!(json.contains("\"column\":7"));
@@ -1305,14 +1273,7 @@ mod tests {
 
         let client = GraphqlClient::new();
         let result = client
-            .execute_query(
-                &endpoint,
-                "{ test }",
-                None,
-                None,
-                &GraphqlAuth::None,
-                5000,
-            )
+            .execute_query(&endpoint, "{ test }", None, None, &GraphqlAuth::None, 5000)
             .await;
 
         assert!(result.is_ok());

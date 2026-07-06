@@ -264,10 +264,7 @@ impl AmqpProvider for AmqpConnectionManager {
     ) -> Result<AmqpExchangeOutput, String> {
         let channel = self.get_channel(uuid).await?;
 
-        let exchange_type = config
-            .exchange_type
-            .as_deref()
-            .unwrap_or("direct");
+        let exchange_type = config.exchange_type.as_deref().unwrap_or("direct");
 
         amqp_client::exchange_declare(
             &channel,
@@ -345,13 +342,9 @@ impl AmqpProvider for AmqpConnectionManager {
     ) -> Result<AmqpQueueDeleteOutput, String> {
         let channel = self.get_channel(uuid).await?;
 
-        let deleted = amqp_client::queue_delete(
-            &channel,
-            &config.queue,
-            config.if_unused,
-            config.if_empty,
-        )
-        .await?;
+        let deleted =
+            amqp_client::queue_delete(&channel, &config.queue, config.if_unused, config.if_empty)
+                .await?;
 
         Ok(AmqpQueueDeleteOutput {
             success: true,
@@ -421,18 +414,12 @@ impl AmqpProvider for AmqpConnectionManager {
         // 设置预取数量
         if config.prefetch_count > 0 {
             channel
-                .basic_qos(
-                    config.prefetch_count,
-                    BasicQosOptions { global: false },
-                )
+                .basic_qos(config.prefetch_count, BasicQosOptions { global: false })
                 .await
                 .map_err(|e| format!("AMQP 设置预取数量Failed: {}", e))?;
         }
 
-        let consumer_tag = config
-            .consumer_tag
-            .as_deref()
-            .unwrap_or("mpe-consumer");
+        let consumer_tag = config.consumer_tag.as_deref().unwrap_or("mpe-consumer");
 
         let mut consumer = amqp_client::basic_consume(
             &channel,
@@ -456,8 +443,7 @@ impl AmqpProvider for AmqpConnectionManager {
             30000
         };
 
-        let deadline =
-            tokio::time::Instant::now() + std::time::Duration::from_millis(timeout_ms);
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(timeout_ms);
         let mut messages = Vec::new();
 
         loop {
@@ -487,8 +473,8 @@ impl AmqpProvider for AmqpConnectionManager {
 
                     // 自动确认
                     if config.ack_mode == "auto" || config.auto_ack_on_success {
-                        let _ = amqp_client::basic_ack(&channel, delivery.delivery_tag, false)
-                            .await;
+                        let _ =
+                            amqp_client::basic_ack(&channel, delivery.delivery_tag, false).await;
                     }
 
                     messages.push(msg);
@@ -718,7 +704,11 @@ impl AmqpConnectionManager {
         config: &AmqpManagementConfig,
     ) -> Result<AmqpManagementOutput, String> {
         // 构建 API 路径
-        let path = build_management_path(&config.action, config.vhost.as_deref(), config.queue_name.as_deref())?;
+        let path = build_management_path(
+            &config.action,
+            config.vhost.as_deref(),
+            config.queue_name.as_deref(),
+        )?;
 
         // 拼接完整 URL
         let base_url = config.management_url.trim_end_matches('/');
@@ -1031,7 +1021,7 @@ mod tests {
 
     // ---- Mock Provider 测试 ----
 
-    /// Mock AmqpProvider 用于测试
+    /// Mock `AmqpProvider` 用于测试
     struct MockAmqpProvider {
         connections: Arc<RwLock<HashMap<String, String>>>,
     }
@@ -1155,11 +1145,7 @@ mod tests {
             })
         }
 
-        async fn get(
-            &self,
-            _uuid: &str,
-            _config: &AmqpGetConfig,
-        ) -> Result<AmqpGetOutput, String> {
+        async fn get(&self, _uuid: &str, _config: &AmqpGetConfig) -> Result<AmqpGetOutput, String> {
             Ok(AmqpGetOutput {
                 success: false,
                 message: None,
@@ -1168,11 +1154,7 @@ mod tests {
             })
         }
 
-        async fn ack(
-            &self,
-            _uuid: &str,
-            config: &AmqpAckConfig,
-        ) -> Result<AmqpAckOutput, String> {
+        async fn ack(&self, _uuid: &str, config: &AmqpAckConfig) -> Result<AmqpAckOutput, String> {
             Ok(AmqpAckOutput {
                 success: true,
                 action: Some(config.action.clone()),

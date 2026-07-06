@@ -1,5 +1,5 @@
 //! rquickjs POC 测试模块
-//! 验证 QuickJS 在脚本节点中的可行性
+//! 验证 `QuickJS` 在脚本节点中的可行性
 //!
 //! 测试覆盖:
 //! - 基本脚本执行
@@ -84,8 +84,8 @@ fn rquickjs_poc_global_object() {
     });
 }
 
-/// 测试超时控制 - 使用 Runtime::set_interrupt_handler
-/// 注意：QuickJS 的 interrupt_handler 会在每次循环迭代时检查
+/// 测试超时控制 - 使用 `Runtime::set_interrupt_handler`
+/// 注意：QuickJS 的 `interrupt_handler` 会在每次循环迭代时检查
 #[test]
 fn rquickjs_poc_timeout_interrupt() {
     use std::sync::atomic::{AtomicBool, Ordering};

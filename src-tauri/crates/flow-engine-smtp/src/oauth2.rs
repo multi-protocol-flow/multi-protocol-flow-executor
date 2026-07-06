@@ -124,9 +124,7 @@ fn urlencoding(s: &str) -> String {
 /// # 返回
 /// - `Ok((code, state))`: 授权码和 CSRF state
 /// - `Err(String)`: 监听Failed或回调参数缺失
-pub async fn start_callback_listener(
-    port: u16,
-) -> Result<(String, String), String> {
+pub async fn start_callback_listener(port: u16) -> Result<(String, String), String> {
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
         .await
         .map_err(|e| format!("绑定端口 {} Failed: {}", port, e))?;
@@ -331,7 +329,10 @@ pub async fn poll_device_token(
         tokio::time::sleep(tokio::time::Duration::from_secs(interval_secs)).await;
 
         let mut params = vec![
-            ("grant_type", "urn:ietf:params:oauth:grant-type:device_code".to_string()),
+            (
+                "grant_type",
+                "urn:ietf:params:oauth:grant-type:device_code".to_string(),
+            ),
             ("client_id", config.client_id.clone()),
             ("device_code", device_code.to_string()),
         ];
@@ -475,8 +476,8 @@ pub fn store_tokens_encrypted(tokens: &EmailOAuthTokens) -> Result<String, Strin
 /// - `Ok(EmailOAuthTokens)`: 解密后的 Token
 /// - `Err(String)`: 解密或解析Failed
 pub fn load_tokens_decrypted(encrypted: &str) -> Result<EmailOAuthTokens, String> {
-    let json =
-        flow_engine_crypto::encryption::decrypt(encrypted).map_err(|e| format!("解密Failed: {}", e))?;
+    let json = flow_engine_crypto::encryption::decrypt(encrypted)
+        .map_err(|e| format!("解密Failed: {}", e))?;
     serde_json::from_str(&json).map_err(|e| format!("反序列化 Token Failed: {}", e))
 }
 
@@ -494,10 +495,7 @@ fn derive_device_code_url(token_url: &str) -> Result<String, String> {
         // Microsoft: /token → /devicecode
         Ok(token_url.replace("/token", "/devicecode"))
     } else {
-        Err(format!(
-            "无法推导 Device Code URL，token_url={}",
-            token_url
-        ))
+        Err(format!("无法推导 Device Code URL，token_url={}", token_url))
     }
 }
 
@@ -514,13 +512,10 @@ fn parse_token_response(resp: &serde_json::Value) -> Result<EmailOAuthTokens, St
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
-    let expires_in = resp
-        .get("expires_in")
-        .and_then(|v| v.as_u64())
-        .map(|secs| {
-            let now_ms = flow_engine_core::utils::unix_timestamp_ms();
-            now_ms + secs * 1000
-        });
+    let expires_in = resp.get("expires_in").and_then(|v| v.as_u64()).map(|secs| {
+        let now_ms = flow_engine_core::utils::unix_timestamp_ms();
+        now_ms + secs * 1000
+    });
 
     let scope = resp
         .get("scope")
@@ -541,7 +536,7 @@ fn parse_token_response(resp: &serde_json::Value) -> Result<EmailOAuthTokens, St
 mod tests {
     use super::*;
 
-    /// 测试 OAuth2 配置创建 — Gmail
+    /// 测试 `OAuth2` 配置创建 — Gmail
     #[test]
     fn test_oauth2_config_gmail() {
         let config = oauth2_config_from_provider(
@@ -552,7 +547,10 @@ mod tests {
         )
         .expect("创建 Gmail OAuth2 配置Failed");
 
-        assert_eq!(config.client_id, "test-client-id.apps.googleusercontent.com");
+        assert_eq!(
+            config.client_id,
+            "test-client-id.apps.googleusercontent.com"
+        );
         assert!(config.auth_url.contains("accounts.google.com"));
         assert!(config.token_url.contains("googleapis.com"));
         assert_eq!(config.scope, "https://mail.google.com/");
@@ -560,7 +558,7 @@ mod tests {
         assert!(config.client_secret.is_none());
     }
 
-    /// 测试 OAuth2 配置创建 — Outlook
+    /// 测试 `OAuth2` 配置创建 — Outlook
     #[test]
     fn test_oauth2_config_outlook() {
         let config = oauth2_config_from_provider(
@@ -625,10 +623,7 @@ mod tests {
             url.contains("code_challenge_method=S256"),
             "缺少 code_challenge_method"
         );
-        assert!(
-            url.contains("scope=https://mail.google.com/"),
-            "缺少 scope"
-        );
+        assert!(url.contains("scope=https://mail.google.com/"), "缺少 scope");
 
         // verifier 和 state 不应为空
         assert!(!verifier.is_empty(), "PKCE verifier 不应为空");
@@ -699,7 +694,7 @@ mod tests {
         assert_eq!(decrypted, tokens, "解密后的 Token 应与原始一致");
     }
 
-    /// 测试 Token 加密解密 — 最小 Token（仅 access_token）
+    /// 测试 Token 加密解密 — 最小 Token（仅 `access_token`）
     #[test]
     fn test_token_encryption_minimal_roundtrip() {
         let tokens = EmailOAuthTokens {
@@ -756,10 +751,9 @@ mod tests {
     /// 测试 Device Code URL 推导 — Microsoft
     #[test]
     fn test_derive_device_code_url_microsoft() {
-        let url = derive_device_code_url(
-            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-        )
-        .expect("推导Failed");
+        let url =
+            derive_device_code_url("https://login.microsoftonline.com/common/oauth2/v2.0/token")
+                .expect("推导Failed");
         assert_eq!(
             url,
             "https://login.microsoftonline.com/common/oauth2/v2.0/devicecode"
@@ -773,7 +767,7 @@ mod tests {
         assert!(result.is_err());
     }
 
-    /// 测试 parse_token_response 正常解析
+    /// 测试 `parse_token_response` 正常解析
     #[test]
     fn test_parse_token_response_success() {
         let json = serde_json::json!({
@@ -796,7 +790,7 @@ mod tests {
         assert!(tokens.expires_at.unwrap() > now_ms);
     }
 
-    /// 测试 parse_token_response 缺少 access_token
+    /// 测试 `parse_token_response` 缺少 `access_token`
     #[test]
     fn test_parse_token_response_missing_access_token() {
         let json = serde_json::json!({
@@ -809,7 +803,7 @@ mod tests {
         assert!(result.unwrap_err().contains("access_token"));
     }
 
-    /// 测试 parse_token_response 无 refresh_token
+    /// 测试 `parse_token_response` 无 `refresh_token`
     #[test]
     fn test_parse_token_response_no_refresh_token() {
         let json = serde_json::json!({
@@ -822,7 +816,7 @@ mod tests {
         assert!(tokens.refresh_token.is_none());
     }
 
-    /// 测试 Outlook PKCE URL 自动追加 offline_access
+    /// 测试 Outlook PKCE URL 自动追加 `offline_access`
     #[test]
     fn test_pkce_auth_url_outlook_adds_offline_access() {
         let config = OAuth2Config {
@@ -844,7 +838,7 @@ mod tests {
         );
     }
 
-    /// 测试 Gmail PKCE URL 不追加 offline_access（已包含在 scope 中或不需要）
+    /// 测试 Gmail PKCE URL 不追加 `offline_access（已包含在` scope 中或不需要）
     #[test]
     fn test_pkce_auth_url_gmail_no_offline_access() {
         let config = OAuth2Config {

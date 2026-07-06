@@ -3,15 +3,15 @@
 //! Flow engine command-line tool, invoked by the unified `main.rs` entry point.
 
 pub mod config;
-pub mod output;
-pub mod run;
-pub mod validate;
+pub mod debug_cmd;
 pub mod flow;
 pub mod flow_edit;
+pub mod output;
 pub mod report;
-pub mod stress;
-pub mod debug_cmd;
+pub mod run;
 pub mod run_node;
+pub mod stress;
+pub mod validate;
 
 use clap::{Parser, Subcommand};
 
@@ -49,9 +49,9 @@ impl From<std::io::Error> for CliError {
 
 /// Parse --var key=value pair into (String, String) tuple
 fn parse_var(s: &str) -> Result<(String, String), String> {
-    let (key, val) = s.split_once('=').ok_or_else(|| {
-        format!("--var format error (expected key=value): {}", s)
-    })?;
+    let (key, val) = s
+        .split_once('=')
+        .ok_or_else(|| format!("--var format error (expected key=value): {}", s))?;
     Ok((key.to_string(), val.to_string()))
 }
 
@@ -59,7 +59,11 @@ fn parse_var(s: &str) -> Result<(String, String), String> {
 
 /// Multi-Protocol Executor — AI-ready flow engine CLI
 #[derive(Parser)]
-#[command(name = "mpe", version, about = "Multi-Protocol Flow Orchestration & Execution Engine")]
+#[command(
+    name = "mpe",
+    version,
+    about = "Multi-Protocol Flow Orchestration & Execution Engine"
+)]
 pub struct Cli {
     /// Output format (json or table)
     #[arg(long, global = true, default_value = "json")]
@@ -127,7 +131,7 @@ pub enum Commands {
     /// Execute a single protocol node for connectivity verification
     RunNode {
         /// JSON configuration for the node
-        /// (e.g. '{"type":"redis_connect","host":"127.0.0.1","port":6379}')
+        /// (e.g. '{"`type":"redis_connect","host":"127.0.0.1","port":6379`}')
         node_json: String,
 
         /// Flow variables (key=value or key=json)
@@ -287,7 +291,7 @@ pub enum FlowEditCommands {
         #[arg(long)]
         target: String,
         /// Source port
-#[arg(long, default_value = "out")]
+        #[arg(long, default_value = "out")]
         source_port: String,
         /// Target port (fixed to "in")
         #[arg(long, default_value = "in")]
@@ -414,16 +418,16 @@ async fn async_main() -> Result<(), CliError> {
             no_report,
         } => run::execute(&cli.format, &flow, &var, stream, no_report, cancel_rx).await,
         Commands::Validate { flow } => validate::execute(&cli.format, &flow).await,
-        Commands::Debug {
-            flow,
-            r#break,
-            var,
-        } => debug_cmd::execute(&cli.format, &flow, &r#break, &var, cancel_rx).await,
+        Commands::Debug { flow, r#break, var } => {
+            debug_cmd::execute(&cli.format, &flow, &r#break, &var, cancel_rx).await
+        }
         Commands::Stress { command } => stress::execute(&cli.format, command, cancel_rx).await,
         Commands::Flow { command } => flow::execute(&cli.format, command).await,
-        Commands::RunNode { node_json, var, format } => {
-            run_node::execute(&format, &node_json, &var).await
-        },
+        Commands::RunNode {
+            node_json,
+            var,
+            format,
+        } => run_node::execute(&format, &node_json, &var).await,
         Commands::Report { command } => report::execute(&cli.format, command).await,
     }
 }
@@ -441,14 +445,20 @@ pub fn run_cli() -> i32 {
     // 必须在任何 TLS 连接创建之前调用
     let _ = rustls::crypto::ring::default_provider().install_default();
 
-    let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+    let rt = match tokio::runtime::Runtime::new() {
+        Ok(rt) => rt,
+        Err(e) => {
+            output::output_error(format!("Failed to create Tokio runtime: {e}"));
+            return output::EXIT_FAILURE;
+        }
+    };
 
     let result = rt.block_on(async_main());
 
     match result {
         Ok(()) => output::EXIT_SUCCESS,
-        Err(CliError::InvalidArgs(_)) => {
-            output::output_error(result.unwrap_err().to_string());
+        Err(CliError::InvalidArgs(msg)) => {
+            output::output_error(msg);
             output::EXIT_INVALID_ARGS
         }
         Err(e) => {

@@ -470,7 +470,7 @@ impl MetricsCollector {
     ///
     /// # 返回
     ///
-    /// 按Error类型分组的Error统计
+    /// `按Error类型分组的Error统计`
     pub fn get_error_statistics(&self) -> Vec<ErrorStatistics> {
         if let Ok(guard) = self.error_stats.lock() {
             guard
@@ -825,28 +825,28 @@ mod tests {
 
         let p50 = collector.calculate_percentile(50.0);
         assert!(
-            p50 >= 49 && p50 <= 51,
+            (49..=51).contains(&p50),
             "P50 should be around 50, got {}",
             p50
         );
 
         let p90 = collector.calculate_percentile(90.0);
         assert!(
-            p90 >= 89 && p90 <= 91,
+            (89..=91).contains(&p90),
             "P90 should be around 90, got {}",
             p90
         );
 
         let p95 = collector.calculate_percentile(95.0);
         assert!(
-            p95 >= 94 && p95 <= 96,
+            (94..=96).contains(&p95),
             "P95 should be around 95, got {}",
             p95
         );
 
         let p99 = collector.calculate_percentile(99.0);
         assert!(
-            p99 >= 98 && p99 <= 100,
+            (98..=100).contains(&p99),
             "P99 should be around 99, got {}",
             p99
         );

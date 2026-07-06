@@ -3,16 +3,16 @@
 // 实现 WebSocket 消息发送、采集响应和变量映射功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{NodeData, WsCollectMode, WsMessageType, WsSendCollectConfig};
 use flow_engine_core::traits::WsProvider;
 use flow_engine_core::ws_stream::{MessageContent, MessageDirection, WsMessage};
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -52,7 +52,12 @@ impl NodeExecutor for WsSendCollectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::WsSendCollect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not WsSendCollectConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not WsSendCollectConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换 connection_id 和 message
@@ -115,8 +120,15 @@ impl NodeExecutor for WsSendCollectExecutor {
                 );
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "Flow aborted: {}",
+                        error_msg
+                    )));
                 }
 
                 log::error!(
@@ -144,8 +156,15 @@ impl NodeExecutor for WsSendCollectExecutor {
                 let error_msg = format!("Connection not found: {}", connection_id);
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "Flow aborted: {}",
+                        error_msg
+                    )));
                 }
 
                 log::error!("[WebSocket] Connection not found: uuid={}", connection_id);
@@ -169,13 +188,10 @@ impl NodeExecutor for WsSendCollectExecutor {
 
         // 如果有Error数据，直接返回 false 端口
         if let Some(output_data) = error_data {
-
             // 返回 false 端口
             let filtered: Vec<String> = connections
                 .iter()
-                .filter(|conn| {
-                    conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
-                })
+                .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "false")
                 .map(|conn| conn.target_node_uuid.clone())
                 .collect();
 
@@ -190,9 +206,11 @@ impl NodeExecutor for WsSendCollectExecutor {
 
         // 4.5 检查并转移 WebSocket 连接所有权
         {
-            let current_owner = context.get_ws_stream(&connection_id).await
+            let current_owner = context
+                .get_ws_stream(&connection_id)
+                .await
                 .and_then(|s| s.current_owner_node_uuid);
-            
+
             if current_owner.as_ref() != Some(&node.uuid) {
                 log::info!(
                     "[WebSocket] Transferring connection ownership: connection_id={}, from={:?}, to={}",
@@ -200,13 +218,15 @@ impl NodeExecutor for WsSendCollectExecutor {
                     current_owner,
                     node.uuid
                 );
-                
-                context.transfer_ws_ownership(
-                    &connection_id,
-                    node.uuid.clone(),
-                    node.name.clone(),
-                    "ws_send_collect".to_string(),
-                ).await;
+
+                context
+                    .transfer_ws_ownership(
+                        &connection_id,
+                        node.uuid.clone(),
+                        node.name.clone(),
+                        "ws_send_collect".to_string(),
+                    )
+                    .await;
             }
         }
 
@@ -235,7 +255,12 @@ impl NodeExecutor for WsSendCollectExecutor {
         let send_start = Instant::now();
         let send_result = self
             .ws_manager
-            .send(&connection_id, message.clone(), is_binary, config.send_timeout_ms)
+            .send(
+                &connection_id,
+                message.clone(),
+                is_binary,
+                config.send_timeout_ms,
+            )
             .await;
         let send_duration_ms = send_start.elapsed().as_millis() as u64;
 
@@ -260,7 +285,10 @@ impl NodeExecutor for WsSendCollectExecutor {
                         }
                     };
                     let sent_msg = WsMessage::new(MessageDirection::Sent, sent_content.clone());
-                    if let Err(e) = context.push_ws_message(&connection_id, sent_msg.clone()).await {
+                    if let Err(e) = context
+                        .push_ws_message(&connection_id, sent_msg.clone())
+                        .await
+                    {
                         log::warn!(
                             "[WebSocket] Failed to record sent message (continuing): connection_id={}, error={}",
                             connection_id,
@@ -281,7 +309,10 @@ impl NodeExecutor for WsSendCollectExecutor {
                 // 7. 如果配置了采集响应
                 let collect_start = Instant::now();
                 let (collect_timed_out, collect_result) = if config.collect_response {
-                    match self.collect_response(&connection_id, &config, context, node).await {
+                    match self
+                        .collect_response(&connection_id, &config, context, node)
+                        .await
+                    {
                         Ok(result) => {
                             if result.matched_index.is_some() {
                                 log::info!(
@@ -317,11 +348,23 @@ impl NodeExecutor for WsSendCollectExecutor {
                                 .await;
 
                             // Collect failure is also treated as timeout, but still returns true port
-                            (true, CollectResult { collected: vec![], matched_index: None })
+                            (
+                                true,
+                                CollectResult {
+                                    collected: vec![],
+                                    matched_index: None,
+                                },
+                            )
                         }
                     }
                 } else {
-                    (false, CollectResult { collected: vec![], matched_index: None })
+                    (
+                        false,
+                        CollectResult {
+                            collected: vec![],
+                            matched_index: None,
+                        },
+                    )
                 };
 
                 // 计算采集响应耗时
@@ -352,7 +395,10 @@ impl NodeExecutor for WsSendCollectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!("WebSocket Send+Collect completed ({}ms)", duration.as_millis()),
+                        message: format!(
+                            "WebSocket Send+Collect completed ({}ms)",
+                            duration.as_millis()
+                        ),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -364,7 +410,11 @@ impl NodeExecutor for WsSendCollectExecutor {
             }
             Err(e) => {
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -387,16 +437,17 @@ impl NodeExecutor for WsSendCollectExecutor {
 
                 // 返回 false 端口 + Error数据
                 let url = context.get_ws_url(&connection_id).map(|s| s.as_str());
-                ("false", self.build_error_output_data(&connection_id, &e, url))
+                (
+                    "false",
+                    self.build_error_output_data(&connection_id, &e, url),
+                )
             }
         };
 
         // 9. 返回下一个节点（根据端口过滤）
         let filtered: Vec<String> = connections
             .iter()
-            .filter(|conn| {
-                conn.source_node_uuid == node.uuid && conn.source_port_id == port
-            })
+            .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == port)
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 
@@ -430,13 +481,16 @@ impl WsSendCollectExecutor {
                 // 使用 tokio::select! 监听取消信号
                 let result = if let Some(mut rx) = context.cancel_receiver.clone() {
                     tokio::select! {
-                        res = self.ws_manager.receive(connection_id, config.collect_timeout_ms) => res.map_err(|e| ErrorDetail::execution_error(e))?,
+                        res = self.ws_manager.receive(connection_id, config.collect_timeout_ms) => res.map_err(ErrorDetail::execution_error)?,
                         _ = rx.changed() => {
                             return Err(ErrorDetail::execution_error("Flow cancelled".to_string()));
                         }
                     }
                 } else {
-                    self.ws_manager.receive(connection_id, config.collect_timeout_ms).await.map_err(|e| ErrorDetail::execution_error(e))?
+                    self.ws_manager
+                        .receive(connection_id, config.collect_timeout_ms)
+                        .await
+                        .map_err(ErrorDetail::execution_error)?
                 };
 
                 if let Some(message) = result {
@@ -454,7 +508,10 @@ impl WsSendCollectExecutor {
                                 content: message.clone(),
                             },
                         );
-                        if let Err(e) = context.push_ws_message(connection_id, received_msg.clone()).await {
+                        if let Err(e) = context
+                            .push_ws_message(connection_id, received_msg.clone())
+                            .await
+                        {
                             log::warn!(
                                 "[WebSocket] Failed to record received message (continuing): connection_id={}, error={}",
                                 connection_id,
@@ -505,25 +562,33 @@ impl WsSendCollectExecutor {
                         loop {
                             // 取消检查
                             if context.is_cancelled() {
-                                return Err(ErrorDetail::execution_error("Flow cancelled".to_string()));
+                                return Err(ErrorDetail::execution_error(
+                                    "Flow cancelled".to_string(),
+                                ));
                             }
 
                             let elapsed = start.elapsed().as_millis() as u64;
                             if elapsed >= timeout_ms {
-                                return Ok(CollectResult { collected, matched_index: None });
+                                return Ok(CollectResult {
+                                    collected,
+                                    matched_index: None,
+                                });
                             }
 
                             let remaining = timeout_ms - elapsed;
                             // 使用 tokio::select! 监听取消信号
                             let result = if let Some(mut rx) = context.cancel_receiver.clone() {
                                 tokio::select! {
-                                    res = self.ws_manager.receive(connection_id, remaining.min(5000)) => res.map_err(|e| ErrorDetail::execution_error(e))?,
+                                    res = self.ws_manager.receive(connection_id, remaining.min(5000)) => res.map_err(ErrorDetail::execution_error)?,
                                     _ = rx.changed() => {
                                         return Err(ErrorDetail::execution_error("Flow cancelled".to_string()));
                                     }
                                 }
                             } else {
-                                self.ws_manager.receive(connection_id, remaining.min(5000)).await.map_err(|e| ErrorDetail::execution_error(e))?
+                                self.ws_manager
+                                    .receive(connection_id, remaining.min(5000))
+                                    .await
+                                    .map_err(ErrorDetail::execution_error)?
                             };
 
                             if let Some(message) = result {
@@ -535,7 +600,10 @@ impl WsSendCollectExecutor {
                                             content: message.clone(),
                                         },
                                     );
-                                    if let Err(e) = context.push_ws_message(connection_id, received_msg.clone()).await {
+                                    if let Err(e) = context
+                                        .push_ws_message(connection_id, received_msg.clone())
+                                        .await
+                                    {
                                         log::warn!(
                                             "[WebSocket] Failed to record received message (continuing): connection_id={}, error={}",
                                             connection_id,
@@ -568,14 +636,18 @@ impl WsSendCollectExecutor {
                                             .emit_log(LogEvent {
                                                 level: LogLevel::Info,
                                                 message: format!("Response matched: {}", message),
-                                                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                                                timestamp:
+                                                    flow_engine_core::utils::unix_timestamp_ms(),
                                                 node_uuid: Some(node.uuid.clone()),
                                                 node_name: Some(node.name.clone()),
                                                 flow_uuid: context.flow_uuid.clone(),
                                             })
                                             .await;
 
-                                        return Ok(CollectResult { collected, matched_index: Some(msg_index) });
+                                        return Ok(CollectResult {
+                                            collected,
+                                            matched_index: Some(msg_index),
+                                        });
                                     }
                                     Ok(false) => {
                                         // Message doesn't match condition, continue waiting
@@ -631,7 +703,9 @@ impl WsSendCollectExecutor {
                         Err(ErrorDetail::execution_error(error_msg))
                     }
                     None => {
-                        let error_msg = "Condition match mode requires collect_condition to be configured".to_string();
+                        let error_msg =
+                            "Condition match mode requires collect_condition to be configured"
+                                .to_string();
                         log::error!(
                             "[WebSocket] Condition match config error: connection_id={}, collect_condition is None",
                             connection_id
@@ -667,13 +741,16 @@ impl WsSendCollectExecutor {
                     // 使用 tokio::select! 监听取消信号
                     let result = if let Some(mut rx) = context.cancel_receiver.clone() {
                         tokio::select! {
-                            res = self.ws_manager.receive(connection_id, 1000) => res.map_err(|e| ErrorDetail::execution_error(e))?,
+                            res = self.ws_manager.receive(connection_id, 1000) => res.map_err(ErrorDetail::execution_error)?,
                             _ = rx.changed() => {
                                 return Err(ErrorDetail::execution_error("Flow cancelled".to_string()));
                             }
                         }
                     } else {
-                        self.ws_manager.receive(connection_id, 1000).await.map_err(|e| ErrorDetail::execution_error(e))?
+                        self.ws_manager
+                            .receive(connection_id, 1000)
+                            .await
+                            .map_err(ErrorDetail::execution_error)?
                     };
                     if let Some(message) = result {
                         log::debug!(
@@ -697,7 +774,9 @@ impl WsSendCollectExecutor {
                                     message: received_msg.clone(),
                                 });
                             }
-                            if let Err(e) = context.push_ws_message(connection_id, received_msg).await {
+                            if let Err(e) =
+                                context.push_ws_message(connection_id, received_msg).await
+                            {
                                 log::warn!(
                                     "[WebSocket] Failed to record received message (continuing): connection_id={}, error={}",
                                     connection_id,
@@ -730,13 +809,17 @@ impl WsSendCollectExecutor {
                         .await;
                 }
 
-                Ok(CollectResult { collected, matched_index })
+                Ok(CollectResult {
+                    collected,
+                    matched_index,
+                })
             }
         }
     }
 
     /// 构建输出数据（结构化格式，与 HTTP 报告保持一致）
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::result_large_err)]
     fn build_output_data(
         &self,
         connection_id: &str,
@@ -840,16 +923,17 @@ impl WsSendCollectExecutor {
             "error": error_msg,
         }))
     }
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::ExecutionContext;
-    use flow_engine_core::node::{NodePosition};
-    use flow_engine_core::node_config::{WsMatchType, WsSendCollectConfig, WsCollectCondition, WsCollectMode};
     use crate::websocket_manager::WebSocketConnectionManager;
+    use flow_engine_core::context::ExecutionContext;
+    use flow_engine_core::node::NodePosition;
+    use flow_engine_core::node_config::{
+        WsCollectCondition, WsCollectMode, WsMatchType, WsSendCollectConfig,
+    };
     use serde_json::json;
     use std::sync::Arc;
 
@@ -878,7 +962,10 @@ mod tests {
 
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
-        ExecutionContext::new(flow_id.to_string(), flow_engine_core::utils::unix_timestamp_ms())
+        ExecutionContext::new(
+            flow_id.to_string(),
+            flow_engine_core::utils::unix_timestamp_ms(),
+        )
     }
 
     #[tokio::test]
@@ -898,7 +985,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap()
+            .contains("Connection not found"));
     }
     #[tokio::test]
     async fn test_send_wait_with_variable_replacement() {
@@ -906,7 +996,12 @@ mod tests {
         let executor = WsSendCollectExecutor::new(ws_manager);
 
         // 创建带变量的节点
-        let node = create_test_node("test-var", "variable substitution test", "{{conn_id}}", "Message: {{msg}}");
+        let node = create_test_node(
+            "test-var",
+            "variable substitution test",
+            "{{conn_id}}",
+            "Message: {{msg}}",
+        );
 
         // 创建上下文并设置变量
         let mut context = create_context("test-flow");
@@ -931,7 +1026,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap()
+            .contains("Connection not found"));
     }
     #[tokio::test]
     async fn test_send_wait_collect_mode_first_message() {
@@ -971,7 +1069,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap()
+            .contains("Connection not found"));
     }
     #[tokio::test]
     async fn test_send_wait_collect_mode_condition() {
@@ -1014,7 +1115,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap()
+            .contains("Connection not found"));
     }
     #[tokio::test]
     async fn test_send_wait_collect_mode_duration() {
@@ -1054,7 +1158,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap()
+            .contains("Connection not found"));
     }
     #[tokio::test]
     async fn test_send_binary_message() {
@@ -1094,7 +1201,10 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap()
+            .contains("Connection not found"));
     }
     #[tokio::test]
     #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
@@ -1111,10 +1221,10 @@ mod tests {
                 vec![],
                 vec![],
                 30000,
-                false,   // use_tls
-                false,   // tls_skip_verify
-                None,    // ping_interval_ms
-                None,    // ping_timeout_ms
+                false, // use_tls
+                false, // tls_skip_verify
+                None,  // ping_interval_ms
+                None,  // ping_timeout_ms
             )
             .await;
 
@@ -1172,10 +1282,10 @@ mod tests {
                 vec![],
                 vec![],
                 30000,
-                false,   // use_tls
-                false,   // tls_skip_verify
-                None,    // ping_interval_ms
-                None,    // ping_timeout_ms
+                false, // use_tls
+                false, // tls_skip_verify
+                None,  // ping_interval_ms
+                None,  // ping_timeout_ms
             )
             .await;
 
@@ -1239,27 +1349,32 @@ mod tests {
     // collected_messages 输出数据结构测试
     // ========================================================================
 
-    /// 测试：FirstMatch 模式返回 1 条消息在 collected_messages 中
+    /// 测试：FirstMatch 模式返回 1 条消息在 `collected_messages` 中
     #[test]
     fn test_collected_messages_first_match() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsSendCollectExecutor::new(ws_manager);
 
         let collected = vec!["hello world".to_string()];
-        let result = executor.build_output_data(
-            "conn-1",
-            "ping",
-            false,
-            &collected,
-            Some(0), // FirstMatch 匹配索引为 0
-            false,
-            Some("wss://example.com"),
-            10,
-            Some(5),
-        ).expect("Failed to build output data").expect("Should return Some");
+        let result = executor
+            .build_output_data(
+                "conn-1",
+                "ping",
+                false,
+                &collected,
+                Some(0), // FirstMatch 匹配索引为 0
+                false,
+                Some("wss://example.com"),
+                10,
+                Some(5),
+            )
+            .expect("Failed to build output data")
+            .expect("Should return Some");
 
         // 验证 collected_messages 数组
-        let collected_arr = result["collected_messages"].as_array().expect("Should be an array");
+        let collected_arr = result["collected_messages"]
+            .as_array()
+            .expect("Should be an array");
         assert_eq!(collected_arr.len(), 1, "FirstMatch 应返回 1 条消息");
         assert_eq!(collected_arr[0]["data"], "hello world");
         assert_eq!(collected_arr[0]["type"], "text");
@@ -1287,24 +1402,38 @@ mod tests {
             r#"{"type":"info","msg":"connected"}"#.to_string(),
             r#"{"type":"ready","status":"ok"}"#.to_string(),
         ];
-        let result = executor.build_output_data(
-            "conn-2",
-            "ping",
-            false,
-            &collected,
-            Some(2), // 第 3 条消息匹配
-            false,
-            Some("wss://example.com"),
-            10,
-            Some(50),
-        ).expect("Failed to build output data").expect("Should return Some");
+        let result = executor
+            .build_output_data(
+                "conn-2",
+                "ping",
+                false,
+                &collected,
+                Some(2), // 第 3 条消息匹配
+                false,
+                Some("wss://example.com"),
+                10,
+                Some(50),
+            )
+            .expect("Failed to build output data")
+            .expect("Should return Some");
 
         // 验证 collected_messages 包含所有消息
-        let collected_arr = result["collected_messages"].as_array().expect("Should be an array");
+        let collected_arr = result["collected_messages"]
+            .as_array()
+            .expect("Should be an array");
         assert_eq!(collected_arr.len(), 3, "ConditionMatch 应返回所有消息");
-        assert_eq!(collected_arr[0]["data"], r#"{"type":"info","msg":"connecting"}"#);
-        assert_eq!(collected_arr[1]["data"], r#"{"type":"info","msg":"connected"}"#);
-        assert_eq!(collected_arr[2]["data"], r#"{"type":"ready","status":"ok"}"#);
+        assert_eq!(
+            collected_arr[0]["data"],
+            r#"{"type":"info","msg":"connecting"}"#
+        );
+        assert_eq!(
+            collected_arr[1]["data"],
+            r#"{"type":"info","msg":"connected"}"#
+        );
+        assert_eq!(
+            collected_arr[2]["data"],
+            r#"{"type":"ready","status":"ok"}"#
+        );
 
         // 验证 parsed 字段（JSON 消息应自动解析）
         assert!(collected_arr[0]["parsed"].is_object());
@@ -1312,8 +1441,14 @@ mod tests {
         assert!(collected_arr[2]["parsed"].is_object());
 
         // 验证 matched_message 是最后一条
-        assert_eq!(result["matched_message"]["data"], r#"{"type":"ready","status":"ok"}"#);
-        assert_eq!(result["message"]["data"], r#"{"type":"ready","status":"ok"}"#);
+        assert_eq!(
+            result["matched_message"]["data"],
+            r#"{"type":"ready","status":"ok"}"#
+        );
+        assert_eq!(
+            result["message"]["data"],
+            r#"{"type":"ready","status":"ok"}"#
+        );
 
         // 验证 message_count
         assert_eq!(result["message_count"], 3);
@@ -1332,20 +1467,25 @@ mod tests {
             "msg3".to_string(),
             "msg4".to_string(),
         ];
-        let result = executor.build_output_data(
-            "conn-3",
-            "start",
-            false,
-            &collected,
-            Some(3), // 最后一条作为 matched
-            false,
-            Some("wss://example.com"),
-            5,
-            Some(2000),
-        ).expect("Failed to build output data").expect("Should return Some");
+        let result = executor
+            .build_output_data(
+                "conn-3",
+                "start",
+                false,
+                &collected,
+                Some(3), // 最后一条作为 matched
+                false,
+                Some("wss://example.com"),
+                5,
+                Some(2000),
+            )
+            .expect("Failed to build output data")
+            .expect("Should return Some");
 
         // 验证 collected_messages 包含所有 4 条消息
-        let collected_arr = result["collected_messages"].as_array().expect("Should be an array");
+        let collected_arr = result["collected_messages"]
+            .as_array()
+            .expect("Should be an array");
         assert_eq!(collected_arr.len(), 4, "DurationCollect 应返回所有消息");
         assert_eq!(collected_arr[0]["data"], "msg1");
         assert_eq!(collected_arr[1]["data"], "msg2");
@@ -1357,7 +1497,7 @@ mod tests {
         assert_eq!(result["message_count"], 4);
     }
 
-    /// 测试：超时无消息时 collected_messages 为空数组
+    /// 测试：超时无消息时 `collected_messages` 为空数组
     #[test]
     fn test_collected_messages_empty() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
@@ -1365,20 +1505,25 @@ mod tests {
 
         // 模拟超时场景：没有收到任何消息
         let collected: Vec<String> = vec![];
-        let result = executor.build_output_data(
-            "conn-4",
-            "ping",
-            false,
-            &collected,
-            None, // 无匹配
-            true, // 超时
-            Some("wss://example.com"),
-            10,
-            Some(10000),
-        ).expect("Failed to build output data").expect("Should return Some");
+        let result = executor
+            .build_output_data(
+                "conn-4",
+                "ping",
+                false,
+                &collected,
+                None, // 无匹配
+                true, // 超时
+                Some("wss://example.com"),
+                10,
+                Some(10000),
+            )
+            .expect("Failed to build output data")
+            .expect("Should return Some");
 
         // 验证 collected_messages 为空数组
-        let collected_arr = result["collected_messages"].as_array().expect("Should be an array");
+        let collected_arr = result["collected_messages"]
+            .as_array()
+            .expect("Should be an array");
         assert_eq!(collected_arr.len(), 0, "超时时应返回空数组");
 
         // 验证 matched_message 为 null
@@ -1392,7 +1537,7 @@ mod tests {
         assert_eq!(result["collect_timed_out"], true);
     }
 
-    /// 测试：output_mappings 能通过 $.collected_messages[0].data 提取值
+    /// `测试：output_mappings` 能通过 $.`collected_messages`[0].data 提取值
     #[test]
     fn test_output_mapping_collected_messages() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
@@ -1402,27 +1547,45 @@ mod tests {
             r#"{"status":"ok"}"#.to_string(),
             r#"{"status":"done"}"#.to_string(),
         ];
-        let output_data = executor.build_output_data(
-            "conn-5",
-            "ping",
-            false,
-            &collected,
-            Some(1),
-            false,
-            Some("wss://example.com"),
-            10,
-            Some(5),
-        ).expect("Failed to build output data").expect("Should return Some");
+        let output_data = executor
+            .build_output_data(
+                "conn-5",
+                "ping",
+                false,
+                &collected,
+                Some(1),
+                false,
+                Some("wss://example.com"),
+                10,
+                Some(5),
+            )
+            .expect("Failed to build output data")
+            .expect("Should return Some");
 
         // 验证 $.collected_messages[0].data 路径可以提取值
-        let value = flow_engine_core::utils::extract_value_by_path(&output_data, "$.collected_messages[0].data");
-        assert!(value.is_some(), "$.collected_messages[0].data 应该能提取到值");
+        let value = flow_engine_core::utils::extract_value_by_path(
+            &output_data,
+            "$.collected_messages[0].data",
+        );
+        assert!(
+            value.is_some(),
+            "$.collected_messages[0].data 应该能提取到值"
+        );
         assert_eq!(value.expect("Value does not exist"), r#"{"status":"ok"}"#);
 
         // 验证 $.collected_messages[1].data 路径
-        let value2 = flow_engine_core::utils::extract_value_by_path(&output_data, "$.collected_messages[1].data");
-        assert!(value2.is_some(), "$.collected_messages[1].data 应该能提取到值");
-        assert_eq!(value2.expect("Value does not exist"), r#"{"status":"done"}"#);
+        let value2 = flow_engine_core::utils::extract_value_by_path(
+            &output_data,
+            "$.collected_messages[1].data",
+        );
+        assert!(
+            value2.is_some(),
+            "$.collected_messages[1].data 应该能提取到值"
+        );
+        assert_eq!(
+            value2.expect("Value does not exist"),
+            r#"{"status":"done"}"#
+        );
 
         // 验证 $.message_count 路径
         let count = flow_engine_core::utils::extract_value_by_path(&output_data, "$.message_count");
@@ -1430,8 +1593,12 @@ mod tests {
         assert_eq!(count.expect("Value does not exist"), 2);
 
         // 验证 $.matched_message.data 路径
-        let matched = flow_engine_core::utils::extract_value_by_path(&output_data, "$.matched_message.data");
+        let matched =
+            flow_engine_core::utils::extract_value_by_path(&output_data, "$.matched_message.data");
         assert!(matched.is_some());
-        assert_eq!(matched.expect("Value does not exist"), r#"{"status":"done"}"#);
+        assert_eq!(
+            matched.expect("Value does not exist"),
+            r#"{"status":"done"}"#
+        );
     }
 }

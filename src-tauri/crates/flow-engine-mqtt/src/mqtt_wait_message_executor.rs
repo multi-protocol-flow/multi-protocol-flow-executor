@@ -4,8 +4,8 @@
 //! 支持 match_condition：json_path / regex / expression 三种匹配模式。
 //! 超时或无匹配消息时路由到 false 端口。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -55,7 +55,10 @@ impl NodeExecutor for MqttWaitMessageExecutor {
 
         // 2. 变量替换：connection_id 和 topic
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            ErrorDetail::execution_error(format!("connection_id variable substitution failed: {}", e))
+            ErrorDetail::execution_error(format!(
+                "connection_id variable substitution failed: {}",
+                e
+            ))
         })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
@@ -97,7 +100,10 @@ impl NodeExecutor for MqttWaitMessageExecutor {
         };
 
         // 5. 调用 provider.wait_message()
-        let wait_result = self.mqtt_manager.wait_message(&node.uuid, &wait_config).await;
+        let wait_result = self
+            .mqtt_manager
+            .wait_message(&node.uuid, &wait_config)
+            .await;
 
         match wait_result {
             Ok(output) => {
@@ -163,8 +169,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                         let filtered: Vec<String> = connections
                             .iter()
                             .filter(|conn| {
-                                conn.source_node_uuid == node.uuid
-                                    && conn.source_port_id == "true"
+                                conn.source_node_uuid == node.uuid && conn.source_port_id == "true"
                             })
                             .map(|conn| conn.target_node_uuid.clone())
                             .collect();
@@ -202,9 +207,11 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                         .await;
 
                     // 检查 on_error 策略
-                    if !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    }) {
+                    if !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                    {
                         let error_msg = output_data
                             .get("error")
                             .and_then(|v| v.as_str())
@@ -217,8 +224,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                         let filtered: Vec<String> = connections
                             .iter()
                             .filter(|conn| {
-                                conn.source_node_uuid == node.uuid
-                                    && conn.source_port_id == "false"
+                                conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
                             })
                             .map(|conn| conn.target_node_uuid.clone())
                             .collect();
@@ -274,9 +280,11 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -285,8 +293,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                     let filtered: Vec<String> = connections
                         .iter()
                         .filter(|conn| {
-                            conn.source_node_uuid == node.uuid
-                                && conn.source_port_id == "false"
+                            conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
                         })
                         .map(|conn| conn.target_node_uuid.clone())
                         .collect();
@@ -395,7 +402,7 @@ mod tests {
     // Mock MqttProvider
     // ---------------------------------------------------------------------------
 
-    /// 模拟 MqttProvider（控制 wait_message 返回值）
+    /// 模拟 MqttProvider（控制 `wait_message` 返回值）
     struct MockMqttProvider {
         wait_output: MqttMessageOutput,
         wait_error: Option<String>,
@@ -646,10 +653,13 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("MqttWaitMessageConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("MqttWaitMessageConfig"));
     }
 
-    /// 测试：变量替换在 topic 和 connection_id 中生效
+    /// 测试：变量替换在 topic 和 `connection_id` 中生效
     #[tokio::test]
     async fn test_wait_message_variable_replacement() {
         let messages = vec![MqttReceivedMessage {
@@ -706,7 +716,7 @@ mod tests {
         assert_eq!(data["request"]["connection_id"], "my-connection");
     }
 
-    /// 测试：带 match_condition 的等待消息
+    /// 测试：带 `match_condition` 的等待消息
     #[tokio::test]
     async fn test_wait_message_with_match_condition() {
         let messages = vec![MqttReceivedMessage {

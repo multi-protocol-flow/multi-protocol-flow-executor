@@ -4,8 +4,8 @@
 // 断开始终走 "out" 端口（Failed不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -98,9 +98,7 @@ impl NodeExecutor for SseDisconnectExecutor {
         let next_node_ids: Vec<String> = {
             let filtered: Vec<String> = connections
                 .iter()
-                .filter(|conn| {
-                    conn.source_node_uuid == node.uuid && conn.source_port_id == "out"
-                })
+                .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "out")
                 .map(|conn| conn.target_node_uuid.clone())
                 .collect();
 
@@ -115,10 +113,7 @@ impl NodeExecutor for SseDisconnectExecutor {
 
         match disconnect_result {
             Ok(()) => {
-                log::info!(
-                    "[SSE] 连接断开Success: connection_id={}",
-                    connection_id
-                );
+                log::info!("[SSE] 连接断开Success: connection_id={}", connection_id);
 
                 // 6. 构建输出数据
                 let output_data = json!({
@@ -137,10 +132,7 @@ impl NodeExecutor for SseDisconnectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!(
-                            "SSE 连接断开Success ({}ms)",
-                            duration.as_millis()
-                        ),
+                        message: format!("SSE 连接断开Success ({}ms)", duration.as_millis()),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -282,7 +274,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("SseDisconnectConfig"));
     }
 
-    /// 测试：变量替换 — connection_id 中的变量应被正确替换
+    /// 测试：变量替换 — `connection_id` 中的变量应被正确替换
     #[tokio::test]
     async fn test_disconnect_with_variable_replacement() {
         let sse_manager = Arc::new(SseConnectionManager::new());
@@ -336,7 +328,7 @@ mod tests {
         assert_eq!(data["success"], true);
     }
 
-    /// 测试：resolve_port 始终返回 "out"
+    /// `测试：resolve_port` 始终返回 "out"
     #[tokio::test]
     async fn test_disconnect_always_routes_to_out_port() {
         let sse_manager = Arc::new(SseConnectionManager::new());
@@ -355,7 +347,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["out"]);
     }
 
-    /// 测试：配置提取 — 从 NodeData::SseDisconnect 正确提取
+    /// 测试：配置提取 — 从 `NodeData::SseDisconnect` 正确提取
     #[tokio::test]
     async fn test_disconnect_config_extraction() {
         let sse_manager = Arc::new(SseConnectionManager::new());

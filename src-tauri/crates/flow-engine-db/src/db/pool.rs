@@ -156,7 +156,7 @@ impl DatabaseConnectionManager {
             return Err(format!("连接池已存在: {}", connection_uuid));
         }
 
-        let mut active_pool = ActivePool::new(connection_uuid.clone(), name, db_type);
+        let mut active_pool = ActivePool::new(connection_uuid.clone(), name, db_type.clone());
         active_pool.set_pool(pool);
 
         pools.insert(connection_uuid.clone(), active_pool);
@@ -164,7 +164,7 @@ impl DatabaseConnectionManager {
         log::info!(
             "[Database] 连接池创建Success: uuid={}, type={}",
             connection_uuid,
-            pools.get(&connection_uuid).unwrap().db_type
+            db_type
         );
 
         Ok(())
@@ -239,10 +239,13 @@ impl DatabaseConnectionManager {
         }
 
         // 2. 获取连接池，向数据库发送 BEGIN
-        let pool = self.get_pool(connection_uuid).await
+        let pool = self
+            .get_pool(connection_uuid)
+            .await
             .ok_or_else(|| format!("连接 {} 不存在，无法开始事务", connection_uuid))?;
 
-        pool.begin_db_transaction(isolation_level.as_deref()).await?;
+        pool.begin_db_transaction(isolation_level.as_deref())
+            .await?;
 
         // 3. 内存状态记录
         let mut transactions = self.transactions.write().await;
@@ -273,7 +276,9 @@ impl DatabaseConnectionManager {
         }
 
         // 2. 获取连接池，向数据库发送 COMMIT
-        let pool = self.get_pool(connection_uuid).await
+        let pool = self
+            .get_pool(connection_uuid)
+            .await
             .ok_or_else(|| format!("连接 {} 不存在，无法提交事务", connection_uuid))?;
 
         pool.commit_db_transaction().await?;
@@ -308,7 +313,9 @@ impl DatabaseConnectionManager {
         }
 
         // 2. 获取连接池，向数据库发送 ROLLBACK
-        let pool = self.get_pool(connection_uuid).await
+        let pool = self
+            .get_pool(connection_uuid)
+            .await
             .ok_or_else(|| format!("连接 {} 不存在，无法回滚事务", connection_uuid))?;
 
         pool.rollback_db_transaction().await?;
@@ -326,7 +333,9 @@ impl DatabaseConnectionManager {
     /// 获取事务状态
     pub async fn get_transaction_state(&self, connection_uuid: &str) -> Option<TransactionState> {
         let transactions = self.transactions.read().await;
-        transactions.get(connection_uuid).map(|info| info.state.clone())
+        transactions
+            .get(connection_uuid)
+            .map(|info| info.state.clone())
     }
 
     /// 清理已提交/回滚的事务
@@ -494,7 +503,11 @@ impl MockPool {
 
 #[async_trait::async_trait]
 impl DatabasePool for MockPool {
-    async fn execute(&self, _sql: &str, _params: Vec<serde_json::Value>) -> Result<QueryResult, String> {
+    async fn execute(
+        &self,
+        _sql: &str,
+        _params: Vec<serde_json::Value>,
+    ) -> Result<QueryResult, String> {
         if self.should_fail {
             Err("Mock pool is configured to fail".to_string())
         } else {
@@ -654,7 +667,7 @@ mod tests {
         assert!(result.unwrap_err().contains("不存在"));
     }
 
-    /// 创建带 MockPool 的管理器（用于事务测试）
+    /// 创建带 `MockPool` 的管理器（用于事务测试）
     async fn create_manager_with_mock_pool() -> DatabaseConnectionManager {
         let manager = DatabaseConnectionManager::new();
         let pool = Arc::new(MockPool::new("test-pool".to_string()));
@@ -670,7 +683,7 @@ mod tests {
         manager
     }
 
-    /// 创建带多个 MockPool 的管理器（用于多连接事务测试）
+    /// 创建带多个 `MockPool` 的管理器（用于多连接事务测试）
     async fn create_manager_with_multiple_mock_pools() -> DatabaseConnectionManager {
         let manager = DatabaseConnectionManager::new();
         for uuid in &["conn-001", "conn-002", "conn-003", "conn-004"] {
@@ -934,9 +947,7 @@ mod tests {
         assert_eq!(manager.pool_count().await, 2);
         assert_eq!(manager.active_pool_count().await, 2);
 
-        manager
-            .set_pool_error("conn-001", "Failed")
-            .await;
+        manager.set_pool_error("conn-001", "Failed").await;
 
         assert_eq!(manager.pool_count().await, 2);
         assert_eq!(manager.active_pool_count().await, 1);

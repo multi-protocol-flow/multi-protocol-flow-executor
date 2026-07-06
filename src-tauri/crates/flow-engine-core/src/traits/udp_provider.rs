@@ -102,8 +102,7 @@ mod tests {
             last_error: None,
         };
         let json = serde_json::to_string(&info).expect("序列化应Success");
-        let deserialized: UdpSocketInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: UdpSocketInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.uuid, "socket-001");
         assert_eq!(deserialized.local_addr, "0.0.0.0");
         assert_eq!(deserialized.local_port, 9090);
@@ -122,8 +121,7 @@ mod tests {
             last_error: Some("端口已被占用".to_string()),
         };
         let json = serde_json::to_string(&info).expect("序列化应Success");
-        let deserialized: UdpSocketInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: UdpSocketInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.last_error, Some("端口已被占用".to_string()));
     }
 
@@ -139,8 +137,7 @@ mod tests {
             last_error: None,
         };
         let json = serde_json::to_string(&info).expect("序列化应Success");
-        let deserialized: UdpSocketInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: UdpSocketInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.local_port, 0);
     }
 }

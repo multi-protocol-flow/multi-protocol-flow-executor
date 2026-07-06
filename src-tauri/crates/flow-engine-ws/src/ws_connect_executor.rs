@@ -9,10 +9,10 @@ use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{NodeData, WsCollectMode, WsConnectConfig};
 use flow_engine_core::traits::WsProvider;
 use flow_engine_core::ws_stream::{MessageContent, MessageDirection, WsMessage};
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -52,7 +52,12 @@ impl NodeExecutor for WsConnectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::WsConnect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not WsConnectConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not WsConnectConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换 URL
@@ -151,16 +156,28 @@ impl NodeExecutor for WsConnectExecutor {
                             }
                         }
                         Err(e) => {
-                        log::error!(
-                            "[WebSocket] Collect message error: uuid={}, error={}",
-                            node.uuid,
-                            e
-                        );
-                        (true, CollectResult { collected: vec![], matched_index: None }) // error also treated as timeout
+                            log::error!(
+                                "[WebSocket] Collect message error: uuid={}, error={}",
+                                node.uuid,
+                                e
+                            );
+                            (
+                                true,
+                                CollectResult {
+                                    collected: vec![],
+                                    matched_index: None,
+                                },
+                            ) // error also treated as timeout
                         }
                     }
                 } else {
-                    (false, CollectResult { collected: vec![], matched_index: None })
+                    (
+                        false,
+                        CollectResult {
+                            collected: vec![],
+                            matched_index: None,
+                        },
+                    )
                 };
 
                 let collect_response_duration_ms = if config.collect_message {
@@ -187,7 +204,10 @@ impl NodeExecutor for WsConnectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!("WebSocket connect succeeded ({}ms)", duration.as_millis()),
+                        message: format!(
+                            "WebSocket connect succeeded ({}ms)",
+                            duration.as_millis()
+                        ),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -204,7 +224,7 @@ impl NodeExecutor for WsConnectExecutor {
                         })
                         .map(|conn| conn.target_node_uuid.clone())
                         .collect();
-                    
+
                     // 如果没有连接，返回端口名称（用于测试）
                     if filtered.is_empty() {
                         vec!["true".to_string()]
@@ -259,7 +279,11 @@ impl NodeExecutor for WsConnectExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -272,7 +296,7 @@ impl NodeExecutor for WsConnectExecutor {
                         })
                         .map(|conn| conn.target_node_uuid.clone())
                         .collect();
-                    
+
                     if filtered.is_empty() {
                         vec!["false".to_string()]
                     } else {
@@ -352,10 +376,7 @@ impl WsConnectExecutor {
                         })
                     }
                     Ok(None) => {
-                        log::info!(
-                            "[WebSocket] Collect message timeout: uuid={}",
-                            node.uuid
-                        );
+                        log::info!("[WebSocket] Collect message timeout: uuid={}", node.uuid);
                         Ok(CollectResult {
                             collected: vec![],
                             matched_index: None,
@@ -382,7 +403,10 @@ impl WsConnectExecutor {
                                     "[WebSocket] Collect condition timeout: uuid={}",
                                     node.uuid
                                 );
-                                return Ok(CollectResult { collected, matched_index: None });
+                                return Ok(CollectResult {
+                                    collected,
+                                    matched_index: None,
+                                });
                             }
 
                             let remaining = timeout_ms - elapsed;
@@ -394,7 +418,9 @@ impl WsConnectExecutor {
                                     _ = cancel_rx.changed() => Err("Flow cancelled".to_string()),
                                 }
                             } else {
-                                self.ws_manager.receive(&node.uuid, remaining.min(5000)).await
+                                self.ws_manager
+                                    .receive(&node.uuid, remaining.min(5000))
+                                    .await
                             };
                             match receive_result {
                                 Ok(Some(message)) => {
@@ -405,7 +431,9 @@ impl WsConnectExecutor {
                                             content: message.clone(),
                                         },
                                     );
-                                    if let Err(e) = context.push_ws_message(&node.uuid, ws_message).await {
+                                    if let Err(e) =
+                                        context.push_ws_message(&node.uuid, ws_message).await
+                                    {
                                         log::warn!(
                                             "[WebSocket] Failed to record message: uuid={}, error={}",
                                             node.uuid,
@@ -426,14 +454,18 @@ impl WsConnectExecutor {
                                             .emit_log(LogEvent {
                                                 level: LogLevel::Info,
                                                 message: format!("Message matched: {}", message),
-                                                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                                                timestamp:
+                                                    flow_engine_core::utils::unix_timestamp_ms(),
                                                 node_uuid: Some(node.uuid.clone()),
                                                 node_name: Some(node.name.clone()),
                                                 flow_uuid: context.flow_uuid.clone(),
                                             })
                                             .await;
 
-                                        return Ok(CollectResult { collected, matched_index: Some(msg_index) });
+                                        return Ok(CollectResult {
+                                            collected,
+                                            matched_index: Some(msg_index),
+                                        });
                                     }
                                     // 不匹配，继续等待
                                 }
@@ -466,7 +498,9 @@ impl WsConnectExecutor {
                         Err(error_msg)
                     }
                     None => {
-                        let error_msg = "Condition match mode requires collect_condition to be configured".to_string();
+                        let error_msg =
+                            "Condition match mode requires collect_condition to be configured"
+                                .to_string();
                         log::error!(
                             "[WebSocket] Condition match config error: uuid={}, collect_condition is None",
                             node.uuid
@@ -546,8 +580,15 @@ impl WsConnectExecutor {
                     );
                 }
 
-                let matched_index = if collected.is_empty() { None } else { Some(collected.len() - 1) };
-                Ok(CollectResult { collected, matched_index })
+                let matched_index = if collected.is_empty() {
+                    None
+                } else {
+                    Some(collected.len() - 1)
+                };
+                Ok(CollectResult {
+                    collected,
+                    matched_index,
+                })
             }
         }
     }
@@ -629,15 +670,14 @@ impl WsConnectExecutor {
 
         output
     }
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::node::{NodePosition};
-    use flow_engine_core::node_config::{WsConnectConfig, WsCollectCondition, WsMatchType};
     use crate::websocket_manager::WebSocketConnectionManager;
+    use flow_engine_core::node::NodePosition;
+    use flow_engine_core::node_config::{WsCollectCondition, WsConnectConfig, WsMatchType};
     use std::sync::Arc;
 
     /// 创建Test Node
@@ -669,7 +709,10 @@ mod tests {
 
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
-        ExecutionContext::new(flow_id.to_string(), flow_engine_core::utils::unix_timestamp_ms())
+        ExecutionContext::new(
+            flow_id.to_string(),
+            flow_engine_core::utils::unix_timestamp_ms(),
+        )
     }
 
     #[tokio::test]
@@ -702,7 +745,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
                 url: "ws://192.0.2.1:81/ws".to_string(), // RFC 3330 测试地址，不可路由
-                connect_timeout_ms: 2000, // 2 秒超时
+                connect_timeout_ms: 2000,                // 2 秒超时
                 ..Default::default()
             }),
             ports: None,
@@ -735,11 +778,9 @@ mod tests {
 
         // 创建上下文并设置变量
         let mut context = create_context("test-flow");
-        context.variables.set_variable(
-            "host".to_string(),
-            json!("example.com"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("host".to_string(), json!("example.com"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -918,7 +959,7 @@ mod tests {
         }
     }
 
-    /// 测试：连接Success后创建 WsStreamSegment
+    /// 测试：连接Success后创建 `WsStreamSegment`
     #[tokio::test]
     #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
     async fn test_create_ws_stream_on_connect_success() {
@@ -935,12 +976,18 @@ mod tests {
         if let Ok((next_nodes, _)) = result {
             if next_nodes == vec!["true"] {
                 let stream = context.get_ws_stream("stream-test").await;
-                assert!(stream.is_some(), "WebSocket stream should be created after successful connection");
+                assert!(
+                    stream.is_some(),
+                    "WebSocket stream should be created after successful connection"
+                );
 
                 let stream = stream.unwrap();
                 assert_eq!(stream.connection_id, "stream-test");
                 assert_eq!(stream.url, "ws://localhost:19091");
-                assert_eq!(stream.current_owner_node_uuid, Some("stream-test".to_string()));
+                assert_eq!(
+                    stream.current_owner_node_uuid,
+                    Some("stream-test".to_string())
+                );
                 assert_eq!(stream.segments.len(), 1, "应该有一个初始段");
 
                 let segment = &stream.segments[0];
@@ -951,21 +998,25 @@ mod tests {
 
                 // 清理
                 let _ = ws_manager
-                        .close("stream-test", 1000, Some("test complete".to_string()), 5000)
-                        .await;
+                    .close("stream-test", 1000, Some("test complete".to_string()), 5000)
+                    .await;
             } else {
                 println!("Skipping test: unable to connect to echo server");
             }
         }
     }
 
-    /// 测试：connection failed时不创建 WsStreamSegment
+    /// 测试：connection failed时不创建 `WsStreamSegment`
     #[tokio::test]
     async fn test_no_ws_stream_on_connect_failure() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager);
 
-        let node = create_test_node("fail-test", "failure test", "ws://invalid.example.com:9999/ws");
+        let node = create_test_node(
+            "fail-test",
+            "failure test",
+            "ws://invalid.example.com:9999/ws",
+        );
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -978,6 +1029,9 @@ mod tests {
 
         // 验证没有创建消息流
         let stream = context.get_ws_stream("fail-test").await;
-        assert!(stream.is_none(), "connection failed不应创建 WebSocket 消息流");
+        assert!(
+            stream.is_none(),
+            "connection failed不应创建 WebSocket 消息流"
+        );
     }
 }

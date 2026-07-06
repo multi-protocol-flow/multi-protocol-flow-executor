@@ -396,7 +396,7 @@ impl WsConnectionStream {
         }
 
         // 获取当前段并推送消息
-        let current_segment = self.segments.last_mut().unwrap();
+        let current_segment = self.segments.last_mut().ok_or("No segments available")?;
         current_segment.push_message(message)
     }
 

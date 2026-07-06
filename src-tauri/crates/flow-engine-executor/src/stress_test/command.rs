@@ -37,7 +37,11 @@ pub struct GetStressTestStatusOutput {
 
 /// 压力测试事件（从后端发送到前端）
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum StressTestEvent {
     /// 压力测试已启动
     Started {
@@ -243,25 +247,35 @@ pub async fn handle_get_stress_test_status(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stress_test::{ResponseTimeDistribution, StressTestStatistics};
     use flow_engine_core::node::{Node, NodePosition, Port, PortType};
     use flow_engine_core::node_config::NodeData;
-    use crate::stress_test::{ResponseTimeDistribution, StressTestStatistics};
 
     fn create_test_flow() -> Flow {
-        Flow { uuid: "flow-001".to_string(), name: "Test Flow".to_string(), description: None, nodes: vec![Node {
-            uuid: "node-001".to_string(),
-            node_type: "entry".to_string(),
-            name: "Entry".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: Some(vec![Port {
-                id: "out".to_string(),
-                port_type: PortType::Output,
-                label: Some("Output".to_string()),
-            }]),
-            has_breakpoint: None,
-            on_error: None,
-        }], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None }
+        Flow {
+            uuid: "flow-001".to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![Node {
+                uuid: "node-001".to_string(),
+                node_type: "entry".to_string(),
+                name: "Entry".to_string(),
+                position: NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::entry(),
+                ports: Some(vec![Port {
+                    id: "out".to_string(),
+                    port_type: PortType::Output,
+                    label: Some("Output".to_string()),
+                }]),
+                has_breakpoint: None,
+                on_error: None,
+            }],
+            connections: vec![],
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
+        }
     }
 
     #[test]
@@ -283,7 +297,8 @@ mod tests {
         assert!(json.contains("rampUpSeconds"));
         assert!(json.contains("durationSeconds"));
 
-        let deserialized: StartStressTestInput = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: StartStressTestInput =
+            serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized.config.concurrent_users, 5);
     }
 
@@ -294,7 +309,8 @@ mod tests {
         let json = serde_json::to_string(&input).expect("序列化Failed");
         assert_eq!(json, "{}");
 
-        let deserialized: StopStressTestInput = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: StopStressTestInput =
+            serde_json::from_str(&json).expect("反序列化Failed");
         // 空结构体，验证反序列化Success即可
         let _ = deserialized;
     }
@@ -427,7 +443,9 @@ mod tests {
             progress_history: vec![],
             flow_snapshot: None,
         };
-        let event = StressTestEvent::Ended { report: Box::new(report) };
+        let event = StressTestEvent::Ended {
+            report: Box::new(report),
+        };
 
         let json = serde_json::to_string(&event).expect("序列化Failed");
         assert!(json.contains("ended"));
@@ -455,7 +473,8 @@ mod tests {
 
         for event in events {
             let json = serde_json::to_string(&event).expect("序列化Failed");
-            let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化Failed");
+            let deserialized: StressTestEvent =
+                serde_json::from_str(&json).expect("反序列化Failed");
             assert_eq!(event, deserialized);
         }
     }
@@ -543,16 +562,26 @@ mod tests {
         assert!(result1.is_ok(), "第一次启动应该Success");
 
         // 第二次启动应该Failed
-        let flow2 = Flow { uuid: "flow-002".to_string(), name: "Test Flow 2".to_string(), description: None, nodes: vec![Node {
-            uuid: "node-002".to_string(),
-            node_type: "entry".to_string(),
-            name: "Entry".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        }], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None };
+        let flow2 = Flow {
+            uuid: "flow-002".to_string(),
+            name: "Test Flow 2".to_string(),
+            description: None,
+            nodes: vec![Node {
+                uuid: "node-002".to_string(),
+                node_type: "entry".to_string(),
+                name: "Entry".to_string(),
+                position: NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::entry(),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
+            }],
+            connections: vec![],
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
+        };
         let config2 = StressTestConfig {
             concurrent_users: 10,
             ramp_up_seconds: 10,
@@ -568,7 +597,7 @@ mod tests {
         let result2 = handle_start_stress_test(input2, event_sender2, manager.clone()).await;
         assert!(result2.is_err(), "第二次启动应该Failed");
         let error = result2.unwrap_err();
-        assert!(error.find("已有压测会话在运行").is_some());
+        assert!(error.contains("已有压测会话在运行"));
 
         // 清理
         let _ = handle_stop_stress_test(manager).await;
@@ -594,7 +623,7 @@ mod tests {
         let result = handle_start_stress_test(input, event_sender, manager.clone()).await;
         assert!(result.is_err(), "无效配置应该Failed");
         let error = result.unwrap_err();
-        assert!(error.find("并发用户数").is_some());
+        assert!(error.contains("并发用户数"));
 
         assert!(!manager.is_running().await);
     }
@@ -700,16 +729,26 @@ mod tests {
 
         // 验证可以重新启动
         let (event_sender2, _event_receiver2) = mpsc::unbounded_channel::<StressTestEvent>();
-        let flow2 = Flow { uuid: "flow-002".to_string(), name: "Test Flow 2".to_string(), description: None, nodes: vec![Node {
-            uuid: "node-002".to_string(),
-            node_type: "entry".to_string(),
-            name: "Entry".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        }], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None };
+        let flow2 = Flow {
+            uuid: "flow-002".to_string(),
+            name: "Test Flow 2".to_string(),
+            description: None,
+            nodes: vec![Node {
+                uuid: "node-002".to_string(),
+                node_type: "entry".to_string(),
+                name: "Entry".to_string(),
+                position: NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::entry(),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
+            }],
+            connections: vec![],
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
+        };
         let config2 = StressTestConfig {
             concurrent_users: 5,
             ramp_up_seconds: 5,
@@ -747,12 +786,11 @@ mod tests {
                 ramp_up_seconds: 0,
                 duration_seconds: 10,
                 flow_uuid: flow.uuid.clone(),
-            ..Default::default()
+                ..Default::default()
             };
 
-            let handle = tokio::spawn(async move {
-                manager_clone.start(flow, config, sender_clone).await
-            });
+            let handle =
+                tokio::spawn(async move { manager_clone.start(flow, config, sender_clone).await });
             handles.push(handle);
         }
 
@@ -760,14 +798,8 @@ mod tests {
         let results: Vec<_> = join_all(handles).await;
 
         // 统计Success和Failed的数量
-        let success_count = results
-            .iter()
-            .filter(|r| matches!(r, Ok(Ok(()))))
-            .count();
-        let failure_count = results
-            .iter()
-            .filter(|r| matches!(r, Ok(Err(_))))
-            .count();
+        let success_count = results.iter().filter(|r| matches!(r, Ok(Ok(())))).count();
+        let failure_count = results.iter().filter(|r| matches!(r, Ok(Err(_)))).count();
 
         // 只有一个应该Success
         assert_eq!(

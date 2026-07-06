@@ -3,15 +3,15 @@
 // 实现 WebSocket 连接关闭功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::WsProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -43,7 +43,12 @@ impl NodeExecutor for WsCloseExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::WsClose(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not WsCloseConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not WsCloseConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换 connection_id
@@ -205,7 +210,11 @@ impl NodeExecutor for WsCloseExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -227,9 +236,9 @@ impl NodeExecutor for WsCloseExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::node::{NodePosition};
-    use flow_engine_core::node_config::WsCloseConfig;
     use crate::websocket_manager::WebSocketConnectionManager;
+    use flow_engine_core::node::NodePosition;
+    use flow_engine_core::node_config::WsCloseConfig;
     use std::sync::Arc;
 
     /// 创建Test Node
@@ -253,7 +262,10 @@ mod tests {
 
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
-        ExecutionContext::new(flow_id.to_string(), flow_engine_core::utils::unix_timestamp_ms())
+        ExecutionContext::new(
+            flow_id.to_string(),
+            flow_engine_core::utils::unix_timestamp_ms(),
+        )
     }
 
     #[tokio::test]
@@ -368,10 +380,10 @@ mod tests {
                 vec![],
                 vec![],
                 30000,
-                false,   // use_tls
-                false,   // tls_skip_verify
-                None,    // ping_interval_ms
-                None,    // ping_timeout_ms
+                false, // use_tls
+                false, // tls_skip_verify
+                None,  // ping_interval_ms
+                None,  // ping_timeout_ms
             )
             .await;
 
@@ -383,9 +395,12 @@ mod tests {
             // 创建关闭节点
             let node = create_test_node("close-test", "close test", "echo-close-conn");
             let mut context = create_context("test-flow");
-            
+
             // 设置 URL 映射
-            context.set_ws_url("echo-close-conn".to_string(), "ws://localhost:19091".to_string());
+            context.set_ws_url(
+                "echo-close-conn".to_string(),
+                "ws://localhost:19091".to_string(),
+            );
 
             let result = executor
                 .execute(&node, &mut context, &[], &HashMap::new())
@@ -427,10 +442,10 @@ mod tests {
                 vec![],
                 vec![],
                 30000,
-                false,   // use_tls
-                false,   // tls_skip_verify
-                None,    // ping_interval_ms
-                None,    // ping_timeout_ms
+                false, // use_tls
+                false, // tls_skip_verify
+                None,  // ping_interval_ms
+                None,  // ping_timeout_ms
             )
             .await;
 
@@ -445,20 +460,23 @@ mod tests {
                 node_type: "ws_close".to_string(),
                 name: "close reason test".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::WsClose(WsCloseConfig {
-                connection_id: "close-reason-conn".to_string(),
-                close_code: 1000,
-                close_reason: Some("test complete".to_string()),
-                close_timeout_ms: 5000,
-            }),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
+                data: NodeData::WsClose(WsCloseConfig {
+                    connection_id: "close-reason-conn".to_string(),
+                    close_code: 1000,
+                    close_reason: Some("test complete".to_string()),
+                    close_timeout_ms: 5000,
+                }),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
             };
             let mut context = create_context("test-flow");
-            
+
             // 设置 URL 映射
-            context.set_ws_url("close-reason-conn".to_string(), "ws://localhost:19091".to_string());
+            context.set_ws_url(
+                "close-reason-conn".to_string(),
+                "ws://localhost:19091".to_string(),
+            );
 
             let result = executor
                 .execute(&node, &mut context, &[], &HashMap::new())

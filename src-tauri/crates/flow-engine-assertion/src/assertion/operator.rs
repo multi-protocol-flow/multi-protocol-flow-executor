@@ -200,8 +200,8 @@ fn evaluate_matches(actual: &Value, expected: &Value) -> Result<bool, String> {
     };
 
     // Compile regex pattern
-    let regex =
-        regex::Regex::new(pattern).map_err(|e| format!("Invalid regex pattern '{}': {}", pattern, e))?;
+    let regex = regex::Regex::new(pattern)
+        .map_err(|e| format!("Invalid regex pattern '{}': {}", pattern, e))?;
 
     // 使用超时保护防止 ReDoS 攻击
     // 对于简单字符串匹配，直接检查；对于复杂模式，使用超时
@@ -556,7 +556,9 @@ mod tests {
     fn test_contains_type_mismatch() {
         let result = evaluate_operator(&AssertionOperator::Contains, &json!(123), &json!("foo"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("is not a string or array type"));
+        assert!(result
+            .unwrap_err()
+            .contains("is not a string or array type"));
     }
 
     // ========================================================================
@@ -660,7 +662,9 @@ mod tests {
     fn test_matches_expected_not_string() {
         let result = evaluate_operator(&AssertionOperator::Matches, &json!("test"), &json!(123));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("must be a string regex pattern"));
+        assert!(result
+            .unwrap_err()
+            .contains("must be a string regex pattern"));
     }
 
     // ========================================================================
@@ -743,7 +747,9 @@ mod tests {
     fn test_in_expected_not_array() {
         let result = evaluate_operator(&AssertionOperator::In, &json!("apple"), &json!("apple"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("expected must be an array type"));
+        assert!(result
+            .unwrap_err()
+            .contains("expected must be an array type"));
     }
 
     // ========================================================================
@@ -850,7 +856,9 @@ mod tests {
     fn test_type_is_expected_not_string() {
         let result = evaluate_operator(&AssertionOperator::TypeIs, &json!("hello"), &json!(123));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("expected must be a string type"));
+        assert!(result
+            .unwrap_err()
+            .contains("expected must be a string type"));
     }
 
     // ========================================================================
@@ -904,7 +912,9 @@ mod tests {
     fn test_between_expected_not_array() {
         let result = evaluate_operator(&AssertionOperator::Between, &json!(50), &json!(0));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("expected must be an array type"));
+        assert!(result
+            .unwrap_err()
+            .contains("expected must be an array type"));
     }
 
     #[test]

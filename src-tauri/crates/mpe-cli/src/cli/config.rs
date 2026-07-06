@@ -96,18 +96,31 @@ impl AppConfig {
         };
 
         // Silently return None when config file doesn't exist
-        if !config_path
-            .try_exists()
-            .map_err(|e| format!("failed to check config file ({}): {}", config_path.display(), e))?
-        {
+        if !config_path.try_exists().map_err(|e| {
+            format!(
+                "failed to check config file ({}): {}",
+                config_path.display(),
+                e
+            )
+        })? {
             return Ok(None);
         }
 
-        let content = std::fs::read_to_string(&config_path)
-            .map_err(|e| format!("failed to read config file ({}): {}", config_path.display(), e))?;
+        let content = std::fs::read_to_string(&config_path).map_err(|e| {
+            format!(
+                "failed to read config file ({}): {}",
+                config_path.display(),
+                e
+            )
+        })?;
 
-        let config: ConfigFile = toml::from_str(&content)
-            .map_err(|e| format!("failed to parse config file ({}): {}", config_path.display(), e))?;
+        let config: ConfigFile = toml::from_str(&content).map_err(|e| {
+            format!(
+                "failed to parse config file ({}): {}",
+                config_path.display(),
+                e
+            )
+        })?;
 
         Ok(Some(config))
     }
@@ -138,7 +151,10 @@ impl AppConfig {
             if path.is_absolute() {
                 return Ok(path);
             }
-            return Err(format!("path in config file is not absolute: {}", path.display()));
+            return Err(format!(
+                "path in config file is not absolute: {}",
+                path.display()
+            ));
         }
 
         // Lowest priority: engine default
@@ -164,7 +180,10 @@ mod tests {
 
         // Should successfully load defaults without config file
         let config = AppConfig::load();
-        assert!(config.is_ok(), "should use defaults when no config file, no error expected");
+        assert!(
+            config.is_ok(),
+            "should use defaults when no config file, no error expected"
+        );
 
         let config = config.expect("confirmed is_ok, should not fail");
         assert!(config.flows_dir.to_string_lossy().contains("flows"));

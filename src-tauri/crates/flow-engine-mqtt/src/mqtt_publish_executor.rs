@@ -4,8 +4,8 @@
 //! 参照 `mcp_call_tool_executor.rs` 模式实现。
 //! 支持 payload 编码（text/json/hex/base64 → Vec<u8>）。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -42,26 +42,34 @@ impl MqttPublishExecutor {
 /// - "json" → 校验 JSON 合法性后取 UTF-8 字节
 /// - "hex" → 十六进制解码（自动去除 0x 前缀）
 /// - "base64" → Base64 解码
+#[allow(clippy::result_large_err)]
 fn encode_payload(payload: &str, format: Option<&str>) -> Result<Vec<u8>, ErrorDetail> {
     let fmt = format.unwrap_or("text");
     match fmt {
         "text" => Ok(payload.as_bytes().to_vec()),
         "json" => {
             // 校验 JSON 合法性
-            let _: serde_json::Value =
-                serde_json::from_str(payload).map_err(|e| ErrorDetail::execution_error(format!("JSON 格式无效: {}", e)))?;
+            let _: serde_json::Value = serde_json::from_str(payload)
+                .map_err(|e| ErrorDetail::execution_error(format!("JSON 格式无效: {}", e)))?;
             Ok(payload.as_bytes().to_vec())
         }
         "hex" => {
-            let cleaned = payload.trim().trim_start_matches("0x").trim_start_matches("0X");
+            let cleaned = payload
+                .trim()
+                .trim_start_matches("0x")
+                .trim_start_matches("0X");
             hex_to_bytes(cleaned)
         }
         "base64" => base64_to_bytes(payload),
-        _ => Err(ErrorDetail::execution_error(format!("不支持的 payload_format: '{}'", fmt))),
+        _ => Err(ErrorDetail::execution_error(format!(
+            "不支持的 payload_format: '{}'",
+            fmt
+        ))),
     }
 }
 
 /// 十六进制字符串 → 字节
+#[allow(clippy::result_large_err)]
 fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, ErrorDetail> {
     let cleaned: String = hex.chars().filter(|c| !c.is_whitespace()).collect();
     if cleaned.is_empty() {
@@ -76,13 +84,15 @@ fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, ErrorDetail> {
     (0..cleaned.len())
         .step_by(2)
         .map(|i| {
-            u8::from_str_radix(&cleaned[i..i + 2], 16)
-                .map_err(|e| ErrorDetail::execution_error(format!("十六进制解码Failed（位置 {}）: {}", i, e)))
+            u8::from_str_radix(&cleaned[i..i + 2], 16).map_err(|e| {
+                ErrorDetail::execution_error(format!("十六进制解码Failed（位置 {}）: {}", i, e))
+            })
         })
         .collect()
 }
 
 /// Base64 字符串 → 字节
+#[allow(clippy::result_large_err)]
 fn base64_to_bytes(input: &str) -> Result<Vec<u8>, ErrorDetail> {
     // 手动实现 Base64 解码，避免引入额外依赖
     let trimmed = input.trim();
@@ -109,7 +119,10 @@ fn base64_to_bytes(input: &str) -> Result<Vec<u8>, ErrorDetail> {
         } else if ch == '/' {
             63
         } else {
-            return Err(ErrorDetail::execution_error(format!("Base64 解码Failed: 非法字符 '{}'", ch)));
+            return Err(ErrorDetail::execution_error(format!(
+                "Base64 解码Failed: 非法字符 '{}'",
+                ch
+            )));
         };
 
         byte_acc = (byte_acc << 6) | val;
@@ -148,18 +161,17 @@ impl NodeExecutor for MqttPublishExecutor {
         };
 
         // 2. 变量替换: connection_id, topic, payload
-        let connection_id =
-            replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("连接 ID variable substitution failed: {}", e);
-                log::error!(
-                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
-                    context.flow_uuid,
-                    node.uuid,
-                    node.name,
-                    error_msg
-                );
-                ErrorDetail::execution_error(error_msg)
-            })?;
+        let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
+            let error_msg = format!("连接 ID variable substitution failed: {}", e);
+            log::error!(
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
+            );
+            ErrorDetail::execution_error(error_msg)
+        })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
             let error_msg = format!("Topic variable substitution failed: {}", e);
@@ -263,9 +275,7 @@ impl NodeExecutor for MqttPublishExecutor {
         // 5. 构建发布配置（使用变量替换后的值）
         let publish_config = MqttPublishConfig {
             topic: topic.clone(),
-            payload: Some(
-                String::from_utf8_lossy(&payload_bytes).to_string(),
-            ),
+            payload: Some(String::from_utf8_lossy(&payload_bytes).to_string()),
             qos: config.qos,
             retain: config.retain,
             payload_format: config.payload_format.clone(),
@@ -324,11 +334,7 @@ impl NodeExecutor for MqttPublishExecutor {
                     LogLevel::Error
                 };
                 let log_msg = if output.success {
-                    format!(
-                        "MQTT 发布Success: {} ({}ms)",
-                        topic,
-                        duration.as_millis()
-                    )
+                    format!("MQTT 发布Success: {} ({}ms)", topic, duration.as_millis())
                 } else {
                     let err = output.error.as_deref().unwrap_or("Unknown error");
                     format!("MQTT publish failed: {} - {}", topic, err)
@@ -401,6 +407,7 @@ impl NodeExecutor for MqttPublishExecutor {
 // ---------------------------------------------------------------------------
 
 /// Success路由到 true 端口
+#[allow(clippy::result_large_err)]
 fn route_to_true(
     node: &Node,
     connections: &[Connection],
@@ -408,9 +415,7 @@ fn route_to_true(
 ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     let filtered: Vec<String> = connections
         .iter()
-        .filter(|conn| {
-            conn.source_node_uuid == node.uuid && conn.source_port_id == "true"
-        })
+        .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "true")
         .map(|conn| conn.target_node_uuid.clone())
         .collect();
 
@@ -424,13 +429,18 @@ fn route_to_true(
 }
 
 /// Failed路由到 false 端口
+#[allow(clippy::result_large_err)]
 fn route_to_false(
     node: &Node,
     connections: &[Connection],
     output_data: serde_json::Value,
 ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
     // 检查 on_error 策略
-    if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+    if !node
+        .on_error
+        .as_ref()
+        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+    {
         let error_msg = output_data
             .get("error")
             .and_then(|v| v.as_str())
@@ -441,9 +451,7 @@ fn route_to_false(
 
     let filtered: Vec<String> = connections
         .iter()
-        .filter(|conn| {
-            conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
-        })
+        .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "false")
         .map(|conn| conn.target_node_uuid.clone())
         .collect();
 
@@ -463,6 +471,7 @@ fn route_to_false(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::mqtt_connection_manager::MqttConnectionManager;
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::MqttPublishConfig;
@@ -470,7 +479,6 @@ mod tests {
         MqttConnectOutput, MqttConnectionInfo, MqttMessageOutput, MqttPublishOutput,
         MqttSubscribeOutput,
     };
-    use crate::mqtt_connection_manager::MqttConnectionManager;
 
     /// 创建Test Node
     fn create_test_node(
@@ -575,11 +583,9 @@ mod tests {
             json!("mqtt-connection-123"),
             String::new(),
         );
-        context.variables.set_variable(
-            "device_id".to_string(),
-            json!("sensor-001"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("device_id".to_string(), json!("sensor-001"), String::new());
         context
             .variables
             .set_variable("msg".to_string(), json!("hello"), String::new());
@@ -684,7 +690,10 @@ mod tests {
     fn test_encode_payload_unsupported_format() {
         let result = encode_payload("data", Some("xml"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("不支持的 payload_format"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("不支持的 payload_format"));
     }
 
     // ===== Success场景（使用 Mock） =====

@@ -522,7 +522,7 @@ mod tests {
         assert!(cloned.get_status("non-existent").is_none());
     }
 
-    /// 测试 UdpSocketStatus 转换
+    /// 测试 `UdpSocketStatus` 转换
     #[test]
     fn test_udp_socket_status_as_str() {
         assert_eq!(UdpSocketStatus::Binding.as_str(), "Binding");
@@ -531,7 +531,7 @@ mod tests {
         assert_eq!(UdpSocketStatus::Error.as_str(), "Error");
     }
 
-    /// 测试 UdpSocketStatus Display
+    /// 测试 `UdpSocketStatus` Display
     #[test]
     fn test_udp_socket_status_display() {
         assert_eq!(format!("{}", UdpSocketStatus::Binding), "Binding");
@@ -854,7 +854,7 @@ mod tests {
         );
     }
 
-    /// 测试 ActiveUdpSocket 创建和状态
+    /// 测试 `ActiveUdpSocket` 创建和状态
     #[tokio::test]
     async fn test_active_udp_socket_new() {
         let socket = UdpSocket::bind("127.0.0.1:0").await.expect("绑定应Success");
@@ -878,7 +878,7 @@ mod tests {
         assert!(active.is_bound());
     }
 
-    /// 测试 ActiveUdpSocket Error状态
+    /// 测试 `ActiveUdpSocket` Error状态
     #[tokio::test]
     async fn test_active_udp_socket_error() {
         let socket = UdpSocket::bind("127.0.0.1:0").await.expect("绑定应Success");
@@ -898,7 +898,7 @@ mod tests {
         assert!(!active.is_bound());
     }
 
-    /// 测试 ActiveUdpSocket Debug 输出
+    /// 测试 `ActiveUdpSocket` Debug 输出
     #[tokio::test]
     async fn test_active_udp_socket_debug() {
         let socket = UdpSocket::bind("127.0.0.1:0").await.expect("绑定应Success");
@@ -918,7 +918,7 @@ mod tests {
         assert!(debug_str.contains("127.0.0.1"));
     }
 
-    /// 测试 ActiveUdpSocket to_socket_info
+    /// 测试 `ActiveUdpSocket` `to_socket_info`
     #[tokio::test]
     async fn test_active_udp_socket_to_info() {
         let socket = UdpSocket::bind("127.0.0.1:0").await.expect("绑定应Success");

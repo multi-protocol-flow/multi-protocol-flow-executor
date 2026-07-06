@@ -115,11 +115,12 @@ impl NodePlugin for GraphqlConnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let graphql_manager = context
             .get_provider::<crate::graphql_connection_manager::GraphqlConnectionManager>("graphql")
-            .unwrap_or_else(|| Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new()));
-        let executor = crate::graphql_connect_executor::GraphqlConnectExecutor::new(graphql_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new())
+            });
+        let executor =
+            crate::graphql_connect_executor::GraphqlConnectExecutor::new(graphql_manager);
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -227,11 +228,11 @@ impl NodePlugin for GraphqlQueryPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let graphql_manager = context
             .get_provider::<crate::graphql_connection_manager::GraphqlConnectionManager>("graphql")
-            .unwrap_or_else(|| Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new())
+            });
         let executor = crate::graphql_query_executor::GraphqlQueryExecutor::new(graphql_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -339,11 +340,12 @@ impl NodePlugin for GraphqlSubscribePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let graphql_manager = context
             .get_provider::<crate::graphql_connection_manager::GraphqlConnectionManager>("graphql")
-            .unwrap_or_else(|| Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new()));
-        let executor = crate::graphql_subscribe_executor::GraphqlSubscribeExecutor::new(graphql_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new())
+            });
+        let executor =
+            crate::graphql_subscribe_executor::GraphqlSubscribeExecutor::new(graphql_manager);
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -442,11 +444,12 @@ impl NodePlugin for GraphqlIntrospectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let graphql_manager = context
             .get_provider::<crate::graphql_connection_manager::GraphqlConnectionManager>("graphql")
-            .unwrap_or_else(|| Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new()));
-        let executor = crate::graphql_introspect_executor::GraphqlIntrospectExecutor::new(graphql_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new())
+            });
+        let executor =
+            crate::graphql_introspect_executor::GraphqlIntrospectExecutor::new(graphql_manager);
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -529,11 +532,12 @@ impl NodePlugin for GraphqlDisconnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let graphql_manager = context
             .get_provider::<crate::graphql_connection_manager::GraphqlConnectionManager>("graphql")
-            .unwrap_or_else(|| Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new()));
-        let executor = crate::graphql_disconnect_executor::GraphqlDisconnectExecutor::new(graphql_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new())
+            });
+        let executor =
+            crate::graphql_disconnect_executor::GraphqlDisconnectExecutor::new(graphql_manager);
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -579,7 +583,10 @@ mod tests {
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
         assert_eq!(ports[1].id, "false");
-        assert!(ports.iter().any(|p| p.id == "false"), "connect node should have false port");
+        assert!(
+            ports.iter().any(|p| p.id == "false"),
+            "connect node should have false port"
+        );
     }
 
     #[test]
@@ -596,7 +603,10 @@ mod tests {
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
         assert_eq!(ports[1].id, "false");
-        assert!(ports.iter().any(|p| p.id == "false"), "query node should have false port");
+        assert!(
+            ports.iter().any(|p| p.id == "false"),
+            "query node should have false port"
+        );
     }
 
     #[test]
@@ -613,7 +623,10 @@ mod tests {
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
         assert_eq!(ports[1].id, "false");
-        assert!(ports.iter().any(|p| p.id == "false"), "subscribe node should have false port");
+        assert!(
+            ports.iter().any(|p| p.id == "false"),
+            "subscribe node should have false port"
+        );
     }
 
     #[test]
@@ -630,7 +643,10 @@ mod tests {
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].id, "true");
         assert_eq!(ports[1].id, "false");
-        assert!(ports.iter().any(|p| p.id == "false"), "introspect node should have false port");
+        assert!(
+            ports.iter().any(|p| p.id == "false"),
+            "introspect node should have false port"
+        );
     }
 
     #[test]
@@ -646,7 +662,10 @@ mod tests {
         let ports = plugin.ports();
         assert_eq!(ports.len(), 1);
         assert_eq!(ports[0].id, "out");
-        assert!(ports.iter().all(|p| p.id != "false"), "disconnect node should not have false port");
+        assert!(
+            ports.iter().all(|p| p.id != "false"),
+            "disconnect node should not have false port"
+        );
     }
 
     // ---- resolve_port 测试 ----
@@ -785,7 +804,10 @@ mod tests {
             "subscription": "subscription { messageAdded { id } }",
         });
         let report = plugin.build_report_input(&config).expect("报告应存在");
-        assert_eq!(report["subscription"], "subscription { messageAdded { id } }");
+        assert_eq!(
+            report["subscription"],
+            "subscription { messageAdded { id } }"
+        );
     }
 
     #[test]

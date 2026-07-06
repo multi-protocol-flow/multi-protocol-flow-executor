@@ -353,7 +353,7 @@ pub struct Node {
     /// 是否设置断点（可选，默认 false）
     #[serde(default)]
     pub has_breakpoint: Option<bool>,
-    /// 执行Error策略（可选，默认 RouteToFalse）
+    /// 执行Error策略（可选，默认 `RouteToFalse`）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub on_error: Option<ExecutionErrorStrategy>,
 }

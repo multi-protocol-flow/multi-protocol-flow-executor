@@ -99,10 +99,7 @@ impl Amqp10AuthMechanism {
 /// - `amqp://user:pass@host:port` → SASL PLAIN 明文连接
 /// - `amqps://user:pass@host:port` → SASL PLAIN + TLS
 /// - `amqp://host:port` → SASL ANONYMOUS 明文连接
-pub async fn connect_async(
-    container_id: &str,
-    url: &str,
-) -> Result<Amqp10Connection, String> {
+pub async fn connect_async(container_id: &str, url: &str) -> Result<Amqp10Connection, String> {
     info!("AMQP 1.0 开始连接: url={}, container={}", url, container_id);
 
     let connection = Connection::open(container_id, url)
@@ -118,9 +115,7 @@ pub async fn connect_async(
 // ---------------------------------------------------------------------------
 
 /// 创建 AMQP 1.0 Session
-pub async fn begin_session(
-    connection: &mut Amqp10Connection,
-) -> Result<Amqp10Session, String> {
+pub async fn begin_session(connection: &mut Amqp10Connection) -> Result<Amqp10Session, String> {
     Session::begin(connection)
         .await
         .map_err(|e| format!("AMQP 1.0 创建会话Failed: {}", e))
@@ -210,7 +205,10 @@ pub async fn receive_string(receiver: &mut Receiver) -> Result<Delivery<String>,
         .await
         .map_err(|e| format!("AMQP 1.0 接收消息Failed: {}", e))?;
 
-    info!("AMQP 1.0 接收消息Success: delivery_id={}", delivery.delivery_id());
+    info!(
+        "AMQP 1.0 接收消息Success: delivery_id={}",
+        delivery.delivery_id()
+    );
     Ok(delivery)
 }
 
@@ -227,7 +225,10 @@ pub async fn accept_delivery(
         .accept(delivery)
         .await
         .map_err(|e| format!("AMQP 1.0 确认消息Failed: {}", e))?;
-    info!("AMQP 1.0 确认消息Success: delivery_id={}", delivery.delivery_id());
+    info!(
+        "AMQP 1.0 确认消息Success: delivery_id={}",
+        delivery.delivery_id()
+    );
     Ok(())
 }
 
@@ -241,7 +242,10 @@ pub async fn reject_delivery(
         .reject(delivery, error)
         .await
         .map_err(|e| format!("AMQP 1.0 拒绝消息Failed: {}", e))?;
-    info!("AMQP 1.0 拒绝消息Success: delivery_id={}", delivery.delivery_id());
+    info!(
+        "AMQP 1.0 拒绝消息Success: delivery_id={}",
+        delivery.delivery_id()
+    );
     Ok(())
 }
 
@@ -315,9 +319,7 @@ pub fn build_properties(config: &Amqp10MessageProperties) -> Properties {
         props.content_encoding = Some(ce.as_str().into());
     }
     if let Some(cid) = &config.correlation_id {
-        props.correlation_id = Some(fe2o3_amqp::types::messaging::MessageId::String(
-            cid.clone(),
-        ));
+        props.correlation_id = Some(fe2o3_amqp::types::messaging::MessageId::String(cid.clone()));
     }
     if let Some(rt) = &config.reply_to {
         props.reply_to = Some(rt.as_str().into());
@@ -329,12 +331,14 @@ pub fn build_properties(config: &Amqp10MessageProperties) -> Properties {
         props.to = Some(to.as_str().into());
     }
     if let Some(ts) = config.absolute_expiry_time {
-        props.absolute_expiry_time =
-            Some(fe2o3_amqp::types::primitives::Timestamp::from_milliseconds(ts as i64));
+        props.absolute_expiry_time = Some(
+            fe2o3_amqp::types::primitives::Timestamp::from_milliseconds(ts as i64),
+        );
     }
     if let Some(ts) = config.creation_time {
-        props.creation_time =
-            Some(fe2o3_amqp::types::primitives::Timestamp::from_milliseconds(ts as i64));
+        props.creation_time = Some(fe2o3_amqp::types::primitives::Timestamp::from_milliseconds(
+            ts as i64,
+        ));
     }
 
     props
@@ -343,7 +347,9 @@ pub fn build_properties(config: &Amqp10MessageProperties) -> Properties {
 /// 将 Delivery 的属性提取为 JSON
 pub fn extract_delivery_properties(delivery: &Delivery<String>) -> Option<serde_json::Value> {
     let msg = delivery.message();
-    msg.properties.as_ref().and_then(|p| serde_json::to_value(p).ok())
+    msg.properties
+        .as_ref()
+        .and_then(|p| serde_json::to_value(p).ok())
 }
 
 /// 将 Delivery 的消息注解提取为 JSON
@@ -367,7 +373,10 @@ mod tests {
     #[test]
     fn test_tls_mode_none() {
         assert_eq!(Amqp10TlsMode::from_config(None), Amqp10TlsMode::None);
-        assert_eq!(Amqp10TlsMode::from_config(Some("none")), Amqp10TlsMode::None);
+        assert_eq!(
+            Amqp10TlsMode::from_config(Some("none")),
+            Amqp10TlsMode::None
+        );
         assert_eq!(Amqp10TlsMode::from_config(Some("")), Amqp10TlsMode::None);
     }
 

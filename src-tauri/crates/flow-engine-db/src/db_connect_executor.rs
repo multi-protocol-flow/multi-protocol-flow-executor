@@ -4,19 +4,19 @@
 // Wave 2: 与执行器集成
 // Wave 5: SQLite/MySQL/PostgreSQL 支持
 
-use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
-use flow_engine_core::context::ExecutionContext;
 use crate::db::pool::MockPool;
 use crate::db::sqlite::SqliteConnection;
 use crate::db::traits::DatabasePool;
 use crate::db::types::{DbConnection, DbConnectionStatus, DbDriver};
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{DbConnectConfig, NodeData};
 use flow_engine_core::traits::DbProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -49,7 +49,12 @@ impl NodeExecutor for DbConnectExecutor {
         // 1. 提取配置
         let node_config = match &node.data {
             NodeData::DbConnect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not DbConnectConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not DbConnectConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 使用节点配置直接作为连接配置
@@ -59,14 +64,21 @@ impl NodeExecutor for DbConnectExecutor {
         let pool_key = node.uuid.clone();
 
         // 2.75 变量替换：对连接字段中的 {{variable}} 进行运行时替换
-        let replace_opt = |val: &Option<String>, label: &str| -> Result<Option<String>, ErrorDetail> {
+        let replace_opt = |val: &Option<String>,
+                           label: &str|
+         -> Result<Option<String>, ErrorDetail> {
             match val {
                 Some(v) if v.contains("{{") => {
                     match flow_engine_core::executor::replace_variables(v, context) {
                         Ok(replaced) => Ok(Some(replaced)),
                         Err(e) => {
                             let err_msg = format!("{} variable substitution failed: {}", label, e);
-                            log::error!("[Flow {}] [Error] NodeID: {}, Error: {}", context.flow_uuid, node.uuid, err_msg);
+                            log::error!(
+                                "[Flow {}] [Error] NodeID: {}, Error: {}",
+                                context.flow_uuid,
+                                node.uuid,
+                                err_msg
+                            );
                             Err(ErrorDetail::execution_error(err_msg))
                         }
                     }
@@ -80,7 +92,8 @@ impl NodeExecutor for DbConnectExecutor {
         let replaced_database = replace_opt(&config.database, "database")?;
         let replaced_username = replace_opt(&config.username, "username")?;
         let replaced_password = replace_opt(&config.password, "password")?;
-        let replaced_connection_string = replace_opt(&config.connection_string, "connection_string")?;
+        let replaced_connection_string =
+            replace_opt(&config.connection_string, "connection_string")?;
         let replaced_test_query = replace_opt(&config.test_query, "test_query")?;
 
         // 3. 验证 driver（必填字段）
@@ -88,8 +101,15 @@ impl NodeExecutor for DbConnectExecutor {
             let error_msg = "Driver is required".to_string();
 
             // 检查 on_error 策略
-            if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+            if !node
+                .on_error
+                .as_ref()
+                .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+            {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Flow aborted: {}",
+                    error_msg
+                )));
             }
 
             log::error!(
@@ -103,7 +123,12 @@ impl NodeExecutor for DbConnectExecutor {
             // 返回 false 端口
             return Ok((
                 self.get_false_port_nodes(node, connections),
-                Some(self.build_error_output(&config, &pool_key, &error_msg, start_time.elapsed().as_millis() as u64)),
+                Some(self.build_error_output(
+                    &config,
+                    &pool_key,
+                    &error_msg,
+                    start_time.elapsed().as_millis() as u64,
+                )),
             ));
         }
 
@@ -167,18 +192,22 @@ impl NodeExecutor for DbConnectExecutor {
                 // 创建 SQLite 连接池
                 match SqliteConnection::from_config(&db_config).await {
                     Ok(conn) => {
-                        log::info!(
-                            "[Database] SQLite pool created: uuid={}",
-                            pool_key
-                        );
+                        log::info!("[Database] SQLite pool created: uuid={}", pool_key);
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
                         let error_msg = format!("SQLite connection failed: {}", e);
 
                         // 检查 on_error 策略
-                        if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                            return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                        if !node
+                            .on_error
+                            .as_ref()
+                            .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                        {
+                            return Err(ErrorDetail::execution_error(format!(
+                                "Flow aborted: {}",
+                                error_msg
+                            )));
                         }
 
                         log::error!(
@@ -244,18 +273,22 @@ impl NodeExecutor for DbConnectExecutor {
                 // 创建 MySQL 连接池
                 match crate::db::MySqlConnection::from_config(&db_config).await {
                     Ok(conn) => {
-                        log::info!(
-                            "[Database] MySQL pool created: uuid={}",
-                            pool_key
-                        );
+                        log::info!("[Database] MySQL pool created: uuid={}", pool_key);
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
                         let error_msg = format!("MySQL connection failed: {}", e);
 
                         // 检查 on_error 策略
-                        if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                            return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                        if !node
+                            .on_error
+                            .as_ref()
+                            .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                        {
+                            return Err(ErrorDetail::execution_error(format!(
+                                "Flow aborted: {}",
+                                error_msg
+                            )));
                         }
 
                         log::error!(
@@ -318,18 +351,22 @@ impl NodeExecutor for DbConnectExecutor {
                 // 创建 PostgreSQL 连接池
                 match crate::db::PostgresConnection::from_config(&db_config).await {
                     Ok(conn) => {
-                        log::info!(
-                            "[Database] PostgreSQL pool created: uuid={}",
-                            pool_key
-                        );
+                        log::info!("[Database] PostgreSQL pool created: uuid={}", pool_key);
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
                         let error_msg = format!("PostgreSQL connection failed: {}", e);
 
                         // 检查 on_error 策略
-                        if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                            return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                        if !node
+                            .on_error
+                            .as_ref()
+                            .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                        {
+                            return Err(ErrorDetail::execution_error(format!(
+                                "Flow aborted: {}",
+                                error_msg
+                            )));
                         }
 
                         log::error!(
@@ -375,21 +412,13 @@ impl NodeExecutor for DbConnectExecutor {
         // 创建连接池到管理器
         let create_result = self
             .db_manager
-            .create_pool(
-                pool_key.clone(),
-                node.name.clone(),
-                db_type,
-                pool.clone(),
-            )
+            .create_pool(pool_key.clone(), node.name.clone(), db_type, pool.clone())
             .await;
         let connect_duration_ms = connect_start.elapsed().as_millis() as u64;
 
         match create_result {
             Ok(()) => {
-                log::info!(
-                    "[Database] Pool created: uuid={}",
-                    pool_key
-                );
+                log::info!("[Database] Pool created: uuid={}", pool_key);
 
                 // 5. 执行测试查询（如果配置了，使用变量替换后的值）
                 let test_query_result = if let Some(ref test_query) = replaced_test_query {
@@ -402,10 +431,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                         match pool.test_connection().await {
                             Ok(()) => {
-                                log::info!(
-                                    "[Database] Test query succeeded: uuid={}",
-                                    pool_key
-                                );
+                                log::info!("[Database] Test query succeeded: uuid={}", pool_key);
                                 Ok(())
                             }
                             Err(e) => {
@@ -463,8 +489,15 @@ impl NodeExecutor for DbConnectExecutor {
                         let error_msg = format!("Test query failed: {}", e);
 
                         // 检查 on_error 策略
-                        if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                            return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                        if !node
+                            .on_error
+                            .as_ref()
+                            .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                        {
+                            return Err(ErrorDetail::execution_error(format!(
+                                "Flow aborted: {}",
+                                error_msg
+                            )));
                         }
 
                         // 测试查询Failed
@@ -506,8 +539,15 @@ impl NodeExecutor for DbConnectExecutor {
                 let error_msg = format!("Database pool creation failed: {}", e);
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "Flow aborted: {}",
+                        error_msg
+                    )));
                 }
 
                 // 连接池创建Failed
@@ -532,7 +572,12 @@ impl NodeExecutor for DbConnectExecutor {
                 // 返回 false 端口
                 Ok((
                     self.get_false_port_nodes(node, connections),
-                    Some(self.build_error_output(&config, &pool_key, &error_msg, start_time.elapsed().as_millis() as u64)),
+                    Some(self.build_error_output(
+                        &config,
+                        &pool_key,
+                        &error_msg,
+                        start_time.elapsed().as_millis() as u64,
+                    )),
                 ))
             }
         }
@@ -544,9 +589,7 @@ impl DbConnectExecutor {
     fn get_true_port_nodes(&self, node: &Node, connections: &[Connection]) -> Vec<String> {
         let filtered: Vec<String> = connections
             .iter()
-            .filter(|conn| {
-                conn.source_node_uuid == node.uuid && conn.source_port_id == "true"
-            })
+            .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "true")
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 
@@ -562,9 +605,7 @@ impl DbConnectExecutor {
     fn get_false_port_nodes(&self, node: &Node, connections: &[Connection]) -> Vec<String> {
         let filtered: Vec<String> = connections
             .iter()
-            .filter(|conn| {
-                conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
-            })
+            .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "false")
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 
@@ -634,6 +675,7 @@ impl DbConnectExecutor {
     }
 
     /// 应用输出变量映射
+    #[allow(clippy::result_large_err)]
     fn apply_output_mappings(
         &self,
         _config: &DbConnectConfig,
@@ -654,9 +696,9 @@ impl DbConnectExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
-    use flow_engine_core::node::{NodePosition};
     use crate::db::pool::{DatabaseConnectionManager, PoolMetadata};
+    use flow_engine_core::context::VariableStorage;
+    use flow_engine_core::node::NodePosition;
 
     /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str) -> Node {
@@ -686,11 +728,7 @@ mod tests {
     }
 
     /// 创建带测试查询的节点
-    fn create_test_node_with_query(
-        uuid: &str,
-        name: &str,
-        test_query: &str,
-    ) -> Node {
+    fn create_test_node_with_query(uuid: &str, name: &str, test_query: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
             node_type: "db_connect".to_string(),
@@ -943,14 +981,17 @@ mod tests {
 
         // 应该返回Error
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("Node data type is not DbConnectConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("Node data type is not DbConnectConfig"));
     }
 
     // ========================================================================
     // SQLite 集成测试
     // ========================================================================
 
-    /// 创建 SQLite Test Node
+    /// 创建 `SQLite` Test Node
     fn create_sqlite_test_node(uuid: &str, name: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -977,12 +1018,8 @@ mod tests {
         }
     }
 
-    /// 创建带测试查询的 SQLite Test Node
-    fn create_sqlite_test_node_with_query(
-        uuid: &str,
-        name: &str,
-        test_query: &str,
-    ) -> Node {
+    /// 创建带测试查询的 `SQLite` Test Node
+    fn create_sqlite_test_node_with_query(uuid: &str, name: &str, test_query: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
             node_type: "db_connect".to_string(),
@@ -1041,11 +1078,7 @@ mod tests {
     async fn test_sqlite_connect_with_test_query() {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbConnectExecutor::new(db_manager);
-        let node = create_sqlite_test_node_with_query(
-            "sqlite-2",
-            "SQLite 测试查询",
-            "SELECT 1",
-        );
+        let node = create_sqlite_test_node_with_query("sqlite-2", "SQLite 测试查询", "SELECT 1");
         let mut context = create_context("test-flow");
 
         let result = executor

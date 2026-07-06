@@ -3,8 +3,8 @@
 //! 实现 Kafka 消息生产功能，支持变量替换和输出构建。
 //! 参照 `mqtt_publish_executor.rs` 模式实现。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -53,18 +53,17 @@ impl NodeExecutor for KafkaProduceExecutor {
         };
 
         // 2. 变量替换: connection_id, topic, key, value
-        let connection_id =
-            replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("Connection ID variable substitution failed: {}", e);
-                log::error!(
-                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
-                    context.flow_uuid,
-                    node.uuid,
-                    node.name,
-                    error_msg
-                );
-                ErrorDetail::execution_error(error_msg)
-            })?;
+        let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
+            log::error!(
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
+            );
+            ErrorDetail::execution_error(error_msg)
+        })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
             let error_msg = format!("主题variable substitution failed: {}", e);
@@ -192,11 +191,7 @@ impl NodeExecutor for KafkaProduceExecutor {
                     LogLevel::Error
                 };
                 let log_msg = if output.success {
-                    format!(
-                        "Kafka 生产Success: {} ({}ms)",
-                        topic,
-                        duration.as_millis()
-                    )
+                    format!("Kafka 生产Success: {} ({}ms)", topic, duration.as_millis())
                 } else {
                     let err = output.error.as_deref().unwrap_or("Unknown error");
                     format!("Kafka 生产Failed: {} - {}", topic, err)
@@ -215,9 +210,10 @@ impl NodeExecutor for KafkaProduceExecutor {
 
                 // 8. 端口路由
                 if !output.success
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output
                         .error
@@ -265,9 +261,11 @@ impl NodeExecutor for KafkaProduceExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -304,13 +302,13 @@ fn route_to_port(node: &Node, connections: &[Connection], port: &str) -> Vec<Str
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::kafka_connection_manager::KafkaConnectionManager;
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::KafkaProduceConfig;
     use flow_engine_core::traits::{
         KafkaCloseOutput, KafkaConnectionInfo, KafkaProduceOutput, KafkaTimingInfo,
     };
-    use crate::kafka_connection_manager::KafkaConnectionManager;
 
     // ---------------------------------------------------------------------------
     // 辅助工具
@@ -459,7 +457,7 @@ mod tests {
     // 测试用例
     // ---------------------------------------------------------------------------
 
-    /// 测试：生产到不存在的连接 → 走 false 端口（使用真实 KafkaConnectionManager）
+    /// 测试：生产到不存在的连接 → 走 false 端口（使用真实 `KafkaConnectionManager`）
     #[tokio::test]
     async fn test_produce_nonexistent_connection() {
         let kafka_manager = Arc::new(KafkaConnectionManager::new());
@@ -537,11 +535,9 @@ mod tests {
             json!("kafka-connection-123"),
             String::new(),
         );
-        context.variables.set_variable(
-            "device_id".to_string(),
-            json!("sensor-001"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("device_id".to_string(), json!("sensor-001"), String::new());
         context
             .variables
             .set_variable("env".to_string(), json!("prod"), String::new());
@@ -621,10 +617,7 @@ mod tests {
             data["request"]["connection_id"].is_string(),
             "request 中应有 connection_id"
         );
-        assert!(
-            data["request"]["topic"].is_string(),
-            "request 中应有 topic"
-        );
+        assert!(data["request"]["topic"].is_string(), "request 中应有 topic");
         assert!(
             data["request"]["serialization_format"].is_string(),
             "request 中应有 serialization_format"

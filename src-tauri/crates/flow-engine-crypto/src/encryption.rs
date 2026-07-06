@@ -355,7 +355,7 @@ mod tests {
         // 编码结果：base64(nonce):base64(ciphertext)
         let result = format!(
             "{}:{}",
-            BASE64.encode(&nonce_bytes),
+            BASE64.encode(nonce_bytes),
             BASE64.encode(&ciphertext)
         );
 
@@ -374,7 +374,7 @@ mod tests {
         let parts: Vec<&str> = ciphertext.split(':').collect();
         if parts.len() != 2 {
             return Err(EncryptionError::InvalidFormat(
-            "Expected ciphertext format: base64(nonce):base64(ciphertext)".to_string(),
+                "Expected ciphertext format: base64(nonce):base64(ciphertext)".to_string(),
             ));
         }
 
@@ -386,7 +386,7 @@ mod tests {
         if nonce_bytes.len() != NONCE_SIZE {
             nonce_bytes.zeroize();
             return Err(EncryptionError::InvalidFormat(format!(
-            "Nonce length should be {} bytes, actual: {} bytes",
+                "Nonce length should be {} bytes, actual: {} bytes",
                 NONCE_SIZE,
                 nonce_bytes.len()
             )));
@@ -407,7 +407,9 @@ mod tests {
         let mut plaintext = cipher
             .decrypt(nonce, ciphertext_bytes.as_slice())
             .map_err(|_| {
-            EncryptionError::DecryptionFailed("Decryption failed: key error or ciphertext tampered".to_string())
+                EncryptionError::DecryptionFailed(
+                    "Decryption failed: key error or ciphertext tampered".to_string(),
+                )
             })?;
 
         // 转换为字符串

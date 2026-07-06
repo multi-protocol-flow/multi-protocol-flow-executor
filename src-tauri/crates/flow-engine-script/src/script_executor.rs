@@ -16,6 +16,7 @@
 //! - 内存限制和超时控制
 //! - Error处理策略 (致命/可恢复)
 
+use crate::script_api::{LogEntry, RequestData, ResponseData, ScriptExecutionContext};
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::error::{ErrorDetail, ErrorKind};
@@ -23,7 +24,6 @@ use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::{NodeData, ScriptErrorStrategy, ScriptNodeConfig};
-use crate::script_api::{LogEntry, RequestData, ResponseData, ScriptExecutionContext};
 use rquickjs::{CatchResultExt, Context as JsContext, Runtime as JsRuntime};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -97,12 +97,15 @@ impl NodeExecutor for ScriptNodeExecutor {
         // 1. 获取配置
         let config = match &node.data {
             NodeData::Script(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error("Node config type mismatch, expected ScriptNodeConfig".to_string())),
+            _ => {
+                return Err(ErrorDetail::execution_error(
+                    "Node config type mismatch, expected ScriptNodeConfig".to_string(),
+                ))
+            }
         };
 
         // 2. 准备脚本上下文数据（在主线程提取，避免跨线程问题）
-        let (initial_vars, response_data, request_data) =
-            self.prepare_context_data(node, context);
+        let (initial_vars, response_data, request_data) = self.prepare_context_data(node, context);
 
         // 3. 准备执行所需的数据（在主线程提取，避免跨线程问题）
         let script = config.script.clone();
@@ -134,7 +137,9 @@ impl NodeExecutor for ScriptNodeExecutor {
         // ScriptExecutionContext 使用 Rc<RefCell>（非 Send），必须在闭包内创建
         let result = tokio::task::spawn_blocking(move || {
             // 创建 QuickJS Runtime 并设置内存/超时限制
-            let rt = JsRuntime::new().map_err(|e| ErrorDetail::execution_error(format!("Creating JS Runtime failed: {}", e)))?;
+            let rt = JsRuntime::new().map_err(|e| {
+                ErrorDetail::execution_error(format!("Creating JS Runtime failed: {}", e))
+            })?;
             rt.set_memory_limit((memory_limit_mb * 1024 * 1024) as usize);
 
             // 设置超时中断处理器
@@ -143,7 +148,9 @@ impl NodeExecutor for ScriptNodeExecutor {
             })));
 
             // 创建 JS Context
-            let ctx = JsContext::full(&rt).map_err(|e| ErrorDetail::execution_error(format!("Creating JS Context failed: {}", e)))?;
+            let ctx = JsContext::full(&rt).map_err(|e| {
+                ErrorDetail::execution_error(format!("Creating JS Context failed: {}", e))
+            })?;
 
             ctx.with(|ctx| {
                 // 构建脚本执行上下文（在闭包内创建，因为使用 Rc<RefCell>）
@@ -172,15 +179,14 @@ impl NodeExecutor for ScriptNodeExecutor {
                 script_ctx = script_ctx.with_node_info(node_uuid.clone(), node_name.clone());
 
                 // 注册全部 fn.* API
-                script_ctx
-                    .register_all_apis(&ctx)
-                    .map_err(|e| ErrorDetail::execution_error(format!("Registering script API failed: {}", e)))?;
+                script_ctx.register_all_apis(&ctx).map_err(|e| {
+                    ErrorDetail::execution_error(format!("Registering script API failed: {}", e))
+                })?;
 
                 // 执行脚本
-                let _: () = ctx
-                    .eval(script.as_bytes())
-                    .catch(&ctx)
-                    .map_err(|e| ErrorDetail::execution_error(format!("Script execution error: {}", e)))?;
+                let _: () = ctx.eval(script.as_bytes()).catch(&ctx).map_err(|e| {
+                    ErrorDetail::execution_error(format!("Script execution error: {}", e))
+                })?;
 
                 // 收集执行结果
                 let result_vars = script_ctx.variables.borrow().clone();
@@ -224,7 +230,9 @@ impl NodeExecutor for ScriptNodeExecutor {
                         key,
                         value
                     );
-                    context.variables.set_variable(key, value, node.uuid.clone());
+                    context
+                        .variables
+                        .set_variable(key, value, node.uuid.clone());
                 }
 
                 // 发送脚本 console 日志到执行上下文
@@ -308,14 +316,8 @@ impl NodeExecutor for ScriptNodeExecutor {
             }
             Ok(Ok(Err(e))) => {
                 // 脚本执行Error
-                self.handle_error(
-                    e,
-                    &config,
-                    context,
-                    node,
-                    connections,
-                )
-                .await
+                self.handle_error(e, &config, context, node, connections)
+                    .await
             }
             Ok(Err(e)) => {
                 // spawn_blocking Error
@@ -399,14 +401,8 @@ impl ScriptNodeExecutor {
     /// 完整输出始终存储在 `raw_output` 字段，可通过 `fn.response.raw` 访问
     fn extract_response_data(&self, output: &serde_json::Value) -> Option<ResponseData> {
         // 尝试提取 HTTP 字段（向后兼容）
-        let status = output
-            .get("status")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(0) as u16;
-        let body = output
-            .get("body")
-            .cloned()
-            .unwrap_or(output.clone());
+        let status = output.get("status").and_then(|v| v.as_u64()).unwrap_or(0) as u16;
+        let body = output.get("body").cloned().unwrap_or(output.clone());
         let headers = output
             .get("headers")
             .and_then(|h| serde_json::from_value(h.clone()).ok())
@@ -523,7 +519,7 @@ impl ScriptNodeExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::node::{NodePosition};
+    use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::ScriptExecutionPhase;
 
     /// 创建测试用的脚本节点
@@ -554,11 +550,7 @@ mod tests {
     #[tokio::test]
     async fn test_script_executor_basic_execution() {
         let executor = ScriptNodeExecutor::new();
-        let node = create_test_node(
-            "script-001",
-            "fn.variables.set('test_var', 'hello');",
-            5000,
-        );
+        let node = create_test_node("script-001", "fn.variables.set('test_var', 'hello');", 5000);
         let mut context = create_test_context("test-flow");
         let connections = vec![];
 

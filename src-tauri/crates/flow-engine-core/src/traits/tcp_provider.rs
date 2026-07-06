@@ -120,12 +120,7 @@ pub trait TcpProvider: Send + Sync {
     /// - `uuid` - 连接唯一标识
     /// - `data` - 要发送的数据（二进制）
     /// - `send_timeout_ms` - 发送超时（毫秒）
-    async fn send(
-        &self,
-        uuid: &str,
-        data: Vec<u8>,
-        send_timeout_ms: u64,
-    ) -> Result<(), String>;
+    async fn send(&self, uuid: &str, data: Vec<u8>, send_timeout_ms: u64) -> Result<(), String>;
 
     /// 接收数据
     ///
@@ -135,22 +130,15 @@ pub trait TcpProvider: Send + Sync {
     ///
     /// # 返回
     /// Success时返回接收到的数据，超时或无数据时返回 None
-    async fn receive(
-        &self,
-        uuid: &str,
-        receive_timeout_ms: u64,
-    ) -> Result<Option<Vec<u8>>, String>;
+    async fn receive(&self, uuid: &str, receive_timeout_ms: u64)
+        -> Result<Option<Vec<u8>>, String>;
 
     /// 关闭连接
     ///
     /// # 参数
     /// - `uuid` - 连接唯一标识
     /// - `close_timeout_ms` - 关闭超时（毫秒）
-    async fn close(
-        &self,
-        uuid: &str,
-        close_timeout_ms: u64,
-    ) -> Result<(), String>;
+    async fn close(&self, uuid: &str, close_timeout_ms: u64) -> Result<(), String>;
 
     /// 获取连接状态
     ///
@@ -169,8 +157,7 @@ mod tests {
     fn test_framing_mode_length_prefix_serde() {
         let mode = TcpFramingMode::LengthPrefix { prefix_bytes: 4 };
         let json = serde_json::to_string(&mode).expect("序列化应Success");
-        let deserialized: TcpFramingMode =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: TcpFramingMode = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(mode, deserialized);
     }
 
@@ -180,8 +167,7 @@ mod tests {
             delimiter: "\r\n".to_string(),
         };
         let json = serde_json::to_string(&mode).expect("序列化应Success");
-        let deserialized: TcpFramingMode =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: TcpFramingMode = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(mode, deserialized);
     }
 
@@ -189,8 +175,7 @@ mod tests {
     fn test_framing_mode_fixed_length_serde() {
         let mode = TcpFramingMode::FixedLength { length: 256 };
         let json = serde_json::to_string(&mode).expect("序列化应Success");
-        let deserialized: TcpFramingMode =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: TcpFramingMode = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(mode, deserialized);
     }
 
@@ -198,8 +183,7 @@ mod tests {
     fn test_framing_mode_timeout_serde() {
         let mode = TcpFramingMode::Timeout { timeout_ms: 5000 };
         let json = serde_json::to_string(&mode).expect("序列化应Success");
-        let deserialized: TcpFramingMode =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: TcpFramingMode = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(mode, deserialized);
     }
 
@@ -207,8 +191,7 @@ mod tests {
     fn test_framing_mode_manual_serde() {
         let mode = TcpFramingMode::Manual;
         let json = serde_json::to_string(&mode).expect("序列化应Success");
-        let deserialized: TcpFramingMode =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: TcpFramingMode = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(mode, deserialized);
     }
 
@@ -233,10 +216,12 @@ mod tests {
             include_framing_in_data: true,
         };
         let json = serde_json::to_string(&config).expect("序列化应Success");
-        let deserialized: FramingConfig =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: FramingConfig = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(config.max_frame_size, deserialized.max_frame_size);
-        assert_eq!(config.include_framing_in_data, deserialized.include_framing_in_data);
+        assert_eq!(
+            config.include_framing_in_data,
+            deserialized.include_framing_in_data
+        );
         assert_eq!(config.mode, deserialized.mode);
     }
 

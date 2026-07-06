@@ -169,12 +169,7 @@ impl PostgresConnection {
                 if let Some(colon_pos) = credentials.find(':') {
                     let username = &credentials[..colon_pos];
                     let after_at = &conn_str[absolute_at..];
-                    return format!(
-                        "{}://{}:***{}",
-                        &conn_str[..proto_end],
-                        username,
-                        after_at
-                    );
+                    return format!("{}://{}:***{}", &conn_str[..proto_end], username, after_at);
                 }
             }
         }
@@ -332,12 +327,7 @@ impl DatabasePool for PostgresConnection {
             sqlx::query(&set_isolation_sql)
                 .execute(&mut *conn)
                 .await
-                .map_err(|e| {
-                    format!(
-                        "PostgreSQL 设置事务隔离级别Failed ({}): {}",
-                        level, e
-                    )
-                })?;
+                .map_err(|e| format!("PostgreSQL 设置事务隔离级别Failed ({}): {}", level, e))?;
             log::info!(
                 "[PostgreSQL] 设置事务隔离级别: name={}, level={}",
                 self.name,
@@ -634,27 +624,37 @@ impl PostgresConnection {
 
         // 尝试布尔值
         if let Ok(v) = row.try_get::<Option<bool>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
 
         // 尝试整数（i64）
         if let Ok(v) = row.try_get::<Option<i64>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
 
         // 尝试整数（i32）
         if let Ok(v) = row.try_get::<Option<i32>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
 
         // 尝试浮点数（f64）
         if let Ok(v) = row.try_get::<Option<f64>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
 
         // 尝试字符串
         if let Ok(v) = row.try_get::<Option<String>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
 
         // 尝试字节数组
@@ -748,7 +748,7 @@ mod tests {
 
     #[test]
     fn test_build_connection_string_from_config() {
-        use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+        use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
         let config = DbConnection {
             id: "test-001".to_string(),
@@ -780,7 +780,7 @@ mod tests {
 
     #[test]
     fn test_build_connection_string_from_connection_string_field() {
-        use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+        use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
         let config = DbConnection {
             id: "test-002".to_string(),
@@ -808,7 +808,7 @@ mod tests {
 
     #[test]
     fn test_build_connection_string_defaults() {
-        use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+        use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
         let config = DbConnection {
             id: "test-003".to_string(),
@@ -838,7 +838,7 @@ mod tests {
 
     #[test]
     fn test_build_connection_string_with_user_no_password() {
-        use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+        use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
         let config = DbConnection {
             id: "test-004".to_string(),
@@ -881,14 +881,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_postgres_connection_and_test() {
-            let conn = PostgresConnection::new(
-                "test-conn".to_string(),
-                get_postgres_url(),
-                1,
-                5,
-            )
-            .await
-            .unwrap();
+            let conn = PostgresConnection::new("test-conn".to_string(), get_postgres_url(), 1, 5)
+                .await
+                .unwrap();
 
             assert_eq!(conn.name(), "test-conn");
             assert!(conn.status_info().contains("test-conn"));
@@ -901,14 +896,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_postgres_execute_select() {
-            let conn = PostgresConnection::new(
-                "test-select".to_string(),
-                get_postgres_url(),
-                1,
-                5,
-            )
-            .await
-            .unwrap();
+            let conn = PostgresConnection::new("test-select".to_string(), get_postgres_url(), 1, 5)
+                .await
+                .unwrap();
 
             let result = conn.execute("SELECT 1 AS value", vec![]).await.unwrap();
             assert_eq!(result.rows.len(), 1);
@@ -920,14 +910,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_postgres_execute_with_params() {
-            let conn = PostgresConnection::new(
-                "test-params".to_string(),
-                get_postgres_url(),
-                1,
-                5,
-            )
-            .await
-            .unwrap();
+            let conn = PostgresConnection::new("test-params".to_string(), get_postgres_url(), 1, 5)
+                .await
+                .unwrap();
 
             // 使用 $1 占位符
             let result = conn
@@ -948,14 +933,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_postgres_insert_update_delete() {
-            let conn = PostgresConnection::new(
-                "test-crud".to_string(),
-                get_postgres_url(),
-                1,
-                5,
-            )
-            .await
-            .unwrap();
+            let conn = PostgresConnection::new("test-crud".to_string(), get_postgres_url(), 1, 5)
+                .await
+                .unwrap();
 
             // 创建临时表
             conn.execute(
@@ -977,7 +957,10 @@ mod tests {
 
             // 查询
             let select_result = conn
-                .execute("SELECT * FROM test_users WHERE name = $1", vec![serde_json::json!("Bob")])
+                .execute(
+                    "SELECT * FROM test_users WHERE name = $1",
+                    vec![serde_json::json!("Bob")],
+                )
                 .await
                 .unwrap();
             assert_eq!(select_result.rows.len(), 1);
@@ -994,7 +977,10 @@ mod tests {
 
             // 删除
             let delete_result = conn
-                .execute("DELETE FROM test_users WHERE name = $1", vec![serde_json::json!("Bob")])
+                .execute(
+                    "DELETE FROM test_users WHERE name = $1",
+                    vec![serde_json::json!("Bob")],
+                )
                 .await
                 .unwrap();
             assert_eq!(delete_result.affected_rows, 1);
@@ -1004,7 +990,7 @@ mod tests {
 
         #[tokio::test]
         async fn test_postgres_from_config() {
-            use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+            use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
             let config = DbConnection {
                 id: "test-config".to_string(),

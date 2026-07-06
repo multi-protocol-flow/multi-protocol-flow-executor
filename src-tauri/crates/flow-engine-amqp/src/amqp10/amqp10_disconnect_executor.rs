@@ -3,8 +3,8 @@
 //! 实现 AMQP 1.0 断开连接功能。
 //! 断开始终走 "out" 端口（Failed不阻塞流程）。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -54,7 +54,13 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
         // 2. 变量替换
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
             let error_msg = format!("connection_id variable substitution failed: {}", e);
-            log::error!("[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+            log::error!(
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
+            );
             ErrorDetail::execution_error(error_msg)
         })?;
 
@@ -64,13 +70,16 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
             context.flow_uuid, node.uuid, node.name, connection_id
         );
 
-        context.emit_log(LogEvent {
-            level: LogLevel::Info,
-            message: format!("AMQP 1.0 断开节点 {} start execution", node.name),
-            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-            node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
-            flow_uuid: context.flow_uuid.clone(),
-        }).await;
+        context
+            .emit_log(LogEvent {
+                level: LogLevel::Info,
+                message: format!("AMQP 1.0 断开节点 {} start execution", node.name),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                node_uuid: Some(node.uuid.clone()),
+                node_name: Some(node.name.clone()),
+                flow_uuid: context.flow_uuid.clone(),
+            })
+            .await;
 
         // 4. 构建断开配置
         let disconnect_config = Amqp10DisconnectConfig {
@@ -78,7 +87,10 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
         };
 
         // 5. 断开连接
-        let disconnect_result = self.amqp_manager.amqp10_disconnect(&connection_id, &disconnect_config).await;
+        let disconnect_result = self
+            .amqp_manager
+            .amqp10_disconnect(&connection_id, &disconnect_config)
+            .await;
 
         // AMQP 1.0 断开始终走 "out" 端口，不阻塞流程
         let next_node_ids: Vec<String> = {
@@ -87,7 +99,11 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
                 .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "out")
                 .map(|conn| conn.target_node_uuid.clone())
                 .collect();
-            if filtered.is_empty() { vec!["out".to_string()] } else { filtered }
+            if filtered.is_empty() {
+                vec!["out".to_string()]
+            } else {
+                filtered
+            }
         };
 
         let duration = start_time.elapsed();
@@ -102,18 +118,25 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
                     "timing": { "disconnect_ms": duration.as_millis() as u64, "total_ms": duration.as_millis() as u64 },
                 });
 
-                context.emit_log(LogEvent {
-                    level: LogLevel::Info,
-                    message: format!("AMQP 1.0 断开Success ({}ms)", duration.as_millis()),
-                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                    node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
-                    flow_uuid: context.flow_uuid.clone(),
-                }).await;
+                context
+                    .emit_log(LogEvent {
+                        level: LogLevel::Info,
+                        message: format!("AMQP 1.0 断开Success ({}ms)", duration.as_millis()),
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                        node_uuid: Some(node.uuid.clone()),
+                        node_name: Some(node.name.clone()),
+                        flow_uuid: context.flow_uuid.clone(),
+                    })
+                    .await;
 
                 Ok((next_node_ids, Some(output_data)))
             }
             Err(e) => {
-                log::error!("[AMQP 1.0] 断开Failed: connection_id={}, error={}", connection_id, e);
+                log::error!(
+                    "[AMQP 1.0] 断开Failed: connection_id={}, error={}",
+                    connection_id,
+                    e
+                );
 
                 let error_output = json!({
                     "success": false,
@@ -122,13 +145,16 @@ impl NodeExecutor for Amqp10DisconnectExecutor {
                     "error": e,
                 });
 
-                context.emit_log(LogEvent {
-                    level: LogLevel::Error,
-                    message: format!("AMQP 1.0 断开Failed: {}", e),
-                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                    node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
-                    flow_uuid: context.flow_uuid.clone(),
-                }).await;
+                context
+                    .emit_log(LogEvent {
+                        level: LogLevel::Error,
+                        message: format!("AMQP 1.0 断开Failed: {}", e),
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                        node_uuid: Some(node.uuid.clone()),
+                        node_name: Some(node.name.clone()),
+                        flow_uuid: context.flow_uuid.clone(),
+                    })
+                    .await;
 
                 Ok((next_node_ids, Some(error_output)))
             }
@@ -145,56 +171,178 @@ mod tests {
     use flow_engine_core::traits::*;
 
     /// Mock AmqpProvider（断开Success）
-    struct MockAmqpProvider { should_error: bool }
+    struct MockAmqpProvider {
+        should_error: bool,
+    }
     impl MockAmqpProvider {
-        fn new_success() -> Self { Self { should_error: false } }
-        fn new_error() -> Self { Self { should_error: true } }
+        fn new_success() -> Self {
+            Self {
+                should_error: false,
+            }
+        }
+        fn new_error() -> Self {
+            Self { should_error: true }
+        }
     }
 
     #[async_trait::async_trait]
     impl AmqpProvider for MockAmqpProvider {
-        async fn connect(&self, _uuid: &str, _config: &AmqpConnectConfig) -> Result<AmqpConnectOutput, String> { Err("not implemented".to_string()) }
-        async fn close(&self, _uuid: &str, _config: &AmqpCloseConfig) -> Result<(), String> { Ok(()) }
-        async fn exchange_declare(&self, _uuid: &str, _config: &AmqpExchangeDeclareConfig) -> Result<AmqpExchangeOutput, String> { Err("not implemented".to_string()) }
-        async fn exchange_delete(&self, _uuid: &str, _config: &AmqpExchangeDeleteConfig) -> Result<AmqpExchangeOutput, String> { Err("not implemented".to_string()) }
-        async fn queue_declare(&self, _uuid: &str, _config: &AmqpQueueDeclareConfig) -> Result<AmqpQueueDeclareOutput, String> { Err("not implemented".to_string()) }
-        async fn queue_delete(&self, _uuid: &str, _config: &AmqpQueueDeleteConfig) -> Result<AmqpQueueDeleteOutput, String> { Err("not implemented".to_string()) }
-        async fn queue_bind(&self, _uuid: &str, _config: &AmqpQueueBindConfig) -> Result<(), String> { Ok(()) }
-        async fn publish(&self, _uuid: &str, _config: &AmqpPublishConfig) -> Result<AmqpPublishOutput, String> { Err("not implemented".to_string()) }
-        async fn consume(&self, _uuid: &str, _config: &AmqpConsumeConfig) -> Result<AmqpConsumeOutput, String> { Err("not implemented".to_string()) }
-        async fn get(&self, _uuid: &str, _config: &AmqpGetConfig) -> Result<AmqpGetOutput, String> { Err("not implemented".to_string()) }
-        async fn ack(&self, _uuid: &str, _config: &AmqpAckConfig) -> Result<AmqpAckOutput, String> { Err("not implemented".to_string()) }
-        async fn management(&self, _uuid: &str, _config: &AmqpManagementConfig) -> Result<AmqpManagementOutput, String> { Err("not implemented".to_string()) }
-        async fn amqp10_connect(&self, _uuid: &str, _config: &Amqp10ConnectConfig) -> Result<Amqp10ConnectOutput, String> { Err("not implemented".to_string()) }
-        async fn amqp10_send(&self, _uuid: &str, _config: &Amqp10SendConfig) -> Result<Amqp10SendOutput, String> { Err("not implemented".to_string()) }
-        async fn amqp10_receive(&self, _uuid: &str, _config: &Amqp10ReceiveConfig) -> Result<Amqp10ReceiveOutput, String> { Err("not implemented".to_string()) }
-        async fn amqp10_accept(&self, _uuid: &str, _config: &Amqp10AcceptConfig) -> Result<Amqp10AcceptOutput, String> { Err("not implemented".to_string()) }
-        async fn amqp10_reject(&self, _uuid: &str, _config: &Amqp10RejectConfig) -> Result<Amqp10RejectOutput, String> { Err("not implemented".to_string()) }
-        async fn amqp10_disconnect(&self, _uuid: &str, _config: &Amqp10DisconnectConfig) -> Result<(), String> {
-            if self.should_error { Err("断开Failed".to_string()) } else { Ok(()) }
+        async fn connect(
+            &self,
+            _uuid: &str,
+            _config: &AmqpConnectConfig,
+        ) -> Result<AmqpConnectOutput, String> {
+            Err("not implemented".to_string())
         }
-        fn get_status(&self, _uuid: &str) -> Option<String> { Some("connected".to_string()) }
-        fn list_connections(&self) -> Vec<AmqpConnectionInfo> { vec![] }
+        async fn close(&self, _uuid: &str, _config: &AmqpCloseConfig) -> Result<(), String> {
+            Ok(())
+        }
+        async fn exchange_declare(
+            &self,
+            _uuid: &str,
+            _config: &AmqpExchangeDeclareConfig,
+        ) -> Result<AmqpExchangeOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn exchange_delete(
+            &self,
+            _uuid: &str,
+            _config: &AmqpExchangeDeleteConfig,
+        ) -> Result<AmqpExchangeOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn queue_declare(
+            &self,
+            _uuid: &str,
+            _config: &AmqpQueueDeclareConfig,
+        ) -> Result<AmqpQueueDeclareOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn queue_delete(
+            &self,
+            _uuid: &str,
+            _config: &AmqpQueueDeleteConfig,
+        ) -> Result<AmqpQueueDeleteOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn queue_bind(
+            &self,
+            _uuid: &str,
+            _config: &AmqpQueueBindConfig,
+        ) -> Result<(), String> {
+            Ok(())
+        }
+        async fn publish(
+            &self,
+            _uuid: &str,
+            _config: &AmqpPublishConfig,
+        ) -> Result<AmqpPublishOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn consume(
+            &self,
+            _uuid: &str,
+            _config: &AmqpConsumeConfig,
+        ) -> Result<AmqpConsumeOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn get(&self, _uuid: &str, _config: &AmqpGetConfig) -> Result<AmqpGetOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn ack(&self, _uuid: &str, _config: &AmqpAckConfig) -> Result<AmqpAckOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn management(
+            &self,
+            _uuid: &str,
+            _config: &AmqpManagementConfig,
+        ) -> Result<AmqpManagementOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn amqp10_connect(
+            &self,
+            _uuid: &str,
+            _config: &Amqp10ConnectConfig,
+        ) -> Result<Amqp10ConnectOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn amqp10_send(
+            &self,
+            _uuid: &str,
+            _config: &Amqp10SendConfig,
+        ) -> Result<Amqp10SendOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn amqp10_receive(
+            &self,
+            _uuid: &str,
+            _config: &Amqp10ReceiveConfig,
+        ) -> Result<Amqp10ReceiveOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn amqp10_accept(
+            &self,
+            _uuid: &str,
+            _config: &Amqp10AcceptConfig,
+        ) -> Result<Amqp10AcceptOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn amqp10_reject(
+            &self,
+            _uuid: &str,
+            _config: &Amqp10RejectConfig,
+        ) -> Result<Amqp10RejectOutput, String> {
+            Err("not implemented".to_string())
+        }
+        async fn amqp10_disconnect(
+            &self,
+            _uuid: &str,
+            _config: &Amqp10DisconnectConfig,
+        ) -> Result<(), String> {
+            if self.should_error {
+                Err("断开Failed".to_string())
+            } else {
+                Ok(())
+            }
+        }
+        fn get_status(&self, _uuid: &str) -> Option<String> {
+            Some("connected".to_string())
+        }
+        fn list_connections(&self) -> Vec<AmqpConnectionInfo> {
+            vec![]
+        }
     }
 
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
-            uuid: uuid.to_string(), node_type: "amqp10_disconnect".to_string(), name: name.to_string(),
+            uuid: uuid.to_string(),
+            node_type: "amqp10_disconnect".to_string(),
+            name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Amqp10Disconnect(Amqp10DisconnectConfig {
                 connection_id: connection_id.to_string(),
             }),
-            ports: None, has_breakpoint: None, on_error: None,
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
         }
     }
 
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext {
-            flow_uuid: flow_id.to_string(), current_node_uuid: None, variables: VariableStorage::new(),
-            node_reports: vec![], flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
-            log_sender: None, flow_file_path: None, ws_connection_urls: HashMap::new(),
+            flow_uuid: flow_id.to_string(),
+            current_node_uuid: None,
+            variables: VariableStorage::new(),
+            node_reports: vec![],
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None,
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
             providers: HashMap::new(),
         }
     }
@@ -205,7 +353,9 @@ mod tests {
         let executor = Amqp10DisconnectExecutor::new(Arc::new(MockAmqpProvider::new_success()));
         let node = create_test_node("test-1", "断开测试", "conn-1");
         let mut context = create_context("test-flow");
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok());
         let (next_nodes, data) = result.unwrap();
         assert_eq!(next_nodes, vec!["out"]);
@@ -218,7 +368,9 @@ mod tests {
         let executor = Amqp10DisconnectExecutor::new(Arc::new(MockAmqpProvider::new_error()));
         let node = create_test_node("test-2", "Failed测试", "conn-1");
         let mut context = create_context("test-flow");
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok());
         let (next_nodes, data) = result.unwrap();
         assert_eq!(next_nodes, vec!["out"]);
@@ -232,26 +384,42 @@ mod tests {
     async fn test_amqp10_disconnect_wrong_node_data_type() {
         let executor = Amqp10DisconnectExecutor::new(Arc::new(MockAmqpProvider::new_success()));
         let node = Node {
-            uuid: "test-wrong".to_string(), node_type: "http".to_string(), name: "Error类型".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 }, data: NodeData::Entry(EntryConfig::default()),
-            ports: None, has_breakpoint: None, on_error: None,
+            uuid: "test-wrong".to_string(),
+            node_type: "http".to_string(),
+            name: "Error类型".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::Entry(EntryConfig::default()),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("Amqp10DisconnectConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("Amqp10DisconnectConfig"));
     }
 
-    /// 测试：变量替换在 connection_id 中生效
+    /// 测试：变量替换在 `connection_id` 中生效
     #[tokio::test]
     async fn test_amqp10_disconnect_with_variable_replacement() {
         let executor = Amqp10DisconnectExecutor::new(Arc::new(MockAmqpProvider::new_success()));
         let node = create_test_node("test-var", "变量替换测试", "{{conn_id}}");
 
         let mut context = create_context("test-flow");
-        context.variables.set_variable("conn_id".to_string(), json!("my-amqp10-conn"), String::new());
+        context.variables.set_variable(
+            "conn_id".to_string(),
+            json!("my-amqp10-conn"),
+            String::new(),
+        );
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok());
         let data = result.unwrap().1.unwrap();
         assert_eq!(data["connection_id"], "my-amqp10-conn");
@@ -265,12 +433,16 @@ mod tests {
         let mut context = create_context("test-flow");
 
         let connections = vec![Connection {
-            id: "conn-1".to_string(), source_node_uuid: "test-route".to_string(),
-            target_node_uuid: "next-node".to_string(), source_port_id: "out".to_string(),
+            id: "conn-1".to_string(),
+            source_node_uuid: "test-route".to_string(),
+            target_node_uuid: "next-node".to_string(),
+            source_port_id: "out".to_string(),
             target_port_id: "input".to_string(),
         }];
 
-        let result = executor.execute(&node, &mut context, &connections, &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &connections, &HashMap::new())
+            .await;
         assert!(result.is_ok());
         let (next_nodes, _) = result.unwrap();
         assert_eq!(next_nodes, vec!["next-node"]);

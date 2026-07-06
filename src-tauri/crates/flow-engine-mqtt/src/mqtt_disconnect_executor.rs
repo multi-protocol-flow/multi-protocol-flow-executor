@@ -4,8 +4,8 @@
 // 断开始终走 "out" 端口（Failed不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -101,9 +101,7 @@ impl NodeExecutor for MqttDisconnectExecutor {
         let next_node_ids: Vec<String> = {
             let filtered: Vec<String> = connections
                 .iter()
-                .filter(|conn| {
-                    conn.source_node_uuid == node.uuid && conn.source_port_id == "out"
-                })
+                .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "out")
                 .map(|conn| conn.target_node_uuid.clone())
                 .collect();
 
@@ -118,10 +116,7 @@ impl NodeExecutor for MqttDisconnectExecutor {
 
         match disconnect_result {
             Ok(()) => {
-                log::info!(
-                    "[MQTT] 连接断开Success: connection_id={}",
-                    connection_id
-                );
+                log::info!("[MQTT] 连接断开Success: connection_id={}", connection_id);
 
                 // 6. 构建输出数据
                 let output_data = json!({
@@ -141,10 +136,7 @@ impl NodeExecutor for MqttDisconnectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!(
-                            "MQTT 连接断开Success ({}ms)",
-                            duration.as_millis()
-                        ),
+                        message: format!("MQTT 连接断开Success ({}ms)", duration.as_millis()),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -290,7 +282,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("MqttDisconnectConfig"));
     }
 
-    /// 测试：变量替换 — connection_id 中的变量应被正确替换
+    /// 测试：变量替换 — `connection_id` 中的变量应被正确替换
     #[tokio::test]
     async fn test_disconnect_with_variable_replacement() {
         let mqtt_manager = Arc::new(MqttConnectionManager::new());

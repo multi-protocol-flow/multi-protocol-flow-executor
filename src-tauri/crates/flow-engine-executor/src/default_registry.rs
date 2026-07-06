@@ -205,24 +205,76 @@ mod tests {
         let count = registry.len();
         let mut expected = 5usize; // always-on: entry, conditional, end, variable_extractor, proxy
 
-        #[cfg(feature = "protocol-http")]   { expected += 1; }
-        #[cfg(feature = "protocol-ws")]     { expected += 3; }
-        #[cfg(feature = "protocol-db")]     { expected += 6; }
-        #[cfg(feature = "protocol-script")] { expected += 1; }
-        #[cfg(feature = "protocol-assertion")] { expected += 1; }
-        #[cfg(feature = "protocol-grpc")]   { expected += 3; }
-        #[cfg(feature = "protocol-mcp")]    { expected += 5; }
-        #[cfg(feature = "protocol-tcp")]    { expected += 8; } // 4 TCP + 4 UDP
-        #[cfg(feature = "protocol-mqtt")]   { expected += 7; }
-        #[cfg(feature = "protocol-kafka")]  { expected += 7; }
-        #[cfg(feature = "protocol-sse")]    { expected += 3; }
-        #[cfg(feature = "protocol-graphql")]{ expected += 5; }
-        #[cfg(feature = "protocol-amqp")]   { expected += 17; }
-        #[cfg(feature = "protocol-smtp")]   { expected += 3; }
-        #[cfg(feature = "protocol-imap")]   { expected += 13; }
-        #[cfg(feature = "protocol-redis")]  { expected += 3; }
+        #[cfg(feature = "protocol-http")]
+        {
+            expected += 1;
+        }
+        #[cfg(feature = "protocol-ws")]
+        {
+            expected += 3;
+        }
+        #[cfg(feature = "protocol-db")]
+        {
+            expected += 6;
+        }
+        #[cfg(feature = "protocol-script")]
+        {
+            expected += 1;
+        }
+        #[cfg(feature = "protocol-assertion")]
+        {
+            expected += 1;
+        }
+        #[cfg(feature = "protocol-grpc")]
+        {
+            expected += 3;
+        }
+        #[cfg(feature = "protocol-mcp")]
+        {
+            expected += 5;
+        }
+        #[cfg(feature = "protocol-tcp")]
+        {
+            expected += 8;
+        } // 4 TCP + 4 UDP
+        #[cfg(feature = "protocol-mqtt")]
+        {
+            expected += 7;
+        }
+        #[cfg(feature = "protocol-kafka")]
+        {
+            expected += 7;
+        }
+        #[cfg(feature = "protocol-sse")]
+        {
+            expected += 3;
+        }
+        #[cfg(feature = "protocol-graphql")]
+        {
+            expected += 5;
+        }
+        #[cfg(feature = "protocol-amqp")]
+        {
+            expected += 17;
+        }
+        #[cfg(feature = "protocol-smtp")]
+        {
+            expected += 3;
+        }
+        #[cfg(feature = "protocol-imap")]
+        {
+            expected += 13;
+        }
+        #[cfg(feature = "protocol-redis")]
+        {
+            expected += 3;
+        }
 
-        assert_eq!(count, expected, "Plugin count mismatch for active features. Expected={}, actual={}", expected, count);
+        assert_eq!(
+            count, expected,
+            "Plugin count mismatch for active features. Expected={}, actual={}",
+            expected, count
+        );
     }
 
     #[test]
@@ -239,26 +291,68 @@ mod tests {
         assert!(type_ids.contains(&"proxy"));
 
         // Conditional on features
-        #[cfg(feature = "protocol-http")]   { assert!(type_ids.contains(&"http"), "http should be registered"); }
-        #[cfg(not(feature = "protocol-http"))] { assert!(!type_ids.contains(&"http"), "http should NOT be registered"); }
+        #[cfg(feature = "protocol-http")]
+        {
+            assert!(type_ids.contains(&"http"), "http should be registered");
+        }
+        #[cfg(not(feature = "protocol-http"))]
+        {
+            assert!(!type_ids.contains(&"http"), "http should NOT be registered");
+        }
 
-        #[cfg(feature = "protocol-ws")]     { assert!(type_ids.contains(&"ws_connect")); }
-        #[cfg(not(feature = "protocol-ws"))] { assert!(!type_ids.contains(&"ws_connect")); }
+        #[cfg(feature = "protocol-ws")]
+        {
+            assert!(type_ids.contains(&"ws_connect"));
+        }
+        #[cfg(not(feature = "protocol-ws"))]
+        {
+            assert!(!type_ids.contains(&"ws_connect"));
+        }
 
-        #[cfg(feature = "protocol-db")]     { assert!(type_ids.contains(&"db_connect")); }
-        #[cfg(not(feature = "protocol-db"))] { assert!(!type_ids.contains(&"db_connect")); }
+        #[cfg(feature = "protocol-db")]
+        {
+            assert!(type_ids.contains(&"db_connect"));
+        }
+        #[cfg(not(feature = "protocol-db"))]
+        {
+            assert!(!type_ids.contains(&"db_connect"));
+        }
 
-        #[cfg(feature = "protocol-script")] { assert!(type_ids.contains(&"script")); }
-        #[cfg(not(feature = "protocol-script"))] { assert!(!type_ids.contains(&"script")); }
+        #[cfg(feature = "protocol-script")]
+        {
+            assert!(type_ids.contains(&"script"));
+        }
+        #[cfg(not(feature = "protocol-script"))]
+        {
+            assert!(!type_ids.contains(&"script"));
+        }
 
-        #[cfg(feature = "protocol-grpc")]   { assert!(type_ids.contains(&"grpc_connect")); }
-        #[cfg(not(feature = "protocol-grpc"))] { assert!(!type_ids.contains(&"grpc_connect")); }
+        #[cfg(feature = "protocol-grpc")]
+        {
+            assert!(type_ids.contains(&"grpc_connect"));
+        }
+        #[cfg(not(feature = "protocol-grpc"))]
+        {
+            assert!(!type_ids.contains(&"grpc_connect"));
+        }
 
-        #[cfg(feature = "protocol-kafka")]  { assert!(type_ids.contains(&"kafka_connect")); }
-        #[cfg(not(feature = "protocol-kafka"))] { assert!(!type_ids.contains(&"kafka_connect")); }
+        #[cfg(feature = "protocol-kafka")]
+        {
+            assert!(type_ids.contains(&"kafka_connect"));
+        }
+        #[cfg(not(feature = "protocol-kafka"))]
+        {
+            assert!(!type_ids.contains(&"kafka_connect"));
+        }
 
-        #[cfg(feature = "protocol-amqp")]   { assert!(type_ids.contains(&"amqp_connect")); }
-        #[cfg(not(feature = "protocol-amqp"))] { assert!(!type_ids.contains(&"amqp_connect")); }
+        #[cfg(feature = "protocol-amqp")]
+        {
+            assert!(type_ids.contains(&"amqp_connect"));
+        }
+        #[cfg(not(feature = "protocol-amqp"))]
+        {
+            assert!(!type_ids.contains(&"amqp_connect"));
+        }
     }
 
     #[test]

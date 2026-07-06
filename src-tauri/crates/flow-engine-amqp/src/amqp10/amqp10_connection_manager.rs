@@ -212,8 +212,7 @@ impl Amqp10ConnectionManager {
         };
 
         // 创建连接
-        let mut connection =
-            amqp10_client::connect_async(&container_id, &config.url).await?;
+        let mut connection = amqp10_client::connect_async(&container_id, &config.url).await?;
 
         // 创建会话
         let session = amqp10_client::begin_session(&mut connection).await?;
@@ -297,13 +296,19 @@ impl Amqp10ConnectionManager {
         };
 
         // 存入缓存
-        conn.senders.lock().await.insert(config.address.clone(), sender);
+        conn.senders
+            .lock()
+            .await
+            .insert(config.address.clone(), sender);
 
         // 再次获取 sender 发送
         let mut senders = conn.senders.lock().await;
-        let sender = senders
-            .get_mut(&config.address)
-            .expect("刚刚插入的 sender");
+        let sender = senders.get_mut(&config.address).ok_or_else(|| {
+            format!(
+                "Sender for address '{}' was just inserted but not found",
+                config.address
+            )
+        })?;
 
         let body = config.message_body.as_deref().unwrap_or("");
         if let Some(props_config) = &config.message_properties {
@@ -350,7 +355,10 @@ impl Amqp10ConnectionManager {
                         .await?
                 };
 
-                conn.receivers.lock().await.insert(config.address.clone(), receiver);
+                conn.receivers
+                    .lock()
+                    .await
+                    .insert(config.address.clone(), receiver);
             }
         }
 
@@ -371,8 +379,7 @@ impl Amqp10ConnectionManager {
             30000
         };
 
-        let deadline =
-            tokio::time::Instant::now() + std::time::Duration::from_millis(timeout_ms);
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(timeout_ms);
         let mut messages = Vec::new();
 
         let mut receivers = conn.receivers.lock().await;
@@ -727,9 +734,9 @@ mod tests {
         let mut handles = vec![];
         for i in 0..5 {
             let m = Arc::clone(&manager);
-            handles.push(tokio::spawn(async move {
-                m.get_status(&format!("conn-{}", i))
-            }));
+            handles.push(tokio::spawn(
+                async move { m.get_status(&format!("conn-{}", i)) },
+            ));
         }
 
         for handle in handles {

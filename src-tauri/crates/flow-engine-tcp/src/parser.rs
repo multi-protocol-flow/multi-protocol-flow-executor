@@ -358,15 +358,13 @@ impl ProtocolParser for DelimiterParser {
         }
 
         // 查找第一个分隔符位置
-        let pos = find_delimiter(data, &self.delimiter);
-        if pos.is_none() {
-            return Err(format!(
-                "Delimiter {} not found",
-                hex::encode(&self.delimiter)
-            ));
-        }
-
-        let pos = pos.expect("已验证");
+        let pos = find_delimiter(data, &self.delimiter)
+            .ok_or_else(|| {
+                format!(
+                    "Delimiter {} not found",
+                    hex::encode(&self.delimiter)
+                )
+            })?;
         let msg_end = pos; // 消息结束位置（分隔符开始位置）
         let delim_end = pos + self.delimiter.len(); // 分隔符结束位置
 

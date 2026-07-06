@@ -139,7 +139,7 @@ pub trait NodePlugin: Send + Sync {
 mod tests {
     use super::*;
 
-    /// 测试默认 resolve_port：output 含 success=true 时返回 "true"
+    /// 测试默认 `resolve_port：output` 含 success=true 时返回 "true"
     #[test]
     fn test_resolve_port_success_true() {
         // 使用一个最小化的 mock 来测试 trait 的默认方法
@@ -165,7 +165,7 @@ mod tests {
         assert_eq!(plugin.resolve_port(&output), "true");
     }
 
-    /// 测试默认 resolve_port：output 为 None 时返回 "false"
+    /// 测试默认 `resolve_port：output` 为 None 时返回 "false"
     #[test]
     fn test_resolve_port_none() {
         struct MockPlugin;
@@ -188,7 +188,7 @@ mod tests {
         assert_eq!(plugin.resolve_port(&None), "false");
     }
 
-    /// 测试默认 resolve_port：output 含 success=false 时返回 "false"
+    /// 测试默认 `resolve_port：output` 含 success=false 时返回 "false"
     #[test]
     fn test_resolve_port_success_false() {
         struct MockPlugin;
@@ -212,7 +212,7 @@ mod tests {
         assert_eq!(plugin.resolve_port(&output), "false");
     }
 
-    /// 测试 PortDef 序列化/反序列化
+    /// 测试 `PortDef` 序列化/反序列化
     #[test]
     fn test_port_def_serialization() {
         let port = PortDef {
@@ -233,7 +233,7 @@ mod tests {
         assert_eq!(deserialized.position, "right");
     }
 
-    /// 测试 ValidationError 序列化
+    /// 测试 `ValidationError` 序列化
     #[test]
     fn test_validation_error_serialization() {
         let error = ValidationError {
@@ -247,7 +247,7 @@ mod tests {
         assert_eq!(deserialized.message, "URL is required");
     }
 
-    /// 测试 NodeMetadata 序列化
+    /// 测试 `NodeMetadata` 序列化
     #[test]
     fn test_node_metadata_serialization() {
         let metadata = NodeMetadata {

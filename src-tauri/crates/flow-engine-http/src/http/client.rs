@@ -15,6 +15,7 @@ use http_body_util::{BodyExt, Empty, Full};
 use hyper::{Method, Request};
 use hyper_util::client::legacy::Client;
 use hyper_util::rt::TokioExecutor;
+use serde::de::Error as SerdeError;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -117,8 +118,7 @@ impl HttpResponse {
     /// 解析响应体为 JSON
     pub fn body_json(&self) -> Result<serde_json::Value, serde_json::Error> {
         let text = self.body_text().map_err(|e| {
-            serde_json::from_str::<serde_json::Value>(&format!("Invalid UTF-8: {}", e))
-                .unwrap_err()
+            <serde_json::Error as SerdeError>::custom(format!("Invalid UTF-8: {}", e))
         })?;
         serde_json::from_str(&text)
     }
@@ -139,12 +139,22 @@ impl HttpClient {
     /// # 参数
     /// - `timeout_ms`: 各阶段超时时间（毫秒）
     pub fn new(timeout_ms: u64) -> Self {
-        Self { timeout_ms, tls_options: None, proxy_state: None, cookie_jar: None }
+        Self {
+            timeout_ms,
+            tls_options: None,
+            proxy_state: None,
+            cookie_jar: None,
+        }
     }
 
     /// 创建带自定义 TLS 配置的 HTTP 客户端
     pub fn with_tls(timeout_ms: u64, tls_options: crate::http::connector::TlsOptions) -> Self {
-        Self { timeout_ms, tls_options: Some(tls_options), proxy_state: None, cookie_jar: None }
+        Self {
+            timeout_ms,
+            tls_options: Some(tls_options),
+            proxy_state: None,
+            cookie_jar: None,
+        }
     }
 
     /// 设置代理状态（链式调用）
@@ -232,7 +242,11 @@ impl HttpClient {
         let mut current_method = config.method.clone();
         let mut current_body = config.body.clone();
         let mut redirect_history: Vec<RedirectEntry> = Vec::new();
-        let max_redirects = if config.follow_redirects { config.max_redirects } else { 0 };
+        let max_redirects = if config.follow_redirects {
+            config.max_redirects
+        } else {
+            0
+        };
         let mut redirect_count: u32 = 0;
 
         loop {
@@ -259,7 +273,9 @@ impl HttpClient {
             let mut builder = Request::builder().method(method).uri(uri);
 
             // 提取用户设置的 Content-Type（供 Raw body 类型使用）
-            let user_content_type = config.headers.iter()
+            let user_content_type = config
+                .headers
+                .iter()
                 .find(|(k, _)| k.to_lowercase() == "content-type")
                 .map(|(_, v)| v.clone());
 
@@ -293,11 +309,9 @@ impl HttpClient {
 
             // 根据请求体类型构建请求
             let request = match &current_body {
-                BodyType::None => {
-                    builder
-                        .body(empty())
-                        .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
-                }
+                BodyType::None => builder
+                    .body(empty())
+                    .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?,
                 BodyType::Raw(data) => {
                     // Raw body 使用用户设置的 Content-Type（来自 http_executor 自动设置或手动配置）
                     if let Some(ct) = &user_content_type {
@@ -335,7 +349,8 @@ impl HttpClient {
             // 发送请求
             let response = client.request(request).await.map_err(|e| {
                 let error_msg = e.to_string().to_lowercase();
-                if error_msg.contains("dns") || error_msg.contains("resolve")
+                if error_msg.contains("dns")
+                    || error_msg.contains("resolve")
                     || error_msg.contains("connect")
                 {
                     HttpError::DnsFailed(error_msg)
@@ -397,22 +412,23 @@ impl HttpClient {
             if (status == 301 || status == 302 || status == 303 || status == 307 || status == 308)
                 && redirect_count < max_redirects
             {
-                let location = headers.get("Location")
-                    .or_else(|| headers.get("location"));
+                let location = headers.get("Location").or_else(|| headers.get("location"));
 
                 if let Some(location) = location {
                     redirect_count += 1;
 
                     // 解析重定向 URL（相对或绝对）
-                    let resolved_url = if location.starts_with("http://") || location.starts_with("https://") {
-                        location.clone()
-                    } else {
-                        let base = url::Url::parse(&current_url)
-                            .map_err(|e| HttpError::InvalidUrl(format!("Redirect URL parse failed: {}", e)))?;
-                        base.join(location)
-                            .map(|u| u.to_string())
-                            .unwrap_or_else(|_| location.clone())
-                    };
+                    let resolved_url =
+                        if location.starts_with("http://") || location.starts_with("https://") {
+                            location.clone()
+                        } else {
+                            let base = url::Url::parse(&current_url).map_err(|e| {
+                                HttpError::InvalidUrl(format!("Redirect URL parse failed: {}", e))
+                            })?;
+                            base.join(location)
+                                .map(|u| u.to_string())
+                                .unwrap_or_else(|_| location.clone())
+                        };
 
                     log::debug!("Redirect ({}) -> {}", status, resolved_url);
 
@@ -423,7 +439,8 @@ impl HttpClient {
 
                     // 301/302/303: 非 GET/HEAD 方法改为 GET，丢弃请求体
                     if (status == 301 || status == 302 || status == 303)
-                        && current_method != "GET" && current_method != "HEAD"
+                        && current_method != "GET"
+                        && current_method != "HEAD"
                     {
                         current_method = "GET".to_string();
                         current_body = BodyType::None;
@@ -756,9 +773,18 @@ mod tests {
             };
 
             let result = client.execute(&config).await;
-            assert!(result.is_ok(), "{} 请求应该Success: {:?}", method, result.err());
+            assert!(
+                result.is_ok(),
+                "{} 请求应该Success: {:?}",
+                method,
+                result.err()
+            );
             let http_result = result.unwrap();
-            assert_eq!(http_result.response.status, 200, "{} 状态码应为 200", method);
+            assert_eq!(
+                http_result.response.status, 200,
+                "{} 状态码应为 200",
+                method
+            );
         }
     }
 }

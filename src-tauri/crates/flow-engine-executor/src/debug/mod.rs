@@ -2,8 +2,8 @@
 //!
 //! 提供流程调试功能，包括断点管理、单步执行、变量查看等
 
-mod types;
 mod executor;
+mod types;
 
 // Re-export 主要类型
 pub use types::{

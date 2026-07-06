@@ -4,9 +4,9 @@
 // 关闭始终走 "out" 端口（Failed不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -43,7 +43,12 @@ impl NodeExecutor for McpCloseExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::McpClose(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not McpCloseConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not McpCloseConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换 connection_id
@@ -93,9 +98,7 @@ impl NodeExecutor for McpCloseExecutor {
         let next_node_ids: Vec<String> = {
             let filtered: Vec<String> = connections
                 .iter()
-                .filter(|conn| {
-                    conn.source_node_uuid == node.uuid && conn.source_port_id == "out"
-                })
+                .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "out")
                 .map(|conn| conn.target_node_uuid.clone())
                 .collect();
 
@@ -110,10 +113,7 @@ impl NodeExecutor for McpCloseExecutor {
 
         match close_result {
             Ok(()) => {
-                log::info!(
-                    "[MCP] Connection closed: connection_id={}",
-                    connection_id
-                );
+                log::info!("[MCP] Connection closed: connection_id={}", connection_id);
 
                 // 发送调试事件：McpConnectionClosed
                 if let Some(sender) = &context.debug_event_sender {
@@ -141,10 +141,7 @@ impl NodeExecutor for McpCloseExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!(
-                            "MCP connection closed ({}ms)",
-                            duration.as_millis()
-                        ),
+                        message: format!("MCP connection closed ({}ms)", duration.as_millis()),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -196,10 +193,10 @@ impl NodeExecutor for McpCloseExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::mcp_connection_manager::McpConnectionManager;
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::McpCloseConfig;
-    use crate::mcp_connection_manager::McpConnectionManager;
 
     /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
@@ -317,7 +314,7 @@ mod tests {
 
     // ===== 调试事件测试 =====
 
-    /// mpsc adapter for DebugEventSender (测试用)
+    /// mpsc adapter for `DebugEventSender` (测试用)
     struct MpscDebugEventSender {
         sender: tokio::sync::mpsc::UnboundedSender<DebugEvent>,
     }
@@ -336,7 +333,7 @@ mod tests {
         }
     }
 
-    /// 模拟 MCP Provider（close + get_connection_info Success）
+    /// 模拟 MCP Provider（close + `get_connection_info` Success）
     struct MockMcpProvider {
         url: String,
     }
@@ -437,7 +434,7 @@ mod tests {
         (context, event_receiver)
     }
 
-    /// 测试：关闭Failed时不发射 McpConnectionClosed 调试事件
+    /// 测试：关闭Failed时不发射 `McpConnectionClosed` 调试事件
     #[tokio::test]
     async fn test_debug_event_not_emitted_on_close_failure() {
         let mcp_manager = Arc::new(McpConnectionManager::new());
@@ -450,7 +447,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let events: Vec<_> = (&mut event_receiver).try_recv().into_iter().collect();
+        let events: Vec<_> = event_receiver.try_recv().into_iter().collect();
         assert!(
             events.is_empty(),
             "关闭Failed时不应发射调试事件，但收到: {:?}",
@@ -458,7 +455,7 @@ mod tests {
         );
     }
 
-    /// 测试：关闭Success时发射 McpConnectionClosed 调试事件
+    /// 测试：关闭Success时发射 `McpConnectionClosed` 调试事件
     #[tokio::test]
     async fn test_debug_event_mcp_connection_closed() {
         let mcp_manager = Arc::new(MockMcpProvider::new());
@@ -486,9 +483,6 @@ mod tests {
             _ => panic!("期望 McpConnectionClosed 事件，收到: {:?}", event),
         }
 
-        assert!(
-            event_receiver.try_recv().is_err(),
-            "不应有额外的调试事件"
-        );
+        assert!(event_receiver.try_recv().is_err(), "不应有额外的调试事件");
     }
 }

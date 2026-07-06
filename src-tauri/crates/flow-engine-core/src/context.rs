@@ -1,11 +1,11 @@
 // 上下文模块 - 执行上下文和变量存储
 
+use crate::execution_event::ExecutionEvent;
 use crate::log_event::LogEvent;
 use crate::node_config::ProxyMode;
 use crate::report::NodeExecutionReport;
+use crate::traits::{DebugEventSender, ExecutionEventSender, LogSender};
 use crate::variable::Variable;
-use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender};
-use crate::execution_event::ExecutionEvent;
 use crate::ws_stream::{WsConnectionStream, WsMessage};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -541,7 +541,10 @@ impl VariablePool {
     ///
     /// 变量值的引用，如果不存在则返回 None
     pub fn get_variable(&self, name: &str) -> Option<&Value> {
-        self.variables.iter().find(|v| v.name == name).map(|v| &v.value)
+        self.variables
+            .iter()
+            .find(|v| v.name == name)
+            .map(|v| &v.value)
     }
 
     /// 获取变量（完整信息）
@@ -616,10 +619,7 @@ impl VariablePool {
 
     /// 获取节点的所有局部变量（向后兼容）
     #[deprecated(note = "此方法在新架构中不再适用")]
-    pub fn get_node_variables(
-        &self,
-        node_uuid: &str,
-    ) -> Option<HashMap<String, Value>> {
+    pub fn get_node_variables(&self, node_uuid: &str) -> Option<HashMap<String, Value>> {
         let node_vars: HashMap<String, Value> = self
             .variables
             .iter()
@@ -765,7 +765,11 @@ mod tests {
         let mut pool = VariablePool::new();
 
         pool.set_variable("global1".to_string(), json!("value1"), "".to_string());
-        pool.set_variable("local1".to_string(), json!("local-value"), "node-1".to_string());
+        pool.set_variable(
+            "local1".to_string(),
+            json!("local-value"),
+            "node-1".to_string(),
+        );
 
         let merged = pool.get_merged_variables();
 
@@ -780,8 +784,7 @@ mod tests {
         pool.set_variable("key1".to_string(), json!("value1"), "node-1".to_string());
 
         let json_str = serde_json::to_string(&pool).expect("序列化Failed");
-        let deserialized: VariablePool =
-            serde_json::from_str(&json_str).expect("反序列化Failed");
+        let deserialized: VariablePool = serde_json::from_str(&json_str).expect("反序列化Failed");
 
         assert_eq!(deserialized.variables.len(), 1);
         assert_eq!(deserialized.variables[0].name, "key1");
@@ -826,7 +829,10 @@ mod tests {
         pool.set_variable("key1".to_string(), json!("value1"), "node-1".to_string());
 
         // 新架构中不再区分节点，get_node_variable 简单地查找变量
-        assert_eq!(pool.get_node_variable("node-1", "key1"), Some(&json!("value1")));
+        assert_eq!(
+            pool.get_node_variable("node-1", "key1"),
+            Some(&json!("value1"))
+        );
     }
 
     // ===== WebSocket 消息流测试 =====
@@ -842,7 +848,8 @@ mod tests {
             "node-1".to_string(),
             "Connect Node".to_string(),
             "ws_connect".to_string(),
-        ).await;
+        )
+        .await;
 
         // 验证创建Success
         let stream = ctx.get_ws_stream("conn-1").await;
@@ -875,7 +882,8 @@ mod tests {
             "node-1".to_string(),
             "Connect Node".to_string(),
             "ws_connect".to_string(),
-        ).await;
+        )
+        .await;
 
         // 转移所有权
         ctx.transfer_ws_ownership(
@@ -883,7 +891,8 @@ mod tests {
             "node-2".to_string(),
             "Send Node".to_string(),
             "ws_send_wait".to_string(),
-        ).await;
+        )
+        .await;
 
         // 验证所有权转移
         let stream = ctx.get_ws_stream("conn-1").await.unwrap();
@@ -906,7 +915,8 @@ mod tests {
             "node-2".to_string(),
             "Send Node".to_string(),
             "ws_send_wait".to_string(),
-        ).await;
+        )
+        .await;
 
         // 不应该有任何Error
     }
@@ -922,7 +932,8 @@ mod tests {
             "node-1".to_string(),
             "Connect Node".to_string(),
             "ws_connect".to_string(),
-        ).await;
+        )
+        .await;
 
         // 推送消息
         let msg = WsMessage::new(
@@ -968,7 +979,8 @@ mod tests {
             "node-1".to_string(),
             "Connect Node".to_string(),
             "ws_connect".to_string(),
-        ).await;
+        )
+        .await;
 
         // 关闭连接
         ctx.close_ws_stream("conn-1").await;
@@ -1000,7 +1012,8 @@ mod tests {
             "node-1".to_string(),
             "Connect Node".to_string(),
             "ws_connect".to_string(),
-        ).await;
+        )
+        .await;
 
         // 关闭连接
         ctx.close_ws_stream("conn-1").await;
@@ -1018,19 +1031,18 @@ mod tests {
         assert!(result.unwrap_err().contains("closed"));
     }
 
-    /// 测试 is_cancelled 默认返回 false
+    /// 测试 `is_cancelled` 默认返回 false
     #[test]
     fn test_is_cancelled_default() {
         let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
         assert!(!ctx.is_cancelled(), "默认不应被取消");
     }
 
-    /// 测试 is_cancelled 在收到信号后返回 true
+    /// 测试 `is_cancelled` 在收到信号后返回 true
     #[test]
     fn test_is_cancelled_with_signal() {
         let (tx, rx) = tokio::sync::watch::channel(false);
-        let ctx = ExecutionContext::new("test-flow".to_string(), 1000)
-            .with_cancel_receiver(rx);
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000).with_cancel_receiver(rx);
 
         assert!(!ctx.is_cancelled(), "初始状态不应被取消");
 
@@ -1038,7 +1050,7 @@ mod tests {
         assert!(ctx.is_cancelled(), "收到信号后应返回 true");
     }
 
-    /// 测试 ExecutionEvent::FlowCancelled 序列化
+    /// 测试 `ExecutionEvent::FlowCancelled` 序列化
     #[test]
     fn test_flow_cancelled_serialization() {
         let event = ExecutionEvent::FlowCancelled {
@@ -1047,7 +1059,10 @@ mod tests {
         };
 
         let json = serde_json::to_string(&event).expect("序列化Failed");
-        assert!(json.contains("\"flowCancelled\""), "变体名应为 flowCancelled");
+        assert!(
+            json.contains("\"flowCancelled\""),
+            "变体名应为 flowCancelled"
+        );
         assert!(json.contains("\"flowUuid\""), "字段名应为 flowUuid");
         assert!(json.contains("\"reason\""), "字段名应为 reason");
 
@@ -1058,7 +1073,7 @@ mod tests {
 
     // ===== Provider 注册表测试 =====
 
-    /// 测试 set_provider + get_provider 往返
+    /// 测试 `set_provider` + `get_provider` 往返
     #[test]
     fn test_provider_set_get_roundtrip() {
         // 使用简单的 i32 类型测试 provider 存取
@@ -1072,7 +1087,7 @@ mod tests {
         assert_eq!(*retrieved.unwrap(), 42, "值应该匹配");
     }
 
-    /// 测试 get_provider 对不存在的 key 返回 None
+    /// 测试 `get_provider` 对不存在的 key 返回 None
     #[test]
     fn test_provider_get_missing_key() {
         let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
@@ -1081,7 +1096,7 @@ mod tests {
         assert!(result.is_none(), "不存在的 key 应返回 None");
     }
 
-    /// 测试 get_provider 对Error类型返回 None
+    /// 测试 `get_provider` 对Error类型返回 None
     #[test]
     fn test_provider_get_wrong_type() {
         let value: Arc<String> = Arc::new("hello".to_string());
@@ -1107,7 +1122,10 @@ mod tests {
         let json = serde_json::to_string(&ctx).expect("序列化Failed");
 
         // providers 不应出现在 JSON 中
-        assert!(!json.contains("providers"), "providers 不应出现在序列化结果中");
+        assert!(
+            !json.contains("providers"),
+            "providers 不应出现在序列化结果中"
+        );
 
         // 反序列化后 providers 应为空
         let deserialized: ExecutionContext = serde_json::from_str(&json).expect("反序列化Failed");

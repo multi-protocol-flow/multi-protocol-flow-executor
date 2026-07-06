@@ -4,8 +4,8 @@
 // 变量替换和统一输出映射功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -43,7 +43,12 @@ impl NodeExecutor for KafkaAdminExecutor {
         // 1. 提取配置
         let mut config = match &node.data {
             NodeData::KafkaAdmin(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not KafkaAdminConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not KafkaAdminConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换 connection_id
@@ -132,8 +137,12 @@ impl NodeExecutor for KafkaAdminExecutor {
                 );
 
                 // 7. 构建输出数据
-                let output_data = serde_json::to_value(&output)
-                    .map_err(|e| ErrorDetail::execution_error(format!("Failed to serialize admin operation output: {}", e)))?;
+                let output_data = serde_json::to_value(&output).map_err(|e| {
+                    ErrorDetail::execution_error(format!(
+                        "Failed to serialize admin operation output: {}",
+                        e
+                    ))
+                })?;
 
                 // 8. 日志：execution complete
                 let log_level = if output.success {
@@ -168,9 +177,10 @@ impl NodeExecutor for KafkaAdminExecutor {
 
                 // 9. 根据Success/Failed选择端口
                 if !output.success
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output
                         .error
@@ -221,9 +231,11 @@ impl NodeExecutor for KafkaAdminExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -245,10 +257,10 @@ impl NodeExecutor for KafkaAdminExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::kafka_connection_manager::KafkaConnectionManager;
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::KafkaAdminConfig;
-    use crate::kafka_connection_manager::KafkaConnectionManager;
 
     /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, operation: &str) -> Node {
@@ -340,11 +352,9 @@ mod tests {
             json!("kafka-connection-123"),
             String::new(),
         );
-        context.variables.set_variable(
-            "topic".to_string(),
-            json!("my-topic"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("topic".to_string(), json!("my-topic"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -397,8 +407,7 @@ mod tests {
             "dry_run": false,
         });
 
-        let config: KafkaAdminConfig =
-            serde_json::from_value(json).expect("反序列化应Success");
+        let config: KafkaAdminConfig = serde_json::from_value(json).expect("反序列化应Success");
         assert_eq!(config.connection_id, "conn-1");
         assert_eq!(config.operation, "topic_create");
         assert_eq!(config.topic_name, Some("test-topic".to_string()));

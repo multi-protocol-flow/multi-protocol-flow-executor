@@ -1,14 +1,14 @@
 //! IMAP select mailbox节点执行器
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::ImapProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -25,11 +25,7 @@ impl ImapSelectExecutor {
         Self { imap_manager }
     }
 
-    fn resolve_next_nodes(
-        node_uuid: &str,
-        port: &str,
-        connections: &[Connection],
-    ) -> Vec<String> {
+    fn resolve_next_nodes(node_uuid: &str, port: &str, connections: &[Connection]) -> Vec<String> {
         let filtered: Vec<String> = connections
             .iter()
             .filter(|conn| conn.source_node_uuid == node_uuid && conn.source_port_id == port)
@@ -61,7 +57,12 @@ impl NodeExecutor for ImapSelectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::ImapSelect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("[E_IMAP_FETCH] Node data is not ImapSelectConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "[E_IMAP_FETCH] Node data is not ImapSelectConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. variable substitution
@@ -69,15 +70,24 @@ impl NodeExecutor for ImapSelectExecutor {
             let error_msg = format!("连接 ID variable substitutionfailed: {}", e);
             log::error!(
                 "[Flow {}] [Error] nodeID: {}, nodeName: {}, error: {}",
-                context.flow_uuid, node.uuid, node.name, error_msg
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
             );
             ErrorDetail::execution_error(error_msg)
         })?;
         let mailbox = replace_variables(&config.mailbox, context).map_err(|e| {
-            let error_msg = format!("[E_IMAP_FETCH] mailbox name variable substitutionfailed: {}", e);
+            let error_msg = format!(
+                "[E_IMAP_FETCH] mailbox name variable substitutionfailed: {}",
+                e
+            );
             log::error!(
                 "[Flow {}] [Error] nodeID: {}, nodeName: {}, error: {}",
-                context.flow_uuid, node.uuid, node.name, error_msg
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
             );
             ErrorDetail::execution_error(error_msg)
         })?;
@@ -85,7 +95,10 @@ impl NodeExecutor for ImapSelectExecutor {
         // 3. 日志
         log::info!(
             "[Flow {}] [Start] nodeID: {}, nodeName: {}, type: imap_select, mailbox: {}",
-            context.flow_uuid, node.uuid, node.name, mailbox
+            context.flow_uuid,
+            node.uuid,
+            node.name,
+            mailbox
         );
         context
             .emit_log(LogEvent {
@@ -131,9 +144,17 @@ impl NodeExecutor for ImapSelectExecutor {
                     "error": output.error,
                 });
 
-                let log_level = if success { LogLevel::Info } else { LogLevel::Error };
+                let log_level = if success {
+                    LogLevel::Info
+                } else {
+                    LogLevel::Error
+                };
                 let log_message = if success {
-                    format!("IMAP select mailbox {} succeeded ({}ms)", mailbox, duration.as_millis())
+                    format!(
+                        "IMAP select mailbox {} succeeded ({}ms)",
+                        mailbox,
+                        duration.as_millis()
+                    )
                 } else {
                     format!(
                         "IMAP select mailbox {} failed: {} ({}ms)",
@@ -160,7 +181,9 @@ impl NodeExecutor for ImapSelectExecutor {
             Err(e) => {
                 log::error!(
                     "[IMAP] Select exception: connection_id={}, mailbox={}, error={}",
-                    connection_id, mailbox, e
+                    connection_id,
+                    mailbox,
+                    e
                 );
                 context
                     .emit_log(LogEvent {
@@ -190,12 +213,18 @@ impl NodeExecutor for ImapSelectExecutor {
                     "error": e,
                 });
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("IMAP select failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "IMAP select failed: {}",
+                        e
+                    )));
                 }
 
-                let next_node_ids =
-                    Self::resolve_next_nodes(&node.uuid, "false", connections);
+                let next_node_ids = Self::resolve_next_nodes(&node.uuid, "false", connections);
                 Ok((next_node_ids, Some(error_output)))
             }
         }
@@ -235,70 +264,103 @@ mod tests {
     #[async_trait::async_trait]
     impl ImapProvider for MockImapProvider {
         async fn connect(
-            &self, _connection_id: &str, _config: &flow_engine_core::email_types::ImapConfig,
+            &self,
+            _connection_id: &str,
+            _config: &flow_engine_core::email_types::ImapConfig,
         ) -> Result<flow_engine_core::traits::ImapConnectOutput, String> {
             Err("not implemented".to_string())
         }
         async fn select(
-            &self, _connection_id: &str, _mailbox: &str, _readonly: bool,
+            &self,
+            _connection_id: &str,
+            _mailbox: &str,
+            _readonly: bool,
         ) -> Result<ImapSelectOutput, String> {
             Ok(self.output.clone())
         }
         async fn search(
-            &self, _connection_id: &str, _mailbox: Option<&str>, _criteria: &str,
+            &self,
+            _connection_id: &str,
+            _mailbox: Option<&str>,
+            _criteria: &str,
             _max_results: Option<usize>,
         ) -> Result<flow_engine_core::traits::ImapSearchOutput, String> {
             Err("not implemented".to_string())
         }
         async fn fetch(
-            &self, _connection_id: &str, _uids: &str, _fetch_items: &str,
-            _max_fetch_count: usize, _max_size_bytes: usize,
+            &self,
+            _connection_id: &str,
+            _uids: &str,
+            _fetch_items: &str,
+            _max_fetch_count: usize,
+            _max_size_bytes: usize,
         ) -> Result<flow_engine_core::traits::ImapFetchOutput, String> {
             Err("not implemented".to_string())
         }
         async fn store_flags(
-            &self, _connection_id: &str, _uids: &str, _operation: &str,
+            &self,
+            _connection_id: &str,
+            _uids: &str,
+            _operation: &str,
             _flags: &[String],
         ) -> Result<flow_engine_core::traits::ImapStoreFlagsOutput, String> {
             Err("not implemented".to_string())
         }
         async fn copy(
-            &self, _connection_id: &str, _uids: &str, _target_mailbox: &str,
+            &self,
+            _connection_id: &str,
+            _uids: &str,
+            _target_mailbox: &str,
         ) -> Result<flow_engine_core::traits::ImapCopyOutput, String> {
             Err("not implemented".to_string())
         }
         async fn r#move(
-            &self, _connection_id: &str, _uids: &str, _target_mailbox: &str,
+            &self,
+            _connection_id: &str,
+            _uids: &str,
+            _target_mailbox: &str,
         ) -> Result<flow_engine_core::traits::ImapMoveOutput, String> {
             Err("not implemented".to_string())
         }
         async fn expunge(
-            &self, _connection_id: &str,
+            &self,
+            _connection_id: &str,
         ) -> Result<flow_engine_core::traits::ImapExpungeOutput, String> {
             Err("not implemented".to_string())
         }
         async fn list(
-            &self, _connection_id: &str, _reference_name: &str, _pattern: &str,
+            &self,
+            _connection_id: &str,
+            _reference_name: &str,
+            _pattern: &str,
         ) -> Result<flow_engine_core::traits::ImapListOutput, String> {
             Err("not implemented".to_string())
         }
         async fn create_folder(
-            &self, _connection_id: &str, _folder_name: &str,
+            &self,
+            _connection_id: &str,
+            _folder_name: &str,
         ) -> Result<flow_engine_core::traits::ImapFolderCreateOutput, String> {
             Err("not implemented".to_string())
         }
         async fn delete_folder(
-            &self, _connection_id: &str, _folder_name: &str,
+            &self,
+            _connection_id: &str,
+            _folder_name: &str,
         ) -> Result<flow_engine_core::traits::ImapFolderDeleteOutput, String> {
             Err("not implemented".to_string())
         }
         async fn idle(
-            &self, _connection_id: &str, _mailbox: Option<&str>, _timeout_seconds: u64,
+            &self,
+            _connection_id: &str,
+            _mailbox: Option<&str>,
+            _timeout_seconds: u64,
         ) -> Result<flow_engine_core::traits::ImapIdleOutput, String> {
             Err("not implemented".to_string())
         }
         async fn close(
-            &self, _connection_id: &str,
+            &self,
+            _connection_id: &str,
         ) -> Result<flow_engine_core::traits::ImapCloseOutput, String> {
             Ok(flow_engine_core::traits::ImapCloseOutput {
                 success: true,
@@ -306,7 +368,8 @@ mod tests {
             })
         }
         async fn test_connection(
-            &self, _config: &flow_engine_core::email_types::ImapConfig,
+            &self,
+            _config: &flow_engine_core::email_types::ImapConfig,
         ) -> Result<bool, String> {
             Ok(true)
         }

@@ -2,21 +2,21 @@
 //!
 //! 支持断点、单步执行、变量查看等调试功能
 
-use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
-use flow_engine_core::context::{ExecutionContext, VariableStorage};
 use crate::debug::{
     DebugCommand, DebugEvent, DebugSessionState, DebugStatus, EndReason, ExecutionStackEntry,
     PauseReason,
 };
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::{ExecutionContext, VariableStorage};
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::flow::Flow;
-use flow_engine_core::report::{ExecutionStatus, NodeExecutionReport};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::{ExecutionErrorStrategy, Node};
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::node_types;
-use flow_engine_core::traits::LogSender;
 use flow_engine_core::registry::NodeRegistry;
+use flow_engine_core::report::{ExecutionStatus, NodeExecutionReport};
+use flow_engine_core::traits::LogSender;
 use serde_json::json;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -97,27 +97,26 @@ impl DebuggableFlowExecutor {
 
         // 创建共享状态（用于心跳任务读取当前状态）
         let shared_state = Arc::new(RwLock::new(debug_state.clone()));
-        
+
         // 创建心跳任务停止信号
         let (stop_tx, stop_rx) = broadcast::channel::<()>(1);
-        
+
         // 启动心跳任务
         let heartbeat_state = Arc::clone(&shared_state);
         let heartbeat_sender = event_sender.clone();
         let flow_uuid_for_heartbeat = flow.uuid.clone();
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(
-                std::time::Duration::from_millis(HEARTBEAT_INTERVAL_MS)
-            );
+            let mut interval =
+                tokio::time::interval(std::time::Duration::from_millis(HEARTBEAT_INTERVAL_MS));
             let mut stop_rx = stop_rx;
-            
+
             loop {
                 tokio::select! {
                     _ = interval.tick() => {
                         // 读取当前状态并发送心跳
                         if let Ok(state) = heartbeat_state.read() {
                             let timestamp = flow_engine_core::utils::unix_timestamp_ms();
-                            
+
                             let _ = heartbeat_sender.send(DebugEvent::Heartbeat {
                                 status: state.status.clone(),
                                 current_node_uuid: state.current_node_uuid.clone(),
@@ -137,7 +136,11 @@ impl DebuggableFlowExecutor {
         if let Err(e) = event_sender.send(DebugEvent::SessionStarted {
             flow_uuid: flow.uuid.clone(),
         }) {
-            log::error!("[Debug {}] Failed to send SessionStarted event: {}", flow.uuid, e);
+            log::error!(
+                "[Debug {}] Failed to send SessionStarted event: {}",
+                flow.uuid,
+                e
+            );
         }
 
         // 初始化执行上下文
@@ -165,7 +168,9 @@ impl DebuggableFlowExecutor {
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             last_node_output: None,
-            debug_event_sender: Some(Arc::new(crate::debug_event_adapter::MpscDebugEventSender::new(event_sender.clone()))),
+            debug_event_sender: Some(Arc::new(
+                crate::debug_event_adapter::MpscDebugEventSender::new(event_sender.clone()),
+            )),
             execution_event_sender: None,
             cancel_receiver: None,
             providers: HashMap::new(),
@@ -187,7 +192,9 @@ impl DebuggableFlowExecutor {
                 let _ = stop_tx.send(());
                 debug_state.status = DebugStatus::Ended;
                 // 生成报告（即使是Error也要生成）
-                let report = Self::generate_debug_report(&debug_state, flow, debug_start_time_ms, &context).await;
+                let report =
+                    Self::generate_debug_report(&debug_state, flow, debug_start_time_ms, &context)
+                        .await;
                 if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                     reason: EndReason::Error {
                         message: "Flow is missing a start node".to_string(),
@@ -195,7 +202,11 @@ impl DebuggableFlowExecutor {
                     report: Some(report),
                     execution_stack: debug_state.execution_stack.clone(),
                 }) {
-                    log::error!("[Debug {}] Failed to send SessionEnded event: {}", flow.uuid, e);
+                    log::error!(
+                        "[Debug {}] Failed to send SessionEnded event: {}",
+                        flow.uuid,
+                        e
+                    );
                 }
                 return debug_state;
             }
@@ -218,26 +229,28 @@ impl DebuggableFlowExecutor {
         }
 
         // 执行调试主循环
-        let result = self.execute_debug_loop(
-            &mut debug_state,
-            flow,
-            start_node,
-            &node_map,
-            &connection_map,
-            &mut context,
-            event_sender,
-            command_receiver,
-            &shared_state,
-        ).await;
-        
+        let result = self
+            .execute_debug_loop(
+                &mut debug_state,
+                flow,
+                start_node,
+                &node_map,
+                &connection_map,
+                &mut context,
+                event_sender,
+                command_receiver,
+                &shared_state,
+            )
+            .await;
+
         // 停止心跳任务
         let _ = stop_tx.send(());
-        
+
         // 更新最终状态到共享状态
         if let Ok(mut state) = shared_state.write() {
             *state = result.clone();
         }
-        
+
         result
     }
 
@@ -261,7 +274,7 @@ impl DebuggableFlowExecutor {
                 *shared = state.clone();
             }
         };
-        
+
         let mut current_node_id = start_node.uuid.clone();
         let mut visited = std::collections::HashSet::new();
 
@@ -271,7 +284,13 @@ impl DebuggableFlowExecutor {
             if visited.contains(&current_node_id) {
                 debug_state.status = DebugStatus::Ended;
                 update_shared_state(debug_state);
-                let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
+                let report = Self::generate_debug_report(
+                    debug_state,
+                    flow,
+                    debug_state.start_time_ms,
+                    context,
+                )
+                .await;
                 if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                     reason: EndReason::Error {
                         message: format!("Cycle detected: node {} already visited", node.uuid),
@@ -279,7 +298,11 @@ impl DebuggableFlowExecutor {
                     report: Some(report),
                     execution_stack: debug_state.execution_stack.clone(),
                 }) {
-                    log::error!("[Debug {}] Failed to send SessionEnded event: {}", flow.uuid, e);
+                    log::error!(
+                        "[Debug {}] Failed to send SessionEnded event: {}",
+                        flow.uuid,
+                        e
+                    );
                 }
                 return debug_state.clone();
             }
@@ -327,7 +350,7 @@ impl DebuggableFlowExecutor {
 
                 // 同步变量到调试状态
                 debug_state.variables = context.variables.get_merged_variables();
-                
+
                 // 更新共享状态
                 update_shared_state(debug_state);
 
@@ -338,7 +361,12 @@ impl DebuggableFlowExecutor {
                     variables: debug_state.variables.clone(),
                     execution_stack: debug_state.execution_stack.clone(),
                 }) {
-                    log::error!("[Debug {}] Failed to send PausedAtNode event (node {}): {}", context.flow_uuid, current_node_id, e);
+                    log::error!(
+                        "[Debug {}] Failed to send PausedAtNode event (node {}): {}",
+                        context.flow_uuid,
+                        current_node_id,
+                        e
+                    );
                 }
 
                 // 等待调试命令
@@ -379,13 +407,13 @@ impl DebuggableFlowExecutor {
                             variable_changes: None,
                             skip_reason: Some("User skipped".to_string()),
                         };
+                        let skip_entry = stack_entry.clone();
                         debug_state.push_stack_entry(stack_entry);
 
                         // 发送节点execution complete事件（包含完整的执行信息）
-                        let skip_entry = debug_state.execution_stack.last().expect("stack entry just pushed").clone();
-                        if let Err(e) = event_sender.send(DebugEvent::NodeExecuted {
-                            entry: skip_entry,
-                        }) {
+                        if let Err(e) =
+                            event_sender.send(DebugEvent::NodeExecuted { entry: skip_entry })
+                        {
                             log::error!("[Debug {}] Failed to send NodeExecuted event (skipped node {}): {}", context.flow_uuid, node.uuid, e);
                         }
 
@@ -402,13 +430,23 @@ impl DebuggableFlowExecutor {
                             debug_state.status = DebugStatus::Ended;
                             debug_state.current_node_uuid = None;
                             update_shared_state(debug_state);
-                            let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
+                            let report = Self::generate_debug_report(
+                                debug_state,
+                                flow,
+                                debug_state.start_time_ms,
+                                context,
+                            )
+                            .await;
                             if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                                 reason: EndReason::Completed,
                                 report: Some(report),
                                 execution_stack: debug_state.execution_stack.clone(),
                             }) {
-                                log::error!("[Debug {}] Failed to send SessionEnded event: {}", flow.uuid, e);
+                                log::error!(
+                                    "[Debug {}] Failed to send SessionEnded event: {}",
+                                    flow.uuid,
+                                    e
+                                );
                             }
                             return debug_state.clone();
                         }
@@ -424,29 +462,45 @@ impl DebuggableFlowExecutor {
                         // 用户终止或Error
                         if error == "User aborted debugging" {
                             debug_state.status = DebugStatus::Ended;
-                            let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
+                            let report = Self::generate_debug_report(
+                                debug_state,
+                                flow,
+                                debug_state.start_time_ms,
+                                context,
+                            )
+                            .await;
                             if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
-                                reason: EndReason::Error {
-                                    message: error,
-                                },
+                                reason: EndReason::Error { message: error },
                                 report: Some(report),
                                 execution_stack: debug_state.execution_stack.clone(),
                             }) {
-                                log::error!("[Debug {}] Failed to send SessionEnded event: {}", flow.uuid, e);
+                                log::error!(
+                                    "[Debug {}] Failed to send SessionEnded event: {}",
+                                    flow.uuid,
+                                    e
+                                );
                             }
                             return debug_state.clone();
                         }
                         debug_state.status = DebugStatus::Ended;
                         update_shared_state(debug_state);
-                        let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
+                        let report = Self::generate_debug_report(
+                            debug_state,
+                            flow,
+                            debug_state.start_time_ms,
+                            context,
+                        )
+                        .await;
                         if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
-                            reason: EndReason::Error {
-                                message: error,
-                            },
+                            reason: EndReason::Error { message: error },
                             report: Some(report),
                             execution_stack: debug_state.execution_stack.clone(),
                         }) {
-                            log::error!("[Debug {}] Failed to send SessionEnded event: {}", flow.uuid, e);
+                            log::error!(
+                                "[Debug {}] Failed to send SessionEnded event: {}",
+                                flow.uuid,
+                                e
+                            );
                         }
                         return debug_state.clone();
                     }
@@ -478,7 +532,9 @@ impl DebuggableFlowExecutor {
             debug_state.push_stack_entry(stack_entry);
 
             // 检查是否有临时节点配置
-            let effective_node = if let Some(temp_config) = debug_state.get_temp_node_config(&node.uuid) {
+            let effective_node = if let Some(temp_config) =
+                debug_state.get_temp_node_config(&node.uuid)
+            {
                 // 尝试反序列化临时配置
                 match serde_json::from_value::<NodeData>(temp_config.clone()) {
                     Ok(new_data) => {
@@ -509,7 +565,9 @@ impl DebuggableFlowExecutor {
             };
 
             // 同步 execution_stack 到 context.node_reports（供 VariableExtractor 等节点查找上游输出）
-            context.node_reports = debug_state.execution_stack.iter()
+            context.node_reports = debug_state
+                .execution_stack
+                .iter()
                 .filter(|entry| entry.ended_at.is_some())
                 .map(|entry| {
                     let status = if entry.success {
@@ -554,14 +612,17 @@ impl DebuggableFlowExecutor {
                 Ok((next_node_ids, output_data)) => {
                     // 计算变量变更
                     let variables_after = context.variables.get_merged_variables();
-                    let variable_changes = compute_variable_changes(&variables_before, &variables_after);
+                    let variable_changes =
+                        compute_variable_changes(&variables_before, &variables_after);
 
                     // 更新堆栈条目
                     let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
 
                     // 根据节点类型和输出数据确定 used_port_id（通过 registry 查找）
                     let type_id = node.data.type_name();
-                    let used_port_id = self.registry.get(&type_id)
+                    let used_port_id = self
+                        .registry
+                        .get(&type_id)
                         .map(|plugin| Some(plugin.resolve_port(&output_data)))
                         .unwrap_or(None);
 
@@ -575,16 +636,29 @@ impl DebuggableFlowExecutor {
                         None,
                         used_port_id,
                         effective_resolved_config,
-                        if variable_changes.is_empty() { None } else { Some(variable_changes.clone()) },
+                        if variable_changes.is_empty() {
+                            None
+                        } else {
+                            Some(variable_changes.clone())
+                        },
                         None, // skip_reason 仅跳过节点时设置
                     );
 
                     // 发送节点execution complete事件（包含完整的执行信息）
-                    let completed_entry = debug_state.execution_stack.last().expect("stack entry just pushed").clone();
+                    let completed_entry = debug_state
+                        .execution_stack
+                        .last()
+                        .cloned()
+                        .unwrap_or_else(|| unreachable!("stack entry just pushed"));
                     if let Err(e) = event_sender.send(DebugEvent::NodeExecuted {
                         entry: completed_entry,
                     }) {
-                        log::error!("[Debug {}] Failed to send NodeExecuted event (node {}): {}", context.flow_uuid, node.uuid, e);
+                        log::error!(
+                            "[Debug {}] Failed to send NodeExecuted event (node {}): {}",
+                            context.flow_uuid,
+                            node.uuid,
+                            e
+                        );
                     }
 
                     // 更新 last_node_output（所有节点均更新，供下游节点通过 jsonpath 访问）
@@ -611,14 +685,21 @@ impl DebuggableFlowExecutor {
                 Err(error) => {
                     // 计算变量变更（节点可能部分修改了变量才出错）
                     let variables_after = context.variables.get_merged_variables();
-                    let variable_changes = compute_variable_changes(&variables_before, &variables_after);
+                    let variable_changes =
+                        compute_variable_changes(&variables_before, &variables_after);
 
                     // 更新堆栈条目
                     let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
 
                     // 根据节点 on_error 策略决定执行行为
-                    let route_to_false = node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse);
-                    let is_ignore = node.on_error.as_ref().map_or(false, |s| *s == ExecutionErrorStrategy::Ignore);
+                    let route_to_false = node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse);
+                    let is_ignore = node
+                        .on_error
+                        .as_ref()
+                        .is_some_and(|s| *s == ExecutionErrorStrategy::Ignore);
 
                     let false_port_next_node = if route_to_false {
                         // 查找 false 端口的连接
@@ -649,16 +730,29 @@ impl DebuggableFlowExecutor {
                         Some(error.message.clone()),
                         used_port_id,
                         effective_resolved_config,
-                        if variable_changes.is_empty() { None } else { Some(variable_changes.clone()) },
+                        if variable_changes.is_empty() {
+                            None
+                        } else {
+                            Some(variable_changes.clone())
+                        },
                         None, // skip_reason
                     );
 
                     // 发送节点execution complete事件（包含完整的执行信息）
-                    let failed_entry = debug_state.execution_stack.last().expect("stack entry just pushed").clone();
+                    let failed_entry = debug_state
+                        .execution_stack
+                        .last()
+                        .cloned()
+                        .unwrap_or_else(|| unreachable!("stack entry just pushed"));
                     if let Err(e) = event_sender.send(DebugEvent::NodeExecuted {
                         entry: failed_entry,
                     }) {
-                        log::error!("[Debug {}] Failed to send NodeExecuted event (node {} failed): {}", context.flow_uuid, node.uuid, e);
+                        log::error!(
+                            "[Debug {}] Failed to send NodeExecuted event (node {} failed): {}",
+                            context.flow_uuid,
+                            node.uuid,
+                            e
+                        );
                     }
 
                     // RouteToFalse（默认）: 如果有 false 端口连接，继续执行 false 分支
@@ -678,11 +772,13 @@ impl DebuggableFlowExecutor {
 
                     // Ignore 策略: 忽略Error，继续 true/out 端口执行（如同Success）
                     if is_ignore {
-                        let next_node_id = flow.connections
+                        let next_node_id = flow
+                            .connections
                             .iter()
                             .find(|conn| {
-                                conn.source_node_uuid == node.uuid && 
-                                (conn.source_port_id == "true" || conn.source_port_id == "out")
+                                conn.source_node_uuid == node.uuid
+                                    && (conn.source_port_id == "true"
+                                        || conn.source_port_id == "out")
                             })
                             .map(|conn| conn.target_node_uuid.clone());
 
@@ -705,13 +801,23 @@ impl DebuggableFlowExecutor {
                     if let Err(e) = event_sender.send(DebugEvent::Error {
                         message: error.message.clone(),
                     }) {
-                        log::error!("[Debug {}] Failed to send Error event: {}", context.flow_uuid, e);
+                        log::error!(
+                            "[Debug {}] Failed to send Error event: {}",
+                            context.flow_uuid,
+                            e
+                        );
                     }
 
                     // 结束调试
                     debug_state.status = DebugStatus::Ended;
                     update_shared_state(debug_state);
-                    let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
+                    let report = Self::generate_debug_report(
+                        debug_state,
+                        flow,
+                        debug_state.start_time_ms,
+                        context,
+                    )
+                    .await;
                     if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                         reason: EndReason::Error {
                             message: error.message,
@@ -719,33 +825,41 @@ impl DebuggableFlowExecutor {
                         report: Some(report),
                         execution_stack: debug_state.execution_stack.clone(),
                     }) {
-                        log::error!("[Debug {}] Failed to send SessionEnded event: {}", flow.uuid, e);
+                        log::error!(
+                            "[Debug {}] Failed to send SessionEnded event: {}",
+                            flow.uuid,
+                            e
+                        );
                     }
                     return debug_state.clone();
                 }
             }
-
         }
 
-        
         // 正常完成
         debug_state.status = DebugStatus::Ended;
         debug_state.current_node_uuid = None;
         update_shared_state(debug_state);
-        let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
+        let report =
+            Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context)
+                .await;
         if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
             reason: EndReason::Completed,
             report: Some(report),
             execution_stack: debug_state.execution_stack.clone(),
         }) {
-            log::error!("[Debug {}] Failed to send SessionEnded event: {}", flow.uuid, e);
+            log::error!(
+                "[Debug {}] Failed to send SessionEnded event: {}",
+                flow.uuid,
+                e
+            );
         }
 
         debug_state.clone()
     }
 
     /// 等待调试命令
-    /// 
+    ///
     /// 返回值：
     /// - `Ok(Some((Some(next_uuid), output)))`：跳过节点，跳转到下一个节点
     /// - `Ok(Some((None, output)))`：跳过节点，没有下一个节点，结束流程
@@ -807,7 +921,13 @@ impl DebuggableFlowExecutor {
                 DebugCommand::EndDebug => {
                     // 结束调试
                     debug_state.status = DebugStatus::Ended;
-                    let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
+                    let report = Self::generate_debug_report(
+                        debug_state,
+                        flow,
+                        debug_state.start_time_ms,
+                        context,
+                    )
+                    .await;
                     if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                         reason: EndReason::UserAbort,
                         report: Some(report),
@@ -825,7 +945,8 @@ impl DebuggableFlowExecutor {
                     debug_state.set_variable(name.clone(), value.clone());
 
                     // 发送变量修改事件
-                    if let Err(e) = event_sender.send(DebugEvent::VariableModified { name, value }) {
+                    if let Err(e) = event_sender.send(DebugEvent::VariableModified { name, value })
+                    {
                         log::error!("[Debug] Failed to send VariableModified event: {}", e);
                     }
                 }
@@ -834,7 +955,9 @@ impl DebuggableFlowExecutor {
                     debug_state.set_temp_node_config(node_uuid.clone(), config.clone());
 
                     // 发送节点配置修改事件
-                    if let Err(e) = event_sender.send(DebugEvent::NodeConfigModified { node_uuid, config }) {
+                    if let Err(e) =
+                        event_sender.send(DebugEvent::NodeConfigModified { node_uuid, config })
+                    {
                         log::error!("[Debug] Failed to send NodeConfigModified event: {}", e);
                     }
                 }
@@ -849,10 +972,9 @@ impl DebuggableFlowExecutor {
                     }
 
                     // 发送断点修改事件
-                    if let Err(e) = event_sender.send(DebugEvent::BreakpointModified {
-                        node_uuid,
-                        enabled,
-                    }) {
+                    if let Err(e) =
+                        event_sender.send(DebugEvent::BreakpointModified { node_uuid, enabled })
+                    {
                         log::error!("[Debug] Failed to send BreakpointModified event: {}", e);
                     }
                 }
@@ -889,9 +1011,11 @@ impl DebuggableFlowExecutor {
         if let Some(ref output) = simulated_output {
             if let Some(obj) = output.as_object() {
                 for (key, value) in obj {
-                    context
-                        .variables
-                        .set_variable(key.clone(), value.clone(), current_node.uuid.clone());
+                    context.variables.set_variable(
+                        key.clone(),
+                        value.clone(),
+                        current_node.uuid.clone(),
+                    );
                     debug_state.set_variable(key.clone(), value.clone());
                 }
             }
@@ -906,7 +1030,7 @@ impl DebuggableFlowExecutor {
                 current_node.uuid,
                 port
             );
-            
+
             // 打印所有连接用于调试
             for conn in connections {
                 log::info!(
@@ -918,7 +1042,7 @@ impl DebuggableFlowExecutor {
                     conn.target_port_id
                 );
             }
-            
+
             let found = connections
                 .iter()
                 .find(|conn| {
@@ -932,7 +1056,7 @@ impl DebuggableFlowExecutor {
                     );
                     conn.target_node_uuid.clone()
                 });
-            
+
             if found.is_none() {
                 log::warn!(
                     "[Debug {}] No matching connection found: source_node_uuid={}, source_port_id={}",
@@ -941,7 +1065,7 @@ impl DebuggableFlowExecutor {
                     port
                 );
             }
-            
+
             found
         } else {
             // 没有指定端口，使用第一个连接（默认行为）
@@ -996,7 +1120,10 @@ impl DebuggableFlowExecutor {
                 // 调试模式不应用超时，用户可能在断点处暂停、修改变量、查看数据
                 plugin.execute(node, context, connections, node_map).await
             }
-            None => Err(ErrorDetail::execution_error(format!("Unregistered node type: {}", type_id))),
+            None => Err(ErrorDetail::execution_error(format!(
+                "Unregistered node type: {}",
+                type_id
+            ))),
         }
     }
 
@@ -1025,7 +1152,9 @@ impl DebuggableFlowExecutor {
         if !debug_state.temp_node_configs.is_empty() {
             for node in &mut flow_snapshot.nodes {
                 if let Some(temp_config) = debug_state.get_temp_node_config(&node.uuid) {
-                    match serde_json::from_value::<flow_engine_core::node_config::NodeData>(temp_config.clone()) {
+                    match serde_json::from_value::<flow_engine_core::node_config::NodeData>(
+                        temp_config.clone(),
+                    ) {
                         Ok(new_data) => {
                             log::info!(
                                 "[Debug] flow_snapshot: Merging temp config into node {} ({})",
@@ -1052,7 +1181,12 @@ impl DebuggableFlowExecutor {
             .iter()
             .map(|entry| {
                 // 判断节点状态：如果 error 包含"跳过"则为 Skipped
-                let status = if entry.error.as_ref().map(|e| e.contains("Node skipped")).unwrap_or(false) {
+                let status = if entry
+                    .error
+                    .as_ref()
+                    .map(|e| e.contains("Node skipped"))
+                    .unwrap_or(false)
+                {
                     ExecutionStatus::Skipped
                 } else if entry.success {
                     ExecutionStatus::Success
@@ -1097,9 +1231,15 @@ impl DebuggableFlowExecutor {
             .collect();
 
         // 计算整体状态
-        let flow_status = if node_reports.iter().any(|r| r.status == ExecutionStatus::Failed) {
+        let flow_status = if node_reports
+            .iter()
+            .any(|r| r.status == ExecutionStatus::Failed)
+        {
             ExecutionStatus::Failed
-        } else if node_reports.iter().all(|r| r.status == ExecutionStatus::Skipped) {
+        } else if node_reports
+            .iter()
+            .all(|r| r.status == ExecutionStatus::Skipped)
+        {
             ExecutionStatus::Skipped
         } else {
             ExecutionStatus::Success
@@ -1196,10 +1336,20 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node],
+            connections: vec![],
+            hooks: None,
+        };
 
         let (event_sender, _event_receiver) = mpsc::unbounded_channel();
         let (_command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1224,10 +1374,20 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true),
-        on_error: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node.clone()], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node.clone()],
+            connections: vec![],
+            hooks: None,
+        };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1249,11 +1409,8 @@ mod tests {
 
         // 等待暂停事件
         if let Some(event) = event_receiver.recv().await {
-            match event {
-                DebugEvent::SessionStarted { flow_uuid } => {
-                    assert_eq!(flow_uuid, flow_id);
-                }
-                _ => {}
+            if let DebugEvent::SessionStarted { flow_uuid } = event {
+                assert_eq!(flow_uuid, flow_id);
             }
         }
 
@@ -1278,7 +1435,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true), // 第一个节点有断点
-        on_error: None,
+            on_error: None,
         };
 
         let second_node = Node {
@@ -1289,7 +1446,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None, // 第二个节点没有断点！
-        on_error: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1300,7 +1457,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试单步执行".to_string(), description: None, nodes: vec![start_node.clone(), second_node.clone()], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "测试单步执行".to_string(),
+            description: None,
+            nodes: vec![start_node.clone(), second_node.clone()],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1372,8 +1539,14 @@ mod tests {
         // 2. 第二次在 second_node（单步执行暂停，即使没有断点）
         assert_eq!(paused_count, 2, "应该暂停两次：断点和单步");
         assert_eq!(paused_nodes.len(), 2);
-        assert_eq!(paused_nodes[0], start_node.uuid, "第一次暂停应该在第一个节点");
-        assert_eq!(paused_nodes[1], second_node.uuid, "第二次暂停应该在第二个节点（即使没有断点）");
+        assert_eq!(
+            paused_nodes[0], start_node.uuid,
+            "第一次暂停应该在第一个节点"
+        );
+        assert_eq!(
+            paused_nodes[1], second_node.uuid,
+            "第二次暂停应该在第二个节点（即使没有断点）"
+        );
 
         // 验证暂停原因
         assert!(
@@ -1401,7 +1574,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true), // 第一个节点有断点
-        on_error: None,
+            on_error: None,
         };
 
         let second_node = Node {
@@ -1412,7 +1585,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1423,7 +1596,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试跳过节点堆栈".to_string(), description: None, nodes: vec![start_node.clone(), second_node.clone()], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "测试跳过节点堆栈".to_string(),
+            description: None,
+            nodes: vec![start_node.clone(), second_node.clone()],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1480,7 +1663,8 @@ mod tests {
         let final_state = result.unwrap();
 
         // 【关键断言】验证堆栈中只有一个 start_node 条目
-        let start_node_entries: Vec<_> = final_state.execution_stack
+        let start_node_entries: Vec<_> = final_state
+            .execution_stack
             .iter()
             .filter(|entry| entry.node_uuid == start_node.uuid)
             .collect();
@@ -1496,7 +1680,7 @@ mod tests {
 
     /// Test Flow级默认变量被正确注入
     ///
-    /// 验证流程级 initial_variables 在执行开始时已被注入到上下文中
+    /// 验证流程级 `initial_variables` 在执行开始时已被注入到上下文中
     #[tokio::test]
     async fn test_execute_entry_node_with_initial_variables() {
         let flow_id = Uuid::new_v4().to_string();
@@ -1631,7 +1815,7 @@ mod tests {
 
     /// 测试跳过入口节点时流程级默认变量仍然存在
     ///
-    /// 流程级 initial_variables 在执行开始时已注入上下文，即使跳过 Entry node也依然存在
+    /// 流程级 `initial_variables` 在执行开始时已注入上下文，即使跳过 Entry node也依然存在
     #[tokio::test]
     async fn test_skip_entry_node_no_initial_variables() {
         let flow_id = Uuid::new_v4().to_string();
@@ -1755,15 +1939,13 @@ mod tests {
         );
 
         // 【关键断言3】验证堆栈中入口节点被标记为"已跳过"
-        let start_node_entry = final_state.execution_stack
+        let start_node_entry = final_state
+            .execution_stack
             .iter()
             .find(|entry| entry.node_uuid == start_node.uuid);
-        
-        assert!(
-            start_node_entry.is_some(),
-            "堆栈中应该有入口节点条目"
-        );
-        
+
+        assert!(start_node_entry.is_some(), "堆栈中应该有入口节点条目");
+
         let entry = start_node_entry.unwrap();
         assert_eq!(
             entry.error,
@@ -1890,7 +2072,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true), // 第一个节点有断点
-        on_error: None,
+            on_error: None,
         };
 
         let second_node = Node {
@@ -1901,7 +2083,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None, // 第二个节点初始没有断点
-        on_error: None,
+            on_error: None,
         };
 
         let third_node = Node {
@@ -1912,7 +2094,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         let connection1 = Connection {
@@ -1931,7 +2113,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试动态断点".to_string(), description: None, nodes: vec![start_node.clone(), second_node.clone(), third_node.clone()], connections: vec![connection1, connection2], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "测试动态断点".to_string(),
+            description: None,
+            nodes: vec![start_node.clone(), second_node.clone(), third_node.clone()],
+            connections: vec![connection1, connection2],
+            hooks: None,
+        };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -2000,11 +2192,21 @@ mod tests {
 
         // 【关键断言1】应该暂停两次：第一个节点（初始断点）和第二个节点（动态断点）
         assert_eq!(paused_nodes.len(), 2, "应该暂停两次");
-        assert_eq!(paused_nodes[0], start_node.uuid, "第一次暂停应该在第一个节点");
-        assert_eq!(paused_nodes[1], second_node.uuid, "第二次暂停应该在第二个节点（动态断点）");
+        assert_eq!(
+            paused_nodes[0], start_node.uuid,
+            "第一次暂停应该在第一个节点"
+        );
+        assert_eq!(
+            paused_nodes[1], second_node.uuid,
+            "第二次暂停应该在第二个节点（动态断点）"
+        );
 
         // 【关键断言2】应该收到断点修改事件
-        assert_eq!(breakpoint_modified_events.len(), 1, "应该收到一个断点修改事件");
+        assert_eq!(
+            breakpoint_modified_events.len(),
+            1,
+            "应该收到一个断点修改事件"
+        );
         assert_eq!(breakpoint_modified_events[0].0, second_node.uuid);
         assert!(breakpoint_modified_events[0].1, "断点应该是启用状态");
     }
@@ -2025,7 +2227,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true),
-        on_error: None,
+            on_error: None,
         };
 
         let second_node = Node {
@@ -2036,7 +2238,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true), // 初始有断点
-        on_error: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -2047,7 +2249,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试动态移除断点".to_string(), description: None, nodes: vec![start_node.clone(), second_node.clone()], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "测试动态移除断点".to_string(),
+            description: None,
+            nodes: vec![start_node.clone(), second_node.clone()],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -2112,7 +2324,11 @@ mod tests {
         assert!(result.is_ok());
 
         // 【关键断言】应该只暂停一次（第一个节点），第二个节点因为断点被移除而不暂停
-        assert_eq!(paused_nodes.len(), 1, "应该只暂停一次（第二个节点断点被移除）");
+        assert_eq!(
+            paused_nodes.len(),
+            1,
+            "应该只暂停一次（第二个节点断点被移除）"
+        );
         assert_eq!(paused_nodes[0], start_node.uuid, "暂停应该在第一个节点");
     }
 }

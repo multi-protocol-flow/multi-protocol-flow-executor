@@ -3,8 +3,8 @@
 //! 实现 Kafka 消息消费功能，支持变量替换、取消信号检查和输出构建。
 //! 参照 `mqtt_subscribe_executor.rs` 模式实现。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -43,10 +43,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
 
         // 1. 检查取消信号
         if context.is_cancelled() {
-            log::info!(
-                "[Kafka] 消费节点被取消: uuid={}",
-                node.uuid
-            );
+            log::info!("[Kafka] 消费节点被取消: uuid={}", node.uuid);
             return Ok((vec![], None));
         }
 
@@ -62,10 +59,12 @@ impl NodeExecutor for KafkaConsumeExecutor {
         };
 
         // 3. 变量替换: connection_id, topic, group_id
-        let connection_id =
-            replace_variables(&config.connection_id, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("connection_id variable substitution failed: {}", e))
-            })?;
+        let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
+            ErrorDetail::execution_error(format!(
+                "connection_id variable substitution failed: {}",
+                e
+            ))
+        })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
             ErrorDetail::execution_error(format!("主题variable substitution failed: {}", e))
@@ -73,7 +72,10 @@ impl NodeExecutor for KafkaConsumeExecutor {
 
         let group_id = match &config.group_id {
             Some(gid) => Some(replace_variables(gid, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("group_id variable substitution failed: {}", e))
+                ErrorDetail::execution_error(format!(
+                    "group_id variable substitution failed: {}",
+                    e
+                ))
             })?),
             None => None,
         };
@@ -211,9 +213,10 @@ impl NodeExecutor for KafkaConsumeExecutor {
 
                 // 10. 端口路由
                 if !output.success
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output
                         .error
@@ -263,9 +266,11 @@ impl NodeExecutor for KafkaConsumeExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -302,14 +307,14 @@ fn route_to_port(node: &Node, connections: &[Connection], port: &str) -> Vec<Str
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::kafka_connection_manager::KafkaConnectionManager;
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::KafkaConsumeConfig;
     use flow_engine_core::traits::{
-        KafkaCloseOutput, KafkaConsumeOutput, KafkaConnectionInfo, KafkaMessageOutput,
+        KafkaCloseOutput, KafkaConnectionInfo, KafkaConsumeOutput, KafkaMessageOutput,
         KafkaTimingInfo,
     };
-    use crate::kafka_connection_manager::KafkaConnectionManager;
 
     // ---------------------------------------------------------------------------
     // 辅助工具
@@ -368,7 +373,7 @@ mod tests {
     // Mock KafkaProvider
     // ---------------------------------------------------------------------------
 
-    /// 模拟Success消费的 KafkaProvider
+    /// 模拟Success消费的 `KafkaProvider`
     struct MockKafkaProvider {
         consume_output: KafkaConsumeOutput,
     }
@@ -482,7 +487,7 @@ mod tests {
     // 测试用例
     // ---------------------------------------------------------------------------
 
-    /// 测试：消费不存在的连接 → 走 false 端口（使用真实 KafkaConnectionManager）
+    /// 测试：消费不存在的连接 → 走 false 端口（使用真实 `KafkaConnectionManager`）
     #[tokio::test]
     async fn test_consume_nonexistent_connection() {
         let kafka_manager = Arc::new(KafkaConnectionManager::new());
@@ -503,7 +508,7 @@ mod tests {
         assert!(data["error"].is_string());
     }
 
-    /// 测试：NodeData::KafkaConsume 提取Success（Mock）
+    /// `测试：NodeData::KafkaConsume` 提取Success（Mock）
     #[tokio::test]
     async fn test_consume_node_data_extraction() {
         let provider = Arc::new(MockKafkaProvider::new_success(vec![]));
@@ -530,17 +535,15 @@ mod tests {
     /// 测试：消费消息内容正确传递
     #[tokio::test]
     async fn test_consume_with_messages() {
-        let messages = vec![
-            KafkaMessageOutput {
-                topic: "test-topic".to_string(),
-                partition: 0,
-                offset: 100,
-                key: Some("key-1".to_string()),
-                value: Some(serde_json::json!({"message": "hello"})),
-                headers: vec![("trace-id".to_string(), "abc123".to_string())],
-                timestamp: Some(1700000000000),
-            },
-        ];
+        let messages = vec![KafkaMessageOutput {
+            topic: "test-topic".to_string(),
+            partition: 0,
+            offset: 100,
+            key: Some("key-1".to_string()),
+            value: Some(serde_json::json!({"message": "hello"})),
+            headers: vec![("trace-id".to_string(), "abc123".to_string())],
+            timestamp: Some(1700000000000),
+        }];
 
         let provider = Arc::new(MockKafkaProvider::new_success(messages));
         let executor = KafkaConsumeExecutor::new(provider);

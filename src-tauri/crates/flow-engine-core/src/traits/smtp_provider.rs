@@ -1,7 +1,7 @@
 //! SMTP 提供者抽象 trait
 
-use async_trait::async_trait;
 use crate::email_types::SmtpConfig;
+use async_trait::async_trait;
 
 /// SMTP 连接输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -84,10 +84,7 @@ pub trait SmtpProvider: Send + Sync {
     ) -> Result<SmtpSendOutput, String>;
 
     /// 断开 SMTP 连接
-    async fn disconnect(
-        &self,
-        connection_id: &str,
-    ) -> Result<SmtpDisconnectOutput, String>;
+    async fn disconnect(&self, connection_id: &str) -> Result<SmtpDisconnectOutput, String>;
 
     /// 测试 SMTP 连接
     async fn test_connection(&self, config: &SmtpConfig) -> Result<bool, String>;

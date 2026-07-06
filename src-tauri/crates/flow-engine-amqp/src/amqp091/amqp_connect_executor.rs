@@ -2,8 +2,8 @@
 //!
 //! 实现 AMQP 0-9-1 连接建立、变量替换和输出构建功能。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -12,9 +12,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{AmqpConnectConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// AMQP 连接节点执行器
@@ -215,8 +215,15 @@ impl NodeExecutor for AmqpConnectExecutor {
 
                 // 返回 false 端口
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP connect Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "AMQP connect Failed: {}",
+                        e
+                    )));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -249,14 +256,11 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
         Amqp10AcceptConfig, Amqp10ConnectConfig, Amqp10DisconnectConfig, Amqp10ReceiveConfig,
-        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig,
-        AmqpConsumeConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig, AmqpGetConfig,
-        AmqpManagementConfig, AmqpPublishConfig, AmqpQueueBindConfig, AmqpQueueDeclareConfig,
-        AmqpQueueDeleteConfig,
+        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig, AmqpConsumeConfig,
+        AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig, AmqpGetConfig, AmqpManagementConfig,
+        AmqpPublishConfig, AmqpQueueBindConfig, AmqpQueueDeclareConfig, AmqpQueueDeleteConfig,
     };
-    use flow_engine_core::traits::{
-        AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider,
-    };
+    use flow_engine_core::traits::{AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider};
 
     /// Mock AmqpProvider（连接Success）
     struct MockAmqpProvider {
@@ -634,7 +638,11 @@ mod tests {
     async fn test_amqp_connect_success_output_structure() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
         let executor = AmqpConnectExecutor::new(amqp_manager);
-        let node = create_test_node("test-1", "测试连接", "amqp://guest:guest@localhost:5672/%2f");
+        let node = create_test_node(
+            "test-1",
+            "测试连接",
+            "amqp://guest:guest@localhost:5672/%2f",
+        );
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -652,7 +660,10 @@ mod tests {
         assert_eq!(data["connection_id"], "test-conn-1");
         assert!(data["timing"]["connect_ms"].is_number());
         assert!(data["timing"]["total_ms"].is_number());
-        assert_eq!(data["request"]["url"], "amqp://guest:guest@localhost:5672/%2f");
+        assert_eq!(
+            data["request"]["url"],
+            "amqp://guest:guest@localhost:5672/%2f"
+        );
         // error 应为 null（Success时无Error）
         assert!(data["error"].is_null());
     }
@@ -727,16 +738,12 @@ mod tests {
         };
 
         let mut context = create_context("test-flow");
-        context.variables.set_variable(
-            "user".to_string(),
-            json!("admin"),
-            String::new(),
-        );
-        context.variables.set_variable(
-            "pass".to_string(),
-            json!("secret"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("user".to_string(), json!("admin"), String::new());
+        context
+            .variables
+            .set_variable("pass".to_string(), json!("secret"), String::new());
         context.variables.set_variable(
             "host".to_string(),
             json!("rabbitmq.example.com"),
@@ -760,7 +767,7 @@ mod tests {
         );
     }
 
-    /// 测试：默认 connection_id 回退到节点 UUID
+    /// 测试：默认 `connection_id` 回退到节点 UUID
     #[tokio::test]
     async fn test_amqp_connect_default_connection_id_fallback() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());

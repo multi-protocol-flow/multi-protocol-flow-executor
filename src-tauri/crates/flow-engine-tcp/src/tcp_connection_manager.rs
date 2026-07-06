@@ -752,7 +752,7 @@ mod tests {
         assert!(cloned.list_connections().is_empty());
     }
 
-    /// 测试 ConnectionStatus 转换
+    /// 测试 `ConnectionStatus` 转换
     #[test]
     fn test_connection_status_as_str() {
         assert_eq!(ConnectionStatus::Connecting.as_str(), "Connecting");
@@ -761,14 +761,14 @@ mod tests {
         assert_eq!(ConnectionStatus::Error.as_str(), "Error");
     }
 
-    /// 测试 ConnectionStatus Display
+    /// 测试 `ConnectionStatus` Display
     #[test]
     fn test_connection_status_display() {
         assert_eq!(format!("{}", ConnectionStatus::Connecting), "Connecting");
         assert_eq!(format!("{}", ConnectionStatus::Connected), "Connected");
     }
 
-    /// 测试 ActiveTcpConnection 创建
+    /// 测试 `ActiveTcpConnection` 创建
     #[test]
     fn test_active_connection_new() {
         let conn = ActiveTcpConnection::new(
@@ -791,7 +791,7 @@ mod tests {
         assert!(conn.created_at > 0);
     }
 
-    /// 测试 ActiveTcpConnection Error状态
+    /// 测试 `ActiveTcpConnection` Error状态
     #[test]
     fn test_active_connection_error() {
         let mut conn = ActiveTcpConnection::new(
@@ -809,7 +809,7 @@ mod tests {
         assert!(!conn.is_connected());
     }
 
-    /// 测试 ActiveTcpConnection to_connection_info
+    /// 测试 `ActiveTcpConnection` `to_connection_info`
     #[test]
     fn test_active_connection_to_info() {
         let conn = ActiveTcpConnection::new(
@@ -831,7 +831,7 @@ mod tests {
         assert!(info.last_error.is_none());
     }
 
-    /// 测试 ActiveTcpConnection Debug 输出
+    /// 测试 `ActiveTcpConnection` Debug 输出
     #[test]
     fn test_active_connection_debug() {
         let conn = ActiveTcpConnection::new(
@@ -891,7 +891,7 @@ mod tests {
         assert_eq!(status, Some("Error".to_string()));
     }
 
-    /// 测试 TLS 握手Failed（skip_verify 模式同样会Failed）
+    /// 测试 TLS `握手Failed（skip_verify` 模式同样会Failed）
     #[tokio::test]
     async fn test_tcp_connect_tls_skip_verify_handshake_failure() {
         // 创建一个明文 TCP 服务器（不说话 TLS）

@@ -1,6 +1,6 @@
 //! mpe run node subcommand — execute a single protocol node
 //!
-//! Calls FlowExecutor::execute_single_node() with the given JSON config.
+//! Calls `FlowExecutor::execute_single_node()` with the given JSON config.
 //! No flow traversal, no report persistence.
 
 use std::sync::Arc;
@@ -44,16 +44,14 @@ pub async fn execute(
     } else {
         let mut map = serde_json::Map::new();
         for (key, val) in vars {
-            let json_val = serde_json::from_str(val)
-                .unwrap_or(Value::String(val.clone()));
+            let json_val = serde_json::from_str(val).unwrap_or(Value::String(val.clone()));
             map.insert(key.clone(), json_val);
         }
         Some(Value::Object(map))
     };
 
     // 4. Build executor
-    let executor = FlowExecutor::new()
-        .with_hook_executor(Arc::new(DefaultHookExecutor::new()));
+    let executor = FlowExecutor::new().with_hook_executor(Arc::new(DefaultHookExecutor::new()));
 
     // 5. Execute single node
     let result = executor.execute_single_node(&node, variables, None).await;
@@ -79,7 +77,9 @@ pub async fn execute(
             eprintln!("Warning: failed to serialize output data");
         }
         Err(CliError::Execution(
-            result.error.unwrap_or_else(|| "Execution failed".to_string())
+            result
+                .error
+                .unwrap_or_else(|| "Execution failed".to_string()),
         ))
     }
 }
@@ -119,8 +119,8 @@ mod tests {
         } else {
             let mut map = serde_json::Map::new();
             for (key, val) in &vars {
-                let json_val = serde_json::from_str(val)
-                    .unwrap_or(serde_json::Value::String(val.clone()));
+                let json_val =
+                    serde_json::from_str(val).unwrap_or(serde_json::Value::String(val.clone()));
                 map.insert(key.clone(), json_val);
             }
             Some(serde_json::Value::Object(map))

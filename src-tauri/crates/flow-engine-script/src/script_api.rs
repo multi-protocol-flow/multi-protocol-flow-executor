@@ -470,7 +470,8 @@ impl ScriptExecutionContext {
         fn_obj.set("flow", flow_obj)?;
 
         // JS 包装：fn.flow.stop() 支持有参和无参两种调用方式
-        ctx.eval::<(), _>(r#"
+        ctx.eval::<(), _>(
+            r#"
             (function() {
                 var origStop = fn.flow._stop;
                 fn.flow.stop = function(message) {
@@ -480,7 +481,8 @@ impl ScriptExecutionContext {
                     return origStop(message);
                 };
             })();
-        "#)?;
+        "#,
+        )?;
 
         Ok(())
     }
@@ -631,7 +633,10 @@ impl ScriptExecutionContext {
                 use hmac::{Hmac, Mac};
                 use sha2::Sha256;
                 type HmacSha256 = Hmac<Sha256>;
-                let mut mac = HmacSha256::new_from_slice(key.as_bytes()).unwrap();
+                let mut mac = match HmacSha256::new_from_slice(key.as_bytes()) {
+                    Ok(m) => m,
+                    Err(_) => return String::new(),
+                };
                 mac.update(data.as_bytes());
                 hex::encode(mac.finalize().into_bytes())
             }),
@@ -644,7 +649,10 @@ impl ScriptExecutionContext {
                 use hmac::{Hmac, Mac};
                 use sha2::Sha512;
                 type HmacSha512 = Hmac<Sha512>;
-                let mut mac = HmacSha512::new_from_slice(key.as_bytes()).unwrap();
+                let mut mac = match HmacSha512::new_from_slice(key.as_bytes()) {
+                    Ok(m) => m,
+                    Err(_) => return String::new(),
+                };
                 mac.update(data.as_bytes());
                 hex::encode(mac.finalize().into_bytes())
             }),
@@ -1335,7 +1343,10 @@ impl ScriptExecutionContext {
         let expect_fn: Value = ctx.eval(expect_code)?;
 
         // 获取 expect 函数对象
-        let expect_obj = expect_fn.clone().into_object().unwrap();
+        let expect_obj = expect_fn
+            .clone()
+            .into_object()
+            .ok_or(rquickjs::Error::Unknown)?;
 
         // 获取或创建 fn 对象
         let fn_obj: Object = match ctx.globals().get("fn") {
@@ -1604,8 +1615,7 @@ mod tests {
 
             // 测试 raw 属性 - 完整原始输出
             let raw_str: String = ctx.eval("fn.response.raw").catch(&ctx).unwrap();
-            let raw_parsed: serde_json::Value =
-                serde_json::from_str(&raw_str).unwrap();
+            let raw_parsed: serde_json::Value = serde_json::from_str(&raw_str).unwrap();
             assert_eq!(raw_parsed["status"], 200);
             assert_eq!(raw_parsed["body"]["token"], "abc123");
         });
@@ -1705,17 +1715,18 @@ mod tests {
 
             // 通过 raw 访问完整输出
             let raw_str: String = ctx.eval("fn.response.raw").catch(&ctx).unwrap();
-            let raw_parsed: serde_json::Value =
-                serde_json::from_str(&raw_str).unwrap();
+            let raw_parsed: serde_json::Value = serde_json::from_str(&raw_str).unwrap();
             assert_eq!(raw_parsed["rows"][0]["name"], "Alice");
             assert_eq!(raw_parsed["affected"], 2);
 
             // 验证可以 JSON.parse + 遍历
             let names: String = ctx
-                .eval(r#"
+                .eval(
+                    r#"
                     var data = JSON.parse(fn.response.raw);
                     JSON.stringify(data.rows.map(function(r) { return r.name; }))
-                "#)
+                "#,
+                )
                 .catch(&ctx)
                 .unwrap();
             assert_eq!(names, r#"["Alice","Bob"]"#);
@@ -1911,9 +1922,15 @@ mod tests {
             // 测试带消息的 stop
             script_ctx.should_stop.replace(false);
             script_ctx.stop_message.replace(None);
-            let _: () = ctx.eval("fn.flow.stop('自定义终止消息')").catch(&ctx).unwrap();
+            let _: () = ctx
+                .eval("fn.flow.stop('自定义终止消息')")
+                .catch(&ctx)
+                .unwrap();
             assert!(*script_ctx.should_stop.borrow());
-            assert_eq!(*script_ctx.stop_message.borrow(), Some("自定义终止消息".to_string()));
+            assert_eq!(
+                *script_ctx.stop_message.borrow(),
+                Some("自定义终止消息".to_string())
+            );
         });
     }
 

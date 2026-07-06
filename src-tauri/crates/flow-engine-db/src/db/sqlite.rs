@@ -104,7 +104,10 @@ impl SqliteConnection {
         let connection_string = config.connection_string.clone().unwrap_or_else(|| {
             // 如果没有提供连接字符串，使用默认路径
             // 对于 SQLite，database 字段可以作为文件名
-            config.database.clone().unwrap_or_else(|| ":memory:".to_string())
+            config
+                .database
+                .clone()
+                .unwrap_or_else(|| ":memory:".to_string())
         });
 
         Self::new(
@@ -140,12 +143,12 @@ impl DatabasePool for SqliteConnection {
     ///
     /// * `Ok(QueryResult)` - 查询Success
     /// * `Err(String)` - 查询Failed
-    async fn execute(&self, sql: &str, params: Vec<serde_json::Value>) -> Result<QueryResult, String> {
-        log::debug!(
-            "[SQLite] 执行查询: sql={}, params={:?}",
-            sql,
-            params
-        );
+    async fn execute(
+        &self,
+        sql: &str,
+        params: Vec<serde_json::Value>,
+    ) -> Result<QueryResult, String> {
+        log::debug!("[SQLite] 执行查询: sql={}, params={:?}", sql, params);
 
         // 增加活跃连接计数
         {
@@ -481,21 +484,34 @@ impl SqliteConnection {
 
         // 尝试获取不同类型的值
         if let Ok(v) = row.try_get::<Option<i64>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
         if let Ok(v) = row.try_get::<Option<f64>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
         if let Ok(v) = row.try_get::<Option<String>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
         if let Ok(v) = row.try_get::<Option<bool>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
         // 尝试获取字节数组
         if let Ok(v) = row.try_get::<Option<Vec<u8>>, _>(col_name) {
             return v
-                .map(|bytes| serde_json::Value::String(base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes)))
+                .map(|bytes| {
+                    serde_json::Value::String(base64::Engine::encode(
+                        &base64::engine::general_purpose::STANDARD,
+                        &bytes,
+                    ))
+                })
                 .unwrap_or(serde_json::Value::Null);
         }
 
@@ -514,14 +530,9 @@ mod tests {
     #[tokio::test]
     async fn test_sqlite_connection_memory() {
         // 创建内存数据库连接池
-        let conn = SqliteConnection::new(
-            "test-memory".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn = SqliteConnection::new("test-memory".to_string(), ":memory:".to_string(), 1, 5)
+            .await
+            .unwrap();
 
         assert_eq!(conn.name(), "test-memory");
         assert_eq!(conn.connection_string(), ":memory:");
@@ -530,14 +541,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_test_connection() {
-        let conn = SqliteConnection::new(
-            "test-conn".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn = SqliteConnection::new("test-conn".to_string(), ":memory:".to_string(), 1, 5)
+            .await
+            .unwrap();
 
         // 测试连接
         let result = conn.test_connection().await;
@@ -546,14 +552,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_execute_select() {
-        let conn = SqliteConnection::new(
-            "test-select".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn = SqliteConnection::new("test-select".to_string(), ":memory:".to_string(), 1, 5)
+            .await
+            .unwrap();
 
         // 执行 SELECT 1
         let result = conn.execute("SELECT 1 AS value", vec![]).await.unwrap();
@@ -565,14 +566,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_execute_insert_and_select() {
-        let conn = SqliteConnection::new(
-            "test-insert".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn = SqliteConnection::new("test-insert".to_string(), ":memory:".to_string(), 1, 5)
+            .await
+            .unwrap();
 
         // 创建表
         let create_result = conn
@@ -595,10 +591,7 @@ mod tests {
         assert_eq!(insert_result.affected_rows, 1);
 
         // 查询数据
-        let select_result = conn
-            .execute("SELECT * FROM users", vec![])
-            .await
-            .unwrap();
+        let select_result = conn.execute("SELECT * FROM users", vec![]).await.unwrap();
         assert_eq!(select_result.rows.len(), 1);
         assert_eq!(select_result.row_count, 1);
         assert!(select_result.columns.contains(&"id".to_string()));
@@ -613,14 +606,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_execute_update() {
-        let conn = SqliteConnection::new(
-            "test-update".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn = SqliteConnection::new("test-update".to_string(), ":memory:".to_string(), 1, 5)
+            .await
+            .unwrap();
 
         // 创建表并插入数据
         conn.execute(
@@ -649,7 +637,10 @@ mod tests {
 
         // 验证更新
         let select_result = conn
-            .execute("SELECT price FROM products WHERE name = ?", vec![serde_json::json!("Widget")])
+            .execute(
+                "SELECT price FROM products WHERE name = ?",
+                vec![serde_json::json!("Widget")],
+            )
             .await
             .unwrap();
         let row = &select_result.rows[0];
@@ -658,14 +649,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_execute_delete() {
-        let conn = SqliteConnection::new(
-            "test-delete".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn = SqliteConnection::new("test-delete".to_string(), ":memory:".to_string(), 1, 5)
+            .await
+            .unwrap();
 
         // 创建表并插入数据
         conn.execute(
@@ -699,14 +685,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_close() {
-        let conn = SqliteConnection::new(
-            "test-close".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn = SqliteConnection::new("test-close".to_string(), ":memory:".to_string(), 1, 5)
+            .await
+            .unwrap();
 
         // 关闭连接池
         conn.close().await;
@@ -717,14 +698,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_status_info() {
-        let conn = SqliteConnection::new(
-            "test-status".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn = SqliteConnection::new("test-status".to_string(), ":memory:".to_string(), 1, 5)
+            .await
+            .unwrap();
 
         let status = conn.status_info();
         assert!(status.contains("test-status"));
@@ -733,7 +709,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_from_config() {
-        use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+        use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
         let config = DbConnection {
             id: "test-001".to_string(),
@@ -765,7 +741,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_from_config_with_database() {
-        use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+        use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
         // 使用 database 字段作为文件名
         let config = DbConnection {
@@ -794,39 +770,29 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_empty_result() {
-        let conn = SqliteConnection::new(
-            "test-empty".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn = SqliteConnection::new("test-empty".to_string(), ":memory:".to_string(), 1, 5)
+            .await
+            .unwrap();
 
         // 创建表
-        conn.execute(
-            "CREATE TABLE empty_table (id INTEGER PRIMARY KEY)",
-            vec![],
-        )
-        .await
-        .unwrap();
+        conn.execute("CREATE TABLE empty_table (id INTEGER PRIMARY KEY)", vec![])
+            .await
+            .unwrap();
 
         // 查询空表
-        let result = conn.execute("SELECT * FROM empty_table", vec![]).await.unwrap();
+        let result = conn
+            .execute("SELECT * FROM empty_table", vec![])
+            .await
+            .unwrap();
         assert_eq!(result.rows.len(), 0);
         assert_eq!(result.row_count, 0);
     }
 
     #[tokio::test]
     async fn test_sqlite_param_types() {
-        let conn = SqliteConnection::new(
-            "test-params".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn = SqliteConnection::new("test-params".to_string(), ":memory:".to_string(), 1, 5)
+            .await
+            .unwrap();
 
         // 创建表
         conn.execute(
@@ -851,7 +817,10 @@ mod tests {
         .unwrap();
 
         // 查询并验证
-        let result = conn.execute("SELECT * FROM test_types", vec![]).await.unwrap();
+        let result = conn
+            .execute("SELECT * FROM test_types", vec![])
+            .await
+            .unwrap();
         assert_eq!(result.rows.len(), 1);
 
         let row = &result.rows[0];
@@ -864,14 +833,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_transaction_commit() {
-        let conn = SqliteConnection::new(
-            "test-tx-commit".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn =
+            SqliteConnection::new("test-tx-commit".to_string(), ":memory:".to_string(), 1, 5)
+                .await
+                .unwrap();
 
         // 创建表
         conn.execute(
@@ -893,20 +858,14 @@ mod tests {
         .unwrap();
 
         // 事务内查询可以看到数据
-        let result = conn
-            .execute("SELECT * FROM tx_test", vec![])
-            .await
-            .unwrap();
+        let result = conn.execute("SELECT * FROM tx_test", vec![]).await.unwrap();
         assert_eq!(result.rows.len(), 1);
 
         // 提交事务
         conn.commit_db_transaction().await.unwrap();
 
         // 提交后数据仍然可见
-        let result = conn
-            .execute("SELECT * FROM tx_test", vec![])
-            .await
-            .unwrap();
+        let result = conn.execute("SELECT * FROM tx_test", vec![]).await.unwrap();
         assert_eq!(result.rows.len(), 1);
         let row = &result.rows[0];
         assert_eq!(row.get("value"), Some(&serde_json::json!("tx_data")));
@@ -914,14 +873,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_transaction_rollback() {
-        let conn = SqliteConnection::new(
-            "test-tx-rollback".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn =
+            SqliteConnection::new("test-tx-rollback".to_string(), ":memory:".to_string(), 1, 5)
+                .await
+                .unwrap();
 
         // 创建表
         conn.execute(
@@ -955,14 +910,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_transaction_no_double_begin() {
-        let conn = SqliteConnection::new(
-            "test-tx-nested".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn =
+            SqliteConnection::new("test-tx-nested".to_string(), ":memory:".to_string(), 1, 5)
+                .await
+                .unwrap();
 
         // 开始事务
         conn.begin_db_transaction(None).await.unwrap();
@@ -978,14 +929,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_sqlite_transaction_commit_without_begin() {
-        let conn = SqliteConnection::new(
-            "test-tx-no-begin".to_string(),
-            ":memory:".to_string(),
-            1,
-            5,
-        )
-        .await
-        .unwrap();
+        let conn =
+            SqliteConnection::new("test-tx-no-begin".to_string(), ":memory:".to_string(), 1, 5)
+                .await
+                .unwrap();
 
         // 未开始事务直接提交应报错
         let result = conn.commit_db_transaction().await;

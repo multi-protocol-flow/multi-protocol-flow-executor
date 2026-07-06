@@ -105,10 +105,7 @@ impl SseClient {
 
         let status = response.status();
         if !status.is_success() {
-            return Err(format!(
-                "SSE connection failed: HTTP {}",
-                status.as_u16()
-            ));
+            return Err(format!("SSE connection failed: HTTP {}", status.as_u16()));
         }
 
         info!("SSE 连接Success: {}", config.url);
@@ -165,7 +162,9 @@ impl SseClient {
 
             // 逐行处理
             while let Some(newline_pos) = line_buffer.find('\n') {
-                let line = line_buffer[..newline_pos].trim_end_matches('\r').to_string();
+                let line = line_buffer[..newline_pos]
+                    .trim_end_matches('\r')
+                    .to_string();
                 line_buffer = line_buffer[newline_pos + 1..].to_string();
 
                 if line.is_empty() {
@@ -288,7 +287,10 @@ mod tests {
     // ---- 行解析逻辑测试（通过模拟字节流） ----
 
     /// 辅助：从 broadcast channel 收集所有事件（直到流结束或超时）
-    async fn collect_events(mut rx: broadcast::Receiver<SseEvent>, timeout_ms: u64) -> Vec<SseEvent> {
+    async fn collect_events(
+        mut rx: broadcast::Receiver<SseEvent>,
+        timeout_ms: u64,
+    ) -> Vec<SseEvent> {
         let timeout = if timeout_ms > 0 {
             Duration::from_millis(timeout_ms)
         } else {
@@ -454,9 +456,9 @@ mod tests {
     // ---- 辅助函数：构造 mock Response ----
 
     /// 使用 wiremock 或 mockito 不太方便，这里用 reqwest Response 构造
-    /// 由于无法直接构造 reqwest::Response，使用 tokio channel 模拟
+    /// 由于无法直接构造 `reqwest::Response，使用` tokio channel 模拟
     ///
-    /// 实际上 reqwest 的 bytes_stream 来自 Response，我们需要一个真正的 HTTP 服务
+    /// 实际上 reqwest 的 `bytes_stream` 来自 Response，我们需要一个真正的 HTTP 服务
     /// 或者使用 mock。但为了避免复杂依赖，这里使用一个简单的内部 HTTP 服务器。
     async fn mock_response(body: &str) -> Response {
         // 初始化 rustls crypto provider（在测试中 reqwest 需要）
@@ -465,7 +467,8 @@ mod tests {
         // 使用 tokio::spawn 启动一个临时 HTTP 服务器
         let body_bytes = body.as_bytes().to_vec();
 
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
             .expect("绑定端口Failed");
         let addr = listener.local_addr().expect("获取地址Failed");
 

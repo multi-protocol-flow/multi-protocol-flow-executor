@@ -1,15 +1,15 @@
 //! Redis 连接执行器
 
 use async_trait::async_trait;
-use flow_engine_core::error::ErrorDetail;
-use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::connection::Connection;
-use flow_engine_core::executor::{NodeExecutor, replace_variables};
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
+use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::RedisProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -44,11 +44,16 @@ impl NodeExecutor for RedisConnectExecutor {
 
         let config = match &node.data {
             NodeData::RedisConnect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error("[E_REDIS_CONNECTION] Node data is not RedisConnectConfig".to_string())),
+            _ => {
+                return Err(ErrorDetail::execution_error(
+                    "[E_REDIS_CONNECTION] Node data is not RedisConnectConfig".to_string(),
+                ))
+            }
         };
 
         // 变量替换
-        let host = replace_variables(&config.host, context).map_err(ErrorDetail::execution_error)?;
+        let host =
+            replace_variables(&config.host, context).map_err(ErrorDetail::execution_error)?;
         let password = config
             .password
             .as_ref()
@@ -59,7 +64,10 @@ impl NodeExecutor for RedisConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("Connecting to Redis: {}:{} (db: {})", host, config.port, config.db_index),
+                message: format!(
+                    "Connecting to Redis: {}:{} (db: {})",
+                    host, config.port, config.db_index
+                ),
                 node_uuid: Some(node.uuid.clone()),
                 ..Default::default()
             })
@@ -67,14 +75,28 @@ impl NodeExecutor for RedisConnectExecutor {
 
         let result = match self
             .redis_manager
-            .connect(&node.uuid, &host, config.port, password.as_deref(), config.db_index, config.connect_timeout_ms)
+            .connect(
+                &node.uuid,
+                &host,
+                config.port,
+                password.as_deref(),
+                config.db_index,
+                config.connect_timeout_ms,
+            )
             .await
         {
             Ok(r) => r,
             Err(e) => {
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("[E_REDIS_CONNECTION] Redis connection failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "[E_REDIS_CONNECTION] Redis connection failed: {}",
+                        e
+                    )));
                 }
                 let elapsed = start_time.elapsed().as_millis() as u64;
                 let error_output = json!({

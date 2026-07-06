@@ -1,6 +1,6 @@
 // 节点配置模块 - 强类型节点配置定义
 
-use crate::traits::{FramingConfig, GrpcServiceInfo, GraphqlQueryTemplate, TcpFramingMode};
+use crate::traits::{FramingConfig, GraphqlQueryTemplate, GrpcServiceInfo, TcpFramingMode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -1204,8 +1204,7 @@ fn default_mcp_protocol_version() -> String {
 }
 
 /// MCP Call Tool 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct McpCallToolConfig {
     /// 连接 ID（引用 `mcp_connect` 节点的 UUID）
     pub connection_id: String,
@@ -1216,17 +1215,14 @@ pub struct McpCallToolConfig {
     pub arguments: Option<serde_json::Value>,
 }
 
-
 /// MCP Read Resource 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct McpReadResourceConfig {
     /// 连接 ID（引用 `mcp_connect` 节点的 UUID）
     pub connection_id: String,
     /// 资源 URI
     pub resource_uri: String,
 }
-
 
 /// MCP Close 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -1236,8 +1232,7 @@ pub struct McpCloseConfig {
 }
 
 /// MCP Get Prompt 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct McpGetPromptConfig {
     /// 连接 ID（引用 `mcp_connect` 节点的 UUID）
     pub connection_id: String,
@@ -1247,7 +1242,6 @@ pub struct McpGetPromptConfig {
     #[serde(default)]
     pub arguments: std::collections::HashMap<String, String>,
 }
-
 
 // ============================================================================
 // TCP 节点配置
@@ -3737,10 +3731,7 @@ impl<'de> serde::Deserialize<'de> for NodeData {
     {
         // 先反序列化为通用的 Map，提取 type 字段
         let value = serde_json::Value::deserialize(deserializer)?;
-        let type_str = value
-            .get("type")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let type_str = value.get("type").and_then(|v| v.as_str()).unwrap_or("");
 
         // 尝试按已知类型反序列化
         match type_str {
@@ -3864,15 +3855,19 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "kafka_consume" => serde_json::from_value::<KafkaConsumeConfig>(value.clone())
                 .map(NodeData::KafkaConsume)
                 .map_err(serde::de::Error::custom),
-            "kafka_consume_batch" => serde_json::from_value::<KafkaConsumeBatchConfig>(value.clone())
-                .map(NodeData::KafkaConsumeBatch)
-                .map_err(serde::de::Error::custom),
+            "kafka_consume_batch" => {
+                serde_json::from_value::<KafkaConsumeBatchConfig>(value.clone())
+                    .map(NodeData::KafkaConsumeBatch)
+                    .map_err(serde::de::Error::custom)
+            }
             "kafka_admin" => serde_json::from_value::<KafkaAdminConfig>(value.clone())
                 .map(NodeData::KafkaAdmin)
                 .map_err(serde::de::Error::custom),
-            "kafka_schema_registry" => serde_json::from_value::<KafkaSchemaRegistryConfig>(value.clone())
-                .map(NodeData::KafkaSchemaRegistry)
-                .map_err(serde::de::Error::custom),
+            "kafka_schema_registry" => {
+                serde_json::from_value::<KafkaSchemaRegistryConfig>(value.clone())
+                    .map(NodeData::KafkaSchemaRegistry)
+                    .map_err(serde::de::Error::custom)
+            }
             "kafka_close" => serde_json::from_value::<KafkaCloseConfig>(value.clone())
                 .map(NodeData::KafkaClose)
                 .map_err(serde::de::Error::custom),
@@ -3896,12 +3891,16 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "graphql_subscribe" => serde_json::from_value::<GraphqlSubscribeConfig>(value.clone())
                 .map(NodeData::GraphqlSubscribe)
                 .map_err(serde::de::Error::custom),
-            "graphql_introspect" => serde_json::from_value::<GraphqlIntrospectConfig>(value.clone())
-                .map(NodeData::GraphqlIntrospect)
-                .map_err(serde::de::Error::custom),
-            "graphql_disconnect" => serde_json::from_value::<GraphqlDisconnectConfig>(value.clone())
-                .map(NodeData::GraphqlDisconnect)
-                .map_err(serde::de::Error::custom),
+            "graphql_introspect" => {
+                serde_json::from_value::<GraphqlIntrospectConfig>(value.clone())
+                    .map(NodeData::GraphqlIntrospect)
+                    .map_err(serde::de::Error::custom)
+            }
+            "graphql_disconnect" => {
+                serde_json::from_value::<GraphqlDisconnectConfig>(value.clone())
+                    .map(NodeData::GraphqlDisconnect)
+                    .map_err(serde::de::Error::custom)
+            }
             // AMQP 0-9-1 节点
             "amqp_connect" => serde_json::from_value::<AmqpConnectConfig>(value.clone())
                 .map(NodeData::AmqpConnect)
@@ -3909,12 +3908,16 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "amqp_close" => serde_json::from_value::<AmqpCloseConfig>(value.clone())
                 .map(NodeData::AmqpClose)
                 .map_err(serde::de::Error::custom),
-            "amqp_exchange_declare" => serde_json::from_value::<AmqpExchangeDeclareConfig>(value.clone())
-                .map(NodeData::AmqpExchangeDeclare)
-                .map_err(serde::de::Error::custom),
-            "amqp_exchange_delete" => serde_json::from_value::<AmqpExchangeDeleteConfig>(value.clone())
-                .map(NodeData::AmqpExchangeDelete)
-                .map_err(serde::de::Error::custom),
+            "amqp_exchange_declare" => {
+                serde_json::from_value::<AmqpExchangeDeclareConfig>(value.clone())
+                    .map(NodeData::AmqpExchangeDeclare)
+                    .map_err(serde::de::Error::custom)
+            }
+            "amqp_exchange_delete" => {
+                serde_json::from_value::<AmqpExchangeDeleteConfig>(value.clone())
+                    .map(NodeData::AmqpExchangeDelete)
+                    .map_err(serde::de::Error::custom)
+            }
             "amqp_queue_declare" => serde_json::from_value::<AmqpQueueDeclareConfig>(value.clone())
                 .map(NodeData::AmqpQueueDeclare)
                 .map_err(serde::de::Error::custom),
@@ -4021,9 +4024,11 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "proxy" => serde_json::from_value::<ProxyConfig>(value.clone())
                 .map(NodeData::Proxy)
                 .map_err(serde::de::Error::custom),
-            "variable_extractor" => serde_json::from_value::<VariableExtractorConfig>(value.clone())
-                .map(NodeData::VariableExtractor)
-                .map_err(serde::de::Error::custom),
+            "variable_extractor" => {
+                serde_json::from_value::<VariableExtractorConfig>(value.clone())
+                    .map(NodeData::VariableExtractor)
+                    .map_err(serde::de::Error::custom)
+            }
             "end" => Ok(NodeData::End(EndConfig)),
             // 未知 type → 兜底到 Plugin
             _ => Ok(NodeData::Plugin(value)),
@@ -4285,7 +4290,11 @@ impl NodeData {
     }
 
     /// 创建 `GrpcCall` 节点配置
-    pub fn grpc_call(connection_id: impl Into<String>, service_name: impl Into<String>, method_name: impl Into<String>) -> Self {
+    pub fn grpc_call(
+        connection_id: impl Into<String>,
+        service_name: impl Into<String>,
+        method_name: impl Into<String>,
+    ) -> Self {
         Self::GrpcCall(GrpcCallConfig {
             connection_id: connection_id.into(),
             service_name: service_name.into(),
@@ -4319,7 +4328,10 @@ impl NodeData {
     }
 
     /// 创建 MCP Read Resource 节点配置
-    pub fn mcp_read_resource(connection_id: impl Into<String>, resource_uri: impl Into<String>) -> Self {
+    pub fn mcp_read_resource(
+        connection_id: impl Into<String>,
+        resource_uri: impl Into<String>,
+    ) -> Self {
         Self::McpReadResource(McpReadResourceConfig {
             connection_id: connection_id.into(),
             resource_uri: resource_uri.into(),
@@ -4334,7 +4346,10 @@ impl NodeData {
     }
 
     /// 创建 MCP Get Prompt 节点配置
-    pub fn mcp_get_prompt(connection_id: impl Into<String>, prompt_name: impl Into<String>) -> Self {
+    pub fn mcp_get_prompt(
+        connection_id: impl Into<String>,
+        prompt_name: impl Into<String>,
+    ) -> Self {
         Self::McpGetPrompt(McpGetPromptConfig {
             connection_id: connection_id.into(),
             prompt_name: prompt_name.into(),
@@ -4930,14 +4945,8 @@ mod tests {
         match data {
             NodeData::Plugin(val) => {
                 // 原始 JSON（含 type 字段）应完整保留
-                assert_eq!(
-                    val.get("type").unwrap().as_str(),
-                    Some("grpc_request")
-                );
-                assert_eq!(
-                    val.get("url").unwrap().as_str(),
-                    Some("http://example.com")
-                );
+                assert_eq!(val.get("type").unwrap().as_str(), Some("grpc_request"));
+                assert_eq!(val.get("url").unwrap().as_str(), Some("http://example.com"));
             }
             _ => panic!("Expected Plugin variant for unknown type"),
         }
@@ -4992,7 +5001,10 @@ mod tests {
         let data: NodeData = serde_json::from_str(json).unwrap();
         match data {
             NodeData::DbConnect(config) => {
-                assert_eq!(config.connection_string, Some("postgres://localhost/test".to_string()));
+                assert_eq!(
+                    config.connection_string,
+                    Some("postgres://localhost/test".to_string())
+                );
             }
             _ => panic!("Expected DbConnect variant"),
         }
@@ -5010,8 +5022,14 @@ mod tests {
 
         match &data {
             NodeData::Plugin(val) => {
-                assert_eq!(val.get("type").and_then(|v| v.as_str()), Some("custom_grpc"));
-                assert_eq!(val.get("endpoint").and_then(|v| v.as_str()), Some("localhost:50051"));
+                assert_eq!(
+                    val.get("type").and_then(|v| v.as_str()),
+                    Some("custom_grpc")
+                );
+                assert_eq!(
+                    val.get("endpoint").and_then(|v| v.as_str()),
+                    Some("localhost:50051")
+                );
             }
             _ => panic!("Expected Plugin variant for unknown type"),
         }
@@ -5260,7 +5278,8 @@ mod tests {
 
     #[test]
     fn test_node_data_udp_bind_roundtrip() {
-        let json = r#"{"type":"udp_bind","local_addr":"0.0.0.0","local_port":9090,"reuse_addr":true}"#;
+        let json =
+            r#"{"type":"udp_bind","local_addr":"0.0.0.0","local_port":9090,"reuse_addr":true}"#;
         let data: NodeData = serde_json::from_str(json).unwrap();
         assert_eq!(data.type_name(), "udp_bind");
         match &data {

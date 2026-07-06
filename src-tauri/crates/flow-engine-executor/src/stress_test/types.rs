@@ -501,7 +501,7 @@ mod tests {
         assert_eq!(deserialized, StressTestStatus::Running);
     }
 
-    /// 测试 flow_snapshot 序列化往返（camelCase 键名）
+    /// 测试 `flow_snapshot` 序列化往返（camelCase 键名）
     #[test]
     fn test_stress_test_report_snapshot_serialization() {
         let flow = flow_engine_core::flow::Flow {
@@ -543,7 +543,7 @@ mod tests {
         assert_eq!(deserialized.flow_snapshot, Some(flow));
     }
 
-    /// 测试 flow_snapshot 向后兼容（JSON 中缺少字段时反序列化为 None）
+    /// 测试 `flow_snapshot` 向后兼容（JSON 中缺少字段时反序列化为 None）
     #[test]
     fn test_stress_test_report_snapshot_backward_compat() {
         let json = r#"{
@@ -582,7 +582,7 @@ mod tests {
         assert!(report.flow_snapshot.is_none());
     }
 
-    /// 测试 flow_snapshot 为 None 时序列化结果不包含该字段
+    /// 测试 `flow_snapshot` 为 None 时序列化结果不包含该字段
     #[test]
     fn test_stress_test_report_snapshot_skip_when_none() {
         let report = StressTestReport {

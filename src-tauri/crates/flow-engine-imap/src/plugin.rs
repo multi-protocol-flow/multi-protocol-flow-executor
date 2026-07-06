@@ -17,8 +17,8 @@
 // 以及 ImapPluginGroup 批量注册辅助。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
@@ -30,15 +30,25 @@ macro_rules! get_imap_manager {
     ($context:expr) => {
         $context
             .get_provider::<crate::imap_connection_manager::ImapConnectionManager>("imap")
-            .unwrap_or_else(|| Arc::new(crate::imap_connection_manager::ImapConnectionManager::new()))
+            .unwrap_or_else(|| {
+                Arc::new(crate::imap_connection_manager::ImapConnectionManager::new())
+            })
     };
 }
 
 // true/false 端口定义
 fn true_false_ports(success_label: &str, fail_label: &str) -> Vec<PortDef> {
     vec![
-        PortDef { id: "true".into(), label: success_label.into(), position: "right".into() },
-        PortDef { id: "false".into(), label: fail_label.into(), position: "bottom".into() },
+        PortDef {
+            id: "true".into(),
+            label: success_label.into(),
+            position: "right".into(),
+        },
+        PortDef {
+            id: "false".into(),
+            label: fail_label.into(),
+            position: "bottom".into(),
+        },
     ]
 }
 
@@ -65,11 +75,21 @@ pub struct ImapConnectPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapConnectPlugin {
-    fn type_id(&self) -> &str { "imap_connect" }
-    fn display_name(&self) -> &str { "IMAP Connect" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
+    fn type_id(&self) -> &str {
+        "imap_connect"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP Connect"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
 
     fn ports(&self) -> Vec<PortDef> {
         true_false_ports("Success", "Failure")
@@ -83,15 +103,23 @@ impl NodePlugin for ImapConnectPlugin {
         resolve_success_port(output)
     }
 
-    fn is_protocol_node(&self) -> bool { true }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({ "host": config.get("host"), "port": config.get("port"), "tls_mode": config.get("tls_mode") }))
+        Some(
+            serde_json::json!({ "host": config.get("host"), "port": config.get("port"), "tls_mode": config.get("tls_mode") }),
+        )
     }
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("host").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("host")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "host".into(),
                 message: "host must not be empty".into(),
@@ -107,7 +135,11 @@ impl NodePlugin for ImapConnectPlugin {
         errors
     }
 
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -125,30 +157,56 @@ pub struct ImapSelectPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapSelectPlugin {
-    fn type_id(&self) -> &str { "imap_select" }
-    fn display_name(&self) -> &str { "IMAP Select Mailbox" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
+    fn type_id(&self) -> &str {
+        "imap_select"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP Select Mailbox"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
 
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
+    fn ports(&self) -> Vec<PortDef> {
+        true_false_ports("Success", "Failure")
+    }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "mailbox": "INBOX", "readonly": false })
     }
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
-    fn is_protocol_node(&self) -> bool { true }
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        resolve_success_port(output)
+    }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({ "connection_id": config.get("connection_id"), "mailbox": config.get("mailbox") }))
+        Some(
+            serde_json::json!({ "connection_id": config.get("connection_id"), "mailbox": config.get("mailbox") }),
+        )
     }
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("mailbox").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("mailbox")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "mailbox".into(),
                 message: "mailbox must not be empty".into(),
@@ -156,7 +214,11 @@ impl NodePlugin for ImapSelectPlugin {
         }
         errors
     }
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -174,29 +236,55 @@ pub struct ImapSearchPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapSearchPlugin {
-    fn type_id(&self) -> &str { "imap_search" }
-    fn display_name(&self) -> &str { "IMAP Search" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
+    fn type_id(&self) -> &str {
+        "imap_search"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP Search"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
+    fn ports(&self) -> Vec<PortDef> {
+        true_false_ports("Success", "Failure")
+    }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "criteria": "ALL" })
     }
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
-    fn is_protocol_node(&self) -> bool { true }
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        resolve_success_port(output)
+    }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({ "connection_id": config.get("connection_id"), "criteria": config.get("criteria") }))
+        Some(
+            serde_json::json!({ "connection_id": config.get("connection_id"), "criteria": config.get("criteria") }),
+        )
     }
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("criteria").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("criteria")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "criteria".into(),
                 message: "criteria must not be empty".into(),
@@ -204,7 +292,11 @@ impl NodePlugin for ImapSearchPlugin {
         }
         errors
     }
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -222,29 +314,55 @@ pub struct ImapFetchPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapFetchPlugin {
-    fn type_id(&self) -> &str { "imap_fetch" }
-    fn display_name(&self) -> &str { "IMAP Fetch" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
+    fn type_id(&self) -> &str {
+        "imap_fetch"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP Fetch"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
+    fn ports(&self) -> Vec<PortDef> {
+        true_false_ports("Success", "Failure")
+    }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "uids": "1:*", "fetch_items": "(ENVELOPE BODY.PEEK[] FLAGS)", "max_fetch_count": 50, "max_size_bytes": 5242880 })
     }
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
-    fn is_protocol_node(&self) -> bool { true }
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        resolve_success_port(output)
+    }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({ "connection_id": config.get("connection_id"), "uids": config.get("uids") }))
+        Some(
+            serde_json::json!({ "connection_id": config.get("connection_id"), "uids": config.get("uids") }),
+        )
     }
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("uids").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("uids")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "uids".into(),
                 message: "uids must not be empty".into(),
@@ -252,7 +370,11 @@ impl NodePlugin for ImapFetchPlugin {
         }
         errors
     }
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -270,35 +392,65 @@ pub struct ImapStoreFlagsPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapStoreFlagsPlugin {
-    fn type_id(&self) -> &str { "imap_store_flags" }
-    fn display_name(&self) -> &str { "IMAP Set Flags" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
+    fn type_id(&self) -> &str {
+        "imap_store_flags"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP Set Flags"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
+    fn ports(&self) -> Vec<PortDef> {
+        true_false_ports("Success", "Failure")
+    }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "uids": "", "operation": "add", "flags": [] })
     }
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
-    fn is_protocol_node(&self) -> bool { true }
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        resolve_success_port(output)
+    }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({ "connection_id": config.get("connection_id"), "uids": config.get("uids"), "operation": config.get("operation") }))
+        Some(
+            serde_json::json!({ "connection_id": config.get("connection_id"), "uids": config.get("uids"), "operation": config.get("operation") }),
+        )
     }
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("uids").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("uids")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "uids".into(),
                 message: "uids must not be empty".into(),
             });
         }
-        if config.get("flags").and_then(|v| v.as_array()).map_or(true, |a| a.is_empty()) {
+        if config
+            .get("flags")
+            .and_then(|v| v.as_array())
+            .is_none_or(|a| a.is_empty())
+        {
             errors.push(ValidationError {
                 field: "flags".into(),
                 message: "flags must not be empty".into(),
@@ -306,7 +458,11 @@ impl NodePlugin for ImapStoreFlagsPlugin {
         }
         errors
     }
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -324,35 +480,65 @@ pub struct ImapCopyPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapCopyPlugin {
-    fn type_id(&self) -> &str { "imap_copy" }
-    fn display_name(&self) -> &str { "IMAP Copy" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
+    fn type_id(&self) -> &str {
+        "imap_copy"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP Copy"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
+    fn ports(&self) -> Vec<PortDef> {
+        true_false_ports("Success", "Failure")
+    }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "uids": "", "target_mailbox": "" })
     }
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
-    fn is_protocol_node(&self) -> bool { true }
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        resolve_success_port(output)
+    }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({ "connection_id": config.get("connection_id"), "target_mailbox": config.get("target_mailbox") }))
+        Some(
+            serde_json::json!({ "connection_id": config.get("connection_id"), "target_mailbox": config.get("target_mailbox") }),
+        )
     }
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("uids").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("uids")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "uids".into(),
                 message: "uids must not be empty".into(),
             });
         }
-        if config.get("target_mailbox").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("target_mailbox")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "target_mailbox".into(),
                 message: "target_mailbox must not be empty".into(),
@@ -360,7 +546,11 @@ impl NodePlugin for ImapCopyPlugin {
         }
         errors
     }
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -378,35 +568,65 @@ pub struct ImapMovePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapMovePlugin {
-    fn type_id(&self) -> &str { "imap_move" }
-    fn display_name(&self) -> &str { "IMAP Move" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
+    fn type_id(&self) -> &str {
+        "imap_move"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP Move"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
+    fn ports(&self) -> Vec<PortDef> {
+        true_false_ports("Success", "Failure")
+    }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "uids": "", "target_mailbox": "" })
     }
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
-    fn is_protocol_node(&self) -> bool { true }
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        resolve_success_port(output)
+    }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({ "connection_id": config.get("connection_id"), "target_mailbox": config.get("target_mailbox") }))
+        Some(
+            serde_json::json!({ "connection_id": config.get("connection_id"), "target_mailbox": config.get("target_mailbox") }),
+        )
     }
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("uids").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("uids")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "uids".into(),
                 message: "uids must not be empty".into(),
             });
         }
-        if config.get("target_mailbox").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("target_mailbox")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "target_mailbox".into(),
                 message: "target_mailbox must not be empty".into(),
@@ -414,7 +634,11 @@ impl NodePlugin for ImapMovePlugin {
         }
         errors
     }
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -432,23 +656,43 @@ pub struct ImapExpungePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapExpungePlugin {
-    fn type_id(&self) -> &str { "imap_expunge" }
-    fn display_name(&self) -> &str { "IMAP Expunge" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
+    fn type_id(&self) -> &str {
+        "imap_expunge"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP Expunge"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
+    fn ports(&self) -> Vec<PortDef> {
+        true_false_ports("Success", "Failure")
+    }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "" })
     }
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
-    fn is_protocol_node(&self) -> bool { true }
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        resolve_success_port(output)
+    }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id") }))
     }
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
@@ -456,7 +700,11 @@ impl NodePlugin for ImapExpungePlugin {
         }
         errors
     }
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -474,23 +722,45 @@ pub struct ImapListPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapListPlugin {
-    fn type_id(&self) -> &str { "imap_list" }
-    fn display_name(&self) -> &str { "IMAP List Mailboxes" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
+    fn type_id(&self) -> &str {
+        "imap_list"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP List Mailboxes"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
+    fn ports(&self) -> Vec<PortDef> {
+        true_false_ports("Success", "Failure")
+    }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "reference_name": "", "pattern": "*" })
     }
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
-    fn is_protocol_node(&self) -> bool { true }
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        resolve_success_port(output)
+    }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({ "connection_id": config.get("connection_id"), "pattern": config.get("pattern") }))
+        Some(
+            serde_json::json!({ "connection_id": config.get("connection_id"), "pattern": config.get("pattern") }),
+        )
     }
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
@@ -498,7 +768,11 @@ impl NodePlugin for ImapListPlugin {
         }
         errors
     }
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -516,29 +790,55 @@ pub struct ImapFolderCreatePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapFolderCreatePlugin {
-    fn type_id(&self) -> &str { "imap_folder_create" }
-    fn display_name(&self) -> &str { "IMAP Create Folder" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
+    fn type_id(&self) -> &str {
+        "imap_folder_create"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP Create Folder"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
+    fn ports(&self) -> Vec<PortDef> {
+        true_false_ports("Success", "Failure")
+    }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "folder_name": "" })
     }
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
-    fn is_protocol_node(&self) -> bool { true }
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        resolve_success_port(output)
+    }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({ "connection_id": config.get("connection_id"), "folder_name": config.get("folder_name") }))
+        Some(
+            serde_json::json!({ "connection_id": config.get("connection_id"), "folder_name": config.get("folder_name") }),
+        )
     }
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("folder_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("folder_name")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "folder_name".into(),
                 message: "folder_name must not be empty".into(),
@@ -546,7 +846,11 @@ impl NodePlugin for ImapFolderCreatePlugin {
         }
         errors
     }
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -564,29 +868,55 @@ pub struct ImapFolderDeletePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapFolderDeletePlugin {
-    fn type_id(&self) -> &str { "imap_folder_delete" }
-    fn display_name(&self) -> &str { "IMAP Delete Folder" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
+    fn type_id(&self) -> &str {
+        "imap_folder_delete"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP Delete Folder"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
+    fn ports(&self) -> Vec<PortDef> {
+        true_false_ports("Success", "Failure")
+    }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "folder_name": "" })
     }
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
-    fn is_protocol_node(&self) -> bool { true }
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        resolve_success_port(output)
+    }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({ "connection_id": config.get("connection_id"), "folder_name": config.get("folder_name") }))
+        Some(
+            serde_json::json!({ "connection_id": config.get("connection_id"), "folder_name": config.get("folder_name") }),
+        )
     }
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("folder_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("folder_name")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "folder_name".into(),
                 message: "folder_name must not be empty".into(),
@@ -594,7 +924,11 @@ impl NodePlugin for ImapFolderDeletePlugin {
         }
         errors
     }
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -612,23 +946,45 @@ pub struct ImapIdlePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapIdlePlugin {
-    fn type_id(&self) -> &str { "imap_idle" }
-    fn display_name(&self) -> &str { "IMAP IDLE" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
+    fn type_id(&self) -> &str {
+        "imap_idle"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP IDLE"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
+    fn ports(&self) -> Vec<PortDef> {
+        true_false_ports("Success", "Failure")
+    }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "mailbox": null, "timeout_seconds": 300 })
     }
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
-    fn is_protocol_node(&self) -> bool { true }
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        resolve_success_port(output)
+    }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({ "connection_id": config.get("connection_id"), "timeout_seconds": config.get("timeout_seconds") }))
+        Some(
+            serde_json::json!({ "connection_id": config.get("connection_id"), "timeout_seconds": config.get("timeout_seconds") }),
+        )
     }
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
@@ -636,7 +992,11 @@ impl NodePlugin for ImapIdlePlugin {
         }
         errors
     }
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -654,14 +1014,28 @@ pub struct ImapClosePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapClosePlugin {
-    fn type_id(&self) -> &str { "imap_close" }
-    fn display_name(&self) -> &str { "IMAP Close" }
-    fn category(&self) -> &str { "email" }
-    fn icon(&self) -> &str { "mail" }
-    fn color(&self) -> &str { "#2563eb" }
+    fn type_id(&self) -> &str {
+        "imap_close"
+    }
+    fn display_name(&self) -> &str {
+        "IMAP Close"
+    }
+    fn category(&self) -> &str {
+        "email"
+    }
+    fn icon(&self) -> &str {
+        "mail"
+    }
+    fn color(&self) -> &str {
+        "#2563eb"
+    }
 
     fn ports(&self) -> Vec<PortDef> {
-        vec![PortDef { id: "out".into(), label: "Output".into(), position: "right".into() }]
+        vec![PortDef {
+            id: "out".into(),
+            label: "Output".into(),
+            position: "right".into(),
+        }]
     }
 
     fn default_config(&self) -> serde_json::Value {
@@ -669,9 +1043,13 @@ impl NodePlugin for ImapClosePlugin {
     }
 
     /// Close 始终返回 "out" 端口
-    fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String { "out".to_string() }
+    fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String {
+        "out".to_string()
+    }
 
-    fn is_protocol_node(&self) -> bool { true }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id") }))
@@ -679,7 +1057,11 @@ impl NodePlugin for ImapClosePlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
@@ -688,7 +1070,11 @@ impl NodePlugin for ImapClosePlugin {
         errors
     }
 
-    async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let mgr = get_imap_manager!(context);
@@ -762,12 +1148,18 @@ mod tests {
     #[test]
     fn test_all_plugins_have_correct_color() {
         let plugins: Vec<Box<dyn NodePlugin>> = vec![
-            Box::new(ImapConnectPlugin), Box::new(ImapSelectPlugin),
-            Box::new(ImapSearchPlugin), Box::new(ImapFetchPlugin),
-            Box::new(ImapStoreFlagsPlugin), Box::new(ImapCopyPlugin),
-            Box::new(ImapMovePlugin), Box::new(ImapExpungePlugin),
-            Box::new(ImapListPlugin), Box::new(ImapFolderCreatePlugin),
-            Box::new(ImapFolderDeletePlugin), Box::new(ImapIdlePlugin),
+            Box::new(ImapConnectPlugin),
+            Box::new(ImapSelectPlugin),
+            Box::new(ImapSearchPlugin),
+            Box::new(ImapFetchPlugin),
+            Box::new(ImapStoreFlagsPlugin),
+            Box::new(ImapCopyPlugin),
+            Box::new(ImapMovePlugin),
+            Box::new(ImapExpungePlugin),
+            Box::new(ImapListPlugin),
+            Box::new(ImapFolderCreatePlugin),
+            Box::new(ImapFolderDeletePlugin),
+            Box::new(ImapIdlePlugin),
             Box::new(ImapClosePlugin),
         ];
         for p in &plugins {
@@ -782,16 +1174,28 @@ mod tests {
     #[test]
     fn test_connect_resolve_port() {
         let p = ImapConnectPlugin;
-        assert_eq!(p.resolve_port(&Some(serde_json::json!({"success": true}))), "true");
-        assert_eq!(p.resolve_port(&Some(serde_json::json!({"success": false}))), "false");
+        assert_eq!(
+            p.resolve_port(&Some(serde_json::json!({"success": true}))),
+            "true"
+        );
+        assert_eq!(
+            p.resolve_port(&Some(serde_json::json!({"success": false}))),
+            "false"
+        );
         assert_eq!(p.resolve_port(&None), "false");
     }
 
     #[test]
     fn test_close_resolve_port_always_out() {
         let p = ImapClosePlugin;
-        assert_eq!(p.resolve_port(&Some(serde_json::json!({"success": true}))), "out");
-        assert_eq!(p.resolve_port(&Some(serde_json::json!({"success": false}))), "out");
+        assert_eq!(
+            p.resolve_port(&Some(serde_json::json!({"success": true}))),
+            "out"
+        );
+        assert_eq!(
+            p.resolve_port(&Some(serde_json::json!({"success": false}))),
+            "out"
+        );
         assert_eq!(p.resolve_port(&None), "out");
     }
 
@@ -809,13 +1213,23 @@ mod tests {
             ("imap_move", ImapMovePlugin.default_config()),
             ("imap_expunge", ImapExpungePlugin.default_config()),
             ("imap_list", ImapListPlugin.default_config()),
-            ("imap_folder_create", ImapFolderCreatePlugin.default_config()),
-            ("imap_folder_delete", ImapFolderDeletePlugin.default_config()),
+            (
+                "imap_folder_create",
+                ImapFolderCreatePlugin.default_config(),
+            ),
+            (
+                "imap_folder_delete",
+                ImapFolderDeletePlugin.default_config(),
+            ),
             ("imap_idle", ImapIdlePlugin.default_config()),
             ("imap_close", ImapClosePlugin.default_config()),
         ];
         for (name, config) in &configs {
-            assert!(config.is_object(), "{} default_config should be object", name);
+            assert!(
+                config.is_object(),
+                "{} default_config should be object",
+                name
+            );
         }
     }
 
@@ -829,10 +1243,19 @@ mod tests {
         assert_eq!(registry.len(), 13);
 
         let expected = [
-            "imap_connect", "imap_select", "imap_search", "imap_fetch",
-            "imap_store_flags", "imap_copy", "imap_move", "imap_expunge",
-            "imap_list", "imap_folder_create", "imap_folder_delete",
-            "imap_idle", "imap_close",
+            "imap_connect",
+            "imap_select",
+            "imap_search",
+            "imap_fetch",
+            "imap_store_flags",
+            "imap_copy",
+            "imap_move",
+            "imap_expunge",
+            "imap_list",
+            "imap_folder_create",
+            "imap_folder_delete",
+            "imap_idle",
+            "imap_close",
         ];
         for id in &expected {
             assert!(registry.get(id).is_some(), "Missing plugin: {}", id);

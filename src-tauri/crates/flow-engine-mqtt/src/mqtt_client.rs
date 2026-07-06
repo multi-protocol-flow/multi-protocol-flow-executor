@@ -9,7 +9,10 @@ use std::time::Duration;
 
 use flow_engine_core::node_config::MqttConnectConfig;
 use log::info;
-use rumqttc::{AsyncClient, Broker, EventLoop, LastWill, LastWillProperties, MqttOptions, QoS, TlsConfiguration, Transport};
+use rumqttc::{
+    AsyncClient, Broker, EventLoop, LastWill, LastWillProperties, MqttOptions, QoS,
+    TlsConfiguration, Transport,
+};
 
 // ---------------------------------------------------------------------------
 // 公共类型
@@ -43,8 +46,14 @@ pub fn create_mqtt_client(config: &MqttConnectConfig) -> Result<MqttClientResult
     let client_id = config.client_id.as_deref().unwrap_or("mpe-mqtt-client");
 
     // 创建 MqttOptions（根据传输方式选择 Broker 和 Transport）
-    let mut options =
-        create_mqtt_options(client_id, &host, port, path.as_deref(), &transport_type, config)?;
+    let mut options = create_mqtt_options(
+        client_id,
+        &host,
+        port,
+        path.as_deref(),
+        &transport_type,
+        config,
+    )?;
 
     // 配置认证
     if let (Some(username), Some(password)) = (&config.username, &config.password) {
@@ -127,10 +136,7 @@ fn parse_mqtt_url(url: &str) -> Result<(TransportType, String, u16, Option<Strin
 }
 
 /// 解析 "host:port" 字符串，未指定端口时使用协议默认端口
-fn parse_host_port(
-    host_port: &str,
-    transport: &TransportType,
-) -> Result<(String, u16), String> {
+fn parse_host_port(host_port: &str, transport: &TransportType) -> Result<(String, u16), String> {
     match host_port.rfind(':') {
         Some(idx) => {
             let host = &host_port[..idx];
@@ -284,9 +290,8 @@ fn create_tls_config(skip_verify: bool) -> Result<TlsConfiguration, String> {
             .with_no_client_auth()
     } else {
         // 标准模式：使用 webpki-roots Mozilla 根证书集合
-        let root_store = rustls::RootCertStore::from_iter(
-            webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
-        );
+        let root_store =
+            rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
         rustls::ClientConfig::builder()
             .with_root_certificates(root_store)
             .with_no_client_auth()
@@ -387,8 +392,7 @@ mod tests {
 
     #[test]
     fn test_parse_mqtt_url_tcp_default_port() {
-        let (transport, host, port, path) =
-            parse_mqtt_url("mqtt://broker.example.com").unwrap();
+        let (transport, host, port, path) = parse_mqtt_url("mqtt://broker.example.com").unwrap();
         assert!(matches!(transport, TransportType::Tcp));
         assert_eq!(host, "broker.example.com");
         assert_eq!(port, 1883);
@@ -397,8 +401,7 @@ mod tests {
 
     #[test]
     fn test_parse_mqtt_url_tls() {
-        let (transport, host, port, _) =
-            parse_mqtt_url("mqtts://broker.example.com:8883").unwrap();
+        let (transport, host, port, _) = parse_mqtt_url("mqtts://broker.example.com:8883").unwrap();
         assert!(matches!(transport, TransportType::Tls));
         assert_eq!(host, "broker.example.com");
         assert_eq!(port, 8883);
@@ -406,8 +409,7 @@ mod tests {
 
     #[test]
     fn test_parse_mqtt_url_tls_default_port() {
-        let (transport, _, port, _) =
-            parse_mqtt_url("mqtts://broker.example.com").unwrap();
+        let (transport, _, port, _) = parse_mqtt_url("mqtts://broker.example.com").unwrap();
         assert!(matches!(transport, TransportType::Tls));
         assert_eq!(port, 8883);
     }
@@ -434,8 +436,7 @@ mod tests {
 
     #[test]
     fn test_parse_mqtt_url_no_scheme() {
-        let (transport, host, port, _) =
-            parse_mqtt_url("broker.example.com:1883").unwrap();
+        let (transport, host, port, _) = parse_mqtt_url("broker.example.com:1883").unwrap();
         assert!(matches!(transport, TransportType::Tcp));
         assert_eq!(host, "broker.example.com");
         assert_eq!(port, 1883);
@@ -472,13 +473,21 @@ mod tests {
     #[test]
     fn test_create_tls_config_standard() {
         let result = create_tls_config(false);
-        assert!(result.is_ok(), "标准 TLS 配置应创建Success: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "标准 TLS 配置应创建Success: {:?}",
+            result.err()
+        );
     }
 
     #[test]
     fn test_create_tls_config_skip_verify() {
         let result = create_tls_config(true);
-        assert!(result.is_ok(), "跳过验证 TLS 配置应创建Success: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "跳过验证 TLS 配置应创建Success: {:?}",
+            result.err()
+        );
     }
 
     #[test]

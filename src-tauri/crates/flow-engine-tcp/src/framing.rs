@@ -361,7 +361,7 @@ mod tests {
         }
     }
 
-    /// 辅助：frame_data + deframe_receive 往返验证
+    /// `辅助：frame_data` + `deframe_receive` 往返验证
     async fn roundtrip(data: &[u8], config: &FramingConfig) -> Vec<u8> {
         let framed = TcpFramingEngine::frame_data(data, config).expect("frame_data 应Success");
         let mut cursor = Cursor::new(framed);

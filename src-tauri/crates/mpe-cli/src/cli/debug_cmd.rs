@@ -30,7 +30,10 @@ fn parse_vars(vars: &[String]) -> Result<HashMap<String, serde_json::Value>, sup
     let mut map = HashMap::new();
     for v in vars {
         let (key, val) = v.split_once('=').ok_or_else(|| {
-            super::CliError::InvalidArgs(format!("--var invalid format (expected key=value): {}", v))
+            super::CliError::InvalidArgs(format!(
+                "--var invalid format (expected key=value): {}",
+                v
+            ))
         })?;
         let json_val =
             serde_json::from_str(val).unwrap_or(serde_json::Value::String(val.to_string()));
@@ -76,21 +79,21 @@ pub async fn execute(
     } else {
         let map = parse_vars(vars)?;
         Some(serde_json::Value::Object(
-            map.into_iter()
-                .collect::<serde_json::Map<_, _>>(),
+            map.into_iter().collect::<serde_json::Map<_, _>>(),
         ))
     };
 
     // 4. 创建通道
-    let (debug_event_tx, mut debug_event_rx) = mpsc::unbounded_channel::<flow_engine::debug::DebugEvent>();
-    let (debug_cmd_tx, debug_cmd_rx) = mpsc::unbounded_channel::<flow_engine::debug::DebugCommand>();
+    let (debug_event_tx, mut debug_event_rx) =
+        mpsc::unbounded_channel::<flow_engine::debug::DebugEvent>();
+    let (debug_cmd_tx, debug_cmd_rx) =
+        mpsc::unbounded_channel::<flow_engine::debug::DebugCommand>();
 
     // 5. 启动调试会话（后台任务）
     let bp_list = breakpoints.to_vec();
     let flow_clone = flow.clone();
     let debug_handle = tokio::spawn(async move {
-        let executor = flow_engine::debug::DebuggableFlowExecutor::new()
-            .with_flow_file_path(path);
+        let executor = flow_engine::debug::DebuggableFlowExecutor::new().with_flow_file_path(path);
         executor
             .start_debug(
                 &flow_clone,

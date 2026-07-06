@@ -54,12 +54,13 @@ fn test_grpc_connect_config_serde_roundtrip() {
 fn test_grpc_connect_config_serde_minimal() {
     // 只有 url 是必须字段，其他都有 default
     let json = r#"{"url":"http://example.com:50051"}"#;
-    let config: GrpcConnectConfig = serde_json::from_str(json).expect("最小 JSON 应反序列化Success");
+    let config: GrpcConnectConfig =
+        serde_json::from_str(json).expect("最小 JSON 应反序列化Success");
 
     assert_eq!(config.url, "http://example.com:50051");
-    assert_eq!(config.use_tls, false);
-    assert_eq!(config.tls_skip_verify, false);
-    assert_eq!(config.enable_reflection, false);
+    assert!(!config.use_tls);
+    assert!(!config.tls_skip_verify);
+    assert!(!config.enable_reflection);
     assert!(config.proto_files.is_empty());
     assert!(config.default_metadata.is_empty());
     assert_eq!(config.connect_timeout_ms, 30000);
@@ -483,10 +484,8 @@ fn test_build_report_input_close() {
 // 4. Connect → Call → Close 流程接线测试（使用 GrpcConnectionManager）
 // ============================================================================
 
-/// 辅助：创建测试用 ExecutionContext
+/// 辅助：创建测试用 `ExecutionContext`
 fn create_test_context(flow_id: &str) -> flow_engine_core::context::ExecutionContext {
-
-
     flow_engine_core::context::ExecutionContext::new(
         flow_id.to_string(),
         flow_engine_core::utils::unix_timestamp_ms(),

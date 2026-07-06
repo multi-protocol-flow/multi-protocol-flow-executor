@@ -13,7 +13,7 @@ use tokio::sync::RwLock;
 
 use flow_engine_core::node_config::{McpConnectConfig, McpTransportMode};
 use flow_engine_core::traits::{
-    McpConnectionInfo, McpProvider, McpPromptInfo, McpPromptResult, McpResourceInfo,
+    McpConnectionInfo, McpPromptInfo, McpPromptResult, McpProvider, McpResourceInfo,
     McpResourceReadResult, McpServerInfo, McpToolCallResult, McpToolInfo,
 };
 
@@ -187,8 +187,7 @@ impl McpProvider for McpConnectionManager {
         }; // 读锁在此释放
 
         // 构建调用参数（non-exhaustive struct，使用 builder 模式）
-        let args_map = arguments
-            .and_then(|v| v.as_object().cloned());
+        let args_map = arguments.and_then(|v| v.as_object().cloned());
 
         let mut call_params = rmcp::model::CallToolRequestParams::new(tool_name.to_string());
         if let Some(args) = args_map {
@@ -409,7 +408,9 @@ mod tests {
     #[tokio::test]
     async fn test_read_resource_nonexistent_connection() {
         let manager = McpConnectionManager::new();
-        let result = manager.read_resource("non-existent", "resource://test").await;
+        let result = manager
+            .read_resource("non-existent", "resource://test")
+            .await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不存在"));
     }
@@ -426,7 +427,11 @@ mod tests {
     async fn test_get_prompt_nonexistent_connection() {
         let manager = McpConnectionManager::new();
         let result = manager
-            .get_prompt("non-existent", "test_prompt", std::collections::HashMap::new())
+            .get_prompt(
+                "non-existent",
+                "test_prompt",
+                std::collections::HashMap::new(),
+            )
             .await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不存在"));

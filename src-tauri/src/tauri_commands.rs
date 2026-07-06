@@ -7,22 +7,21 @@ use tauri::ipc::Channel;
 use tauri::Emitter;
 use tauri::Manager;
 
+use crate::tauri_adapters::{create_log_sender, TauriDebugEventSender, TauriExecutionEventSender};
 use flow_engine::command::{
-    CreateFlowCommandInput, CreateFlowCommandOutput,
-    DeleteNodeCommandInput, DeleteNodeCommandOutput,
-    ExecuteFlowCommandInput, ExecuteFlowCommandOutput,
+    CreateFlowCommandInput, CreateFlowCommandOutput, DeleteNodeCommandInput,
+    DeleteNodeCommandOutput, ExecuteFlowCommandInput, ExecuteFlowCommandOutput,
     UpdateNodeCommandInput, UpdateNodeCommandOutput,
 };
-use flow_engine::log_event::LogEvent;
-use flow_engine::execution_event::ExecutionEvent;
-use flow_engine::traits::ExecutionEventSender;
-use flow_engine::traits::DebugEventSender;
-use flow_engine::node::Node;
-use flow_engine::report::{FlowExecutionReport, NodeExecutionReport, ReportMetadata};
-use flow_engine::flow::Flow;
 use flow_engine::debug::DebugEvent;
+use flow_engine::execution_event::ExecutionEvent;
+use flow_engine::flow::Flow;
+use flow_engine::log_event::LogEvent;
+use flow_engine::node::Node;
 use flow_engine::plugin::NodeMetadata;
-use crate::tauri_adapters::{create_log_sender, TauriExecutionEventSender, TauriDebugEventSender};
+use flow_engine::report::{FlowExecutionReport, NodeExecutionReport, ReportMetadata};
+use flow_engine::traits::DebugEventSender;
+use flow_engine::traits::ExecutionEventSender;
 
 // ============================================================================
 // 执行会话管理
@@ -60,7 +59,8 @@ impl Default for ExecutionSessionManager {
 pub struct GrpcCancelSessionManager {
     grpc_manager: std::sync::Mutex<Option<Arc<dyn GrpcProvider>>>,
     /// 具体类型的 GrpcConnectionManager（用于 Channelz 内省）
-    channelz_manager: std::sync::Mutex<Option<Arc<flow_engine::grpc_connection_manager::GrpcConnectionManager>>>,
+    channelz_manager:
+        std::sync::Mutex<Option<Arc<flow_engine::grpc_connection_manager::GrpcConnectionManager>>>,
 }
 
 impl GrpcCancelSessionManager {
@@ -74,14 +74,23 @@ impl GrpcCancelSessionManager {
 
     /// 设置当前活跃的 gRPC manager
     pub fn set_manager(&self, manager: Arc<dyn GrpcProvider>) -> Result<(), String> {
-        let mut guard = self.grpc_manager.lock().map_err(|e| format!("gRPC manager lock poisoned: {}", e))?;
+        let mut guard = self
+            .grpc_manager
+            .lock()
+            .map_err(|e| format!("gRPC manager lock poisoned: {}", e))?;
         *guard = Some(manager);
         Ok(())
     }
 
     /// 设置当前活跃的具体类型 GrpcConnectionManager（用于 Channelz）
-    pub fn set_channelz_manager(&self, manager: Arc<flow_engine::grpc_connection_manager::GrpcConnectionManager>) -> Result<(), String> {
-        let mut guard = self.channelz_manager.lock().map_err(|e| format!("gRPC channelz manager lock poisoned: {}", e))?;
+    pub fn set_channelz_manager(
+        &self,
+        manager: Arc<flow_engine::grpc_connection_manager::GrpcConnectionManager>,
+    ) -> Result<(), String> {
+        let mut guard = self
+            .channelz_manager
+            .lock()
+            .map_err(|e| format!("gRPC channelz manager lock poisoned: {}", e))?;
         *guard = Some(manager);
         Ok(())
     }
@@ -89,11 +98,17 @@ impl GrpcCancelSessionManager {
     /// 清除当前活跃的 gRPC manager（执行结束时清理）
     pub fn clear(&self) -> Result<(), String> {
         {
-            let mut guard = self.grpc_manager.lock().map_err(|e| format!("gRPC manager lock poisoned: {}", e))?;
+            let mut guard = self
+                .grpc_manager
+                .lock()
+                .map_err(|e| format!("gRPC manager lock poisoned: {}", e))?;
             *guard = None;
         }
         {
-            let mut guard = self.channelz_manager.lock().map_err(|e| format!("gRPC channelz manager lock poisoned: {}", e))?;
+            let mut guard = self
+                .channelz_manager
+                .lock()
+                .map_err(|e| format!("gRPC channelz manager lock poisoned: {}", e))?;
             *guard = None;
         }
         Ok(())
@@ -101,7 +116,10 @@ impl GrpcCancelSessionManager {
 
     /// 取消指定调用
     pub fn cancel_stream(&self, connection_id: &str, call_id: &str) -> Result<(), String> {
-        let guard = self.grpc_manager.lock().map_err(|e| format!("gRPC manager lock poisoned: {}", e))?;
+        let guard = self
+            .grpc_manager
+            .lock()
+            .map_err(|e| format!("gRPC manager lock poisoned: {}", e))?;
         match guard.as_ref() {
             Some(manager) => manager.cancel_stream(connection_id, call_id),
             None => Err("No active execution session".to_string()),
@@ -114,8 +132,6 @@ impl Default for GrpcCancelSessionManager {
         Self::new()
     }
 }
-
-
 
 // ============================================================================
 // 流程命令
@@ -163,9 +179,8 @@ pub async fn execute_flow(
     }
 
     // 创建共享的 gRPC manager 并注册到取消会话管理器
-    let concrete_grpc_manager = Arc::new(
-        flow_engine::grpc_connection_manager::GrpcConnectionManager::new()
-    );
+    let concrete_grpc_manager =
+        Arc::new(flow_engine::grpc_connection_manager::GrpcConnectionManager::new());
     let grpc_manager: Arc<dyn GrpcProvider> = concrete_grpc_manager.clone();
     grpc_state.set_manager(grpc_manager.clone())?;
     // 注册具体类型引用（用于 Channelz 内省，共享同一个连接池）
@@ -178,14 +193,12 @@ pub async fn execute_flow(
     tokio::spawn(log_worker);
 
     // 创建执行事件发送器（包装 Tauri Channel）
-    let execution_event_sender: Option<Arc<dyn ExecutionEventSender>> = Some(
-        Arc::new(TauriExecutionEventSender::new(on_execution_event))
-    );
+    let execution_event_sender: Option<Arc<dyn ExecutionEventSender>> =
+        Some(Arc::new(TauriExecutionEventSender::new(on_execution_event)));
 
     // 创建 WS 流事件发送器（复用 DebugEvent 类型，用于普通执行中的 WS 消息流）
-    let debug_event_sender: Option<Arc<dyn DebugEventSender>> = Some(
-        Arc::new(TauriDebugEventSender::new(on_ws_event))
-    );
+    let debug_event_sender: Option<Arc<dyn DebugEventSender>> =
+        Some(Arc::new(TauriDebugEventSender::new(on_ws_event)));
 
     // 执行流程
     let flow_uuid = flow.uuid.clone();
@@ -203,7 +216,7 @@ pub async fn execute_flow(
         executor = executor.with_cancel_receiver(rx);
     }
     executor = executor.with_hook_executor(std::sync::Arc::new(
-        flow_engine::hook_runner::DefaultHookExecutor::new()
+        flow_engine::hook_runner::DefaultHookExecutor::new(),
     ));
 
     let result = executor
@@ -214,7 +227,11 @@ pub async fn execute_flow(
     let _ = (flow_uuid, flow_name);
 
     // 先计算 execution_time，避免 move 后借用
-    let execution_time = result.flow_report.as_ref().map(|r| r.duration_ms).unwrap_or(0);
+    let execution_time = result
+        .flow_report
+        .as_ref()
+        .map(|r| r.duration_ms)
+        .unwrap_or(0);
     let output = flow_engine::command::ExecuteFlowCommandOutput {
         success: result.success,
         data: result.data,
@@ -263,18 +280,38 @@ pub async fn execute_single_node(
 ) -> Result<NodeExecutionReport, String> {
     // 白名单检查（纵深防御）
     let supported = [
-        "http", "script", "assertion",
-        "redis_connect", "db_connect", "mqtt_connect", "kafka_connect",
-        "amqp_connect", "amqp10_connect", "smtp_connect", "imap_connect",
-        "ws_connect", "sse_connect", "grpc_connect", "mcp_connect",
-        "graphql_connect", "tcp_connect",
+        "http",
+        "script",
+        "assertion",
+        "redis_connect",
+        "db_connect",
+        "mqtt_connect",
+        "kafka_connect",
+        "amqp_connect",
+        "amqp10_connect",
+        "smtp_connect",
+        "imap_connect",
+        "ws_connect",
+        "sse_connect",
+        "grpc_connect",
+        "mcp_connect",
+        "graphql_connect",
+        "tcp_connect",
     ];
     let type_id = node.data.type_name();
     if !supported.contains(&type_id.as_str()) {
-        return Err(format!("Unsupported node type for single-node execution: {}", type_id));
+        return Err(format!(
+            "Unsupported node type for single-node execution: {}",
+            type_id
+        ));
     }
 
-    log::info!("[SingleNode] Execute: type={}, name={}, uuid={}", type_id, node.name, node.uuid);
+    log::info!(
+        "[SingleNode] Execute: type={}, name={}, uuid={}",
+        type_id,
+        node.name,
+        node.uuid
+    );
 
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
@@ -288,7 +325,7 @@ pub async fn execute_single_node(
     let executor = flow_engine::executor::FlowExecutor::new()
         .with_cancel_receiver(cancel_rx)
         .with_hook_executor(std::sync::Arc::new(
-            flow_engine::hook_runner::DefaultHookExecutor::new()
+            flow_engine::hook_runner::DefaultHookExecutor::new(),
         ));
 
     let result = executor.execute_single_node(&node, variables, None).await;
@@ -299,9 +336,14 @@ pub async fn execute_single_node(
         *guard = None;
     }
 
-    log::info!("[SingleNode] Complete: type={}, success={}", type_id, result.success);
+    log::info!(
+        "[SingleNode] Complete: type={}, success={}",
+        type_id,
+        result.success
+    );
 
-    result.node_reports
+    result
+        .node_reports
         .into_iter()
         .next()
         .ok_or_else(|| "No execution result".to_string())
@@ -336,19 +378,13 @@ pub fn validate_flow(flow: Flow) -> flow_engine::validator::ValidationResult {
 
 /// 保存流程执行报告
 #[tauri::command]
-pub fn save_flow_report(
-    report: FlowExecutionReport,
-    reports_dir: String,
-) -> Result<(), String> {
+pub fn save_flow_report(report: FlowExecutionReport, reports_dir: String) -> Result<(), String> {
     flow_engine::commands::save_flow_report(report, &reports_dir)
 }
 
 /// 加载流程执行报告
 #[tauri::command]
-pub fn load_flow_report(
-    uuid: String,
-    reports_dir: String,
-) -> Result<FlowExecutionReport, String> {
+pub fn load_flow_report(uuid: String, reports_dir: String) -> Result<FlowExecutionReport, String> {
     flow_engine::commands::load_flow_report(&uuid, &reports_dir)
 }
 
@@ -360,10 +396,7 @@ pub fn list_flow_reports(reports_dir: String) -> Result<Vec<ReportMetadata>, Str
 
 /// 删除流程执行报告
 #[tauri::command]
-pub fn delete_flow_report(
-    uuid: String,
-    reports_dir: String,
-) -> Result<(), String> {
+pub fn delete_flow_report(uuid: String, reports_dir: String) -> Result<(), String> {
     flow_engine::commands::delete_flow_report(&uuid, &reports_dir)
 }
 
@@ -373,7 +406,7 @@ pub fn delete_flow_report(
 
 #[cfg(feature = "protocol-db")]
 use flow_engine::db::{
-    DbConnection, DatabasePool, DbDriver, PostgresConnection, MySqlConnection, SqliteConnection,
+    DatabasePool, DbConnection, DbDriver, MySqlConnection, PostgresConnection, SqliteConnection,
     TestDbConnectionResult,
 };
 
@@ -392,42 +425,60 @@ pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionRes
 
     // 根据驱动类型创建真实连接池
     let pool: Arc<dyn DatabasePool> = match connection.driver {
-        DbDriver::Postgres => {
-            match PostgresConnection::from_config(&connection).await {
-                Ok(p) => {
-                    log::info!("[Database] PostgreSQL connection pool created: id={}", connection.id);
-                    Arc::new(p) as Arc<dyn DatabasePool>
-                }
-                Err(e) => {
-                    log::error!("[Database] PostgreSQL connection pool creation failed: id={}, error={}", connection.id, e);
-                    return TestDbConnectionResult::failure(format!("PostgreSQL connection failed: {}", e));
-                }
+        DbDriver::Postgres => match PostgresConnection::from_config(&connection).await {
+            Ok(p) => {
+                log::info!(
+                    "[Database] PostgreSQL connection pool created: id={}",
+                    connection.id
+                );
+                Arc::new(p) as Arc<dyn DatabasePool>
             }
-        }
-        DbDriver::Mysql => {
-            match MySqlConnection::from_config(&connection).await {
-                Ok(p) => {
-                    log::info!("[Database] MySQL connection pool created: id={}", connection.id);
-                    Arc::new(p) as Arc<dyn DatabasePool>
-                }
-                Err(e) => {
-                    log::error!("[Database] MySQL connection pool creation failed: id={}, error={}", connection.id, e);
-                    return TestDbConnectionResult::failure(format!("MySQL connection failed: {}", e));
-                }
+            Err(e) => {
+                log::error!(
+                    "[Database] PostgreSQL connection pool creation failed: id={}, error={}",
+                    connection.id,
+                    e
+                );
+                return TestDbConnectionResult::failure(format!(
+                    "PostgreSQL connection failed: {}",
+                    e
+                ));
             }
-        }
-        DbDriver::Sqlite => {
-            match SqliteConnection::from_config(&connection).await {
-                Ok(p) => {
-                    log::info!("[Database] SQLite connection pool created: id={}", connection.id);
-                    Arc::new(p) as Arc<dyn DatabasePool>
-                }
-                Err(e) => {
-                    log::error!("[Database] SQLite connection pool creation failed: id={}, error={}", connection.id, e);
-                    return TestDbConnectionResult::failure(format!("SQLite connection failed: {}", e));
-                }
+        },
+        DbDriver::Mysql => match MySqlConnection::from_config(&connection).await {
+            Ok(p) => {
+                log::info!(
+                    "[Database] MySQL connection pool created: id={}",
+                    connection.id
+                );
+                Arc::new(p) as Arc<dyn DatabasePool>
             }
-        }
+            Err(e) => {
+                log::error!(
+                    "[Database] MySQL connection pool creation failed: id={}, error={}",
+                    connection.id,
+                    e
+                );
+                return TestDbConnectionResult::failure(format!("MySQL connection failed: {}", e));
+            }
+        },
+        DbDriver::Sqlite => match SqliteConnection::from_config(&connection).await {
+            Ok(p) => {
+                log::info!(
+                    "[Database] SQLite connection pool created: id={}",
+                    connection.id
+                );
+                Arc::new(p) as Arc<dyn DatabasePool>
+            }
+            Err(e) => {
+                log::error!(
+                    "[Database] SQLite connection pool creation failed: id={}, error={}",
+                    connection.id,
+                    e
+                );
+                return TestDbConnectionResult::failure(format!("SQLite connection failed: {}", e));
+            }
+        },
         _ => {
             return TestDbConnectionResult::failure("Unsupported database driver".to_string());
         }
@@ -441,7 +492,11 @@ pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionRes
             TestDbConnectionResult::success()
         }
         Err(e) => {
-            log::error!("[Database] Connection test failed: id={}, error={}", connection.id, e);
+            log::error!(
+                "[Database] Connection test failed: id={}, error={}",
+                connection.id,
+                e
+            );
             pool.close().await;
             TestDbConnectionResult::failure(e)
         }
@@ -549,7 +604,10 @@ pub async fn grpc_discover_services(
 
     match result {
         Ok(services) => {
-            log::info!("[gRPC] Service discovery succeeded: found {} services", services.len());
+            log::info!(
+                "[gRPC] Service discovery succeeded: found {} services",
+                services.len()
+            );
             GrpcDiscoverServicesOutput {
                 success: true,
                 services,
@@ -608,9 +666,7 @@ pub struct GrpcScanProtoDirectoryOutput {
 /// 跳过以 `.` 开头的隐藏目录。
 #[cfg(feature = "protocol-grpc")]
 #[tauri::command]
-pub async fn grpc_scan_proto_directory(
-    dir_path: String,
-) -> GrpcScanProtoDirectoryOutput {
+pub async fn grpc_scan_proto_directory(dir_path: String) -> GrpcScanProtoDirectoryOutput {
     log::info!("[gRPC] Scan Proto directory: {}", dir_path);
 
     match proto_parser::discover_proto_files_in_dir(&dir_path) {
@@ -656,9 +712,7 @@ pub struct GrpcReadProtoFilesOutput {
 /// 用于文件选择器选择 .proto 文件后批量读取内容。
 #[cfg(feature = "protocol-grpc")]
 #[tauri::command]
-pub async fn grpc_read_proto_files(
-    file_paths: Vec<String>,
-) -> GrpcReadProtoFilesOutput {
+pub async fn grpc_read_proto_files(file_paths: Vec<String>) -> GrpcReadProtoFilesOutput {
     log::info!("[gRPC] Reading {} Proto files", file_paths.len());
 
     let mut files = Vec::new();
@@ -712,9 +766,7 @@ pub struct GrpcParseDescriptorSetOutput {
 /// 解析并返回其中的服务和方法信息。
 #[cfg(feature = "protocol-grpc")]
 #[tauri::command]
-pub async fn grpc_parse_descriptor_set(
-    file_path: String,
-) -> GrpcParseDescriptorSetOutput {
+pub async fn grpc_parse_descriptor_set(file_path: String) -> GrpcParseDescriptorSetOutput {
     log::info!("[gRPC] Parse Descriptor Set file: {}", file_path);
 
     // 读取文件内容
@@ -807,11 +859,17 @@ pub async fn grpc_channelz_info(
     connection_id: String,
     grpc_state: State<'_, GrpcCancelSessionManager>,
 ) -> Result<GrpcChannelzOutput, String> {
-    log::info!("[gRPC Channelz] Query connection state: connection_id={}", connection_id);
+    log::info!(
+        "[gRPC Channelz] Query connection state: connection_id={}",
+        connection_id
+    );
 
     // 从取消会话管理器获取 channelz_manager（克隆 Arc 以避免跨 await 持有锁）
     let channelz_manager = {
-        let guard = grpc_state.channelz_manager.lock().map_err(|e| e.to_string())?;
+        let guard = grpc_state
+            .channelz_manager
+            .lock()
+            .map_err(|e| e.to_string())?;
         guard.clone()
     };
 
@@ -828,7 +886,10 @@ pub async fn grpc_channelz_info(
                     return Ok(GrpcChannelzOutput {
                         success: false,
                         info: None,
-                        error: Some(format!("Connection '{}' does not exist (flow may not have been executed yet)", connection_id)),
+                        error: Some(format!(
+                            "Connection '{}' does not exist (flow may not have been executed yet)",
+                            connection_id
+                        )),
                     });
                 }
             }
@@ -930,9 +991,7 @@ pub struct GrpcValidateRequestInput {
 /// 仅做建议性检查，不阻止发送。
 #[cfg(feature = "protocol-grpc")]
 #[tauri::command]
-pub async fn grpc_validate_request(
-    input: GrpcValidateRequestInput,
-) -> GrpcValidateRequestOutput {
+pub async fn grpc_validate_request(input: GrpcValidateRequestInput) -> GrpcValidateRequestOutput {
     log::info!(
         "[gRPC] Validate request JSON: message_name={}, proto_files={}",
         input.message_name,
@@ -975,8 +1034,8 @@ pub async fn grpc_validate_request(
     // 执行验证
     match proto_parser::validate_request_json(&pool, &input.message_name, &input.json) {
         Ok(result) => {
-    log::info!(
-        "[gRPC] Validation complete: valid={}, errors={}",
+            log::info!(
+                "[gRPC] Validation complete: valid={}, errors={}",
                 result.valid,
                 result.errors.len()
             );
@@ -1005,7 +1064,8 @@ pub async fn grpc_validate_request(
 #[tauri::command]
 pub async fn grpc_generate_request_skeleton(
     input: GrpcGenerateRequestSkeletonInput,
-) -> GrpcGenerateRequestSkeletonOutput {    log::info!(
+) -> GrpcGenerateRequestSkeletonOutput {
+    log::info!(
         "[gRPC] Generate request skeleton: service={}, method={}, proto_files={}",
         input.service_name,
         input.method_name,
@@ -1216,8 +1276,14 @@ message GetUserResponse {
         assert!(output.error.is_none(), "should have no error");
 
         let skeleton = output.skeleton.expect("skeleton should exist");
-        assert!(skeleton.contains("user_id"), "skeleton should contain user_id field");
-        assert!(skeleton.contains("page"), "skeleton should contain page field");
+        assert!(
+            skeleton.contains("user_id"),
+            "skeleton should contain user_id field"
+        );
+        assert!(
+            skeleton.contains("page"),
+            "skeleton should contain page field"
+        );
     }
 
     /// 测试无效服务名
@@ -1379,9 +1445,7 @@ pub struct McpPromptInfoOutput {
 /// 支持 Streamable HTTP 和 Stdio 两种传输模式。
 #[cfg(feature = "protocol-mcp")]
 #[tauri::command]
-pub async fn mcp_discover_tools(
-    input: McpDiscoverToolsInput,
-) -> McpDiscoverToolsOutput {
+pub async fn mcp_discover_tools(input: McpDiscoverToolsInput) -> McpDiscoverToolsOutput {
     use flow_engine::node_config::{McpConnectConfig, McpTransportMode};
 
     let transport = match input.transport.as_deref() {
@@ -1405,7 +1469,9 @@ pub async fn mcp_discover_tools(
     let config = McpConnectConfig {
         url: input.url,
         headers: input.headers,
-        protocol_version: input.protocol_version.unwrap_or_else(|| "2025-11-25".to_string()),
+        protocol_version: input
+            .protocol_version
+            .unwrap_or_else(|| "2025-11-25".to_string()),
         custom_headers: None,
         discovered_tools: Vec::new(),
         discovered_resources: Vec::new(),
@@ -1416,10 +1482,7 @@ pub async fn mcp_discover_tools(
         env: input.env,
     };
 
-    match manager.connect(
-        "temp-discover".to_string(),
-        config,
-    ).await {
+    match manager.connect("temp-discover".to_string(), config).await {
         Ok(conn_info) => {
             // 关闭临时连接
             let _ = manager.close(&conn_info.connection_id).await;
@@ -1433,26 +1496,42 @@ pub async fn mcp_discover_tools(
 
             McpDiscoverToolsOutput {
                 success: true,
-                tools: conn_info.tools.into_iter().map(|t| McpToolInfoOutput {
-                    name: t.name,
-                    description: t.description,
-                    input_schema: t.input_schema,
-                }).collect(),
-                resources: conn_info.resources.into_iter().map(|r| McpResourceInfoOutput {
-                    uri: r.uri,
-                    name: r.name,
-                    description: r.description,
-                    mime_type: r.mime_type,
-                }).collect(),
-                prompts: conn_info.prompts.into_iter().map(|p| McpPromptInfoOutput {
-                    name: p.name,
-                    description: p.description,
-                    arguments: p.arguments.into_iter().map(|a| McpPromptArgumentOutput {
-                        name: a.name,
-                        description: a.description,
-                        required: a.required,
-                    }).collect(),
-                }).collect(),
+                tools: conn_info
+                    .tools
+                    .into_iter()
+                    .map(|t| McpToolInfoOutput {
+                        name: t.name,
+                        description: t.description,
+                        input_schema: t.input_schema,
+                    })
+                    .collect(),
+                resources: conn_info
+                    .resources
+                    .into_iter()
+                    .map(|r| McpResourceInfoOutput {
+                        uri: r.uri,
+                        name: r.name,
+                        description: r.description,
+                        mime_type: r.mime_type,
+                    })
+                    .collect(),
+                prompts: conn_info
+                    .prompts
+                    .into_iter()
+                    .map(|p| McpPromptInfoOutput {
+                        name: p.name,
+                        description: p.description,
+                        arguments: p
+                            .arguments
+                            .into_iter()
+                            .map(|a| McpPromptArgumentOutput {
+                                name: a.name,
+                                description: a.description,
+                                required: a.required,
+                            })
+                            .collect(),
+                    })
+                    .collect(),
                 server_info: Some(McpServerInfoOutput {
                     name: conn_info.server_info.name,
                     version: conn_info.server_info.version,
@@ -1480,14 +1559,14 @@ pub async fn mcp_discover_tools(
 
 #[cfg(feature = "protocol-mqtt")]
 use flow_engine::mqtt_connection_manager::MqttConnectionManager;
-#[cfg(feature = "protocol-smtp")]
-use flow_engine::traits::SmtpProvider;
+#[cfg(feature = "protocol-mqtt")]
+use flow_engine::node_config::MqttConnectConfig;
 #[cfg(feature = "protocol-imap")]
 use flow_engine::traits::ImapProvider;
 #[cfg(feature = "protocol-mqtt")]
 use flow_engine::traits::MqttProvider;
-#[cfg(feature = "protocol-mqtt")]
-use flow_engine::node_config::MqttConnectConfig;
+#[cfg(feature = "protocol-smtp")]
+use flow_engine::traits::SmtpProvider;
 
 /// MQTT 连接测试请求参数
 #[cfg(feature = "protocol-mqtt")]
@@ -1526,9 +1605,7 @@ pub struct MqttTestConnectionOutput {
 /// 设计时调用：创建临时 MQTT 连接验证 Broker 可达性，测试后立即断开。
 #[cfg(feature = "protocol-mqtt")]
 #[tauri::command]
-pub async fn mqtt_test_connection(
-    input: MqttTestConnectionInput,
-) -> MqttTestConnectionOutput {
+pub async fn mqtt_test_connection(input: MqttTestConnectionInput) -> MqttTestConnectionOutput {
     log::info!(
         "[MQTT] Test connection: url={}, client_id={}",
         input.url,
@@ -1538,9 +1615,9 @@ pub async fn mqtt_test_connection(
     // 构造连接配置
     let config = MqttConnectConfig {
         url: input.url,
-        client_id: input.client_id.or_else(|| {
-            Some(format!("mpe-test-{}", uuid::Uuid::new_v4()))
-        }),
+        client_id: input
+            .client_id
+            .or_else(|| Some(format!("mpe-test-{}", uuid::Uuid::new_v4()))),
         username: input.username,
         password: input.password,
         use_tls: input.use_tls,
@@ -1566,7 +1643,11 @@ pub async fn mqtt_test_connection(
 
             log::info!(
                 "[MQTT] Connection test {}",
-                if output.success { "succeeded" } else { "failed" }
+                if output.success {
+                    "succeeded"
+                } else {
+                    "failed"
+                }
             );
 
             MqttTestConnectionOutput {
@@ -1690,7 +1771,10 @@ pub async fn test_redis_connection(
 
     log::info!(
         "[Redis] Connection test succeeded: {}:{}, db={}, PING={}",
-        host, port, db_index, pong
+        host,
+        port,
+        db_index,
+        pong
     );
 
     Ok(true)
@@ -1731,10 +1815,8 @@ pub struct SmtpTestConnectionOutput {
 /// 设计时调用：创建临时 SMTP 连接验证服务器可达性，测试后不保留连接。
 #[cfg(feature = "protocol-smtp")]
 #[tauri::command]
-pub async fn test_smtp_connection(
-    input: SmtpTestConnectionInput,
-) -> SmtpTestConnectionOutput {
-    use flow_engine::email_types::{SmtpConfig, TlsMode, EmailAuthConfig};
+pub async fn test_smtp_connection(input: SmtpTestConnectionInput) -> SmtpTestConnectionOutput {
+    use flow_engine::email_types::{EmailAuthConfig, SmtpConfig, TlsMode};
 
     log::info!("[SMTP] Test connection: {}:{}", input.host, input.port);
 
@@ -1745,20 +1827,18 @@ pub async fn test_smtp_connection(
     };
 
     let auth = match (input.username, input.password) {
-        (Some(u), Some(p)) => {
-            match flow_engine::encryption::encrypt(&p) {
-                Ok(encrypted) => Some(EmailAuthConfig::Plain {
-                    username: u,
-                    encrypted_password: encrypted,
-                }),
-                Err(e) => {
-                    return SmtpTestConnectionOutput {
-                        success: false,
-                        error: Some(format!("Password encryption failed: {}", e)),
-                    };
-                }
+        (Some(u), Some(p)) => match flow_engine::encryption::encrypt(&p) {
+            Ok(encrypted) => Some(EmailAuthConfig::Plain {
+                username: u,
+                encrypted_password: encrypted,
+            }),
+            Err(e) => {
+                return SmtpTestConnectionOutput {
+                    success: false,
+                    error: Some(format!("Password encryption failed: {}", e)),
+                };
             }
-        }
+        },
         _ => None,
     };
 
@@ -1826,10 +1906,8 @@ pub struct ImapTestConnectionOutput {
 /// 设计时调用：创建临时 IMAP 连接验证服务器可达性，测试后立即断开。
 #[cfg(feature = "protocol-imap")]
 #[tauri::command]
-pub async fn test_imap_connection(
-    input: ImapTestConnectionInput,
-) -> ImapTestConnectionOutput {
-    use flow_engine::email_types::{ImapConfig, TlsMode, EmailAuthConfig};
+pub async fn test_imap_connection(input: ImapTestConnectionInput) -> ImapTestConnectionOutput {
+    use flow_engine::email_types::{EmailAuthConfig, ImapConfig, TlsMode};
 
     log::info!("[IMAP] Test connection: {}:{}", input.host, input.port);
 
@@ -1840,20 +1918,18 @@ pub async fn test_imap_connection(
     };
 
     let auth = match (input.username, input.password) {
-        (Some(u), Some(p)) => {
-            match flow_engine::encryption::encrypt(&p) {
-                Ok(encrypted) => Some(EmailAuthConfig::Plain {
-                    username: u,
-                    encrypted_password: encrypted,
-                }),
-                Err(e) => {
-                    return ImapTestConnectionOutput {
-                        success: false,
-                        error: Some(format!("Password encryption failed: {}", e)),
-                    };
-                }
+        (Some(u), Some(p)) => match flow_engine::encryption::encrypt(&p) {
+            Ok(encrypted) => Some(EmailAuthConfig::Plain {
+                username: u,
+                encrypted_password: encrypted,
+            }),
+            Err(e) => {
+                return ImapTestConnectionOutput {
+                    success: false,
+                    error: Some(format!("Password encryption failed: {}", e)),
+                };
             }
-        }
+        },
         _ => None,
     };
 
@@ -1970,25 +2046,31 @@ pub async fn email_oauth2_authorize(
     };
 
     // 2. 构建 PKCE 授权 URL
-    let (auth_url, pkce_verifier, _csrf_state) = match flow_engine::oauth2::build_pkce_auth_url(&config) {
-        Ok(result) => result,
-        Err(e) => {
-            return EmailOAuth2AuthorizeOutput {
-                success: false,
-                encrypted_tokens: None,
-                error: Some(e),
-            };
-        }
-    };
+    let (auth_url, pkce_verifier, _csrf_state) =
+        match flow_engine::oauth2::build_pkce_auth_url(&config) {
+            Ok(result) => result,
+            Err(e) => {
+                return EmailOAuth2AuthorizeOutput {
+                    success: false,
+                    encrypted_tokens: None,
+                    error: Some(e),
+                };
+            }
+        };
 
     // 3. 在后台启动回调监听器，同时打开浏览器
-    let listener_handle = tokio::spawn(async move {
-        flow_engine::oauth2::start_callback_listener(redirect_port).await
-    });
+    let listener_handle =
+        tokio::spawn(
+            async move { flow_engine::oauth2::start_callback_listener(redirect_port).await },
+        );
 
     // 使用 tauri-plugin-opener 打开浏览器
     if let Err(e) = tauri_plugin_opener::open_url(&auth_url, None::<&str>) {
-        log::warn!("[OAuth2] Failed to open browser: {}, please manually open the following link:\n{}", e, auth_url);
+        log::warn!(
+            "[OAuth2] Failed to open browser: {}, please manually open the following link:\n{}",
+            e,
+            auth_url
+        );
     }
 
     // 4. 等待回调
@@ -2073,9 +2155,7 @@ pub struct EmailOAuth2RefreshOutput {
 /// 加密后返回。
 #[cfg(feature = "protocol-smtp")]
 #[tauri::command]
-pub async fn email_oauth2_refresh(
-    input: EmailOAuth2RefreshInput,
-) -> EmailOAuth2RefreshOutput {
+pub async fn email_oauth2_refresh(input: EmailOAuth2RefreshInput) -> EmailOAuth2RefreshOutput {
     log::info!("[OAuth2] Refresh token: provider={}", input.provider);
 
     let provider = match input.provider.as_str() {
@@ -2199,9 +2279,7 @@ pub struct EmailOAuth2RevokeOutput {
 /// 解密 Token 并向服务商发送撤销请求，使 Token 失效。
 #[cfg(feature = "protocol-smtp")]
 #[tauri::command]
-pub async fn email_oauth2_revoke(
-    input: EmailOAuth2RevokeInput,
-) -> EmailOAuth2RevokeOutput {
+pub async fn email_oauth2_revoke(input: EmailOAuth2RevokeInput) -> EmailOAuth2RevokeOutput {
     log::info!("[OAuth2] Revoke authorization: provider={}", input.provider);
 
     // 解密 Token 获取 access_token
@@ -2224,12 +2302,20 @@ pub async fn email_oauth2_revoke(
 
     if let Some(url) = revoke_url {
         let client = reqwest::Client::new();
-        match client.post(url).form(&[("token", tokens.access_token.as_str())]).send().await {
+        match client
+            .post(url)
+            .form(&[("token", tokens.access_token.as_str())])
+            .send()
+            .await
+        {
             Ok(resp) if resp.status().is_success() => {
                 log::info!("[OAuth2] Token revoked successfully");
             }
             Ok(resp) => {
-                log::warn!("[OAuth2] Revoke request returned non-success status: {}", resp.status());
+                log::warn!(
+                    "[OAuth2] Revoke request returned non-success status: {}",
+                    resp.status()
+                );
                 // 不阻塞——即使撤销请求Failed，Token 也会从本地移除
             }
             Err(e) => {
@@ -2237,7 +2323,10 @@ pub async fn email_oauth2_revoke(
             }
         }
     } else {
-        log::info!("[OAuth2] {} has no standard revoke endpoint, only clearing local Token", input.provider);
+        log::info!(
+            "[OAuth2] {} has no standard revoke endpoint, only clearing local Token",
+            input.provider
+        );
     }
 
     EmailOAuth2RevokeOutput {
@@ -2365,7 +2454,10 @@ fn resolve_type_name(type_ref: Option<&serde_json::Value>) -> Option<String> {
                 current = current.get("ofType")?;
             }
             Some(_) => {
-                return current.get("name").and_then(|n| n.as_str()).map(|s| s.to_string());
+                return current
+                    .get("name")
+                    .and_then(|n| n.as_str())
+                    .map(|s| s.to_string());
             }
             None => return None,
         }
@@ -2374,29 +2466,33 @@ fn resolve_type_name(type_ref: Option<&serde_json::Value>) -> Option<String> {
 
 /// 从 Schema 数据生成查询模板（含展开的子字段）
 #[cfg(feature = "protocol-graphql")]
-fn generate_graphql_templates(schema: &serde_json::Value) -> Option<Vec<flow_engine::traits::GraphqlQueryTemplate>> {
+fn generate_graphql_templates(
+    schema: &serde_json::Value,
+) -> Option<Vec<flow_engine::traits::GraphqlQueryTemplate>> {
     let schema_obj = schema.get("__schema")?;
     let types = schema_obj.get("types").and_then(|t| t.as_array())?;
 
     // 构建类型索引: type_name → type_def
     let types_map: std::collections::HashMap<&str, &serde_json::Value> = types
         .iter()
-        .filter_map(|t| {
-            t.get("name")
-                .and_then(|n| n.as_str())
-                .map(|name| (name, t))
-        })
+        .filter_map(|t| t.get("name").and_then(|n| n.as_str()).map(|name| (name, t)))
         .collect();
 
     let mut templates = Vec::new();
 
     // 生成 Query 模板
-    if let Some(qt_name) = schema_obj.get("queryType").and_then(|qt| qt.get("name")).and_then(|n| n.as_str()) {
+    if let Some(qt_name) = schema_obj
+        .get("queryType")
+        .and_then(|qt| qt.get("name"))
+        .and_then(|n| n.as_str())
+    {
         if let Some(query_type_def) = types_map.get(qt_name) {
             if let Some(query_fields) = query_type_def.get("fields").and_then(|f| f.as_array()) {
                 for field in query_fields {
                     let name = field.get("name").and_then(|n| n.as_str()).unwrap_or("");
-                    if name.starts_with("__") { continue; }
+                    if name.starts_with("__") {
+                        continue;
+                    }
 
                     let field_return_type = resolve_type_name(field.get("type"));
                     let field_nested = field_return_type
@@ -2410,7 +2506,12 @@ fn generate_graphql_templates(schema: &serde_json::Value) -> Option<Vec<flow_eng
                     let template = if field_nested.is_empty() {
                         format!("query {} {{\n  {}\n}}", pascal_case(name), name)
                     } else {
-                        format!("query {} {{\n  {} {{\n{}  }}\n}}", pascal_case(name), name, indent(&field_nested, 4))
+                        format!(
+                            "query {} {{\n  {} {{\n{}  }}\n}}",
+                            pascal_case(name),
+                            name,
+                            indent(&field_nested, 4)
+                        )
                     };
 
                     templates.push(flow_engine::traits::GraphqlQueryTemplate {
@@ -2427,7 +2528,9 @@ fn generate_graphql_templates(schema: &serde_json::Value) -> Option<Vec<flow_eng
     if let Some(mutation_type) = schema_obj.get("mutationType").and_then(|mt| mt.get("name")) {
         let type_name = mutation_type.as_str().unwrap_or("Mutation");
         if let Some(mutation_type_def) = types_map.get(type_name) {
-            if let Some(mutation_fields) = mutation_type_def.get("fields").and_then(|f| f.as_array()) {
+            if let Some(mutation_fields) =
+                mutation_type_def.get("fields").and_then(|f| f.as_array())
+            {
                 for field in mutation_fields {
                     let name = field.get("name").and_then(|n| n.as_str()).unwrap_or("");
 
@@ -2443,7 +2546,12 @@ fn generate_graphql_templates(schema: &serde_json::Value) -> Option<Vec<flow_eng
                     let template = if field_nested.is_empty() {
                         format!("mutation {} {{\n  {}\n}}", pascal_case(name), name)
                     } else {
-                        format!("mutation {} {{\n  {} {{\n{}  }}\n}}", pascal_case(name), name, indent(&field_nested, 4))
+                        format!(
+                            "mutation {} {{\n  {} {{\n{}  }}\n}}",
+                            pascal_case(name),
+                            name,
+                            indent(&field_nested, 4)
+                        )
                     };
 
                     templates.push(flow_engine::traits::GraphqlQueryTemplate {
@@ -2456,7 +2564,11 @@ fn generate_graphql_templates(schema: &serde_json::Value) -> Option<Vec<flow_eng
         }
     }
 
-    if templates.is_empty() { None } else { Some(templates) }
+    if templates.is_empty() {
+        None
+    } else {
+        Some(templates)
+    }
 }
 
 /// 首字母大写
@@ -2484,9 +2596,7 @@ fn indent(text: &str, spaces: usize) -> String {
 /// 设计时调用：向 GraphQL 端点发送内省查询，返回完整的 Schema 信息。
 #[cfg(feature = "protocol-graphql")]
 #[tauri::command]
-pub async fn graphql_introspect_schema(
-    input: GraphqlIntrospectInput,
-) -> GraphqlIntrospectOutput {
+pub async fn graphql_introspect_schema(input: GraphqlIntrospectInput) -> GraphqlIntrospectOutput {
     log::info!("[GraphQL] Introspect request: endpoint={}", input.endpoint);
 
     // URL 格式验证
@@ -2549,9 +2659,14 @@ pub async fn graphql_introspect_schema(
 
     let client = match client {
         Ok(c) => c,
-        Err(e) => return GraphqlIntrospectOutput {
-            success: false, schema: None, query_templates: None, error: Some(e),
-        },
+        Err(e) => {
+            return GraphqlIntrospectOutput {
+                success: false,
+                schema: None,
+                query_templates: None,
+                error: Some(e),
+            }
+        }
     };
 
     // 手动跟随重定向（保持 POST 方法）
@@ -2576,12 +2691,17 @@ pub async fn graphql_introspect_schema(
                 let status = resp.status();
                 if status.is_redirection() {
                     // 跟随重定向
-                    if let Some(location) = resp.headers().get("location").and_then(|v| v.to_str().ok()) {
-                        let next_url = if location.starts_with("http://") || location.starts_with("https://") {
+                    if let Some(location) =
+                        resp.headers().get("location").and_then(|v| v.to_str().ok())
+                    {
+                        let next_url = if location.starts_with("http://")
+                            || location.starts_with("https://")
+                        {
                             location.to_string()
                         } else if location.starts_with('/') {
                             // 以 / 开头的相对路径 → 相对 origin 解析
-                            let origin = current_url.split('/')
+                            let origin = current_url
+                                .split('/')
                                 .take(3) // ["https:", "", "host"]
                                 .collect::<Vec<_>>()
                                 .join("/");
@@ -2595,7 +2715,9 @@ pub async fn graphql_introspect_schema(
                         continue;
                     }
                     result = Some(GraphqlIntrospectOutput {
-                        success: false, schema: None, query_templates: None,
+                        success: false,
+                        schema: None,
+                        query_templates: None,
                         error: Some(format!("Redirect without Location header: {}", status)),
                     });
                     break;
@@ -2607,7 +2729,9 @@ pub async fn graphql_introspect_schema(
                         if status.is_success() {
                             if let Some(errors) = body.get("errors") {
                                 result = Some(GraphqlIntrospectOutput {
-                                    success: false, schema: None, query_templates: None,
+                                    success: false,
+                                    schema: None,
+                                    query_templates: None,
                                     error: Some(format!("GraphQL error: {}", errors)),
                                 });
                             } else {
@@ -2622,14 +2746,18 @@ pub async fn graphql_introspect_schema(
                             }
                         } else {
                             result = Some(GraphqlIntrospectOutput {
-                                success: false, schema: None, query_templates: None,
+                                success: false,
+                                schema: None,
+                                query_templates: None,
                                 error: Some(format!("HTTP error: {}", status)),
                             });
                         }
                     }
                     Err(e) => {
                         result = Some(GraphqlIntrospectOutput {
-                            success: false, schema: None, query_templates: None,
+                            success: false,
+                            schema: None,
+                            query_templates: None,
                             error: Some(format!("Failed to parse response: {}", e)),
                         });
                     }
@@ -2638,7 +2766,9 @@ pub async fn graphql_introspect_schema(
             }
             Err(e) => {
                 result = Some(GraphqlIntrospectOutput {
-                    success: false, schema: None, query_templates: None,
+                    success: false,
+                    schema: None,
+                    query_templates: None,
                     error: Some(format!("Request failed: {}", e)),
                 });
                 break;
@@ -2647,7 +2777,9 @@ pub async fn graphql_introspect_schema(
     }
 
     result.unwrap_or_else(|| GraphqlIntrospectOutput {
-        success: false, schema: None, query_templates: None,
+        success: false,
+        schema: None,
+        query_templates: None,
         error: Some("Too many redirects".to_string()),
     })
 }
@@ -2659,9 +2791,9 @@ pub async fn graphql_introspect_schema(
 #[cfg(feature = "protocol-kafka")]
 use flow_engine::kafka_connection_manager::KafkaConnectionManager;
 #[cfg(feature = "protocol-kafka")]
-use flow_engine::traits::KafkaProvider;
-#[cfg(feature = "protocol-kafka")]
 use flow_engine::node_config::KafkaConnectConfig;
+#[cfg(feature = "protocol-kafka")]
+use flow_engine::traits::KafkaProvider;
 
 /// Kafka 连接测试请求
 #[cfg(feature = "protocol-kafka")]
@@ -2788,9 +2920,7 @@ pub struct KafkaDiscoverSchemaOutput {
 /// 设计时调用：创建临时 Kafka 连接，获取 Broker 信息后立即断开。
 #[cfg(feature = "protocol-kafka")]
 #[tauri::command]
-pub async fn kafka_test_connection(
-    input: KafkaTestConnectionInput,
-) -> KafkaTestConnectionOutput {
+pub async fn kafka_test_connection(input: KafkaTestConnectionInput) -> KafkaTestConnectionOutput {
     log::info!(
         "[Kafka] Test connection: bootstrap_servers={}",
         input.bootstrap_servers
@@ -2869,9 +2999,7 @@ pub async fn kafka_test_connection(
 /// 设计时调用：创建临时连接，列出所有 Topic 后立即断开。
 #[cfg(feature = "protocol-kafka")]
 #[tauri::command]
-pub async fn kafka_list_topics(
-    input: KafkaListTopicsInput,
-) -> KafkaListTopicsOutput {
+pub async fn kafka_list_topics(input: KafkaListTopicsInput) -> KafkaListTopicsOutput {
     log::info!(
         "[Kafka] List topics: bootstrap_servers={}",
         input.bootstrap_servers
@@ -3025,9 +3153,7 @@ pub async fn kafka_list_consumer_groups(
 /// 设计时调用：创建临时连接，列出所有 Schema Subject 后立即断开。
 #[cfg(feature = "protocol-kafka")]
 #[tauri::command]
-pub async fn kafka_discover_schema(
-    input: KafkaDiscoverSchemaInput,
-) -> KafkaDiscoverSchemaOutput {
+pub async fn kafka_discover_schema(input: KafkaDiscoverSchemaInput) -> KafkaDiscoverSchemaOutput {
     log::info!(
         "[Kafka] Discover schema: schema_registry_url={}",
         input.schema_registry_url
@@ -3158,18 +3284,15 @@ use tokio::sync::Mutex;
 // ============================================================================
 
 use flow_engine::stress_test::{
-    GetStressTestStatusOutput, StartStressTestInput, StressTestEvent,
-    StressTestSessionManager,
+    GetStressTestStatusOutput, StartStressTestInput, StressTestEvent, StressTestSessionManager,
 };
 
 // ============================================================================
 // 数据集执行命令
 // ============================================================================
 
-use flow_engine::dataset_executor::{
-    DatasetEvent, DatasetExecutionConfig,
-};
 use flow_engine::csv_parser;
+use flow_engine::dataset_executor::{DatasetEvent, DatasetExecutionConfig};
 
 /// 数据驱动执行会话管理器
 ///
@@ -3234,10 +3357,10 @@ pub async fn start_debug(
 
     // 创建事件发送器（包装 Channel）
     let (event_sender, mut event_receiver) = mpsc::unbounded_channel::<DebugEvent>();
-    
+
     // 克隆 state 的 Arc 用于在 spawn 中清理
     let state_clone = state.inner().clone();
-    
+
     // 启动事件转发任务
     let on_event_for_spawn = on_event;
     tokio::spawn(async move {
@@ -3251,7 +3374,7 @@ pub async fn start_debug(
 
     // 创建日志发送器（调试模式也需要日志）
     let (log_sender, log_worker) = create_log_sender(on_log);
-    
+
     // 在后台启动日志消费任务
     tokio::spawn(log_worker);
 
@@ -3268,7 +3391,7 @@ pub async fn start_debug(
                 command_receiver,
             )
             .await;
-        
+
         // 清理 command_sender
         let mut manager = state_clone.lock().await;
         manager.command_sender = None;
@@ -3301,9 +3424,7 @@ pub async fn send_debug_command(
 ///
 /// 终止当前调试会话
 #[tauri::command]
-pub async fn end_debug(
-    state: State<'_, Arc<Mutex<DebugSessionManager>>>,
-) -> Result<(), String> {
+pub async fn end_debug(state: State<'_, Arc<Mutex<DebugSessionManager>>>) -> Result<(), String> {
     let mut manager = state.lock().await;
 
     if let Some(sender) = &manager.command_sender {
@@ -3335,12 +3456,12 @@ pub async fn force_end_debug(
     state: State<'_, Arc<Mutex<DebugSessionManager>>>,
 ) -> Result<(), String> {
     let mut manager = state.lock().await;
-    
+
     if let Some(sender) = &manager.command_sender {
         // 尝试优雅地结束调试会话
         let _ = sender.send(DebugCommand::EndDebug);
     }
-    
+
     manager.command_sender = None;
     log::info!("[Debug] Force end debug session");
     Ok(())
@@ -3372,7 +3493,8 @@ pub async fn start_stress_test(
     });
 
     // 调用命令处理函数
-    flow_engine::stress_test::handle_start_stress_test(input, event_sender, state.inner().clone()).await
+    flow_engine::stress_test::handle_start_stress_test(input, event_sender, state.inner().clone())
+        .await
 }
 
 /// 停止压力测试
@@ -3401,7 +3523,8 @@ pub fn save_stress_test_report(
     report: flow_engine::stress_test::StressTestReport,
     reports_dir: String,
 ) -> Result<String, String> {
-    let path = flow_engine::storage::save_stress_report(&report, std::path::Path::new(&reports_dir))?;
+    let path =
+        flow_engine::storage::save_stress_report(&report, std::path::Path::new(&reports_dir))?;
     Ok(path.to_string_lossy().to_string())
 }
 
@@ -3424,9 +3547,7 @@ pub fn list_stress_test_reports(
 
 /// 删除压力测试报告
 #[tauri::command]
-pub fn delete_stress_test_report(
-    file_path: String,
-) -> Result<(), String> {
+pub fn delete_stress_test_report(file_path: String) -> Result<(), String> {
     flow_engine::storage::delete_stress_report(std::path::Path::new(&file_path))
 }
 
@@ -3463,19 +3584,13 @@ pub fn save_flow_file(
 
 /// 删除流程文件
 #[tauri::command]
-pub fn delete_flow_file(
-    uuid: String,
-    flows_dir: String,
-) -> Result<(), String> {
+pub fn delete_flow_file(uuid: String, flows_dir: String) -> Result<(), String> {
     flow_engine::storage::delete_flow_file(&uuid, std::path::Path::new(&flows_dir))
 }
 
 /// 复制流程文件
 #[tauri::command]
-pub fn copy_flow_file(
-    uuid: String,
-    flows_dir: String,
-) -> Result<Flow, String> {
+pub fn copy_flow_file(uuid: String, flows_dir: String) -> Result<Flow, String> {
     flow_engine::storage::copy_flow_file(&uuid, std::path::Path::new(&flows_dir))
 }
 
@@ -3485,9 +3600,7 @@ pub fn copy_flow_file(
 
 /// 列出所有文件夹
 #[tauri::command]
-pub fn list_folders(
-    flows_dir: String,
-) -> Result<Vec<flow_engine::storage::FolderInfo>, String> {
+pub fn list_folders(flows_dir: String) -> Result<Vec<flow_engine::storage::FolderInfo>, String> {
     flow_engine::storage::list_folders(std::path::Path::new(&flows_dir))
 }
 
@@ -3502,10 +3615,7 @@ pub fn create_folder(
 
 /// 删除文件夹
 #[tauri::command]
-pub fn delete_folder(
-    flows_dir: String,
-    folder_path: String,
-) -> Result<(), String> {
+pub fn delete_folder(flows_dir: String, folder_path: String) -> Result<(), String> {
     flow_engine::storage::delete_folder(std::path::Path::new(&flows_dir), &folder_path)
 }
 
@@ -3526,7 +3636,11 @@ pub fn move_flow_to_folder(
     flows_dir: String,
     target_folder_path: String,
 ) -> Result<(), String> {
-    flow_engine::storage::move_flow_to_folder(&uuid, std::path::Path::new(&flows_dir), &target_folder_path)
+    flow_engine::storage::move_flow_to_folder(
+        &uuid,
+        std::path::Path::new(&flows_dir),
+        &target_folder_path,
+    )
 }
 
 /// 移动文件夹到另一个文件夹（或根目录）
@@ -3536,7 +3650,11 @@ pub fn move_folder(
     source_folder_path: String,
     target_folder_path: String,
 ) -> Result<(), String> {
-    flow_engine::storage::move_folder(std::path::Path::new(&flows_dir), &source_folder_path, &target_folder_path)
+    flow_engine::storage::move_folder(
+        std::path::Path::new(&flows_dir),
+        &source_folder_path,
+        &target_folder_path,
+    )
 }
 
 /// 获取所有已注册的节点类型元数据
@@ -3556,7 +3674,9 @@ pub fn get_registered_node_types() -> Vec<NodeMetadata> {
 #[tauri::command]
 pub fn get_node_config_schema(type_id: String) -> Option<serde_json::Value> {
     let registry = flow_engine::default_registry::default_registry();
-    registry.get(&type_id).and_then(|plugin| plugin.config_schema())
+    registry
+        .get(&type_id)
+        .and_then(|plugin| plugin.config_schema())
 }
 
 /// 获取所有已注册插件的元数据列表
@@ -3644,7 +3764,9 @@ pub async fn execute_flow_with_dataset(
         if let Ok((_summaries, row_details, report_uuid)) = result {
             if !row_details.is_empty() {
                 // 使用 executor 返回的 report UUID 直接定位目录
-                let report_dir = app_data_dir.join("reports").join(format!("dataset_{}", report_uuid));
+                let report_dir = app_data_dir
+                    .join("reports")
+                    .join(format!("dataset_{}", report_uuid));
                 let rows_dir = report_dir.join("rows");
                 if let Ok(()) = std::fs::create_dir_all(&rows_dir) {
                     for (row_index, flow_report) in &row_details {
@@ -3688,9 +3810,7 @@ pub fn cancel_dataset_execution(
 ///
 /// 扫描报告目录中所有 dataset_* 子目录，读取 summary.json 返回摘要列表。
 #[tauri::command]
-pub fn list_dataset_reports(
-    reports_dir: String,
-) -> Result<Vec<serde_json::Value>, String> {
+pub fn list_dataset_reports(reports_dir: String) -> Result<Vec<serde_json::Value>, String> {
     let reports_path = std::path::Path::new(&reports_dir);
     if !reports_path.exists() {
         return Ok(vec![]);
@@ -3807,19 +3927,14 @@ pub fn load_dataset_row_detail(
 ///
 /// 删除指定报告 ID 的整个目录。
 #[tauri::command]
-pub fn delete_dataset_report(
-    report_id: String,
-    reports_dir: String,
-) -> Result<(), String> {
-    let report_dir = std::path::Path::new(&reports_dir)
-        .join(format!("dataset_{}", report_id));
+pub fn delete_dataset_report(report_id: String, reports_dir: String) -> Result<(), String> {
+    let report_dir = std::path::Path::new(&reports_dir).join(format!("dataset_{}", report_id));
 
     if !report_dir.exists() {
         return Err(format!("Report not found: {}", report_id));
     }
 
-    std::fs::remove_dir_all(&report_dir)
-        .map_err(|e| format!("Failed to delete report: {}", e))
+    std::fs::remove_dir_all(&report_dir).map_err(|e| format!("Failed to delete report: {}", e))
 }
 
 /// 保存数据集报告
@@ -3833,8 +3948,8 @@ pub fn save_dataset_report(
     reports_dir: String,
 ) -> Result<String, String> {
     use flow_engine::dataset::DatasetExecutionReport;
-    use std::collections::HashMap;
     use flow_engine::report::FlowExecutionReport;
+    use std::collections::HashMap;
 
     let parsed_report: DatasetExecutionReport =
         serde_json::from_value(report).map_err(|e| format!("Failed to parse report: {}", e))?;
@@ -3857,13 +3972,12 @@ pub fn save_dataset_report(
 #[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
-    use serde_json::json;
-    use uuid::Uuid;
-    use flow_engine::node::{Node, NodePosition};
-    use flow_engine::node_config::NodeData;
     use flow_engine::connection::Connection;
     use flow_engine::executor::FlowExecutor;
-
+    use flow_engine::node::{Node, NodePosition};
+    use flow_engine::node_config::NodeData;
+    use serde_json::json;
+    use uuid::Uuid;
 
     #[test]
     fn test_create_flow() {
@@ -4009,7 +4123,10 @@ mod tests {
         let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 真实执行器认为没有连接是正常终止，不是Error
-        assert!(result.success, "flow should succeed (Entry with no connections is normal termination)");
+        assert!(
+            result.success,
+            "flow should succeed (Entry with no connections is normal termination)"
+        );
         assert!(result.error.is_none(), "should have no error on success");
     }
 
@@ -4099,7 +4216,9 @@ mod tests {
             error
         );
         assert!(
-            error.find("update_node needs to load flow, update node, then save flow").is_some(),
+            error
+                .find("update_node needs to load flow, update node, then save flow")
+                .is_some(),
             "error should explain the reason"
         );
     }
@@ -4206,7 +4325,9 @@ mod tests {
             error
         );
         assert!(
-            error.find("delete_node needs to load flow, delete node and connections, then save flow").is_some(),
+            error
+                .find("delete_node needs to load flow, delete node and connections, then save flow")
+                .is_some(),
             "error should explain the reason"
         );
     }

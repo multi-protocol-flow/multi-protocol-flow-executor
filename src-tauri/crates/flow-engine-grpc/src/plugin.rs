@@ -124,9 +124,7 @@ impl NodePlugin for GrpcConnectPlugin {
                 mgr
             });
         let executor = crate::grpc_connect_executor::GrpcConnectExecutor::new(grpc_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -253,9 +251,7 @@ impl NodePlugin for GrpcCallPlugin {
                 mgr
             });
         let executor = crate::grpc_call_executor::GrpcCallExecutor::new(grpc_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -319,8 +315,6 @@ impl NodePlugin for GrpcClosePlugin {
         }
     }
 
-
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
@@ -354,9 +348,7 @@ impl NodePlugin for GrpcClosePlugin {
                 mgr
             });
         let executor = crate::grpc_close_executor::GrpcCloseExecutor::new(grpc_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -396,23 +388,23 @@ mod tests {
     fn test_grpc_call_plugin_metadata() {
         let plugin = GrpcCallPlugin;
         assert_eq!(plugin.type_id(), "grpc_call");
-assert_eq!(plugin.display_name(), "gRPC Call");
-assert_eq!(plugin.category(), "grpc");
-assert_eq!(plugin.icon(), "phone-outgoing");
-assert_eq!(plugin.color(), "#8B5CF6");
-assert!(plugin.is_protocol_node());
+        assert_eq!(plugin.display_name(), "gRPC Call");
+        assert_eq!(plugin.category(), "grpc");
+        assert_eq!(plugin.icon(), "phone-outgoing");
+        assert_eq!(plugin.color(), "#8B5CF6");
+        assert!(plugin.is_protocol_node());
 
-let ports = plugin.ports();
-assert_eq!(ports.len(), 2);
-assert_eq!(ports[0].id, "true");
-assert_eq!(ports[1].id, "false");
-}
+        let ports = plugin.ports();
+        assert_eq!(ports.len(), 2);
+        assert_eq!(ports[0].id, "true");
+        assert_eq!(ports[1].id, "false");
+    }
 
-#[test]
-fn test_grpc_close_plugin_metadata() {
-let plugin = GrpcClosePlugin;
-assert_eq!(plugin.type_id(), "grpc_close");
-assert_eq!(plugin.display_name(), "gRPC Close");
+    #[test]
+    fn test_grpc_close_plugin_metadata() {
+        let plugin = GrpcClosePlugin;
+        assert_eq!(plugin.type_id(), "grpc_close");
+        assert_eq!(plugin.display_name(), "gRPC Close");
         assert_eq!(plugin.category(), "grpc");
         assert_eq!(plugin.icon(), "phone-off");
         assert_eq!(plugin.color(), "#8B5CF6");
@@ -567,9 +559,15 @@ assert_eq!(plugin.display_name(), "gRPC Close");
         assert!(report.is_some());
         let report = report.unwrap();
         // 验证新字段包含在报告输入中
-        assert!(report.get("request_messages").is_some(), "报告应包含 request_messages");
+        assert!(
+            report.get("request_messages").is_some(),
+            "报告应包含 request_messages"
+        );
         // collect_config 已移除
-        assert!(report.get("collect_config").is_none(), "报告不应包含 collect_config");
+        assert!(
+            report.get("collect_config").is_none(),
+            "报告不应包含 collect_config"
+        );
         // 验证基本字段
         assert!(report.get("connection_id").is_some());
         assert!(report.get("service_name").is_some());
@@ -656,10 +654,7 @@ assert_eq!(plugin.display_name(), "gRPC Close");
         );
 
         // 空 object → false
-        assert_eq!(
-            plugin.resolve_port(&Some(serde_json::json!({}))),
-            "false"
-        );
+        assert_eq!(plugin.resolve_port(&Some(serde_json::json!({}))), "false");
     }
 
     #[test]

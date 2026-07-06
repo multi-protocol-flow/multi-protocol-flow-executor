@@ -150,7 +150,7 @@ impl SchemaRegistryClient {
     /// 确保 rustls 加密提供者已注册
     ///
     /// 当 `reqwest` 使用 `rustls-no-provider` feature 时，必须在构造 Client 之前初始化
-    /// 一个加密提供者（如 ring）。多次调用安全（install_default 幂等）。
+    /// 一个加密提供者（如 `ring）。多次调用安全（install_default` 幂等）。
     fn ensure_crypto_provider() {
         let _ = rustls::crypto::ring::default_provider().install_default();
     }
@@ -160,11 +160,14 @@ impl SchemaRegistryClient {
     /// # 参数
     /// - `base_url`: Schema Registry 地址（如 `http://localhost:8081`）
     /// - `auth`: 可选认证配置
-    pub fn new(base_url: &str, auth: Option<SchemaRegistryAuth>) -> Result<Self, SchemaRegistryError> {
+    pub fn new(
+        base_url: &str,
+        auth: Option<SchemaRegistryAuth>,
+    ) -> Result<Self, SchemaRegistryError> {
         Self::ensure_crypto_provider();
-        let client = reqwest::Client::builder()
-            .build()
-            .map_err(|e| SchemaRegistryError::HttpError(format!("Failed to create HTTP client: {e}")))?;
+        let client = reqwest::Client::builder().build().map_err(|e| {
+            SchemaRegistryError::HttpError(format!("Failed to create HTTP client: {e}"))
+        })?;
 
         Ok(Self {
             base_url: base_url.trim_end_matches('/').to_string(),
@@ -187,7 +190,10 @@ impl SchemaRegistryClient {
 
     /// 获取指定 Subject 的所有版本号
     /// GET /subjects/{subject}/versions
-    pub async fn get_subject_versions(&self, subject: &str) -> Result<Vec<i32>, SchemaRegistryError> {
+    pub async fn get_subject_versions(
+        &self,
+        subject: &str,
+    ) -> Result<Vec<i32>, SchemaRegistryError> {
         let url = format!("{}/subjects/{}/versions", self.base_url, subject);
         let response = self.get(&url).await?;
         self.handle_version_list_response(response, subject).await
@@ -200,14 +206,21 @@ impl SchemaRegistryClient {
         subject: &str,
         version: i32,
     ) -> Result<SchemaInfo, SchemaRegistryError> {
-        let url = format!("{}/subjects/{}/versions/{}", self.base_url, subject, version);
+        let url = format!(
+            "{}/subjects/{}/versions/{}",
+            self.base_url, subject, version
+        );
         let response = self.get(&url).await?;
-        self.handle_schema_response(response, subject, Some(version)).await
+        self.handle_schema_response(response, subject, Some(version))
+            .await
     }
 
     /// 获取最新版本的 Schema
     /// GET /subjects/{subject}/versions/latest
-    pub async fn get_latest_schema(&self, subject: &str) -> Result<SchemaInfo, SchemaRegistryError> {
+    pub async fn get_latest_schema(
+        &self,
+        subject: &str,
+    ) -> Result<SchemaInfo, SchemaRegistryError> {
         let url = format!("{}/subjects/{}/versions/latest", self.base_url, subject);
         let response = self.get(&url).await?;
         self.handle_schema_response(response, subject, None).await
@@ -268,7 +281,11 @@ impl SchemaRegistryClient {
 
     /// 设置 Subject 的兼容性级别
     /// PUT /config/{subject}
-    pub async fn set_compatibility(&self, subject: &str, level: &str) -> Result<(), SchemaRegistryError> {
+    pub async fn set_compatibility(
+        &self,
+        subject: &str,
+        level: &str,
+    ) -> Result<(), SchemaRegistryError> {
         let url = format!("{}/config/{}", self.base_url, subject);
         let body = ConfigRequest {
             compatibility: level.to_string(),
@@ -359,12 +376,13 @@ impl SchemaRegistryClient {
     ) -> Result<Vec<String>, SchemaRegistryError> {
         let status = response.status();
         if status.is_success() {
-            response
-                .json::<Vec<String>>()
-                .await
-                .map_err(|e| SchemaRegistryError::ParseError(format!("Failed to parse subject list: {e}")))
+            response.json::<Vec<String>>().await.map_err(|e| {
+                SchemaRegistryError::ParseError(format!("Failed to parse subject list: {e}"))
+            })
         } else if status.as_u16() == 404 {
-            Err(SchemaRegistryError::SubjectNotFound("(list all)".to_string()))
+            Err(SchemaRegistryError::SubjectNotFound(
+                "(list all)".to_string(),
+            ))
         } else {
             self.handle_error_response(status, response).await
         }
@@ -378,10 +396,9 @@ impl SchemaRegistryClient {
     ) -> Result<Vec<i32>, SchemaRegistryError> {
         let status = response.status();
         if status.is_success() {
-            response
-                .json::<Vec<i32>>()
-                .await
-                .map_err(|e| SchemaRegistryError::ParseError(format!("Failed to parse version list: {e}")))
+            response.json::<Vec<i32>>().await.map_err(|e| {
+                SchemaRegistryError::ParseError(format!("Failed to parse version list: {e}"))
+            })
         } else if status.as_u16() == 404 {
             Err(SchemaRegistryError::SubjectNotFound(subject.to_string()))
         } else {
@@ -398,10 +415,9 @@ impl SchemaRegistryClient {
     ) -> Result<SchemaInfo, SchemaRegistryError> {
         let status = response.status();
         if status.is_success() {
-            response
-                .json::<SchemaInfo>()
-                .await
-                .map_err(|e| SchemaRegistryError::ParseError(format!("Failed to parse schema info: {e}")))
+            response.json::<SchemaInfo>().await.map_err(|e| {
+                SchemaRegistryError::ParseError(format!("Failed to parse schema info: {e}"))
+            })
         } else if status.as_u16() == 404 {
             match version {
                 Some(v) => Err(SchemaRegistryError::VersionNotFound {
@@ -423,10 +439,9 @@ impl SchemaRegistryClient {
     ) -> Result<i32, SchemaRegistryError> {
         let status = response.status();
         if status.is_success() {
-            let reg: RegisterResponse = response
-                .json()
-                .await
-                .map_err(|e| SchemaRegistryError::ParseError(format!("Failed to parse register response: {e}")))?;
+            let reg: RegisterResponse = response.json().await.map_err(|e| {
+                SchemaRegistryError::ParseError(format!("Failed to parse register response: {e}"))
+            })?;
             Ok(reg.id)
         } else if status.as_u16() == 409 {
             Err(SchemaRegistryError::IncompatibleSchema(subject.to_string()))
@@ -446,10 +461,11 @@ impl SchemaRegistryClient {
     ) -> Result<bool, SchemaRegistryError> {
         let status = response.status();
         if status.is_success() {
-            let compat: CompatibilityResponse = response
-                .json()
-                .await
-                .map_err(|e| SchemaRegistryError::ParseError(format!("Failed to parse compatibility response: {e}")))?;
+            let compat: CompatibilityResponse = response.json().await.map_err(|e| {
+                SchemaRegistryError::ParseError(format!(
+                    "Failed to parse compatibility response: {e}"
+                ))
+            })?;
             Ok(compat.is_compatible)
         } else if status.as_u16() == 404 {
             Err(SchemaRegistryError::SubjectNotFound(subject.to_string()))
@@ -467,10 +483,9 @@ impl SchemaRegistryClient {
     ) -> Result<String, SchemaRegistryError> {
         let status = response.status();
         if status.is_success() {
-            let config: ConfigResponse = response
-                .json()
-                .await
-                .map_err(|e| SchemaRegistryError::ParseError(format!("Failed to parse config response: {e}")))?;
+            let config: ConfigResponse = response.json().await.map_err(|e| {
+                SchemaRegistryError::ParseError(format!("Failed to parse config response: {e}"))
+            })?;
             Ok(config.compatibility)
         } else {
             self.handle_error_response(status, response).await
@@ -515,8 +530,7 @@ mod tests {
 
     /// 辅助：创建指向 mockito mock 服务器的客户端（无认证）
     fn create_client(server: &mockito::ServerGuard) -> SchemaRegistryClient {
-        SchemaRegistryClient::new(&server.url(), None)
-            .expect("Failed to create client")
+        SchemaRegistryClient::new(&server.url(), None).expect("Failed to create client")
     }
 
     /// 辅助：创建带 Basic Auth 的客户端
@@ -823,7 +837,10 @@ mod tests {
 
         match result {
             Err(SchemaRegistryError::SubjectNotFound(msg)) => {
-                assert!(msg.contains("nonexistent"), "Expected SubjectNotFound for subject, got: {msg}");
+                assert!(
+                    msg.contains("nonexistent"),
+                    "Expected SubjectNotFound for subject, got: {msg}"
+                );
             }
             other => panic!("Expected SubjectNotFound, got: {other:?}"),
         }
@@ -880,7 +897,10 @@ mod tests {
 
         match result {
             Err(SchemaRegistryError::InvalidSchema(msg)) => {
-                assert!(msg.contains("Invalid schema"), "Expected InvalidSchema with message, got: {msg}");
+                assert!(
+                    msg.contains("Invalid schema"),
+                    "Expected InvalidSchema with message, got: {msg}"
+                );
             }
             other => panic!("Expected InvalidSchema, got: {other:?}"),
         }
@@ -905,7 +925,10 @@ mod tests {
 
         match result {
             Err(SchemaRegistryError::AuthError(msg)) => {
-                assert!(msg.contains("Unauthorized"), "Expected AuthError with message, got: {msg}");
+                assert!(
+                    msg.contains("Unauthorized"),
+                    "Expected AuthError with message, got: {msg}"
+                );
             }
             other => panic!("Expected AuthError, got: {other:?}"),
         }

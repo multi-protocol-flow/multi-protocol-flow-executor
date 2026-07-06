@@ -46,10 +46,7 @@ impl CsvReader {
                 let mut map = serde_json::Map::with_capacity(self.headers.len());
                 for (i, header) in self.headers.iter().enumerate() {
                     let val = record.get(i).unwrap_or("");
-                    map.insert(
-                        header.to_string(),
-                        Value::String(val.to_string()),
-                    );
+                    map.insert(header.to_string(), Value::String(val.to_string()));
                 }
                 Some(Ok(Value::Object(map)))
             }
@@ -125,8 +122,7 @@ fn decode_bytes(raw: &[u8], encoding: &str) -> String {
         decoded.into_owned()
     } else {
         // 无法识别的编码，尝试 UTF-8
-        let (decoded, _encoding_used, _had_errors) =
-            encoding_rs::UTF_8.decode(raw);
+        let (decoded, _encoding_used, _had_errors) = encoding_rs::UTF_8.decode(raw);
         decoded.into_owned()
     }
 }

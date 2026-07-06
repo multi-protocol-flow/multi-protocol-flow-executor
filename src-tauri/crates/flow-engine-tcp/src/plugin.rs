@@ -138,7 +138,7 @@ impl NodePlugin for TcpConnectPlugin {
             });
         }
         if let Some(timeout) = config.get("connect_timeout_ms").and_then(|v| v.as_u64()) {
-            if timeout < 1000 || timeout > 60000 {
+            if !(1000..=60000).contains(&timeout) {
                 errors.push(ValidationError {
                     field: "connect_timeout_ms".to_string(),
                     message: "connect_timeout_ms must be between 1000 and 60000".to_string(),
@@ -469,7 +469,7 @@ impl NodePlugin for TcpReceivePlugin {
             });
         }
         if let Some(timeout) = config.get("receive_timeout_ms").and_then(|v| v.as_u64()) {
-            if timeout < 1000 || timeout > 300000 {
+            if !(1000..=300000).contains(&timeout) {
                 errors.push(ValidationError {
                     field: "receive_timeout_ms".to_string(),
                     message: "receive_timeout_ms must be between 1000 and 300000".to_string(),
@@ -983,7 +983,7 @@ impl NodePlugin for UdpRecvFromPlugin {
             });
         }
         if let Some(timeout) = config.get("receive_timeout_ms").and_then(|v| v.as_u64()) {
-            if timeout < 1000 || timeout > 300000 {
+            if !(1000..=300000).contains(&timeout) {
                 errors.push(ValidationError {
                     field: "receive_timeout_ms".to_string(),
                     message: "receive_timeout_ms must be between 1000 and 300000".to_string(),

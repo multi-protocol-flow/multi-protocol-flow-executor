@@ -9,7 +9,10 @@ use serde_json::de::Deserializer;
 /// 构建 gRPC 方法路径
 ///
 /// gRPC 路径格式为 `/{package.Service}/{Method}`
-pub(crate) fn build_method_path(service_name: &str, method_name: &str) -> Result<PathAndQuery, String> {
+pub(crate) fn build_method_path(
+    service_name: &str,
+    method_name: &str,
+) -> Result<PathAndQuery, String> {
     let path = format!("/{}/{}", service_name, method_name);
     path.parse()
         .map_err(|e| format!("Invalid gRPC path '{}': {}", path, e))

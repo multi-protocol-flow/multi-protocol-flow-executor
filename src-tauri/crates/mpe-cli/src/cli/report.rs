@@ -1,13 +1,10 @@
 //! mpe report 子命令 — 报告管理 (list/show/delete)
 
-use super::{CliError, ReportCommands, config, output};
 use super::output::CliOutput;
+use super::{config, output, CliError, ReportCommands};
 
 /// 执行 report 管理子命令
-pub async fn execute(
-    _format: &str,
-    command: ReportCommands,
-) -> Result<(), CliError> {
+pub async fn execute(_format: &str, command: ReportCommands) -> Result<(), CliError> {
     match command {
         ReportCommands::List => execute_list(_format).await,
         ReportCommands::Show { uuid } => execute_show(&uuid).await,
@@ -21,7 +18,13 @@ async fn execute_list(format: &str) -> Result<(), CliError> {
         .map_err(|e| CliError::Execution(format!("Failed to list reports: {}", e)))?;
 
     if format == "table" {
-        let headers = ["UUID", "Flow Name", "Status", "Execution Time", "Duration(ms)"];
+        let headers = [
+            "UUID",
+            "Flow Name",
+            "Status",
+            "Execution Time",
+            "Duration(ms)",
+        ];
         let rows: Vec<Vec<String>> = reports
             .iter()
             .map(|r| {

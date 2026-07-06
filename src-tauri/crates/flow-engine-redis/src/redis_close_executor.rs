@@ -1,10 +1,10 @@
 //! Redis 关闭连接执行器
 
 use async_trait::async_trait;
-use flow_engine_core::error::ErrorDetail;
-use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::connection::Connection;
-use flow_engine_core::executor::{NodeExecutor, replace_variables};
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
+use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
@@ -43,10 +43,15 @@ impl NodeExecutor for RedisCloseExecutor {
 
         let config = match &node.data {
             NodeData::RedisClose(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error("[E_REDIS_CONNECTION] Node data is not RedisCloseConfig".to_string())),
+            _ => {
+                return Err(ErrorDetail::execution_error(
+                    "[E_REDIS_CONNECTION] Node data is not RedisCloseConfig".to_string(),
+                ))
+            }
         };
 
-        let connection_id = replace_variables(&config.connection_id, context).map_err(ErrorDetail::execution_error)?;
+        let connection_id = replace_variables(&config.connection_id, context)
+            .map_err(ErrorDetail::execution_error)?;
 
         context
             .emit_log(LogEvent {

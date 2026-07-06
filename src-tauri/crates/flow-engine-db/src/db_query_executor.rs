@@ -2,30 +2,28 @@
 //
 // 执行 SQL 查询并返回结果，支持参数化查询和多种获取模式。
 
-use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
-use flow_engine_core::context::ExecutionContext;
 use crate::db::traits::DatabasePool;
-use flow_engine_core::executor::{NodeExecutor, replace_variables};
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
+use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::DbProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
 /// 查询计时信息
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
 pub struct DbQueryTiming {
     /// 查询执行时间（毫秒）
     pub execute_ms: u64,
     /// 总时间（毫秒）
     pub total_ms: u64,
 }
-
 
 /// 数据库查询节点执行器
 pub struct DbQueryNodeExecutor {
@@ -113,8 +111,15 @@ impl NodeExecutor for DbQueryNodeExecutor {
             let error_msg = "Connection UUID is required".to_string();
 
             // 检查 on_error 策略
-            if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+            if !node
+                .on_error
+                .as_ref()
+                .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+            {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Flow aborted: {}",
+                    error_msg
+                )));
             }
 
             log::error!(
@@ -140,8 +145,15 @@ impl NodeExecutor for DbQueryNodeExecutor {
                         let error_msg = format!("SQL variable substitution failed: {}", e);
 
                         // 检查 on_error 策略
-if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                            return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                        if !node
+                            .on_error
+                            .as_ref()
+                            .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                        {
+                            return Err(ErrorDetail::execution_error(format!(
+                                "Flow aborted: {}",
+                                error_msg
+                            )));
                         }
 
                         log::error!(
@@ -162,8 +174,15 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                 let error_msg = "SQL statement is required".to_string();
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "Flow aborted: {}",
+                        error_msg
+                    )));
                 }
 
                 log::error!(
@@ -181,11 +200,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
         };
 
         // 记录 SQL 日志
-        log::info!(
-            "[Flow {}] [DB Query] SQL: {}",
-            context.flow_uuid,
-            sql
-        );
+        log::info!("[Flow {}] [DB Query] SQL: {}", context.flow_uuid, sql);
 
         // 发送 SQL 日志到前端
         context
@@ -212,11 +227,19 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                             resolved_params.push(value);
                         }
                         Err(e) => {
-                            let error_msg = format!("Parameter variable substitution failed: {}", e);
+                            let error_msg =
+                                format!("Parameter variable substitution failed: {}", e);
 
                             // 检查 on_error 策略
-                            if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                                return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                            if !node
+                                .on_error
+                                .as_ref()
+                                .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                            {
+                                return Err(ErrorDetail::execution_error(format!(
+                                    "Flow aborted: {}",
+                                    error_msg
+                                )));
                             }
 
                             log::error!(
@@ -250,8 +273,15 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                     let error_msg = format!("Connection pool not found: {}", connection_uuid);
 
                     // 检查 on_error 策略
-                    if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                        return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                    if !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                    {
+                        return Err(ErrorDetail::execution_error(format!(
+                            "Flow aborted: {}",
+                            error_msg
+                        )));
                     }
 
                     log::error!(
@@ -327,8 +357,15 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
                     .await;
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "Flow aborted: {}",
+                        error_msg
+                    )));
                 }
 
                 // 返回Failed输出，走 false 端口
@@ -468,9 +505,7 @@ if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteT
         // 返回Success，走 true 端口
         let next_node_ids: Vec<String> = connections
             .iter()
-            .filter(|conn| {
-                conn.source_node_uuid == node.uuid && conn.source_port_id == "true"
-            })
+            .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "true")
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 
@@ -508,12 +543,12 @@ fn get_false_port_nodes(node: &Node, connections: &[Connection]) -> Vec<String> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
     use crate::db::{DatabaseConnectionManager, MockPool};
+    use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::{Node, NodePosition};
     use flow_engine_core::node_config::{DbQueryConfig, NodeData};
-    use serde_json::json;
     use flow_engine_core::utils::extract_value_by_path;
+    use serde_json::json;
     use std::sync::Arc;
 
     /// 创建测试用数据库查询节点
@@ -639,7 +674,10 @@ mod tests {
         let (_, output) = result.unwrap();
         let output = output.unwrap();
         assert_eq!(output["success"], false);
-        assert!(output["error"].as_str().unwrap().contains("Connection UUID is required"));
+        assert!(output["error"]
+            .as_str()
+            .unwrap()
+            .contains("Connection UUID is required"));
     }
 
     #[tokio::test]
@@ -858,7 +896,10 @@ mod tests {
         let (_, output) = result.unwrap();
         let output = output.unwrap();
         assert_eq!(output["success"], false);
-        assert!(output["error"].as_str().unwrap().contains("Connection pool not found"));
+        assert!(output["error"]
+            .as_str()
+            .unwrap()
+            .contains("Connection pool not found"));
     }
 
     #[tokio::test]

@@ -283,7 +283,8 @@ impl DatasetExecutor {
             );
 
             // StopOnFirst 策略：遇到非Success行即停止
-            if config.failure_strategy == FailureStrategy::StopOnFirst && status != RowStatus::Success
+            if config.failure_strategy == FailureStrategy::StopOnFirst
+                && status != RowStatus::Success
             {
                 break;
             }
@@ -461,9 +462,8 @@ impl DatasetExecutor {
                 let _ = tx.send(summary).await;
 
                 // 更新进度计数器并发送进度事件
-                let completed = completed_count
-                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
-                    + 1;
+                let completed =
+                    completed_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
                 match status {
                     RowStatus::Success => {
                         success_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -477,7 +477,8 @@ impl DatasetExecutor {
                 }
 
                 let current_ms = flow_engine_core::utils::unix_timestamp_ms();
-                let elapsed_ms = current_ms.saturating_sub(start_time_ms.load(std::sync::atomic::Ordering::SeqCst));
+                let elapsed_ms = current_ms
+                    .saturating_sub(start_time_ms.load(std::sync::atomic::Ordering::SeqCst));
                 let sc = success_count.load(std::sync::atomic::Ordering::SeqCst);
                 let fc = fail_count.load(std::sync::atomic::Ordering::SeqCst);
                 let ec = error_count.load(std::sync::atomic::Ordering::SeqCst);
@@ -503,7 +504,8 @@ impl DatasetExecutor {
                 );
 
                 // StopOnFirst：发送停止信号
-                if failure_strategy == FailureStrategy::StopOnFirst && status != RowStatus::Success {
+                if failure_strategy == FailureStrategy::StopOnFirst && status != RowStatus::Success
+                {
                     let _ = stop_tx_task.send(());
                 }
             });
@@ -568,16 +570,26 @@ mod tests {
 
     /// 创建最小化的Test Flow（仅含 Entry node）
     fn create_test_flow() -> Flow {
-        Flow { uuid: "test-dataset-flow".to_string(), name: "Dataset Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![Node {
-            uuid: "entry-001".to_string(),
-            node_type: "entry".to_string(),
-            name: "Entry".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        }], connections: vec![], hooks: None }
+        Flow {
+            uuid: "test-dataset-flow".to_string(),
+            name: "Dataset Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![Node {
+                uuid: "entry-001".to_string(),
+                node_type: "entry".to_string(),
+                name: "Entry".to_string(),
+                position: NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::entry(),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
+            }],
+            connections: vec![],
+            hooks: None,
+        }
     }
 
     /// 创建临时 CSV 文件
@@ -613,7 +625,10 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行Failed");
+        let (results, _failed, _report_uuid) = executor
+            .execute(&config, &flow, None, None)
+            .await
+            .expect("执行Failed");
 
         assert_eq!(results.len(), 3);
         assert_eq!(results[0].row_index, 0);
@@ -633,9 +648,7 @@ mod tests {
     /// 测试并发执行（concurrency=2）5 行数据
     #[tokio::test]
     async fn test_concurrent_execution() {
-        let csv = create_temp_csv(
-            b"name,age\nA,1\nB,2\nC,3\nD,4\nE,5\n",
-        );
+        let csv = create_temp_csv(b"name,age\nA,1\nB,2\nC,3\nD,4\nE,5\n");
         let path = csv.path().to_str().expect("路径转换Failed");
 
         let flow = create_test_flow();
@@ -649,7 +662,10 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行Failed");
+        let (results, _failed, _report_uuid) = executor
+            .execute(&config, &flow, None, None)
+            .await
+            .expect("执行Failed");
 
         assert_eq!(results.len(), 5);
 
@@ -681,7 +697,10 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行Failed");
+        let (results, _failed, _report_uuid) = executor
+            .execute(&config, &flow, None, None)
+            .await
+            .expect("执行Failed");
         assert_eq!(results.len(), 3, "Continue 策略应执行全部行");
     }
 
@@ -702,7 +721,10 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行Failed");
+        let (results, _failed, _report_uuid) = executor
+            .execute(&config, &flow, None, None)
+            .await
+            .expect("执行Failed");
         assert!(results.is_empty(), "空 CSV 应返回空结果");
     }
 
@@ -726,7 +748,10 @@ mod tests {
         // 创建已触发的取消信号
         let (tx, rx) = watch::channel(true);
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, Some(rx), None).await.expect("执行Failed");
+        let (results, _failed, _report_uuid) = executor
+            .execute(&config, &flow, Some(rx), None)
+            .await
+            .expect("执行Failed");
         // 取消信号已触发，不应执行任何行
         assert!(results.is_empty(), "已取消时应返回空结果");
 
@@ -772,22 +797,20 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行Failed");
+        let (results, _failed, _report_uuid) = executor
+            .execute(&config, &flow, None, None)
+            .await
+            .expect("执行Failed");
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].input_data["name"], json!("Alice"));
         assert_eq!(results[0].input_data["age"], json!("30"));
     }
 
-    /// 测试 runtime_variables 构建（CSV 数据 + 内置变量）
+    /// 测试 `runtime_variables` 构建（CSV 数据 + 内置变量）
     #[test]
     fn test_runtime_variables_injection() {
         let csv_row = json!({"host": "localhost", "port": "8080"});
-        let vars = DatasetExecutor::build_runtime_variables(
-            csv_row.clone(),
-            0,
-            1,
-            "test.csv",
-        );
+        let vars = DatasetExecutor::build_runtime_variables(csv_row.clone(), 0, 1, "test.csv");
 
         // CSV 原始数据保留
         assert_eq!(vars["host"], json!("localhost"));
@@ -815,9 +838,13 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (event_sender, mut event_rx) = tokio::sync::mpsc::unbounded_channel::<super::events::DatasetEvent>();
+        let (event_sender, mut event_rx) =
+            tokio::sync::mpsc::unbounded_channel::<super::events::DatasetEvent>();
 
-        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, Some(event_sender)).await.expect("执行Failed");
+        let (results, _failed, _report_uuid) = executor
+            .execute(&config, &flow, None, Some(event_sender))
+            .await
+            .expect("执行Failed");
         assert_eq!(results.len(), 3);
 
         // 收集所有事件
@@ -828,11 +855,17 @@ mod tests {
 
         // 验证事件序列: Started → (RowCompleted|Progress) ×3 → Ended
         assert!(
-            matches!(collected_events.first(), Some(super::events::DatasetEvent::Started { total_rows: 3, .. })),
+            matches!(
+                collected_events.first(),
+                Some(super::events::DatasetEvent::Started { total_rows: 3, .. })
+            ),
             "第一个事件应为 Started"
         );
         assert!(
-            matches!(collected_events.last(), Some(super::events::DatasetEvent::Ended { .. })),
+            matches!(
+                collected_events.last(),
+                Some(super::events::DatasetEvent::Ended { .. })
+            ),
             "最后一个事件应为 Ended"
         );
 
@@ -869,9 +902,13 @@ mod tests {
         };
 
         let (tx, rx) = watch::channel(true); // 已触发取消
-        let (event_sender, mut event_rx) = tokio::sync::mpsc::unbounded_channel::<super::events::DatasetEvent>();
+        let (event_sender, mut event_rx) =
+            tokio::sync::mpsc::unbounded_channel::<super::events::DatasetEvent>();
 
-        let _results = executor.execute(&config, &flow, Some(rx), Some(event_sender)).await.expect("执行Failed");
+        let _results = executor
+            .execute(&config, &flow, Some(rx), Some(event_sender))
+            .await
+            .expect("执行Failed");
 
         // 收集事件
         let mut collected_events: Vec<super::events::DatasetEvent> = Vec::new();

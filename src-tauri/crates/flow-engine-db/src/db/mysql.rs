@@ -150,7 +150,10 @@ impl MySqlConnection {
         // 构建连接字符串
         let connection_string = if let Some(ref username) = config.username {
             let password = config.password.as_deref().unwrap_or("");
-            format!("mysql://{}:{}@{}:{}/{}", username, password, host, port, database)
+            format!(
+                "mysql://{}:{}@{}:{}/{}",
+                username, password, host, port, database
+            )
         } else {
             // 无用户名，使用默认连接
             format!("mysql://{}:{}/{}", host, port, database)
@@ -230,12 +233,12 @@ impl DatabasePool for MySqlConnection {
     ///     vec![json!("Alice"), json!("alice@example.com")]
     /// ).await?;
     /// ```
-    async fn execute(&self, sql: &str, params: Vec<serde_json::Value>) -> Result<QueryResult, String> {
-        log::debug!(
-            "[MySQL] 执行查询: sql={}, params={:?}",
-            sql,
-            params
-        );
+    async fn execute(
+        &self,
+        sql: &str,
+        params: Vec<serde_json::Value>,
+    ) -> Result<QueryResult, String> {
+        log::debug!("[MySQL] 执行查询: sql={}, params={:?}", sql, params);
 
         // 增加活跃连接计数
         {
@@ -377,7 +380,9 @@ impl DatabasePool for MySqlConnection {
         // 取出专用连接
         let mut conn = {
             let mut guard = self.tx_conn.lock().await;
-            guard.take().ok_or_else(|| "MySQL 没有活跃事务，无法提交".to_string())?
+            guard
+                .take()
+                .ok_or_else(|| "MySQL 没有活跃事务，无法提交".to_string())?
         };
 
         // 执行 COMMIT (text protocol / COM_QUERY)
@@ -401,7 +406,9 @@ impl DatabasePool for MySqlConnection {
         // 取出专用连接
         let mut conn = {
             let mut guard = self.tx_conn.lock().await;
-            guard.take().ok_or_else(|| "MySQL 没有活跃事务，无法回滚".to_string())?
+            guard
+                .take()
+                .ok_or_else(|| "MySQL 没有活跃事务，无法回滚".to_string())?
         };
 
         // 执行 ROLLBACK (text protocol / COM_QUERY)
@@ -596,24 +603,37 @@ impl MySqlConnection {
         // 尝试获取不同类型的值（按 MySQL 常见类型顺序）
         // 首先尝试整数类型
         if let Ok(v) = row.try_get::<Option<i64>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
         // 尝试浮点类型
         if let Ok(v) = row.try_get::<Option<f64>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
         // 尝试字符串类型
         if let Ok(v) = row.try_get::<Option<String>, _>(col_name) {
-            return v.map(serde_json::Value::from).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
         }
         // 尝试布尔类型（MySQL tinyint(1)）
         if let Ok(v) = row.try_get::<Option<i8>, _>(col_name) {
-            return v.map(|i| serde_json::Value::Bool(i != 0)).unwrap_or(serde_json::Value::Null);
+            return v
+                .map(|i| serde_json::Value::Bool(i != 0))
+                .unwrap_or(serde_json::Value::Null);
         }
         // 尝试字节数组（BLOB）
         if let Ok(v) = row.try_get::<Option<Vec<u8>>, _>(col_name) {
             return v
-                .map(|bytes| serde_json::Value::String(base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes)))
+                .map(|bytes| {
+                    serde_json::Value::String(base64::Engine::encode(
+                        &base64::engine::general_purpose::STANDARD,
+                        &bytes,
+                    ))
+                })
                 .unwrap_or(serde_json::Value::Null);
         }
         // 尝试日期时间类型
@@ -683,7 +703,7 @@ mod tests {
 
     #[test]
     fn test_build_connection_string_from_config_full() {
-        use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+        use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
         let config = DbConnection {
             id: "test-001".to_string(),
@@ -711,7 +731,7 @@ mod tests {
 
     #[test]
     fn test_build_connection_string_from_config_no_password() {
-        use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+        use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
         let config = DbConnection {
             id: "test-002".to_string(),
@@ -739,7 +759,7 @@ mod tests {
 
     #[test]
     fn test_build_connection_string_from_config_connection_string() {
-        use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+        use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
         let config = DbConnection {
             id: "test-003".to_string(),
@@ -767,7 +787,7 @@ mod tests {
 
     #[test]
     fn test_build_connection_string_from_config_defaults() {
-        use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+        use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
         let config = DbConnection {
             id: "test-004".to_string(),
@@ -805,7 +825,9 @@ mod tests {
     fn test_tx_conn_field_initialized() {
         // 验证 MySqlConnection 结构体包含 tx_conn 字段
         // 这主要是编译时检查 — 如果字段缺失或类型不匹配则编译Failed
-        let _ = std::marker::PhantomData::<Arc<tokio::sync::Mutex<Option<sqlx::pool::PoolConnection<sqlx::mysql::MySql>>>>>;
+        let _ = std::marker::PhantomData::<
+            Arc<tokio::sync::Mutex<Option<sqlx::pool::PoolConnection<sqlx::mysql::MySql>>>>,
+        >;
     }
 
     #[test]
@@ -850,7 +872,12 @@ mod tests {
     #[test]
     fn test_mysql_isolation_level_sql_formatting() {
         // 验证隔离级别 SQL 格式化
-        let levels = ["READ UNCOMMITTED", "READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"];
+        let levels = [
+            "READ UNCOMMITTED",
+            "READ COMMITTED",
+            "REPEATABLE READ",
+            "SERIALIZABLE",
+        ];
         for level in &levels {
             let sql = format!("SET TRANSACTION ISOLATION LEVEL {}", level);
             assert!(sql.starts_with("SET TRANSACTION"));
@@ -864,21 +891,15 @@ mod tests {
         use std::env;
 
         fn get_mysql_url() -> String {
-            env::var("MYSQL_URL").unwrap_or_else(|_| {
-                "mysql://root:password@localhost:3306/test".to_string()
-            })
+            env::var("MYSQL_URL")
+                .unwrap_or_else(|_| "mysql://root:password@localhost:3306/test".to_string())
         }
 
         #[tokio::test]
         async fn test_mysql_connection_and_test() {
-            let conn = MySqlConnection::new(
-                "test-conn".to_string(),
-                get_mysql_url(),
-                1,
-                5,
-            )
-            .await
-            .expect("连接池创建Failed");
+            let conn = MySqlConnection::new("test-conn".to_string(), get_mysql_url(), 1, 5)
+                .await
+                .expect("连接池创建Failed");
 
             // 测试连接
             let result = conn.test_connection().await;
@@ -890,14 +911,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_mysql_execute_select() {
-            let conn = MySqlConnection::new(
-                "test-select".to_string(),
-                get_mysql_url(),
-                1,
-                5,
-            )
-            .await
-            .expect("连接池创建Failed");
+            let conn = MySqlConnection::new("test-select".to_string(), get_mysql_url(), 1, 5)
+                .await
+                .expect("连接池创建Failed");
 
             // 执行 SELECT 1
             let result = conn
@@ -915,14 +931,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_mysql_execute_insert_and_select() {
-            let conn = MySqlConnection::new(
-                "test-insert".to_string(),
-                get_mysql_url(),
-                1,
-                5,
-            )
-            .await
-            .expect("连接池创建Failed");
+            let conn = MySqlConnection::new("test-insert".to_string(), get_mysql_url(), 1, 5)
+                .await
+                .expect("连接池创建Failed");
 
             // 创建表
             conn.execute(
@@ -950,7 +961,10 @@ mod tests {
 
             // 查询数据
             let select_result = conn
-                .execute("SELECT * FROM test_users WHERE name = ?", vec![serde_json::json!("Alice")])
+                .execute(
+                    "SELECT * FROM test_users WHERE name = ?",
+                    vec![serde_json::json!("Alice")],
+                )
                 .await
                 .expect("查询Failed");
 
@@ -974,14 +988,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_mysql_execute_update() {
-            let conn = MySqlConnection::new(
-                "test-update".to_string(),
-                get_mysql_url(),
-                1,
-                5,
-            )
-            .await
-            .expect("连接池创建Failed");
+            let conn = MySqlConnection::new("test-update".to_string(), get_mysql_url(), 1, 5)
+                .await
+                .expect("连接池创建Failed");
 
             // 创建表
             conn.execute(
@@ -1033,14 +1042,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_mysql_execute_delete() {
-            let conn = MySqlConnection::new(
-                "test-delete".to_string(),
-                get_mysql_url(),
-                1,
-                5,
-            )
-            .await
-            .expect("连接池创建Failed");
+            let conn = MySqlConnection::new("test-delete".to_string(), get_mysql_url(), 1, 5)
+                .await
+                .expect("连接池创建Failed");
 
             // 创建表
             conn.execute(
@@ -1087,14 +1091,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_mysql_status_info() {
-            let conn = MySqlConnection::new(
-                "test-status".to_string(),
-                get_mysql_url(),
-                1,
-                5,
-            )
-            .await
-            .expect("连接池创建Failed");
+            let conn = MySqlConnection::new("test-status".to_string(), get_mysql_url(), 1, 5)
+                .await
+                .expect("连接池创建Failed");
 
             let status = conn.status_info();
             assert!(status.contains("test-status"));
@@ -1105,7 +1104,7 @@ mod tests {
 
         #[tokio::test]
         async fn test_mysql_from_config() {
-            use super::super::types::{DbConnection, DbDriver, DbConnectionStatus};
+            use super::super::types::{DbConnection, DbConnectionStatus, DbDriver};
 
             let config = DbConnection {
                 id: "test-001".to_string(),
@@ -1142,14 +1141,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_mysql_param_types() {
-            let conn = MySqlConnection::new(
-                "test-params".to_string(),
-                get_mysql_url(),
-                1,
-                5,
-            )
-            .await
-            .expect("连接池创建Failed");
+            let conn = MySqlConnection::new("test-params".to_string(), get_mysql_url(), 1, 5)
+                .await
+                .expect("连接池创建Failed");
 
             // 创建表
             conn.execute(
@@ -1174,7 +1168,10 @@ mod tests {
 
             // 查询并验证
             let result = conn
-                .execute("SELECT * FROM test_types WHERE int_val = ?", vec![serde_json::json!(42)])
+                .execute(
+                    "SELECT * FROM test_types WHERE int_val = ?",
+                    vec![serde_json::json!(42)],
+                )
                 .await
                 .expect("查询Failed");
 
@@ -1197,14 +1194,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_mysql_empty_result() {
-            let conn = MySqlConnection::new(
-                "test-empty".to_string(),
-                get_mysql_url(),
-                1,
-                5,
-            )
-            .await
-            .expect("连接池创建Failed");
+            let conn = MySqlConnection::new("test-empty".to_string(), get_mysql_url(), 1, 5)
+                .await
+                .expect("连接池创建Failed");
 
             // 创建表
             conn.execute(
@@ -1238,14 +1230,9 @@ mod tests {
 
         #[tokio::test]
         async fn test_mysql_show_query() {
-            let conn = MySqlConnection::new(
-                "test-show".to_string(),
-                get_mysql_url(),
-                1,
-                5,
-            )
-            .await
-            .expect("连接池创建Failed");
+            let conn = MySqlConnection::new("test-show".to_string(), get_mysql_url(), 1, 5)
+                .await
+                .expect("连接池创建Failed");
 
             // 执行 SHOW 查询
             let result = conn

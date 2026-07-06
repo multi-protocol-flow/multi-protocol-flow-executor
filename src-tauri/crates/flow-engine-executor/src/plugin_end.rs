@@ -1,8 +1,8 @@
 // 结束节点插件 — NodePlugin 实现
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef};
 use std::collections::HashMap;
@@ -49,7 +49,7 @@ impl NodePlugin for EndPlugin {
         "".to_string()
     }
 
-    /// 结束节点启用端口路由（resolve_port 返回空字符串表示终止）
+    /// `结束节点启用端口路由（resolve_port` 返回空字符串表示终止）
     fn is_port_routing(&self) -> bool {
         true
     }

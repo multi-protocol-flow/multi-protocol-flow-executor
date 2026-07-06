@@ -59,7 +59,9 @@ pub mod timing;
 // Re-export 公共类型
 pub use body::{BodyType, MultipartBody, MultipartField, UrlEncoder};
 pub use client::{HttpClient, HttpRequestConfig, HttpResponse, HttpResult};
-pub use connector::{Connection, HttpConnector, LegacyConnection, TimedStream, TimingConnector, TlsOptions};
+pub use connector::{
+    Connection, HttpConnector, LegacyConnection, TimedStream, TimingConnector, TlsOptions,
+};
 pub use error::HttpError;
 pub use request::RequestBuilder;
 pub use response::HttpResponse as LegacyHttpResponse;

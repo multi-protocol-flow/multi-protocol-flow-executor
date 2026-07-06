@@ -8,14 +8,16 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use flow_engine_core::node_config::{McpConnectConfig, McpTransportMode};
-use flow_engine_core::traits::{McpPromptArgumentInfo, McpPromptInfo, McpResourceInfo, McpToolInfo};
+use flow_engine_core::traits::{
+    McpPromptArgumentInfo, McpPromptInfo, McpResourceInfo, McpToolInfo,
+};
 use log::info;
 
 use rmcp::service::ServiceExt;
 use rmcp::transport::streamable_http_client::StreamableHttpClientTransportConfig;
+use rmcp::transport::ConfigureCommandExt;
 use rmcp::transport::StreamableHttpClientTransport;
 use rmcp::transport::TokioChildProcess;
-use rmcp::transport::ConfigureCommandExt;
 
 /// 创建 MCP 客户端并连接到服务器
 ///
@@ -25,9 +27,7 @@ use rmcp::transport::ConfigureCommandExt;
 ///
 /// 返回 [`RunningService`](rmcp::service::RunningService) + 服务器元数据（工具列表、资源列表）。
 /// 所有 rmcp Error在边界转为 String。
-pub async fn create_mcp_client(
-    config: &McpConnectConfig,
-) -> Result<McpClientResult, String> {
+pub async fn create_mcp_client(config: &McpConnectConfig) -> Result<McpClientResult, String> {
     let start = Instant::now();
 
     // 合并 headers 和 custom_headers
@@ -41,9 +41,7 @@ pub async fn create_mcp_client(
         McpTransportMode::StreamableHttp => {
             create_streamable_http_transport(&config.url, merged_headers).await?
         }
-        McpTransportMode::Stdio => {
-            create_stdio_transport(config).await?
-        }
+        McpTransportMode::Stdio => create_stdio_transport(config).await?,
     };
 
     let connect_time = start.elapsed();
@@ -69,9 +67,7 @@ pub async fn create_mcp_client(
         .map(|tool| McpToolInfo {
             name: tool.name.to_string(),
             description: tool.description.as_ref().map(|d| d.to_string()),
-            input_schema: Some(serde_json::Value::Object(
-                (*tool.input_schema).clone(),
-            )),
+            input_schema: Some(serde_json::Value::Object((*tool.input_schema).clone())),
         })
         .collect();
 
@@ -172,25 +168,24 @@ async fn create_streamable_http_transport(
 async fn create_stdio_transport(
     config: &McpConnectConfig,
 ) -> Result<rmcp::service::RunningService<rmcp::service::RoleClient, ()>, String> {
-    let command = config.command.as_ref()
+    let command = config
+        .command
+        .as_ref()
         .ok_or_else(|| "stdio 模式需要指定 command".to_string())?;
-    let args = config.args.as_ref()
-        .cloned()
-        .unwrap_or_default();
-    let env = config.env.as_ref()
-        .cloned()
-        .unwrap_or_default();
+    let args = config.args.as_ref().cloned().unwrap_or_default();
+    let env = config.env.as_ref().cloned().unwrap_or_default();
 
-    let transport = TokioChildProcess::new(
-        tokio::process::Command::new(command).configure(|cmd| {
+    let transport =
+        TokioChildProcess::new(tokio::process::Command::new(command).configure(|cmd| {
             cmd.args(&args);
             for (k, v) in &env {
                 cmd.env(k, v);
             }
-        })
-    ).map_err(|e| format!("启动 MCP 进程Failed '{}': {}", command, e))?;
+        }))
+        .map_err(|e| format!("启动 MCP 进程Failed '{}': {}", command, e))?;
 
-    ().serve(transport).await
+    ().serve(transport)
+        .await
         .map_err(|e| format!("MCP stdio connection failed: {}", e))
 }
 
@@ -200,7 +195,9 @@ pub fn get_display_url(config: &McpConnectConfig) -> String {
         McpTransportMode::StreamableHttp => config.url.clone(),
         McpTransportMode::Stdio => {
             let command = config.command.as_deref().unwrap_or("");
-            let args = config.args.as_ref()
+            let args = config
+                .args
+                .as_ref()
                 .map(|a| a.join(" "))
                 .unwrap_or_default();
             if args.is_empty() {

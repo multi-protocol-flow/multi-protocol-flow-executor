@@ -3,7 +3,7 @@
 //! 依赖 `echo/` 下的 Docker Compose:
 //!   cd echo && docker compose up -d
 //!
-//! 运行: cargo test -p flow-engine-grpc --test test_reflection_live -- --nocapture --ignored
+//! 运行: cargo test -p flow-engine-grpc --test `test_reflection_live` -- --nocapture --ignored
 
 use flow_engine_grpc::grpc_connection_manager;
 use tonic_reflection::pb::v1alpha::server_reflection_response;
@@ -56,26 +56,44 @@ async fn test_reflection_echo_plaintext() {
     assert!(!services.is_empty(), "应该发现至少一个服务");
 
     // 验证 echo 服务的 TestService
-    let test_service = services.iter().find(|s| s.service_name == "testserver.TestService");
+    let test_service = services
+        .iter()
+        .find(|s| s.service_name == "testserver.TestService");
     assert!(test_service.is_some(), "应该发现 testserver.TestService");
 
     let svc = test_service.unwrap();
     assert_eq!(svc.methods.len(), 6, "TestService 应有 6 个方法");
 
     // 验证各方法的流式属性
-    let say_hello = svc.methods.iter().find(|m| m.method_name == "SayHello").unwrap();
+    let say_hello = svc
+        .methods
+        .iter()
+        .find(|m| m.method_name == "SayHello")
+        .unwrap();
     assert!(!say_hello.is_client_streaming);
     assert!(!say_hello.is_server_streaming);
 
-    let server_stream = svc.methods.iter().find(|m| m.method_name == "ServerStream").unwrap();
+    let server_stream = svc
+        .methods
+        .iter()
+        .find(|m| m.method_name == "ServerStream")
+        .unwrap();
     assert!(!server_stream.is_client_streaming);
     assert!(server_stream.is_server_streaming);
 
-    let client_stream = svc.methods.iter().find(|m| m.method_name == "ClientStream").unwrap();
+    let client_stream = svc
+        .methods
+        .iter()
+        .find(|m| m.method_name == "ClientStream")
+        .unwrap();
     assert!(client_stream.is_client_streaming);
     assert!(!client_stream.is_server_streaming);
 
-    let bidi = svc.methods.iter().find(|m| m.method_name == "BidiStream").unwrap();
+    let bidi = svc
+        .methods
+        .iter()
+        .find(|m| m.method_name == "BidiStream")
+        .unwrap();
     assert!(bidi.is_client_streaming);
     assert!(bidi.is_server_streaming);
 }
@@ -124,9 +142,9 @@ async fn test_raw_tonic_reflection_echo() {
             println!("[5] 发送 ListServices...");
             tx.send(ServerReflectionRequest {
                 host: String::new(),
-                message_request: Some(
-                    server_reflection_request::MessageRequest::ListServices(String::new()),
-                ),
+                message_request: Some(server_reflection_request::MessageRequest::ListServices(
+                    String::new(),
+                )),
             })
             .await
             .expect("发送Failed");
@@ -139,9 +157,17 @@ async fn test_raw_tonic_reflection_echo() {
                 Ok(Ok(Some(resp))) => {
                     println!("[7] 收到响应: {:?}", resp);
                     // 验证包含 TestService
-                    if let Some(server_reflection_response::MessageResponse::ListServicesResponse(ref services)) = resp.message_response {
+                    if let Some(
+                        server_reflection_response::MessageResponse::ListServicesResponse(
+                            ref services,
+                        ),
+                    ) = resp.message_response
+                    {
                         assert!(
-                            services.service.iter().any(|s| s.name == "testserver.TestService"),
+                            services
+                                .service
+                                .iter()
+                                .any(|s| s.name == "testserver.TestService"),
                             "应包含 testserver.TestService"
                         );
                     }
@@ -156,7 +182,7 @@ async fn test_raw_tonic_reflection_echo() {
     }
 }
 
-/// 测试 connect_lazy + 反射
+/// 测试 `connect_lazy` + 反射
 #[tokio::test]
 #[ignore = "需要 echo Docker 容器"]
 async fn test_lazy_connect_reflection() {
@@ -209,8 +235,11 @@ async fn test_lazy_connect_reflection() {
                 Ok(Ok(Some(resp))) => {
                     println!("[4] 收到响应: {:?}", resp.message_response);
                     let found = match resp.message_response {
-                        Some(server_reflection_response::MessageResponse::ListServicesResponse(ref r)) =>
-                            r.service.iter().any(|s| s.name == "testserver.TestService"),
+                        Some(
+                            server_reflection_response::MessageResponse::ListServicesResponse(
+                                ref r,
+                            ),
+                        ) => r.service.iter().any(|s| s.name == "testserver.TestService"),
                         _ => false,
                     };
                     assert!(found, "应通过反射发现 testserver.TestService");

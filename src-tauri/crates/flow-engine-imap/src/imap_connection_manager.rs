@@ -115,8 +115,7 @@ fn decrypt_password(encrypted: &str) -> Result<String, String> {
         return Ok(String::new());
     }
     // 尝试 AES-256-GCM 解密，若Failed则返回原文（本地测试/明文密码兼容）
-    flow_engine_crypto::encryption::decrypt(encrypted)
-        .or_else(|_| Ok(encrypted.to_string()))
+    flow_engine_crypto::encryption::decrypt(encrypted).or_else(|_| Ok(encrypted.to_string()))
 }
 
 /// 构建 TLS 连接器（使用系统根证书）
@@ -137,8 +136,12 @@ fn root_extend(root_store: &mut rustls::RootCertStore) {
 
 /// 解析服务器名称
 fn parse_server_name(host: &str) -> Result<rustls::pki_types::ServerName<'static>, String> {
-    let dns_name = rustls::pki_types::DnsName::try_from(host.to_string())
-        .map_err(|e| format!("[E_IMAP_CONNECTION] Invalid server name '{}': {:?}", host, e))?;
+    let dns_name = rustls::pki_types::DnsName::try_from(host.to_string()).map_err(|e| {
+        format!(
+            "[E_IMAP_CONNECTION] Invalid server name '{}': {:?}",
+            host, e
+        )
+    })?;
     Ok(rustls::pki_types::ServerName::from(dns_name))
 }
 
@@ -188,10 +191,9 @@ impl ImapProvider for ImapConnectionManager {
         };
 
         // 4. 认证
-        let auth = config
-            .auth
-            .as_ref()
-            .ok_or_else(|| "IMAP [E_IMAP_AUTH] authentication configuration required".to_string())?;
+        let auth = config.auth.as_ref().ok_or_else(|| {
+            "IMAP [E_IMAP_AUTH] authentication configuration required".to_string()
+        })?;
 
         let session = match auth {
             EmailAuthConfig::Plain {
@@ -215,8 +217,7 @@ impl ImapProvider for ImapConnectionManager {
                     .map_err(|(e, _)| format!("IMAP [E_IMAP_AUTH] login failed: {}", e))?
             }
             EmailAuthConfig::OAuth2 {
-                encrypted_tokens,
-                ..
+                encrypted_tokens, ..
             } => {
                 // 解密 tokens
                 let tokens_json = flow_engine_crypto::encryption::decrypt(encrypted_tokens)
@@ -231,7 +232,9 @@ impl ImapProvider for ImapConnectionManager {
                 client
                     .authenticate("XOAUTH2", &authenticator)
                     .await
-                    .map_err(|(e, _)| format!("[E_IMAP_AUTH] OAuth2 authentication failed: {}", e))?
+                    .map_err(|(e, _)| {
+                        format!("[E_IMAP_AUTH] OAuth2 authentication failed: {}", e)
+                    })?
             }
         };
 
@@ -494,7 +497,12 @@ impl ImapProvider for ImapConnectionManager {
             "set" => format!("FLAGS ({})", flags_str),
             "add" => format!("+FLAGS ({})", flags_str),
             "remove" => format!("-FLAGS ({})", flags_str),
-            _ => return Err(format!("IMAP [E_IMAP_STORE] store_flags unsupported operation: {}", operation)),
+            _ => {
+                return Err(format!(
+                    "IMAP [E_IMAP_STORE] store_flags unsupported operation: {}",
+                    operation
+                ))
+            }
         };
 
         // uid_store 返回 Stream<Item = Result<Fetch, Error>>
@@ -504,15 +512,14 @@ impl ImapProvider for ImapConnectionManager {
             .await
             .map_err(|e| format!("IMAP [E_IMAP_STORE] store_flags failed: {}", e))?;
 
-        let results: Vec<async_imap::types::Fetch> = stream
-            .try_collect()
-            .await
-            .map_err(|e| format!("IMAP [E_IMAP_STORE] store_flags stream collection failed: {}", e))?;
+        let results: Vec<async_imap::types::Fetch> = stream.try_collect().await.map_err(|e| {
+            format!(
+                "IMAP [E_IMAP_STORE] store_flags stream collection failed: {}",
+                e
+            )
+        })?;
 
-        let affected_uids: Vec<u32> = results
-            .iter()
-            .filter_map(|f| f.uid)
-            .collect();
+        let affected_uids: Vec<u32> = results.iter().filter_map(|f| f.uid).collect();
 
         Ok(ImapStoreFlagsOutput {
             success: true,
@@ -534,7 +541,10 @@ impl ImapProvider for ImapConnectionManager {
             .get_mut(connection_id)
             .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
-        let current_mailbox = conn.selected_mailbox.clone().unwrap_or_else(|| "?".to_string());
+        let current_mailbox = conn
+            .selected_mailbox
+            .clone()
+            .unwrap_or_else(|| "?".to_string());
 
         // uid_copy 返回 Result<()>
         conn.session
@@ -563,7 +573,10 @@ impl ImapProvider for ImapConnectionManager {
             .get_mut(connection_id)
             .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
-        let current_mailbox = conn.selected_mailbox.clone().unwrap_or_else(|| "?".to_string());
+        let current_mailbox = conn
+            .selected_mailbox
+            .clone()
+            .unwrap_or_else(|| "?".to_string());
 
         // 1. 复制到目标邮箱
         conn.session
@@ -579,10 +592,12 @@ impl ImapProvider for ImapConnectionManager {
             .map_err(|e| format!("IMAP [E_IMAP_STORE] move delete-flag failed: {}", e))?;
 
         // 消耗流以等待命令完成
-        let _: Vec<async_imap::types::Fetch> = del_stream
-            .try_collect()
-            .await
-            .map_err(|e| format!("IMAP [E_IMAP_STORE] move store stream collection failed: {}", e))?;
+        let _: Vec<async_imap::types::Fetch> = del_stream.try_collect().await.map_err(|e| {
+            format!(
+                "IMAP [E_IMAP_STORE] move store stream collection failed: {}",
+                e
+            )
+        })?;
 
         // 3. expunge — 返回 Stream<Item = Result<Seq>>，消耗之
         let expunge_stream = conn
@@ -591,10 +606,12 @@ impl ImapProvider for ImapConnectionManager {
             .await
             .map_err(|e| format!("IMAP [E_IMAP_FETCH] move expunge failed: {}", e))?;
 
-        let _: Vec<u32> = expunge_stream
-            .try_collect()
-            .await
-            .map_err(|e| format!("IMAP [E_IMAP_FETCH] move expunge stream collection failed: {}", e))?;
+        let _: Vec<u32> = expunge_stream.try_collect().await.map_err(|e| {
+            format!(
+                "IMAP [E_IMAP_FETCH] move expunge stream collection failed: {}",
+                e
+            )
+        })?;
 
         Ok(ImapMoveOutput {
             success: true,
@@ -606,10 +623,7 @@ impl ImapProvider for ImapConnectionManager {
     }
 
     /// 永久删除已标记邮件
-    async fn expunge(
-        &self,
-        connection_id: &str,
-    ) -> Result<ImapExpungeOutput, String> {
+    async fn expunge(&self, connection_id: &str) -> Result<ImapExpungeOutput, String> {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
@@ -622,10 +636,12 @@ impl ImapProvider for ImapConnectionManager {
             .await
             .map_err(|e| format!("IMAP [E_IMAP_FETCH] expunge failed: {}", e))?;
 
-        let expunged_seqs: Vec<u32> = stream
-            .try_collect()
-            .await
-            .map_err(|e| format!("IMAP [E_IMAP_FETCH] expunge stream collection failed: {}", e))?;
+        let expunged_seqs: Vec<u32> = stream.try_collect().await.map_err(|e| {
+            format!(
+                "IMAP [E_IMAP_FETCH] expunge stream collection failed: {}",
+                e
+            )
+        })?;
 
         Ok(ImapExpungeOutput {
             success: true,
@@ -669,11 +685,7 @@ impl ImapProvider for ImapConnectionManager {
             .map(|n| ImapMailboxInfo {
                 name: n.name().to_string(),
                 delimiter: n.delimiter().map(|d| d.to_string()),
-                attributes: n
-                    .attributes()
-                    .iter()
-                    .map(|a| format!("{:?}", a))
-                    .collect(),
+                attributes: n.attributes().iter().map(|a| format!("{:?}", a)).collect(),
             })
             .collect();
 
@@ -732,7 +744,7 @@ impl ImapProvider for ImapConnectionManager {
 
     /// IDLE 监听
     ///
-    /// 注意：async_imap 的 `idle()` 方法会消耗 Session 的所有权，
+    /// `注意：async_imap` 的 `idle()` 方法会消耗 Session 的所有权，
     /// 与当前连接管理架构（session 位于 Mutex 守卫内）不兼容。
     /// 此处暂时使用 NOOP + sleep 模拟 IDLE 等待。
     async fn idle(
@@ -777,10 +789,7 @@ impl ImapProvider for ImapConnectionManager {
     }
 
     /// 关闭 IMAP 连接
-    async fn close(
-        &self,
-        connection_id: &str,
-    ) -> Result<ImapCloseOutput, String> {
+    async fn close(&self, connection_id: &str) -> Result<ImapCloseOutput, String> {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .remove(connection_id)

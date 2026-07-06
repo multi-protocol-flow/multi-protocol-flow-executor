@@ -110,7 +110,11 @@ impl NodePlugin for AmqpConnectPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("url").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("url")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "url".into(),
                 message: "url must not be empty".into(),
@@ -128,11 +132,12 @@ impl NodePlugin for AmqpConnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp091::amqp_connect_executor::AmqpConnectExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp091::amqp_connect_executor::AmqpConnectExecutor::new(amqp_manager);
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -196,7 +201,11 @@ impl NodePlugin for AmqpClosePlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
@@ -214,11 +223,11 @@ impl NodePlugin for AmqpClosePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
         let executor = crate::amqp091::amqp_close_executor::AmqpCloseExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -303,13 +312,21 @@ impl NodePlugin for AmqpExchangeDeclarePlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("exchange_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("exchange_name")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "exchange_name".into(),
                 message: "exchange_name must not be empty".into(),
@@ -327,11 +344,14 @@ impl NodePlugin for AmqpExchangeDeclarePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp091::amqp_exchange_declare_executor::AmqpExchangeDeclareExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp091::amqp_exchange_declare_executor::AmqpExchangeDeclareExecutor::new(
+                amqp_manager,
+            );
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -412,13 +432,21 @@ impl NodePlugin for AmqpExchangeDeletePlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("exchange_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("exchange_name")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "exchange_name".into(),
                 message: "exchange_name must not be empty".into(),
@@ -436,11 +464,14 @@ impl NodePlugin for AmqpExchangeDeletePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp091::amqp_exchange_delete_executor::AmqpExchangeDeleteExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp091::amqp_exchange_delete_executor::AmqpExchangeDeleteExecutor::new(
+                amqp_manager,
+            );
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -524,7 +555,11 @@ impl NodePlugin for AmqpQueueDeclarePlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
@@ -542,11 +577,13 @@ impl NodePlugin for AmqpQueueDeclarePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp091::amqp_queue_declare_executor::AmqpQueueDeclareExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor = crate::amqp091::amqp_queue_declare_executor::AmqpQueueDeclareExecutor::new(
+            amqp_manager,
+        );
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -627,13 +664,21 @@ impl NodePlugin for AmqpQueueDeletePlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("queue_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("queue_name")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "queue_name".into(),
                 message: "queue_name must not be empty".into(),
@@ -651,11 +696,12 @@ impl NodePlugin for AmqpQueueDeletePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp091::amqp_queue_delete_executor::AmqpQueueDeleteExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp091::amqp_queue_delete_executor::AmqpQueueDeleteExecutor::new(amqp_manager);
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -740,19 +786,31 @@ impl NodePlugin for AmqpQueueBindPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("queue_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("queue_name")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "queue_name".into(),
                 message: "queue_name must not be empty".into(),
             });
         }
-        if config.get("exchange_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("exchange_name")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "exchange_name".into(),
                 message: "exchange_name must not be empty".into(),
@@ -770,11 +828,12 @@ impl NodePlugin for AmqpQueueBindPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp091::amqp_queue_bind_executor::AmqpQueueBindExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp091::amqp_queue_bind_executor::AmqpQueueBindExecutor::new(amqp_manager);
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -861,7 +920,11 @@ impl NodePlugin for AmqpPublishPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
@@ -879,11 +942,12 @@ impl NodePlugin for AmqpPublishPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp091::amqp_publish_executor::AmqpPublishExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp091::amqp_publish_executor::AmqpPublishExecutor::new(amqp_manager);
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -969,13 +1033,21 @@ impl NodePlugin for AmqpConsumePlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("queue_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("queue_name")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "queue_name".into(),
                 message: "queue_name must not be empty".into(),
@@ -993,11 +1065,12 @@ impl NodePlugin for AmqpConsumePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp091::amqp_consume_executor::AmqpConsumeExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp091::amqp_consume_executor::AmqpConsumeExecutor::new(amqp_manager);
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -1079,13 +1152,21 @@ impl NodePlugin for AmqpGetPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("queue_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("queue_name")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "queue_name".into(),
                 message: "queue_name must not be empty".into(),
@@ -1103,11 +1184,11 @@ impl NodePlugin for AmqpGetPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
         let executor = crate::amqp091::amqp_get_executor::AmqpGetExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -1190,7 +1271,11 @@ impl NodePlugin for AmqpAckPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
@@ -1208,11 +1293,11 @@ impl NodePlugin for AmqpAckPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
         let executor = crate::amqp091::amqp_ack_executor::AmqpAckExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -1300,7 +1385,11 @@ impl NodePlugin for AmqpManagementPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("management_url").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("management_url")
+            .and_then(|v| v.as_str())
+            .map_or(true, |s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "management_url".into(),
                 message: "management_url must not be empty".into(),
@@ -1318,11 +1407,12 @@ impl NodePlugin for AmqpManagementPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp091::amqp_management_executor::AmqpManagementExecutor::new(amqp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp091::amqp_management_executor::AmqpManagementExecutor::new(amqp_manager);
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -1335,16 +1425,34 @@ pub struct Amqp10ConnectPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10ConnectPlugin {
-    fn type_id(&self) -> &str { "amqp10_connect" }
-    fn display_name(&self) -> &str { "AMQP 1.0 Connect" }
-    fn category(&self) -> &str { "amqp" }
-    fn icon(&self) -> &str { "radio-tower" }
-    fn color(&self) -> &str { "#7c3aed" }
+    fn type_id(&self) -> &str {
+        "amqp10_connect"
+    }
+    fn display_name(&self) -> &str {
+        "AMQP 1.0 Connect"
+    }
+    fn category(&self) -> &str {
+        "amqp"
+    }
+    fn icon(&self) -> &str {
+        "radio-tower"
+    }
+    fn color(&self) -> &str {
+        "#7c3aed"
+    }
 
     fn ports(&self) -> Vec<PortDef> {
         vec![
-            PortDef { id: "true".into(), label: "Connect Success".into(), position: "right".into() },
-            PortDef { id: "false".into(), label: "connection failed".into(), position: "bottom".into() },
+            PortDef {
+                id: "true".into(),
+                label: "Connect Success".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "connection failed".into(),
+                position: "bottom".into(),
+            },
         ]
     }
 
@@ -1358,13 +1466,19 @@ impl NodePlugin for Amqp10ConnectPlugin {
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
-                if let Some(serde_json::Value::Bool(true)) = map.get("success") { "true".to_string() } else { "false".to_string() }
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
             }
             _ => "false".to_string(),
         }
     }
 
-    fn is_protocol_node(&self) -> bool { true }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1376,7 +1490,11 @@ impl NodePlugin for Amqp10ConnectPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("url").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("url")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "url".into(),
                 message: "url must not be empty".into(),
@@ -1386,12 +1504,19 @@ impl NodePlugin for Amqp10ConnectPlugin {
     }
 
     async fn execute(
-        &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp10::amqp10_connect_executor::Amqp10ConnectExecutor::new(amqp_manager);
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp10::amqp10_connect_executor::Amqp10ConnectExecutor::new(amqp_manager);
         executor.execute(node, context, connections, node_map).await
     }
 }
@@ -1401,16 +1526,34 @@ pub struct Amqp10SendPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10SendPlugin {
-    fn type_id(&self) -> &str { "amqp10_send" }
-    fn display_name(&self) -> &str { "AMQP 1.0 Send Message" }
-    fn category(&self) -> &str { "amqp" }
-    fn icon(&self) -> &str { "send" }
-    fn color(&self) -> &str { "#7c3aed" }
+    fn type_id(&self) -> &str {
+        "amqp10_send"
+    }
+    fn display_name(&self) -> &str {
+        "AMQP 1.0 Send Message"
+    }
+    fn category(&self) -> &str {
+        "amqp"
+    }
+    fn icon(&self) -> &str {
+        "send"
+    }
+    fn color(&self) -> &str {
+        "#7c3aed"
+    }
 
     fn ports(&self) -> Vec<PortDef> {
         vec![
-            PortDef { id: "true".into(), label: "Success".into(), position: "right".into() },
-            PortDef { id: "false".into(), label: "Failed".into(), position: "bottom".into() },
+            PortDef {
+                id: "true".into(),
+                label: "Success".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "Failed".into(),
+                position: "bottom".into(),
+            },
         ]
     }
 
@@ -1425,13 +1568,19 @@ impl NodePlugin for Amqp10SendPlugin {
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
-                if let Some(serde_json::Value::Bool(true)) = map.get("success") { "true".to_string() } else { "false".to_string() }
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
             }
             _ => "false".to_string(),
         }
     }
 
-    fn is_protocol_node(&self) -> bool { true }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1442,13 +1591,21 @@ impl NodePlugin for Amqp10SendPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("address").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("address")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "address".into(),
                 message: "address must not be empty".into(),
@@ -1458,11 +1615,17 @@ impl NodePlugin for Amqp10SendPlugin {
     }
 
     async fn execute(
-        &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
         let executor = crate::amqp10::amqp10_send_executor::Amqp10SendExecutor::new(amqp_manager);
         executor.execute(node, context, connections, node_map).await
     }
@@ -1473,16 +1636,34 @@ pub struct Amqp10ReceivePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10ReceivePlugin {
-    fn type_id(&self) -> &str { "amqp10_receive" }
-    fn display_name(&self) -> &str { "AMQP 1.0 Receive Message" }
-    fn category(&self) -> &str { "amqp" }
-    fn icon(&self) -> &str { "inbox" }
-    fn color(&self) -> &str { "#7c3aed" }
+    fn type_id(&self) -> &str {
+        "amqp10_receive"
+    }
+    fn display_name(&self) -> &str {
+        "AMQP 1.0 Receive Message"
+    }
+    fn category(&self) -> &str {
+        "amqp"
+    }
+    fn icon(&self) -> &str {
+        "inbox"
+    }
+    fn color(&self) -> &str {
+        "#7c3aed"
+    }
 
     fn ports(&self) -> Vec<PortDef> {
         vec![
-            PortDef { id: "true".into(), label: "Success".into(), position: "right".into() },
-            PortDef { id: "false".into(), label: "Failed".into(), position: "bottom".into() },
+            PortDef {
+                id: "true".into(),
+                label: "Success".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "Failed".into(),
+                position: "bottom".into(),
+            },
         ]
     }
 
@@ -1498,13 +1679,19 @@ impl NodePlugin for Amqp10ReceivePlugin {
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
-                if let Some(serde_json::Value::Bool(true)) = map.get("success") { "true".to_string() } else { "false".to_string() }
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
             }
             _ => "false".to_string(),
         }
     }
 
-    fn is_protocol_node(&self) -> bool { true }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1516,13 +1703,21 @@ impl NodePlugin for Amqp10ReceivePlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
             });
         }
-        if config.get("address").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("address")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "address".into(),
                 message: "address must not be empty".into(),
@@ -1532,12 +1727,19 @@ impl NodePlugin for Amqp10ReceivePlugin {
     }
 
     async fn execute(
-        &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp10::amqp10_receive_executor::Amqp10ReceiveExecutor::new(amqp_manager);
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp10::amqp10_receive_executor::Amqp10ReceiveExecutor::new(amqp_manager);
         executor.execute(node, context, connections, node_map).await
     }
 }
@@ -1547,16 +1749,34 @@ pub struct Amqp10AcceptPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10AcceptPlugin {
-    fn type_id(&self) -> &str { "amqp10_accept" }
-    fn display_name(&self) -> &str { "AMQP 1.0 Accept Message" }
-    fn category(&self) -> &str { "amqp" }
-    fn icon(&self) -> &str { "check-circle" }
-    fn color(&self) -> &str { "#7c3aed" }
+    fn type_id(&self) -> &str {
+        "amqp10_accept"
+    }
+    fn display_name(&self) -> &str {
+        "AMQP 1.0 Accept Message"
+    }
+    fn category(&self) -> &str {
+        "amqp"
+    }
+    fn icon(&self) -> &str {
+        "check-circle"
+    }
+    fn color(&self) -> &str {
+        "#7c3aed"
+    }
 
     fn ports(&self) -> Vec<PortDef> {
         vec![
-            PortDef { id: "true".into(), label: "Success".into(), position: "right".into() },
-            PortDef { id: "false".into(), label: "Failed".into(), position: "bottom".into() },
+            PortDef {
+                id: "true".into(),
+                label: "Success".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "Failed".into(),
+                position: "bottom".into(),
+            },
         ]
     }
 
@@ -1570,13 +1790,19 @@ impl NodePlugin for Amqp10AcceptPlugin {
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
-                if let Some(serde_json::Value::Bool(true)) = map.get("success") { "true".to_string() } else { "false".to_string() }
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
             }
             _ => "false".to_string(),
         }
     }
 
-    fn is_protocol_node(&self) -> bool { true }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1587,7 +1813,11 @@ impl NodePlugin for Amqp10AcceptPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
@@ -1597,12 +1827,19 @@ impl NodePlugin for Amqp10AcceptPlugin {
     }
 
     async fn execute(
-        &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp10::amqp10_accept_executor::Amqp10AcceptExecutor::new(amqp_manager);
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp10::amqp10_accept_executor::Amqp10AcceptExecutor::new(amqp_manager);
         executor.execute(node, context, connections, node_map).await
     }
 }
@@ -1612,16 +1849,34 @@ pub struct Amqp10RejectPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10RejectPlugin {
-    fn type_id(&self) -> &str { "amqp10_reject" }
-    fn display_name(&self) -> &str { "AMQP 1.0 Reject Message" }
-    fn category(&self) -> &str { "amqp" }
-    fn icon(&self) -> &str { "x-circle" }
-    fn color(&self) -> &str { "#7c3aed" }
+    fn type_id(&self) -> &str {
+        "amqp10_reject"
+    }
+    fn display_name(&self) -> &str {
+        "AMQP 1.0 Reject Message"
+    }
+    fn category(&self) -> &str {
+        "amqp"
+    }
+    fn icon(&self) -> &str {
+        "x-circle"
+    }
+    fn color(&self) -> &str {
+        "#7c3aed"
+    }
 
     fn ports(&self) -> Vec<PortDef> {
         vec![
-            PortDef { id: "true".into(), label: "Success".into(), position: "right".into() },
-            PortDef { id: "false".into(), label: "Failed".into(), position: "bottom".into() },
+            PortDef {
+                id: "true".into(),
+                label: "Success".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "Failed".into(),
+                position: "bottom".into(),
+            },
         ]
     }
 
@@ -1635,13 +1890,19 @@ impl NodePlugin for Amqp10RejectPlugin {
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
-                if let Some(serde_json::Value::Bool(true)) = map.get("success") { "true".to_string() } else { "false".to_string() }
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
             }
             _ => "false".to_string(),
         }
     }
 
-    fn is_protocol_node(&self) -> bool { true }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1652,7 +1913,11 @@ impl NodePlugin for Amqp10RejectPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
@@ -1662,12 +1927,19 @@ impl NodePlugin for Amqp10RejectPlugin {
     }
 
     async fn execute(
-        &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp10::amqp10_reject_executor::Amqp10RejectExecutor::new(amqp_manager);
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp10::amqp10_reject_executor::Amqp10RejectExecutor::new(amqp_manager);
         executor.execute(node, context, connections, node_map).await
     }
 }
@@ -1677,14 +1949,28 @@ pub struct Amqp10DisconnectPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for Amqp10DisconnectPlugin {
-    fn type_id(&self) -> &str { "amqp10_disconnect" }
-    fn display_name(&self) -> &str { "AMQP 1.0 Disconnect" }
-    fn category(&self) -> &str { "amqp" }
-    fn icon(&self) -> &str { "unplug" }
-    fn color(&self) -> &str { "#7c3aed" }
+    fn type_id(&self) -> &str {
+        "amqp10_disconnect"
+    }
+    fn display_name(&self) -> &str {
+        "AMQP 1.0 Disconnect"
+    }
+    fn category(&self) -> &str {
+        "amqp"
+    }
+    fn icon(&self) -> &str {
+        "unplug"
+    }
+    fn color(&self) -> &str {
+        "#7c3aed"
+    }
 
     fn ports(&self) -> Vec<PortDef> {
-        vec![PortDef { id: "out".into(), label: "完成".into(), position: "right".into() }]
+        vec![PortDef {
+            id: "out".into(),
+            label: "完成".into(),
+            position: "right".into(),
+        }]
     }
 
     fn default_config(&self) -> serde_json::Value {
@@ -1694,9 +1980,13 @@ impl NodePlugin for Amqp10DisconnectPlugin {
     }
 
     /// `Amqp10Disconnect` 始终返回 "out" 端口
-    fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String { "out".to_string() }
+    fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String {
+        "out".to_string()
+    }
 
-    fn is_protocol_node(&self) -> bool { true }
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
@@ -1706,7 +1996,11 @@ impl NodePlugin for Amqp10DisconnectPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+        if config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .is_none_or(|s| s.is_empty())
+        {
             errors.push(ValidationError {
                 field: "connection_id".into(),
                 message: "connection_id must not be empty".into(),
@@ -1716,12 +2010,19 @@ impl NodePlugin for Amqp10DisconnectPlugin {
     }
 
     async fn execute(
-        &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let amqp_manager = context
             .get_provider::<crate::amqp091::amqp_connection_manager::AmqpConnectionManager>("amqp")
-            .unwrap_or_else(|| Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new()));
-        let executor = crate::amqp10::amqp10_disconnect_executor::Amqp10DisconnectExecutor::new(amqp_manager);
+            .unwrap_or_else(|| {
+                Arc::new(crate::amqp091::amqp_connection_manager::AmqpConnectionManager::new())
+            });
+        let executor =
+            crate::amqp10::amqp10_disconnect_executor::Amqp10DisconnectExecutor::new(amqp_manager);
         executor.execute(node, context, connections, node_map).await
     }
 }
@@ -1994,7 +2295,11 @@ mod tests {
 
         for plugin in &plugins {
             let config = plugin.default_config();
-            assert!(config.is_object(), "{} default_config 应为对象", plugin.type_id());
+            assert!(
+                config.is_object(),
+                "{} default_config 应为对象",
+                plugin.type_id()
+            );
         }
     }
 

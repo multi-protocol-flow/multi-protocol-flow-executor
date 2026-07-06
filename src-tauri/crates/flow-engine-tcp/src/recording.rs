@@ -584,7 +584,7 @@ mod tests {
         );
     }
 
-    /// 测试 TcpRecording 的 send_entries/receive_entries 筛选
+    /// 测试 `TcpRecording` 的 `send_entries/receive_entries` 筛选
     #[test]
     fn test_send_receive_filtering() {
         let recording = TcpRecording {
@@ -630,7 +630,7 @@ mod tests {
         assert_eq!(receives[0].connection_id, "c1");
     }
 
-    /// 测试 RecordingDirection 序列化
+    /// 测试 `RecordingDirection` 序列化
     #[test]
     fn test_direction_serde() {
         let send = RecordingDirection::Send;
@@ -651,7 +651,7 @@ mod tests {
         assert_eq!(recv_back, RecordingDirection::Receive);
     }
 
-    /// 测试 RecordingManager Default trait
+    /// 测试 `RecordingManager` Default trait
     #[test]
     fn test_recording_manager_default() {
         let manager = RecordingManager::default();
@@ -722,7 +722,7 @@ mod tests {
         assert_eq!(recording.entries[1].data_size, 0);
     }
 
-    /// 测试 RecordingEntry metadata 字段
+    /// 测试 `RecordingEntry` metadata 字段
     #[test]
     fn test_entry_metadata() {
         let entry = RecordingEntry {

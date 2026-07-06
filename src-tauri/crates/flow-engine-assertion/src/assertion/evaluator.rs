@@ -39,6 +39,7 @@ impl AssertionEvaluator {
     /// - `$.body.data.items[0].id` - 嵌套 + 数组索引
     /// - `$.body.items[*].name` - 通配符
     /// - `$.body.items[?(@.price < 100)]` - 过滤器
+    #[allow(clippy::result_large_err)]
     pub fn extract_target(input: &Value, path: &str) -> Result<Value, ErrorDetail> {
         // 空路径返回 null
         if path.is_empty() {

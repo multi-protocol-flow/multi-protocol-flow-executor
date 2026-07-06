@@ -11,7 +11,7 @@ use flow_engine_core::node_types;
 /// 结构化验证Error条目
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ValidationEntry {
-    /// Error代码（如 E_VAL_MISSING_ENTRY）
+    /// Error代码（如 `E_VAL_MISSING_ENTRY`）
     pub code: ErrorCode,
     /// 人类可读的Error描述
     pub message: String,
@@ -168,10 +168,7 @@ impl FlowValidator {
 
         if end_nodes.is_empty() {
             // 仅在流程有 Entry node（非空流程）时发出警告
-            let has_entry = flow
-                .nodes
-                .iter()
-                .any(|n| n.node_type == node_types::ENTRY);
+            let has_entry = flow.nodes.iter().any(|n| n.node_type == node_types::ENTRY);
             if has_entry {
                 warnings.push(
                     "Flow has no End node; execution status will remain 'success' on completion. Consider adding an End node to explicitly terminate the flow."
@@ -256,10 +253,7 @@ impl FlowValidator {
             } else {
                 result.errors.push(ValidationEntry {
                     code: ErrorCode::E_VAL_UNKNOWN_NODE_TYPE,
-                    message: format!(
-                        "Node '{}' has unknown type '{}'",
-                        node.name, node.node_type
-                    ),
+                    message: format!("Node '{}' has unknown type '{}'", node.name, node.node_type),
                     field: Some("type".to_string()),
                 });
                 result.valid = false;
@@ -418,15 +412,16 @@ impl FlowValidator {
 
     /// 验证输出端口唯一性
     ///
-    /// 每个节点的每个输出端口（source_port_id）只能有一条出边。
+    /// `每个节点的每个输出端口（source_port_id）只能有一条出边`。
     /// 一个节点可以有多个输出端口（如 conditional 的 "true"/"false"），
     /// 但每个端口最多只能连接到一个下游节点。
-    /// 输入端口（target_port_id）不受此限制，可以接收多条入边。
+    /// `输入端口（target_port_id）不受此限制，可以接收多条入边`。
     pub fn validate_output_port_uniqueness(&self, flow: &Flow) -> ValidationResult {
         let mut errors = Vec::new();
 
         // 检查是否有重复的 (source_node_uuid, source_port_id) 组合
-        let mut seen: std::collections::HashSet<(String, String)> = std::collections::HashSet::new();
+        let mut seen: std::collections::HashSet<(String, String)> =
+            std::collections::HashSet::new();
         for conn in &flow.connections {
             let key = (conn.source_node_uuid.clone(), conn.source_port_id.clone());
             if !seen.insert(key.clone()) {
@@ -477,11 +472,7 @@ impl FlowValidator {
         }
 
         // 找到所有节点 UUID 集合
-        let all_uuids: Vec<String> = flow
-            .nodes
-            .iter()
-            .map(|n| n.uuid.clone())
-            .collect();
+        let all_uuids: Vec<String> = flow.nodes.iter().map(|n| n.uuid.clone()).collect();
 
         // DFS 染色法检测环
         // 使用 index 映射避免引用生命周期问题
@@ -737,8 +728,7 @@ impl FlowValidator {
         }
 
         // Build adjacency list: source_uuid -> Vec<target_uuid>
-        let mut adj: std::collections::HashMap<&str, Vec<&str>> =
-            std::collections::HashMap::new();
+        let mut adj: std::collections::HashMap<&str, Vec<&str>> = std::collections::HashMap::new();
         for conn in &flow.connections {
             adj.entry(conn.source_node_uuid.as_str())
                 .or_default()
@@ -804,13 +794,13 @@ impl FlowValidator {
     // A2e: Unknown fields / missing required fields validation
     // ========================================================================
 
-    /// Validate that nodes have no missing required fields (uuid, name, node_type).
+    /// Validate that nodes have no missing required fields (uuid, name, `node_type`).
     ///
-    /// Currently checks for empty uuid, empty name, and empty node_type.
+    /// Currently checks for empty uuid, empty name, and empty `node_type`.
     ///
     /// # Errors
     ///
-    /// Returns `E_VAL_MISSING_REQUIRED_FIELD` for empty uuid, name, or node_type.
+    /// Returns `E_VAL_MISSING_REQUIRED_FIELD` for empty uuid, name, or `node_type`.
     pub fn validate_unknown_fields(&self, flow: &Flow) -> ValidationResult {
         let mut errors: Vec<ValidationEntry> = Vec::new();
 
@@ -865,7 +855,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         }
     }
 
@@ -879,7 +869,7 @@ mod tests {
             data: NodeData::end(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         }
     }
 
@@ -897,7 +887,17 @@ mod tests {
     #[test]
     fn test_validator_no_start_node() {
         // 创建没有开始节点的流程
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![create_end_node()], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![create_end_node()],
+            connections: vec![],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -906,9 +906,7 @@ mod tests {
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
         eprintln!("Error: {}", result.errors[0].message);
-        assert!(
-            result.errors[0].message.contains("missing an Entry node")
-        );
+        assert!(result.errors[0].message.contains("missing an Entry node"));
     }
 
     #[test]
@@ -917,7 +915,17 @@ mod tests {
         let start_node1 = create_entry_node();
         let start_node2 = create_entry_node();
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node1, start_node2], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node1, start_node2],
+            connections: vec![],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -937,10 +945,20 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![http_node],
+            connections: vec![],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -959,7 +977,17 @@ mod tests {
         let end_node = create_end_node();
         let connection = create_connection(&start_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -981,7 +1009,7 @@ mod tests {
             data: NodeData::http("https://example.com/1"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
         let http_node2 = Node {
             uuid: Uuid::new_v4().to_string(),
@@ -991,10 +1019,20 @@ mod tests {
             data: NodeData::http("https://example.com/2"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node1, http_node2], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![http_node1, http_node2],
+            connections: vec![],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1012,7 +1050,17 @@ mod tests {
         let end_node = create_end_node();
         let connection = create_connection(&start_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.execute(&flow);
@@ -1024,7 +1072,17 @@ mod tests {
     #[test]
     fn test_validator_empty_flow() {
         // 创建空流程
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "空流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "空流程".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![],
+            connections: vec![],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1048,14 +1106,24 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
         let end_node = create_end_node();
 
         let connection1 = create_connection(&start_node.uuid, &http_node.uuid);
         let connection2 = create_connection(&http_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "复杂Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, http_node, end_node], connections: vec![connection1, connection2], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "复杂Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node, http_node, end_node],
+            connections: vec![connection1, connection2],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1078,14 +1146,24 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
         let end_node = create_end_node();
 
         // 只从 HTTP 节点发出连接
         let connection = create_connection(&http_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, http_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node, http_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1109,7 +1187,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node.clone(), end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node.clone(), end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1131,7 +1219,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
         let end_node = create_end_node();
 
@@ -1144,7 +1232,7 @@ mod tests {
             data: NodeData::http("https://example.com/other"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1155,7 +1243,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, other_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node, other_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1188,10 +1286,20 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "ErrorTest Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "ErrorTest Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![http_node],
+            connections: vec![],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1215,14 +1323,26 @@ mod tests {
         let connection_1 = create_connection(&start_node.uuid, &end_node_1.uuid);
         let connection_2 = create_connection(&start_node.uuid, &end_node_2.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node, end_node_1, end_node_2],
+            connections: vec![connection_1, connection_2],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
         // 新规则：同一输出端口只能有一条出边
         assert!(!result.valid);
-        assert!(result.errors.iter().any(|e| e.message.contains("can only connect to one downstream node")));
+        assert!(result.errors.iter().any(|e| e
+            .message
+            .contains("can only connect to one downstream node")));
     }
 
     #[test]
@@ -1236,7 +1356,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         let end_node = Node {
@@ -1247,7 +1367,7 @@ mod tests {
             data: NodeData::end(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         // 使用特定 UUID 创建连接
@@ -1259,7 +1379,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -1284,7 +1414,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         let flow = Flow {
@@ -1353,7 +1483,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         let flow = Flow {
@@ -1412,7 +1542,9 @@ mod tests {
         let result = validator.validate(&flow);
 
         assert!(!result.valid);
-        assert!(result.errors.iter().any(|e| e.message.contains("can only connect to one downstream node")));
+        assert!(result.errors.iter().any(|e| e
+            .message
+            .contains("can only connect to one downstream node")));
     }
 
     #[test]
@@ -1424,10 +1556,14 @@ mod tests {
             node_type: "conditional".to_string(),
             name: "Conditional Branch".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::conditional_simple("status", flow_engine_core::node_config::ConditionOperator::Equal, serde_json::json!("ok")),
+            data: NodeData::conditional_simple(
+                "status",
+                flow_engine_core::node_config::ConditionOperator::Equal,
+                serde_json::json!("ok"),
+            ),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
@@ -1437,7 +1573,7 @@ mod tests {
             data: NodeData::http("https://example.com/success"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
         let end_node = create_end_node();
 
@@ -1472,7 +1608,11 @@ mod tests {
         let result = validator.validate(&flow);
 
         // 应该通过（不同端口各自出边是允许的）
-        assert!(result.valid, "Different ports should each allow one edge, but errors: {:?}", result.errors);
+        assert!(
+            result.valid,
+            "Different ports should each allow one edge, but errors: {:?}",
+            result.errors
+        );
     }
 
     // ========================================================================
@@ -1490,7 +1630,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
         let node_b = Node {
             uuid: "node-b".to_string(),
@@ -1500,7 +1640,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         let conn1 = create_connection(&node_a.uuid, &node_b.uuid);
@@ -1537,7 +1677,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
         let node_c = create_end_node();
 
@@ -1559,7 +1699,11 @@ mod tests {
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        assert!(result.valid, "Linear flow should have no cycles, but errors: {:?}", result.errors);
+        assert!(
+            result.valid,
+            "Linear flow should have no cycles, but errors: {:?}",
+            result.errors
+        );
     }
 
     #[test]
@@ -1571,13 +1715,24 @@ mod tests {
             .enumerate()
             .map(|(i, name)| Node {
                 uuid: format!("node-{}", i),
-                node_type: if i == 0 { "entry".to_string() } else { "http".to_string() },
+                node_type: if i == 0 {
+                    "entry".to_string()
+                } else {
+                    "http".to_string()
+                },
                 name: name.to_string(),
-                position: NodePosition { x: (i as f64) * 100.0, y: 0.0 },
-                data: if i == 0 { NodeData::entry() } else { NodeData::http("https://example.com") },
+                position: NodePosition {
+                    x: (i as f64) * 100.0,
+                    y: 0.0,
+                },
+                data: if i == 0 {
+                    NodeData::entry()
+                } else {
+                    NodeData::http("https://example.com")
+                },
                 ports: None,
                 has_breakpoint: None,
-            on_error: None,
+                on_error: None,
             })
             .collect();
 

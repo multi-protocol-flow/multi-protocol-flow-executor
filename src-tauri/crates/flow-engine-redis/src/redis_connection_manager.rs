@@ -40,9 +40,7 @@ impl RedisConnectionManager {
         }
     }
 
-
-
-    /// 执行 Redis 命令，返回 RedisCommandOutput
+    /// 执行 Redis 命令，返回 `RedisCommandOutput`
     async fn execute_command_inner(
         manager: &mut ConnectionManager,
         command: &str,
@@ -758,18 +756,24 @@ impl RedisProvider for RedisConnectionManager {
         args: &[String],
     ) -> Result<RedisCommandOutput, String> {
         let mut connections = self.connections.write().await;
-        let conn = connections
-            .get_mut(connection_id)
-            .ok_or_else(|| format!("[E_REDIS_CONNECTION] Redis connection does not exist: {}", connection_id))?;
+        let conn = connections.get_mut(connection_id).ok_or_else(|| {
+            format!(
+                "[E_REDIS_CONNECTION] Redis connection does not exist: {}",
+                connection_id
+            )
+        })?;
 
         Self::execute_command_inner(&mut conn.manager, command, args).await
     }
 
     async fn close(&self, connection_id: &str) -> Result<RedisCloseOutput, String> {
         let mut connections = self.connections.write().await;
-        connections
-            .remove(connection_id)
-            .ok_or_else(|| format!("[E_REDIS_CONNECTION] Redis connection does not exist: {}", connection_id))?;
+        connections.remove(connection_id).ok_or_else(|| {
+            format!(
+                "[E_REDIS_CONNECTION] Redis connection does not exist: {}",
+                connection_id
+            )
+        })?;
 
         log::info!("[Redis] Connection closed: id={}", connection_id);
 

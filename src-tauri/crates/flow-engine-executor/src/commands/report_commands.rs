@@ -275,7 +275,8 @@ mod tests {
         save_flow_report(original_report.clone(), &reports_dir).expect("保存报告Failed");
 
         // 加载
-        let loaded_report = load_flow_report("roundtrip-001", &reports_dir).expect("加载报告Failed");
+        let loaded_report =
+            load_flow_report("roundtrip-001", &reports_dir).expect("加载报告Failed");
 
         // 验证所有字段保持一致
         assert_eq!(loaded_report.uuid, original_report.uuid);

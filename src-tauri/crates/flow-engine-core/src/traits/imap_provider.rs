@@ -1,7 +1,7 @@
 //! IMAP 提供者抽象 trait
 
-use async_trait::async_trait;
 use crate::email_types::ImapConfig;
+use async_trait::async_trait;
 
 /// IMAP 连接输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -339,10 +339,7 @@ pub trait ImapProvider: Send + Sync {
     ) -> Result<ImapMoveOutput, String>;
 
     /// 永久删除已标记邮件
-    async fn expunge(
-        &self,
-        connection_id: &str,
-    ) -> Result<ImapExpungeOutput, String>;
+    async fn expunge(&self, connection_id: &str) -> Result<ImapExpungeOutput, String>;
 
     /// 列出邮箱
     async fn list(
@@ -375,10 +372,7 @@ pub trait ImapProvider: Send + Sync {
     ) -> Result<ImapIdleOutput, String>;
 
     /// 关闭 IMAP 连接
-    async fn close(
-        &self,
-        connection_id: &str,
-    ) -> Result<ImapCloseOutput, String>;
+    async fn close(&self, connection_id: &str) -> Result<ImapCloseOutput, String>;
 
     /// 测试 IMAP 连接
     async fn test_connection(&self, config: &ImapConfig) -> Result<bool, String>;

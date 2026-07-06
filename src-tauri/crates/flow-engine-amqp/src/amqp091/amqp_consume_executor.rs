@@ -2,8 +2,8 @@
 //!
 //! 实现 AMQP 0-9-1 推模式消费（`basic_consume`），支持多种确认模式和消息批量采集。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -12,9 +12,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{AmqpConsumeConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// AMQP 消费消息节点执行器
@@ -246,8 +246,15 @@ impl NodeExecutor for AmqpConsumeExecutor {
                 });
 
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP consume Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "AMQP consume Failed: {}",
+                        e
+                    )));
                 }
 
                 // 返回 false 端口
@@ -281,10 +288,10 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
         Amqp10AcceptConfig, Amqp10ConnectConfig, Amqp10DisconnectConfig, Amqp10ReceiveConfig,
-        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig,
-        AmqpConnectConfig, AmqpConsumeConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig,
-        AmqpGetConfig, AmqpManagementConfig, AmqpPublishConfig, AmqpQueueBindConfig,
-        AmqpQueueDeclareConfig, AmqpQueueDeleteConfig,
+        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig, AmqpConnectConfig,
+        AmqpConsumeConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig, AmqpGetConfig,
+        AmqpManagementConfig, AmqpPublishConfig, AmqpQueueBindConfig, AmqpQueueDeclareConfig,
+        AmqpQueueDeleteConfig,
     };
     use flow_engine_core::traits::{
         AmqpConnectOutput, AmqpConnectionInfo, AmqpConsumeOutput, AmqpMessage,
@@ -834,7 +841,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("AmqpConsumeConfig"));
     }
 
-    /// 测试：变量替换在 queue 和 consumer_tag 中生效
+    /// 测试：变量替换在 queue 和 `consumer_tag` 中生效
     #[tokio::test]
     async fn test_amqp_consume_variable_replacement() {
         let messages = vec![AmqpMessage {

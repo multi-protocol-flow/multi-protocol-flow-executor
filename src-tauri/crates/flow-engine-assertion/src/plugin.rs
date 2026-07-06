@@ -170,8 +170,6 @@ impl NodePlugin for AssertionPlugin {
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let executor = crate::assertion_executor::AssertionNodeExecutor::new();
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }

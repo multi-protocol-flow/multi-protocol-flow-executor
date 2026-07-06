@@ -31,8 +31,8 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
     let mut result = template.to_string();
 
     for cap in re.captures_iter(template) {
-        let full_match = cap.get(0).unwrap().as_str();
-        let variable_path = cap.get(1).unwrap().as_str().trim();
+        let full_match = cap.get(0).ok_or("Regex capture 0 missing")?.as_str();
+        let variable_path = cap.get(1).ok_or("Regex capture 1 missing")?.as_str().trim();
 
         // 检查是否包含索引访问（不支持）
         if variable_path.contains('[') {
@@ -71,7 +71,10 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
                     }
                 }
                 _ => {
-                    return Err(format!("Variable path '{}' is not an object type", current_path));
+                    return Err(format!(
+                        "Variable path '{}' is not an object type",
+                        current_path
+                    ));
                 }
             }
         }

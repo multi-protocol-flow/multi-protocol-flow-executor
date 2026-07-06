@@ -3,8 +3,8 @@
 //! 发送完整的 __schema 内省查询到 GraphQL 端点，
 //! 解析响应为 Schema 数据，并可选生成基本的查询/变更模板。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use flow_engine_core::connection::Connection;
@@ -43,9 +43,7 @@ impl GraphqlIntrospectExecutor {
     ) -> Vec<String> {
         let targets: Vec<String> = connections
             .iter()
-            .filter(|conn| {
-                conn.source_node_uuid == node_uuid && conn.source_port_id == port
-            })
+            .filter(|conn| conn.source_node_uuid == node_uuid && conn.source_port_id == port)
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 
@@ -104,7 +102,10 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("GraphQL schema introspection node {} start execution", node.name),
+                message: format!(
+                    "GraphQL schema introspection node {} start execution",
+                    node.name
+                ),
                 timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -214,9 +215,10 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
 
                 // 8. 路由：Success走 true 端口，Failed走 false 端口
                 if !output.success
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output
                         .error
@@ -268,15 +270,16 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 走 false 端口
-                let next_node_ids =
-                    Self::resolve_port_targets(&node.uuid, "false", connections);
+                let next_node_ids = Self::resolve_port_targets(&node.uuid, "false", connections);
 
                 Ok((next_node_ids, Some(error_output)))
             }
@@ -290,12 +293,11 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
-        GraphqlConnectConfig, GraphqlDisconnectConfig, GraphqlQueryConfig,
-        GraphqlSubscribeConfig,
+        GraphqlConnectConfig, GraphqlDisconnectConfig, GraphqlQueryConfig, GraphqlSubscribeConfig,
     };
     use flow_engine_core::traits::{
-        GraphqlConnectOutput, GraphqlConnectionInfo, GraphqlIntrospectOutput,
-        GraphqlQueryOutput, GraphqlQueryTemplate, GraphqlSubscribeOutput,
+        GraphqlConnectOutput, GraphqlConnectionInfo, GraphqlIntrospectOutput, GraphqlQueryOutput,
+        GraphqlQueryTemplate, GraphqlSubscribeOutput,
     };
 
     // ---------------------------------------------------------------------------
@@ -515,7 +517,7 @@ mod tests {
     // 测试
     // ---------------------------------------------------------------------------
 
-    /// 测试：配置提取Success（正确的 NodeData 变体）
+    /// 测试：配置提取Success（正确的 `NodeData` 变体）
     #[tokio::test]
     async fn test_graphql_introspect_config_extraction_success() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -534,7 +536,7 @@ mod tests {
         assert!(output_data.is_some());
     }
 
-    /// 测试：配置提取拒绝Error的 NodeData 变体
+    /// 测试：配置提取拒绝Error的 `NodeData` 变体
     #[tokio::test]
     async fn test_graphql_introspect_config_extraction_wrong_variant() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -557,7 +559,10 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("GraphqlIntrospectConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("GraphqlIntrospectConfig"));
     }
 
     /// 测试：Success时路由到 true 端口
@@ -605,7 +610,7 @@ mod tests {
         assert_eq!(data["error"], "Endpoint unreachable");
     }
 
-    /// 测试：输出结构包含 schema 和 query_templates
+    /// 测试：输出结构包含 schema 和 `query_templates`
     #[tokio::test]
     async fn test_graphql_introspect_report_input_structure() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -678,7 +683,7 @@ mod tests {
         assert!(data["query_templates"].is_null());
     }
 
-    /// 测试：无模板时 query_templates 为 null
+    /// 测试：无模板时 `query_templates` 为 null
     #[tokio::test]
     async fn test_graphql_introspect_no_templates_output() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success_no_templates());

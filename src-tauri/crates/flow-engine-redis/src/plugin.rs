@@ -1,12 +1,12 @@
 //! Redis 节点插件注册
 
 use async_trait::async_trait;
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::PortDef;
-use flow_engine_core::context::ExecutionContext;
-use flow_engine_core::connection::Connection;
 use flow_engine_core::plugin::{NodePlugin, ValidationError};
 use flow_engine_core::registry::NodeRegistry;
 use serde_json::json;
@@ -114,7 +114,9 @@ impl NodePlugin for RedisConnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let redis_manager = context
             .get_provider::<crate::redis_connection_manager::RedisConnectionManager>("redis")
-            .unwrap_or_else(|| Arc::new(crate::redis_connection_manager::RedisConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::redis_connection_manager::RedisConnectionManager::new())
+            });
         let executor = crate::redis_connect_executor::RedisConnectExecutor::new(redis_manager);
         executor.execute(node, context, connections, node_map).await
     }
@@ -225,7 +227,9 @@ impl NodePlugin for RedisCommandPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let redis_manager = context
             .get_provider::<crate::redis_connection_manager::RedisConnectionManager>("redis")
-            .unwrap_or_else(|| Arc::new(crate::redis_connection_manager::RedisConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::redis_connection_manager::RedisConnectionManager::new())
+            });
         let executor = crate::redis_command_executor::RedisCommandExecutor::new(redis_manager);
         executor.execute(node, context, connections, node_map).await
     }
@@ -309,7 +313,9 @@ impl NodePlugin for RedisClosePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let redis_manager = context
             .get_provider::<crate::redis_connection_manager::RedisConnectionManager>("redis")
-            .unwrap_or_else(|| Arc::new(crate::redis_connection_manager::RedisConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::redis_connection_manager::RedisConnectionManager::new())
+            });
         let executor = crate::redis_close_executor::RedisCloseExecutor::new(redis_manager);
         executor.execute(node, context, connections, node_map).await
     }

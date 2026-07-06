@@ -310,7 +310,7 @@ impl KafkaClient {
 mod tests {
     use super::*;
 
-    /// 验证 KafkaError 各变体的 Display 输出
+    /// 验证 `KafkaError` 各变体的 Display 输出
     #[test]
     fn test_kafka_error_display() {
         assert_eq!(
@@ -359,7 +359,7 @@ mod tests {
         );
     }
 
-    /// 验证基础 KafkaConnectConfig → ClientConfig 映射
+    /// 验证基础 `KafkaConnectConfig` → `ClientConfig` 映射
     #[test]
     fn test_kafka_client_config_from_connect_config() {
         let config = KafkaConnectConfig {
@@ -439,7 +439,7 @@ mod tests {
 
     /// 验证 SSL/TLS 配置映射
     ///
-    /// 仅验证 KafkaClient 构建Success（配置映射正确）。
+    /// 仅验证 `KafkaClient` 构建Success（配置映射正确）。
     /// 不实际创建客户端，因为 rdkafka 会校验 SSL 证书路径是否存在。
     #[test]
     fn test_kafka_client_config_with_ssl() {

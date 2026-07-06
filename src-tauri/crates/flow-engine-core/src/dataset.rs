@@ -137,8 +137,7 @@ mod tests {
             has_headers: true,
         };
         let json = serde_json::to_string(&config).expect("序列化Failed");
-        let deserialized: DatasetConfig =
-            serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: DatasetConfig = serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(config.path, deserialized.path);
         assert_eq!(config.encoding, deserialized.encoding);
         assert_eq!(config.delimiter, deserialized.delimiter);
@@ -197,15 +196,10 @@ mod tests {
 
     #[test]
     fn test_row_status_roundtrip() {
-        let statuses = vec![
-            RowStatus::Success,
-            RowStatus::Fail,
-            RowStatus::Error,
-        ];
+        let statuses = vec![RowStatus::Success, RowStatus::Fail, RowStatus::Error];
         for status in statuses {
             let json = serde_json::to_string(&status).expect("序列化Failed");
-            let deserialized: RowStatus =
-                serde_json::from_str(&json).expect("反序列化Failed");
+            let deserialized: RowStatus = serde_json::from_str(&json).expect("反序列化Failed");
             assert_eq!(status, deserialized);
         }
     }
@@ -236,16 +230,12 @@ mod tests {
             has_detail_report: false,
         };
         let json_str = serde_json::to_string(&summary).expect("序列化Failed");
-        let deserialized: RowSummary =
-            serde_json::from_str(&json_str).expect("反序列化Failed");
+        let deserialized: RowSummary = serde_json::from_str(&json_str).expect("反序列化Failed");
         assert_eq!(summary.row_index, deserialized.row_index);
         assert_eq!(summary.status, deserialized.status);
         assert_eq!(summary.duration_ms, deserialized.duration_ms);
         assert_eq!(summary.error_message, deserialized.error_message);
-        assert_eq!(
-            summary.has_detail_report,
-            deserialized.has_detail_report
-        );
+        assert_eq!(summary.has_detail_report, deserialized.has_detail_report);
     }
 
     #[test]
@@ -259,12 +249,8 @@ mod tests {
             has_detail_report: true,
         };
         let json_str = serde_json::to_string(&summary).expect("序列化Failed");
-        let deserialized: RowSummary =
-            serde_json::from_str(&json_str).expect("反序列化Failed");
-        assert_eq!(
-            deserialized.error_message,
-            Some("连接超时".to_string())
-        );
+        let deserialized: RowSummary = serde_json::from_str(&json_str).expect("反序列化Failed");
+        assert_eq!(deserialized.error_message, Some("连接超时".to_string()));
     }
 
     #[test]
@@ -286,16 +272,14 @@ mod tests {
             p50_duration_ms: 450,
             p95_duration_ms: 800,
             p99_duration_ms: 900,
-            row_summaries: vec![
-                RowSummary {
-                    row_index: 0,
-                    input_data: json!({"name": "a"}),
-                    status: RowStatus::Success,
-                    duration_ms: 100,
-                    error_message: None,
-                    has_detail_report: false,
-                },
-            ],
+            row_summaries: vec![RowSummary {
+                row_index: 0,
+                input_data: json!({"name": "a"}),
+                status: RowStatus::Success,
+                duration_ms: 100,
+                error_message: None,
+                has_detail_report: false,
+            }],
         };
         let json_str = serde_json::to_string(&report).expect("序列化Failed");
         let deserialized: DatasetExecutionReport =
@@ -326,8 +310,7 @@ mod tests {
             "p95_duration_ms": 0,
             "p99_duration_ms": 0
         }"#;
-        let report: DatasetExecutionReport =
-            serde_json::from_str(json).expect("反序列化Failed");
+        let report: DatasetExecutionReport = serde_json::from_str(json).expect("反序列化Failed");
         assert!(report.row_summaries.is_empty());
     }
 }

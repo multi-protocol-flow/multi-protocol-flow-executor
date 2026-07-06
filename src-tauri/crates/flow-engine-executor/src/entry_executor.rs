@@ -1,10 +1,10 @@
 // Entry node执行器 - EntryNodeExecutor 实现
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
-use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
+use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -154,8 +154,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let next_node = Node {
@@ -165,8 +165,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -231,8 +231,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = ExecutionContext {
@@ -255,7 +255,9 @@ mod tests {
         let node_map = HashMap::new();
 
         let executor = EntryNodeExecutor::new();
-        let result = executor.execute(&entry_node, &mut context, &[], &node_map).await;
+        let result = executor
+            .execute(&entry_node, &mut context, &[], &node_map)
+            .await;
 
         // 验证执行Success（没有连接是正常终止）
         assert!(result.is_ok());
@@ -276,8 +278,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let next_node_1 = Node {
@@ -287,8 +289,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let next_node_2 = Node {
@@ -298,8 +300,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 100.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection_1 = Connection {
@@ -370,8 +372,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let next_node = Node {
@@ -381,8 +383,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -420,7 +422,12 @@ mod tests {
         let start_time = Instant::now();
         for _ in 0..1000 {
             let _ = executor
-                .execute(&entry_node, &mut context, std::slice::from_ref(&connection), &node_map)
+                .execute(
+                    &entry_node,
+                    &mut context,
+                    std::slice::from_ref(&connection),
+                    &node_map,
+                )
                 .await;
         }
         let elapsed = start_time.elapsed();
@@ -445,8 +452,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let next_node = Node {
@@ -456,8 +463,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         // 连接使用 node.uuid 作为 source_node_uuid
@@ -511,8 +518,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let next_node = Node {
@@ -522,8 +529,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -600,8 +607,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = ExecutionContext {
@@ -626,7 +633,12 @@ mod tests {
 
         let executor = EntryNodeExecutor::new();
         let result = executor
-            .execute(&entry_node, &mut context, &[connection1, connection2], &node_map)
+            .execute(
+                &entry_node,
+                &mut context,
+                &[connection1, connection2],
+                &node_map,
+            )
             .await;
 
         // 验证执行Success

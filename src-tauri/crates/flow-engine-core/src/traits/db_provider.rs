@@ -7,8 +7,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// 查询结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct QueryResult {
     /// 查询返回的行数据（JSON 数组）
     pub rows: Vec<serde_json::Value>,
@@ -21,7 +20,6 @@ pub struct QueryResult {
     /// 是否被截断（超出 10000 行限制）
     pub truncated: bool,
 }
-
 
 impl QueryResult {
     /// 创建空的查询结果

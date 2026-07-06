@@ -248,9 +248,7 @@ mod tests {
         let preset = get_provider_preset(&EmailProvider::Outlook).unwrap();
         assert_eq!(preset.smtp_host, "smtp.office365.com");
         assert_eq!(preset.imap_host, "outlook.office365.com");
-        assert!(preset
-            .oauth_scope
-            .contains("IMAP.AccessAsUser.All"));
+        assert!(preset.oauth_scope.contains("IMAP.AccessAsUser.All"));
         assert!(preset.oauth_scope.contains("SMTP.Send"));
         assert!(preset.oauth_scope.contains("offline_access"));
     }

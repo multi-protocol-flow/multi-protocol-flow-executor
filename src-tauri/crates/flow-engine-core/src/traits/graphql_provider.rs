@@ -1,8 +1,8 @@
 // GraphQL Provider trait - GraphQL 连接管理抽象接口
 
 use crate::node_config::{
-    GraphqlConnectConfig, GraphqlQueryConfig, GraphqlSubscribeConfig,
-    GraphqlIntrospectConfig, GraphqlDisconnectConfig,
+    GraphqlConnectConfig, GraphqlDisconnectConfig, GraphqlIntrospectConfig, GraphqlQueryConfig,
+    GraphqlSubscribeConfig,
 };
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -171,11 +171,7 @@ pub trait GraphqlProvider: Send + Sync {
     ) -> Result<GraphqlIntrospectOutput, String>;
 
     /// 断开 GraphQL 连接
-    async fn disconnect(
-        &self,
-        uuid: &str,
-        config: &GraphqlDisconnectConfig,
-    ) -> Result<(), String>;
+    async fn disconnect(&self, uuid: &str, config: &GraphqlDisconnectConfig) -> Result<(), String>;
 
     /// 获取连接状态
     fn get_status(&self, uuid: &str) -> Option<String>;

@@ -114,16 +114,26 @@ mod tests {
         use flow_engine_core::node::{Node, NodePosition};
         use flow_engine_core::node_config::NodeData;
 
-        Flow { uuid: "test-flow-001".to_string(), name: "Test Flow".to_string(), description: None, nodes: vec![Node {
-            uuid: "entry-001".to_string(),
-            node_type: "entry".to_string(),
-            name: "Entry".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        }], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None }
+        Flow {
+            uuid: "test-flow-001".to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![Node {
+                uuid: "entry-001".to_string(),
+                node_type: "entry".to_string(),
+                name: "Entry".to_string(),
+                position: NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::entry(),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
+            }],
+            connections: vec![],
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
+        }
     }
 
     /// 测试生成空报告（无数据）
@@ -413,7 +423,7 @@ mod tests {
         assert!(filename_str.ends_with(".json"), "文件名应该以 .json 结尾");
     }
 
-    /// 测试不保存报告（reports_dir 为 None）
+    /// `测试不保存报告（reports_dir` 为 None）
     #[test]
     fn test_no_save_when_reports_dir_is_none() {
         let flow = create_test_flow();

@@ -2,8 +2,8 @@
 //!
 //! 实现 GraphQL 连接建立、变量替换和输出构建功能。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -66,7 +66,10 @@ impl NodeExecutor for GraphqlConnectExecutor {
 
         let ws_endpoint = match &config.ws_endpoint {
             Some(ws) => Some(replace_variables(ws, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("ws_endpoint variable substitution failed: {}", e))
+                ErrorDetail::execution_error(format!(
+                    "ws_endpoint variable substitution failed: {}",
+                    e
+                ))
             })?),
             None => None,
         };
@@ -76,8 +79,12 @@ impl NodeExecutor for GraphqlConnectExecutor {
             Some(h) => {
                 let mut replaced = HashMap::new();
                 for (k, v) in h {
-                    let rv = replace_variables(v, context)
-                        .map_err(|e| ErrorDetail::execution_error(format!("Header '{}' variable substitution failed: {}", k, e)))?;
+                    let rv = replace_variables(v, context).map_err(|e| {
+                        ErrorDetail::execution_error(format!(
+                            "Header '{}' variable substitution failed: {}",
+                            k, e
+                        ))
+                    })?;
                     replaced.insert(k.clone(), rv);
                 }
                 Some(replaced)
@@ -175,10 +182,7 @@ impl NodeExecutor for GraphqlConnectExecutor {
                     LogLevel::Error
                 };
                 let log_message = if output.success {
-                    format!(
-                        "GraphQL connect succeeded ({}ms)",
-                        duration.as_millis()
-                    )
+                    format!("GraphQL connect succeeded ({}ms)", duration.as_millis())
                 } else {
                     format!(
                         "GraphQL connection failed: {} ({}ms)",
@@ -200,9 +204,10 @@ impl NodeExecutor for GraphqlConnectExecutor {
 
                 // 9. 路由：Success走 true 端口，Failed走 false 端口
                 if !output.success
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output
                         .error
@@ -267,9 +272,11 @@ impl NodeExecutor for GraphqlConnectExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -278,8 +285,7 @@ impl NodeExecutor for GraphqlConnectExecutor {
                     let filtered: Vec<String> = connections
                         .iter()
                         .filter(|conn| {
-                            conn.source_node_uuid == node.uuid
-                                && conn.source_port_id == "false"
+                            conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
                         })
                         .map(|conn| conn.target_node_uuid.clone())
                         .collect();
@@ -510,7 +516,11 @@ mod tests {
     async fn test_graphql_connect_failure_routes_to_false_port() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_failure("Connection refused"));
         let executor = GraphqlConnectExecutor::new(graphql_manager);
-        let node = create_test_node("test-2", "Failed测试", "https://unreachable.example/graphql");
+        let node = create_test_node(
+            "test-2",
+            "Failed测试",
+            "https://unreachable.example/graphql",
+        );
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -582,11 +592,9 @@ mod tests {
         };
 
         let mut context = create_context("test-flow");
-        context.variables.set_variable(
-            "host".to_string(),
-            json!("api.example.com"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("host".to_string(), json!("api.example.com"), String::new());
         context.variables.set_variable(
             "token".to_string(),
             json!("my-secret-token"),
@@ -604,14 +612,17 @@ mod tests {
 
         let data = output_data.unwrap();
         // 验证变量替换生效
-        assert_eq!(data["request"]["endpoint"], "https://api.example.com/graphql");
+        assert_eq!(
+            data["request"]["endpoint"],
+            "https://api.example.com/graphql"
+        );
         assert_eq!(
             data["request"]["ws_endpoint"],
             "wss://api.example.com/graphql"
         );
     }
 
-    /// 测试：默认 connection_id 回退到节点 UUID
+    /// 测试：默认 `connection_id` 回退到节点 UUID
     #[tokio::test]
     async fn test_graphql_connect_default_connection_id_fallback() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());

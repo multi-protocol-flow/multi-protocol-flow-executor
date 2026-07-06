@@ -4,8 +4,8 @@
 // 断开始终走 "out" 端口（Failed不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -98,9 +98,7 @@ impl NodeExecutor for GraphqlDisconnectExecutor {
         let next_node_ids: Vec<String> = {
             let filtered: Vec<String> = connections
                 .iter()
-                .filter(|conn| {
-                    conn.source_node_uuid == node.uuid && conn.source_port_id == "out"
-                })
+                .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "out")
                 .map(|conn| conn.target_node_uuid.clone())
                 .collect();
 
@@ -279,10 +277,13 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("GraphqlDisconnectConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("GraphqlDisconnectConfig"));
     }
 
-    /// 测试：变量替换 — connection_id 中的变量应被正确替换
+    /// 测试：变量替换 — `connection_id` 中的变量应被正确替换
     #[tokio::test]
     async fn test_disconnect_with_variable_replacement() {
         let graphql_manager = Arc::new(GraphqlConnectionManager::new());
@@ -336,7 +337,7 @@ mod tests {
         assert_eq!(data["success"], true);
     }
 
-    /// 测试：resolve_port 始终返回 "out"
+    /// `测试：resolve_port` 始终返回 "out"
     #[tokio::test]
     async fn test_disconnect_always_routes_to_out_port() {
         let graphql_manager = Arc::new(GraphqlConnectionManager::new());
@@ -355,7 +356,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["out"]);
     }
 
-    /// 测试：配置提取 — 从 NodeData::GraphqlDisconnect 正确提取
+    /// 测试：配置提取 — 从 `NodeData::GraphqlDisconnect` 正确提取
     #[tokio::test]
     async fn test_disconnect_config_extraction() {
         let graphql_manager = Arc::new(GraphqlConnectionManager::new());

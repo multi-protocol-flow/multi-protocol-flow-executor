@@ -3,15 +3,15 @@
 // 实现 gRPC 连接关闭功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::GrpcProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -43,7 +43,12 @@ impl NodeExecutor for GrpcCloseExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::GrpcClose(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not GrpcCloseConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not GrpcCloseConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换 connection_id
@@ -84,10 +89,7 @@ impl NodeExecutor for GrpcCloseExecutor {
 
         match close_result {
             Ok(()) => {
-                log::info!(
-                    "[gRPC] Close succeeded: connection_id={}",
-                    connection_id
-                );
+                log::info!("[gRPC] Close succeeded: connection_id={}", connection_id);
 
                 // 5. 构建输出数据
                 let duration = start_time.elapsed();
@@ -107,10 +109,7 @@ impl NodeExecutor for GrpcCloseExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!(
-                            "gRPC close succeeded ({}ms)",
-                            duration.as_millis()
-                        ),
+                        message: format!("gRPC close succeeded ({}ms)", duration.as_millis()),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -173,7 +172,11 @@ impl NodeExecutor for GrpcCloseExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -195,9 +198,9 @@ impl NodeExecutor for GrpcCloseExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::grpc_connection_manager::GrpcConnectionManager;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::GrpcCloseConfig;
-    use crate::grpc_connection_manager::GrpcConnectionManager;
 
     /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {

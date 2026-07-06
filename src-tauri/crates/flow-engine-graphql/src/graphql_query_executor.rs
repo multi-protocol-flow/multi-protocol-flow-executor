@@ -3,8 +3,8 @@
 //! 实现 GraphQL Query 和 Mutation 操作，通过 HTTP POST 发送请求。
 //! 支持 GraphQL 变量替换、操作名称指定、文件上传（multipart）等特性。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use flow_engine_core::connection::Connection;
@@ -41,9 +41,7 @@ impl GraphqlQueryExecutor {
     ) -> Vec<String> {
         let targets: Vec<String> = connections
             .iter()
-            .filter(|conn| {
-                conn.source_node_uuid == node_uuid && conn.source_port_id == port
-            })
+            .filter(|conn| conn.source_node_uuid == node_uuid && conn.source_port_id == port)
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 
@@ -93,7 +91,10 @@ impl NodeExecutor for GraphqlQueryExecutor {
         let operation_name = match &config.operation_name {
             Some(op_name) => {
                 let replaced = replace_variables(op_name, context).map_err(|e| {
-                    ErrorDetail::execution_error(format!("operation_name variable substitution failed: {}", e))
+                    ErrorDetail::execution_error(format!(
+                        "operation_name variable substitution failed: {}",
+                        e
+                    ))
                 })?;
                 Some(replaced)
             }
@@ -104,8 +105,12 @@ impl NodeExecutor for GraphqlQueryExecutor {
         let variables = match &config.variables {
             Some(vars) => {
                 let vars_str = serde_json::to_string(vars).unwrap_or_default();
-                let replaced_str = replace_variables(&vars_str, context)
-                    .map_err(|e| ErrorDetail::execution_error(format!("variables variable substitution failed: {}", e)))?;
+                let replaced_str = replace_variables(&vars_str, context).map_err(|e| {
+                    ErrorDetail::execution_error(format!(
+                        "variables variable substitution failed: {}",
+                        e
+                    ))
+                })?;
                 let replaced_vars: serde_json::Value =
                     serde_json::from_str(&replaced_str).unwrap_or_else(|_| vars.clone());
                 Some(replaced_vars)
@@ -114,12 +119,13 @@ impl NodeExecutor for GraphqlQueryExecutor {
         };
 
         // 3. 日志：开始查询
-        let has_files = config
-            .files
-            .as_ref()
-            .is_some_and(|f| !f.is_empty());
+        let has_files = config.files.as_ref().is_some_and(|f| !f.is_empty());
 
-        let query_type = if has_files { "mutation (file upload)" } else { "query" };
+        let query_type = if has_files {
+            "mutation (file upload)"
+        } else {
+            "query"
+        };
 
         log::info!(
             "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql_query ({}), connection_id: {}",
@@ -251,9 +257,10 @@ impl NodeExecutor for GraphqlQueryExecutor {
 
                 // 9. 路由：网络Error走 false，其他走 true
                 if is_network_error
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output
                         .error
@@ -307,15 +314,16 @@ impl NodeExecutor for GraphqlQueryExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
                 // 走 false 端口
-                let next_node_ids =
-                    Self::resolve_port_targets(&node.uuid, "false", connections);
+                let next_node_ids = Self::resolve_port_targets(&node.uuid, "false", connections);
 
                 Ok((next_node_ids, Some(error_output)))
             }
@@ -329,12 +337,12 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
-        GraphqlConnectConfig, GraphqlDisconnectConfig, GraphqlIntrospectConfig,
-        GraphqlQueryConfig, GraphqlSubscribeConfig,
+        GraphqlConnectConfig, GraphqlDisconnectConfig, GraphqlIntrospectConfig, GraphqlQueryConfig,
+        GraphqlSubscribeConfig,
     };
     use flow_engine_core::traits::{
-        GraphqlConnectOutput, GraphqlConnectionInfo, GraphqlIntrospectOutput,
-        GraphqlQueryOutput, GraphqlSubscribeOutput, GraphqlTimingInfo,
+        GraphqlConnectOutput, GraphqlConnectionInfo, GraphqlIntrospectOutput, GraphqlQueryOutput,
+        GraphqlSubscribeOutput, GraphqlTimingInfo,
     };
 
     // ---------------------------------------------------------------------------
@@ -565,7 +573,7 @@ mod tests {
     // 测试
     // ---------------------------------------------------------------------------
 
-    /// 测试：配置提取Success（正确的 NodeData 变体）
+    /// 测试：配置提取Success（正确的 `NodeData` 变体）
     #[tokio::test]
     async fn test_graphql_query_config_extraction_success() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -584,7 +592,7 @@ mod tests {
         assert!(output_data.is_some());
     }
 
-    /// 测试：配置提取拒绝Error的 NodeData 变体
+    /// 测试：配置提取拒绝Error的 `NodeData` 变体
     #[tokio::test]
     async fn test_graphql_query_config_extraction_wrong_variant() {
         let graphql_manager = Arc::new(MockGraphqlProvider::new_success());
@@ -637,16 +645,12 @@ mod tests {
         };
 
         let mut context = create_context("test-flow");
-        context.variables.set_variable(
-            "user_id".to_string(),
-            json!("42"),
-            String::new(),
-        );
-        context.variables.set_variable(
-            "suffix".to_string(),
-            json!("v1"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("user_id".to_string(), json!("42"), String::new());
+        context
+            .variables
+            .set_variable("suffix".to_string(), json!("v1"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -659,10 +663,7 @@ mod tests {
 
         let data = output_data.unwrap();
         // 验证变量替换在 query 中生效
-        assert_eq!(
-            data["request"]["query"],
-            "query { user(id: 42) { name } }"
-        );
+        assert_eq!(data["request"]["query"], "query { user(id: 42) { name } }");
         // 验证 operation_name 替换
         assert_eq!(data["request"]["operation_name"], "GetUser_v1");
     }
@@ -684,7 +685,8 @@ mod tests {
         assert_eq!(next_nodes, vec!["true"]);
 
         // 测试网络Error → false
-        let graphql_manager_err = Arc::new(MockGraphqlProvider::new_network_error("Connection refused"));
+        let graphql_manager_err =
+            Arc::new(MockGraphqlProvider::new_network_error("Connection refused"));
         let executor_err = GraphqlQueryExecutor::new(graphql_manager_err);
         let node_err = create_test_node("test-false", "Failed测试", "conn-1", "{ users { id } }");
         let mut context_err = create_context("test-flow");
@@ -799,8 +801,7 @@ mod tests {
     async fn test_graphql_query_provider_error_routes_to_false() {
         let graphql_manager = Arc::new(MockGraphqlProviderError);
         let executor = GraphqlQueryExecutor::new(graphql_manager);
-        let node =
-            create_test_node("test-err", "异常测试", "missing-conn", "{ users { id } }");
+        let node = create_test_node("test-err", "异常测试", "missing-conn", "{ users { id } }");
         let mut context = create_context("test-flow");
 
         let result = executor

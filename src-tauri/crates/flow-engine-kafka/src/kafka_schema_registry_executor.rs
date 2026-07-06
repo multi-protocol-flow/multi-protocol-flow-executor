@@ -4,8 +4,8 @@
 // 变量替换和统一输出映射功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -52,18 +52,17 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
         };
 
         // 2. 变量替换 connection_id
-        config.connection_id =
-            replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("Connection ID variable substitution failed: {}", e);
-                log::error!(
-                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
-                    context.flow_uuid,
-                    node.uuid,
-                    node.name,
-                    error_msg
-                );
-                ErrorDetail::execution_error(error_msg)
-            })?;
+        config.connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
+            log::error!(
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
+            );
+            ErrorDetail::execution_error(error_msg)
+        })?;
 
         // 3. 变量替换 subject
         if let Some(ref subject) = config.subject {
@@ -123,8 +122,12 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
                 );
 
                 // 6. 构建输出数据
-                let output_data = serde_json::to_value(&output)
-                    .map_err(|e| ErrorDetail::execution_error(format!("Failed to serialize Schema Registry output: {}", e)))?;
+                let output_data = serde_json::to_value(&output).map_err(|e| {
+                    ErrorDetail::execution_error(format!(
+                        "Failed to serialize Schema Registry output: {}",
+                        e
+                    ))
+                })?;
 
                 // 7. 日志：execution complete
                 let log_level = if output.success {
@@ -159,9 +162,10 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
 
                 // 8. 根据Success/Failed选择端口
                 if !output.success
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output
                         .error
@@ -215,9 +219,11 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -239,10 +245,10 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::kafka_connection_manager::KafkaConnectionManager;
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::KafkaSchemaRegistryConfig;
-    use crate::kafka_connection_manager::KafkaConnectionManager;
 
     /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, operation: &str) -> Node {
@@ -314,7 +320,12 @@ mod tests {
         let executor = KafkaSchemaRegistryExecutor::new(kafka_manager);
 
         // 创建带变量的节点
-        let mut node = create_test_node("test-var", "变量替换测试", "{{conn_id}}", "get_subject_versions");
+        let mut node = create_test_node(
+            "test-var",
+            "变量替换测试",
+            "{{conn_id}}",
+            "get_subject_versions",
+        );
         // 设置 subject 带变量
         if let NodeData::KafkaSchemaRegistry(ref mut config) = node.data {
             config.subject = Some("{{subject_name}}".to_string());
@@ -368,7 +379,10 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("KafkaSchemaRegistryConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("KafkaSchemaRegistryConfig"));
     }
 
     #[tokio::test]

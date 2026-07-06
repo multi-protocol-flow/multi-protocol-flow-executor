@@ -30,7 +30,10 @@ pub enum TimedStream {
     /// HTTP 连接（明文）
     Http(TokioIo<TcpStream>),
     /// HTTPS 连接（TLS 加密），包含是否协商为 HTTP/2 的标志
-    Https(Box<TokioIo<tokio_rustls::client::TlsStream<TcpStream>>>, bool),
+    Https(
+        Box<TokioIo<tokio_rustls::client::TlsStream<TcpStream>>>,
+        bool,
+    ),
 }
 
 impl HyperConnection for TimedStream {
@@ -159,9 +162,8 @@ impl rustls::client::danger::ServerCertVerifier for NoVerifier {
 /// 构建标准 TLS 配置
 fn build_standard_tls_config() -> rustls::ClientConfig {
     ensure_crypto_provider();
-    let root_store = rustls::RootCertStore::from_iter(
-        webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
-    );
+    let root_store =
+        rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
     rustls::ClientConfig::builder()
         .with_root_certificates(root_store)
         .with_no_client_auth()
@@ -179,9 +181,8 @@ fn build_custom_tls_config(options: &TlsOptions) -> Result<rustls::ClientConfig,
         return Ok(config);
     }
 
-    let mut root_store = rustls::RootCertStore::from_iter(
-        webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
-    );
+    let mut root_store =
+        rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
     if let Some(ca_path) = &options.ca_cert_path {
         let ca_bytes = std::fs::read(ca_path)
@@ -191,14 +192,22 @@ fn build_custom_tls_config(options: &TlsOptions) -> Result<rustls::ClientConfig,
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("Failed to parse CA certificate PEM: {}", e))?;
         for cert in certs {
-            root_store.add(cert).map_err(|e| format!("Failed to add CA certificate: {}", e))?;
+            root_store
+                .add(cert)
+                .map_err(|e| format!("Failed to add CA certificate: {}", e))?;
         }
     }
 
     let has_client_cert = options.client_cert_path.is_some() && options.client_key_path.is_some();
     if has_client_cert {
-        let cert_path = options.client_cert_path.as_ref().ok_or("Client certificate path not set")?;
-        let key_path = options.client_key_path.as_ref().ok_or("Client private key path not set")?;
+        let cert_path = options
+            .client_cert_path
+            .as_ref()
+            .ok_or("Client certificate path not set")?;
+        let key_path = options
+            .client_key_path
+            .as_ref()
+            .ok_or("Client private key path not set")?;
         let cert_bytes = std::fs::read(cert_path)
             .map_err(|e| format!("Failed to read client certificate ({}): {}", cert_path, e))?;
         let mut cert_cursor = std::io::Cursor::new(&cert_bytes[..]);
@@ -241,7 +250,12 @@ impl TimingConnector {
     /// - `timing`: 计时上下文（Arc<Mutex> 包装以便在 Service 中使用）
     pub fn new(timeout_ms: u64, timing: Arc<std::sync::Mutex<TimingContext>>) -> Self {
         let config = build_standard_tls_config();
-        Self { tls_config: Arc::new(config), timeout_ms, timing, proxy_state: None }
+        Self {
+            tls_config: Arc::new(config),
+            timeout_ms,
+            timing,
+            proxy_state: None,
+        }
     }
 
     /// 创建带自定义 TLS 配置的计时连接器
@@ -251,7 +265,12 @@ impl TimingConnector {
         tls_options: &TlsOptions,
     ) -> Result<Self, String> {
         let config = build_custom_tls_config(tls_options)?;
-        Ok(Self { tls_config: Arc::new(config), timeout_ms, timing, proxy_state: None })
+        Ok(Self {
+            tls_config: Arc::new(config),
+            timeout_ms,
+            timing,
+            proxy_state: None,
+        })
     }
 
     /// 设置代理状态（链式调用）
@@ -285,9 +304,13 @@ impl Service<Uri> for TimingConnector {
                 .ok_or_else(|| HttpError::InvalidUrl("Missing hostname".into()))?
                 .to_string();
 
-            let port = uri.port_u16().unwrap_or(
-                if uri.scheme_str() == Some("https") { 443 } else { 80 }
-            );
+            let port = uri
+                .port_u16()
+                .unwrap_or(if uri.scheme_str() == Some("https") {
+                    443
+                } else {
+                    80
+                });
 
             let is_https = uri.scheme_str() == Some("https");
 
@@ -296,7 +319,11 @@ impl Service<Uri> for TimingConnector {
                 if is_https { "https" } else { "http" },
                 host,
                 port,
-                if proxy_state.is_some() { " (via proxy)" } else { "" }
+                if proxy_state.is_some() {
+                    " (via proxy)"
+                } else {
+                    ""
+                }
             );
 
             // 获取 TCP 连接：直连或通过代理隧道
@@ -321,12 +348,16 @@ impl Service<Uri> for TimingConnector {
                 }
 
                 {
-                    let mut timing = timing
-                        .lock()
-                        .map_err(|_| HttpError::DnsFailed("Failed to acquire timing lock".into()))?;
+                    let mut timing = timing.lock().map_err(|_| {
+                        HttpError::DnsFailed("Failed to acquire timing lock".into())
+                    })?;
                     timing.mark_dns_resolved();
                 }
-                log::debug!("DNS resolution complete, {} addresses: {:?}", addrs.len(), addrs);
+                log::debug!(
+                    "DNS resolution complete, {} addresses: {:?}",
+                    addrs.len(),
+                    addrs
+                );
 
                 // 直连：TCP 连接 — 依次尝试所有地址
                 let stream = {
@@ -403,9 +434,9 @@ impl Service<Uri> for TimingConnector {
                 let is_h2 = alpn.map(|p| p == b"h2").unwrap_or(false);
 
                 {
-                    let mut timing = timing
-                        .lock()
-                        .map_err(|_| HttpError::TlsFailed("Failed to acquire timing lock".into()))?;
+                    let mut timing = timing.lock().map_err(|_| {
+                        HttpError::TlsFailed("Failed to acquire timing lock".into())
+                    })?;
                     timing.mark_tls_handshaked();
                 }
                 log::debug!(
@@ -413,7 +444,10 @@ impl Service<Uri> for TimingConnector {
                     alpn.map(|b| String::from_utf8_lossy(b).to_string())
                 );
 
-                Ok(TimedStream::Https(Box::new(TokioIo::new(tls_stream)), is_h2))
+                Ok(TimedStream::Https(
+                    Box::new(TokioIo::new(tls_stream)),
+                    is_h2,
+                ))
             } else {
                 Ok(TimedStream::Http(TokioIo::new(tcp_stream)))
             }
@@ -486,11 +520,9 @@ impl HttpConnector {
             .host_str()
             .ok_or_else(|| HttpError::InvalidUrl("Missing hostname".into()))?
             .to_string();
-        let port = parsed.port().unwrap_or(if parsed.scheme() == "https" {
-            443
-        } else {
-            80
-        });
+        let port = parsed
+            .port()
+            .unwrap_or(if parsed.scheme() == "https" { 443 } else { 80 });
         let is_https = parsed.scheme() == "https";
 
         log::debug!(
@@ -515,7 +547,11 @@ impl HttpConnector {
         }
 
         timing.mark_dns_resolved();
-        log::debug!("DNS resolution complete, {} addresses: {:?}", addrs.len(), addrs);
+        log::debug!(
+            "DNS resolution complete, {} addresses: {:?}",
+            addrs.len(),
+            addrs
+        );
 
         // 3. TCP 连接 — 依次尝试所有解析地址
         let tcp_stream = {
@@ -602,7 +638,9 @@ mod tests {
         let mut timing = TimingContext::new();
 
         // 测试 HTTP 连接
-        let result = connector.connect("http://localhost:19090/api/status", &mut timing).await;
+        let result = connector
+            .connect("http://localhost:19090/api/status", &mut timing)
+            .await;
 
         assert!(result.is_ok(), "HTTP 连接应该Success");
         let connection = result.unwrap();
@@ -623,7 +661,10 @@ mod tests {
 
         // 测试 DNS 解析Failed
         let result = connector
-            .connect("http://this-domain-does-not-exist-12345.invalid", &mut timing)
+            .connect(
+                "http://this-domain-does-not-exist-12345.invalid",
+                &mut timing,
+            )
             .await;
 
         assert!(result.is_err());

@@ -65,7 +65,7 @@ mod tests {
     use crate::report::ExecutionStatus;
     use crate::statistics::FlowStatistics;
 
-    /// 测试 FlowStarted 序列化使用 camelCase
+    /// 测试 `FlowStarted` 序列化使用 camelCase
     #[test]
     fn test_flow_started_camel_case() {
         let event = ExecutionEvent::FlowStarted {
@@ -96,7 +96,7 @@ mod tests {
         );
     }
 
-    /// 测试 NodeStarted 序列化使用 camelCase
+    /// 测试 `NodeStarted` 序列化使用 camelCase
     #[test]
     fn test_node_started_camel_case() {
         let event = ExecutionEvent::NodeStarted {
@@ -131,7 +131,7 @@ mod tests {
         );
     }
 
-    /// 测试 NodeCompleted 序列化使用 camelCase 变体名
+    /// 测试 `NodeCompleted` 序列化使用 camelCase 变体名
     #[test]
     fn test_node_completed_camel_case() {
         let report = NodeExecutionReport {
@@ -171,7 +171,7 @@ mod tests {
         );
     }
 
-    /// 测试 FlowCompleted 序列化使用 camelCase 变体名
+    /// 测试 `FlowCompleted` 序列化使用 camelCase 变体名
     #[test]
     fn test_flow_completed_camel_case() {
         let report = FlowExecutionReport {

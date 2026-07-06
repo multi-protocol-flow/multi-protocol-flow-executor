@@ -3,18 +3,18 @@
 // 实现数据库事务开始功能，支持隔离级别配置。
 // Wave 2: 与执行器集成
 
-use std::str::FromStr;
 use flow_engine_core::error::ErrorDetail;
+use std::str::FromStr;
 
+use crate::db::traits::IsolationLevel;
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
-use crate::db::traits::IsolationLevel;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{DbBeginConfig, NodeData};
 use flow_engine_core::traits::DbProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -47,7 +47,12 @@ impl NodeExecutor for DbBeginExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::DbBegin(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not DbBeginConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not DbBeginConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 验证 connection_uuid
@@ -55,8 +60,15 @@ impl NodeExecutor for DbBeginExecutor {
             let error_msg = "Connection UUID is required".to_string();
 
             // 检查 on_error 策略
-            if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+            if !node
+                .on_error
+                .as_ref()
+                .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+            {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Flow aborted: {}",
+                    error_msg
+                )));
             }
 
             log::error!(
@@ -70,7 +82,11 @@ impl NodeExecutor for DbBeginExecutor {
             // 返回 false 端口
             return Ok((
                 self.get_false_port_nodes(node, connections),
-                Some(self.build_error_output(&config, &error_msg, start_time.elapsed().as_millis() as u64)),
+                Some(self.build_error_output(
+                    &config,
+                    &error_msg,
+                    start_time.elapsed().as_millis() as u64,
+                )),
             ));
         }
 
@@ -121,14 +137,25 @@ impl NodeExecutor for DbBeginExecutor {
                         .await;
 
                     // 检查 on_error 策略
-                    if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                        return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                    if !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                    {
+                        return Err(ErrorDetail::execution_error(format!(
+                            "Flow aborted: {}",
+                            error_msg
+                        )));
                     }
 
                     // 返回 false 端口
                     return Ok((
                         self.get_false_port_nodes(node, connections),
-                        Some(self.build_error_output(&config, &error_msg, start_time.elapsed().as_millis() as u64)),
+                        Some(self.build_error_output(
+                            &config,
+                            &error_msg,
+                            start_time.elapsed().as_millis() as u64,
+                        )),
                     ));
                 }
             }
@@ -160,10 +187,7 @@ impl NodeExecutor for DbBeginExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!(
-                            "Transaction began ({}ms)",
-                            duration.as_millis()
-                        ),
+                        message: format!("Transaction began ({}ms)", duration.as_millis()),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -181,8 +205,15 @@ impl NodeExecutor for DbBeginExecutor {
                 let error_msg = format!("Transaction begin failed: {}", e);
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", error_msg)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "Flow aborted: {}",
+                        error_msg
+                    )));
                 }
 
                 // 事务开始Failed
@@ -207,7 +238,11 @@ impl NodeExecutor for DbBeginExecutor {
                 // 返回 false 端口
                 Ok((
                     self.get_false_port_nodes(node, connections),
-                    Some(self.build_error_output(&config, &error_msg, start_time.elapsed().as_millis() as u64)),
+                    Some(self.build_error_output(
+                        &config,
+                        &error_msg,
+                        start_time.elapsed().as_millis() as u64,
+                    )),
                 ))
             }
         }
@@ -219,9 +254,7 @@ impl DbBeginExecutor {
     fn get_true_port_nodes(&self, node: &Node, connections: &[Connection]) -> Vec<String> {
         let filtered: Vec<String> = connections
             .iter()
-            .filter(|conn| {
-                conn.source_node_uuid == node.uuid && conn.source_port_id == "true"
-            })
+            .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "true")
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 
@@ -237,9 +270,7 @@ impl DbBeginExecutor {
     fn get_false_port_nodes(&self, node: &Node, connections: &[Connection]) -> Vec<String> {
         let filtered: Vec<String> = connections
             .iter()
-            .filter(|conn| {
-                conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
-            })
+            .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "false")
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 
@@ -308,10 +339,10 @@ impl DbBeginExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
-    use flow_engine_core::node::{NodePosition};
     use crate::db::pool::DatabaseConnectionManager;
     use crate::db::pool::MockPool;
+    use flow_engine_core::context::VariableStorage;
+    use flow_engine_core::node::NodePosition;
     /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
         Node {
@@ -371,7 +402,7 @@ mod tests {
         }
     }
 
-    /// 创建带 MockPool 的数据库管理器，并注册指定连接 UUID
+    /// 创建带 `MockPool` 的数据库管理器，并注册指定连接 UUID
     async fn create_manager_with_pools(uuids: &[&str]) -> Arc<DatabaseConnectionManager> {
         let manager = Arc::new(DatabaseConnectionManager::new());
         for uuid in uuids {
@@ -415,7 +446,8 @@ mod tests {
     async fn test_begin_with_isolation_level() {
         let db_manager = create_manager_with_pools(&["conn-002"]).await;
         let executor = DbBeginExecutor::new(db_manager);
-        let node = create_test_node_with_isolation("test-2", "带隔离级别", "conn-002", "READ COMMITTED");
+        let node =
+            create_test_node_with_isolation("test-2", "带隔离级别", "conn-002", "READ COMMITTED");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -459,7 +491,8 @@ mod tests {
     async fn test_begin_invalid_isolation_level() {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbBeginExecutor::new(db_manager);
-        let node = create_test_node_with_isolation("test-4", "无效隔离级别", "conn-004", "INVALID LEVEL");
+        let node =
+            create_test_node_with_isolation("test-4", "无效隔离级别", "conn-004", "INVALID LEVEL");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -474,7 +507,10 @@ mod tests {
 
         let data = output_data.unwrap();
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().unwrap().contains("Invalid isolation level"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap()
+            .contains("Invalid isolation level"));
     }
 
     #[tokio::test]
@@ -583,15 +619,20 @@ mod tests {
 
         // 应该返回Error
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("Node data type is not DbBeginConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("Node data type is not DbBeginConfig"));
     }
 
     #[tokio::test]
     async fn test_begin_all_isolation_levels() {
-        let db_manager = create_manager_with_pools(&["conn-iso-0", "conn-iso-1", "conn-iso-2", "conn-iso-3"]).await;
+        let db_manager =
+            create_manager_with_pools(&["conn-iso-0", "conn-iso-1", "conn-iso-2", "conn-iso-3"])
+                .await;
         let executor = DbBeginExecutor::new(db_manager);
 
-        let isolation_levels = vec![
+        let isolation_levels = [
             "READ UNCOMMITTED",
             "READ COMMITTED",
             "REPEATABLE READ",

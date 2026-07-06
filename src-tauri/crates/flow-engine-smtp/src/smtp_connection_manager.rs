@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
-use lettre::message::{Attachment, MultiPart, SinglePart};
 use lettre::message::header::ContentType;
+use lettre::message::{Attachment, MultiPart, SinglePart};
 use lettre::transport::smtp::authentication::{Credentials, Mechanism};
 use lettre::transport::smtp::AsyncSmtpTransportBuilder;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
@@ -107,8 +107,9 @@ impl SmtpConnectionManager {
             TlsMode::StartTls => AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(host)
                 .map_err(|e| format!("构建 StartTLS transport Failed: {}", e))?
                 .port(port),
-            TlsMode::None => AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host)
-                .port(port),
+            TlsMode::None => {
+                AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host).port(port)
+            }
         };
 
         Ok(builder)
@@ -128,7 +129,9 @@ impl SmtpConnectionManager {
             } => {
                 let password = Self::decrypt_password(encrypted_password)?;
                 let credentials = Credentials::new(username.clone(), password);
-                Ok(builder.credentials(credentials).authentication(vec![Mechanism::Plain]))
+                Ok(builder
+                    .credentials(credentials)
+                    .authentication(vec![Mechanism::Plain]))
             }
             EmailAuthConfig::Login {
                 username,
@@ -136,7 +139,9 @@ impl SmtpConnectionManager {
             } => {
                 let password = Self::decrypt_password(encrypted_password)?;
                 let credentials = Credentials::new(username.clone(), password);
-                Ok(builder.credentials(credentials).authentication(vec![Mechanism::Login]))
+                Ok(builder
+                    .credentials(credentials)
+                    .authentication(vec![Mechanism::Login]))
             }
             EmailAuthConfig::OAuth2 {
                 provider: _,
@@ -145,16 +150,16 @@ impl SmtpConnectionManager {
                 encrypted_tokens,
                 method: _,
             } => {
-                let tokens_json =
-                    flow_engine_crypto::encryption::decrypt(encrypted_tokens).map_err(|e| {
-                        format!("解密 OAuth2 token Failed: {}", e)
-                    })?;
+                let tokens_json = flow_engine_crypto::encryption::decrypt(encrypted_tokens)
+                    .map_err(|e| format!("解密 OAuth2 token Failed: {}", e))?;
                 let tokens: EmailOAuthTokens = serde_json::from_str(&tokens_json)
                     .map_err(|e| format!("解析 OAuth2 token JSON Failed: {}", e))?;
 
                 let xoauth2_str = xoauth2_string("", &tokens.access_token);
                 let credentials = Credentials::new(String::new(), xoauth2_str);
-                Ok(builder.credentials(credentials).authentication(vec![Mechanism::Xoauth2]))
+                Ok(builder
+                    .credentials(credentials)
+                    .authentication(vec![Mechanism::Xoauth2]))
             }
         }
     }
@@ -349,7 +354,9 @@ impl SmtpProvider for SmtpConnectionManager {
                 mixed = mixed.singlepart(part);
             }
 
-            builder.multipart(mixed).map_err(|e| format!("构建邮件Failed: {}", e))?
+            builder
+                .multipart(mixed)
+                .map_err(|e| format!("构建邮件Failed: {}", e))?
         } else {
             // 无附件
             Self::build_simple_message(builder, body_type, body, html_body)?
@@ -362,10 +369,7 @@ impl SmtpProvider for SmtpConnectionManager {
                 let code: u16 = code_str.parse().unwrap_or(0);
                 let message_id = response.first_line().map(|s| s.to_string());
 
-                info!(
-                    "SMTP 邮件发送Success: id={}, code={}",
-                    connection_id, code
-                );
+                info!("SMTP 邮件发送Success: id={}, code={}", connection_id, code);
 
                 Ok(SmtpSendOutput {
                     success: true,
@@ -389,10 +393,7 @@ impl SmtpProvider for SmtpConnectionManager {
     /// 断开 SMTP 连接
     ///
     /// 从连接池中移除连接。
-    async fn disconnect(
-        &self,
-        connection_id: &str,
-    ) -> Result<SmtpDisconnectOutput, String> {
+    async fn disconnect(&self, connection_id: &str) -> Result<SmtpDisconnectOutput, String> {
         let mut conns = self.connections.write().await;
         match conns.remove(connection_id) {
             Some(_conn) => {
@@ -403,7 +404,10 @@ impl SmtpProvider for SmtpConnectionManager {
                 })
             }
             None => {
-                warn!("SMTP 断开connection failed: 连接 '{}' 不存在", connection_id);
+                warn!(
+                    "SMTP 断开connection failed: 连接 '{}' 不存在",
+                    connection_id
+                );
                 Ok(SmtpDisconnectOutput {
                     success: false,
                     error: Some(format!("SMTP 连接 '{}' 不存在", connection_id)),
@@ -448,32 +452,28 @@ impl SmtpConnectionManager {
         html_body: &str,
     ) -> Result<Message, String> {
         match body_type {
-            "html" => {
-                builder
-                    .singlepart(
-                        SinglePart::builder()
-                            .header(ContentType::TEXT_HTML)
-                            .body(html_body.to_string()),
-                    )
-                    .map_err(|e| format!("构建 HTML 邮件Failed: {}", e))
-            }
-            "both" => {
-                builder
-                    .multipart(
-                        MultiPart::alternative()
-                            .singlepart(
-                                SinglePart::builder()
-                                    .header(ContentType::TEXT_PLAIN)
-                                    .body(body.to_string()),
-                            )
-                            .singlepart(
-                                SinglePart::builder()
-                                    .header(ContentType::TEXT_HTML)
-                                    .body(html_body.to_string()),
-                            ),
-                    )
-                    .map_err(|e| format!("构建 multipart 邮件Failed: {}", e))
-            }
+            "html" => builder
+                .singlepart(
+                    SinglePart::builder()
+                        .header(ContentType::TEXT_HTML)
+                        .body(html_body.to_string()),
+                )
+                .map_err(|e| format!("构建 HTML 邮件Failed: {}", e)),
+            "both" => builder
+                .multipart(
+                    MultiPart::alternative()
+                        .singlepart(
+                            SinglePart::builder()
+                                .header(ContentType::TEXT_PLAIN)
+                                .body(body.to_string()),
+                        )
+                        .singlepart(
+                            SinglePart::builder()
+                                .header(ContentType::TEXT_HTML)
+                                .body(html_body.to_string()),
+                        ),
+                )
+                .map_err(|e| format!("构建 multipart 邮件Failed: {}", e)),
             _ => {
                 // 默认纯文本
                 builder
@@ -519,9 +519,7 @@ impl SmtpConnectionManager {
     }
 
     /// 从 JSON Value 构建附件 [`SinglePart`]
-    fn build_attachment_part(
-        attachment: &serde_json::Value,
-    ) -> Result<SinglePart, String> {
+    fn build_attachment_part(attachment: &serde_json::Value) -> Result<SinglePart, String> {
         let filename = attachment
             .get("filename")
             .and_then(|v| v.as_str())
@@ -671,8 +669,7 @@ mod tests {
 
     #[test]
     fn test_build_body_multipart_both() {
-        let result =
-            SmtpConnectionManager::build_body_multipart("both", "Hello", "<p>Hello</p>");
+        let result = SmtpConnectionManager::build_body_multipart("both", "Hello", "<p>Hello</p>");
         assert!(result.is_ok());
     }
 

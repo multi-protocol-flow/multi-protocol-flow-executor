@@ -265,7 +265,10 @@ mod tests {
     fn test_email_auth_config_default() {
         let auth = EmailAuthConfig::default();
         match auth {
-            EmailAuthConfig::Plain { username, encrypted_password } => {
+            EmailAuthConfig::Plain {
+                username,
+                encrypted_password,
+            } => {
                 assert!(username.is_empty());
                 assert!(encrypted_password.is_empty());
             }

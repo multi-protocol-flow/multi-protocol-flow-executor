@@ -3,15 +3,15 @@
 //! 实现 SMTP 连接建立、变量替换和输出构建功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::email_types::{EmailAuthConfig, SmtpConfig, TlsMode};
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::SmtpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -38,22 +38,19 @@ impl SmtpConnectExecutor {
     }
 
     /// 将 JSON Value 格式的 auth 配置解析为 `EmailAuthConfig`
+    #[allow(clippy::result_large_err)]
     fn parse_auth(auth_value: &serde_json::Value) -> Result<Option<EmailAuthConfig>, ErrorDetail> {
         if auth_value.is_null() {
             return Ok(None);
         }
-        let auth: EmailAuthConfig =
-            serde_json::from_value(auth_value.clone())
-                .map_err(|e| ErrorDetail::execution_error(format!("Failed to parse auth config: {}", e)))?;
+        let auth: EmailAuthConfig = serde_json::from_value(auth_value.clone()).map_err(|e| {
+            ErrorDetail::execution_error(format!("Failed to parse auth config: {}", e))
+        })?;
         Ok(Some(auth))
     }
 
     /// 根据连接查找目标节点 ID 列表
-    fn resolve_next_nodes(
-        node_uuid: &str,
-        port: &str,
-        connections: &[Connection],
-    ) -> Vec<String> {
+    fn resolve_next_nodes(node_uuid: &str, port: &str, connections: &[Connection]) -> Vec<String> {
         let filtered: Vec<String> = connections
             .iter()
             .filter(|conn| conn.source_node_uuid == node_uuid && conn.source_port_id == port)
@@ -87,7 +84,12 @@ impl NodeExecutor for SmtpConnectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::SmtpConnect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not SmtpConnectConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not SmtpConnectConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换（host）
@@ -142,10 +144,7 @@ impl NodeExecutor for SmtpConnectExecutor {
             .await;
 
         // 7. 建立连接
-        let connect_result = self
-            .smtp_manager
-            .connect(&node.uuid, &smtp_config)
-            .await;
+        let connect_result = self.smtp_manager.connect(&node.uuid, &smtp_config).await;
 
         match connect_result {
             Ok(output) => {
@@ -193,10 +192,7 @@ impl NodeExecutor for SmtpConnectExecutor {
                     LogLevel::Error
                 };
                 let log_message = if output.success {
-                    format!(
-                        "SMTP connection succeeded ({}ms)",
-                        duration.as_millis()
-                    )
+                    format!("SMTP connection succeeded ({}ms)", duration.as_millis())
                 } else {
                     format!(
                         "SMTP connection failed: {} ({}ms)",
@@ -262,8 +258,15 @@ impl NodeExecutor for SmtpConnectExecutor {
                 });
 
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("SMTP connect Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "SMTP connect Failed: {}",
+                        e
+                    )));
                 }
 
                 // 返回 false 端口
@@ -497,11 +500,9 @@ mod tests {
         };
 
         let mut context = create_context("test-flow");
-        context.variables.set_variable(
-            "domain".to_string(),
-            json!("example.com"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("domain".to_string(), json!("example.com"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -547,12 +548,21 @@ mod tests {
     /// 测试：TLS 模式解析
     #[test]
     fn test_parse_tls_mode() {
-        assert_eq!(SmtpConnectExecutor::parse_tls_mode("implicit"), TlsMode::Implicit);
-        assert_eq!(SmtpConnectExecutor::parse_tls_mode("starttls"), TlsMode::StartTls);
+        assert_eq!(
+            SmtpConnectExecutor::parse_tls_mode("implicit"),
+            TlsMode::Implicit
+        );
+        assert_eq!(
+            SmtpConnectExecutor::parse_tls_mode("starttls"),
+            TlsMode::StartTls
+        );
         assert_eq!(SmtpConnectExecutor::parse_tls_mode("none"), TlsMode::None);
         // 默认值
         assert_eq!(SmtpConnectExecutor::parse_tls_mode(""), TlsMode::Implicit);
-        assert_eq!(SmtpConnectExecutor::parse_tls_mode("unknown"), TlsMode::Implicit);
+        assert_eq!(
+            SmtpConnectExecutor::parse_tls_mode("unknown"),
+            TlsMode::Implicit
+        );
     }
 
     /// 测试：Provider 抛出异常时路由到 false 端口

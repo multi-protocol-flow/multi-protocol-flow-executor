@@ -58,7 +58,11 @@ impl Flow {
                 return Some(merged);
             }
         }
-        if base.is_empty() { None } else { Some(base) }
+        if base.is_empty() {
+            None
+        } else {
+            Some(base)
+        }
     }
 }
 
@@ -161,7 +165,7 @@ mod tests {
         // 反序列化测试
         let deserialized: Flow = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.uuid, "test-uuid-999");
-        assert_eq!(deserialized.initial_variables.is_some(), true);
+        assert!(deserialized.initial_variables.is_some());
         let vars_ref = deserialized.initial_variables.as_ref().unwrap();
         assert_eq!(vars_ref.get("api_key"), Some(&json!("secret123")));
     }
@@ -220,7 +224,10 @@ mod tests {
         let json_str = serde_json::to_string(&env).unwrap();
         let deserialized: EnvironmentSet = serde_json::from_str(&json_str).unwrap();
         assert_eq!(deserialized.name, "dev");
-        assert_eq!(deserialized.variables.get("api_url"), Some(&json!("http://localhost:8080")));
+        assert_eq!(
+            deserialized.variables.get("api_url"),
+            Some(&json!("http://localhost:8080"))
+        );
         assert_eq!(deserialized.variables.get("debug"), Some(&json!(true)));
     }
 
@@ -323,16 +330,14 @@ mod tests {
                 vars.insert("timeout".to_string(), json!(30000));
                 vars
             }),
-            environments: vec![
-                EnvironmentSet {
-                    name: "dev".to_string(),
-                    variables: {
-                        let mut vars = HashMap::new();
-                        vars.insert("base_url".to_string(), json!("https://dev.com"));
-                        vars
-                    },
+            environments: vec![EnvironmentSet {
+                name: "dev".to_string(),
+                variables: {
+                    let mut vars = HashMap::new();
+                    vars.insert("base_url".to_string(), json!("https://dev.com"));
+                    vars
                 },
-            ],
+            }],
             active_environment: Some("dev".to_string()),
             nodes: vec![],
             connections: vec![],
@@ -341,9 +346,17 @@ mod tests {
 
         let vars = flow.get_active_variables().unwrap();
         // 环境变量覆盖同名 key
-        assert_eq!(vars.get("base_url"), Some(&json!("https://dev.com")), "环境变量应覆盖 initial_variables");
+        assert_eq!(
+            vars.get("base_url"),
+            Some(&json!("https://dev.com")),
+            "环境变量应覆盖 initial_variables"
+        );
         // 环境未定义的 key 从 initial_variables 补充
-        assert_eq!(vars.get("timeout"), Some(&json!(30000)), "环境未定义的变量应从 initial_variables 补充");
+        assert_eq!(
+            vars.get("timeout"),
+            Some(&json!(30000)),
+            "环境未定义的变量应从 initial_variables 补充"
+        );
         assert_eq!(vars.len(), 2, "合并后应有 2 个变量");
     }
 

@@ -3,12 +3,15 @@
 //! 实现 flow-engine traits 的 Tauri 特定实现，用于连接 Tauri IPC 和业务逻辑层。
 
 use async_trait::async_trait;
+use flow_engine::debug::DebugEvent;
+use flow_engine::execution_event::ExecutionEvent;
+use flow_engine::log_event::LogEvent;
+use flow_engine::traits::{
+    DebugEventSender, DirectoryOpener, ExecutionEventSender, LogWorker as FlowLogWorker,
+    QueuedLogSender, UnderlyingLogSender,
+};
 use tauri::ipc::Channel;
 use tauri::Manager;
-use flow_engine::traits::{UnderlyingLogSender, DirectoryOpener, QueuedLogSender, LogWorker as FlowLogWorker, ExecutionEventSender, DebugEventSender};
-use flow_engine::log_event::LogEvent;
-use flow_engine::execution_event::ExecutionEvent;
-use flow_engine::debug::DebugEvent;
 
 /// Tauri 底层日志发送器
 ///
@@ -42,10 +45,13 @@ impl UnderlyingLogSender for TauriUnderlyingLogSender {
 /// - `(sender, worker)`: sender 实现了 `LogSender` trait，worker 需要在 tokio 中 spawn
 pub fn create_log_sender(
     channel: Channel<LogEvent>,
-) -> (std::sync::Arc<dyn flow_engine::traits::LogSender>, FlowLogWorker) {
+) -> (
+    std::sync::Arc<dyn flow_engine::traits::LogSender>,
+    FlowLogWorker,
+) {
     let underlying = std::sync::Arc::new(TauriUnderlyingLogSender::new(channel));
     let (sender, worker) = QueuedLogSender::new(underlying);
-    ( std::sync::Arc::new(sender), worker)
+    (std::sync::Arc::new(sender), worker)
 }
 
 /// Tauri 执行事件发送器
@@ -104,7 +110,8 @@ impl TauriDirectoryOpener {
 impl DirectoryOpener for TauriDirectoryOpener {
     async fn open(&self, path: &str) -> Result<(), String> {
         use tauri_plugin_opener::OpenerExt;
-        self.app.opener()
+        self.app
+            .opener()
             .open_path(path, None::<String>)
             .map_err(|e| e.to_string())
     }
@@ -126,7 +133,8 @@ impl TauriAppDirProvider {
 
 impl flow_engine::AppDirProvider for TauriAppDirProvider {
     fn app_data_dir(&self) -> Result<std::path::PathBuf, String> {
-        self.app.path()
+        self.app
+            .path()
             .app_data_dir()
             .map_err(|e| format!("Failed to get app data directory: {}", e))
     }

@@ -3,8 +3,8 @@
 //! 从已建立的 SSE 连接监听事件，支持事件过滤、最大事件数和超时控制。
 //! Success收到事件路由到 true 端口，超时或无事件路由到 false 端口。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -54,12 +54,18 @@ impl NodeExecutor for SseListenExecutor {
 
         // 2. 变量替换：connection_id 和 event_filter
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            ErrorDetail::execution_error(format!("connection_id variable substitution failed: {}", e))
+            ErrorDetail::execution_error(format!(
+                "connection_id variable substitution failed: {}",
+                e
+            ))
         })?;
 
         let event_filter = match &config.event_filter {
             Some(filter) => Some(replace_variables(filter, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("event_filter variable substitution failed: {}", e))
+                ErrorDetail::execution_error(format!(
+                    "event_filter variable substitution failed: {}",
+                    e
+                ))
             })?),
             None => None,
         };
@@ -99,7 +105,10 @@ impl NodeExecutor for SseListenExecutor {
         };
 
         // 5. 调用 provider.listen()，传入 connection_id（即 connect 节点的 UUID）
-        let listen_result = self.sse_manager.listen(&connection_id, &listen_config).await;
+        let listen_result = self
+            .sse_manager
+            .listen(&connection_id, &listen_config)
+            .await;
 
         match listen_result {
             Ok(output) => {
@@ -139,9 +148,11 @@ impl NodeExecutor for SseListenExecutor {
                 // 7. 路由：Success且有事件 → true，否则 → false
                 if !output.success || event_count == 0 {
                     // 检查 on_error 策略
-                    if !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    }) {
+                    if !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                    {
                         let error_msg = output_data
                             .get("error")
                             .and_then(|v| v.as_str())
@@ -259,9 +270,11 @@ impl NodeExecutor for SseListenExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -270,8 +283,7 @@ impl NodeExecutor for SseListenExecutor {
                     let filtered: Vec<String> = connections
                         .iter()
                         .filter(|conn| {
-                            conn.source_node_uuid == node.uuid
-                                && conn.source_port_id == "false"
+                            conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
                         })
                         .map(|conn| conn.target_node_uuid.clone())
                         .collect();
@@ -350,7 +362,7 @@ mod tests {
         }
     }
 
-    /// 创建执行上下文（无 sse_manager）
+    /// 创建执行上下文（无 `sse_manager`）
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext {
             flow_uuid: flow_id.to_string(),
@@ -593,7 +605,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("SseListenConfig"));
     }
 
-    /// 测试：Config 提取自 NodeData::SseListen
+    /// 测试：Config 提取自 `NodeData::SseListen`
     #[tokio::test]
     async fn test_sse_listen_config_extraction() {
         let provider = Arc::new(MockSseProvider::new_success(vec![]));
@@ -662,7 +674,7 @@ mod tests {
         assert_eq!(data["request"]["event_filter"], "ping");
     }
 
-    /// 测试：变量替换在 connection_id 和 event_filter 中生效
+    /// 测试：变量替换在 `connection_id` 和 `event_filter` 中生效
     #[tokio::test]
     async fn test_sse_listen_variable_replacement() {
         let events = vec![SseEventItem {
@@ -774,7 +786,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["error-handler"]);
     }
 
-    /// 测试：max_events=0 且无事件时走 false 端口
+    /// `测试：max_events=0` 且无事件时走 false 端口
     #[tokio::test]
     async fn test_sse_listen_max_events_zero_no_events() {
         let provider = Arc::new(MockSseProvider::new_timeout());

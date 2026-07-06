@@ -1,26 +1,25 @@
 // 执行引擎模块 - FlowExecutor 实现
 
+use crate::provider_builder::ProviderBuilderExt;
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::{ExecutionContext, VariableStorage};
-use flow_engine_core::flow::Flow;
 use flow_engine_core::error::{ErrorCode, ErrorDetail, ErrorKind};
+use flow_engine_core::execution_event::ExecutionEvent;
+use flow_engine_core::flow::Flow;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::{ExecutionErrorStrategy, Node};
-use crate::provider_builder::ProviderBuilderExt;
+use flow_engine_core::node_types;
+use flow_engine_core::registry::NodeRegistry;
+use flow_engine_core::traits::{DebugEventSender, ExecutionEventSender, LogSender};
 use serde_json::json;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use flow_engine_core::traits::{ExecutionEventSender, LogSender, DebugEventSender};
-use flow_engine_core::execution_event::ExecutionEvent;
-use flow_engine_core::node_types;
-use flow_engine_core::registry::NodeRegistry;
 
 use uuid::Uuid;
 
 // Re-export from flow-engine-core
-pub use flow_engine_core::executor::{NodeExecutor, replace_variables};
-
+pub use flow_engine_core::executor::{replace_variables, NodeExecutor};
 
 /// 执行结果
 #[derive(Debug, Clone)]
@@ -80,7 +79,7 @@ fn build_input_data_from_node_config(
     node: &flow_engine_core::node::Node,
 ) -> Option<serde_json::Value> {
     use flow_engine_core::node_config::NodeData;
-    
+
     match &node.data {
         // 插件节点：透传原始 JSON 数据
         NodeData::Plugin(val) => Some(val.clone()),
@@ -88,7 +87,8 @@ fn build_input_data_from_node_config(
             let type_id = node.data.type_name();
             match registry.get(&type_id) {
                 Some(plugin) => {
-                    let config_json = serde_json::to_value(&node.data).unwrap_or(serde_json::Value::Null);
+                    let config_json =
+                        serde_json::to_value(&node.data).unwrap_or(serde_json::Value::Null);
                     plugin.build_report_input(&config_json)
                 }
                 None => None,
@@ -99,11 +99,23 @@ fn build_input_data_from_node_config(
 
 /// Node types that can be executed standalone via `execute_single_node`
 const SUPPORTED_SINGLE_NODE_TYPES: &[&str] = &[
-    "http", "script", "assertion",
-    "redis_connect", "db_connect", "mqtt_connect", "kafka_connect",
-    "amqp_connect", "amqp10_connect", "smtp_connect", "imap_connect",
-    "ws_connect", "sse_connect", "grpc_connect", "mcp_connect",
-    "graphql_connect", "tcp_connect",
+    "http",
+    "script",
+    "assertion",
+    "redis_connect",
+    "db_connect",
+    "mqtt_connect",
+    "kafka_connect",
+    "amqp_connect",
+    "amqp10_connect",
+    "smtp_connect",
+    "imap_connect",
+    "ws_connect",
+    "sse_connect",
+    "grpc_connect",
+    "mcp_connect",
+    "graphql_connect",
+    "tcp_connect",
 ];
 
 /// Fallback timeout (30s) when node has no configured timeout
@@ -185,12 +197,15 @@ impl FlowExecutor {
     }
 
     /// 设置钩子执行器（流程完成时触发预定义动作）
-    pub fn with_hook_executor(mut self, executor: Arc<dyn flow_engine_core::traits::HookExecutor>) -> Self {
+    pub fn with_hook_executor(
+        mut self,
+        executor: Arc<dyn flow_engine_core::traits::HookExecutor>,
+    ) -> Self {
         self.hook_executor = Some(executor);
         self
     }
 
-/// 执行流程
+    /// 执行流程
     ///
     /// 从开始节点开始，按连接顺序遍历节点
     ///
@@ -248,7 +263,15 @@ impl FlowExecutor {
             return ExecutionResult {
                 success: false,
                 data: None,
-                error: Some(format!("Flow validation failed: {}", validation.errors.iter().map(|e| &e.message[..]).collect::<Vec<&str>>().join("; "))),
+                error: Some(format!(
+                    "Flow validation failed: {}",
+                    validation
+                        .errors
+                        .iter()
+                        .map(|e| &e.message[..])
+                        .collect::<Vec<&str>>()
+                        .join("; ")
+                )),
                 executed_count: 0,
                 node_reports: vec![],
                 flow_report: None,
@@ -257,11 +280,17 @@ impl FlowExecutor {
         // 过滤 flow_warning：排除已由前端通过 end_node_reached i18n 处理的"无 End 节点"提示
         let flow_warning: Option<String> = {
             let has_end_nodes = flow.nodes.iter().any(|n| n.node_type == node_types::END);
-            let warnings: Vec<String> = validation.warnings.iter()
+            let warnings: Vec<String> = validation
+                .warnings
+                .iter()
                 .filter(|w| has_end_nodes || !w.contains("End"))
                 .cloned()
                 .collect();
-            if warnings.is_empty() { None } else { Some(warnings.join("; ")) }
+            if warnings.is_empty() {
+                None
+            } else {
+                Some(warnings.join("; "))
+            }
         };
 
         // 查找开始节点
@@ -310,11 +339,13 @@ impl FlowExecutor {
         let skipped_nodes: Vec<flow_engine_core::report::SkippedNodeInfo> = Vec::new();
 
         // 发送流程开始事件
-        context.emit_execution_event(ExecutionEvent::FlowStarted {
-            flow_uuid: flow.uuid.clone(),
-            flow_name: flow.name.clone(),
-            total_nodes: flow.nodes.len() as u32,
-        }).await;
+        context
+            .emit_execution_event(ExecutionEvent::FlowStarted {
+                flow_uuid: flow.uuid.clone(),
+                flow_name: flow.name.clone(),
+                total_nodes: flow.nodes.len() as u32,
+            })
+            .await;
 
         'execution: while let Some(node) = node_map.get(&current_node_id) {
             // 检测循环（简单防止无限循环）
@@ -343,11 +374,13 @@ impl FlowExecutor {
             context.current_node_uuid = Some(current_node_id.clone());
 
             // 发送节点start execution事件
-            context.emit_execution_event(ExecutionEvent::NodeStarted {
-                node_uuid: node.uuid.clone(),
-                node_name: node.name.clone(),
-                node_type: node.node_type.clone(),
-            }).await;
+            context
+                .emit_execution_event(ExecutionEvent::NodeStarted {
+                    node_uuid: node.uuid.clone(),
+                    node_name: node.name.clone(),
+                    node_type: node.node_type.clone(),
+                })
+                .await;
 
             // 记录节点开始时间
             let node_start_time = tokio::time::Instant::now();
@@ -358,7 +391,9 @@ impl FlowExecutor {
             let variables_before = context.variables.get_merged_variables();
 
             // 执行当前节点（支持取消中断 + 超时控制）
-            let node_timeout_ms = node.data.execution_timeout_ms()
+            let node_timeout_ms = node
+                .data
+                .execution_timeout_ms()
                 .map(|ms| std::cmp::min(ms, 3600000)); // Cap at 1 hour
             let node_result = match (context.cancel_receiver.is_some(), node_timeout_ms) {
                 (true, Some(ms)) => {
@@ -367,7 +402,8 @@ impl FlowExecutor {
                         unreachable!("cancel_receiver.is_some() was just checked")
                     };
                     let timeout_dur = std::time::Duration::from_millis(ms);
-                    let execute = self.execute_node(node, &mut context, &flow.connections, &node_map);
+                    let execute =
+                        self.execute_node(node, &mut context, &flow.connections, &node_map);
                     let wrapped = tokio::time::timeout(timeout_dur, execute);
                     tokio::select! {
                         result = wrapped => {
@@ -403,17 +439,34 @@ impl FlowExecutor {
                 (false, Some(ms)) => {
                     // 无取消接收器但有超时
                     let timeout_dur = std::time::Duration::from_millis(ms);
-                    match tokio::time::timeout(timeout_dur, self.execute_node(node, &mut context, &flow.connections, &node_map)).await {
+                    match tokio::time::timeout(
+                        timeout_dur,
+                        self.execute_node(node, &mut context, &flow.connections, &node_map),
+                    )
+                    .await
+                    {
                         Ok(result) => Some(result),
                         Err(_) => {
-                            log::info!("[流程 {}] Node {} execution timeout ({}ms)", context.flow_uuid, node.name, ms);
-                            Some(Err(ErrorDetail::new(ErrorKind::Timeout, format!("节点执行超时 ({}ms)", ms)).with_error_code_typed(ErrorCode::E_TIMEOUT)))
+                            log::info!(
+                                "[流程 {}] Node {} execution timeout ({}ms)",
+                                context.flow_uuid,
+                                node.name,
+                                ms
+                            );
+                            Some(Err(ErrorDetail::new(
+                                ErrorKind::Timeout,
+                                format!("节点执行超时 ({}ms)", ms),
+                            )
+                            .with_error_code_typed(ErrorCode::E_TIMEOUT)))
                         }
                     }
                 }
                 (false, None) => {
                     // 无取消接收器且无超时：直接执行
-                    Some(self.execute_node(node, &mut context, &flow.connections, &node_map).await)
+                    Some(
+                        self.execute_node(node, &mut context, &flow.connections, &node_map)
+                            .await,
+                    )
                 }
             };
 
@@ -423,8 +476,7 @@ impl FlowExecutor {
                 None => break 'execution,
             };
 
-            match node_result
-            {
+            match node_result {
                 Ok((next_node_id_from_executor, output_data)) => {
                     // 记录节点结束时间
                     let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
@@ -434,7 +486,9 @@ impl FlowExecutor {
 
                     // 根据节点类型设置 used_port_id（通过 registry 查找）
                     let type_id = node.data.type_name();
-                    let used_port_id = self.registry.get(&type_id)
+                    let used_port_id = self
+                        .registry
+                        .get(&type_id)
                         .map(|plugin| Some(plugin.resolve_port(&output_data)))
                         .unwrap_or(None);
 
@@ -461,13 +515,16 @@ impl FlowExecutor {
                     // 1. Entry node的 initial_variables
                     // 2. HTTP/WebSocket 节点的 output_mappings
                     let variables_after = context.variables.get_merged_variables();
-                    let variable_changes = compute_variable_changes(&variables_before, &variables_after);
+                    let variable_changes =
+                        compute_variable_changes(&variables_before, &variables_after);
 
                     // 解析 resolved_config：递归替换节点配置中的变量占位符
                     let raw_config = serde_json::to_value(&node.data).unwrap_or(json!(null));
-                    let resolved_config = Some(
-                        flow_engine_core::executor::resolve_variables_in_json(&raw_config, &context)
-                    );
+                    let resolved_config =
+                        Some(flow_engine_core::executor::resolve_variables_in_json(
+                            &raw_config,
+                            &context,
+                        ));
 
                     // 追踪执行路径（Task 14）：记录Success执行的节点 UUID
                     execution_path.push(node.uuid.clone());
@@ -478,7 +535,11 @@ impl FlowExecutor {
                         if let Some(ref rt_vars) = runtime_variables {
                             if let Some(obj) = rt_vars.as_object() {
                                 for (key, value) in obj {
-                                    context.variables.set_variable(key.clone(), value.clone(), String::new());
+                                    context.variables.set_variable(
+                                        key.clone(),
+                                        value.clone(),
+                                        String::new(),
+                                    );
                                 }
                             }
                         }
@@ -508,27 +569,36 @@ impl FlowExecutor {
                         error: extract_error_from_output(&output_data),
                         // 新增字段（Task 13）
                         resolved_config,
-                        variable_changes: if variable_changes.is_empty() { None } else { Some(variable_changes) },
+                        variable_changes: if variable_changes.is_empty() {
+                            None
+                        } else {
+                            Some(variable_changes)
+                        },
                         skip_reason: None,
                         wait_duration_ms: None,
                     };
+                    let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
                     context.node_reports.push(node_report);
 
                     // 发送节点完成事件
-                    context.emit_execution_event(ExecutionEvent::NodeCompleted {
-                        report: Box::new(node_reports.last().unwrap().clone()),
-                    }).await;
+                    context
+                        .emit_execution_event(ExecutionEvent::NodeCompleted {
+                            report: Box::new(event_report),
+                        })
+                        .await;
 
                     // 发送节点完成日志
-                    context.emit_log(LogEvent {
-                        level: LogLevel::Info,
-                        message: format!("节点 {} execution complete", node.name),
-                        timestamp: node_end_ms,
-                        node_uuid: Some(node.uuid.clone()),
-                        node_name: Some(node.name.clone()),
-                        flow_uuid: context.flow_uuid.clone(),
-                    }).await;
+                    context
+                        .emit_log(LogEvent {
+                            level: LogLevel::Info,
+                            message: format!("节点 {} execution complete", node.name),
+                            timestamp: node_end_ms,
+                            node_uuid: Some(node.uuid.clone()),
+                            node_name: Some(node.name.clone()),
+                            flow_uuid: context.flow_uuid.clone(),
+                        })
+                        .await;
 
                     // 处理 Conditional 节点：如果返回空列表表示条件为 false，停止执行
                     if node.node_type == node_types::CONDITIONAL
@@ -541,14 +611,16 @@ impl FlowExecutor {
                         );
 
                         // 发送条件终止日志
-                        context.emit_log(LogEvent {
-                            level: LogLevel::Info,
-                            message: format!("条件节点 {} 返回 false，流程终止", node.name),
-                            timestamp: node_end_ms,
-                            node_uuid: Some(node.uuid.clone()),
-                            node_name: Some(node.name.clone()),
-                            flow_uuid: context.flow_uuid.clone(),
-                        }).await;
+                        context
+                            .emit_log(LogEvent {
+                                level: LogLevel::Info,
+                                message: format!("条件节点 {} 返回 false，流程终止", node.name),
+                                timestamp: node_end_ms,
+                                node_uuid: Some(node.uuid.clone()),
+                                node_name: Some(node.name.clone()),
+                                flow_uuid: context.flow_uuid.clone(),
+                            })
+                            .await;
 
                         // 条件为 false 是正常的流程终止，返回Success
                         break;
@@ -557,7 +629,9 @@ impl FlowExecutor {
                     // 查找下一个节点
                     // 是否为端口路由节点（使用 true/false/out 端口路由的节点类型）
                     // 这些节点的执行器已经根据端口做了路由决策，不应回退到无过滤的 connection_map
-                    let is_port_routing_node = self.registry.get(&type_id)
+                    let is_port_routing_node = self
+                        .registry
+                        .get(&type_id)
                         .map(|p| p.is_port_routing())
                         .unwrap_or(true);
 
@@ -614,9 +688,11 @@ impl FlowExecutor {
                         // 创建节点执行报告（Failed状态 - 条件评估为 false）
                         // 解析 resolved_config：递归替换节点配置中的变量占位符
                         let raw_config = serde_json::to_value(&node.data).unwrap_or(json!(null));
-                        let resolved_config = Some(
-                            flow_engine_core::executor::resolve_variables_in_json(&raw_config, &context)
-                        );
+                        let resolved_config =
+                            Some(flow_engine_core::executor::resolve_variables_in_json(
+                                &raw_config,
+                                &context,
+                            ));
 
                         let node_report = flow_engine_core::report::NodeExecutionReport {
                             node_uuid: node.uuid.clone(),
@@ -639,13 +715,16 @@ impl FlowExecutor {
                             skip_reason: None,
                             wait_duration_ms: None,
                         };
+                        let event_report = node_report.clone();
                         node_reports.push(node_report.clone());
                         context.node_reports.push(node_report);
 
                         // 发送节点完成事件
-                        context.emit_execution_event(ExecutionEvent::NodeCompleted {
-                            report: Box::new(node_reports.last().unwrap().clone()),
-                        }).await;
+                        context
+                            .emit_execution_event(ExecutionEvent::NodeCompleted {
+                                report: Box::new(event_report),
+                            })
+                            .await;
 
                         // 这是正常的流程终止（条件不满足），继续处理
                         break;
@@ -653,14 +732,20 @@ impl FlowExecutor {
 
                     // Error已由协议执行器构造为 ErrorDetail，直接传递
                     let error_detail = error;
-                    
+
                     // 查找节点插件用于后续 registry 查询
                     let type_id = node.data.type_name();
-                    
+
                     // 根据节点 on_error 策略决定执行行为
-                    let route_to_false = node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse);
-                    let is_ignore = node.on_error.as_ref().map_or(false, |s| *s == ExecutionErrorStrategy::Ignore);
-                    
+                    let route_to_false = node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse);
+                    let is_ignore = node
+                        .on_error
+                        .as_ref()
+                        .is_some_and(|s| *s == ExecutionErrorStrategy::Ignore);
+
                     let false_port_next_node = if route_to_false {
                         // 查找 false 端口的连接
                         flow.connections
@@ -678,7 +763,8 @@ impl FlowExecutor {
                         Some("false".to_string())
                     } else {
                         // Error回退：通过 registry 查找 resolve_port
-                        self.registry.get(&type_id)
+                        self.registry
+                            .get(&type_id)
                             .map(|plugin| plugin.resolve_port(&None))
                             .map(Some)
                             .unwrap_or(None)
@@ -687,9 +773,11 @@ impl FlowExecutor {
                     // 创建节点执行报告（Failed状态）
                     // 解析 resolved_config：递归替换节点配置中的变量占位符
                     let raw_config = serde_json::to_value(&node.data).unwrap_or(json!(null));
-                    let resolved_config = Some(
-                        flow_engine_core::executor::resolve_variables_in_json(&raw_config, &context)
-                    );
+                    let resolved_config =
+                        Some(flow_engine_core::executor::resolve_variables_in_json(
+                            &raw_config,
+                            &context,
+                        ));
 
                     let node_report = flow_engine_core::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
@@ -709,13 +797,16 @@ impl FlowExecutor {
                         skip_reason: None,
                         wait_duration_ms: None,
                     };
+                    let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
                     context.node_reports.push(node_report);
 
                     // 发送节点完成事件
-                    context.emit_execution_event(ExecutionEvent::NodeCompleted {
-                        report: Box::new(node_reports.last().unwrap().clone()),
-                    }).await;
+                    context
+                        .emit_execution_event(ExecutionEvent::NodeCompleted {
+                            report: Box::new(event_report),
+                        })
+                        .await;
 
                     executed_count += 1;
 
@@ -728,7 +819,7 @@ impl FlowExecutor {
                                 node.name,
                                 next_node_uuid
                             );
-                            
+
                             current_node_id = next_node_uuid;
                             continue;
                         }
@@ -736,11 +827,13 @@ impl FlowExecutor {
 
                     // Ignore 策略: 忽略Error，继续 true/out 端口执行（如同Success）
                     if is_ignore {
-                        let next_node_id = flow.connections
+                        let next_node_id = flow
+                            .connections
                             .iter()
                             .find(|conn| {
-                                conn.source_node_uuid == node.uuid && 
-                                (conn.source_port_id == "true" || conn.source_port_id == "out")
+                                conn.source_node_uuid == node.uuid
+                                    && (conn.source_port_id == "true"
+                                        || conn.source_port_id == "out")
                             })
                             .map(|conn| conn.target_node_uuid.clone());
 
@@ -784,14 +877,16 @@ impl FlowExecutor {
                         } else {
                             format!("节点 {} 致命Error: {}", node.name, error_detail.message)
                         };
-                        context.emit_log(LogEvent {
-                            level: LogLevel::Error,
-                            message: log_message,
-                            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                            node_uuid: Some(node.uuid.clone()),
-                            node_name: Some(node.name.clone()),
-                            flow_uuid: context.flow_uuid.clone(),
-                        }).await;
+                        context
+                            .emit_log(LogEvent {
+                                level: LogLevel::Error,
+                                message: log_message,
+                                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                                node_uuid: Some(node.uuid.clone()),
+                                node_name: Some(node.name.clone()),
+                                flow_uuid: context.flow_uuid.clone(),
+                            })
+                            .await;
 
                         // 生成部分报告（包含已执行节点）
                         let end_time_ms = flow_engine_core::utils::unix_timestamp_ms();
@@ -853,14 +948,19 @@ impl FlowExecutor {
                         );
 
                         // 发送可恢复Error日志
-                        context.emit_log(LogEvent {
-                            level: LogLevel::Warn,
-                            message: format!("节点 {} 可恢复Error: {}", node.name, error_detail.message),
-                            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                            node_uuid: Some(node.uuid.clone()),
-                            node_name: Some(node.name.clone()),
-                            flow_uuid: context.flow_uuid.clone(),
-                        }).await;
+                        context
+                            .emit_log(LogEvent {
+                                level: LogLevel::Warn,
+                                message: format!(
+                                    "节点 {} 可恢复Error: {}",
+                                    node.name, error_detail.message
+                                ),
+                                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                                node_uuid: Some(node.uuid.clone()),
+                                node_name: Some(node.name.clone()),
+                                flow_uuid: context.flow_uuid.clone(),
+                            })
+                            .await;
 
                         // , terminating current branch
                         break;
@@ -895,14 +995,20 @@ impl FlowExecutor {
 
         // End 节点检测
         let has_end_nodes = flow.nodes.iter().any(|n| n.node_type == node_types::END);
-        let reached_end_node = has_end_nodes && execution_path.iter().any(|uuid| {
-            flow.nodes.iter().any(|n| n.uuid == *uuid && n.node_type == node_types::END)
-        });
+        let reached_end_node = has_end_nodes
+            && execution_path.iter().any(|uuid| {
+                flow.nodes
+                    .iter()
+                    .any(|n| n.uuid == *uuid && n.node_type == node_types::END)
+            });
 
         #[allow(clippy::if_same_then_else)]
         let flow_status = if is_cancelled {
             flow_engine_core::report::ExecutionStatus::Cancelled
-        } else if node_reports.iter().any(|r| r.status == flow_engine_core::report::ExecutionStatus::Failed) {
+        } else if node_reports
+            .iter()
+            .any(|r| r.status == flow_engine_core::report::ExecutionStatus::Failed)
+        {
             flow_engine_core::report::ExecutionStatus::Failed
         } else if has_end_nodes && !reached_end_node {
             flow_engine_core::report::ExecutionStatus::Failed
@@ -911,12 +1017,21 @@ impl FlowExecutor {
         };
 
         // 在 flow_status 被 move 到 FlowExecutionReport 之前判断是否Success
-        let flow_succeeded = !matches!(flow_status, flow_engine_core::report::ExecutionStatus::Failed);
+        let flow_succeeded = !matches!(
+            flow_status,
+            flow_engine_core::report::ExecutionStatus::Failed
+        );
 
         let flow_error = if is_cancelled {
-            Some(ErrorDetail::new(ErrorKind::Cancelled, "流程执行被用户取消".to_string()))
+            Some(ErrorDetail::new(
+                ErrorKind::Cancelled,
+                "流程执行被用户取消".to_string(),
+            ))
         } else if has_end_nodes && !reached_end_node {
-            Some(ErrorDetail::new(ErrorKind::Execution, "流程存在 End 节点但执行路径未到达任何 End 节点".to_string()))
+            Some(ErrorDetail::new(
+                ErrorKind::Execution,
+                "流程存在 End 节点但执行路径未到达任何 End 节点".to_string(),
+            ))
         } else {
             None
         };
@@ -944,20 +1059,28 @@ impl FlowExecutor {
             skipped_nodes,
             ws_streams,
             flow_snapshot: Some(flow.clone()),
-            end_node_reached: if has_end_nodes { Some(reached_end_node) } else { None },
+            end_node_reached: if has_end_nodes {
+                Some(reached_end_node)
+            } else {
+                None
+            },
             flow_warning,
         };
 
         // 发送流程结束事件
         if is_cancelled {
-            context.emit_execution_event(ExecutionEvent::FlowCancelled {
-                flow_uuid: flow.uuid.clone(),
-                reason: "用户取消执行".to_string(),
-            }).await;
+            context
+                .emit_execution_event(ExecutionEvent::FlowCancelled {
+                    flow_uuid: flow.uuid.clone(),
+                    reason: "用户取消执行".to_string(),
+                })
+                .await;
         } else {
-            context.emit_execution_event(ExecutionEvent::FlowCompleted {
-                report: Box::new(flow_report.clone()),
-            }).await;
+            context
+                .emit_execution_event(ExecutionEvent::FlowCompleted {
+                    report: Box::new(flow_report.clone()),
+                })
+                .await;
         }
 
         // 触发流程钩子
@@ -966,7 +1089,10 @@ impl FlowExecutor {
                 if !hooks.is_empty() {
                     let status = if is_cancelled {
                         "cancelled"
-                    } else if matches!(flow_report.status, flow_engine_core::report::ExecutionStatus::Success) {
+                    } else if matches!(
+                        flow_report.status,
+                        flow_engine_core::report::ExecutionStatus::Success
+                    ) {
                         "success"
                     } else {
                         "failure"
@@ -1005,7 +1131,11 @@ impl FlowExecutor {
                 } else {
                     None
                 },
-                error: if flow_succeeded { None } else { Some("Flow execution failed".to_string()) },
+                error: if flow_succeeded {
+                    None
+                } else {
+                    Some("Flow execution failed".to_string())
+                },
                 executed_count,
                 node_reports,
                 flow_report: Some(flow_report),
@@ -1032,14 +1162,16 @@ impl FlowExecutor {
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         // 发送节点开始日志
-        context.emit_log(LogEvent {
-            level: LogLevel::Info,
-            message: format!("执行节点 {} ({})", node.name, node.node_type),
-            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-            node_uuid: Some(node.uuid.clone()),
-            node_name: Some(node.name.clone()),
-            flow_uuid: context.flow_uuid.clone(),
-        }).await;
+        context
+            .emit_log(LogEvent {
+                level: LogLevel::Info,
+                message: format!("执行节点 {} ({})", node.name, node.node_type),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                node_uuid: Some(node.uuid.clone()),
+                node_name: Some(node.name.clone()),
+                flow_uuid: context.flow_uuid.clone(),
+            })
+            .await;
 
         let type_id = node.data.type_name();
         match self.registry.get(&type_id) {
@@ -1053,7 +1185,10 @@ impl FlowExecutor {
                 );
                 plugin.execute(node, context, connections, node_map).await
             }
-            None => Err(ErrorDetail::execution_error(format!("未注册的节点类型: {}", type_id))),
+            None => Err(ErrorDetail::execution_error(format!(
+                "未注册的节点类型: {}",
+                type_id
+            ))),
         }
     }
 
@@ -1063,7 +1198,7 @@ impl FlowExecutor {
     /// connectivity for protocol node types.
     ///
     /// # Arguments
-    /// - `node`: The node to execute (must have type in SUPPORTED_SINGLE_NODE_TYPES)
+    /// - `node`: The node to execute (must have type in `SUPPORTED_SINGLE_NODE_TYPES`)
     /// - `variables`: Optional JSON object with initial variables
     /// - `log_sender`: Optional log sender (CLI mode = None)
     ///
@@ -1124,7 +1259,7 @@ impl FlowExecutor {
                         output_data: None,
                         used_port_id: None,
                         error: Some(flow_engine_core::error::ErrorDetail::execution_error(
-                            format!("Unregistered node type: {}", type_id)
+                            format!("Unregistered node type: {}", type_id),
                         )),
                         resolved_config: None,
                         variable_changes: None,
@@ -1143,7 +1278,9 @@ impl FlowExecutor {
         // 6. Execute with timeout (node-specific or fallback 30s)
         let empty_connections: Vec<flow_engine_core::connection::Connection> = vec![];
         let execute_future = plugin.execute(node, &mut context, &empty_connections, &node_map);
-        let timeout_duration = node.data.execution_timeout_ms()
+        let timeout_duration = node
+            .data
+            .execution_timeout_ms()
             .map(|ms| std::time::Duration::from_millis(std::cmp::min(ms, 3600000)))
             .unwrap_or(std::time::Duration::from_millis(FALLBACK_TIMEOUT_MS));
         let timeout_ms = timeout_duration.as_millis();
@@ -1228,10 +1365,13 @@ impl FlowExecutor {
                         input_data: None,
                         output_data: None,
                         used_port_id: None,
-                        error: Some(flow_engine_core::error::ErrorDetail::new(
-                            flow_engine_core::error::ErrorKind::Timeout,
-                            error_msg,
-                        ).with_error_code_typed(flow_engine_core::error::ErrorCode::E_TIMEOUT)),
+                        error: Some(
+                            flow_engine_core::error::ErrorDetail::new(
+                                flow_engine_core::error::ErrorKind::Timeout,
+                                error_msg,
+                            )
+                            .with_error_code_typed(flow_engine_core::error::ErrorCode::E_TIMEOUT),
+                        ),
                         resolved_config: None,
                         variable_changes: None,
                         skip_reason: None,
@@ -1244,11 +1384,11 @@ impl FlowExecutor {
     }
 }
 
-/// 从 output_data 中提取 error 信息。
+/// 从 `output_data` 中提取 error 信息。
 ///
-/// 协议执行器在 Ok 路径下将错误信息作为字符串嵌入 output_data["error"]，
+/// 协议执行器在 Ok 路径下将错误信息作为字符串嵌入 `output_data`["error"]，
 /// 以在保留部分输出数据（如请求信息、时序）的同时传递错误信息。
-/// 此函数提取该错误并构建 ErrorDetail，同时通过文本匹配推测 ErrorKind。
+/// 此函数提取该错误并构建 ErrorDetail，同时通过文本匹配推测 `ErrorKind`。
 fn extract_error_from_output(output_data: &Option<serde_json::Value>) -> Option<ErrorDetail> {
     let msg = output_data.as_ref()?.get("error")?;
     let msg = match msg {
@@ -1265,14 +1405,19 @@ fn extract_error_from_output(output_data: &Option<serde_json::Value>) -> Option<
     // 通过文本匹配推测 ErrorKind
     let error_kind = if msg_lower.contains("timeout") || msg_lower.contains("timed out") {
         ErrorKind::Timeout
-    } else if msg_lower.contains("connection") || msg_lower.contains("refused")
-        || msg_lower.contains("dns") || msg_lower.contains("resolve")
-        || msg_lower.contains("connect") || msg_lower.contains("closed")
-        || msg_lower.contains("aborted") || msg_lower.contains("sendrequest")
+    } else if msg_lower.contains("connection")
+        || msg_lower.contains("refused")
+        || msg_lower.contains("dns")
+        || msg_lower.contains("resolve")
+        || msg_lower.contains("connect")
+        || msg_lower.contains("closed")
+        || msg_lower.contains("aborted")
+        || msg_lower.contains("sendrequest")
         || msg_lower.contains("eof")
     {
         ErrorKind::Connection
-    } else if msg_lower.contains("parse") || msg_lower.contains("unexpected")
+    } else if msg_lower.contains("parse")
+        || msg_lower.contains("unexpected")
         || msg_lower.contains("syntax")
     {
         ErrorKind::Parse
@@ -1288,11 +1433,11 @@ fn extract_error_from_output(output_data: &Option<serde_json::Value>) -> Option<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::NodeData;
     use flow_engine_core::node_config::ScriptErrorStrategy;
     use flow_engine_core::node_config::ScriptExecutionPhase;
     use flow_engine_core::node_config::ScriptNodeConfig;
-    use flow_engine_core::node::NodePosition;
     use flow_engine_core::report::ExecutionStatus;
 
     use serde_json::json;
@@ -1320,11 +1465,21 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node],
+            connections: vec![],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1346,8 +1501,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let end_node = Node {
@@ -1357,8 +1512,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1369,7 +1524,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1396,11 +1561,21 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![http_node], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![http_node],
+            connections: vec![],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1423,8 +1598,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let end_node = Node {
@@ -1434,8 +1609,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1446,7 +1621,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let variables = json!({
             "test_var": "test_value",
@@ -1454,7 +1639,9 @@ mod tests {
         });
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, Some(variables), None, None).await;
+        let result = executor
+            .execute_flow(&flow, Some(variables), None, None)
+            .await;
 
         // 验证执行Success
         assert!(result.success);
@@ -1474,8 +1661,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let end_node = Node {
@@ -1485,8 +1672,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1497,7 +1684,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let start_time = Instant::now();
@@ -1525,11 +1722,21 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node],
+            connections: vec![],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1550,8 +1757,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let end_node = Node {
@@ -1561,8 +1768,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1573,7 +1780,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1594,8 +1811,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let end_node = Node {
@@ -1605,8 +1822,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1617,7 +1834,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1638,8 +1865,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let end_node = Node {
@@ -1649,8 +1876,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1661,7 +1888,17 @@ mod tests {
             target_port_id: "in".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1682,8 +1919,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         // 创建自连接以触发循环Error
@@ -1695,7 +1932,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1719,8 +1966,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let end_node = Node {
@@ -1730,8 +1977,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -1742,7 +1989,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1765,8 +2022,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let end_node_1 = Node {
@@ -1776,8 +2033,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let end_node_2 = Node {
@@ -1787,8 +2044,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 100.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection_1 = Connection {
@@ -1807,7 +2064,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "Test Flow".to_string(), description: None, nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node, end_node_1, end_node_2],
+            connections: vec![connection_1, connection_2],
+            hooks: None,
+        };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1823,12 +2090,23 @@ mod tests {
         // 注意：变量是拍平存储的（顶级 key），不需要 initial_variables. 前缀
         let template = "Bearer {{api_key}}";
         let mut variables = VariableStorage::new();
-        variables.set_variable(
-            "api_key".to_string(),
-            json!("test-key"),
-            String::new(),
-        );
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(), log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        variables.set_variable("api_key".to_string(), json!("test-key"), String::new());
+        let context = ExecutionContext {
+            flow_uuid: "test-flow".to_string(),
+            current_node_uuid: None,
+            variables,
+            node_reports: vec![],
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: std::collections::HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: std::collections::HashMap::new(),
+        };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Bearer test-key");
@@ -1848,7 +2126,22 @@ mod tests {
             }),
             String::new(),
         );
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(), log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        let context = ExecutionContext {
+            flow_uuid: "test-flow".to_string(),
+            current_node_uuid: None,
+            variables,
+            node_reports: vec![],
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: std::collections::HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: std::collections::HashMap::new(),
+        };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Hello Alice");
@@ -1859,7 +2152,22 @@ mod tests {
         // 测试严格模式（变量不存在时报错）
         let template = "{{nonexistent.var}}";
         let variables = VariableStorage::new();
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(), log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        let context = ExecutionContext {
+            flow_uuid: "test-flow".to_string(),
+            current_node_uuid: None,
+            variables,
+            node_reports: vec![],
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: std::collections::HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: std::collections::HashMap::new(),
+        };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Variable not found"));
@@ -1871,7 +2179,22 @@ mod tests {
         let template = "{{items[0]}}";
         let mut variables = VariableStorage::new();
         variables.set_variable("items".to_string(), json!(["a", "b", "c"]), String::new());
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(), log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        let context = ExecutionContext {
+            flow_uuid: "test-flow".to_string(),
+            current_node_uuid: None,
+            variables,
+            node_reports: vec![],
+            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
+            log_sender: None,
+            flow_file_path: None,
+            ws_connection_urls: std::collections::HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: std::collections::HashMap::new(),
+        };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Index access not supported"));
@@ -2029,7 +2352,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         let end_node = Node {
@@ -2040,7 +2363,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -2051,7 +2374,17 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消Test Flow".to_string(), description: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "取消Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
         // 创建取消通道并立即发送取消信号
         let (tx, rx) = tokio::sync::watch::channel(false);
@@ -2067,8 +2400,14 @@ mod tests {
 
         // 验证报告状态为 Cancelled
         let report = result.flow_report.expect("取消时应有报告");
-        assert_eq!(report.status, flow_engine_core::report::ExecutionStatus::Cancelled);
-        assert_eq!(report.executed_count, 0, "第一个节点前取消，不应有已执行节点");
+        assert_eq!(
+            report.status,
+            flow_engine_core::report::ExecutionStatus::Cancelled
+        );
+        assert_eq!(
+            report.executed_count, 0,
+            "第一个节点前取消，不应有已执行节点"
+        );
     }
 
     /// 测试无取消信号时正常执行
@@ -2083,10 +2422,20 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "正常执行Test Flow".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "正常执行Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node],
+            connections: vec![],
+            hooks: None,
+        };
 
         // 创建取消通道但不发送信号
         let (_tx, rx) = tokio::sync::watch::channel(false);
@@ -2100,7 +2449,7 @@ mod tests {
         assert_eq!(result.executed_count, 1);
     }
 
-    /// 测试取消时 flow_error 包含 Cancelled Error
+    /// 测试取消时 `flow_error` 包含 Cancelled Error
     #[tokio::test]
     async fn test_cancel_generates_cancelled_error_detail() {
         let flow_id = Uuid::new_v4().to_string();
@@ -2112,10 +2461,20 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消Error测试".to_string(), description: None, nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "取消Error测试".to_string(),
+            description: None,
+            nodes: vec![start_node],
+            connections: vec![],
+            hooks: None,
+        };
 
         let (tx, rx) = tokio::sync::watch::channel(false);
         let _ = tx.send(true);
@@ -2130,9 +2489,9 @@ mod tests {
         assert!(!error.is_fatal(), "Cancelled 不应是致命Error");
     }
 
-    /// 测试 runtime_variables 覆盖 Entry node的 initial_variables
+    /// 测试 `runtime_variables` 覆盖 Entry node的 `initial_variables`
     ///
-    /// 验证 runtime_variables 在 Entry node执行后注入，覆盖同名变量
+    /// 验证 `runtime_variables` 在 Entry node执行后注入，覆盖同名变量
     #[tokio::test]
     async fn test_runtime_variables_override_entry() {
         let flow_id = Uuid::new_v4().to_string();
@@ -2180,14 +2539,22 @@ mod tests {
         let final_vars = report.final_variables.expect("应有 final_variables");
 
         // runtime_variables 应覆盖流程级默认变量
-        assert_eq!(final_vars["host"], json!("override.com"), "runtime_variables 应覆盖流程级默认变量的 host 变量");
+        assert_eq!(
+            final_vars["host"],
+            json!("override.com"),
+            "runtime_variables 应覆盖流程级默认变量的 host 变量"
+        );
         // runtime_variables 新增的变量也应该存在
-        assert_eq!(final_vars["extra"], json!("added"), "runtime_variables 新增变量应存在");
+        assert_eq!(
+            final_vars["extra"],
+            json!("added"),
+            "runtime_variables 新增变量应存在"
+        );
     }
 
-    /// 测试 runtime_variables=None 不改变行为
+    /// 测试 `runtime_variables=None` 不改变行为
     ///
-    /// 验证不传 runtime_variables 时，流程级默认变量正常工作
+    /// 验证不传 `runtime_variables` 时，流程级默认变量正常工作
     #[tokio::test]
     async fn test_runtime_variables_none_no_change() {
         let flow_id = Uuid::new_v4().to_string();
@@ -2228,7 +2595,11 @@ mod tests {
         let final_vars = report.final_variables.expect("应有 final_variables");
 
         // 不传 runtime_variables 时，流程级默认变量保持不变
-        assert_eq!(final_vars["host"], json!("default.com"), "不传 runtime_variables 时 host 应保持流程级默认变量的值");
+        assert_eq!(
+            final_vars["host"],
+            json!("default.com"),
+            "不传 runtime_variables 时 host 应保持流程级默认变量的值"
+        );
     }
 
     // ============================================================================
@@ -2295,8 +2666,11 @@ mod tests {
         assert!(!result.success, "Timeout should fail");
         assert!(result.error.is_some());
         let err = result.error.expect("error should be present");
-        assert!(err.contains("超时") || err.contains("timeout"),
-            "Error should mention timeout: {}", err);
+        assert!(
+            err.contains("超时") || err.contains("timeout"),
+            "Error should mention timeout: {}",
+            err
+        );
     }
 
     #[tokio::test]
@@ -2319,7 +2693,11 @@ mod tests {
         assert!(!result.success);
         assert!(result.error.is_some());
         let err = result.error.expect("error should be present");
-        assert!(err.contains("entry"), "Error should mention 'entry': {}", err);
+        assert!(
+            err.contains("entry"),
+            "Error should mention 'entry': {}",
+            err
+        );
     }
 
     #[tokio::test]
@@ -2347,7 +2725,9 @@ mod tests {
         });
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_single_node(&node, Some(variables), None).await;
+        let result = executor
+            .execute_single_node(&node, Some(variables), None)
+            .await;
 
         assert!(result.success, "Script with variables should succeed");
         assert_eq!(result.executed_count, 1);

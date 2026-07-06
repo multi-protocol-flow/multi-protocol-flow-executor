@@ -5,17 +5,14 @@ use super::output::CliOutput;
 use super::CliError;
 use super::FlowEditCommands;
 
+use flow_engine::connection::Connection;
 use flow_engine::node::{Node, NodePosition};
 use flow_engine::node_config::NodeData;
-use flow_engine::connection::Connection;
 use flow_engine::node_types;
 use std::collections::HashMap;
 
 /// Execute flow edit subcommand
-pub async fn execute(
-    _format: &str,
-    command: FlowEditCommands,
-) -> Result<(), CliError> {
+pub async fn execute(_format: &str, command: FlowEditCommands) -> Result<(), CliError> {
     let config = AppConfig::load().map_err(CliError::Config)?;
     let flows_dir = &config.flows_dir;
 
@@ -29,11 +26,9 @@ pub async fn execute(
         FlowEditCommands::NodeRemove { flow, node } => {
             execute_node_remove(flows_dir, &flow, &node).await
         }
-        FlowEditCommands::NodeUpdate {
-            flow,
-            node,
-            config,
-        } => execute_node_update(flows_dir, &flow, &node, config.as_deref()).await,
+        FlowEditCommands::NodeUpdate { flow, node, config } => {
+            execute_node_update(flows_dir, &flow, &node, config.as_deref()).await
+        }
         FlowEditCommands::ConnectionAdd {
             flow,
             source,
@@ -41,8 +36,15 @@ pub async fn execute(
             source_port,
             target_port,
         } => {
-            execute_connection_add(flows_dir, &flow, &source, &target, &source_port, &target_port)
-                .await
+            execute_connection_add(
+                flows_dir,
+                &flow,
+                &source,
+                &target,
+                &source_port,
+                &target_port,
+            )
+            .await
         }
         FlowEditCommands::ConnectionRemove { flow, connection } => {
             execute_connection_remove(flows_dir, &flow, &connection).await
@@ -59,16 +61,15 @@ pub async fn execute(
 /// Parse string as `NodeType`
 fn parse_node_type(type_str: &str) -> Result<String, CliError> {
     // Validate node type string (via serde deserialization into NodeType)
-    let _node_type: flow_engine::node::NodeType = serde_json::from_value(serde_json::Value::String(type_str.to_string()))
-        .map_err(|e| CliError::InvalidArgs(format!("invalid node type '{}': {}", type_str, e)))?;
+    let _node_type: flow_engine::node::NodeType =
+        serde_json::from_value(serde_json::Value::String(type_str.to_string())).map_err(|e| {
+            CliError::InvalidArgs(format!("invalid node type '{}': {}", type_str, e))
+        })?;
     Ok(type_str.to_string())
 }
 
 /// Create `NodeData` from node type and optional config JSON
-fn create_node_data(
-    node_type: &str,
-    config_json: Option<&str>,
-) -> Result<NodeData, CliError> {
+fn create_node_data(node_type: &str, config_json: Option<&str>) -> Result<NodeData, CliError> {
     // If config JSON provided, parse as NodeData (with type tag)
     if let Some(json_str) = config_json {
         // Try parsing with type tag
@@ -125,8 +126,8 @@ async fn execute_node_add(
     name: &str,
     config_json: Option<&str>,
 ) -> Result<(), CliError> {
-    let mut flow = flow_engine::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(CliError::Execution)?;
+    let mut flow =
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
 
     let node_type = parse_node_type(type_str)?;
     let data = create_node_data(&node_type, config_json)?;
@@ -144,8 +145,7 @@ async fn execute_node_add(
 
     flow.nodes.push(node);
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir)
-        .map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -163,8 +163,8 @@ async fn execute_node_remove(
     flow_uuid: &str,
     node_uuid: &str,
 ) -> Result<(), CliError> {
-    let mut flow = flow_engine::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(CliError::Execution)?;
+    let mut flow =
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
 
     // Check if node exists
     let node_idx = flow
@@ -180,8 +180,7 @@ async fn execute_node_remove(
     flow.connections
         .retain(|c| c.source_node_uuid != node_uuid && c.target_node_uuid != node_uuid);
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir)
-        .map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -200,8 +199,8 @@ async fn execute_node_update(
     node_uuid: &str,
     config_json: Option<&str>,
 ) -> Result<(), CliError> {
-    let mut flow = flow_engine::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(CliError::Execution)?;
+    let mut flow =
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
 
     let node = flow
         .nodes
@@ -217,8 +216,7 @@ async fn execute_node_update(
     }
     // No modification when config is None
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir)
-        .map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -241,8 +239,8 @@ async fn execute_connection_add(
     source_port: &str,
     target_port: &str,
 ) -> Result<(), CliError> {
-    let mut flow = flow_engine::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(CliError::Execution)?;
+    let mut flow =
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
 
     // Validate source node exists
     if !flow.nodes.iter().any(|n| n.uuid == source_uuid) {
@@ -270,8 +268,7 @@ async fn execute_connection_add(
 
     flow.connections.push(connection);
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir)
-        .map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -289,8 +286,8 @@ async fn execute_connection_remove(
     flow_uuid: &str,
     connection_id: &str,
 ) -> Result<(), CliError> {
-    let mut flow = flow_engine::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(CliError::Execution)?;
+    let mut flow =
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
 
     let before = flow.connections.len();
     flow.connections.retain(|c| c.id != connection_id);
@@ -302,8 +299,7 @@ async fn execute_connection_remove(
         )));
     }
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir)
-        .map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -324,8 +320,8 @@ async fn execute_variable_set(
     key: &str,
     value: &str,
 ) -> Result<(), CliError> {
-    let mut flow = flow_engine::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(CliError::Execution)?;
+    let mut flow =
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
 
     // Try parsing as JSON value, fallback to string
     let json_value: serde_json::Value =
@@ -340,8 +336,7 @@ async fn execute_variable_set(
         vars.insert(key.to_string(), json_value);
     }
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir)
-        .map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -359,8 +354,8 @@ async fn execute_variable_remove(
     flow_uuid: &str,
     key: &str,
 ) -> Result<(), CliError> {
-    let mut flow = flow_engine::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(CliError::Execution)?;
+    let mut flow =
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
 
     match flow.initial_variables {
         Some(ref mut vars) => {
@@ -383,8 +378,7 @@ async fn execute_variable_remove(
         }
     }
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir)
-        .map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,

@@ -1,5 +1,6 @@
 use crate::http::error::HttpError;
 use crate::http::timing::TimingContext;
+use serde::de::Error as SerdeError;
 use std::collections::HashMap;
 use tokio::io::AsyncReadExt;
 
@@ -26,7 +27,10 @@ impl HttpResponse {
     /// # 参数
     /// - `stream`: 异步读取流
     /// - `timing`: 计时上下文
-    pub async fn from_stream<S>(stream: &mut S, timing: &mut TimingContext) -> Result<Self, HttpError>
+    pub async fn from_stream<S>(
+        stream: &mut S,
+        timing: &mut TimingContext,
+    ) -> Result<Self, HttpError>
     where
         S: AsyncReadExt + Unpin,
     {
@@ -160,9 +164,7 @@ impl HttpResponse {
 
     /// 获取响应体长度（Content-Length）
     fn get_body_length(headers: &HashMap<String, String>) -> Option<usize> {
-        headers
-            .get("Content-Length")
-            .and_then(|v| v.parse().ok())
+        headers.get("Content-Length").and_then(|v| v.parse().ok())
     }
 
     /// 获取响应体文本（UTF-8）
@@ -181,8 +183,7 @@ impl HttpResponse {
     /// 解析响应体为 JSON
     pub fn body_json(&self) -> Result<serde_json::Value, serde_json::Error> {
         let text = self.body_text().map_err(|e| {
-            serde_json::from_str::<serde_json::Value>(&format!("Invalid UTF-8: {}", e))
-                .unwrap_err()
+            <serde_json::Error as SerdeError>::custom(format!("Invalid UTF-8: {}", e))
         })?;
         serde_json::from_str(&text)
     }

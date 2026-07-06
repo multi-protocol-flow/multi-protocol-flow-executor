@@ -2,8 +2,8 @@
 //!
 //! 实现 AMQP 0-9-1 消息发布功能，支持 14 种消息属性和 3 种确认模式（none/confirm/transaction）。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -12,9 +12,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{AmqpPublishConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// AMQP 发布消息节点执行器
@@ -226,7 +226,8 @@ impl NodeExecutor for AmqpPublishExecutor {
                     let replaced_val = match v.as_str() {
                         Some(s) => {
                             let s_replaced = replace_variables(s, context).map_err(|e| {
-                                let error_msg = format!("headers[{}] variable substitution failed: {}", k, e);
+                                let error_msg =
+                                    format!("headers[{}] variable substitution failed: {}", k, e);
                                 log::error!(
                                     "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                                     context.flow_uuid,
@@ -430,8 +431,15 @@ impl NodeExecutor for AmqpPublishExecutor {
                 });
 
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP publish Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "AMQP publish Failed: {}",
+                        e
+                    )));
                 }
 
                 // 返回 false 端口
@@ -465,10 +473,10 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
         Amqp10AcceptConfig, Amqp10ConnectConfig, Amqp10DisconnectConfig, Amqp10ReceiveConfig,
-        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig,
-        AmqpConnectConfig, AmqpConsumeConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig,
-        AmqpGetConfig, AmqpManagementConfig, AmqpPublishConfig, AmqpQueueBindConfig,
-        AmqpQueueDeclareConfig, AmqpQueueDeleteConfig,
+        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig, AmqpConnectConfig,
+        AmqpConsumeConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig, AmqpGetConfig,
+        AmqpManagementConfig, AmqpPublishConfig, AmqpQueueBindConfig, AmqpQueueDeclareConfig,
+        AmqpQueueDeleteConfig,
     };
     use flow_engine_core::traits::{AmqpConnectOutput, AmqpConnectionInfo, AmqpPublishOutput};
 
@@ -569,7 +577,11 @@ mod tests {
             Err("not implemented".to_string())
         }
 
-        async fn queue_bind(&self, _uuid: &str, _config: &AmqpQueueBindConfig) -> Result<(), String> {
+        async fn queue_bind(
+            &self,
+            _uuid: &str,
+            _config: &AmqpQueueBindConfig,
+        ) -> Result<(), String> {
             Ok(())
         }
 
@@ -724,7 +736,11 @@ mod tests {
             Err("not implemented".to_string())
         }
 
-        async fn queue_bind(&self, _uuid: &str, _config: &AmqpQueueBindConfig) -> Result<(), String> {
+        async fn queue_bind(
+            &self,
+            _uuid: &str,
+            _config: &AmqpQueueBindConfig,
+        ) -> Result<(), String> {
             Ok(())
         }
 
@@ -923,7 +939,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("AmqpPublishConfig"));
     }
 
-    /// 测试：变量替换在 exchange/routing_key/body 中生效
+    /// 测试：变量替换在 `exchange/routing_key/body` 中生效
     #[tokio::test]
     async fn test_amqp_publish_variable_replacement() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success(None));
@@ -1064,12 +1080,12 @@ mod tests {
             body_type: Some("json".to_string()),
             content_type: Some("application/json".to_string()),
             content_encoding: Some("utf-8".to_string()),
-            delivery_mode: 2,         // 持久化
+            delivery_mode: 2, // 持久化
             priority: 5,
             message_id: Some("msg-001".to_string()),
             correlation_id: Some("corr-001".to_string()),
             reply_to: Some("amq.rabbitmq.reply-to".to_string()), // Direct Reply-To
-            expiration: Some("60000".to_string()), // 60秒 TTL
+            expiration: Some("60000".to_string()),               // 60秒 TTL
             timestamp: Some(1714000000),
             message_type: Some("OrderCreated".to_string()),
             user_id: Some("guest".to_string()),
@@ -1118,7 +1134,7 @@ mod tests {
         assert_eq!(headers_val["x-trace-id"], "trace-123");
     }
 
-    /// 测试：mandatory 标志 + returned_message
+    /// 测试：mandatory 标志 + `returned_message`
     #[tokio::test]
     async fn test_amqp_publish_mandatory_with_returned_message() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_with_returned_message());

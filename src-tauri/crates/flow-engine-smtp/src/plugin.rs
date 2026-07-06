@@ -95,13 +95,23 @@ impl NodePlugin for SmtpConnectPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if !config.get("host").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("host")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "host".to_string(),
                 message: "host is required".to_string(),
             });
         }
-        if !config.get("port").and_then(|v| v.as_u64()).map(|p| p > 0).unwrap_or(false) {
+        if !config
+            .get("port")
+            .and_then(|v| v.as_u64())
+            .map(|p| p > 0)
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "port".to_string(),
                 message: "port must be greater than 0".to_string(),
@@ -119,11 +129,11 @@ impl NodePlugin for SmtpConnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let smtp_manager = context
             .get_provider::<crate::smtp_connection_manager::SmtpConnectionManager>("smtp")
-            .unwrap_or_else(|| Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new())
+            });
         let executor = crate::smtp_connect_executor::SmtpConnectExecutor::new(smtp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -216,19 +226,34 @@ impl NodePlugin for SmtpSendPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "connection_id".to_string(),
                 message: "connection_id is required".to_string(),
             });
         }
-        if !config.get("from").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("from")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "from".to_string(),
                 message: "from is required".to_string(),
             });
         }
-        if !config.get("to").and_then(|v| v.as_array()).map(|arr| !arr.is_empty()).unwrap_or(false) {
+        if !config
+            .get("to")
+            .and_then(|v| v.as_array())
+            .map(|arr| !arr.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "to".to_string(),
                 message: "to must be a non-empty array".to_string(),
@@ -246,11 +271,11 @@ impl NodePlugin for SmtpSendPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let smtp_manager = context
             .get_provider::<crate::smtp_connection_manager::SmtpConnectionManager>("smtp")
-            .unwrap_or_else(|| Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new())
+            });
         let executor = crate::smtp_send_executor::SmtpSendExecutor::new(smtp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -314,7 +339,12 @@ impl NodePlugin for SmtpDisconnectPlugin {
 
     fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+        if !config
+            .get("connection_id")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false)
+        {
             errors.push(ValidationError {
                 field: "connection_id".to_string(),
                 message: "connection_id is required".to_string(),
@@ -332,11 +362,11 @@ impl NodePlugin for SmtpDisconnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let smtp_manager = context
             .get_provider::<crate::smtp_connection_manager::SmtpConnectionManager>("smtp")
-            .unwrap_or_else(|| Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new()));
+            .unwrap_or_else(|| {
+                Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new())
+            });
         let executor = crate::smtp_disconnect_executor::SmtpDisconnectExecutor::new(smtp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }
 
@@ -483,10 +513,7 @@ mod tests {
         );
 
         // 空 object → false
-        assert_eq!(
-            plugin.resolve_port(&Some(serde_json::json!({}))),
-            "false"
-        );
+        assert_eq!(plugin.resolve_port(&Some(serde_json::json!({}))), "false");
 
         // 非 object → false
         assert_eq!(

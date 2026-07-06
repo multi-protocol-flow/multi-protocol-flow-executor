@@ -1,7 +1,7 @@
 //! WebSocket 提供者抽象 trait
 
-use async_trait::async_trait;
 use crate::node_config::{FormField, WsCollectCondition};
+use async_trait::async_trait;
 
 /// WebSocket 提供者 trait
 ///
@@ -38,11 +38,7 @@ pub trait WsProvider: Send + Sync {
     ) -> Result<(), String>;
 
     /// 接收消息
-    async fn receive(
-        &self,
-        uuid: &str,
-        receive_timeout_ms: u64,
-    ) -> Result<Option<String>, String>;
+    async fn receive(&self, uuid: &str, receive_timeout_ms: u64) -> Result<Option<String>, String>;
 
     /// 关闭连接
     async fn close(

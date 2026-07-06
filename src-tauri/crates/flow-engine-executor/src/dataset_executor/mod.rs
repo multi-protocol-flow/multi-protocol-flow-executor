@@ -8,7 +8,7 @@ mod executor;
 mod session;
 mod types;
 
-pub use events::{DatasetEvent, generate_report, save_report};
+pub use events::{generate_report, save_report, DatasetEvent};
 pub use executor::DatasetExecutor;
 pub use session::DatasetSessionManager;
 pub use types::{DatasetExecutionConfig, FailureStrategy};

@@ -79,7 +79,7 @@ mod tests {
     use async_trait::async_trait;
     use std::collections::HashMap;
 
-    /// 最小化的 mock 插件，用于测试 NodeRegistry
+    /// 最小化的 mock 插件，用于测试 `NodeRegistry`
     struct MockPlugin {
         type_id: String,
         display_name: String,
@@ -131,7 +131,7 @@ mod tests {
         }
     }
 
-    /// 测试：注册后可以通过 type_id 查找插件
+    /// 测试：注册后可以通过 `type_id` 查找插件
     #[test]
     fn test_register_and_get() {
         let mut registry = NodeRegistry::new();
@@ -149,7 +149,7 @@ mod tests {
         assert_eq!(found.unwrap().display_name(), "HTTP 请求");
     }
 
-    /// 测试：all_metadata 返回正确的元数据
+    /// `测试：all_metadata` 返回正确的元数据
     #[test]
     fn test_all_metadata() {
         let mut registry = NodeRegistry::new();
@@ -183,7 +183,7 @@ mod tests {
         assert_eq!(db_meta.category, "database");
     }
 
-    /// 测试：查找不存在的 type_id 返回 None
+    /// 测试：查找不存在的 `type_id` 返回 None
     #[test]
     fn test_get_unknown_returns_none() {
         let mut registry = NodeRegistry::new();
@@ -196,7 +196,7 @@ mod tests {
         assert!(registry.get("nonexistent").is_none());
     }
 
-    /// 测试：注册相同 type_id 的插件会覆盖旧插件
+    /// 测试：注册相同 `type_id` 的插件会覆盖旧插件
     #[test]
     fn test_register_overwrites() {
         let mut registry = NodeRegistry::new();
@@ -221,7 +221,7 @@ mod tests {
         assert_eq!(registry.get("http").unwrap().display_name(), "新 HTTP");
     }
 
-    /// 测试：len 和 is_empty
+    /// 测试：len 和 `is_empty`
     #[test]
     fn test_len_and_is_empty() {
         let mut registry = NodeRegistry::new();

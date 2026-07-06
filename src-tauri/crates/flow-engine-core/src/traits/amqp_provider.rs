@@ -1,11 +1,11 @@
 // AMQP Provider trait - AMQP 连接管理抽象接口（覆盖 AMQP 0-9-1 和 AMQP 1.0）
 
 use crate::node_config::{
-    AmqpConnectConfig, AmqpCloseConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig,
-    AmqpQueueDeclareConfig, AmqpQueueDeleteConfig, AmqpQueueBindConfig, AmqpPublishConfig,
-    AmqpConsumeConfig, AmqpGetConfig, AmqpAckConfig, AmqpManagementConfig, Amqp10ConnectConfig,
-    Amqp10SendConfig, Amqp10ReceiveConfig, Amqp10AcceptConfig, Amqp10RejectConfig,
-    Amqp10DisconnectConfig,
+    Amqp10AcceptConfig, Amqp10ConnectConfig, Amqp10DisconnectConfig, Amqp10ReceiveConfig,
+    Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig, AmqpConnectConfig,
+    AmqpConsumeConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig, AmqpGetConfig,
+    AmqpManagementConfig, AmqpPublishConfig, AmqpQueueBindConfig, AmqpQueueDeclareConfig,
+    AmqpQueueDeleteConfig,
 };
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};

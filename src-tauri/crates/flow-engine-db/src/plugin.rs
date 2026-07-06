@@ -174,11 +174,11 @@ impl NodePlugin for DbConnectPlugin {
         let has_conn_str = config
             .get("connection_string")
             .and_then(|v| v.as_str())
-            .map_or(false, |s| !s.is_empty());
+            .is_some_and(|s| !s.is_empty());
         let has_host = config
             .get("host")
             .and_then(|v| v.as_str())
-            .map_or(false, |s| !s.is_empty());
+            .is_some_and(|s| !s.is_empty());
         if !has_conn_str && !has_host {
             errors.push(ValidationError {
                 field: "connection_string".into(),
@@ -188,8 +188,8 @@ impl NodePlugin for DbConnectPlugin {
         errors
     }
 
-    async fn execute
-        (&self,
+    async fn execute(
+        &self,
         node: &Node,
         context: &mut ExecutionContext,
         connections: &[Connection],
@@ -197,9 +197,7 @@ impl NodePlugin for DbConnectPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let db_manager = get_db_manager(context);
         let executor = crate::db_connect_executor::DbConnectExecutor::new(db_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 
     fn is_protocol_node(&self) -> bool {
@@ -315,9 +313,7 @@ impl NodePlugin for DbQueryPlugin {
         let db_manager = get_db_manager(context);
         // 注意：DbQueryNodeExecutor 使用 with_db_manager() 构造器
         let executor = crate::db_query_executor::DbQueryNodeExecutor::with_db_manager(db_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 
     fn is_protocol_node(&self) -> bool {
@@ -417,9 +413,7 @@ impl NodePlugin for DbBeginPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let db_manager = get_db_manager(context);
         let executor = crate::db_begin_executor::DbBeginExecutor::new(db_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 
     fn is_protocol_node(&self) -> bool {
@@ -517,9 +511,7 @@ impl NodePlugin for DbCommitPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let db_manager = get_db_manager(context);
         let executor = crate::db_commit_executor::DbCommitExecutor::new(db_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 
     fn is_protocol_node(&self) -> bool {
@@ -617,9 +609,7 @@ impl NodePlugin for DbRollbackPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let db_manager = get_db_manager(context);
         let executor = crate::db_rollback_executor::DbRollbackExecutor::new(db_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 
     fn is_protocol_node(&self) -> bool {
@@ -704,9 +694,7 @@ impl NodePlugin for DbClosePlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let db_manager = get_db_manager(context);
         let executor = crate::db_close_executor::DbCloseExecutor::new(db_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 
     fn is_protocol_node(&self) -> bool {

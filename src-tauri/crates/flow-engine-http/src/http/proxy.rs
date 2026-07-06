@@ -70,7 +70,9 @@ pub async fn connect_via_proxy(
     timeout_ms: u64,
 ) -> Result<TcpStream, String> {
     match proxy_state.mode {
-        ProxyMode::Clear => Err("Proxy mode is Clear, connect_via_proxy should not be called".to_string()),
+        ProxyMode::Clear => {
+            Err("Proxy mode is Clear, connect_via_proxy should not be called".to_string())
+        }
         ProxyMode::Http => {
             connect_via_http_proxy(proxy_state, target_host, target_port, timeout_ms).await
         }
@@ -108,14 +110,17 @@ async fn connect_via_http_proxy(
         TcpStream::connect(&proxy_addr),
     )
     .await
-    .map_err(|_| format!("HTTP proxy connection timeout ({}ms): {}", timeout_ms, proxy_addr))?
+    .map_err(|_| {
+        format!(
+            "HTTP proxy connection timeout ({}ms): {}",
+            timeout_ms, proxy_addr
+        )
+    })?
     .map_err(|e| format!("HTTP proxy connection failed ({}): {}", proxy_addr, e))?;
 
     // 构造认证头
     let auth_header = match (&proxy_state.username, &proxy_state.password) {
-        (Some(user), Some(pass)) if !user.is_empty() => {
-            Some(build_proxy_auth_header(user, pass))
-        }
+        (Some(user), Some(pass)) if !user.is_empty() => Some(build_proxy_auth_header(user, pass)),
         _ => None,
     };
 

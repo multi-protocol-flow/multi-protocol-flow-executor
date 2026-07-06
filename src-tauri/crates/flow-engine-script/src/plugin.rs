@@ -3,8 +3,8 @@
 //! 实现 `NodePlugin` trait，提供脚本节点的元数据、配置、端口路由和执行能力。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
@@ -90,13 +90,10 @@ impl NodePlugin for ScriptPlugin {
         // 2. timeout_ms must be between 1000 and 60000
         if let Some(Value::Number(n)) = config.get("timeout_ms") {
             if let Some(val) = n.as_u64() {
-                if val < 1000 || val > 60000 {
+                if !(1000..=60000).contains(&val) {
                     errors.push(ValidationError {
                         field: "timeout_ms".to_string(),
-                        message: format!(
-                            "timeout_ms must be between 1000 and 60000, got {}",
-                            val
-                        ),
+                        message: format!("timeout_ms must be between 1000 and 60000, got {}", val),
                     });
                 }
             }
@@ -105,13 +102,10 @@ impl NodePlugin for ScriptPlugin {
         // 3. memory_limit_mb must be between 1 and 1024
         if let Some(Value::Number(n)) = config.get("memory_limit_mb") {
             if let Some(val) = n.as_u64() {
-                if val < 1 || val > 1024 {
+                if !(1..=1024).contains(&val) {
                     errors.push(ValidationError {
                         field: "memory_limit_mb".to_string(),
-                        message: format!(
-                            "memory_limit_mb must be between 1 and 1024, got {}",
-                            val
-                        ),
+                        message: format!("memory_limit_mb must be between 1 and 1024, got {}", val),
                     });
                 }
             }
@@ -138,8 +132,6 @@ impl NodePlugin for ScriptPlugin {
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let executor = crate::script_executor::ScriptNodeExecutor::new();
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }

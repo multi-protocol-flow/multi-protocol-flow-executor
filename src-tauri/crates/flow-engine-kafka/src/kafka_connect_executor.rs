@@ -3,8 +3,8 @@
 //! 实现 Kafka 连接建立、变量替换和输出构建功能。
 //! 参照 `mqtt_connect_executor.rs` 模式实现。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -68,21 +68,30 @@ impl NodeExecutor for KafkaConnectExecutor {
 
         let client_id = match &config.client_id {
             Some(id) => Some(replace_variables(id, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("client_id variable substitution failed: {}", e))
+                ErrorDetail::execution_error(format!(
+                    "client_id variable substitution failed: {}",
+                    e
+                ))
             })?),
             None => None,
         };
 
         let sasl_username = match &config.sasl_username {
             Some(u) => Some(replace_variables(u, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("sasl_username variable substitution failed: {}", e))
+                ErrorDetail::execution_error(format!(
+                    "sasl_username variable substitution failed: {}",
+                    e
+                ))
             })?),
             None => None,
         };
 
         let sasl_password = match &config.sasl_password {
             Some(p) => Some(replace_variables(p, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("sasl_password variable substitution failed: {}", e))
+                ErrorDetail::execution_error(format!(
+                    "sasl_password variable substitution failed: {}",
+                    e
+                ))
             })?),
             None => None,
         };
@@ -198,9 +207,10 @@ impl NodeExecutor for KafkaConnectExecutor {
 
                 // 8. 端口路由
                 if !output.success
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output
                         .error
@@ -248,9 +258,11 @@ impl NodeExecutor for KafkaConnectExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -290,15 +302,13 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::KafkaConnectConfig;
-    use flow_engine_core::traits::{
-        KafkaCloseOutput, KafkaConnectOutput, KafkaConnectionInfo,
-    };
+    use flow_engine_core::traits::{KafkaCloseOutput, KafkaConnectOutput, KafkaConnectionInfo};
 
     // ---------------------------------------------------------------------------
     // Mock KafkaProvider
     // ---------------------------------------------------------------------------
 
-    /// 模拟Success连接的 KafkaProvider
+    /// 模拟Success连接的 `KafkaProvider`
     struct MockKafkaProvider {
         output: KafkaConnectOutput,
     }
@@ -474,7 +484,10 @@ mod tests {
         let data = output_data.unwrap();
         assert_eq!(data["success"], true);
         assert!(data["connection_info"].is_object());
-        assert_eq!(data["connection_info"]["bootstrap_servers"], "localhost:9092");
+        assert_eq!(
+            data["connection_info"]["bootstrap_servers"],
+            "localhost:9092"
+        );
         assert_eq!(data["connection_info"]["client_id"], "test-client");
         assert!(data["timing"]["connect_ms"].is_number());
         assert!(data["timing"]["total_ms"].is_number());
@@ -531,7 +544,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("KafkaConnectConfig"));
     }
 
-    /// 测试：变量替换在 bootstrap_servers 和 client_id 中生效
+    /// 测试：变量替换在 `bootstrap_servers` 和 `client_id` 中生效
     #[tokio::test]
     async fn test_connect_with_variable_replacement() {
         let kafka_manager = Arc::new(MockKafkaProvider::new_success());
@@ -560,11 +573,9 @@ mod tests {
             json!("broker.example.com"),
             String::new(),
         );
-        context.variables.set_variable(
-            "env".to_string(),
-            json!("prod"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("env".to_string(), json!("prod"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -577,7 +588,10 @@ mod tests {
 
         let data = output_data.unwrap();
         // 验证变量替换生效
-        assert_eq!(data["request"]["bootstrap_servers"], "broker.example.com:9092");
+        assert_eq!(
+            data["request"]["bootstrap_servers"],
+            "broker.example.com:9092"
+        );
     }
 
     /// 测试：连接配置中的连接端口路由

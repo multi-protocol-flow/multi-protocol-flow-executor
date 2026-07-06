@@ -413,7 +413,7 @@ mod tests {
     fn test_load_template_invalid_json() {
         let result = load_template("not json at all");
         assert!(result.is_err());
-        let err = result.err().expect("should return error");
+        let err = result.expect_err("should return error");
         assert!(
             err.contains("parsing failed"),
             "error should contain 'parsing failed', actual: {}",

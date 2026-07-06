@@ -1,6 +1,6 @@
 // SSE Provider trait - SSE 连接管理抽象接口
 
-use crate::node_config::{SseConnectConfig, SseListenConfig, SseDisconnectConfig};
+use crate::node_config::{SseConnectConfig, SseDisconnectConfig, SseListenConfig};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
@@ -81,18 +81,11 @@ pub trait SseProvider: Send + Sync {
     ) -> Result<SseConnectOutput, String>;
 
     /// 监听 SSE 事件
-    async fn listen(
-        &self,
-        uuid: &str,
-        config: &SseListenConfig,
-    ) -> Result<SseListenOutput, String>;
+    async fn listen(&self, uuid: &str, config: &SseListenConfig)
+        -> Result<SseListenOutput, String>;
 
     /// 断开 SSE 连接
-    async fn disconnect(
-        &self,
-        uuid: &str,
-        config: &SseDisconnectConfig,
-    ) -> Result<(), String>;
+    async fn disconnect(&self, uuid: &str, config: &SseDisconnectConfig) -> Result<(), String>;
 
     /// 获取连接状态
     fn get_status(&self, uuid: &str) -> Option<String>;

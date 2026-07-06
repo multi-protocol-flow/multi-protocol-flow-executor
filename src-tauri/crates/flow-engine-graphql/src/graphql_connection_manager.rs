@@ -158,7 +158,10 @@ impl GraphqlProvider for GraphqlConnectionManager {
         uuid: &str,
         config: &GraphqlConnectConfig,
     ) -> Result<GraphqlConnectOutput, String> {
-        info!("GraphQL 开始连接: endpoint={}, id={}", config.endpoint, uuid);
+        info!(
+            "GraphQL 开始连接: endpoint={}, id={}",
+            config.endpoint, uuid
+        );
 
         // UUID 去重：如果已存在且已连接，直接返回Success
         {
@@ -231,10 +234,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                 }
                 {
                     let mut statuses = self.statuses.write().await;
-                    statuses.insert(
-                        uuid.to_string(),
-                        GraphqlConnectionStatus::Connected,
-                    );
+                    statuses.insert(uuid.to_string(), GraphqlConnectionStatus::Connected);
                 }
 
                 info!("GraphQL 连接Success: id={}", uuid);
@@ -264,10 +264,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                 }
                 {
                     let mut statuses = self.statuses.write().await;
-                    statuses.insert(
-                        uuid.to_string(),
-                        GraphqlConnectionStatus::Error(e.clone()),
-                    );
+                    statuses.insert(uuid.to_string(), GraphqlConnectionStatus::Error(e.clone()));
                 }
 
                 Ok(GraphqlConnectOutput {
@@ -302,10 +299,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
         let start = std::time::Instant::now();
 
         // 检查是否有文件上传
-        let has_files = config
-            .files
-            .as_ref()
-            .is_some_and(|f| !f.is_empty());
+        let has_files = config.files.as_ref().is_some_and(|f| !f.is_empty());
 
         let result = if has_files {
             // 文件上传模式
@@ -317,11 +311,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                         .map(|file| crate::graphql_client::FileUpload {
                             name: file.name.clone(),
                             // 文件上传使用空数据（实际场景中由执行器读取文件内容）
-                            data: file
-                                .path
-                                .as_ref()
-                                .map(|_| vec![])
-                                .unwrap_or_default(),
+                            data: file.path.as_ref().map(|_| vec![]).unwrap_or_default(),
                             content_type: file.content_type.clone(),
                         })
                         .collect()
@@ -357,10 +347,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
         match result {
             Ok(response) => {
                 // 转换为 GraphqlQueryOutput
-                let has_errors = response
-                    .errors
-                    .as_ref()
-                    .is_some_and(|e| !e.is_empty());
+                let has_errors = response.errors.as_ref().is_some_and(|e| !e.is_empty());
 
                 let errors_json: Vec<serde_json::Value> = response
                     .errors
@@ -431,8 +418,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
         }; // 读锁释放
 
         // 检查是否配置了 WebSocket 端点
-        let ws_url = ws_endpoint
-            .ok_or_else(|| "GraphQL 连接未配置 WebSocket 端点".to_string())?;
+        let ws_url = ws_endpoint.ok_or_else(|| "GraphQL 连接未配置 WebSocket 端点".to_string())?;
 
         let start = std::time::Instant::now();
 
@@ -463,9 +449,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                         errors: e
                             .errors
                             .iter()
-                            .map(|err| {
-                                serde_json::to_value(err).unwrap_or(serde_json::json!(null))
-                            })
+                            .map(|err| serde_json::to_value(err).unwrap_or(serde_json::json!(null)))
                             .collect(),
                         extensions: e.extensions.clone(),
                         received_at: e.received_at,
@@ -598,10 +582,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
 
         match result {
             Ok(response) => {
-                let has_errors = response
-                    .errors
-                    .as_ref()
-                    .is_some_and(|e| !e.is_empty());
+                let has_errors = response.errors.as_ref().is_some_and(|e| !e.is_empty());
 
                 if has_errors {
                     let error_msg = response
@@ -624,10 +605,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                 }
 
                 // 从 schema 生成查询模板
-                let query_templates = response
-                    .data
-                    .as_ref()
-                    .and_then(Self::generate_templates);
+                let query_templates = response.data.as_ref().and_then(Self::generate_templates);
 
                 Ok(GraphqlIntrospectOutput {
                     success: true,
@@ -747,12 +725,14 @@ impl GraphqlConnectionManager {
         if let Some(query_type) = schema.get("queryType").and_then(|qt| qt.get("name")) {
             let type_name = query_type.as_str().unwrap_or("Query");
             if let Some(types) = schema.get("types").and_then(|t| t.as_array()) {
-                if let Some(query_type_def) = types.iter().find(|t| {
-                    t.get("name").and_then(|n| n.as_str()) == Some(type_name)
-                }) {
+                if let Some(query_type_def) = types
+                    .iter()
+                    .find(|t| t.get("name").and_then(|n| n.as_str()) == Some(type_name))
+                {
                     if let Some(fields) = query_type_def.get("fields").and_then(|f| f.as_array()) {
                         for field in fields {
-                            let field_name = field.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                            let field_name =
+                                field.get("name").and_then(|n| n.as_str()).unwrap_or("");
                             if field_name.starts_with("__") {
                                 continue; // 跳过内部字段
                             }
@@ -771,12 +751,15 @@ impl GraphqlConnectionManager {
         if let Some(mutation_type) = schema.get("mutationType").and_then(|mt| mt.get("name")) {
             let type_name = mutation_type.as_str().unwrap_or("Mutation");
             if let Some(types) = schema.get("types").and_then(|t| t.as_array()) {
-                if let Some(mutation_type_def) = types.iter().find(|t| {
-                    t.get("name").and_then(|n| n.as_str()) == Some(type_name)
-                }) {
-                    if let Some(fields) = mutation_type_def.get("fields").and_then(|f| f.as_array()) {
+                if let Some(mutation_type_def) = types
+                    .iter()
+                    .find(|t| t.get("name").and_then(|n| n.as_str()) == Some(type_name))
+                {
+                    if let Some(fields) = mutation_type_def.get("fields").and_then(|f| f.as_array())
+                    {
                         for field in fields {
-                            let field_name = field.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                            let field_name =
+                                field.get("name").and_then(|n| n.as_str()).unwrap_or("");
                             templates.push(GraphqlQueryTemplate {
                                 type_name: type_name.to_string(),
                                 operation: "mutation".to_string(),
@@ -789,15 +772,22 @@ impl GraphqlConnectionManager {
         }
 
         // 生成 Subscription 模板
-        if let Some(subscription_type) = schema.get("subscriptionType").and_then(|st| st.get("name")) {
+        if let Some(subscription_type) =
+            schema.get("subscriptionType").and_then(|st| st.get("name"))
+        {
             let type_name = subscription_type.as_str().unwrap_or("Subscription");
             if let Some(types) = schema.get("types").and_then(|t| t.as_array()) {
-                if let Some(subscription_type_def) = types.iter().find(|t| {
-                    t.get("name").and_then(|n| n.as_str()) == Some(type_name)
-                }) {
-                    if let Some(fields) = subscription_type_def.get("fields").and_then(|f| f.as_array()) {
+                if let Some(subscription_type_def) = types
+                    .iter()
+                    .find(|t| t.get("name").and_then(|n| n.as_str()) == Some(type_name))
+                {
+                    if let Some(fields) = subscription_type_def
+                        .get("fields")
+                        .and_then(|f| f.as_array())
+                    {
                         for field in fields {
-                            let field_name = field.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                            let field_name =
+                                field.get("name").and_then(|n| n.as_str()).unwrap_or("");
                             if field_name.starts_with("__") {
                                 continue;
                             }
@@ -1027,10 +1017,7 @@ mod tests {
 
         // Query 模板（排除 __internal）
         assert_eq!(
-            templates
-                .iter()
-                .filter(|t| t.operation == "query")
-                .count(),
+            templates.iter().filter(|t| t.operation == "query").count(),
             2
         );
         // Mutation 模板
@@ -1051,9 +1038,7 @@ mod tests {
         );
 
         // 验证跳过了 __internal
-        assert!(templates
-            .iter()
-            .all(|t| !t.template.contains("__internal")));
+        assert!(templates.iter().all(|t| !t.template.contains("__internal")));
     }
 
     #[test]
@@ -1083,10 +1068,7 @@ mod tests {
         }
         {
             let mut statuses = manager.statuses.write().await;
-            statuses.insert(
-                "test-conn".to_string(),
-                GraphqlConnectionStatus::Connected,
-            );
+            statuses.insert("test-conn".to_string(), GraphqlConnectionStatus::Connected);
         }
 
         let connections = manager.list_connections();
@@ -1113,10 +1095,7 @@ mod tests {
         }
         {
             let mut statuses = manager.statuses.write().await;
-            statuses.insert(
-                "test-conn".to_string(),
-                GraphqlConnectionStatus::Connected,
-            );
+            statuses.insert("test-conn".to_string(), GraphqlConnectionStatus::Connected);
         }
 
         assert_eq!(manager.list_connections().len(), 1);
@@ -1150,10 +1129,7 @@ mod tests {
         }
         {
             let mut statuses = manager.statuses.write().await;
-            statuses.insert(
-                "reuse-conn".to_string(),
-                GraphqlConnectionStatus::Connected,
-            );
+            statuses.insert("reuse-conn".to_string(), GraphqlConnectionStatus::Connected);
         }
 
         // 尝试连接相同 UUID（不会真正发请求，因为检测到已存在）

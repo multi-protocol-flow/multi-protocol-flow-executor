@@ -75,8 +75,7 @@ fn ensure_crypto_provider() {
 fn apply_standard_tls(
     endpoint: tonic::transport::Endpoint,
 ) -> Result<tonic::transport::Endpoint, String> {
-    let tls_config = tonic::transport::ClientTlsConfig::new()
-        .with_webpki_roots();
+    let tls_config = tonic::transport::ClientTlsConfig::new().with_webpki_roots();
     endpoint
         .tls_config(tls_config)
         .map_err(|e| format!("TLS configuration failed: {}", e))
@@ -85,7 +84,9 @@ fn apply_standard_tls(
 /// 从 PEM 文件内容加载证书链
 ///
 /// 读取 PEM 格式的证书数据，解析为 `CertificateDer` 列表。
-fn load_certs_from_pem(pem_data: &str) -> Result<Vec<rustls::pki_types::CertificateDer<'static>>, String> {
+fn load_certs_from_pem(
+    pem_data: &str,
+) -> Result<Vec<rustls::pki_types::CertificateDer<'static>>, String> {
     let mut reader = std::io::BufReader::new(pem_data.as_bytes());
     rustls_pemfile::certs(&mut reader)
         .collect::<Result<Vec<_>, _>>()
@@ -110,8 +111,7 @@ fn load_key_from_pem(pem_data: &str) -> Result<rustls::pki_types::PrivateKeyDer<
 
 /// 从文件路径读取内容
 fn read_file_content(path: &str) -> Result<String, String> {
-    std::fs::read_to_string(path)
-        .map_err(|e| format!("Failed to read file '{}': {}", path, e))
+    std::fs::read_to_string(path).map_err(|e| format!("Failed to read file '{}': {}", path, e))
 }
 
 /// 构建包含自定义 CA 和/或客户端证书的 rustls `ClientConfig`
@@ -139,12 +139,15 @@ fn build_custom_tls_config(
             return Err("CA certificate file does not contain a valid certificate".to_string());
         }
         for cert in ca_certs {
-            root_store.add(cert).map_err(|e| format!("Failed to add custom CA certificate: {}", e))?;
+            root_store
+                .add(cert)
+                .map_err(|e| format!("Failed to add custom CA certificate: {}", e))?;
         }
     }
 
     // 构建 ClientConfig
-    let client_config = if let (Some(cert_path), Some(key_path)) = (tls_client_cert, tls_client_key) {
+    let client_config = if let (Some(cert_path), Some(key_path)) = (tls_client_cert, tls_client_key)
+    {
         // mTLS: 加载客户端证书和私钥
         let cert_pem = read_file_content(cert_path)?;
         let key_pem = read_file_content(key_path)?;
@@ -355,7 +358,12 @@ fn build_plaintext_endpoint(
     if connect_timeout_ms > 0 {
         endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
     }
-    endpoint = apply_keepalive(endpoint, keepalive_time_ms, keepalive_timeout_ms, keepalive_permit_without_streams);
+    endpoint = apply_keepalive(
+        endpoint,
+        keepalive_time_ms,
+        keepalive_timeout_ms,
+        keepalive_permit_without_streams,
+    );
     Ok(endpoint)
 }
 
@@ -373,7 +381,12 @@ fn build_standard_tls_endpoint(
     if connect_timeout_ms > 0 {
         endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
     }
-    endpoint = apply_keepalive(endpoint, keepalive_time_ms, keepalive_timeout_ms, keepalive_permit_without_streams);
+    endpoint = apply_keepalive(
+        endpoint,
+        keepalive_time_ms,
+        keepalive_timeout_ms,
+        keepalive_permit_without_streams,
+    );
     Ok(endpoint)
 }
 
@@ -397,11 +410,12 @@ pub(crate) fn create_balanced_channel(
     keepalive_permit_without_streams: Option<bool>,
 ) -> Result<tonic::transport::Channel, String> {
     // 负载均衡不支持 skip_verify 和自定义 TLS（使用自定义 connector，无法拆分为多端点）
-    let has_custom_tls = use_tls && (tls_skip_verify
-        || tls_ca_cert.is_some()
-        || tls_client_cert.is_some()
-        || tls_client_key.is_some()
-        || tls_server_name_override.is_some());
+    let has_custom_tls = use_tls
+        && (tls_skip_verify
+            || tls_ca_cert.is_some()
+            || tls_client_cert.is_some()
+            || tls_client_key.is_some()
+            || tls_server_name_override.is_some());
 
     if has_custom_tls {
         return Err("Load balancing mode does not support skipping certificate verification or custom TLS configuration (CA/mTLS/SNI). Please remove extra endpoints or simplify TLS configuration.".to_string());
@@ -423,8 +437,11 @@ pub(crate) fn create_balanced_channel(
     if use_tls {
         // 标准 TLS 模式
         let primary_ep = build_standard_tls_endpoint(
-            &primary, connect_timeout_ms,
-            keepalive_time_ms, keepalive_timeout_ms, keepalive_permit_without_streams,
+            &primary,
+            connect_timeout_ms,
+            keepalive_time_ms,
+            keepalive_timeout_ms,
+            keepalive_permit_without_streams,
         )?;
 
         if additional_endpoints.is_empty() {
@@ -433,20 +450,29 @@ pub(crate) fn create_balanced_channel(
 
         let mut endpoints: Vec<tonic::transport::Endpoint> = vec![primary_ep];
         for (i, ep_url) in additional_endpoints.iter().enumerate() {
-            let normalized = normalize_url(ep_url).map_err(|e| format!("Extra endpoint[{}] {}", i, e))?;
+            let normalized =
+                normalize_url(ep_url).map_err(|e| format!("Extra endpoint[{}] {}", i, e))?;
             let ep = build_standard_tls_endpoint(
-                &normalized, connect_timeout_ms,
-                keepalive_time_ms, keepalive_timeout_ms, keepalive_permit_without_streams,
+                &normalized,
+                connect_timeout_ms,
+                keepalive_time_ms,
+                keepalive_timeout_ms,
+                keepalive_permit_without_streams,
             )?;
             endpoints.push(ep);
         }
 
-        Ok(tonic::transport::Channel::balance_list(endpoints.into_iter()))
+        Ok(tonic::transport::Channel::balance_list(
+            endpoints.into_iter(),
+        ))
     } else {
         // 明文模式
         let primary_ep = build_plaintext_endpoint(
-            &primary, connect_timeout_ms,
-            keepalive_time_ms, keepalive_timeout_ms, keepalive_permit_without_streams,
+            &primary,
+            connect_timeout_ms,
+            keepalive_time_ms,
+            keepalive_timeout_ms,
+            keepalive_permit_without_streams,
         )?;
 
         if additional_endpoints.is_empty() {
@@ -455,15 +481,21 @@ pub(crate) fn create_balanced_channel(
 
         let mut endpoints: Vec<tonic::transport::Endpoint> = vec![primary_ep];
         for (i, ep_url) in additional_endpoints.iter().enumerate() {
-            let normalized = normalize_url(ep_url).map_err(|e| format!("Extra endpoint[{}] {}", i, e))?;
+            let normalized =
+                normalize_url(ep_url).map_err(|e| format!("Extra endpoint[{}] {}", i, e))?;
             let ep = build_plaintext_endpoint(
-                &normalized, connect_timeout_ms,
-                keepalive_time_ms, keepalive_timeout_ms, keepalive_permit_without_streams,
+                &normalized,
+                connect_timeout_ms,
+                keepalive_time_ms,
+                keepalive_timeout_ms,
+                keepalive_permit_without_streams,
             )?;
             endpoints.push(ep);
         }
 
-        Ok(tonic::transport::Channel::balance_list(endpoints.into_iter()))
+        Ok(tonic::transport::Channel::balance_list(
+            endpoints.into_iter(),
+        ))
     }
 }
 
@@ -490,11 +522,17 @@ pub(crate) fn create_channel(
     // 明文模式
     if !use_tls {
         let mut endpoint = tonic::transport::Endpoint::from_shared(url_with_scheme.to_string())
-        .map_err(|e| format!("Failed to create gRPC endpoint: {}", e))?;
+            .map_err(|e| format!("Failed to create gRPC endpoint: {}", e))?;
         if connect_timeout_ms > 0 {
-            endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
+            endpoint =
+                endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
         }
-        endpoint = apply_keepalive(endpoint, keepalive_time_ms, keepalive_timeout_ms, keepalive_permit_without_streams);
+        endpoint = apply_keepalive(
+            endpoint,
+            keepalive_time_ms,
+            keepalive_timeout_ms,
+            keepalive_permit_without_streams,
+        );
         return Ok(endpoint.connect_lazy());
     }
 
@@ -537,6 +575,11 @@ pub(crate) fn create_channel(
     if connect_timeout_ms > 0 {
         endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
     }
-    endpoint = apply_keepalive(endpoint, keepalive_time_ms, keepalive_timeout_ms, keepalive_permit_without_streams);
+    endpoint = apply_keepalive(
+        endpoint,
+        keepalive_time_ms,
+        keepalive_timeout_ms,
+        keepalive_permit_without_streams,
+    );
     Ok(endpoint.connect_lazy())
 }

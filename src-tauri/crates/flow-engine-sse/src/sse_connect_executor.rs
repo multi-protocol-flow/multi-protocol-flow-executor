@@ -2,8 +2,8 @@
 //!
 //! 实现 SSE 连接建立、变量替换和输出构建功能。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -66,7 +66,10 @@ impl NodeExecutor for SseConnectExecutor {
 
         let last_event_id = match &config.last_event_id {
             Some(id) => Some(replace_variables(id, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("last_event_id variable substitution failed: {}", e))
+                ErrorDetail::execution_error(format!(
+                    "last_event_id variable substitution failed: {}",
+                    e
+                ))
             })?),
             None => None,
         };
@@ -76,8 +79,12 @@ impl NodeExecutor for SseConnectExecutor {
             Some(h) => {
                 let mut replaced = HashMap::new();
                 for (k, v) in h {
-                    let rv = replace_variables(v, context)
-                        .map_err(|e| ErrorDetail::execution_error(format!("Header '{}' variable substitution failed: {}", k, e)))?;
+                    let rv = replace_variables(v, context).map_err(|e| {
+                        ErrorDetail::execution_error(format!(
+                            "Header '{}' variable substitution failed: {}",
+                            k, e
+                        ))
+                    })?;
                     replaced.insert(k.clone(), rv);
                 }
                 Some(replaced)
@@ -114,10 +121,7 @@ impl NodeExecutor for SseConnectExecutor {
         };
 
         // 5. 建立连接
-        let connect_result = self
-            .sse_manager
-            .connect(&node.uuid, &connect_config)
-            .await;
+        let connect_result = self.sse_manager.connect(&node.uuid, &connect_config).await;
 
         match connect_result {
             Ok(output) => {
@@ -191,9 +195,10 @@ impl NodeExecutor for SseConnectExecutor {
 
                 // 8. 路由：Success走 true 端口，Failed走 false 端口
                 if !output.success
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output
                         .error
@@ -259,9 +264,11 @@ impl NodeExecutor for SseConnectExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -270,8 +277,7 @@ impl NodeExecutor for SseConnectExecutor {
                     let filtered: Vec<String> = connections
                         .iter()
                         .filter(|conn| {
-                            conn.source_node_uuid == node.uuid
-                                && conn.source_port_id == "false"
+                            conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
                         })
                         .map(|conn| conn.target_node_uuid.clone())
                         .collect();
@@ -300,7 +306,7 @@ mod tests {
     /// 模拟 SSE Provider（连接Success）
     struct MockSseProvider {
         output: SseConnectOutput,
-        /// 是否在 connect 中回传 config.last_event_id
+        /// 是否在 connect 中回传 `config.last_event_id`
         echo_last_event_id: bool,
     }
 
@@ -335,7 +341,7 @@ mod tests {
             }
         }
 
-        /// 创建会回传 config.last_event_id 的Success mock
+        /// 创建会回传 `config.last_event_id` 的Success mock
         fn new_success_echo() -> Self {
             let mut server_headers = HashMap::new();
             server_headers.insert("content-type".to_string(), "text/event-stream".to_string());
@@ -534,16 +540,12 @@ mod tests {
         };
 
         let mut context = create_context("test-flow");
-        context.variables.set_variable(
-            "host".to_string(),
-            json!("api.example.com"),
-            String::new(),
-        );
-        context.variables.set_variable(
-            "ver".to_string(),
-            json!("123"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("host".to_string(), json!("api.example.com"), String::new());
+        context
+            .variables
+            .set_variable("ver".to_string(), json!("123"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())

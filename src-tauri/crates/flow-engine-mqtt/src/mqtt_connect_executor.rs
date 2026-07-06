@@ -3,8 +3,8 @@
 //! 实现 MQTT 连接建立、变量替换和输出构建功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -42,7 +42,12 @@ impl NodeExecutor for MqttConnectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::MqttConnect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not MqttConnectConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not MqttConnectConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换（url, client_id, username, password）
@@ -60,21 +65,30 @@ impl NodeExecutor for MqttConnectExecutor {
 
         let client_id = match &config.client_id {
             Some(id) => Some(replace_variables(id, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("client_id variable substitution failed: {}", e))
+                ErrorDetail::execution_error(format!(
+                    "client_id variable substitution failed: {}",
+                    e
+                ))
             })?),
             None => None,
         };
 
         let username = match &config.username {
             Some(u) => Some(replace_variables(u, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("username variable substitution failed: {}", e))
+                ErrorDetail::execution_error(format!(
+                    "username variable substitution failed: {}",
+                    e
+                ))
             })?),
             None => None,
         };
 
         let password = match &config.password {
             Some(p) => Some(replace_variables(p, context).map_err(|e| {
-                ErrorDetail::execution_error(format!("password variable substitution failed: {}", e))
+                ErrorDetail::execution_error(format!(
+                    "password variable substitution failed: {}",
+                    e
+                ))
             })?),
             None => None,
         };
@@ -109,10 +123,7 @@ impl NodeExecutor for MqttConnectExecutor {
         };
 
         // 5. 建立连接
-        let connect_result = self
-            .mqtt_manager
-            .connect(&node.uuid, &connect_config)
-            .await;
+        let connect_result = self.mqtt_manager.connect(&node.uuid, &connect_config).await;
 
         match connect_result {
             Ok(output) => {
@@ -175,10 +186,7 @@ impl NodeExecutor for MqttConnectExecutor {
                     LogLevel::Error
                 };
                 let log_message = if output.success {
-                    format!(
-                        "MQTT 连接Success ({}ms)",
-                        duration.as_millis()
-                    )
+                    format!("MQTT 连接Success ({}ms)", duration.as_millis())
                 } else {
                     format!(
                         "MQTT connection failed: {} ({}ms)",
@@ -200,9 +208,10 @@ impl NodeExecutor for MqttConnectExecutor {
 
                 // 8. 路由：Success走 true 端口，Failed走 false 端口
                 if !output.success
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output
                         .error
@@ -270,9 +279,11 @@ impl NodeExecutor for MqttConnectExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -305,9 +316,7 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::MqttConnectConfig;
-    use flow_engine_core::traits::{
-        MqttBrokerInfo, MqttConnectOutput, MqttConnectionInfo,
-    };
+    use flow_engine_core::traits::{MqttBrokerInfo, MqttConnectOutput, MqttConnectionInfo};
 
     /// 模拟 MQTT Provider（连接Success）
     struct MockMqttProvider {
@@ -537,7 +546,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("MqttConnectConfig"));
     }
 
-    /// 测试：变量替换在 URL 和 client_id 中生效
+    /// 测试：变量替换在 URL 和 `client_id` 中生效
     #[tokio::test]
     async fn test_connect_with_variable_replacement() {
         let mqtt_manager = Arc::new(MockMqttProvider::new_success());
@@ -566,11 +575,9 @@ mod tests {
             json!("broker.example.com"),
             String::new(),
         );
-        context.variables.set_variable(
-            "env".to_string(),
-            json!("prod"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("env".to_string(), json!("prod"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())

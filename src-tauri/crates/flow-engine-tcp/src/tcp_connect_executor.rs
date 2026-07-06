@@ -188,7 +188,7 @@ impl NodeExecutor for TcpConnectExecutor {
                 if !node
                     .on_error
                     .as_ref()
-                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
@@ -389,7 +389,7 @@ mod tests {
         assert_eq!(data["port"], 9999);
         assert!(data.get("error").is_some());
         let error = data["error"].as_str().expect("error should be a string");
-        assert!(error.find("connection failed").is_some());
+        assert!(error.contains("connection failed"));
     }
 
     #[tokio::test]

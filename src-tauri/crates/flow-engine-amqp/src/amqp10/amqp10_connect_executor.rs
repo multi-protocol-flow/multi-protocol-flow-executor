@@ -2,8 +2,8 @@
 //!
 //! 实现 AMQP 1.0 连接建立、变量替换和输出构建功能。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -12,9 +12,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{Amqp10ConnectConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// AMQP 1.0 连接节点执行器
@@ -207,8 +207,15 @@ impl NodeExecutor for Amqp10ConnectExecutor {
                 });
 
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP 1.0 connect Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "AMQP 1.0 connect Failed: {}",
+                        e
+                    )));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -240,9 +247,8 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::*;
     use flow_engine_core::traits::{
-        Amqp10AcceptOutput, Amqp10ConnectOutput, Amqp10ReceiveOutput,
-        Amqp10RejectOutput, Amqp10SendOutput, AmqpConnectOutput, AmqpConnectionInfo,
-        AmqpProvider,
+        Amqp10AcceptOutput, Amqp10ConnectOutput, Amqp10ReceiveOutput, Amqp10RejectOutput,
+        Amqp10SendOutput, AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider,
     };
 
     /// Mock AmqpProvider（连接Success）
@@ -312,7 +318,11 @@ mod tests {
         ) -> Result<flow_engine_core::traits::AmqpQueueDeleteOutput, String> {
             Err("not implemented".to_string())
         }
-        async fn queue_bind(&self, _uuid: &str, _config: &AmqpQueueBindConfig) -> Result<(), String> {
+        async fn queue_bind(
+            &self,
+            _uuid: &str,
+            _config: &AmqpQueueBindConfig,
+        ) -> Result<(), String> {
             Ok(())
         }
         async fn publish(
@@ -400,7 +410,7 @@ mod tests {
         }
     }
 
-    /// Mock AmqpProvider（amqp10_connect 返回 Err）
+    /// Mock `AmqpProvider（amqp10_connect` 返回 Err）
     struct MockAmqpProviderError;
 
     #[async_trait::async_trait]
@@ -443,7 +453,11 @@ mod tests {
         ) -> Result<flow_engine_core::traits::AmqpQueueDeleteOutput, String> {
             Err("not implemented".to_string())
         }
-        async fn queue_bind(&self, _uuid: &str, _config: &AmqpQueueBindConfig) -> Result<(), String> {
+        async fn queue_bind(
+            &self,
+            _uuid: &str,
+            _config: &AmqpQueueBindConfig,
+        ) -> Result<(), String> {
             Ok(())
         }
         async fn publish(
@@ -674,10 +688,13 @@ mod tests {
         assert!(result.is_ok());
         let (_, output_data) = result.unwrap();
         let data = output_data.unwrap();
-        assert_eq!(data["request"]["url"], "amqp://amqp-broker.example.com:5672");
+        assert_eq!(
+            data["request"]["url"],
+            "amqp://amqp-broker.example.com:5672"
+        );
     }
 
-    /// 测试：provider amqp10_connect 方法返回 Err 时走 false 端口
+    /// 测试：provider `amqp10_connect` 方法返回 Err 时走 false 端口
     #[tokio::test]
     async fn test_amqp10_connect_provider_error_routes_to_false() {
         let amqp_manager = Arc::new(MockAmqpProviderError);
@@ -722,7 +739,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 
-    /// 测试：默认 connection_id 回退到节点 UUID
+    /// 测试：默认 `connection_id` 回退到节点 UUID
     #[tokio::test]
     async fn test_amqp10_connect_default_connection_id_fallback() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());

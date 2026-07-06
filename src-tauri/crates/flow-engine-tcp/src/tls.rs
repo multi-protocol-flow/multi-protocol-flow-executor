@@ -89,7 +89,7 @@ fn ensure_crypto_provider() {
 /// - `skip_verify`: 是否跳过证书验证（用于开发/测试环境）
 ///
 /// # 返回
-/// Success返回 `TlsConnector`，Failed返回Error描述。
+/// Success返回 `TlsConnector`，`Failed返回Error描述`。
 pub fn create_tls_connector(skip_verify: bool) -> Result<TlsConnector, String> {
     ensure_crypto_provider();
 
@@ -137,7 +137,7 @@ fn create_standard_config() -> Result<ClientConfig, String> {
 /// - `ca_cert_pem`: 自定义 CA 证书（PEM 格式），None 时仅使用系统根证书
 ///
 /// # 返回
-/// Success返回 `TlsConnector`，Failed返回Error描述。
+/// Success返回 `TlsConnector`，`Failed返回Error描述`。
 pub fn create_tls_connector_with_ca(
     skip_verify: bool,
     ca_cert_pem: Option<&[u8]>,
@@ -203,7 +203,7 @@ mod tests {
         );
     }
 
-    /// 测试多次调用 create_tls_connector 不会 panic（CryptoProvider 幂等安装）
+    /// 测试多次调用 `create_tls_connector` 不会 panic（CryptoProvider 幂等安装）
     #[test]
     fn test_create_tls_connector_idempotent() {
         let result1 = create_tls_connector(true);
@@ -221,14 +221,14 @@ mod tests {
         let _cloned = connector.clone();
     }
 
-    /// 测试 create_tls_connector_with_ca 跳过验证模式
+    /// 测试 `create_tls_connector_with_ca` 跳过验证模式
     #[test]
     fn test_create_tls_connector_with_ca_skip_verify() {
         let result = create_tls_connector_with_ca(true, None);
         assert!(result.is_ok(), "跳过验证模式应Success: {:?}", result.err());
     }
 
-    /// 测试 create_tls_connector_with_ca 标准模式（无自定义 CA）
+    /// 测试 `create_tls_connector_with_ca` 标准模式（无自定义 CA）
     #[test]
     fn test_create_tls_connector_with_ca_standard_no_ca() {
         let result = create_tls_connector_with_ca(false, None);
@@ -239,7 +239,7 @@ mod tests {
         );
     }
 
-    /// 测试 create_tls_connector_with_ca 无效 PEM 数据
+    /// 测试 `create_tls_connector_with_ca` 无效 PEM 数据
     #[test]
     fn test_create_tls_connector_with_ca_invalid_pem() {
         let invalid_pem = b"not a valid pem data";
@@ -253,7 +253,7 @@ mod tests {
         );
     }
 
-    /// 测试 create_tls_connector_with_ca 跳过验证时忽略 CA 证书
+    /// 测试 `create_tls_connector_with_ca` 跳过验证时忽略 CA 证书
     #[test]
     fn test_create_tls_connector_with_ca_skip_verify_ignores_ca() {
         let some_ca = b"-----BEGIN CERTIFICATE-----\ninvalid\n-----END CERTIFICATE-----";

@@ -73,7 +73,8 @@ impl CookieJar {
                     (Some(cookie_domain), Some(host)) => {
                         let cookie_domain = cookie_domain.to_lowercase();
                         // 去掉前导点（.example.com → example.com）
-                        let cookie_domain = cookie_domain.strip_prefix('.').unwrap_or(&cookie_domain);
+                        let cookie_domain =
+                            cookie_domain.strip_prefix('.').unwrap_or(&cookie_domain);
                         host == cookie_domain || host.ends_with(&format!(".{}", cookie_domain))
                     }
                     // 有 domain 但无法解析 host → 不发送

@@ -134,16 +134,15 @@ pub async fn exchange_declare(
         .await
         .map_err(|e| format!("AMQP 声明交换器 '{}' Failed: {}", name, e))?;
 
-    info!("AMQP 声明交换器Success: name={}, type={}", name, exchange_type);
+    info!(
+        "AMQP 声明交换器Success: name={}, type={}",
+        name, exchange_type
+    );
     Ok(())
 }
 
 /// 删除交换器
-pub async fn exchange_delete(
-    channel: &Channel,
-    name: &str,
-    if_unused: bool,
-) -> Result<(), String> {
+pub async fn exchange_delete(channel: &Channel, name: &str, if_unused: bool) -> Result<(), String> {
     let options = ExchangeDeleteOptions {
         if_unused,
         nowait: false,
@@ -221,7 +220,10 @@ pub async fn queue_delete(
         .await
         .map_err(|e| format!("AMQP 删除队列 '{}' Failed: {}", queue_name, e))?;
 
-    info!("AMQP 删除队列Success: name={}, deleted={}", queue_name, result);
+    info!(
+        "AMQP 删除队列Success: name={}, deleted={}",
+        queue_name, result
+    );
     Ok(result)
 }
 
@@ -338,7 +340,10 @@ pub async fn basic_consume(
         .await
         .map_err(|e| format!("AMQP 消费队列 '{}' Failed: {}", queue, e))?;
 
-    info!("AMQP 消费者创建Success: queue={}, tag={}", queue, consumer_tag);
+    info!(
+        "AMQP 消费者创建Success: queue={}, tag={}",
+        queue, consumer_tag
+    );
     Ok(consumer)
 }
 
@@ -413,7 +418,10 @@ pub async fn basic_nack(
         .basic_nack(delivery_tag, options)
         .await
         .map_err(|e| format!("AMQP Nack Failed: tag={}, Error: {}", delivery_tag, e))?;
-    info!("AMQP Nack Success: tag={}, requeue={}", delivery_tag, requeue);
+    info!(
+        "AMQP Nack Success: tag={}, requeue={}",
+        delivery_tag, requeue
+    );
     Ok(())
 }
 
@@ -428,7 +436,10 @@ pub async fn basic_reject(
         .basic_reject(delivery_tag, options)
         .await
         .map_err(|e| format!("AMQP Reject Failed: tag={}, Error: {}", delivery_tag, e))?;
-    info!("AMQP Reject Success: tag={}, requeue={}", delivery_tag, requeue);
+    info!(
+        "AMQP Reject Success: tag={}, requeue={}",
+        delivery_tag, requeue
+    );
     Ok(())
 }
 
@@ -572,18 +583,9 @@ mod tests {
 
     #[test]
     fn test_tls_mode_standard() {
-        assert_eq!(
-            TlsMode::from_config(Some("standard")),
-            TlsMode::Standard
-        );
-        assert_eq!(
-            TlsMode::from_config(Some("Standard")),
-            TlsMode::Standard
-        );
-        assert_eq!(
-            TlsMode::from_config(Some("STANDARD")),
-            TlsMode::Standard
-        );
+        assert_eq!(TlsMode::from_config(Some("standard")), TlsMode::Standard);
+        assert_eq!(TlsMode::from_config(Some("Standard")), TlsMode::Standard);
+        assert_eq!(TlsMode::from_config(Some("STANDARD")), TlsMode::Standard);
     }
 
     #[test]
@@ -671,10 +673,22 @@ mod tests {
 
     #[test]
     fn test_parse_exchange_kind() {
-        assert!(matches!(parse_exchange_kind("direct"), ExchangeKind::Direct));
-        assert!(matches!(parse_exchange_kind("fanout"), ExchangeKind::Fanout));
+        assert!(matches!(
+            parse_exchange_kind("direct"),
+            ExchangeKind::Direct
+        ));
+        assert!(matches!(
+            parse_exchange_kind("fanout"),
+            ExchangeKind::Fanout
+        ));
         assert!(matches!(parse_exchange_kind("topic"), ExchangeKind::Topic));
-        assert!(matches!(parse_exchange_kind("headers"), ExchangeKind::Headers));
-        assert!(matches!(parse_exchange_kind("x-delayed"), ExchangeKind::Custom(_)));
+        assert!(matches!(
+            parse_exchange_kind("headers"),
+            ExchangeKind::Headers
+        ));
+        assert!(matches!(
+            parse_exchange_kind("x-delayed"),
+            ExchangeKind::Custom(_)
+        ));
     }
 }

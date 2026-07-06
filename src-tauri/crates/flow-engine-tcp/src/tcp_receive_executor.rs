@@ -181,7 +181,7 @@ impl NodeExecutor for TcpReceiveExecutor {
                 if !node
                     .on_error
                     .as_ref()
-                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
@@ -237,6 +237,7 @@ fn route_to_port(node: &Node, connections: &[Connection], port: &str) -> Vec<Str
 }
 
 /// 路由到 false 端口（辅助函数）
+#[allow(clippy::result_large_err)]
 fn route_to_false_port(
     node: &Node,
     connections: &[Connection],

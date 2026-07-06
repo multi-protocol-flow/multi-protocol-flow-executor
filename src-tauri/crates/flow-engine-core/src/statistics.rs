@@ -83,8 +83,9 @@ impl FlowStatistics {
         if !durations.is_empty() {
             let total_duration: u64 = durations.iter().sum();
             stats.avg_node_duration_ms = Some(total_duration / durations.len() as u64);
-            stats.max_node_duration_ms = Some(*durations.iter().max().unwrap());
-            stats.min_node_duration_ms = Some(*durations.iter().min().unwrap());
+            // SAFETY: guarded by !durations.is_empty() check above
+            stats.max_node_duration_ms = durations.iter().max().copied();
+            stats.min_node_duration_ms = durations.iter().min().copied();
         }
 
         // 计算数据大小（估算）

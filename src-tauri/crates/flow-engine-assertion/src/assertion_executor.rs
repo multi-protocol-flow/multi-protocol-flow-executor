@@ -8,15 +8,17 @@
 //! - 调试事件发送
 
 use crate::assertion::evaluator::AssertionEvaluator;
-use flow_engine_core::error::ErrorDetail;
 use crate::assertion::preset::get_preset;
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
-use flow_engine_core::executor::{NodeExecutor, replace_variables};
+use flow_engine_core::error::ErrorDetail;
+use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::node_config::{Assertion, AssertionConfig, AssertionOutput, NodeData, OnFailureMode};
+use flow_engine_core::node_config::{
+    Assertion, AssertionConfig, AssertionOutput, NodeData, OnFailureMode,
+};
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::time::Instant;
@@ -100,7 +102,9 @@ impl NodeExecutor for AssertionNodeExecutor {
 
         // 2. 解析数据来源：若指定了 source_node_id，从该节点的执行报告中读取输出；
         //    否则使用 last_node_output（最近上游节点输出）
-        let input: serde_json::Value = if let Some(ref source_node_id) = assertion_config.source_node_id {
+        let input: serde_json::Value = if let Some(ref source_node_id) =
+            assertion_config.source_node_id
+        {
             context
                 .node_reports
                 .iter()
@@ -116,7 +120,10 @@ impl NodeExecutor for AssertionNodeExecutor {
                     json!({})
                 })
         } else {
-            context.last_node_output.clone().unwrap_or_else(|| json!({}))
+            context
+                .last_node_output
+                .clone()
+                .unwrap_or_else(|| json!({}))
         };
 
         // 3. 合并预设和自定义断言
@@ -289,7 +296,8 @@ impl NodeExecutor for AssertionNodeExecutor {
         }
 
         // 8. 构建输出数据
-        let output_data = serde_json::to_value(&assertion_output).unwrap_or(serde_json::Value::Null);
+        let output_data =
+            serde_json::to_value(&assertion_output).unwrap_or(serde_json::Value::Null);
 
         // 9. 根据结果路由到对应端口
         let next_node_ids = self.find_next_nodes(connections, &node.uuid, passed);
@@ -379,12 +387,7 @@ impl AssertionNodeExecutor {
                 } else {
                     format!(
                         "{}[{}] {} {} {} (actual: {})",
-                        desc,
-                        r.id,
-                        r.target,
-                        r.operator,
-                        r.expected,
-                        r.actual
+                        desc, r.id, r.target, r.operator, r.expected, r.actual
                     )
                 }
             })
@@ -480,8 +483,10 @@ fn resolve_expected_variables(value: &Value, context: &ExecutionContext) -> Valu
         }
         // 数组 → 递归处理
         Value::Array(arr) => {
-            let resolved: Vec<Value> =
-                arr.iter().map(|v| resolve_expected_variables(v, context)).collect();
+            let resolved: Vec<Value> = arr
+                .iter()
+                .map(|v| resolve_expected_variables(v, context))
+                .collect();
             Value::Array(resolved)
         }
         // 数值/布尔/null → 保持不变
@@ -514,14 +519,14 @@ mod tests {
     use super::*;
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::debug_types::DebugEvent;
-    use flow_engine_core::node::{NodePosition};
+    use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
         Assertion, AssertionMode, AssertionOperator, OnFailureMode,
     };
     use flow_engine_core::traits::DebugEventSender;
     use std::sync::Arc;
 
-    /// mpsc UnboundedSender adapter for DebugEventSender (测试用)
+    /// mpsc `UnboundedSender` adapter for `DebugEventSender` (测试用)
     struct MpscDebugEventSender {
         sender: tokio::sync::mpsc::UnboundedSender<DebugEvent>,
     }
@@ -918,7 +923,7 @@ mod tests {
 
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.message.find("Assertion failed").is_some());
+        assert!(error.message.contains("Assertion failed"));
     }
 
     // ========================================================================
@@ -1184,7 +1189,10 @@ mod tests {
         assert_eq!(events.len(), 2);
 
         // 验证 AssertionStarted 事件（total_assertions = 0）
-        if let DebugEvent::AssertionStarted { total_assertions, .. } = &events[0] {
+        if let DebugEvent::AssertionStarted {
+            total_assertions, ..
+        } = &events[0]
+        {
             assert_eq!(*total_assertions, 0);
         } else {
             panic!("Expected AssertionStarted event, got: {:?}", events[0]);

@@ -22,8 +22,8 @@ use flow_engine_core::node_config::{
 use flow_engine_core::traits::{
     KafkaAdminOutput, KafkaBrokerInfo, KafkaCloseOutput, KafkaConnectOutput, KafkaConnectionInfo,
     KafkaConsumeBatchOutput, KafkaConsumeOutput, KafkaMessageOutput, KafkaPartitionInfo,
-    KafkaProduceOutput, KafkaSchemaInfo, KafkaSchemaRegistryOutput, KafkaTimingInfo,
-    KafkaTopicInfo, KafkaProvider,
+    KafkaProduceOutput, KafkaProvider, KafkaSchemaInfo, KafkaSchemaRegistryOutput, KafkaTimingInfo,
+    KafkaTopicInfo,
 };
 
 use crate::kafka_client::KafkaClient;
@@ -116,8 +116,7 @@ impl KafkaConnectionManager {
             None
         };
 
-        let client =
-            SchemaRegistryClient::new(&url, auth).map_err(Self::map_sr_error)?;
+        let client = SchemaRegistryClient::new(&url, auth).map_err(Self::map_sr_error)?;
 
         conn.schema_registry = Some(client);
         Ok(())
@@ -131,11 +130,9 @@ impl KafkaConnectionManager {
             .map_err(|e| KafkaError::ConnectionFailed(format!("创建验证 Consumer Failed: {e}")))?;
 
         let timeout = Duration::from_secs(5);
-        consumer
-            .fetch_metadata(None, timeout)
-            .map_err(|e| {
-                KafkaError::ConnectionFailed(format!("获取 Metadata Failed（连接不可达）: {e}"))
-            })?;
+        consumer.fetch_metadata(None, timeout).map_err(|e| {
+            KafkaError::ConnectionFailed(format!("获取 Metadata Failed（连接不可达）: {e}"))
+        })?;
 
         Ok(())
     }
@@ -196,12 +193,12 @@ impl KafkaConnectionManager {
     /// 将 rdkafka 的 `BorrowedMessage` 转换为 `KafkaMessageOutput`
     fn msg_to_output(msg: &rdkafka::message::BorrowedMessage<'_>) -> KafkaMessageOutput {
         let key = msg.key().map(|k| String::from_utf8_lossy(k).to_string());
-        let value = msg.payload().map(|p| {
-            match serde_json::from_slice::<serde_json::Value>(p) {
+        let value = msg
+            .payload()
+            .map(|p| match serde_json::from_slice::<serde_json::Value>(p) {
                 Ok(v) => v,
                 Err(_) => serde_json::Value::String(String::from_utf8_lossy(p).to_string()),
-            }
-        });
+            });
 
         let headers: Vec<(String, String)> = msg
             .headers()
@@ -463,10 +460,7 @@ impl KafkaProvider for KafkaConnectionManager {
 
         // 消费者组 ID，默认使用自动生成的
         let default_group_id = format!("mpe-consumer-{}", uuid::Uuid::new_v4());
-        let group_id = config
-            .group_id
-            .as_deref()
-            .unwrap_or(&default_group_id);
+        let group_id = config.group_id.as_deref().unwrap_or(&default_group_id);
 
         // 创建 Consumer
         let consumer: StreamConsumer = conn
@@ -526,10 +520,7 @@ impl KafkaProvider for KafkaConnectionManager {
             .ok_or_else(|| format!("Kafka 连接不存在: {}", uuid))?;
 
         let default_group_id = format!("mpe-batch-{}", uuid::Uuid::new_v4());
-        let group_id = config
-            .group_id
-            .as_deref()
-            .unwrap_or(&default_group_id);
+        let group_id = config.group_id.as_deref().unwrap_or(&default_group_id);
 
         let consumer: StreamConsumer = conn
             .client
@@ -670,7 +661,8 @@ impl KafkaProvider for KafkaConnectionManager {
                             info!("Kafka Topic {} 创建Success", topic_name);
                         }
                         Err((_, err_code)) => {
-                            let msg = format!("创建Topic {} Failed: code={:?}", topic_name, err_code);
+                            let msg =
+                                format!("创建Topic {} Failed: code={:?}", topic_name, err_code);
                             warn!("{}", msg);
                             error_msg = Some(msg);
                         }
@@ -712,7 +704,8 @@ impl KafkaProvider for KafkaConnectionManager {
                             info!("Kafka Topic {} 删除Success", topic_name);
                         }
                         Err((_, err_code)) => {
-                            let msg = format!("删除Topic {} Failed: code={:?}", topic_name, err_code);
+                            let msg =
+                                format!("删除Topic {} Failed: code={:?}", topic_name, err_code);
                             warn!("{}", msg);
                             error_msg = Some(msg);
                         }
@@ -736,8 +729,7 @@ impl KafkaProvider for KafkaConnectionManager {
                     .as_deref()
                     .ok_or("描述主题需要指定 topic_name")?;
 
-                let metadata =
-                    Self::fetch_metadata_sync(&conn.client, Some(topic_name), timeout)?;
+                let metadata = Self::fetch_metadata_sync(&conn.client, Some(topic_name), timeout)?;
 
                 if metadata.topics().is_empty() {
                     return Ok(KafkaAdminOutput {
@@ -805,11 +797,14 @@ impl KafkaProvider for KafkaConnectionManager {
         let sr_client = conn
             .schema_registry
             .as_ref()
-            .expect("ensure_schema_registry Success后 schema_registry 必定有值");
+            .ok_or_else(|| "schema_registry 未初始化，ensure_schema_registry 调用失败".to_string())?;
 
         match config.operation.as_str() {
             "list_subjects" => {
-                let subjects = sr_client.list_subjects().await.map_err(Self::map_sr_error)?;
+                let subjects = sr_client
+                    .list_subjects()
+                    .await
+                    .map_err(Self::map_sr_error)?;
                 Ok(KafkaSchemaRegistryOutput {
                     success: true,
                     operation: Some("list_subjects".to_string()),
@@ -1094,14 +1089,11 @@ mod tests {
     #[test]
     fn test_manager_new() {
         let manager = KafkaConnectionManager::new();
-        let connections = manager
-            .connections
-            .try_read()
-            .expect("应能获取读锁");
+        let connections = manager.connections.try_read().expect("应能获取读锁");
         assert!(connections.is_empty(), "新建管理器应无连接");
     }
 
-    /// 验证空管理器 get_status 返回 None
+    /// 验证空管理器 `get_status` 返回 None
     #[test]
     fn test_get_status_empty() {
         let manager = KafkaConnectionManager::new();
@@ -1109,7 +1101,7 @@ mod tests {
         assert!(status.is_none(), "空管理器 get_status 应返回 None");
     }
 
-    /// 验证空管理器 list_connections 返回空列表
+    /// 验证空管理器 `list_connections` 返回空列表
     #[test]
     fn test_list_connections_empty() {
         let manager = KafkaConnectionManager::new();

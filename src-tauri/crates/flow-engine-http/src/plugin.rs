@@ -4,8 +4,8 @@
 // 执行委托给 HttpNodeExecutor。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
@@ -158,7 +158,7 @@ impl NodePlugin for HttpPlugin {
 
         // 3. timeout_ms range (if present)
         if let Some(timeout) = config.get("timeout_ms").and_then(|v| v.as_u64()) {
-            if timeout < 1000 || timeout > 300000 {
+            if !(1000..=300000).contains(&timeout) {
                 errors.push(ValidationError {
                     field: "timeout_ms".into(),
                     message: "Timeout must be between 1000ms and 300000ms".into(),
@@ -178,7 +178,7 @@ impl NodePlugin for HttpPlugin {
                 let body_missing = config
                     .get("body")
                     .and_then(|v| v.as_str())
-                    .map_or(true, |s| s.is_empty());
+                    .is_none_or(|s| s.is_empty());
 
                 if body_missing {
                     errors.push(ValidationError {
@@ -200,8 +200,6 @@ impl NodePlugin for HttpPlugin {
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let executor = crate::http_executor::HttpNodeExecutor::new();
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        executor.execute(node, context, connections, node_map).await
     }
 }

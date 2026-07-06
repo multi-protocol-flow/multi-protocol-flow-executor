@@ -1,8 +1,8 @@
 // 变量提取节点执行器 — 从上游输出中提取变量写入执行上下文
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
@@ -26,7 +26,11 @@ impl NodeExecutor for VariableExtractorExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::VariableExtractor(c) => c,
-            _ => return Err(ErrorDetail::execution_error("节点配置不是 VariableExtractorConfig".to_string())),
+            _ => {
+                return Err(ErrorDetail::execution_error(
+                    "节点配置不是 VariableExtractorConfig".to_string(),
+                ))
+            }
         };
 
         // 2. 获取上游输出数据
@@ -37,7 +41,12 @@ impl NodeExecutor for VariableExtractorExecutor {
                 .iter()
                 .find(|r| r.node_uuid == *source_node_id)
                 .and_then(|r| r.output_data.clone())
-                .ok_or_else(|| ErrorDetail::execution_error(format!("未找到节点 {} 的执行结果", source_node_id)))?
+                .ok_or_else(|| {
+                    ErrorDetail::execution_error(format!(
+                        "未找到节点 {} 的执行结果",
+                        source_node_id
+                    ))
+                })?
         } else {
             // 从 last_node_output 读取
             context
@@ -89,11 +98,11 @@ mod tests {
             data: NodeData::VariableExtractor(config),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         }
     }
 
-    /// 测试：基本变量提取 — 从 last_node_output 提取两个变量
+    /// 测试：基本变量提取 — 从 `last_node_output` 提取两个变量
     #[tokio::test]
     async fn test_variable_extractor_basic() {
         let config = VariableExtractorConfig {
@@ -114,8 +123,7 @@ mod tests {
         };
         let node = make_node(config);
 
-        let mut context =
-            ExecutionContext::new("test-flow".to_string(), 0);
+        let mut context = ExecutionContext::new("test-flow".to_string(), 0);
         context.last_node_output = Some(serde_json::json!({
             "status": 200,
             "body": {"token": "abc"}
@@ -151,7 +159,7 @@ mod tests {
         assert_eq!(token_var.unwrap().value, serde_json::json!("abc"));
     }
 
-    /// 测试：无上游输出且未指定 source_node_id → 返回Error
+    /// 测试：无上游输出且未指定 `source_node_id` → 返回Error
     #[tokio::test]
     async fn test_variable_extractor_no_upstream_output() {
         let config = VariableExtractorConfig {
@@ -161,8 +169,7 @@ mod tests {
         };
         let node = make_node(config);
 
-        let mut context =
-            ExecutionContext::new("test-flow".to_string(), 0);
+        let mut context = ExecutionContext::new("test-flow".to_string(), 0);
         // last_node_output 为 None
         context.last_node_output = None;
 
@@ -180,7 +187,7 @@ mod tests {
         );
     }
 
-    /// 测试：指定不存在的 source_node_id → 返回Error
+    /// 测试：指定不存在的 `source_node_id` → 返回Error
     #[tokio::test]
     async fn test_variable_extractor_source_node_not_found() {
         let config = VariableExtractorConfig {
@@ -190,8 +197,7 @@ mod tests {
         };
         let node = make_node(config);
 
-        let mut context =
-            ExecutionContext::new("test-flow".to_string(), 0);
+        let mut context = ExecutionContext::new("test-flow".to_string(), 0);
         context.last_node_output = Some(serde_json::json!({"status": 200}));
         // node_reports 中不包含 "nonexistent"
 
@@ -209,7 +215,7 @@ mod tests {
         );
     }
 
-    /// 测试：从指定 source_node_id 的执行报告中提取变量
+    /// 测试：从指定 `source_node_id` 的执行报告中提取变量
     #[tokio::test]
     async fn test_variable_extractor_from_specific_node() {
         use flow_engine_core::report::{ExecutionStatus, NodeExecutionReport};
@@ -225,8 +231,7 @@ mod tests {
         };
         let node = make_node(config);
 
-        let mut context =
-            ExecutionContext::new("test-flow".to_string(), 0);
+        let mut context = ExecutionContext::new("test-flow".to_string(), 0);
         context.last_node_output = Some(serde_json::json!({"wrong": "data"}));
         // 在 node_reports 中插入 http-node-1 的执行结果
         context.node_reports.push(NodeExecutionReport {
@@ -277,8 +282,7 @@ mod tests {
         };
         let node = make_node(config);
 
-        let mut context =
-            ExecutionContext::new("test-flow".to_string(), 0);
+        let mut context = ExecutionContext::new("test-flow".to_string(), 0);
         context.last_node_output = Some(serde_json::json!({"status": 200}));
 
         let connections = vec![Connection {

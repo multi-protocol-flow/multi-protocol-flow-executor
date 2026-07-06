@@ -33,8 +33,7 @@ async fn reflect_services_v1alpha(
     metadata: &[(String, String)],
 ) -> Result<prost_reflect::DescriptorPool, String> {
     use tonic_reflection::pb::v1alpha::{
-        server_reflection_client::ServerReflectionClient,
-        server_reflection_request,
+        server_reflection_client::ServerReflectionClient, server_reflection_request,
         ServerReflectionRequest,
     };
 
@@ -49,9 +48,9 @@ async fn reflect_services_v1alpha(
     log::info!("[gRPC Reflection v1alpha] 预发送 ListServices 请求...");
     tx.send(ServerReflectionRequest {
         host: String::new(),
-        message_request: Some(
-            server_reflection_request::MessageRequest::ListServices(String::new()),
-        ),
+        message_request: Some(server_reflection_request::MessageRequest::ListServices(
+            String::new(),
+        )),
     })
     .await
     .map_err(|e| format!("发送 ListServices 请求Failed: {}", e))?;
@@ -72,7 +71,10 @@ async fn reflect_services_v1alpha(
     })?
     .map_err(|e| {
         log::error!("[gRPC Reflection v1alpha] 双向流connection failed: {}", e);
-        format!("Server Reflection v1alpha connection failed: {}（服务器可能不支持 Reflection）", e)
+        format!(
+            "Server Reflection v1alpha connection failed: {}（服务器可能不支持 Reflection）",
+            e
+        )
     })?;
     let stream = response.into_inner();
     log::info!("[gRPC Reflection v1alpha] 双向流已建立，等待 ListServices 响应...");
@@ -82,9 +84,7 @@ async fn reflect_services_v1alpha(
 
 /// v1alpha 反射: 收集文件描述符（从 `ListServices` 之后开始）
 async fn collect_reflection_data_v1alpha(
-    mut stream: tonic::codec::Streaming<
-        tonic_reflection::pb::v1alpha::ServerReflectionResponse,
-    >,
+    mut stream: tonic::codec::Streaming<tonic_reflection::pb::v1alpha::ServerReflectionResponse>,
     tx: tokio::sync::mpsc::Sender<tonic_reflection::pb::v1alpha::ServerReflectionRequest>,
 ) -> Result<prost_reflect::DescriptorPool, String> {
     use tonic_reflection::pb::v1alpha::server_reflection_response;
@@ -100,7 +100,10 @@ async fn collect_reflection_data_v1alpha(
         "ListServices 响应超时（服务器可能不支持 Reflection）".to_string()
     })?
     .map_err(|e| {
-        log::error!("[gRPC Reflection v1alpha] 读取 ListServices 响应Failed: {}", e);
+        log::error!(
+            "[gRPC Reflection v1alpha] 读取 ListServices 响应Failed: {}",
+            e
+        );
         format!("读取 ListServices 响应Failed: {}", e)
     })?
     .ok_or_else(|| {
@@ -124,7 +127,11 @@ async fn collect_reflection_data_v1alpha(
         return Err("服务器没有暴露任何业务 gRPC 服务（仅发现反射服务）".to_string());
     }
 
-    log::info!("[gRPC Reflection v1alpha] 发现 {} 个服务: {:?}", service_names.len(), service_names);
+    log::info!(
+        "[gRPC Reflection v1alpha] 发现 {} 个服务: {:?}",
+        service_names.len(),
+        service_names
+    );
 
     // 获取文件描述符 + 递归解析依赖
     let all_fds = fetch_file_descriptors_v1alpha(&service_names, &mut stream, &tx).await?;
@@ -138,15 +145,11 @@ async fn collect_reflection_data_v1alpha(
 /// v1alpha: 获取服务文件描述符并递归解析依赖
 async fn fetch_file_descriptors_v1alpha(
     service_names: &[String],
-    stream: &mut tonic::codec::Streaming<
-        tonic_reflection::pb::v1alpha::ServerReflectionResponse,
-    >,
+    stream: &mut tonic::codec::Streaming<tonic_reflection::pb::v1alpha::ServerReflectionResponse>,
     tx: &tokio::sync::mpsc::Sender<tonic_reflection::pb::v1alpha::ServerReflectionRequest>,
 ) -> Result<Vec<prost_types::FileDescriptorProto>, String> {
     use tonic_reflection::pb::v1alpha::{
-        server_reflection_request,
-        server_reflection_response,
-        ServerReflectionRequest,
+        server_reflection_request, server_reflection_response, ServerReflectionRequest,
     };
 
     let mut all_fds: Vec<prost_types::FileDescriptorProto> = Vec::new();
@@ -177,10 +180,9 @@ async fn fetch_file_descriptors_v1alpha(
         match resp.message_response {
             Some(server_reflection_response::MessageResponse::FileDescriptorResponse(fdr)) => {
                 for fd_bytes in &fdr.file_descriptor_proto {
-                    let fd: prost_types::FileDescriptorProto = prost::Message::decode(
-                        fd_bytes.as_slice(),
-                    )
-                    .map_err(|e| format!("解码 FileDescriptorProto Failed: {}", e))?;
+                    let fd: prost_types::FileDescriptorProto =
+                        prost::Message::decode(fd_bytes.as_slice())
+                            .map_err(|e| format!("解码 FileDescriptorProto Failed: {}", e))?;
 
                     if let Some(name) = &fd.name {
                         if seen_files.insert(name.clone()) {
@@ -216,15 +218,11 @@ async fn fetch_file_descriptors_v1alpha(
 async fn resolve_dependencies_v1alpha(
     all_fds: &mut Vec<prost_types::FileDescriptorProto>,
     seen_files: &mut HashSet<String>,
-    stream: &mut tonic::codec::Streaming<
-        tonic_reflection::pb::v1alpha::ServerReflectionResponse,
-    >,
+    stream: &mut tonic::codec::Streaming<tonic_reflection::pb::v1alpha::ServerReflectionResponse>,
     tx: &tokio::sync::mpsc::Sender<tonic_reflection::pb::v1alpha::ServerReflectionRequest>,
 ) -> Result<(), String> {
     use tonic_reflection::pb::v1alpha::{
-        server_reflection_request,
-        server_reflection_response,
-        ServerReflectionRequest,
+        server_reflection_request, server_reflection_response, ServerReflectionRequest,
     };
 
     let mut max_iterations = 50;
@@ -250,11 +248,9 @@ async fn resolve_dependencies_v1alpha(
         for dep_name in &missing_deps {
             tx.send(ServerReflectionRequest {
                 host: String::new(),
-                message_request: Some(
-                    server_reflection_request::MessageRequest::FileByFilename(
-                        dep_name.clone(),
-                    ),
-                ),
+                message_request: Some(server_reflection_request::MessageRequest::FileByFilename(
+                    dep_name.clone(),
+                )),
             })
             .await
             .map_err(|e| format!("发送 FileByFilename 请求Failed: {}", e))?;
@@ -281,9 +277,7 @@ async fn resolve_dependencies_v1alpha(
             };
 
             match resp.message_response {
-                Some(server_reflection_response::MessageResponse::FileDescriptorResponse(
-                    fdr,
-                )) => {
+                Some(server_reflection_response::MessageResponse::FileDescriptorResponse(fdr)) => {
                     for fd_bytes in &fdr.file_descriptor_proto {
                         let fd: prost_types::FileDescriptorProto =
                             prost::Message::decode(fd_bytes.as_slice()).map_err(|e| {
@@ -327,10 +321,8 @@ async fn reflect_services_v1(
     metadata: &[(String, String)],
 ) -> Result<prost_reflect::DescriptorPool, String> {
     use tonic_reflection::pb::v1::{
-        server_reflection_client::ServerReflectionClient,
-        server_reflection_request,
-        server_reflection_response,
-        ServerReflectionRequest,
+        server_reflection_client::ServerReflectionClient, server_reflection_request,
+        server_reflection_response, ServerReflectionRequest,
     };
 
     log::info!("[gRPC Reflection v1] 创建反射客户端...");
@@ -343,9 +335,9 @@ async fn reflect_services_v1(
     log::info!("[gRPC Reflection v1] 预发送 ListServices 请求...");
     tx.send(ServerReflectionRequest {
         host: String::new(),
-        message_request: Some(
-            server_reflection_request::MessageRequest::ListServices(String::new()),
-        ),
+        message_request: Some(server_reflection_request::MessageRequest::ListServices(
+            String::new(),
+        )),
     })
     .await
     .map_err(|e| format!("发送 ListServices 请求Failed: {}", e))?;
@@ -410,7 +402,11 @@ async fn reflect_services_v1(
         return Err("服务器没有暴露任何业务 gRPC 服务（仅发现反射服务）".to_string());
     }
 
-    log::info!("[gRPC Reflection v1] 发现 {} 个服务: {:?}", service_names.len(), service_names);
+    log::info!(
+        "[gRPC Reflection v1] 发现 {} 个服务: {:?}",
+        service_names.len(),
+        service_names
+    );
 
     // 获取文件描述符 + 递归解析依赖
     let all_fds = fetch_file_descriptors_v1(&service_names, &mut stream, &tx).await?;
@@ -422,15 +418,11 @@ async fn reflect_services_v1(
 /// v1: 获取服务文件描述符并递归解析依赖
 async fn fetch_file_descriptors_v1(
     service_names: &[String],
-    stream: &mut tonic::codec::Streaming<
-        tonic_reflection::pb::v1::ServerReflectionResponse,
-    >,
+    stream: &mut tonic::codec::Streaming<tonic_reflection::pb::v1::ServerReflectionResponse>,
     tx: &tokio::sync::mpsc::Sender<tonic_reflection::pb::v1::ServerReflectionRequest>,
 ) -> Result<Vec<prost_types::FileDescriptorProto>, String> {
     use tonic_reflection::pb::v1::{
-        server_reflection_request,
-        server_reflection_response,
-        ServerReflectionRequest,
+        server_reflection_request, server_reflection_response, ServerReflectionRequest,
     };
 
     let mut all_fds: Vec<prost_types::FileDescriptorProto> = Vec::new();
@@ -455,15 +447,19 @@ async fn fetch_file_descriptors_v1(
         .await
         .map_err(|_| format!("查询服务 '{}' 的文件描述符超时", service_name))?
         .map_err(|e| format!("查询服务 '{}' 的文件描述符Failed: {}", service_name, e))?
-        .ok_or_else(|| format!("Server Reflection v1 在查询服务 '{}' 时关闭了流", service_name))?;
+        .ok_or_else(|| {
+            format!(
+                "Server Reflection v1 在查询服务 '{}' 时关闭了流",
+                service_name
+            )
+        })?;
 
         match resp.message_response {
             Some(server_reflection_response::MessageResponse::FileDescriptorResponse(fdr)) => {
                 for fd_bytes in &fdr.file_descriptor_proto {
-                    let fd: prost_types::FileDescriptorProto = prost::Message::decode(
-                        fd_bytes.as_slice(),
-                    )
-                    .map_err(|e| format!("解码 FileDescriptorProto Failed: {}", e))?;
+                    let fd: prost_types::FileDescriptorProto =
+                        prost::Message::decode(fd_bytes.as_slice())
+                            .map_err(|e| format!("解码 FileDescriptorProto Failed: {}", e))?;
 
                     if let Some(name) = &fd.name {
                         if seen_files.insert(name.clone()) {
@@ -498,15 +494,11 @@ async fn fetch_file_descriptors_v1(
 async fn resolve_dependencies_v1(
     all_fds: &mut Vec<prost_types::FileDescriptorProto>,
     seen_files: &mut HashSet<String>,
-    stream: &mut tonic::codec::Streaming<
-        tonic_reflection::pb::v1::ServerReflectionResponse,
-    >,
+    stream: &mut tonic::codec::Streaming<tonic_reflection::pb::v1::ServerReflectionResponse>,
     tx: &tokio::sync::mpsc::Sender<tonic_reflection::pb::v1::ServerReflectionRequest>,
 ) -> Result<(), String> {
     use tonic_reflection::pb::v1::{
-        server_reflection_request,
-        server_reflection_response,
-        ServerReflectionRequest,
+        server_reflection_request, server_reflection_response, ServerReflectionRequest,
     };
 
     let mut max_iterations = 50;
@@ -532,11 +524,9 @@ async fn resolve_dependencies_v1(
         for dep_name in &missing_deps {
             tx.send(ServerReflectionRequest {
                 host: String::new(),
-                message_request: Some(
-                    server_reflection_request::MessageRequest::FileByFilename(
-                        dep_name.clone(),
-                    ),
-                ),
+                message_request: Some(server_reflection_request::MessageRequest::FileByFilename(
+                    dep_name.clone(),
+                )),
             })
             .await
             .map_err(|e| format!("发送 FileByFilename 请求Failed: {}", e))?;
@@ -656,9 +646,7 @@ fn is_fallback_eligible_error(_error: &str) -> bool {
 // ============================================================================
 
 /// 过滤掉反射服务自身，返回业务服务名列表
-fn filter_services(
-    services: Vec<tonic_reflection::pb::v1alpha::ServiceResponse>,
-) -> Vec<String> {
+fn filter_services(services: Vec<tonic_reflection::pb::v1alpha::ServiceResponse>) -> Vec<String> {
     services
         .into_iter()
         .map(|s| s.name)
@@ -698,8 +686,7 @@ fn build_descriptor_pool(
 pub(crate) fn is_reflection_service(name: &str) -> bool {
     matches!(
         name,
-        "grpc.reflection.v1.ServerReflection"
-            | "grpc.reflection.v1alpha.ServerReflection"
+        "grpc.reflection.v1.ServerReflection" | "grpc.reflection.v1alpha.ServerReflection"
     )
 }
 

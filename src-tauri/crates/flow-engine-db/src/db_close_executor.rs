@@ -4,8 +4,8 @@
 // Wave 2: 与执行器集成
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -43,7 +43,12 @@ impl NodeExecutor for DbCloseExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::DbClose(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not DbCloseConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not DbCloseConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 验证 connection_uuid
@@ -57,13 +62,17 @@ impl NodeExecutor for DbCloseExecutor {
             );
 
             // 构建输出数据（跳过关闭）
-            let output_data = self.build_skipped_output(&config, start_time.elapsed().as_millis() as u64);
+            let output_data =
+                self.build_skipped_output(&config, start_time.elapsed().as_millis() as u64);
 
             // 发送日志
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Warn,
-                    message: format!("Database close node {} skipped: connection_uuid is empty", node.name),
+                    message: format!(
+                        "Database close node {} skipped: connection_uuid is empty",
+                        node.name
+                    ),
                     timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -72,7 +81,10 @@ impl NodeExecutor for DbCloseExecutor {
                 .await;
 
             // 返回单一输出端口
-            return Ok((self.get_output_port_nodes(node, connections), Some(output_data)));
+            return Ok((
+                self.get_output_port_nodes(node, connections),
+                Some(output_data),
+            ));
         }
 
         // 3. 日志：开始关闭
@@ -103,25 +115,16 @@ impl NodeExecutor for DbCloseExecutor {
 
         match close_result {
             Ok(()) => {
-                log::info!(
-                    "[Database] Pool closed: uuid={}",
-                    config.connection_uuid
-                );
+                log::info!("[Database] Pool closed: uuid={}", config.connection_uuid);
 
                 // 5. 构建输出数据（Success）
-                let output_data = self.build_success_output(
-                    &config,
-                    duration.as_millis() as u64,
-                );
+                let output_data = self.build_success_output(&config, duration.as_millis() as u64);
 
                 // 6. 日志：关闭完成
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!(
-                            "Database pool closed ({}ms)",
-                            duration.as_millis()
-                        ),
+                        message: format!("Database pool closed ({}ms)", duration.as_millis()),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -130,7 +133,10 @@ impl NodeExecutor for DbCloseExecutor {
                     .await;
 
                 // 7. 返回单一输出端口
-                Ok((self.get_output_port_nodes(node, connections), Some(output_data)))
+                Ok((
+                    self.get_output_port_nodes(node, connections),
+                    Some(output_data),
+                ))
             }
             Err(e) => {
                 // 连接池不存在时也返回Success（幂等操作）
@@ -141,10 +147,7 @@ impl NodeExecutor for DbCloseExecutor {
                 );
 
                 // 构建输出数据（仍视为Success，幂等操作）
-                let output_data = self.build_success_output(
-                    &config,
-                    duration.as_millis() as u64,
-                );
+                let output_data = self.build_success_output(&config, duration.as_millis() as u64);
 
                 // 日志：关闭完成（警告）
                 context
@@ -162,7 +165,10 @@ impl NodeExecutor for DbCloseExecutor {
                     .await;
 
                 // 返回单一输出端口（关闭总是Success）
-                Ok((self.get_output_port_nodes(node, connections), Some(output_data)))
+                Ok((
+                    self.get_output_port_nodes(node, connections),
+                    Some(output_data),
+                ))
             }
         }
     }
@@ -173,9 +179,7 @@ impl DbCloseExecutor {
     fn get_output_port_nodes(&self, node: &Node, connections: &[Connection]) -> Vec<String> {
         let filtered: Vec<String> = connections
             .iter()
-            .filter(|conn| {
-                conn.source_node_uuid == node.uuid && conn.source_port_id == "out"
-            })
+            .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "out")
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 
@@ -188,11 +192,7 @@ impl DbCloseExecutor {
     }
 
     /// 构建Success输出数据
-    fn build_success_output(
-        &self,
-        config: &DbCloseConfig,
-        total_ms: u64,
-    ) -> serde_json::Value {
+    fn build_success_output(&self, config: &DbCloseConfig, total_ms: u64) -> serde_json::Value {
         json!({
             // 统一Success标识
             "success": true,
@@ -209,11 +209,7 @@ impl DbCloseExecutor {
     }
 
     /// 构建跳过输出数据（空 `connection_uuid` 时）
-    fn build_skipped_output(
-        &self,
-        config: &DbCloseConfig,
-        total_ms: u64,
-    ) -> serde_json::Value {
+    fn build_skipped_output(&self, config: &DbCloseConfig, total_ms: u64) -> serde_json::Value {
         json!({
             // 统一Success标识（跳过也视为Success）
             "success": true,
@@ -238,10 +234,10 @@ impl DbCloseExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
-    use flow_engine_core::node::{NodePosition};
     use crate::db::pool::DatabaseConnectionManager;
     use crate::db::pool::MockPool;
+    use flow_engine_core::context::VariableStorage;
+    use flow_engine_core::node::NodePosition;
 
     /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
@@ -282,7 +278,7 @@ mod tests {
     #[tokio::test]
     async fn test_close_success() {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
-        
+
         // 先创建一个连接池
         let pool = Arc::new(MockPool::new("test-pool".to_string()));
         db_manager
@@ -436,6 +432,9 @@ mod tests {
 
         // 应该返回Error
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("Node data type is not DbCloseConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("Node data type is not DbCloseConfig"));
     }
 }

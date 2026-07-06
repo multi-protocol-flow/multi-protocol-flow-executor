@@ -6,8 +6,8 @@
 //!
 //! 仅在 `management` feature 启用时编译。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -16,9 +16,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{AmqpManagementConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// AMQP Management 执行器
@@ -78,14 +78,21 @@ impl NodeExecutor for AmqpManagementExecutor {
             .as_deref()
             .map(|v| replace_variables(v, context))
             .transpose()
-            .map_err(|e| ErrorDetail::execution_error(format!("vhost variable substitution failed: {}", e)))?;
+            .map_err(|e| {
+                ErrorDetail::execution_error(format!("vhost variable substitution failed: {}", e))
+            })?;
 
         let queue_name = config
             .queue_name
             .as_deref()
             .map(|v| replace_variables(v, context))
             .transpose()
-            .map_err(|e| ErrorDetail::execution_error(format!("queue_name variable substitution failed: {}", e)))?;
+            .map_err(|e| {
+                ErrorDetail::execution_error(format!(
+                    "queue_name variable substitution failed: {}",
+                    e
+                ))
+            })?;
 
         let replaced_config = AmqpManagementConfig {
             management_url,
@@ -169,10 +176,7 @@ impl NodeExecutor for AmqpManagementExecutor {
                     LogLevel::Error
                 };
                 let log_message = if output.success {
-                    format!(
-                        "AMQP Management 操作Success ({}ms)",
-                        duration.as_millis()
-                    )
+                    format!("AMQP Management 操作Success ({}ms)", duration.as_millis())
                 } else {
                     format!(
                         "AMQP Management 操作Failed: {} ({}ms)",
@@ -232,7 +236,11 @@ impl NodeExecutor for AmqpManagementExecutor {
                 });
 
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(format!("AMQP management Failed: {}", e));
                 }
 
@@ -264,9 +272,7 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::*;
-    use flow_engine_core::traits::{
-        AmqpManagementOutput, AmqpProvider,
-    };
+    use flow_engine_core::traits::{AmqpManagementOutput, AmqpProvider};
 
     /// Mock AmqpProvider — 管理操作Success
     struct MockManagementProvider {
@@ -341,7 +347,11 @@ mod tests {
             Err("not implemented".to_string())
         }
 
-        async fn queue_bind(&self, _uuid: &str, _config: &AmqpQueueBindConfig) -> Result<(), String> {
+        async fn queue_bind(
+            &self,
+            _uuid: &str,
+            _config: &AmqpQueueBindConfig,
+        ) -> Result<(), String> {
             Ok(())
         }
 
@@ -491,7 +501,11 @@ mod tests {
             Err("not implemented".to_string())
         }
 
-        async fn queue_bind(&self, _uuid: &str, _config: &AmqpQueueBindConfig) -> Result<(), String> {
+        async fn queue_bind(
+            &self,
+            _uuid: &str,
+            _config: &AmqpQueueBindConfig,
+        ) -> Result<(), String> {
             Ok(())
         }
 
@@ -706,7 +720,10 @@ mod tests {
 
         let data = output_data.unwrap();
         assert_eq!(data["success"], false);
-        assert_eq!(data["error"], "Management API connection failed: Connection refused");
+        assert_eq!(
+            data["error"],
+            "Management API connection failed: Connection refused"
+        );
     }
 
     /// 测试 4：节点数据类型不匹配时返回Error
@@ -788,9 +805,11 @@ mod tests {
         };
 
         let mut context = create_context("test-flow");
-        context
-            .variables
-            .set_variable("host".to_string(), json!("rabbitmq.example.com"), String::new());
+        context.variables.set_variable(
+            "host".to_string(),
+            json!("rabbitmq.example.com"),
+            String::new(),
+        );
         context
             .variables
             .set_variable("port".to_string(), json!("15672"), String::new());

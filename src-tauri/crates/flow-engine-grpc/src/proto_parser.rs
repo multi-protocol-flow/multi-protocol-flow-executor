@@ -151,8 +151,7 @@ pub fn generate_skeleton_from_pool(
         .ok_or_else(|| format!("服务 {} 中未找到方法: {}", service_name, method_name))?;
     let input_msg = method.input();
     let skeleton = generate_json_skeleton(&input_msg);
-    serde_json::to_string_pretty(&skeleton)
-        .map_err(|e| format!("序列化 JSON 骨架Failed: {}", e))
+    serde_json::to_string_pretty(&skeleton).map_err(|e| format!("序列化 JSON 骨架Failed: {}", e))
 }
 
 /// 生成消息类型的 JSON 骨架
@@ -179,7 +178,12 @@ fn field_to_json(field: &FieldDescriptor) -> serde_json::Value {
     }
     match field.kind() {
         Kind::Double | Kind::Float => serde_json::json!(0.0),
-        Kind::Int32 | Kind::Int64 | Kind::Sint32 | Kind::Sint64 | Kind::Sfixed32 | Kind::Sfixed64 => {
+        Kind::Int32
+        | Kind::Int64
+        | Kind::Sint32
+        | Kind::Sint64
+        | Kind::Sfixed32
+        | Kind::Sfixed64 => {
             serde_json::json!(0)
         }
         Kind::Uint32 | Kind::Uint64 | Kind::Fixed32 | Kind::Fixed64 => serde_json::json!(0),
@@ -325,8 +329,8 @@ pub fn validate_request_json(
     json: &str,
 ) -> Result<ValidationResult, String> {
     // 1. 解析 JSON 语法
-    let value: serde_json::Value = serde_json::from_str(json)
-        .map_err(|e| format!("JSON 语法Error: {}", e))?;
+    let value: serde_json::Value =
+        serde_json::from_str(json).map_err(|e| format!("JSON 语法Error: {}", e))?;
 
     // 2. 获取消息描述符
     let msg_desc = pool
@@ -387,7 +391,10 @@ fn validate_json_object(
                     if !value.is_object() {
                         errors.push(ValidationError {
                             path: field_path,
-                            message: format!("期望 map (JSON 对象)，实际为 {}", json_type_name(value)),
+                            message: format!(
+                                "期望 map (JSON 对象)，实际为 {}",
+                                json_type_name(value)
+                            ),
                         });
                     }
                     continue;
@@ -398,7 +405,10 @@ fn validate_json_object(
                     if !value.is_array() {
                         errors.push(ValidationError {
                             path: field_path,
-                            message: format!("期望 repeated (JSON 数组)，实际为 {}", json_type_name(value)),
+                            message: format!(
+                                "期望 repeated (JSON 数组)，实际为 {}",
+                                json_type_name(value)
+                            ),
                         });
                     }
                     continue;
@@ -440,7 +450,12 @@ fn check_field_type(
                 });
             }
         }
-        Kind::Int32 | Kind::Int64 | Kind::Sint32 | Kind::Sint64 | Kind::Sfixed32 | Kind::Sfixed64 => {
+        Kind::Int32
+        | Kind::Int64
+        | Kind::Sint32
+        | Kind::Sint64
+        | Kind::Sfixed32
+        | Kind::Sfixed64 => {
             if !value.is_number() {
                 errors.push(ValidationError {
                     path: field_path,
@@ -468,7 +483,10 @@ fn check_field_type(
             if !value.is_string() {
                 errors.push(ValidationError {
                     path: field_path,
-                    message: format!("期望 bytes (Base64 字符串)，实际为 {}", json_type_name(value)),
+                    message: format!(
+                        "期望 bytes (Base64 字符串)，实际为 {}",
+                        json_type_name(value)
+                    ),
                 });
             }
         }
@@ -511,20 +529,18 @@ fn json_type_name(value: &serde_json::Value) -> &'static str {
 // Message Definition Extraction
 // ============================================================================
 
-/// Extract all message definitions from a DescriptorPool into a flat HashMap
-/// keyed by message full_name (e.g. "package.MessageName").
+/// Extract all message definitions from a `DescriptorPool` into a flat `HashMap`
+/// keyed by message `full_name` (e.g. "package.MessageName").
 ///
 /// The flat map avoids duplication when the same message type is referenced
 /// by multiple methods or services. Frontend uses the map for lazy expansion.
 ///
 /// Filters out synthetic map entry messages automatically.
-/// Marks Well-Known Types (google.protobuf.*) with is_wkt = true.
+/// Marks Well-Known Types (google.protobuf.*) with `is_wkt` = true.
 /// Circular references between top-level messages are detected via a post-processing
-/// pass: any message-typed field whose type_full_name participates in a cycle gets
-/// its type_kind changed to "circular_ref" and nested_message cleared.
-pub fn get_message_definitions(
-    pool: &DescriptorPool,
-) -> HashMap<String, GrpcMessageInfo> {
+/// pass: any message-typed field whose `type_full_name` participates in a cycle gets
+/// its `type_kind` changed to "`circular_ref`" and `nested_message` cleared.
+pub fn get_message_definitions(pool: &DescriptorPool) -> HashMap<String, GrpcMessageInfo> {
     let mut definitions = HashMap::new();
     let mut visited = HashSet::new();
 
@@ -548,7 +564,7 @@ pub fn get_message_definitions(
 
 /// Post-processing: for each message-typed field in every definition, walk the
 /// dependency graph from the referenced type. If the walk reaches back to the
-/// current message, mark the field as `circular_ref` and clear its nested_message.
+/// current message, mark the field as `circular_ref` and clear its `nested_message`.
 fn detect_top_level_cycles(definitions: &mut HashMap<String, GrpcMessageInfo>) {
     // Collect all (msg_name, field_idx) pairs that reference another definition
     let mut edges: Vec<(String, String, usize)> = Vec::new();
@@ -600,10 +616,10 @@ fn has_path_to(
         for field in &msg.fields {
             if field.type_kind == "message" || field.type_kind == "circular_ref" {
                 if let Some(ref type_name) = field.type_full_name {
-                    if definitions.contains_key(type_name) {
-                        if has_path_to(type_name, target, definitions, visited) {
-                            return true;
-                        }
+                    if definitions.contains_key(type_name)
+                        && has_path_to(type_name, target, definitions, visited)
+                    {
+                        return true;
                     }
                 }
             }
@@ -612,7 +628,7 @@ fn has_path_to(
     false
 }
 
-/// Build a GrpcMessageInfo from a prost-reflect MessageDescriptor
+/// Build a `GrpcMessageInfo` from a prost-reflect `MessageDescriptor`
 fn extract_message_info(
     msg: &MessageDescriptor,
     visited: &mut HashSet<String>,
@@ -647,7 +663,7 @@ fn extract_message_info(
     }
 }
 
-/// Convert a FieldDescriptor to GrpcFieldInfo
+/// Convert a `FieldDescriptor` to `GrpcFieldInfo`
 fn field_to_info(
     field: &FieldDescriptor,
     visited: &mut HashSet<String>,
@@ -663,8 +679,15 @@ fn field_to_info(
     }
     .to_string();
 
-    let (type_kind, type_display, type_full_name, enum_values, nested_message, map_key_type, map_value_type) =
-        resolve_field_type(field, visited, pool);
+    let (
+        type_kind,
+        type_display,
+        type_full_name,
+        enum_values,
+        nested_message,
+        map_key_type,
+        map_value_type,
+    ) = resolve_field_type(field, visited, pool);
 
     GrpcFieldInfo {
         name,
@@ -801,7 +824,18 @@ fn resolve_field_type(
 }
 
 /// Helper: create a simple type result tuple for scalar types
-fn type_result(label_prefix: &str, type_name: &str) -> (String, String, Option<String>, Vec<GrpcEnumValue>, Option<Box<GrpcMessageInfo>>, Option<String>, Option<String>) {
+fn type_result(
+    label_prefix: &str,
+    type_name: &str,
+) -> (
+    String,
+    String,
+    Option<String>,
+    Vec<GrpcEnumValue>,
+    Option<Box<GrpcMessageInfo>>,
+    Option<String>,
+    Option<String>,
+) {
     (
         type_name.to_string(),
         type_display(label_prefix, type_name),
@@ -911,7 +945,7 @@ message User {
         assert_eq!(service.name(), "TestService");
     }
 
-    /// 测试 list_services 返回正确的服务和方法信息
+    /// 测试 `list_services` 返回正确的服务和方法信息
     #[test]
     fn test_list_services() {
         let files = vec![ProtoFile {
@@ -936,10 +970,7 @@ message User {
             .expect("应能找到 GetUser 方法");
         assert_eq!(get_user.input_type, "test.GetUserRequest");
         assert_eq!(get_user.output_type, "test.GetUserResponse");
-        assert!(
-            !get_user.is_server_streaming,
-            "GetUser 不应是服务端流式"
-        );
+        assert!(!get_user.is_server_streaming, "GetUser 不应是服务端流式");
 
         // 验证 ListUsers 方法
         let list_users = service
@@ -949,10 +980,7 @@ message User {
             .expect("应能找到 ListUsers 方法");
         assert_eq!(list_users.input_type, "test.ListUsersRequest");
         assert_eq!(list_users.output_type, "test.User");
-        assert!(
-            list_users.is_server_streaming,
-            "ListUsers 应是服务端流式"
-        );
+        assert!(list_users.is_server_streaming, "ListUsers 应是服务端流式");
     }
 
     /// 测试生成 JSON 骨架
@@ -975,10 +1003,7 @@ message User {
         assert!(skeleton.is_object(), "骨架应该是 JSON 对象");
 
         let obj = skeleton.as_object().expect("应为 JSON 对象");
-        assert!(
-            obj.contains_key("user_id"),
-            "骨架应包含 user_id 字段"
-        );
+        assert!(obj.contains_key("user_id"), "骨架应包含 user_id 字段");
     }
 
     /// 测试空文件列表返回Error
@@ -1004,9 +1029,8 @@ message User {
     #[test]
     fn test_scan_empty_dir_returns_error() {
         let temp_dir = tempfile::tempdir().expect("创建临时目录应Success");
-        let result = discover_proto_files_in_dir(
-            temp_dir.path().to_str().expect("路径转换应Success"),
-        );
+        let result =
+            discover_proto_files_in_dir(temp_dir.path().to_str().expect("路径转换应Success"));
         assert!(result.is_err(), "空目录应返回Error");
     }
 
@@ -1023,11 +1047,8 @@ message User {
         let temp_dir = tempfile::tempdir().expect("创建临时目录应Success");
 
         // 创建 proto 文件
-        std::fs::write(
-            temp_dir.path().join("test.proto"),
-            TEST_PROTO,
-        )
-        .expect("写入 proto 文件应Success");
+        std::fs::write(temp_dir.path().join("test.proto"), TEST_PROTO)
+            .expect("写入 proto 文件应Success");
 
         // 创建子目录中的 proto 文件
         let sub_dir = temp_dir.path().join("sub");
@@ -1039,11 +1060,8 @@ message User {
         .expect("写入嵌套 proto 文件应Success");
 
         // 创建非 proto 文件（应被跳过）
-        std::fs::write(
-            temp_dir.path().join("readme.txt"),
-            "not a proto file",
-        )
-        .expect("写入非 proto 文件应Success");
+        std::fs::write(temp_dir.path().join("readme.txt"), "not a proto file")
+            .expect("写入非 proto 文件应Success");
 
         // 创建隐藏目录（应被跳过）
         let hidden_dir = temp_dir.path().join(".hidden");
@@ -1059,24 +1077,29 @@ message User {
 
         assert!(result.is_ok(), "扫描目录应Success: {:?}", result);
         let (files, _) = result.expect("应Success获取文件列表");
-        assert_eq!(files.len(), 2, "应找到 2 个 proto 文件（跳过隐藏目录和非 proto 文件）");
+        assert_eq!(
+            files.len(),
+            2,
+            "应找到 2 个 proto 文件（跳过隐藏目录和非 proto 文件）"
+        );
 
         let filenames: Vec<&str> = files.iter().map(|(name, _)| name.as_str()).collect();
         assert!(filenames.contains(&"test.proto"), "应包含 test.proto");
         assert!(
-            filenames.contains(&"nested.proto") || filenames.iter().any(|f| f.contains("nested.proto")),
+            filenames.contains(&"nested.proto")
+                || filenames.iter().any(|f| f.contains("nested.proto")),
             "应包含 nested.proto（可能在子目录路径中）"
         );
     }
 
-    /// 测试 parse_descriptor_set — 无效数据应返回Error
+    /// 测试 `parse_descriptor_set` — 无效数据应返回Error
     #[test]
     fn test_parse_descriptor_set_invalid_data() {
         let result = parse_descriptor_set(b"not a valid descriptor set");
         assert!(result.is_err(), "无效数据应返回Error");
     }
 
-    /// 测试 parse_descriptor_set — 空数据
+    /// 测试 `parse_descriptor_set` — 空数据
     #[test]
     fn test_parse_descriptor_set_empty_data() {
         // 空的 FileDescriptorSet 可以被Success解码（prost 默认行为），只是结果为空 pool
@@ -1089,11 +1112,11 @@ message User {
         assert_eq!(pool.services().count(), 0, "空 DescriptorPool 应没有服务");
     }
 
-    /// 测试 parse_descriptor_set — 有效 FileDescriptorSet
+    /// 测试 `parse_descriptor_set` — 有效 `FileDescriptorSet`
     #[test]
     fn test_parse_descriptor_set_valid() {
         // 先用 proto_parser 生成一个 FileDescriptorSet，再通过 parse_descriptor_set 解码
-        let files = vec![ProtoFile {
+        let files = [ProtoFile {
             path: "test.proto".to_string(),
             content: TEST_PROTO.to_string(),
         }];
@@ -1102,10 +1125,8 @@ message User {
         let file_path = temp_dir.path().join("test.proto");
         std::fs::write(&file_path, &files[0].content).expect("写入 proto 文件应Success");
 
-        let fds = protox::compile(
-            ["test.proto"],
-            [temp_dir.path()],
-        ).expect("编译 proto 文件应Success");
+        let fds =
+            protox::compile(["test.proto"], [temp_dir.path()]).expect("编译 proto 文件应Success");
 
         // 将 FileDescriptorSet 编码为字节
         let mut buf = Vec::new();
@@ -1252,7 +1273,10 @@ message Status {
         assert!(result.is_ok());
         let vr = result.expect("应返回验证结果");
         assert!(!vr.valid, "有未知字段应不通过");
-        assert!(vr.errors.iter().any(|e| e.path == "unknown_field" && e.message.contains("未知字段")));
+        assert!(vr
+            .errors
+            .iter()
+            .any(|e| e.path == "unknown_field" && e.message.contains("未知字段")));
     }
 
     /// 测试验证 — 类型不匹配
@@ -1362,7 +1386,11 @@ message ItemList {
         let pool = parse_proto_files(&files).expect("解析应Success");
 
         // repeated 使用数组 — 通过
-        let result = validate_request_json(&pool, "rep.ItemList", r#"{"items": ["a", "b"], "counts": [1, 2]}"#);
+        let result = validate_request_json(
+            &pool,
+            "rep.ItemList",
+            r#"{"items": ["a", "b"], "counts": [1, 2]}"#,
+        );
         assert!(result.is_ok());
         let vr = result.expect("应返回验证结果");
         assert!(vr.valid, "正确的数组应通过");
@@ -1392,7 +1420,8 @@ message Config {
         let pool = parse_proto_files(&files).expect("解析应Success");
 
         // map 使用对象 — 通过
-        let result = validate_request_json(&pool, "maptest.Config", r#"{"labels": {"key": "value"}}"#);
+        let result =
+            validate_request_json(&pool, "maptest.Config", r#"{"labels": {"key": "value"}}"#);
         assert!(result.is_ok());
         let vr = result.expect("应返回验证结果");
         assert!(vr.valid, "正确的 map 应通过");
@@ -1517,7 +1546,7 @@ message CircularB {
 }
 "#;
 
-    /// Parse a proto string into a DescriptorPool
+    /// Parse a proto string into a `DescriptorPool`
     fn parse_defs_pool(proto: &str, filename: &str) -> DescriptorPool {
         let files = vec![ProtoFile {
             path: filename.to_string(),
@@ -1575,20 +1604,19 @@ message CircularB {
         let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
         let defs = get_message_definitions(&pool);
 
-        let with_enum = defs
-            .get("testdef.WithEnum")
-            .expect("WithEnum should exist");
+        let with_enum = defs.get("testdef.WithEnum").expect("WithEnum should exist");
         assert_eq!(with_enum.fields.len(), 1);
 
         let color_f = &with_enum.fields[0];
         assert_eq!(color_f.name, "priority");
         assert_eq!(color_f.number, 1);
         assert_eq!(color_f.type_kind, "enum");
+        assert_eq!(color_f.type_full_name.as_deref(), Some("testdef.Priority"));
         assert_eq!(
-            color_f.type_full_name.as_deref(),
-            Some("testdef.Priority")
+            color_f.enum_values.len(),
+            3,
+            "Priority should have 3 values"
         );
-        assert_eq!(color_f.enum_values.len(), 3, "Priority should have 3 values");
         assert_eq!(color_f.enum_values[0].name, "PRIORITY_UNSPECIFIED");
         assert_eq!(color_f.enum_values[0].number, 0);
         assert_eq!(color_f.enum_values[1].name, "LOW");
@@ -1607,7 +1635,11 @@ message CircularB {
         let with_oneof = defs
             .get("testdef.WithOneof")
             .expect("WithOneof should exist");
-        assert_eq!(with_oneof.oneof_groups.len(), 1, "Should have 1 oneof group");
+        assert_eq!(
+            with_oneof.oneof_groups.len(),
+            1,
+            "Should have 1 oneof group"
+        );
 
         let payload = &with_oneof.oneof_groups[0];
         assert_eq!(payload.name, "payload");
@@ -1625,9 +1657,7 @@ message CircularB {
         let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
         let defs = get_message_definitions(&pool);
 
-        let with_map = defs
-            .get("testdef.WithMap")
-            .expect("WithMap should exist");
+        let with_map = defs.get("testdef.WithMap").expect("WithMap should exist");
         assert_eq!(with_map.fields.len(), 1);
 
         let labels_f = &with_map.fields[0];
@@ -1655,9 +1685,7 @@ message CircularB {
         let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
         let defs = get_message_definitions(&pool);
 
-        let with_wkt = defs
-            .get("testdef.WithWkt")
-            .expect("WithWkt should exist");
+        let with_wkt = defs.get("testdef.WithWkt").expect("WithWkt should exist");
         assert_eq!(with_wkt.fields.len(), 2, "WithWkt should have 2 fields");
 
         // created_at field referencing google.protobuf.Timestamp
@@ -1666,7 +1694,10 @@ message CircularB {
             .iter()
             .find(|f| f.name == "created_at")
             .unwrap();
-        assert_eq!(ts_f.type_kind, "message", "WKT field should be 'message' type");
+        assert_eq!(
+            ts_f.type_kind, "message",
+            "WKT field should be 'message' type"
+        );
         assert_eq!(
             ts_f.type_full_name.as_deref(),
             Some("google.protobuf.Timestamp"),
@@ -1731,11 +1762,7 @@ message CircularB {
         assert_eq!(id_f.type_kind, "string");
 
         // inner field referencing NestedOuter.Inner
-        let inner_f = outer
-            .fields
-            .iter()
-            .find(|f| f.name == "inner")
-            .unwrap();
+        let inner_f = outer.fields.iter().find(|f| f.name == "inner").unwrap();
         assert_eq!(inner_f.type_kind, "message");
         assert_eq!(
             inner_f.type_full_name.as_deref(),
@@ -1759,7 +1786,7 @@ message CircularB {
         assert_eq!(inner_def.fields.len(), 2);
     }
 
-    /// Test synthetic MapEntry filtering
+    /// Test synthetic `MapEntry` filtering
     #[test]
     fn test_get_message_definitions_filters_synthetic() {
         let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
@@ -1846,7 +1873,7 @@ message CircularB {
         );
     }
 
-    /// Test serde roundtrip for get_message_definitions output
+    /// Test serde roundtrip for `get_message_definitions` output
     #[test]
     fn test_get_message_definitions_serde_roundtrip() {
         let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
@@ -1868,12 +1895,30 @@ message CircularB {
         );
 
         // Verify roundtrip preserved key content for a few messages
-        for key in &["testdef.SimpleMessage", "testdef.WithEnum", "testdef.WithMap", "testdef.WithWkt"] {
+        for key in &[
+            "testdef.SimpleMessage",
+            "testdef.WithEnum",
+            "testdef.WithMap",
+            "testdef.WithWkt",
+        ] {
             let original = defs.get(*key).expect("Original should have key");
             let restored = deserialized.get(*key).expect("Restored should have key");
-            assert_eq!(original.full_name, restored.full_name, "Roundtrip failed for {}", key);
-            assert_eq!(original.fields.len(), restored.fields.len(), "Field count mismatch for {}", key);
-            assert_eq!(original.is_wkt, restored.is_wkt, "is_wkt mismatch for {}", key);
+            assert_eq!(
+                original.full_name, restored.full_name,
+                "Roundtrip failed for {}",
+                key
+            );
+            assert_eq!(
+                original.fields.len(),
+                restored.fields.len(),
+                "Field count mismatch for {}",
+                key
+            );
+            assert_eq!(
+                original.is_wkt, restored.is_wkt,
+                "is_wkt mismatch for {}",
+                key
+            );
         }
 
         // Verify WithMap has serde roundtrip for is_map + map_key_type + map_value_type
@@ -1897,9 +1942,10 @@ message CircularB {
             no_restored.fields[1].nested_message.is_some(),
             "nested_message presence should survive roundtrip"
         );
-        if let (Some(orig_inner), Some(restored_inner)) =
-            (&no_original.fields[1].nested_message, &no_restored.fields[1].nested_message)
-        {
+        if let (Some(orig_inner), Some(restored_inner)) = (
+            &no_original.fields[1].nested_message,
+            &no_restored.fields[1].nested_message,
+        ) {
             assert_eq!(orig_inner.full_name, restored_inner.full_name);
             assert_eq!(orig_inner.fields.len(), restored_inner.fields.len());
         }

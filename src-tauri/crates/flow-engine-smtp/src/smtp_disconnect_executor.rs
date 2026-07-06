@@ -4,8 +4,8 @@
 // 断开始终走 "out" 端口（Failed不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -131,12 +131,12 @@ impl NodeExecutor for SmtpDisconnectExecutor {
                             "SMTP connection disconnected ({}ms)",
                             duration.as_millis()
                         ),
-                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                    node_uuid: Some(node.uuid.clone()),
-                    node_name: Some(node.name.clone()),
-                    flow_uuid: context.flow_uuid.clone(),
-                })
-                .await;
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                        node_uuid: Some(node.uuid.clone()),
+                        node_name: Some(node.name.clone()),
+                        flow_uuid: context.flow_uuid.clone(),
+                    })
+                    .await;
 
                 Ok((next_node_ids, Some(output_data)))
             }
@@ -152,12 +152,12 @@ impl NodeExecutor for SmtpDisconnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
                         message: format!("SMTP disconnect failed: {}", e),
-                    timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                    node_uuid: Some(node.uuid.clone()),
-                    node_name: Some(node.name.clone()),
-                    flow_uuid: context.flow_uuid.clone(),
-                })
-                .await;
+                        timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                        node_uuid: Some(node.uuid.clone()),
+                        node_name: Some(node.name.clone()),
+                        flow_uuid: context.flow_uuid.clone(),
+                    })
+                    .await;
 
                 // 构建Error输出数据（仍然走 out 端口）
                 let error_output = json!({
@@ -272,7 +272,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("SmtpDisconnectConfig"));
     }
 
-    /// 测试：变量替换 — connection_id 中的变量应被正确替换
+    /// 测试：变量替换 — `connection_id` 中的变量应被正确替换
     #[tokio::test]
     async fn test_disconnect_with_variable_replacement() {
         let smtp_manager = Arc::new(SmtpConnectionManager::new());

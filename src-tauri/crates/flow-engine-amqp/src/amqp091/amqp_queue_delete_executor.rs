@@ -3,8 +3,8 @@
 //! 实现 AMQP 0-9-1 队列删除/清空、变量替换和输出构建功能。
 //! Success路由到 true 端口，Failed路由到 false 端口。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -13,9 +13,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{AmqpQueueDeleteConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// AMQP 删除队列节点执行器
@@ -233,8 +233,15 @@ impl NodeExecutor for AmqpQueueDeleteExecutor {
                 });
 
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP queue_delete Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "AMQP queue_delete Failed: {}",
+                        e
+                    )));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -267,16 +274,15 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
         Amqp10AcceptConfig, Amqp10ConnectConfig, Amqp10DisconnectConfig, Amqp10ReceiveConfig,
-        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig,
-        AmqpConsumeConfig, AmqpConnectConfig, AmqpExchangeDeclareConfig,
-        AmqpExchangeDeleteConfig, AmqpGetConfig, AmqpManagementConfig, AmqpPublishConfig,
-        AmqpQueueBindConfig, AmqpQueueDeclareConfig,
+        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig, AmqpConnectConfig,
+        AmqpConsumeConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig, AmqpGetConfig,
+        AmqpManagementConfig, AmqpPublishConfig, AmqpQueueBindConfig, AmqpQueueDeclareConfig,
     };
     use flow_engine_core::traits::{
         AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider, AmqpQueueDeleteOutput,
     };
 
-    /// Mock AmqpProvider（queue_delete Success）
+    /// Mock `AmqpProvider（queue_delete` Success）
     struct MockAmqpProvider {
         output: AmqpQueueDeleteOutput,
     }
@@ -459,7 +465,7 @@ mod tests {
         }
     }
 
-    /// Mock AmqpProvider（queue_delete 返回 Err）
+    /// Mock `AmqpProvider（queue_delete` 返回 Err）
     struct MockAmqpProviderError;
 
     #[async_trait::async_trait]
@@ -723,10 +729,13 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("AmqpQueueDeleteConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("AmqpQueueDeleteConfig"));
     }
 
-    /// 测试：变量替换在 queue 和 connection_id 中生效
+    /// 测试：变量替换在 queue 和 `connection_id` 中生效
     #[tokio::test]
     async fn test_queue_delete_with_variable_replacement() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success(10));
@@ -755,11 +764,9 @@ mod tests {
             json!("amqp-conn-999"),
             String::new(),
         );
-        context.variables.set_variable(
-            "queue_name".to_string(),
-            json!("old.queue"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("queue_name".to_string(), json!("old.queue"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())

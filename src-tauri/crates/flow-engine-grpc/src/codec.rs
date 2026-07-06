@@ -42,11 +42,7 @@ impl Encoder for DynamicCodec {
     type Item = DynamicMessage;
     type Error = tonic::Status;
 
-    fn encode(
-        &mut self,
-        item: Self::Item,
-        dst: &mut EncodeBuf<'_>,
-    ) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: Self::Item, dst: &mut EncodeBuf<'_>) -> Result<(), Self::Error> {
         prost::Message::encode(&item, dst)
             .map_err(|e| tonic::Status::internal(format!("编码消息Failed: {}", e)))?;
         Ok(())

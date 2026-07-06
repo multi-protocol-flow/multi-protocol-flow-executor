@@ -2,8 +2,8 @@
 //!
 //! 实现 AMQP 0-9-1 拉模式获取（`basic_get`），获取单条消息或返回队列为空。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -12,9 +12,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{AmqpGetConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// AMQP 获取消息节点执行器
@@ -158,7 +158,11 @@ impl NodeExecutor for AmqpGetExecutor {
                     let has_msg = output.message.is_some();
                     format!(
                         "AMQP 获取Success, {} ({}ms)",
-                        if has_msg { "获取到消息" } else { "队列为空" },
+                        if has_msg {
+                            "获取到消息"
+                        } else {
+                            "队列为空"
+                        },
                         duration.as_millis()
                     )
                 } else {
@@ -222,8 +226,15 @@ impl NodeExecutor for AmqpGetExecutor {
 
                 // 返回 false 端口
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP get Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "AMQP get Failed: {}",
+                        e
+                    )));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -256,10 +267,10 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
         Amqp10AcceptConfig, Amqp10ConnectConfig, Amqp10DisconnectConfig, Amqp10ReceiveConfig,
-        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig,
-        AmqpConnectConfig, AmqpConsumeConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig,
-        AmqpGetConfig, AmqpManagementConfig, AmqpPublishConfig, AmqpQueueBindConfig,
-        AmqpQueueDeclareConfig, AmqpQueueDeleteConfig,
+        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig, AmqpConnectConfig,
+        AmqpConsumeConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig, AmqpGetConfig,
+        AmqpManagementConfig, AmqpPublishConfig, AmqpQueueBindConfig, AmqpQueueDeclareConfig,
+        AmqpQueueDeleteConfig,
     };
     use flow_engine_core::traits::{
         AmqpConnectOutput, AmqpConnectionInfo, AmqpGetOutput, AmqpMessage,
@@ -383,11 +394,7 @@ mod tests {
             Err("not implemented".to_string())
         }
 
-        async fn get(
-            &self,
-            _uuid: &str,
-            _config: &AmqpGetConfig,
-        ) -> Result<AmqpGetOutput, String> {
+        async fn get(&self, _uuid: &str, _config: &AmqpGetConfig) -> Result<AmqpGetOutput, String> {
             Ok(self.output.clone())
         }
 
@@ -542,11 +549,7 @@ mod tests {
             Err("not implemented".to_string())
         }
 
-        async fn get(
-            &self,
-            _uuid: &str,
-            _config: &AmqpGetConfig,
-        ) -> Result<AmqpGetOutput, String> {
+        async fn get(&self, _uuid: &str, _config: &AmqpGetConfig) -> Result<AmqpGetOutput, String> {
             Err("通道未打开".to_string())
         }
 

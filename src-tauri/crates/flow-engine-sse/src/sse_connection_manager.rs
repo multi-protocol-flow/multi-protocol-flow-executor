@@ -365,11 +365,7 @@ impl SseProvider for SseConnectionManager {
     ///
     /// 取消后台任务，从连接池移除。
     /// 共享模式下为 no-op。
-    async fn disconnect(
-        &self,
-        uuid: &str,
-        _config: &SseDisconnectConfig,
-    ) -> Result<(), String> {
+    async fn disconnect(&self, uuid: &str, _config: &SseDisconnectConfig) -> Result<(), String> {
         if self.is_shared {
             info!("共享模式下忽略 disconnect 请求: {}", uuid);
             return Ok(());

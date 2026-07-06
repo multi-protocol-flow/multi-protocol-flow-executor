@@ -1,11 +1,10 @@
 //! Kafka 提供者抽象 trait
 
-use async_trait::async_trait;
 use crate::node_config::{
-    KafkaConnectConfig, KafkaProduceConfig, KafkaConsumeConfig,
-    KafkaConsumeBatchConfig, KafkaAdminConfig, KafkaSchemaRegistryConfig,
-    KafkaCloseConfig,
+    KafkaAdminConfig, KafkaCloseConfig, KafkaConnectConfig, KafkaConsumeBatchConfig,
+    KafkaConsumeConfig, KafkaProduceConfig, KafkaSchemaRegistryConfig,
 };
+use async_trait::async_trait;
 
 /// Kafka 连接输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -576,8 +575,7 @@ mod tests {
         assert!(json.contains("kafka-broker1"));
         assert!(json.contains("rack-1"));
 
-        let deserialized: KafkaBrokerInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: KafkaBrokerInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.broker_id, 1);
         assert_eq!(deserialized.port, 9092);
     }
@@ -596,8 +594,7 @@ mod tests {
         assert!(json.contains("__consumer_offsets"));
         assert!(json.contains("true"));
 
-        let deserialized: KafkaTopicInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: KafkaTopicInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert!(deserialized.is_internal);
         assert_eq!(deserialized.partition_count, Some(50));
     }
@@ -650,9 +647,7 @@ mod tests {
             offset: 9999,
             key: Some("order-123".to_string()),
             value: Some(serde_json::json!({"id": 123, "status": "created"})),
-            headers: vec![
-                ("content-type".to_string(), "application/json".to_string()),
-            ],
+            headers: vec![("content-type".to_string(), "application/json".to_string())],
             timestamp: Some(1700000000000),
         };
 
@@ -684,8 +679,7 @@ mod tests {
         assert!(json.contains("AVRO"));
         assert!(json.contains("BACKWARD"));
 
-        let deserialized: KafkaSchemaInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: KafkaSchemaInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.subject, "orders-value");
         assert_eq!(deserialized.version, 3);
         assert_eq!(deserialized.schema_id, Some(42));
@@ -699,8 +693,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&timing).expect("序列化应Success");
-        let deserialized: KafkaTimingInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: KafkaTimingInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.total_ms, 300);
         assert_eq!(deserialized.first_message_ms, Some(80));
     }

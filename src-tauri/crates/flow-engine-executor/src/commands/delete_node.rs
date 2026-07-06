@@ -71,7 +71,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
         let http_node = Node {
@@ -82,10 +82,20 @@ mod tests {
             data: NodeData::http("https://api.example.com"),
             ports: None,
             has_breakpoint: None,
-        on_error: None,
+            on_error: None,
         };
 
-        Flow { uuid: "flow-001".to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![entry_node, http_node], connections: vec![], hooks: None }
+        Flow {
+            uuid: "flow-001".to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![entry_node, http_node],
+            connections: vec![],
+            hooks: None,
+        }
     }
 
     #[test]

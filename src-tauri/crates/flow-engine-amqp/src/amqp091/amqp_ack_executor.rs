@@ -4,8 +4,8 @@
 //! 支持 `basic_ack(multiple)、basic_nack(multiple`, `requeue)、basic_reject(requeue`)。
 //! Success走 true 端口，Failed走 false 端口。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -14,9 +14,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{AmqpAckConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// AMQP 确认消息节点执行器
@@ -54,18 +54,17 @@ impl NodeExecutor for AmqpAckExecutor {
         };
 
         // 2. 变量替换 connection_id 和 action
-        let connection_id =
-            replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("connection_id variable substitution failed: {}", e);
-                log::error!(
-                    "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
-                    context.flow_uuid,
-                    node.uuid,
-                    node.name,
-                    error_msg
-                );
-                ErrorDetail::execution_error(error_msg)
-            })?;
+        let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
+            let error_msg = format!("connection_id variable substitution failed: {}", e);
+            log::error!(
+                "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
+                context.flow_uuid,
+                node.uuid,
+                node.name,
+                error_msg
+            );
+            ErrorDetail::execution_error(error_msg)
+        })?;
 
         let action = replace_variables(&config.action, context).map_err(|e| {
             let error_msg = format!("action variable substitution failed: {}", e);
@@ -81,10 +80,7 @@ impl NodeExecutor for AmqpAckExecutor {
 
         // 3. 验证 action 值
         if !matches!(action.as_str(), "ack" | "nack" | "reject") {
-            let error_msg = format!(
-                "无效的 ack action: '{}', 只支持 ack/nack/reject",
-                action
-            );
+            let error_msg = format!("无效的 ack action: '{}', 只支持 ack/nack/reject", action);
             log::error!(
                 "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
@@ -253,8 +249,15 @@ impl NodeExecutor for AmqpAckExecutor {
 
                 // 返回 false 端口
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP ack Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "AMQP ack Failed: {}",
+                        e
+                    )));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -292,7 +295,9 @@ mod tests {
         AmqpManagementConfig, AmqpPublishConfig, AmqpQueueBindConfig, AmqpQueueDeclareConfig,
         AmqpQueueDeleteConfig,
     };
-    use flow_engine_core::traits::{AmqpAckOutput, AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider};
+    use flow_engine_core::traits::{
+        AmqpAckOutput, AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider,
+    };
 
     /// Mock AmqpProvider（ack Success）
     struct MockAmqpProvider {
@@ -406,11 +411,7 @@ mod tests {
             Err("not implemented".to_string())
         }
 
-        async fn ack(
-            &self,
-            _uuid: &str,
-            _config: &AmqpAckConfig,
-        ) -> Result<AmqpAckOutput, String> {
+        async fn ack(&self, _uuid: &str, _config: &AmqpAckConfig) -> Result<AmqpAckOutput, String> {
             Ok(self.output.clone())
         }
 
@@ -560,11 +561,7 @@ mod tests {
             Err("not implemented".to_string())
         }
 
-        async fn ack(
-            &self,
-            _uuid: &str,
-            _config: &AmqpAckConfig,
-        ) -> Result<AmqpAckOutput, String> {
+        async fn ack(&self, _uuid: &str, _config: &AmqpAckConfig) -> Result<AmqpAckOutput, String> {
             Err("连接不存在".to_string())
         }
 
@@ -634,7 +631,13 @@ mod tests {
     }
 
     /// 创建Test Node
-    fn create_test_node(uuid: &str, name: &str, connection_id: &str, action: &str, delivery_tag: u64) -> Node {
+    fn create_test_node(
+        uuid: &str,
+        name: &str,
+        connection_id: &str,
+        action: &str,
+        delivery_tag: u64,
+    ) -> Node {
         Node {
             uuid: uuid.to_string(),
             node_type: "amqp_ack".to_string(),
@@ -808,7 +811,7 @@ mod tests {
         assert_eq!(data["error"], "连接不存在");
     }
 
-    /// 测试：变量替换在 connection_id 和 action 中生效
+    /// 测试：变量替换在 `connection_id` 和 action 中生效
     #[tokio::test]
     async fn test_amqp_ack_with_variable_replacement() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -837,11 +840,9 @@ mod tests {
             json!("my-connection"),
             String::new(),
         );
-        context.variables.set_variable(
-            "ack_type".to_string(),
-            json!("nack"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("ack_type".to_string(), json!("nack"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())

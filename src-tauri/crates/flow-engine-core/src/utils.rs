@@ -65,11 +65,9 @@ pub fn apply_output_mappings(
                 mapping.source,
                 mapping.target
             );
-            context.variables.set_variable(
-                mapping.target.clone(),
-                value,
-                node_uuid.to_string(),
-            );
+            context
+                .variables
+                .set_variable(mapping.target.clone(), value, node_uuid.to_string());
         } else {
             log::warn!(
                 "[流程 {}] [输出映射] 节点: {}, 路径 '{}' 未找到值",
@@ -212,11 +210,19 @@ mod tests {
         let mut context = ExecutionContext::new("test-flow".to_string(), 0);
         apply_output_mappings(&response, &mappings, &mut context, "node-001");
 
-        let status_var = context.variables.variables.iter().find(|v| v.name == "status_code");
+        let status_var = context
+            .variables
+            .variables
+            .iter()
+            .find(|v| v.name == "status_code");
         assert!(status_var.is_some());
         assert_eq!(status_var.unwrap().value, serde_json::json!(200));
 
-        let token_var = context.variables.variables.iter().find(|v| v.name == "auth_token");
+        let token_var = context
+            .variables
+            .variables
+            .iter()
+            .find(|v| v.name == "auth_token");
         assert!(token_var.is_some());
         assert_eq!(token_var.unwrap().value, serde_json::json!("abc"));
     }
@@ -238,6 +244,11 @@ mod tests {
         let t1 = super::unix_timestamp_ms();
         std::thread::sleep(std::time::Duration::from_millis(5));
         let t2 = super::unix_timestamp_ms();
-        assert!(t2 >= t1, "timestamps should not go backwards: t1={}, t2={}", t1, t2);
+        assert!(
+            t2 >= t1,
+            "timestamps should not go backwards: t1={}, t2={}",
+            t1,
+            t2
+        );
     }
 }

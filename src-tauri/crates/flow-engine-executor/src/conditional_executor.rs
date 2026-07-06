@@ -1,11 +1,13 @@
+use evalexpr::{ContextWithMutableVariables, HashMapContext, Value as EvalValue};
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::error::{ErrorDetail, ErrorKind};
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::node_config::{ConditionOperator, ConditionType, ExpectedValueType, NodeData};
-use evalexpr::{ContextWithMutableVariables, HashMapContext, Value as EvalValue};
+use flow_engine_core::node_config::{
+    ConditionOperator, ConditionType, ExpectedValueType, NodeData,
+};
 use regex::Regex;
 use serde_json::json;
 use std::collections::HashMap;
@@ -63,21 +65,19 @@ impl ConditionalNodeExecutor {
         };
 
         match value_type {
-            ExpectedValueType::Number => {
-                value_str
-                    .parse::<f64>()
-                    .map(|n| {
-                        if n.fract() == 0.0 {
-                            serde_json::Value::Number(serde_json::Number::from(n as i64))
-                        } else {
-                            serde_json::Value::Number(
-                                serde_json::Number::from_f64(n)
-                                    .unwrap_or_else(|| serde_json::Number::from(0)),
-                            )
-                        }
-                    })
-                    .map_err(|e| format!("Cannot parse as number: {}", e))
-            }
+            ExpectedValueType::Number => value_str
+                .parse::<f64>()
+                .map(|n| {
+                    if n.fract() == 0.0 {
+                        serde_json::Value::Number(serde_json::Number::from(n as i64))
+                    } else {
+                        serde_json::Value::Number(
+                            serde_json::Number::from_f64(n)
+                                .unwrap_or_else(|| serde_json::Number::from(0)),
+                        )
+                    }
+                })
+                .map_err(|e| format!("Cannot parse as number: {}", e)),
             ExpectedValueType::Boolean => match value_str.to_lowercase().as_str() {
                 "true" => Ok(serde_json::Value::Bool(true)),
                 "false" => Ok(serde_json::Value::Bool(false)),
@@ -109,39 +109,53 @@ impl NodeExecutor for ConditionalNodeExecutor {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         // 执行前日志
         let start_time = Instant::now();
-        log::info!("[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: conditional", context.flow_uuid, node.uuid, node.name);
+        log::info!(
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: conditional",
+            context.flow_uuid,
+            node.uuid,
+            node.name
+        );
 
         // 发送日志：条件节点开始评估
-        context.emit_log(LogEvent {
-            level: LogLevel::Info,
-            message: format!("条件节点 {} 开始评估", node.name),
-            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-            node_uuid: Some(node.uuid.clone()),
-            node_name: Some(node.name.clone()),
-            flow_uuid: context.flow_uuid.clone(),
-        }).await;
+        context
+            .emit_log(LogEvent {
+                level: LogLevel::Info,
+                message: format!("条件节点 {} 开始评估", node.name),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                node_uuid: Some(node.uuid.clone()),
+                node_name: Some(node.name.clone()),
+                flow_uuid: context.flow_uuid.clone(),
+            })
+            .await;
 
         // 从 Node 的 data 字段提取 ConditionalConfig
         let conditional_config = match &node.data {
             NodeData::Conditional(config) => config.clone(),
             _ => {
                 let error_msg = format!("Node data type is notConditionalConfig: {}", node.uuid);
-                log::error!("[流程 {}] [Error] 节点UUID: {}, NodeName: {}, Error: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                log::error!(
+                    "[流程 {}] [Error] 节点UUID: {}, NodeName: {}, Error: {}",
+                    context.flow_uuid,
+                    node.uuid,
+                    node.name,
+                    error_msg
+                );
                 return Err(ErrorDetail::execution_error(error_msg));
             }
         };
 
         // 解析数据来源：若指定了 source_node_id，从该节点的执行报告中读取输出；
         // 否则使用 last_node_output（最近上游节点输出）
-        let resolved_output: Option<serde_json::Value> = if let Some(ref source_node_id) = conditional_config.source_node_id {
-            context
-                .node_reports
-                .iter()
-                .find(|r| r.node_uuid == *source_node_id)
-                .and_then(|r| r.output_data.clone())
-        } else {
-            context.last_node_output.clone()
-        };
+        let resolved_output: Option<serde_json::Value> =
+            if let Some(ref source_node_id) = conditional_config.source_node_id {
+                context
+                    .node_reports
+                    .iter()
+                    .find(|r| r.node_uuid == *source_node_id)
+                    .and_then(|r| r.output_data.clone())
+            } else {
+                context.last_node_output.clone()
+            };
 
         // 用于存储输出信息的结构
         struct ConditionOutput {
@@ -155,14 +169,16 @@ impl NodeExecutor for ConditionalNodeExecutor {
         let condition_output = match conditional_config.condition_type {
             ConditionType::Simple => {
                 // 发送日志：条件类型
-                context.emit_log(LogEvent {
-                    level: LogLevel::Debug,
-                    message: "条件类型: Simple".to_string(),
+                context
+                    .emit_log(LogEvent {
+                        level: LogLevel::Debug,
+                        message: "条件类型: Simple".to_string(),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                    node_uuid: Some(node.uuid.clone()),
-                    node_name: Some(node.name.clone()),
-                    flow_uuid: context.flow_uuid.clone(),
-                }).await;
+                        node_uuid: Some(node.uuid.clone()),
+                        node_name: Some(node.name.clone()),
+                        flow_uuid: context.flow_uuid.clone(),
+                    })
+                    .await;
 
                 // 简单条件：评估 field_path + operator + expected_value
                 let variables = json!(context.variables.get_merged_variables());
@@ -182,10 +198,14 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 })?;
 
                 // 提取字段值（使用解析后的数据源用于 jsonpath 提取）
-                let actual_value = self.extract_field_value(&variables, resolved_output.as_ref(), field_path).map_err(ErrorDetail::execution_error)?;
+                let actual_value = self
+                    .extract_field_value(&variables, resolved_output.as_ref(), field_path)
+                    .map_err(ErrorDetail::execution_error)?;
 
                 // 格式化期望值用于显示（直接使用原始值）
-                let expected_value_display = conditional_config.expected_value.as_ref()
+                let expected_value_display = conditional_config
+                    .expected_value
+                    .as_ref()
                     .map(Self::format_expected_value_for_display)
                     .unwrap_or_else(|| "null".to_string());
 
@@ -228,22 +248,31 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 );
 
                 // 评估条件（使用解析后的数据源替代 last_node_output）
-                let result = self.evaluate_simple_condition(
-                    &conditional_config,
-                    &variables,
-                    resolved_output.as_ref(),
-                ).map_err(ErrorDetail::execution_error)?;
-                log::info!("[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
+                let result = self
+                    .evaluate_simple_condition(
+                        &conditional_config,
+                        &variables,
+                        resolved_output.as_ref(),
+                    )
+                    .map_err(ErrorDetail::execution_error)?;
+                log::info!(
+                    "[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}",
+                    context.flow_uuid,
+                    expression,
+                    result
+                );
 
                 // 发送日志：表达式详情
-                context.emit_log(LogEvent {
-                    level: LogLevel::Debug,
-                    message: format!("表达式: {} = {}", expression, result),
+                context
+                    .emit_log(LogEvent {
+                        level: LogLevel::Debug,
+                        message: format!("表达式: {} = {}", expression, result),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                    node_uuid: Some(node.uuid.clone()),
-                    node_name: Some(node.name.clone()),
-                    flow_uuid: context.flow_uuid.clone(),
-                }).await;
+                        node_uuid: Some(node.uuid.clone()),
+                        node_name: Some(node.name.clone()),
+                        flow_uuid: context.flow_uuid.clone(),
+                    })
+                    .await;
 
                 ConditionOutput {
                     result,
@@ -254,33 +283,48 @@ impl NodeExecutor for ConditionalNodeExecutor {
             }
             ConditionType::Advanced => {
                 // 发送日志：条件类型
-                context.emit_log(LogEvent {
-                    level: LogLevel::Debug,
-                    message: "条件类型: Advanced".to_string(),
+                context
+                    .emit_log(LogEvent {
+                        level: LogLevel::Debug,
+                        message: "条件类型: Advanced".to_string(),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                    node_uuid: Some(node.uuid.clone()),
-                    node_name: Some(node.name.clone()),
-                    flow_uuid: context.flow_uuid.clone(),
-                }).await;
+                        node_uuid: Some(node.uuid.clone()),
+                        node_name: Some(node.name.clone()),
+                        flow_uuid: context.flow_uuid.clone(),
+                    })
+                    .await;
 
                 // 高级条件：评估 advanced_expression
-                let expression = conditional_config.advanced_expression.as_ref().unwrap_or(&"".to_string()).clone();
-                let result = self.evaluate_advanced_condition(
-                    &conditional_config,
-                    &json!(context.variables.get_merged_variables()),
-                    resolved_output.as_ref(),
-                ).map_err(ErrorDetail::execution_error)?;
-                log::info!("[流程 {}] [条件判断] 条件类型: Advanced, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
+                let expression = conditional_config
+                    .advanced_expression
+                    .as_ref()
+                    .unwrap_or(&"".to_string())
+                    .clone();
+                let result = self
+                    .evaluate_advanced_condition(
+                        &conditional_config,
+                        &json!(context.variables.get_merged_variables()),
+                        resolved_output.as_ref(),
+                    )
+                    .map_err(ErrorDetail::execution_error)?;
+                log::info!(
+                    "[流程 {}] [条件判断] 条件类型: Advanced, 表达式: {}, 结果: {}",
+                    context.flow_uuid,
+                    expression,
+                    result
+                );
 
                 // 发送日志：表达式详情
-                context.emit_log(LogEvent {
-                    level: LogLevel::Debug,
-                    message: format!("表达式: {} = {}", expression, result),
+                context
+                    .emit_log(LogEvent {
+                        level: LogLevel::Debug,
+                        message: format!("表达式: {} = {}", expression, result),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-                    node_uuid: Some(node.uuid.clone()),
-                    node_name: Some(node.name.clone()),
-                    flow_uuid: context.flow_uuid.clone(),
-                }).await;
+                        node_uuid: Some(node.uuid.clone()),
+                        node_name: Some(node.name.clone()),
+                        flow_uuid: context.flow_uuid.clone(),
+                    })
+                    .await;
 
                 // Advanced 条件：expression 和 evaluated_value 相同，field_value 为 null
                 ConditionOutput {
@@ -295,14 +339,16 @@ impl NodeExecutor for ConditionalNodeExecutor {
         let condition_result = condition_output.result;
 
         // 发送日志：条件结果
-        context.emit_log(LogEvent {
-            level: LogLevel::Info,
-            message: format!("条件结果: {}", condition_result),
-            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
-            node_uuid: Some(node.uuid.clone()),
-            node_name: Some(node.name.clone()),
-            flow_uuid: context.flow_uuid.clone(),
-        }).await;
+        context
+            .emit_log(LogEvent {
+                level: LogLevel::Info,
+                message: format!("条件结果: {}", condition_result),
+                timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                node_uuid: Some(node.uuid.clone()),
+                node_name: Some(node.name.clone()),
+                flow_uuid: context.flow_uuid.clone(),
+            })
+            .await;
         let duration_ms = start_time.elapsed().as_millis();
 
         // 确定目标端口（true 或 false）
@@ -311,7 +357,9 @@ impl NodeExecutor for ConditionalNodeExecutor {
         // 根据条件结果查找连接到目标端口的节点
         let next_node_ids = connections
             .iter()
-            .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == target_port_id)
+            .filter(|conn| {
+                conn.source_node_uuid == node.uuid && conn.source_port_id == target_port_id
+            })
             .map(|conn| conn.target_node_uuid.clone())
             .collect::<Vec<_>>();
 
@@ -375,7 +423,11 @@ impl ConditionalNodeExecutor {
             error.message
         })?;
 
-        log::info!("[条件评估] 字段路径: {}, 操作符: {:?}", field_path, operator);
+        log::info!(
+            "[条件评估] 字段路径: {}, 操作符: {:?}",
+            field_path,
+            operator
+        );
 
         // 从 variables 中提取 field_path 指定的值（传入 last_node_output 用于 jsonpath）
         let actual_value = self.extract_field_value(variables, last_node_output, field_path)?;
@@ -394,13 +446,20 @@ impl ConditionalNodeExecutor {
         let expected_value = match (expected_value_raw, &expected_value_type) {
             (Some(raw), Some(_)) => {
                 // 有类型指定，使用类型解析
-                Some(Self::parse_expected_value(raw, expected_value_type.as_ref())?)
+                Some(Self::parse_expected_value(
+                    raw,
+                    expected_value_type.as_ref(),
+                )?)
             }
             (Some(raw), None) => Some(raw.clone()),
             (None, _) => None,
         };
 
-        log::info!("[条件评估] 期望值类型: {:?}, 解析后期望值: {:?}", expected_value_type, expected_value);
+        log::info!(
+            "[条件评估] 期望值类型: {:?}, 解析后期望值: {:?}",
+            expected_value_type,
+            expected_value
+        );
 
         // 使用 operator 比较提取值和 expected_value
         let result = self.compare_values(operator, &actual_value, expected_value.as_ref())?;
@@ -439,13 +498,19 @@ impl ConditionalNodeExecutor {
         }
 
         // 预处理表达式：将 x.y.z 转换为 x__y__z
-        let processed_expression = preprocess_expression(expression);
+        let processed_expression = preprocess_expression(expression)?;
 
         // 评估表达式
-        let eval_result = evalexpr::eval_with_context(&processed_expression, &evalexpr_context).map_err(|e| {
-            log::error!("[Error] 评估表达式 '{}' (预处理后: '{}') Failed: {}", expression, processed_expression, e);
-            format!("评估表达式 '{}' Failed: {}", expression, e)
-        })?;
+        let eval_result = evalexpr::eval_with_context(&processed_expression, &evalexpr_context)
+            .map_err(|e| {
+                log::error!(
+                    "[Error] 评估表达式 '{}' (预处理后: '{}') Failed: {}",
+                    expression,
+                    processed_expression,
+                    e
+                );
+                format!("评估表达式 '{}' Failed: {}", expression, e)
+            })?;
 
         // 转换为布尔值
         let result = match eval_result {
@@ -488,8 +553,9 @@ impl ConditionalNodeExecutor {
         // 格式判断逻辑
         if field_path.starts_with("{{") && field_path.ends_with("}}") {
             // 变量引用: {{variable_name}} - 从 variables 中查找
-            let var_name = &field_path[2..field_path.len()-2];
-            variables.get(var_name)
+            let var_name = &field_path[2..field_path.len() - 2];
+            variables
+                .get(var_name)
                 .cloned()
                 .ok_or_else(|| format!("变量 '{}' 不存在", var_name))
         } else if field_path.starts_with("$.") {
@@ -497,7 +563,7 @@ impl ConditionalNodeExecutor {
             // 优先从 last_node_output 提取（上游协议节点输出）
             // 如果 last_node_output 为空，则 fallback 到 variables（兼容性）
             use flow_engine_core::utils::extract_value_by_path;
-            
+
             let data_source = last_node_output.unwrap_or(variables);
             extract_value_by_path(data_source, field_path)
                 .ok_or_else(|| format!("JSONPath '{}' 提取Failed", field_path))
@@ -512,9 +578,12 @@ impl ConditionalNodeExecutor {
             if let Some(val) = variables.get(field_path) {
                 Ok(val.clone())
             } else if let Some(output) = last_node_output {
-                output.get(field_path)
-                    .cloned()
-                    .ok_or_else(|| format!("变量 '{}' 不存在（已在变量池和上游节点输出中查找）", field_path))
+                output.get(field_path).cloned().ok_or_else(|| {
+                    format!(
+                        "变量 '{}' 不存在（已在变量池和上游节点输出中查找）",
+                        field_path
+                    )
+                })
             } else {
                 Err(format!("变量 '{}' 不存在", field_path))
             }
@@ -551,9 +620,7 @@ impl ConditionalNodeExecutor {
             ConditionOperator::GreaterOrEqual => {
                 self.compare_numeric(actual, expected, |a, b| a >= b, "greater_or_equal")
             }
-            ConditionOperator::Less => {
-                self.compare_numeric(actual, expected, |a, b| a < b, "less")
-            }
+            ConditionOperator::Less => self.compare_numeric(actual, expected, |a, b| a < b, "less"),
             ConditionOperator::LessOrEqual => {
                 self.compare_numeric(actual, expected, |a, b| a <= b, "less_or_equal")
             }
@@ -795,25 +862,26 @@ fn flatten_json_to_context(
 /// 自动将表达式中的 `x.y.z` 格式转换为 `x__y__z`，
 /// 以便与 `flatten_json_to_context` 展开的扁平变量名对应。
 /// 字符串字面量内的内容不会被修改。
-fn preprocess_expression(expr: &str) -> String {
-    let string_re = Regex::new(r#""(?:[^"\\]|\\.)*""#).unwrap();
+fn preprocess_expression(expr: &str) -> Result<String, String> {
+    let string_re =
+        Regex::new(r#""(?:[^"\\]|\\.)*""#).map_err(|e| format!("Invalid regex: {}", e))?;
 
     let mut result = String::with_capacity(expr.len() * 2);
     let mut last_end = 0;
 
     for cap in string_re.find_iter(expr) {
         if cap.start() > last_end {
-            result.push_str(&flatten_identifier_chains(&expr[last_end..cap.start()]));
+            result.push_str(&flatten_identifier_chains(&expr[last_end..cap.start()])?);
         }
         result.push_str(cap.as_str());
         last_end = cap.end();
     }
 
     if last_end < expr.len() {
-        result.push_str(&flatten_identifier_chains(&expr[last_end..]));
+        result.push_str(&flatten_identifier_chains(&expr[last_end..])?);
     }
 
-    result
+    Ok(result)
 }
 
 /// 将标识符链中的点号替换为双下划线
@@ -823,20 +891,22 @@ fn preprocess_expression(expr: &str) -> String {
 /// - `x.y.z` — 直接将点号替换为 `__`
 ///
 /// 不含点号的标识符（如 `status`）不会被修改。
-fn flatten_identifier_chains(s: &str) -> String {
+fn flatten_identifier_chains(s: &str) -> Result<String, String> {
     // 先处理 $. 前缀的 JSONPath 风格：$.x.y → x__y
-    let jsonpath_re = Regex::new(r"\$\.[a-zA-Z_]\w*(?:\.\w+)*").unwrap();
+    let jsonpath_re = Regex::new(r"\$\.[a-zA-Z_]\w*(?:\.\w+)*")
+        .map_err(|e| format!("Invalid regex: {}", e))?;
     let intermediate = jsonpath_re.replace_all(s, |caps: &regex::Captures| {
         // 去掉 "$." 前缀后，将剩余点号替换为 "__"
         caps[0][2..].replace('.', "__")
     });
 
     // 再处理常规标识符链：x.y.z → x__y__z
-    let re = Regex::new(r"[a-zA-Z_]\w*(?:\.\w+)+").unwrap();
-    re.replace_all(&intermediate, |caps: &regex::Captures| {
-        caps[0].replace('.', "__")
-    })
-    .into_owned()
+    let re = Regex::new(r"[a-zA-Z_]\w*(?:\.\w+)+").map_err(|e| format!("Invalid regex: {}", e))?;
+    Ok(re
+        .replace_all(&intermediate, |caps: &regex::Captures| {
+            caps[0].replace('.', "__")
+        })
+        .into_owned())
 }
 
 #[cfg(test)]
@@ -846,7 +916,9 @@ mod tests {
     use flow_engine_core::context::{ExecutionContext, VariableStorage};
     use flow_engine_core::node::{Node, NodePosition};
     use flow_engine_core::node_config::NodeData;
-    use flow_engine_core::node_config::{ConditionalConfig, ConditionOperator, ConditionType, ExpectedValueType};
+    use flow_engine_core::node_config::{
+        ConditionOperator, ConditionType, ConditionalConfig, ExpectedValueType,
+    };
     use serde_json::json;
     use std::collections::HashMap;
     use std::sync::Arc;
@@ -859,8 +931,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Conditional(config),
             ports: None,
-        has_breakpoint: None,
-        on_error: None,
+            has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -907,7 +979,9 @@ mod tests {
             "user.age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -928,7 +1002,9 @@ mod tests {
             "user.age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -949,7 +1025,9 @@ mod tests {
             "user.age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -970,7 +1048,9 @@ mod tests {
             "user.age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -991,7 +1071,9 @@ mod tests {
             "user.age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -1012,7 +1094,9 @@ mod tests {
             "user.age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -1033,7 +1117,9 @@ mod tests {
             "user.name": "John Doe"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -1054,7 +1140,9 @@ mod tests {
             "user.name": "John Doe"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -1075,7 +1163,9 @@ mod tests {
             "user.name": "John Doe"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -1096,7 +1186,9 @@ mod tests {
             "user.email": "test@example.com"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -1117,7 +1209,9 @@ mod tests {
             "user.age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回Error）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -1145,7 +1239,9 @@ mod tests {
             "name": "John"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -1167,7 +1263,9 @@ mod tests {
             "name": "John"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -1189,7 +1287,9 @@ mod tests {
             "name": "John"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回Error）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -1224,7 +1324,9 @@ mod tests {
             target_port_id: "in".to_string(),
         }];
 
-        let result = executor.execute(&node, &mut context, &connections, &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &connections, &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为true应该Success");
         let (next_node_ids, output_data) = result.unwrap();
         assert_eq!(next_node_ids, vec!["next-node-id".to_string()]);
@@ -1251,7 +1353,9 @@ mod tests {
             "user.name": ""
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "空字符串相等应该返回Ok");
     }
 
@@ -1272,7 +1376,9 @@ mod tests {
             "user.email": null
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "null值相等应该返回Ok");
     }
 
@@ -1293,7 +1399,9 @@ mod tests {
             "user.email": null
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回Error）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -1319,9 +1427,14 @@ mod tests {
             "user.age": "twenty-five"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_err(), "类型不匹配应该返回Error");
-        assert!(result.unwrap_err().message.contains("actual不是数字类型"), "Error信息应该包含 actual不是数字类型");
+        assert!(
+            result.unwrap_err().message.contains("actual不是数字类型"),
+            "Error信息应该包含 actual不是数字类型"
+        );
     }
 
     #[tokio::test]
@@ -1342,9 +1455,14 @@ mod tests {
             "name": "John"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_err(), "语法Error应该返回Error");
-        assert!(result.unwrap_err().message.contains("评估表达式"), "Error信息应该包含 评估表达式");
+        assert!(
+            result.unwrap_err().message.contains("评估表达式"),
+            "Error信息应该包含 评估表达式"
+        );
     }
 
     #[tokio::test]
@@ -1364,9 +1482,17 @@ mod tests {
             "age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_err(), "缺少field_path应该返回Error");
-        assert!(result.unwrap_err().message.contains("简单条件缺少 field_path"), "Error信息应该包含 简单条件缺少 field_path");
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("简单条件缺少 field_path"),
+            "Error信息应该包含 简单条件缺少 field_path"
+        );
     }
 
     #[tokio::test]
@@ -1386,9 +1512,17 @@ mod tests {
             "age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_err(), "缺少operator应该返回Error");
-        assert!(result.unwrap_err().message.contains("简单条件缺少 operator"), "Error信息应该包含 简单条件缺少 operator");
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("简单条件缺少 operator"),
+            "Error信息应该包含 简单条件缺少 operator"
+        );
     }
 
     #[tokio::test]
@@ -1408,9 +1542,17 @@ mod tests {
             "age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_err(), "缺少advanced_expression应该返回Error");
-        assert!(result.unwrap_err().message.contains("缺少advanced_expression"), "Error信息应该包含 缺少advanced_expression");
+        assert!(
+            result
+                .unwrap_err()
+                .message
+                .contains("缺少advanced_expression"),
+            "Error信息应该包含 缺少advanced_expression"
+        );
     }
 
     #[tokio::test]
@@ -1430,7 +1572,9 @@ mod tests {
             "age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "非操作符应该正确工作");
     }
 
@@ -1452,7 +1596,9 @@ mod tests {
             "count": 5
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "变量使用应该正确工作");
     }
 
@@ -1473,7 +1619,9 @@ mod tests {
             "age": 25
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "数值运算应该正确工作");
     }
 
@@ -1494,7 +1642,9 @@ mod tests {
             "name": "John"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "字符串比较应该正确工作");
     }
 
@@ -1577,11 +1727,9 @@ mod tests {
 
     #[test]
     fn test_parse_no_type_returns_original() {
-        let result = ConditionalNodeExecutor::parse_expected_value(
-            &serde_json::json!("hello"),
-            None,
-        )
-        .unwrap();
+        let result =
+            ConditionalNodeExecutor::parse_expected_value(&serde_json::json!("hello"), None)
+                .unwrap();
         assert_eq!(result, serde_json::Value::String("hello".to_string()));
     }
 
@@ -1647,7 +1795,9 @@ mod tests {
             "status": 200 // 实际值是数字
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok());
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty()); // true 分支无连接
@@ -1674,7 +1824,9 @@ mod tests {
             "enabled": true
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok());
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -1701,7 +1853,9 @@ mod tests {
             "name": "200" // 字符串 "200"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok());
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -1733,7 +1887,9 @@ mod tests {
             "token": "abc123"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "变量引用应该Success");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -1759,9 +1915,14 @@ mod tests {
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({}));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_err(), "变量不存在应该返回Error");
-        assert!(result.unwrap_err().message.contains("不存在"), "Error信息应该包含 '不存在'");
+        assert!(
+            result.unwrap_err().message.contains("不存在"),
+            "Error信息应该包含 '不存在'"
+        );
     }
 
     #[tokio::test]
@@ -1784,7 +1945,9 @@ mod tests {
             }
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "JSONPath 提取应该Success");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -1815,7 +1978,9 @@ mod tests {
             ]
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "JSONPath 数组索引提取应该Success");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -1843,10 +2008,16 @@ mod tests {
             "user.age": 25  // 扁平键
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_err(), "旧语法应该返回Error");
         let error = result.unwrap_err();
-        assert!(error.message.find("不支持的语法").is_some(), "Error信息应该包含 '不支持的语法': {}", error);
+        assert!(
+            error.message.contains("不支持的语法"),
+            "Error信息应该包含 '不支持的语法': {}",
+            error
+        );
     }
 
     #[tokio::test]
@@ -1865,10 +2036,16 @@ mod tests {
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({}));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_err(), "空 field_path 应该返回Error");
         let error = result.unwrap_err();
-        assert!(error.message.contains("required"), "Error信息应该包含 'required': {}", error);
+        assert!(
+            error.message.contains("required"),
+            "Error信息应该包含 'required': {}",
+            error
+        );
     }
 
     #[tokio::test]
@@ -1889,7 +2066,9 @@ mod tests {
             "status": "active"
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "简单变量名应该Success");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -1903,7 +2082,7 @@ mod tests {
     // 高级表达式嵌套字段 + last_node_output 测试
     // ============================================================================
 
-    /// 创建带 last_node_output 的测试上下文
+    /// 创建带 `last_node_output` 的测试上下文
     fn create_test_context_with_output(
         variables: serde_json::Value,
         last_node_output: serde_json::Value,
@@ -1935,7 +2114,9 @@ mod tests {
             }
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "嵌套字段从变量池提取应该Success");
         let (_, output) = result.unwrap();
         assert_eq!(output.unwrap()["result"], json!(true));
@@ -1967,8 +2148,13 @@ mod tests {
             }),
         );
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
-        assert!(result.is_ok(), "嵌套字段从 last_node_output 提取应该Success");
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+        assert!(
+            result.is_ok(),
+            "嵌套字段从 last_node_output 提取应该Success"
+        );
         let (_, output) = result.unwrap();
         assert_eq!(output.unwrap()["result"], json!(true));
     }
@@ -1993,10 +2179,16 @@ mod tests {
             serde_json::json!({"status": 200}),
         );
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "last_node_output 应覆盖变量池同名键");
         let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(true), "status 应为 200（来自 last_node_output）");
+        assert_eq!(
+            output.unwrap()["result"],
+            json!(true),
+            "status 应为 200（来自 last_node_output）"
+        );
     }
 
     #[tokio::test]
@@ -2008,7 +2200,9 @@ mod tests {
             field_path: None,
             operator: None,
             expected_value: None,
-            advanced_expression: Some(r#"code == 0 && data.stepKey == "intent_unsupported""#.to_string()),
+            advanced_expression: Some(
+                r#"code == 0 && data.stepKey == "intent_unsupported""#.to_string(),
+            ),
             expected_value_type: None,
             source_node_id: None,
         };
@@ -2021,7 +2215,9 @@ mod tests {
             }
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "多条件嵌套字段应该Success");
         let (_, output) = result.unwrap();
         assert_eq!(output.unwrap()["result"], json!(true));
@@ -2050,7 +2246,9 @@ mod tests {
             }
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "三层嵌套字段应该Success");
         let (_, output) = result.unwrap();
         assert_eq!(output.unwrap()["result"], json!(true));
@@ -2076,7 +2274,9 @@ mod tests {
             }
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "嵌套数值比较应该Success");
         let (_, output) = result.unwrap();
         assert_eq!(output.unwrap()["result"], json!(true));
@@ -2091,7 +2291,9 @@ mod tests {
             field_path: None,
             operator: None,
             expected_value: None,
-            advanced_expression: Some(r#"status >= 200 && status < 300 && body.success == true"#.to_string()),
+            advanced_expression: Some(
+                r#"status >= 200 && status < 300 && body.success == true"#.to_string(),
+            ),
             expected_value_type: None,
             source_node_id: None,
         };
@@ -2103,7 +2305,9 @@ mod tests {
             }
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "顶层 + 嵌套混合应该Success");
         let (_, output) = result.unwrap();
         assert_eq!(output.unwrap()["result"], json!(true));
@@ -2129,7 +2333,9 @@ mod tests {
             }
         }));
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "不匹配应该返回 Ok");
         let (_, output) = result.unwrap();
         assert_eq!(output.unwrap()["result"], json!(false));
@@ -2142,7 +2348,7 @@ mod tests {
     #[test]
     fn test_preprocess_expression_basic() {
         assert_eq!(
-            preprocess_expression(r#"data.stepKey == "value""#),
+            preprocess_expression(r#"data.stepKey == "value""#).unwrap(),
             r#"data__stepKey == "value""#
         );
     }
@@ -2150,47 +2356,50 @@ mod tests {
     #[test]
     fn test_preprocess_expression_deep() {
         assert_eq!(
-            preprocess_expression("data.result.title == \"test\""),
+            preprocess_expression("data.result.title == \"test\"").unwrap(),
             "data__result__title == \"test\""
         );
     }
 
     #[test]
     fn test_preprocess_expression_no_dots() {
-        assert_eq!(
-            preprocess_expression("status == 200"),
-            "status == 200"
-        );
+        assert_eq!(preprocess_expression("status == 200").unwrap(), "status == 200");
     }
 
     #[test]
     fn test_preprocess_expression_preserves_strings() {
         // 字符串字面量内的点号不应被替换
         assert_eq!(
-            preprocess_expression(r#"url == "http://example.com""#),
+            preprocess_expression(r#"url == "http://example.com""#).unwrap(),
             r#"url == "http://example.com""#
         );
     }
 
     #[test]
     fn test_flatten_identifier_chains() {
-        assert_eq!(flatten_identifier_chains("data.stepKey == 200"), "data__stepKey == 200");
-        assert_eq!(flatten_identifier_chains("code == 200"), "code == 200");
-        assert_eq!(flatten_identifier_chains("a.b.c.d > 0"), "a__b__c__d > 0");
+        assert_eq!(
+            flatten_identifier_chains("data.stepKey == 200").unwrap(),
+            "data__stepKey == 200"
+        );
+        assert_eq!(flatten_identifier_chains("code == 200").unwrap(), "code == 200");
+        assert_eq!(flatten_identifier_chains("a.b.c.d > 0").unwrap(), "a__b__c__d > 0");
     }
 
     #[test]
     fn test_flatten_jsonpath_prefix() {
         // $.status → status（去掉 $. 后无点号）
-        assert_eq!(flatten_identifier_chains("$.status == 200"), "status == 200");
+        assert_eq!(
+            flatten_identifier_chains("$.status == 200").unwrap(),
+            "status == 200"
+        );
         // $.body.data.token → body__data__token
         assert_eq!(
-            flatten_identifier_chains(r#"$.body.data.token == "abc""#),
+            flatten_identifier_chains(r#"$.body.data.token == "abc""#).unwrap(),
             r#"body__data__token == "abc""#
         );
         // 混合 $. 和普通标识符
         assert_eq!(
-            flatten_identifier_chains("$.status >= 200 && $.status < 300"),
+            flatten_identifier_chains("$.status >= 200 && $.status < 300").unwrap(),
             "status >= 200 && status < 300"
         );
     }
@@ -2198,17 +2407,14 @@ mod tests {
     #[test]
     fn test_preprocess_expression_jsonpath_style() {
         // $.status 在表达式中应被正确处理
+        assert_eq!(preprocess_expression("$.status == 200").unwrap(), "status == 200");
         assert_eq!(
-            preprocess_expression("$.status == 200"),
-            "status == 200"
-        );
-        assert_eq!(
-            preprocess_expression(r#"$.body.data.token == "abc""#),
+            preprocess_expression(r#"$.body.data.token == "abc""#).unwrap(),
             r#"body__data__token == "abc""#
         );
         // 混合使用
         assert_eq!(
-            preprocess_expression("status == 200 && $.body.success == true"),
+            preprocess_expression("status == 200 && $.body.success == true").unwrap(),
             "status == 200 && body__success == true"
         );
     }
@@ -2232,7 +2438,9 @@ mod tests {
             serde_json::json!({"status": 200, "body": {"token": "abc"}}),
         );
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "$.status 表达式应该Success");
         let (_, output) = result.unwrap();
         assert_eq!(output.unwrap()["result"], json!(true));
@@ -2257,7 +2465,9 @@ mod tests {
             serde_json::json!({"status": 200, "body": {"data": {"token": "abc123"}}}),
         );
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "$.body.data.token 表达式应该Success");
         let (_, output) = result.unwrap();
         assert_eq!(output.unwrap()["result"], json!(true));
@@ -2286,7 +2496,9 @@ mod tests {
             serde_json::json!({"status": 200, "body": {"token": "abc"}}),
         );
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "简单变量名应从 last_node_output 中提取");
         let (_, output) = result.unwrap();
         assert_eq!(output.unwrap()["result"], json!(true));
@@ -2311,10 +2523,16 @@ mod tests {
             serde_json::json!({"status": 200}), // last_node_output 中 status=200
         );
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_ok(), "变量池应优先于 last_node_output");
         let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(true), "应为 404（来自变量池）");
+        assert_eq!(
+            output.unwrap()["result"],
+            json!(true),
+            "应为 404（来自变量池）"
+        );
     }
 
     #[tokio::test]
@@ -2336,7 +2554,9 @@ mod tests {
             serde_json::json!({"body": {}}),
         );
 
-        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
         assert!(result.is_err(), "两边都找不到应报错");
         assert!(result.unwrap_err().message.contains("不存在"));
     }

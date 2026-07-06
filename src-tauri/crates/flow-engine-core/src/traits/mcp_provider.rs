@@ -1,7 +1,7 @@
 //! MCP 提供者抽象 trait
 
-use async_trait::async_trait;
 use crate::node_config::{McpConnectConfig, McpTransportMode};
+use async_trait::async_trait;
 
 /// MCP 传输模式默认值辅助函数
 fn default_transport_mode() -> McpTransportMode {
@@ -185,8 +185,7 @@ mod tests {
         assert!(json.contains("get_weather"));
         assert!(json.contains("获取天气信息"));
 
-        let deserialized: McpToolInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: McpToolInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.name, "get_weather");
         assert_eq!(deserialized.description, Some("获取天气信息".to_string()));
     }
@@ -201,8 +200,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&info).expect("序列化应Success");
-        let deserialized: McpResourceInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: McpResourceInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.uri, "file:///data/config.json");
         assert_eq!(deserialized.mime_type, Some("application/json".to_string()));
     }
@@ -215,8 +213,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&info).expect("序列化应Success");
-        let deserialized: McpServerInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: McpServerInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.name, "test-server");
         assert_eq!(deserialized.version, Some("1.0.0".to_string()));
     }

@@ -1,7 +1,7 @@
 //! gRPC 提供者抽象 trait
 
-use async_trait::async_trait;
 use crate::traits::DebugEventSender;
+use async_trait::async_trait;
 use std::sync::Arc;
 
 /// gRPC 通信模式
@@ -108,7 +108,7 @@ pub struct GrpcFieldInfo {
     pub type_kind: String,
     /// 类型显示名（如 "string", "map<string, int32>"）
     pub type_display: String,
-    /// 消息/枚举类型的全名（仅 type_kind 为 MESSAGE/ENUM 时存在）
+    /// 消息/枚举类型的全名（仅 `type_kind` 为 MESSAGE/ENUM 时存在）
     #[serde(default)]
     pub type_full_name: Option<String>,
     /// 字段 cardinality（"optional" / "required" / "repeated"）
@@ -116,16 +116,16 @@ pub struct GrpcFieldInfo {
     /// 是否为 map 类型
     #[serde(default)]
     pub is_map: bool,
-    /// map 的 key 类型（仅 is_map=true 时存在）
+    /// map 的 key 类型（仅 `is_map=true` 时存在）
     #[serde(default)]
     pub map_key_type: Option<String>,
-    /// map 的 value 类型（仅 is_map=true 时存在）
+    /// map 的 value 类型（仅 `is_map=true` 时存在）
     #[serde(default)]
     pub map_value_type: Option<String>,
-    /// 枚举值列表（仅 type_kind 为 ENUM 时非空）
+    /// 枚举值列表（仅 `type_kind` 为 ENUM 时非空）
     #[serde(default)]
     pub enum_values: Vec<GrpcEnumValue>,
-    /// 嵌套消息定义（仅 type_kind 为 MESSAGE 时存在）
+    /// 嵌套消息定义（仅 `type_kind` 为 MESSAGE 时存在）
     #[serde(default)]
     pub nested_message: Option<Box<GrpcMessageInfo>>,
 }
@@ -137,7 +137,7 @@ pub struct GrpcServiceInfo {
     pub service_name: String,
     /// 方法列表
     pub methods: Vec<GrpcMethodInfo>,
-    /// Flat map of all message definitions keyed by full_name (e.g. "package.MessageName")
+    /// Flat map of all message definitions keyed by `full_name` (e.g. "package.MessageName")
     ///
     /// Wrapped in `Arc` to share the same definition map across all services
     /// from the same gRPC connection, avoiding N deep-copies for N services.
@@ -266,7 +266,7 @@ pub trait GrpcProvider: Send + Sync {
         tls_skip_verify: bool,
         enable_reflection: bool,
         proto_files: Vec<(String, String)>, // (filename, content)
-        metadata: Vec<(String, String)>,     // (key, value)
+        metadata: Vec<(String, String)>,    // (key, value)
         connect_timeout_ms: u64,
         tls_ca_cert: Option<String>,
         tls_client_cert: Option<String>,
@@ -397,16 +397,20 @@ mod tests {
             GrpcPattern::BidiStreaming,
         ] {
             let json = serde_json::to_string(&pattern).expect("序列化应Success");
-            let deserialized: GrpcPattern =
-                serde_json::from_str(&json).expect("反序列化应Success");
-            assert_eq!(pattern, deserialized, "GrpcPattern serde 往返Failed: {:?}", pattern);
+            let deserialized: GrpcPattern = serde_json::from_str(&json).expect("反序列化应Success");
+            assert_eq!(
+                pattern, deserialized,
+                "GrpcPattern serde 往返Failed: {:?}",
+                pattern
+            );
         }
     }
 
     #[test]
     fn test_grpc_method_info_default_client_streaming() {
         // is_client_streaming 有 #[serde(default)]，缺少时应默认为 false
-        let json = r#"{"method_name":"M","input_type":"I","output_type":"O","is_server_streaming":true}"#;
+        let json =
+            r#"{"method_name":"M","input_type":"I","output_type":"O","is_server_streaming":true}"#;
         let info: GrpcMethodInfo = serde_json::from_str(json).expect("反序列化应Success");
         assert!(!info.is_client_streaming);
         assert!(info.is_server_streaming);
@@ -419,8 +423,7 @@ mod tests {
             first_response_ms: Some(50),
         };
         let json = serde_json::to_string(&timing).expect("序列化应Success");
-        let deserialized: GrpcTimingInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: GrpcTimingInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.total_ms, 150);
         assert_eq!(deserialized.first_response_ms, Some(50));
     }
@@ -565,8 +568,14 @@ mod tests {
                     map_key_type: None,
                     map_value_type: None,
                     enum_values: vec![
-                        GrpcEnumValue { name: "TYPE_A".to_string(), number: 0 },
-                        GrpcEnumValue { name: "TYPE_B".to_string(), number: 1 },
+                        GrpcEnumValue {
+                            name: "TYPE_A".to_string(),
+                            number: 0,
+                        },
+                        GrpcEnumValue {
+                            name: "TYPE_B".to_string(),
+                            number: 1,
+                        },
                     ],
                     nested_message: None,
                 },
@@ -602,10 +611,14 @@ mod tests {
                 }
             ]
         }"#;
-        let info: GrpcServiceInfo = serde_json::from_str(old_json).expect("backward compat deserialize");
+        let info: GrpcServiceInfo =
+            serde_json::from_str(old_json).expect("backward compat deserialize");
         assert_eq!(info.service_name, "pkg.MyService");
         assert_eq!(info.methods.len(), 1);
-        assert!(info.message_definitions.is_empty(), "missing message_definitions should default to empty map");
+        assert!(
+            info.message_definitions.is_empty(),
+            "missing message_definitions should default to empty map"
+        );
     }
 
     #[test]

@@ -4,8 +4,8 @@
 // Success路由到 "true" 端口，Failed路由到 "false" 端口。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -132,10 +132,7 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!(
-                            "MQTT 取消订阅Success ({}ms)",
-                            duration.as_millis()
-                        ),
+                        message: format!("MQTT 取消订阅Success ({}ms)", duration.as_millis()),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -199,9 +196,11 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -321,22 +320,20 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("MqttUnsubscribeConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("MqttUnsubscribeConfig"));
     }
 
-    /// 测试：变量替换 — connection_id 和 topic 中的变量应被正确替换
+    /// 测试：变量替换 — `connection_id` 和 topic 中的变量应被正确替换
     #[tokio::test]
     async fn test_unsubscribe_with_variable_replacement() {
         let mqtt_manager = Arc::new(MqttConnectionManager::new());
         let executor = MqttUnsubscribeExecutor::new(mqtt_manager);
 
         // 创建带变量的节点
-        let node = create_test_node(
-            "test-var",
-            "变量替换测试",
-            "{{conn_id}}",
-            "{{topic_name}}",
-        );
+        let node = create_test_node("test-var", "变量替换测试", "{{conn_id}}", "{{topic_name}}");
 
         // 创建上下文并设置变量
         let mut context = create_context("test-flow");
@@ -385,7 +382,10 @@ mod tests {
 
         // 验证输出 JSON 包含所有必要字段
         assert!(data.get("success").is_some(), "缺少 success 字段");
-        assert!(data.get("connection_id").is_some(), "缺少 connection_id 字段");
+        assert!(
+            data.get("connection_id").is_some(),
+            "缺少 connection_id 字段"
+        );
         assert!(data.get("topic").is_some(), "缺少 topic 字段");
         assert!(data.get("request").is_some(), "缺少 request 字段");
         assert!(data.get("timing").is_some(), "缺少 timing 字段");

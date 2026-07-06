@@ -10,15 +10,15 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use log::{info, warn};
 use rumqttc::{Event, Packet, QoS};
-use tokio::sync::{RwLock, broadcast, Mutex};
+use tokio::sync::{broadcast, Mutex, RwLock};
 
 use flow_engine_core::node_config::{
     MqttConnectConfig, MqttDisconnectConfig, MqttPublishConfig, MqttRequestConfig,
     MqttSubscribeConfig, MqttWaitMessageConfig,
 };
 use flow_engine_core::traits::{
-    MqttConnectOutput, MqttConnectionInfo, MqttMessageOutput, MqttProvider,
-    MqttPublishOutput, MqttReceivedMessage, MqttSubscribeOutput, MqttTimingInfo,
+    MqttConnectOutput, MqttConnectionInfo, MqttMessageOutput, MqttProvider, MqttPublishOutput,
+    MqttReceivedMessage, MqttSubscribeOutput, MqttTimingInfo,
 };
 
 use crate::mqtt_client;
@@ -184,10 +184,8 @@ impl MqttConnectionManager {
                         match packet {
                             Packet::ConnAck(connack) => {
                                 let code = connack.code;
-                                let is_success = matches!(
-                                    code,
-                                    rumqttc::ConnectReturnCode::Success
-                                );
+                                let is_success =
+                                    matches!(code, rumqttc::ConnectReturnCode::Success);
                                 if is_success {
                                     info!(
                                         "MQTT 连接 {} 收到 ConnAck: session_present={}",
@@ -206,8 +204,7 @@ impl MqttConnectionManager {
                             }
                             Packet::Publish(publish) => {
                                 let msg = MqttReceivedMessage {
-                                    topic: String::from_utf8_lossy(&publish.topic)
-                                        .to_string(),
+                                    topic: String::from_utf8_lossy(&publish.topic).to_string(),
                                     payload: publish.payload.to_vec(),
                                     qos: Self::qos_to_u8(publish.qos),
                                     retain: publish.retain,
@@ -414,19 +411,18 @@ impl MqttProvider for MqttConnectionManager {
         let retain = config.retain.unwrap_or(false);
 
         // 编码 payload
-        let payload = config
-            .payload
-            .as_deref()
-            .unwrap_or("")
-            .as_bytes()
-            .to_vec();
+        let payload = config.payload.as_deref().unwrap_or("").as_bytes().to_vec();
 
         client
             .publish(topic, qos, retain, payload)
             .await
             .map_err(|e| format!("MQTT publish failed: {}", e))?;
 
-        info!("MQTT 发布Success: topic={}, qos={}", topic, config.qos.unwrap_or(0));
+        info!(
+            "MQTT 发布Success: topic={}, qos={}",
+            topic,
+            config.qos.unwrap_or(0)
+        );
 
         Ok(MqttPublishOutput {
             success: true,
@@ -461,7 +457,11 @@ impl MqttProvider for MqttConnectionManager {
             .await
             .map_err(|e| format!("MQTT subscribe failed: {}", e))?;
 
-        info!("MQTT 订阅Success: topic={}, qos={}", topic, config.qos.unwrap_or(0));
+        info!(
+            "MQTT 订阅Success: topic={}, qos={}",
+            topic,
+            config.qos.unwrap_or(0)
+        );
 
         // 如果配置了 max_messages 或 collect_timeout_ms，收集消息
         let max_messages = config.max_messages.unwrap_or(0);
@@ -477,12 +477,8 @@ impl MqttProvider for MqttConnectionManager {
         }
 
         // 收集消息
-        let messages = Self::collect_messages(
-            &message_rx_arc,
-            max_messages,
-            collect_timeout_ms,
-        )
-        .await;
+        let messages =
+            Self::collect_messages(&message_rx_arc, max_messages, collect_timeout_ms).await;
 
         Ok(MqttSubscribeOutput {
             success: true,
@@ -536,12 +532,7 @@ impl MqttProvider for MqttConnectionManager {
         let max_messages = config.max_messages.unwrap_or(1);
         let start = std::time::Instant::now();
 
-        let messages = Self::collect_messages(
-            &message_rx_arc,
-            max_messages,
-            timeout_ms,
-        )
-        .await;
+        let messages = Self::collect_messages(&message_rx_arc, max_messages, timeout_ms).await;
 
         let total_ms = start.elapsed().as_millis() as u64;
         let is_empty = messages.is_empty();
@@ -597,12 +588,7 @@ impl MqttProvider for MqttConnectionManager {
             .map_err(|e| format!("MQTT request subscribe response topic failed: {}", e))?;
 
         // 发布请求
-        let payload = config
-            .payload
-            .as_deref()
-            .unwrap_or("")
-            .as_bytes()
-            .to_vec();
+        let payload = config.payload.as_deref().unwrap_or("").as_bytes().to_vec();
 
         client
             .publish(request_topic, qos, false, payload)
@@ -617,11 +603,7 @@ impl MqttProvider for MqttConnectionManager {
 
         let total_ms = start.elapsed().as_millis() as u64;
         let is_empty = messages.is_empty();
-        let first_message_ms = if is_empty {
-            None
-        } else {
-            Some(total_ms)
-        };
+        let first_message_ms = if is_empty { None } else { Some(total_ms) };
 
         Ok(MqttMessageOutput {
             success: !is_empty,
@@ -642,11 +624,7 @@ impl MqttProvider for MqttConnectionManager {
     ///
     /// 发送断开请求，中止后台 `EventLoop` 任务，从连接池移除。
     /// 共享模式下为 no-op，避免并发虚拟用户互相关闭连接。
-    async fn disconnect(
-        &self,
-        uuid: &str,
-        _config: &MqttDisconnectConfig,
-    ) -> Result<(), String> {
+    async fn disconnect(&self, uuid: &str, _config: &MqttDisconnectConfig) -> Result<(), String> {
         if self.is_shared {
             info!("共享模式下忽略 disconnect 请求: {}", uuid);
             return Ok(());
@@ -836,7 +814,9 @@ mod tests {
     #[tokio::test]
     async fn test_unsubscribe_nonexistent_connection() {
         let manager = MqttConnectionManager::new();
-        let result = manager.unsubscribe("non-existent", "conn-1", "test/topic").await;
+        let result = manager
+            .unsubscribe("non-existent", "conn-1", "test/topic")
+            .await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("not found"));
     }

@@ -1,10 +1,10 @@
 //! MQTT 提供者抽象 trait
 
-use async_trait::async_trait;
 use crate::node_config::{
-    MqttConnectConfig, MqttPublishConfig, MqttSubscribeConfig,
-    MqttDisconnectConfig, MqttWaitMessageConfig, MqttRequestConfig,
+    MqttConnectConfig, MqttDisconnectConfig, MqttPublishConfig, MqttRequestConfig,
+    MqttSubscribeConfig, MqttWaitMessageConfig,
 };
+use async_trait::async_trait;
 
 /// MQTT 连接输出
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -165,12 +165,8 @@ pub trait MqttProvider: Send + Sync {
     ) -> Result<MqttSubscribeOutput, String>;
 
     /// 取消订阅
-    async fn unsubscribe(
-        &self,
-        uuid: &str,
-        connection_id: &str,
-        topic: &str,
-    ) -> Result<(), String>;
+    async fn unsubscribe(&self, uuid: &str, connection_id: &str, topic: &str)
+        -> Result<(), String>;
 
     /// 等待消息
     async fn wait_message(
@@ -187,11 +183,7 @@ pub trait MqttProvider: Send + Sync {
     ) -> Result<MqttMessageOutput, String>;
 
     /// 断开连接
-    async fn disconnect(
-        &self,
-        uuid: &str,
-        config: &MqttDisconnectConfig,
-    ) -> Result<(), String>;
+    async fn disconnect(&self, uuid: &str, config: &MqttDisconnectConfig) -> Result<(), String>;
 
     /// 获取连接状态
     fn get_status(&self, uuid: &str) -> Option<String>;
@@ -277,8 +269,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&timing).expect("序列化应Success");
-        let deserialized: MqttTimingInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: MqttTimingInfo = serde_json::from_str(&json).expect("反序列化应Success");
         assert_eq!(deserialized.total_ms, 150);
         assert_eq!(deserialized.first_message_ms, Some(50));
     }
@@ -327,6 +318,9 @@ mod tests {
             serde_json::from_str(&json).expect("反序列化应Success");
         assert!(deserialized.success);
         assert_eq!(deserialized.messages.len(), 1);
-        assert_eq!(deserialized.timing.as_ref().expect("应有时间信息").total_ms, 200);
+        assert_eq!(
+            deserialized.timing.as_ref().expect("应有时间信息").total_ms,
+            200
+        );
     }
 }

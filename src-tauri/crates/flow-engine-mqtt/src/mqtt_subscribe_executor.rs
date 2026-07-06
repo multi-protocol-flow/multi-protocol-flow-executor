@@ -3,8 +3,8 @@
 //! 实现 MQTT 主题订阅功能，支持共享订阅和消息收集。
 //! 订阅 topic → 等待消息收集（max_messages + collect_timeout_ms）→ 返回收集到的消息列表。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -84,7 +84,10 @@ impl NodeExecutor for MqttSubscribeExecutor {
 
         // 2. 变量替换：connection_id 和 topic
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            ErrorDetail::execution_error(format!("connection_id variable substitution failed: {}", e))
+            ErrorDetail::execution_error(format!(
+                "connection_id variable substitution failed: {}",
+                e
+            ))
         })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
@@ -206,8 +209,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
                     let filtered: Vec<String> = connections
                         .iter()
                         .filter(|conn| {
-                            conn.source_node_uuid == node.uuid
-                                && conn.source_port_id == "true"
+                            conn.source_node_uuid == node.uuid && conn.source_port_id == "true"
                         })
                         .map(|conn| conn.target_node_uuid.clone())
                         .collect();
@@ -261,9 +263,11 @@ impl NodeExecutor for MqttSubscribeExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -272,8 +276,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
                     let filtered: Vec<String> = connections
                         .iter()
                         .filter(|conn| {
-                            conn.source_node_uuid == node.uuid
-                                && conn.source_port_id == "false"
+                            conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
                         })
                         .map(|conn| conn.target_node_uuid.clone())
                         .collect();
@@ -297,8 +300,8 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::traits::{
-        MqttConnectOutput, MqttConnectionInfo, MqttMessageOutput,
-        MqttPublishOutput, MqttReceivedMessage, MqttSubscribeOutput,
+        MqttConnectOutput, MqttConnectionInfo, MqttMessageOutput, MqttPublishOutput,
+        MqttReceivedMessage, MqttSubscribeOutput,
     };
 
     // ---------------------------------------------------------------------------
@@ -356,7 +359,7 @@ mod tests {
     // Mock MqttProvider
     // ---------------------------------------------------------------------------
 
-    /// 模拟Success订阅的 MqttProvider
+    /// 模拟Success订阅的 `MqttProvider`
     struct MockMqttProvider {
         subscribe_output: MqttSubscribeOutput,
     }
@@ -474,7 +477,7 @@ mod tests {
     // 测试用例
     // ---------------------------------------------------------------------------
 
-    /// 测试：NodeData::MqttSubscribe 提取
+    /// `测试：NodeData::MqttSubscribe` 提取
     #[tokio::test]
     async fn test_subscribe_node_data_extraction() {
         let provider = Arc::new(MockMqttProvider::new_success(vec![]));
@@ -545,7 +548,7 @@ mod tests {
         );
     }
 
-    /// 测试：output_mode first 仅返回第一条消息
+    /// `测试：output_mode` first 仅返回第一条消息
     #[tokio::test]
     async fn test_output_mode_first_returns_first_message() {
         let messages = vec![
@@ -611,7 +614,7 @@ mod tests {
         assert_eq!(msgs[0]["payload_text"], "hello");
     }
 
-    /// 测试：output_mode all 返回全部消息
+    /// `测试：output_mode` all 返回全部消息
     #[tokio::test]
     async fn test_output_mode_all_returns_all_messages() {
         let messages = vec![

@@ -6,10 +6,7 @@ use super::output;
 use super::output::CliOutput;
 
 /// Validate flow
-pub async fn execute(
-    _format: &str,
-    flow_path: &str,
-) -> Result<(), super::CliError> {
+pub async fn execute(_format: &str, flow_path: &str) -> Result<(), super::CliError> {
     let path = PathBuf::from(flow_path);
     if !path.exists() {
         return Err(super::CliError::InvalidArgs(format!(
@@ -24,7 +21,8 @@ pub async fn execute(
 
     // Validate flow with registry (structural + plugin-level validation)
     let registry = flow_engine::default_registry::default_registry();
-    let result = flow_engine::validator::FlowValidator::new().validate_with_registry(&flow, &registry);
+    let result =
+        flow_engine::validator::FlowValidator::new().validate_with_registry(&flow, &registry);
 
     let output_data = serde_json::json!({
         "valid": result.valid,
@@ -39,9 +37,14 @@ pub async fn execute(
         let cli_output = CliOutput {
             success: false,
             data: Some(output_data),
-            error: Some(format!("Validation failed: {} error(s)", result.errors.len())),
+            error: Some(format!(
+                "Validation failed: {} error(s)",
+                result.errors.len()
+            )),
         };
         output::output_json(&cli_output);
-        Err(super::CliError::Execution("Flow validation failed".to_string()))
+        Err(super::CliError::Execution(
+            "Flow validation failed".to_string(),
+        ))
     }
 }

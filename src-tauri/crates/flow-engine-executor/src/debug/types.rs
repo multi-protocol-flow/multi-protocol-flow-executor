@@ -113,7 +113,7 @@ mod tests {
 
         let deserialized: ExecutionStackEntry = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.node_uuid, "node-001");
-        assert_eq!(deserialized.success, true);
+        assert!(deserialized.success);
     }
 
     #[test]

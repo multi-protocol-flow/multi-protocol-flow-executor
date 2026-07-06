@@ -268,7 +268,7 @@ pub(crate) fn format_grpc_error(
     }
 }
 
-/// 从Error字符串中解析Error消息和Error详情
+/// `从Error字符串中解析Error消息和Error详情`
 ///
 /// 返回 (人类可读的Error消息, 解码后的Error详情列表)。
 /// 如果Error字符串不包含详情标记，返回完整字符串和空列表。
@@ -324,7 +324,10 @@ mod tests {
     #[test]
     fn test_parse_error_details_with_marker() {
         let json = r#"[{"type_url":"type.googleapis.com/google.rpc.RetryInfo","decoded":{"retry_delay":"1.0s"},"raw_hex":null}]"#;
-        let error = format!("gRPC 调用Failed: rate limited (RESOURCE_EXHAUSTED){}{}", ERROR_DETAILS_MARKER, json);
+        let error = format!(
+            "gRPC 调用Failed: rate limited (RESOURCE_EXHAUSTED){}{}",
+            ERROR_DETAILS_MARKER, json
+        );
         let (msg, details) = parse_error_details(&error);
         assert_eq!(msg, "gRPC 调用Failed: rate limited (RESOURCE_EXHAUSTED)");
         assert_eq!(details.len(), 1);
@@ -338,10 +341,7 @@ mod tests {
 
     #[test]
     fn test_parse_error_details_invalid_json() {
-        let error = format!(
-            "some error{}invalid json",
-            ERROR_DETAILS_MARKER
-        );
+        let error = format!("some error{}invalid json", ERROR_DETAILS_MARKER);
         let (msg, details) = parse_error_details(&error);
         assert_eq!(msg, "some error");
         assert!(details.is_empty());
@@ -448,7 +448,8 @@ mod tests {
             "应包含 google.rpc.DebugInfo"
         );
         assert!(
-            pool.get_message_by_name("google.rpc.QuotaFailure").is_some(),
+            pool.get_message_by_name("google.rpc.QuotaFailure")
+                .is_some(),
             "应包含 google.rpc.QuotaFailure"
         );
         assert!(
@@ -456,7 +457,8 @@ mod tests {
             "应包含 google.rpc.BadRequest"
         );
         assert!(
-            pool.get_message_by_name("google.rpc.ResourceInfo").is_some(),
+            pool.get_message_by_name("google.rpc.ResourceInfo")
+                .is_some(),
             "应包含 google.rpc.ResourceInfo"
         );
         assert!(
@@ -464,11 +466,13 @@ mod tests {
             "应包含 google.rpc.Help"
         );
         assert!(
-            pool.get_message_by_name("google.rpc.LocalizedMessage").is_some(),
+            pool.get_message_by_name("google.rpc.LocalizedMessage")
+                .is_some(),
             "应包含 google.rpc.LocalizedMessage"
         );
         assert!(
-            pool.get_message_by_name("google.rpc.PreconditionFailure").is_some(),
+            pool.get_message_by_name("google.rpc.PreconditionFailure")
+                .is_some(),
             "应包含 google.rpc.PreconditionFailure"
         );
         assert!(
@@ -497,6 +501,9 @@ mod tests {
             decoded.details[0].type_url,
             "type.googleapis.com/test.Message"
         );
-        assert_eq!(decoded.details[0].value, vec![0x0a, 0x05, b'h', b'e', b'l', b'l', b'o']);
+        assert_eq!(
+            decoded.details[0].value,
+            vec![0x0a, 0x05, b'h', b'e', b'l', b'l', b'o']
+        );
     }
 }

@@ -4,8 +4,8 @@
 // 关闭始终走 "out" 端口（Failed不阻塞流程）。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -99,9 +99,7 @@ impl NodeExecutor for KafkaCloseExecutor {
         let next_node_ids: Vec<String> = {
             let filtered: Vec<String> = connections
                 .iter()
-                .filter(|conn| {
-                    conn.source_node_uuid == node.uuid && conn.source_port_id == "out"
-                })
+                .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "out")
                 .map(|conn| conn.target_node_uuid.clone())
                 .collect();
 
@@ -117,10 +115,7 @@ impl NodeExecutor for KafkaCloseExecutor {
         match close_result {
             Ok(output) => {
                 if output.success {
-                    log::info!(
-                        "[Kafka] 连接关闭Success: connection_id={}",
-                        connection_id
-                    );
+                    log::info!("[Kafka] 连接关闭Success: connection_id={}", connection_id);
                 } else {
                     log::warn!(
                         "[Kafka] 连接关闭Failed: connection_id={}, error={:?}",
@@ -283,7 +278,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("KafkaCloseConfig"));
     }
 
-    /// 测试：变量替换 — connection_id 中的变量应被正确替换
+    /// 测试：变量替换 — `connection_id` 中的变量应被正确替换
     #[tokio::test]
     async fn test_close_with_variable_replacement() {
         let kafka_manager = Arc::new(KafkaConnectionManager::new());

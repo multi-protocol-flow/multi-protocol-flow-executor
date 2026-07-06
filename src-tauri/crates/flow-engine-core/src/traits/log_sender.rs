@@ -7,13 +7,13 @@
 //! - **调试模式 (debug)**: 同步发送日志，确保日志顺序和完整性，便于调试
 //! - **发布模式 (release)**: 队列异步发送，不阻塞执行流程，提升性能
 
-use async_trait::async_trait;
 use crate::log_event::LogEvent;
-use std::sync::Arc;
-use tokio::sync::mpsc;
+use async_trait::async_trait;
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 use std::task::{Context, Poll};
+use tokio::sync::mpsc;
 
 /// 日志发送器抽象
 #[async_trait]
@@ -252,11 +252,11 @@ mod tests {
     async fn test_queued_log_sender_release_mode() {
         // 模拟发布模式行为（通过直接创建队列）
         let test_sender = Arc::new(TestUnderlyingSender::new());
-        
+
         // 手动创建队列测试
         let (tx, mut rx) = mpsc::unbounded_channel::<LogEvent>();
         let test_clone = test_sender.clone();
-        
+
         // 启动消费任务
         let handle = tokio::spawn(async move {
             let mut count = 0;
@@ -268,7 +268,7 @@ mod tests {
                 }
             }
         });
-        
+
         // 发送日志
         for i in 0..3 {
             let event = LogEvent {
@@ -281,13 +281,13 @@ mod tests {
             };
             tx.send(event).unwrap();
         }
-        
+
         // 等待消费完成
         handle.await.unwrap();
-        
+
         // 验证所有日志都已发送
         assert_eq!(test_sender.get_count(), 3);
-        
+
         // 验证顺序
         let events = test_sender.get_events();
         assert_eq!(events.len(), 3);

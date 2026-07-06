@@ -65,10 +65,7 @@ impl DatasetSessionManager {
 
     /// 获取当前会话 ID
     pub fn current_session_id(&self) -> Option<String> {
-        self.active_session
-            .lock()
-            .ok()
-            .and_then(|g| g.clone())
+        self.active_session.lock().ok().and_then(|g| g.clone())
     }
 }
 

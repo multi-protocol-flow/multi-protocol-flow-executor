@@ -3,15 +3,15 @@
 // 实现 MCP 连接建立、变量替换和服务发现功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::traits::McpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -43,7 +43,12 @@ impl NodeExecutor for McpConnectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::McpConnect(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not McpConnectConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not McpConnectConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换（URL 和 Stdio 的 command/args 都需要替换）
@@ -71,7 +76,10 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = Vec::new();
                 for arg in arg_list {
                     replaced.push(replace_variables(arg, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("args variable substitution failed: {}", e))
+                        ErrorDetail::execution_error(format!(
+                            "args variable substitution failed: {}",
+                            e
+                        ))
                     })?);
                 }
                 Some(replaced)
@@ -82,9 +90,7 @@ impl NodeExecutor for McpConnectExecutor {
         // 3. 日志：开始连接
         let display_url = match &command {
             Some(cmd) => {
-                let args_display = args.as_ref()
-                    .map(|a| a.join(" "))
-                    .unwrap_or_default();
+                let args_display = args.as_ref().map(|a| a.join(" ")).unwrap_or_default();
                 if args_display.is_empty() {
                     cmd.clone()
                 } else {
@@ -119,10 +125,16 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = HashMap::new();
                 for (key, value) in h {
                     let replaced_key = replace_variables(key, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("headers key variable substitution failed: {}", e))
+                        ErrorDetail::execution_error(format!(
+                            "headers key variable substitution failed: {}",
+                            e
+                        ))
                     })?;
                     let replaced_value = replace_variables(value, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("headers value variable substitution failed: {}", e))
+                        ErrorDetail::execution_error(format!(
+                            "headers value variable substitution failed: {}",
+                            e
+                        ))
                     })?;
                     replaced.insert(replaced_key, replaced_value);
                 }
@@ -136,10 +148,16 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = HashMap::new();
                 for (key, value) in h {
                     let replaced_key = replace_variables(key, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("custom_headers key variable substitution failed: {}", e))
+                        ErrorDetail::execution_error(format!(
+                            "custom_headers key variable substitution failed: {}",
+                            e
+                        ))
                     })?;
                     let replaced_value = replace_variables(value, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("custom_headers value variable substitution failed: {}", e))
+                        ErrorDetail::execution_error(format!(
+                            "custom_headers value variable substitution failed: {}",
+                            e
+                        ))
                     })?;
                     replaced.insert(replaced_key, replaced_value);
                 }
@@ -153,10 +171,16 @@ impl NodeExecutor for McpConnectExecutor {
                 let mut replaced = HashMap::new();
                 for (key, value) in e {
                     let replaced_key = replace_variables(key, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("env key variable substitution failed: {}", e))
+                        ErrorDetail::execution_error(format!(
+                            "env key variable substitution failed: {}",
+                            e
+                        ))
                     })?;
                     let replaced_value = replace_variables(value, context).map_err(|e| {
-                        ErrorDetail::execution_error(format!("env value variable substitution failed: {}", e))
+                        ErrorDetail::execution_error(format!(
+                            "env value variable substitution failed: {}",
+                            e
+                        ))
                     })?;
                     replaced.insert(replaced_key, replaced_value);
                 }
@@ -325,7 +349,11 @@ impl NodeExecutor for McpConnectExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -355,12 +383,14 @@ impl NodeExecutor for McpConnectExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::mcp_connection_manager::McpConnectionManager;
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::McpConnectConfig;
     use flow_engine_core::node_config::McpTransportMode;
-    use flow_engine_core::traits::{McpConnectionInfo, McpPromptInfo, McpResourceInfo, McpServerInfo, McpToolInfo};
-    use crate::mcp_connection_manager::McpConnectionManager;
+    use flow_engine_core::traits::{
+        McpConnectionInfo, McpPromptInfo, McpResourceInfo, McpServerInfo, McpToolInfo,
+    };
 
     /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, url: &str) -> Node {
@@ -445,11 +475,9 @@ mod tests {
 
         // 创建上下文并设置变量
         let mut context = create_context("test-flow");
-        context.variables.set_variable(
-            "host".to_string(),
-            json!("localhost"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("host".to_string(), json!("localhost"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -491,7 +519,7 @@ mod tests {
 
     // ===== 调试事件测试 =====
 
-    /// mpsc adapter for DebugEventSender (测试用)
+    /// mpsc adapter for `DebugEventSender` (测试用)
     struct MpscDebugEventSender {
         sender: tokio::sync::mpsc::UnboundedSender<DebugEvent>,
     }
@@ -574,16 +602,10 @@ mod tests {
         async fn close(&self, _connection_id: &str) -> Result<(), String> {
             Ok(())
         }
-        fn get_connection_info(
-            &self,
-            _connection_id: &str,
-        ) -> Option<McpConnectionInfo> {
+        fn get_connection_info(&self, _connection_id: &str) -> Option<McpConnectionInfo> {
             Some(self.connection_info.clone())
         }
-        async fn list_prompts(
-            &self,
-            _connection_id: &str,
-        ) -> Result<Vec<McpPromptInfo>, String> {
+        async fn list_prompts(&self, _connection_id: &str) -> Result<Vec<McpPromptInfo>, String> {
             Ok(vec![])
         }
         async fn get_prompt(
@@ -623,7 +645,7 @@ mod tests {
         (context, event_receiver)
     }
 
-    /// 测试：connection failed时不发射 McpConnectionCreated 调试事件
+    /// 测试：connection failed时不发射 `McpConnectionCreated` 调试事件
     #[tokio::test]
     async fn test_debug_event_not_emitted_on_connect_failure() {
         init_rustls();
@@ -638,7 +660,7 @@ mod tests {
 
         assert!(result.is_ok());
         // connection failed，不应发射调试事件
-        let events: Vec<_> = (&mut event_receiver).try_recv().into_iter().collect();
+        let events: Vec<_> = event_receiver.try_recv().into_iter().collect();
         assert!(
             events.is_empty(),
             "connection failed时不应发射调试事件，但收到: {:?}",
@@ -646,7 +668,7 @@ mod tests {
         );
     }
 
-    /// 测试：连接Success时发射 McpConnectionCreated 调试事件
+    /// 测试：连接Success时发射 `McpConnectionCreated` 调试事件
     #[tokio::test]
     async fn test_debug_event_mcp_connection_created() {
         let mcp_manager = Arc::new(MockMcpProvider::new());
@@ -678,9 +700,6 @@ mod tests {
         }
 
         // 不应有更多事件
-        assert!(
-            event_receiver.try_recv().is_err(),
-            "不应有额外的调试事件"
-        );
+        assert!(event_receiver.try_recv().is_err(), "不应有额外的调试事件");
     }
 }

@@ -3,8 +3,8 @@
 //! 实现 AMQP 0-9-1 队列绑定到交换器、变量替换和输出构建功能。
 //! Success路由到 true 端口，Failed路由到 false 端口。
 
-use std::collections::HashMap;
 use flow_engine_core::error::ErrorDetail;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -13,9 +13,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{AmqpQueueBindConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// AMQP 绑定队列节点执行器
@@ -114,8 +114,12 @@ impl NodeExecutor for AmqpQueueBindExecutor {
                 let mut resolved = HashMap::new();
                 for (k, v) in args {
                     if let Some(s) = v.as_str() {
-                        let replaced = replace_variables(s, context)
-                            .map_err(|e| ErrorDetail::execution_error(format!("arguments[{}] variable substitution failed: {}", k, e)))?;
+                        let replaced = replace_variables(s, context).map_err(|e| {
+                            ErrorDetail::execution_error(format!(
+                                "arguments[{}] variable substitution failed: {}",
+                                k, e
+                            ))
+                        })?;
                         resolved.insert(k.clone(), json!(replaced));
                     } else {
                         resolved.insert(k.clone(), v.clone());
@@ -254,8 +258,15 @@ impl NodeExecutor for AmqpQueueBindExecutor {
 
                 // 绑定Failed走 false 端口
                 // 检查 on_error 策略：AbortFlow 时返回Error而不是路由到 false 端口
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(ErrorDetail::execution_error(format!("AMQP queue_bind Failed: {}", e)));
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
+                    return Err(ErrorDetail::execution_error(format!(
+                        "AMQP queue_bind Failed: {}",
+                        e
+                    )));
                 }
 
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
@@ -288,14 +299,13 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
         Amqp10AcceptConfig, Amqp10ConnectConfig, Amqp10DisconnectConfig, Amqp10ReceiveConfig,
-        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig,
-        AmqpConsumeConfig, AmqpConnectConfig, AmqpExchangeDeclareConfig,
-        AmqpExchangeDeleteConfig, AmqpGetConfig, AmqpManagementConfig, AmqpPublishConfig,
-        AmqpQueueDeclareConfig, AmqpQueueDeleteConfig,
+        Amqp10RejectConfig, Amqp10SendConfig, AmqpAckConfig, AmqpCloseConfig, AmqpConnectConfig,
+        AmqpConsumeConfig, AmqpExchangeDeclareConfig, AmqpExchangeDeleteConfig, AmqpGetConfig,
+        AmqpManagementConfig, AmqpPublishConfig, AmqpQueueDeclareConfig, AmqpQueueDeleteConfig,
     };
     use flow_engine_core::traits::{AmqpConnectOutput, AmqpConnectionInfo, AmqpProvider};
 
-    /// Mock AmqpProvider（queue_bind Success）
+    /// Mock `AmqpProvider（queue_bind` Success）
     struct MockAmqpProvider {
         should_fail: bool,
     }
@@ -588,7 +598,7 @@ mod tests {
         assert!(result.unwrap_err().message.contains("AmqpQueueBindConfig"));
     }
 
-    /// 测试：变量替换在 queue、exchange、connection_id 和 routing_key 中生效
+    /// 测试：变量替换在 `queue、exchange、connection_id` 和 `routing_key` 中生效
     #[tokio::test]
     async fn test_queue_bind_with_variable_replacement() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
@@ -627,11 +637,9 @@ mod tests {
             json!("order.exchange"),
             String::new(),
         );
-        context.variables.set_variable(
-            "event_type".to_string(),
-            json!("created"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("event_type".to_string(), json!("created"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -651,7 +659,13 @@ mod tests {
     async fn test_queue_bind_with_connections_routing() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());
         let executor = AmqpQueueBindExecutor::new(amqp_manager);
-        let node = create_test_node("test-route", "路由测试", "conn-1", "my-queue", "my-exchange");
+        let node = create_test_node(
+            "test-route",
+            "路由测试",
+            "conn-1",
+            "my-queue",
+            "my-exchange",
+        );
         let mut context = create_context("test-flow");
 
         let connections = vec![Connection {
@@ -687,10 +701,7 @@ mod tests {
                 queue: "test.queue".to_string(),
                 exchange: "test.exchange".to_string(),
                 routing_key: Some("order.*".to_string()),
-                arguments: Some(HashMap::from([(
-                    "x-match".to_string(),
-                    json!("all"),
-                )])),
+                arguments: Some(HashMap::from([("x-match".to_string(), json!("all"))])),
             }),
             ports: None,
             has_breakpoint: None,
@@ -719,7 +730,7 @@ mod tests {
         assert_eq!(request["arguments"]["x-match"], "all");
     }
 
-    /// 测试：routing_key 为 None 时绑定Success
+    /// `测试：routing_key` 为 None 时绑定Success
     #[tokio::test]
     async fn test_queue_bind_without_routing_key() {
         let amqp_manager = Arc::new(MockAmqpProvider::new_success());

@@ -265,7 +265,7 @@ mod tests {
         MessageContent, MessageDirection, WsConnectionStream, WsMessage, WsStreamSegment,
     };
 
-    /// 测试 WsSegmentSummary 序列化
+    /// 测试 `WsSegmentSummary` 序列化
     #[test]
     fn test_ws_segment_summary_serialization() {
         let summary = WsSegmentSummary {
@@ -282,7 +282,7 @@ mod tests {
         assert!(json.contains("5"));
     }
 
-    /// 测试 WsStreamSummary 序列化
+    /// 测试 `WsStreamSummary` 序列化
     #[test]
     fn test_ws_stream_summary_serialization() {
         let summary = WsStreamSummary {
@@ -308,7 +308,7 @@ mod tests {
         assert!(json.contains("segments"));
     }
 
-    /// 测试 WsSegmentSummary::from
+    /// 测试 `WsSegmentSummary::from`
     #[test]
     fn test_ws_segment_summary_from_segment() {
         let mut segment = WsStreamSegment::new(
@@ -336,7 +336,7 @@ mod tests {
         assert_eq!(summary.message_count, 3);
     }
 
-    /// 测试 WsStreamSummary::from
+    /// 测试 `WsStreamSummary::from`
     #[test]
     fn test_ws_stream_summary_from_stream() {
         let mut stream =
@@ -378,7 +378,7 @@ mod tests {
         assert_eq!(summary.segments[0].node_uuid, "node-1");
     }
 
-    /// 测试 WsStreamSummary::from 多段场景
+    /// 测试 `WsStreamSummary::from` 多段场景
     #[test]
     fn test_ws_stream_summary_from_stream_multiple_segments() {
         let mut stream =
@@ -427,7 +427,7 @@ mod tests {
         assert_eq!(summary.segments[1].node_uuid, "node-2");
     }
 
-    /// 测试 FlowExecutionReport 的 ws_streams 字段序列化（空时跳过）
+    /// 测试 `FlowExecutionReport` 的 `ws_streams` 字段序列化（空时跳过）
     #[test]
     fn test_flow_report_ws_streams_skip_when_empty() {
         let report = FlowExecutionReport {
@@ -459,7 +459,7 @@ mod tests {
         assert!(!json.contains("ws_streams"));
     }
 
-    /// 测试 FlowExecutionReport 的 ws_streams 字段序列化（非空时包含）
+    /// 测试 `FlowExecutionReport` 的 `ws_streams` 字段序列化（非空时包含）
     #[test]
     fn test_flow_report_ws_streams_included_when_not_empty() {
         let ws_stream =
@@ -496,7 +496,7 @@ mod tests {
         assert!(json.contains("wss://example.com/ws"));
     }
 
-    /// 测试 ExecutionStatus::Cancelled 序列化为 "cancelled"
+    /// 测试 `ExecutionStatus::Cancelled` 序列化为 "cancelled"
     #[test]
     fn test_execution_status_cancelled_serialization() {
         let status = ExecutionStatus::Cancelled;
@@ -514,7 +514,7 @@ mod tests {
         assert_eq!(format!("{}", status), "cancelled");
     }
 
-    /// 测试 flow_snapshot 序列化往返
+    /// 测试 `flow_snapshot` 序列化往返
     #[test]
     fn test_flow_report_snapshot_serialization() {
         let flow = crate::flow::Flow {
@@ -559,11 +559,12 @@ mod tests {
         assert!(json.contains("Snapshot Flow"));
 
         // 反序列化往返
-        let deserialized: FlowExecutionReport = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: FlowExecutionReport =
+            serde_json::from_str(&json).expect("反序列化Failed");
         assert_eq!(deserialized.flow_snapshot, Some(flow));
     }
 
-    /// 测试 flow_snapshot 向后兼容（JSON 中缺少字段时反序列化为 None）
+    /// 测试 `flow_snapshot` 向后兼容（JSON 中缺少字段时反序列化为 None）
     #[test]
     fn test_flow_report_snapshot_backward_compat() {
         let json = r#"{
@@ -596,7 +597,7 @@ mod tests {
         assert!(report.flow_snapshot.is_none());
     }
 
-    /// 测试 flow_snapshot 为 None 时序列化结果不包含该字段
+    /// 测试 `flow_snapshot` 为 None 时序列化结果不包含该字段
     #[test]
     fn test_flow_report_snapshot_skip_when_none() {
         let report = FlowExecutionReport {

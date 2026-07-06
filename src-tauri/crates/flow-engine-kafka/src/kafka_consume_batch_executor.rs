@@ -7,8 +7,8 @@
 // 输出端口: "true"（Success）/ "false"（Failed）
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -61,10 +61,13 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                 context.flow_uuid,
                 node.uuid
             );
-            return Ok((vec!["false".to_string()], Some(json!({
-                "success": false,
-                "error": "Execution cancelled",
-            }))));
+            return Ok((
+                vec!["false".to_string()],
+                Some(json!({
+                    "success": false,
+                    "error": "Execution cancelled",
+                })),
+            ));
         }
 
         // 3. 变量替换: connection_id、topic、group_id
@@ -210,9 +213,10 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
 
                 // 8. 路由端口: success → "true", failure → "false"
                 if !success
-                    && !node.on_error.as_ref().map_or(true, |s| {
-                        *s == ExecutionErrorStrategy::RouteToFalse
-                    })
+                    && !node
+                        .on_error
+                        .as_ref()
+                        .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
                 {
                     let error_msg = output_data
                         .get("error")
@@ -257,9 +261,11 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| {
-                    *s == ExecutionErrorStrategy::RouteToFalse
-                }) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(e));
                 }
 
@@ -388,10 +394,13 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("KafkaConsumeBatchConfig"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("KafkaConsumeBatchConfig"));
     }
 
-    /// 测试：变量替换 — connection_id 和 topic 中的变量应被正确替换
+    /// 测试：变量替换 — `connection_id` 和 topic 中的变量应被正确替换
     #[tokio::test]
     async fn test_consume_batch_with_variable_replacement() {
         let kafka_manager = Arc::new(KafkaConnectionManager::new());
@@ -405,11 +414,9 @@ mod tests {
             json!("kafka-connection-789"),
             String::new(),
         );
-        context.variables.set_variable(
-            "topic_name".to_string(),
-            json!("my-topic"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("topic_name".to_string(), json!("my-topic"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
