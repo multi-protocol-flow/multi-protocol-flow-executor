@@ -66,7 +66,7 @@ fn test_load_report_success() {
     let loaded = flow_engine::storage::load_report("test-uuid-2", reports_dir);
     assert!(loaded.is_ok(), "load report failed: {:?}", loaded.err());
 
-    let loaded_report = loaded.unwrap();
+    let loaded_report = loaded.expect("should load saved report successfully");
     assert_eq!(loaded_report.uuid, "test-uuid-2");
     assert_eq!(loaded_report.flow_name, "测试流程");
 }
@@ -76,9 +76,8 @@ fn test_load_report_not_found() {
     let temp_dir = TempDir::new().expect("failed to create temp dir");
     let reports_dir = temp_dir.path();
 
-    let result = flow_engine::storage::load_report("non-existent-uuid", reports_dir);
-    assert!(result.is_err(), "loading non-existent report should return error");
-    let err = result.unwrap_err();
+    let err = flow_engine::storage::load_report("non-existent-uuid", reports_dir)
+        .expect_err("loading non-existent report should return error");
     assert!(
         err.contains("报告文件不存在") || err.contains("not found"),
         "unexpected error: {}",
@@ -107,7 +106,7 @@ fn test_list_reports_sorted() {
     let result = flow_engine::storage::list_reports(reports_dir);
     assert!(result.is_ok(), "list reports failed: {:?}", result.err());
 
-    let reports = result.unwrap();
+    let reports = result.expect("should list reports successfully");
     assert_eq!(reports.len(), 3);
 
     // 验证按时间戳倒序排序
@@ -137,9 +136,8 @@ fn test_delete_report_not_found() {
     let temp_dir = TempDir::new().expect("failed to create temp dir");
     let reports_dir = temp_dir.path();
 
-    let result = flow_engine::storage::delete_report("non-existent-uuid", reports_dir);
-    assert!(result.is_err(), "deleting non-existent report should return error");
-    let err = result.unwrap_err();
+    let err = flow_engine::storage::delete_report("non-existent-uuid", reports_dir)
+        .expect_err("deleting non-existent report should return error");
     assert!(
         err.contains("报告文件不存在") || err.contains("not found"),
         "unexpected error: {}",
@@ -154,5 +152,5 @@ fn test_list_reports_empty_directory() {
 
     let result = flow_engine::storage::list_reports(reports_dir);
     assert!(result.is_ok(), "listing empty directory should succeed");
-    assert_eq!(result.unwrap().len(), 0);
+    assert_eq!(result.expect("listing empty directory should succeed").len(), 0);
 }

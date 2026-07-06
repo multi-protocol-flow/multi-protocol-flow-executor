@@ -47,19 +47,23 @@ fn test_debug_stack_entry_fields_exist() {
     assert!(json_str.contains("condition not met"));
 
     // deserialize
-    let deserialized: ExecutionStackEntry = serde_json::from_str(&json_str).expect("deserialization failed");
+    let deserialized: ExecutionStackEntry =
+        serde_json::from_str(&json_str).expect("deserialization failed");
 
     // verify new field values
     assert!(deserialized.resolved_config.is_some());
     assert!(deserialized.variable_changes.is_some());
     assert!(deserialized.skip_reason.is_some());
 
-    let changes = deserialized.variable_changes.unwrap();
+    let changes = deserialized.variable_changes.expect("variable_changes should be present after deserialization");
     assert_eq!(changes.len(), 2);
     assert_eq!(changes[0].key, "status");
     assert_eq!(changes[1].key, "body");
 
-    assert_eq!(deserialized.skip_reason, Some("condition not met".to_string()));
+    assert_eq!(
+        deserialized.skip_reason,
+        Some("condition not met".to_string())
+    );
 }
 
 /// 测试向后兼容性：旧版 JSON（不包含新字段）可正常反序列化
@@ -153,7 +157,8 @@ fn test_debug_stack_entry_partial_fields() {
     assert!(!json_str.contains("skip_reason"));
 
     // verify deserialization
-    let deserialized: ExecutionStackEntry = serde_json::from_str(&json_str).expect("deserialization failed");
+    let deserialized: ExecutionStackEntry =
+        serde_json::from_str(&json_str).expect("deserialization failed");
 
     assert!(deserialized.resolved_config.is_some());
     assert!(deserialized.variable_changes.is_none());
@@ -185,7 +190,8 @@ fn test_debug_stack_entry_full_scenario() {
 
     // 完整往返测试
     let json_str = serde_json::to_string(&entry).expect("serialization failed");
-    let deserialized: ExecutionStackEntry = serde_json::from_str(&json_str).expect("deserialization failed");
+    let deserialized: ExecutionStackEntry =
+        serde_json::from_str(&json_str).expect("deserialization failed");
 
     // verify all fields
     assert_eq!(deserialized.node_uuid, "node-003");
@@ -197,7 +203,7 @@ fn test_debug_stack_entry_full_scenario() {
     assert!(deserialized.resolved_config.is_some());
     assert!(deserialized.variable_changes.is_some());
 
-    let changes = deserialized.variable_changes.unwrap();
+    let changes = deserialized.variable_changes.expect("variable_changes should be present in full scenario");
     assert_eq!(changes.len(), 1);
     assert_eq!(changes[0].key, "counter");
     assert_eq!(changes[0].old_value, None);

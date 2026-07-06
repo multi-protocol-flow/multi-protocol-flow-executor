@@ -3,15 +3,15 @@
 // 实现 MCP 工具调用功能。
 
 use flow_engine_core::connection::Connection;
-use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::debug_types::DebugEvent;
+use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
-use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::traits::McpProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -43,7 +43,12 @@ impl NodeExecutor for McpCallToolExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::McpCallTool(config) => config.clone(),
-            _ => return Err(ErrorDetail::execution_error(format!("Node data type is not McpCallToolConfig: {}", node.uuid))),
+            _ => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "Node data type is not McpCallToolConfig: {}",
+                    node.uuid
+                )))
+            }
         };
 
         // 2. 变量替换 connection_id 和 tool_name
@@ -84,7 +89,10 @@ impl NodeExecutor for McpCallToolExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("MCP call tool node {} start execution (tool: {})", node.name, tool_name),
+                message: format!(
+                    "MCP call tool node {} start execution (tool: {})",
+                    node.name, tool_name
+                ),
                 timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -185,8 +193,7 @@ impl NodeExecutor for McpCallToolExecutor {
                     let filtered: Vec<String> = connections
                         .iter()
                         .filter(|conn| {
-                            conn.source_node_uuid == node.uuid
-                                && conn.source_port_id == port_id
+                            conn.source_node_uuid == node.uuid && conn.source_port_id == port_id
                         })
                         .map(|conn| conn.target_node_uuid.clone())
                         .collect();
@@ -239,7 +246,11 @@ impl NodeExecutor for McpCallToolExecutor {
                 });
 
                 // 检查 on_error 策略
-                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                if !node
+                    .on_error
+                    .as_ref()
+                    .is_none_or(|s| *s == ExecutionErrorStrategy::RouteToFalse)
+                {
                     return Err(ErrorDetail::execution_error(format!("Flow aborted: {}", e)));
                 }
 
@@ -248,8 +259,7 @@ impl NodeExecutor for McpCallToolExecutor {
                     let filtered: Vec<String> = connections
                         .iter()
                         .filter(|conn| {
-                            conn.source_node_uuid == node.uuid
-                                && conn.source_port_id == "false"
+                            conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
                         })
                         .map(|conn| conn.target_node_uuid.clone())
                         .collect();
@@ -270,10 +280,10 @@ impl NodeExecutor for McpCallToolExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::mcp_connection_manager::McpConnectionManager;
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::McpCallToolConfig;
-    use crate::mcp_connection_manager::McpConnectionManager;
 
     /// 创建Test Node
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, tool_name: &str) -> Node {
@@ -348,11 +358,9 @@ mod tests {
             json!("mcp-connection-123"),
             String::new(),
         );
-        context.variables.set_variable(
-            "tool".to_string(),
-            json!("get_weather"),
-            String::new(),
-        );
+        context
+            .variables
+            .set_variable("tool".to_string(), json!("get_weather"), String::new());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -394,7 +402,7 @@ mod tests {
 
     // ===== 调试事件测试 =====
 
-    /// mpsc adapter for DebugEventSender (测试用)
+    /// mpsc adapter for `DebugEventSender` (测试用)
     struct MpscDebugEventSender {
         sender: tokio::sync::mpsc::UnboundedSender<DebugEvent>,
     }
@@ -413,7 +421,7 @@ mod tests {
         }
     }
 
-    /// 模拟 MCP Provider（call_tool Success）
+    /// 模拟 MCP `Provider（call_tool` Success）
     struct MockMcpProvider;
 
     #[async_trait::async_trait]
@@ -496,7 +504,7 @@ mod tests {
         (context, event_receiver)
     }
 
-    /// 测试：调用Failed时不发射 McpToolCalled 调试事件
+    /// 测试：调用Failed时不发射 `McpToolCalled` 调试事件
     #[tokio::test]
     async fn test_debug_event_not_emitted_on_call_tool_failure() {
         let mcp_manager = Arc::new(McpConnectionManager::new());
@@ -510,7 +518,7 @@ mod tests {
 
         assert!(result.is_ok());
         // 连接不存在导致调用Failed，不应发射调试事件
-        let events: Vec<_> = (&mut event_receiver).try_recv().into_iter().collect();
+        let events: Vec<_> = event_receiver.try_recv().into_iter().collect();
         assert!(
             events.is_empty(),
             "调用Failed时不应发射调试事件，但收到: {:?}",
@@ -518,7 +526,7 @@ mod tests {
         );
     }
 
-    /// 测试：调用Success时发射 McpToolCalled 调试事件
+    /// 测试：调用Success时发射 `McpToolCalled` 调试事件
     #[tokio::test]
     async fn test_debug_event_mcp_tool_called() {
         let mcp_manager = Arc::new(MockMcpProvider);
@@ -549,9 +557,6 @@ mod tests {
             _ => panic!("期望 McpToolCalled 事件，收到: {:?}", event),
         }
 
-        assert!(
-            event_receiver.try_recv().is_err(),
-            "不应有额外的调试事件"
-        );
+        assert!(event_receiver.try_recv().is_err(), "不应有额外的调试事件");
     }
 }

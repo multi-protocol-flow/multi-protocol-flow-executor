@@ -40,13 +40,11 @@ async fn test_input_data_timing_basic() {
         name: "入口".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::Entry(EntryConfig::default()),
-        ports: Some(vec![
-            Port {
-                id: "output".to_string(),
-                port_type: PortType::Output,
-                label: Some("输出".to_string()),
-            },
-        ]),
+        ports: Some(vec![Port {
+            id: "output".to_string(),
+            port_type: PortType::Output,
+            label: Some("输出".to_string()),
+        }]),
         has_breakpoint: None,
         on_error: None,
     };
@@ -71,7 +69,15 @@ async fn test_input_data_timing_basic() {
     };
 
     let log_sender = Arc::new(NoopLogSender);
-    let result = flow_engine::commands::execute_flow::execute_flow(input, flow, Some(log_sender), None, None, None).await;
+    let result = flow_engine::commands::execute_flow::execute_flow(
+        input,
+        flow,
+        Some(log_sender),
+        None,
+        None,
+        None,
+    )
+    .await;
 
     // 验证执行成功
     assert!(result.success, "流程执行失败: {:?}", result.error);
@@ -82,7 +88,10 @@ async fn test_input_data_timing_basic() {
 
     // 验证 Entry 节点的 input_data
     let entry_report = &flow_report.node_reports[0];
-    assert_eq!(entry_report.node_uuid, "entry-1", "节点 UUID 应该是 entry-1");
+    assert_eq!(
+        entry_report.node_uuid, "entry-1",
+        "节点 UUID 应该是 entry-1"
+    );
 
     // 验证 input_data 应该是 None（Entry 节点无输入）
     assert!(
@@ -107,13 +116,11 @@ async fn test_input_data_timing_with_initial_variables() {
         name: "入口".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::Entry(EntryConfig::default()),
-        ports: Some(vec![
-            Port {
-                id: "output".to_string(),
-                port_type: PortType::Output,
-                label: Some("输出".to_string()),
-            },
-        ]),
+        ports: Some(vec![Port {
+            id: "output".to_string(),
+            port_type: PortType::Output,
+            label: Some("输出".to_string()),
+        }]),
         has_breakpoint: None,
         on_error: None,
     };
@@ -142,7 +149,15 @@ async fn test_input_data_timing_with_initial_variables() {
     };
 
     let log_sender = Arc::new(NoopLogSender);
-    let result = flow_engine::commands::execute_flow::execute_flow(input, flow, Some(log_sender), None, None, None).await;
+    let result = flow_engine::commands::execute_flow::execute_flow(
+        input,
+        flow,
+        Some(log_sender),
+        None,
+        None,
+        None,
+    )
+    .await;
 
     // 验证执行成功
     assert!(result.success, "流程执行失败: {:?}", result.error);
@@ -181,13 +196,11 @@ async fn test_input_data_timing_http_node() {
         name: "入口".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::Entry(EntryConfig::default()),
-        ports: Some(vec![
-            Port {
-                id: "output".to_string(),
-                port_type: PortType::Output,
-                label: Some("输出".to_string()),
-            },
-        ]),
+        ports: Some(vec![Port {
+            id: "output".to_string(),
+            port_type: PortType::Output,
+            label: Some("输出".to_string()),
+        }]),
         has_breakpoint: None,
         on_error: None,
     };
@@ -256,7 +269,15 @@ async fn test_input_data_timing_http_node() {
     };
 
     let log_sender = Arc::new(NoopLogSender);
-    let result = flow_engine::commands::execute_flow::execute_flow(input, flow, Some(log_sender), None, None, None).await;
+    let result = flow_engine::commands::execute_flow::execute_flow(
+        input,
+        flow,
+        Some(log_sender),
+        None,
+        None,
+        None,
+    )
+    .await;
 
     // 验证执行成功
     assert!(result.success, "流程执行失败: {:?}", result.error);
@@ -272,7 +293,10 @@ async fn test_input_data_timing_http_node() {
         .find(|r| r.node_uuid == "http-3")
         .expect("should have HTTP node report");
 
-    let input_data = http_report.input_data.as_ref().expect("input_data 应该存在");
+    let input_data = http_report
+        .input_data
+        .as_ref()
+        .expect("input_data 应该存在");
     let input_obj = input_data.as_object().expect("input_data 应该是对象");
 
     // input_data 应该包含请求配置字段（url, method）

@@ -34,12 +34,15 @@ fn test_node_report_fields_exist() {
     // 验证新字段值
     assert!(report.resolved_config.is_some());
     assert!(report.variable_changes.is_some());
-    assert_eq!(report.variable_changes.as_ref().unwrap().len(), 1);
+    assert_eq!(
+        report.variable_changes.as_ref().expect("variable_changes should be Some").len(),
+        1
+    );
     assert!(report.skip_reason.is_none());
     assert_eq!(report.wait_duration_ms, Some(500));
 
     // 验证序列化包含新字段
-    let json_str = serde_json::to_string(&report).expect("serialization failed");
+    let json_str = serde_json::to_string(&report).expect("report serialization should succeed");
     assert!(json_str.contains("resolved_config"));
     assert!(json_str.contains("variable_changes"));
     assert!(json_str.contains("wait_duration_ms"));
@@ -64,8 +67,8 @@ fn test_node_report_backward_compat() {
     });
 
     // 反序列化应该成功，新字段使用默认值
-    let report: NodeExecutionReport =
-        serde_json::from_value(old_json).expect("legacy JSON deserialization failed");
+    let report: NodeExecutionReport = serde_json::from_value(old_json)
+        .expect("legacy JSON deserialization should succeed");
 
     // 验证基本字段
     assert_eq!(report.node_uuid, "old-uuid");
@@ -104,7 +107,7 @@ fn test_node_report_skip_serializing_if() {
     };
 
     // 序列化
-    let json_str = serde_json::to_string(&report).expect("serialization failed");
+    let json_str = serde_json::to_string(&report).expect("report serialization should succeed");
 
     // 新字段不应出现在 JSON 中
     assert!(!json_str.contains("resolved_config"));
@@ -135,11 +138,15 @@ fn test_node_report_skipped_with_reason() {
     };
 
     // 验证序列化包含 skip_reason
-    let json_str = serde_json::to_string(&report).expect("serialization failed");
+    let json_str = serde_json::to_string(&report).expect("report serialization should succeed");
     assert!(json_str.contains("skip_reason"));
     assert!(json_str.contains("condition not met"));
 
     // 反序列化验证
-    let deserialized: NodeExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
-    assert_eq!(deserialized.skip_reason, Some("condition not met".to_string()));
+    let deserialized: NodeExecutionReport =
+        serde_json::from_str(&json_str).expect("report deserialization should succeed");
+    assert_eq!(
+        deserialized.skip_reason,
+        Some("condition not met".to_string())
+    );
 }

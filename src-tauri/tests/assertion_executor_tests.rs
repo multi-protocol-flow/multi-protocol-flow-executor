@@ -1,15 +1,15 @@
 // 断言执行器集成测试 - TDD GREEN 阶段
 
 #![allow(missing_docs)]
-use flow_engine::context::{ExecutionContext, VariableStorage};
-use flow_engine::node::{Node, NodePosition};
-use flow_engine::node_config::{
-    Assertion, AssertionConfig, AssertionMode, AssertionOperator, NodeData, OnFailureMode,
-    AssertionOutput,
-};
-use flow_engine::executor::NodeExecutor;
 use flow_engine::assertion_executor::AssertionNodeExecutor;
 use flow_engine::connection::Connection;
+use flow_engine::context::{ExecutionContext, VariableStorage};
+use flow_engine::executor::NodeExecutor;
+use flow_engine::node::{Node, NodePosition};
+use flow_engine::node_config::{
+    Assertion, AssertionConfig, AssertionMode, AssertionOperator, AssertionOutput, NodeData,
+    OnFailureMode,
+};
 use std::sync::Arc;
 
 // ============================================================================
@@ -87,11 +87,16 @@ async fn execute_assertion(
 ) -> (Vec<String>, AssertionOutput) {
     let executor = AssertionNodeExecutor::new();
     let result = executor
-        .execute(node, context, connections, &std::collections::HashMap::new())
+        .execute(
+            node,
+            context,
+            connections,
+            &std::collections::HashMap::new(),
+        )
         .await;
-    assert!(result.is_ok(), "execution should succeed");
-    let (next_nodes, output) = result.unwrap();
-    let output: AssertionOutput = serde_json::from_value(output.unwrap()).expect("output deserialization failed");
+    let (next_nodes, output) = result.expect("execution should succeed");
+    let output: AssertionOutput =
+        serde_json::from_value(output.expect("output should be present")).expect("output deserialization failed");
     (next_nodes, output)
 }
 
@@ -494,7 +499,12 @@ async fn test_mode_all_pass() {
     context.last_node_output = Some(serde_json::json!({"status": 200, "count": 10}));
 
     let assertions = vec![
-        create_assertion("a1", "$.status", AssertionOperator::Eq, serde_json::json!(200)),
+        create_assertion(
+            "a1",
+            "$.status",
+            AssertionOperator::Eq,
+            serde_json::json!(200),
+        ),
         create_assertion("a2", "$.count", AssertionOperator::Gt, serde_json::json!(5)),
     ];
     let config = AssertionConfig {
@@ -518,7 +528,12 @@ async fn test_mode_all_partial_fail() {
     context.last_node_output = Some(serde_json::json!({"status": 200, "count": 3}));
 
     let assertions = vec![
-        create_assertion("a1", "$.status", AssertionOperator::Eq, serde_json::json!(200)),
+        create_assertion(
+            "a1",
+            "$.status",
+            AssertionOperator::Eq,
+            serde_json::json!(200),
+        ),
         create_assertion("a2", "$.count", AssertionOperator::Gt, serde_json::json!(5)),
     ];
     let config = AssertionConfig {
@@ -542,7 +557,12 @@ async fn test_mode_any_pass() {
     context.last_node_output = Some(serde_json::json!({"status": 200, "count": 3}));
 
     let assertions = vec![
-        create_assertion("a1", "$.status", AssertionOperator::Eq, serde_json::json!(200)),
+        create_assertion(
+            "a1",
+            "$.status",
+            AssertionOperator::Eq,
+            serde_json::json!(200),
+        ),
         create_assertion("a2", "$.count", AssertionOperator::Gt, serde_json::json!(5)),
     ];
     let config = AssertionConfig {
@@ -697,7 +717,12 @@ async fn test_all_disabled_assertions_pass() {
     let mut context = create_context("test-flow");
     context.last_node_output = Some(serde_json::json!({"status": 200}));
 
-    let mut assertion = create_assertion("a1", "$.status", AssertionOperator::Eq, serde_json::json!(999));
+    let mut assertion = create_assertion(
+        "a1",
+        "$.status",
+        AssertionOperator::Eq,
+        serde_json::json!(999),
+    );
     assertion.enabled = false;
 
     let config = AssertionConfig {
@@ -731,7 +756,10 @@ async fn test_type_mismatch_strict_comparison() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(!output.passed, "strict comparison, different types should fail");
+    assert!(
+        !output.passed,
+        "strict comparison, different types should fail"
+    );
 }
 
 #[tokio::test]
@@ -805,8 +833,7 @@ async fn test_on_failure_throw() {
         .execute(&node, &mut context, &[], &std::collections::HashMap::new())
         .await;
 
-    assert!(result.is_err(), "on_failure=throw should return error");
-    let error = result.unwrap_err();
+    let error = result.expect_err("on_failure=throw should return error");
     assert!(
         error.message.contains("$.status") && error.message.contains("404"),
         "error message should contain assertion failure details: {}",
@@ -821,7 +848,12 @@ async fn test_continue_on_failure() {
     context.last_node_output = Some(serde_json::json!({"status": 404, "count": 10}));
 
     let assertions = vec![
-        create_assertion("a1", "$.status", AssertionOperator::Eq, serde_json::json!(200)),
+        create_assertion(
+            "a1",
+            "$.status",
+            AssertionOperator::Eq,
+            serde_json::json!(200),
+        ),
         create_assertion("a2", "$.count", AssertionOperator::Gt, serde_json::json!(5)),
     ];
     let config = AssertionConfig {
@@ -899,12 +931,12 @@ async fn test_regex_dos_protection() {
     // 使用超时包装测试，确保不会无限阻塞
     let result = tokio::time::timeout(
         std::time::Duration::from_secs(5),
-        execute_assertion(&node, &mut context, &[])
-    ).await;
+        execute_assertion(&node, &mut context, &[]),
+    )
+    .await;
 
     // 应该在 5 秒内完成（即使触发 ReDoS 防护）
-    assert!(result.is_ok(), "regex match should complete before timeout");
-    let (_, output) = result.unwrap();
+    let (_, output) = result.expect("regex match should complete before timeout");
     // ReDoS 模式不应该匹配带 ! 的字符串
     assert!(!output.passed, "ReDoS pattern should not match");
 }

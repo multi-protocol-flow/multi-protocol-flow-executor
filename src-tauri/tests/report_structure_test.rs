@@ -47,7 +47,8 @@ fn test_report_structure_variable_change() {
     assert!(json_str.contains("old_value"));
     assert!(json_str.contains("modified_var"));
 
-    let deserialized: VariableChange = serde_json::from_str(&json_str).expect("deserialization failed");
+    let deserialized: VariableChange =
+        serde_json::from_str(&json_str).expect("deserialization failed");
     assert_eq!(deserialized.old_value, Some(json!("old")));
     assert_eq!(deserialized.new_value, json!("new"));
 }
@@ -61,8 +62,8 @@ fn test_report_structure_variable_change_value_types() {
         old_value: None,
         new_value: json!("string value"),
     };
-    let json_str = serde_json::to_string(&str_var).unwrap();
-    let deserialized: VariableChange = serde_json::from_str(&json_str).unwrap();
+    let json_str = serde_json::to_string(&str_var).expect("VariableChange serialization failed");
+    let deserialized: VariableChange = serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
     assert_eq!(deserialized.new_value, json!("string value"));
 
     // 数字值
@@ -71,8 +72,8 @@ fn test_report_structure_variable_change_value_types() {
         old_value: Some(json!(42)),
         new_value: json!(100),
     };
-    let json_str = serde_json::to_string(&num_var).unwrap();
-    let deserialized: VariableChange = serde_json::from_str(&json_str).unwrap();
+    let json_str = serde_json::to_string(&num_var).expect("VariableChange serialization failed");
+    let deserialized: VariableChange = serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
     assert_eq!(deserialized.new_value, json!(100));
 
     // 数组值
@@ -81,8 +82,8 @@ fn test_report_structure_variable_change_value_types() {
         old_value: None,
         new_value: json!([1, 2, 3]),
     };
-    let json_str = serde_json::to_string(&arr_var).unwrap();
-    let deserialized: VariableChange = serde_json::from_str(&json_str).unwrap();
+    let json_str = serde_json::to_string(&arr_var).expect("VariableChange serialization failed");
+    let deserialized: VariableChange = serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
     assert_eq!(deserialized.new_value, json!([1, 2, 3]));
 
     // 嵌套对象
@@ -91,8 +92,8 @@ fn test_report_structure_variable_change_value_types() {
         old_value: None,
         new_value: json!({"nested": {"deep": "value"}}),
     };
-    let json_str = serde_json::to_string(&obj_var).unwrap();
-    let deserialized: VariableChange = serde_json::from_str(&json_str).unwrap();
+    let json_str = serde_json::to_string(&obj_var).expect("VariableChange serialization failed");
+    let deserialized: VariableChange = serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
     assert_eq!(deserialized.new_value, json!({"nested": {"deep": "value"}}));
 }
 
@@ -216,7 +217,10 @@ fn test_report_structure_node_execution_report() {
     // 验证新字段
     assert!(deserialized.resolved_config.is_some());
     assert!(deserialized.variable_changes.is_some());
-    assert_eq!(deserialized.variable_changes.as_ref().unwrap().len(), 2);
+    assert_eq!(
+        deserialized.variable_changes.as_ref().expect("variable_changes should be present").len(),
+        2
+    );
     assert!(deserialized.skip_reason.is_none());
     assert_eq!(deserialized.wait_duration_ms, Some(150));
 }
@@ -249,10 +253,14 @@ fn test_report_structure_node_execution_report_failed() {
     assert!(json_str.contains("failed"));
     assert!(json_str.contains("connection timeout"));
 
-    let deserialized: NodeExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
+    let deserialized: NodeExecutionReport =
+        serde_json::from_str(&json_str).expect("deserialization failed");
     assert_eq!(deserialized.status, ExecutionStatus::Failed);
     assert!(deserialized.error.is_some());
-    assert_eq!(deserialized.error.as_ref().unwrap().message, "connection timeout");
+    assert_eq!(
+        deserialized.error.as_ref().expect("error should be present").message,
+        "connection timeout"
+    );
 }
 
 /// 测试 NodeExecutionReport 跳过状态
@@ -281,7 +289,8 @@ fn test_report_structure_node_execution_report_skipped() {
     assert!(json_str.contains("skip_reason"));
     assert!(json_str.contains("condition expression evaluated to false"));
 
-    let deserialized: NodeExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
+    let deserialized: NodeExecutionReport =
+        serde_json::from_str(&json_str).expect("deserialization failed");
     assert_eq!(deserialized.status, ExecutionStatus::Skipped);
     assert_eq!(
         deserialized.skip_reason,
@@ -394,7 +403,8 @@ fn test_report_structure_flow_execution_report() {
     };
 
     // 序列化
-    let json_str = serde_json::to_string(&report).expect("FlowExecutionReport serialization failed");
+    let json_str =
+        serde_json::to_string(&report).expect("FlowExecutionReport serialization failed");
 
     // 验证所有字段
     assert!(json_str.contains("uuid"));
@@ -481,7 +491,8 @@ fn test_report_structure_flow_execution_report_failed() {
     assert!(json_str.contains("failed"));
     assert!(json_str.contains("flow_error"));
 
-    let deserialized: FlowExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
+    let deserialized: FlowExecutionReport =
+        serde_json::from_str(&json_str).expect("deserialization failed");
     assert_eq!(deserialized.status, ExecutionStatus::Failed);
     assert!(deserialized.flow_error.is_some());
 }
@@ -515,7 +526,8 @@ fn test_report_structure_flow_execution_report_debug_mode() {
 
     let json_str = serde_json::to_string(&report).expect("serialization failed");
 
-    let deserialized: FlowExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
+    let deserialized: FlowExecutionReport =
+        serde_json::from_str(&json_str).expect("deserialization failed");
     assert_eq!(deserialized.execution_mode, ExecutionMode::Debug);
 }
 
@@ -542,8 +554,8 @@ fn test_report_structure_backward_compat_node_report() {
     });
 
     // 反序列化应该成功
-    let report: NodeExecutionReport =
-        serde_json::from_value(old_json).expect("legacy NodeExecutionReport JSON deserialization failed");
+    let report: NodeExecutionReport = serde_json::from_value(old_json)
+        .expect("legacy NodeExecutionReport JSON deserialization failed");
 
     // 验证基本字段
     assert_eq!(report.node_uuid, "old-node-uuid");
@@ -603,8 +615,8 @@ fn test_report_structure_backward_compat_flow_report() {
     });
 
     // 反序列化应该成功
-    let report: FlowExecutionReport =
-        serde_json::from_value(old_json).expect("legacy FlowExecutionReport JSON deserialization failed");
+    let report: FlowExecutionReport = serde_json::from_value(old_json)
+        .expect("legacy FlowExecutionReport JSON deserialization failed");
 
     // 验证基本字段
     assert_eq!(report.uuid, "old-report-uuid");
@@ -663,26 +675,26 @@ fn test_report_structure_backward_compat_partial_fields() {
 fn test_report_structure_execution_status() {
     // 测试小写序列化
     assert_eq!(
-        serde_json::to_string(&ExecutionStatus::Success).unwrap(),
+        serde_json::to_string(&ExecutionStatus::Success).expect("ExecutionStatus serialization failed"),
         "\"success\""
     );
     assert_eq!(
-        serde_json::to_string(&ExecutionStatus::Failed).unwrap(),
+        serde_json::to_string(&ExecutionStatus::Failed).expect("ExecutionStatus serialization failed"),
         "\"failed\""
     );
     assert_eq!(
-        serde_json::to_string(&ExecutionStatus::Skipped).unwrap(),
+        serde_json::to_string(&ExecutionStatus::Skipped).expect("ExecutionStatus serialization failed"),
         "\"skipped\""
     );
 
     // 测试反序列化
-    let success: ExecutionStatus = serde_json::from_str("\"success\"").unwrap();
+    let success: ExecutionStatus = serde_json::from_str("\"success\"").expect("ExecutionStatus deserialization failed");
     assert_eq!(success, ExecutionStatus::Success);
 
-    let failed: ExecutionStatus = serde_json::from_str("\"failed\"").unwrap();
+    let failed: ExecutionStatus = serde_json::from_str("\"failed\"").expect("ExecutionStatus deserialization failed");
     assert_eq!(failed, ExecutionStatus::Failed);
 
-    let skipped: ExecutionStatus = serde_json::from_str("\"skipped\"").unwrap();
+    let skipped: ExecutionStatus = serde_json::from_str("\"skipped\"").expect("ExecutionStatus deserialization failed");
     assert_eq!(skipped, ExecutionStatus::Skipped);
 }
 
@@ -691,19 +703,19 @@ fn test_report_structure_execution_status() {
 fn test_report_structure_execution_mode() {
     // 测试小写序列化
     assert_eq!(
-        serde_json::to_string(&ExecutionMode::Normal).unwrap(),
+        serde_json::to_string(&ExecutionMode::Normal).expect("ExecutionMode serialization failed"),
         "\"normal\""
     );
     assert_eq!(
-        serde_json::to_string(&ExecutionMode::Debug).unwrap(),
+        serde_json::to_string(&ExecutionMode::Debug).expect("ExecutionMode serialization failed"),
         "\"debug\""
     );
 
     // 测试反序列化
-    let normal: ExecutionMode = serde_json::from_str("\"normal\"").unwrap();
+    let normal: ExecutionMode = serde_json::from_str("\"normal\"").expect("ExecutionMode deserialization failed");
     assert_eq!(normal, ExecutionMode::Normal);
 
-    let debug: ExecutionMode = serde_json::from_str("\"debug\"").unwrap();
+    let debug: ExecutionMode = serde_json::from_str("\"debug\"").expect("ExecutionMode deserialization failed");
     assert_eq!(debug, ExecutionMode::Debug);
 
     // 测试默认值
@@ -732,7 +744,7 @@ fn test_report_structure_full_roundtrip() {
             NodeExecutionReport {
                 node_uuid: "entry".to_string(),
                 node_type: "entry".to_string(),
-            node_name: "entry".to_string(),
+                node_name: "entry".to_string(),
                 start_time: 0,
                 end_time: 1,
                 duration_ms: 1,
@@ -827,7 +839,8 @@ fn test_report_structure_full_roundtrip() {
     let json_str = serde_json::to_string(&original).expect("serialization failed");
 
     // deserialize
-    let restored: FlowExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
+    let restored: FlowExecutionReport =
+        serde_json::from_str(&json_str).expect("deserialization failed");
 
     // 验证关键字段
     assert_eq!(restored.uuid, original.uuid);
@@ -843,7 +856,7 @@ fn test_report_structure_full_roundtrip() {
     // 验证嵌套的 variable_changes
     let http_report = &restored.node_reports[1];
     assert!(http_report.variable_changes.is_some());
-    let changes = http_report.variable_changes.as_ref().unwrap();
+    let changes = http_report.variable_changes.as_ref().expect("variable_changes should be present");
     assert_eq!(changes.len(), 1);
     assert_eq!(changes[0].key, "users");
 }

@@ -20,7 +20,7 @@ fn parse_first_json(s: &str) -> serde_json::Value {
 
 /// 创建一个有效的简单流程文件（仅 entry 节点，有连接）
 fn create_valid_flow_file() -> NamedTempFile {
-    let file = NamedTempFile::new().unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
     let flow_content = r#"{
         "_version": 1,
         "flow": {
@@ -56,13 +56,13 @@ fn create_valid_flow_file() -> NamedTempFile {
         },
         "_meta": null
     }"#;
-    fs::write(file.path(), flow_content).unwrap();
+    fs::write(file.path(), flow_content).expect("failed to write flow content to temp file");
     file
 }
 
 /// 创建一个带有 uuid 字段的流程文件
 fn create_flow_with_uuid() -> NamedTempFile {
-    let file = NamedTempFile::new().unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
     let flow_content = r#"{
         "_version": 1,
         "flow": {
@@ -98,20 +98,20 @@ fn create_flow_with_uuid() -> NamedTempFile {
         },
         "_meta": null
     }"#;
-    fs::write(file.path(), flow_content).unwrap();
+    fs::write(file.path(), flow_content).expect("failed to write flow content to temp file");
     file
 }
 
 /// 创建一个空的流程文件
 fn create_empty_flow_file() -> NamedTempFile {
-    let file = NamedTempFile::new().unwrap();
-    fs::write(file.path(), "{}").unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
+    fs::write(file.path(), "{}").expect("failed to write empty flow to temp file");
     file
 }
 
 /// 创建一个大型流程文件（包含多个节点）
 fn create_large_flow_file() -> NamedTempFile {
-    let file = NamedTempFile::new().unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
     let mut nodes = String::from("[");
     let mut connections = String::from("[");
 
@@ -122,7 +122,7 @@ fn create_large_flow_file() -> NamedTempFile {
 
     // Add intermediate nodes (HTTP nodes)
     for i in 1..=48 {
-        nodes.push_str(",");
+        nodes.push(',');
         nodes.push_str(&format!(
             r#"{{"uuid": "node-{}", "type": "http", "name": "节点 {}", "position": {{"x": {}, "y": {}}}, "data": {{"type": "http", "url": "http://localhost:19090/api/status/200"}}, "ports": null}}"#,
             i, i, (i * 10) as f64, (i * 10) as f64
@@ -133,26 +133,26 @@ fn create_large_flow_file() -> NamedTempFile {
             i, prev_uuid, i
         ));
         if i < 48 {
-            connections.push_str(",");
+            connections.push(',');
         }
         prev_uuid = format!("node-{}", i);
     }
 
-    nodes.push_str("]");
-    connections.push_str("]");
+    nodes.push(']');
+    connections.push(']');
 
     let flow_content = format!(
         r#"{{"_version": 1, "flow": {{"uuid": "large-flow-uuid", "name": "大型流程", "nodes": {}, "connections": {}}}, "_meta": null}}"#,
         nodes, connections
     );
-    fs::write(file.path(), flow_content).unwrap();
+    fs::write(file.path(), flow_content).expect("failed to write flow content to temp file");
     file
 }
 
 /// 创建一个无效的 JSON 文件
 fn create_invalid_json_file() -> NamedTempFile {
-    let file = NamedTempFile::new().unwrap();
-    fs::write(file.path(), "{ invalid json }").unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
+    fs::write(file.path(), "{ invalid json }").expect("failed to write invalid JSON to temp file");
     file
 }
 
@@ -191,7 +191,9 @@ fn test_help() {
         .assert()
         .success()
         .stdout(predicate::str::contains("mpe"))
-        .stdout(predicate::str::contains("Multi-Protocol Flow Orchestration"));
+        .stdout(predicate::str::contains(
+            "Multi-Protocol Flow Orchestration",
+        ));
 }
 
 #[test]
@@ -221,7 +223,9 @@ fn test_run_file_not_found() {
         .arg("/nonexistent/file.json")
         .assert()
         .failure()
-        .stdout(predicate::str::contains("flow file not found").or(predicate::str::contains("error")));
+        .stdout(
+            predicate::str::contains("flow file not found").or(predicate::str::contains("error")),
+        );
 }
 
 #[test]
@@ -233,7 +237,9 @@ fn test_run_invalid_json_file() {
         .arg(file.path())
         .assert()
         .failure()
-        .stdout(predicate::str::contains("failed to load flow").or(predicate::str::contains("error")));
+        .stdout(
+            predicate::str::contains("failed to load flow").or(predicate::str::contains("error")),
+        );
 }
 
 #[test]
@@ -306,7 +312,7 @@ fn test_json_output_is_parseable() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
 
     // 尝试解析 JSON，应该不会失败
     let json: serde_json::Value =
@@ -333,8 +339,8 @@ fn test_cli_output_has_success_data_error_fields() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
-    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
+    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
     // 验证统一输出格式: { success, data, error }
     assert!(json["success"].is_boolean(), "missing success field");
@@ -359,8 +365,8 @@ fn test_execution_output_contains_execution_time() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
-    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
+    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
     // data 内部应该包含 execution_time_ms
     let data = &json["data"];
@@ -386,8 +392,8 @@ fn test_execution_output_contains_executed_count() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
-    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
+    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
     let data = &json["data"];
     assert!(
@@ -435,14 +441,14 @@ fn test_concurrent_execution() {
             .success();
     });
 
-    handle1.join().unwrap();
-    handle2.join().unwrap();
+    handle1.join().expect("thread 1 panicked during concurrent execution");
+    handle2.join().expect("thread 2 panicked during concurrent execution");
 }
 
 #[test]
 #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_execution_with_single_entry_node() {
-    let file = NamedTempFile::new().unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
     let flow_content = r#"{
         "_version": 1,
         "flow": {
@@ -462,7 +468,7 @@ fn test_execution_with_single_entry_node() {
         },
         "_meta": null
     }"#;
-    fs::write(file.path(), flow_content).unwrap();
+    fs::write(file.path(), flow_content).expect("failed to write flow content to temp file");
 
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
     cmd.arg("run")
@@ -476,7 +482,7 @@ fn test_execution_with_single_entry_node() {
 #[test]
 #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_flow_with_connections() {
-    let file = NamedTempFile::new().unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
     let flow_content = r#"{
         "_version": 1,
         "flow": {
@@ -512,7 +518,7 @@ fn test_flow_with_connections() {
         },
         "_meta": null
     }"#;
-    fs::write(file.path(), flow_content).unwrap();
+    fs::write(file.path(), flow_content).expect("failed to write flow content to temp file");
 
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
     cmd.arg("run")
@@ -538,10 +544,12 @@ fn test_execution_time_reasonable() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
-    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
+    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
-    let execution_time_ms = json["data"]["execution_time_ms"].as_u64().unwrap();
+    let execution_time_ms = json["data"]["execution_time_ms"]
+        .as_u64()
+        .expect("execution_time_ms should be a u64");
 
     // 执行时间应该在合理范围内（< 30 秒）
     assert!(
@@ -575,13 +583,15 @@ fn test_error_handling_invalid_json_file() {
         .arg(file.path())
         .assert()
         .failure()
-        .stdout(predicate::str::contains("failed to load flow").or(predicate::str::contains("error")));
+        .stdout(
+            predicate::str::contains("failed to load flow").or(predicate::str::contains("error")),
+        );
 }
 
 #[test]
 #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_flow_with_missing_uuid() {
-    let file = NamedTempFile::new().unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
     // 创建 FlowFile 包装但 Flow 内缺少 uuid 字段（反序列化失败）
     let flow_content = r#"{
         "_version": 1,
@@ -617,7 +627,7 @@ fn test_flow_with_missing_uuid() {
         },
         "_meta": null
     }"#;
-    fs::write(file.path(), flow_content).unwrap();
+    fs::write(file.path(), flow_content).expect("failed to write flow content to temp file");
 
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
     cmd.arg("run")
@@ -644,7 +654,7 @@ fn test_validate_valid_flow() {
 
 #[test]
 fn test_validate_invalid_flow() {
-    let file = NamedTempFile::new().unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
     // 创建有 uuid 但无 nodes 的流程（可以加载但验证失败）
     let flow_content = r#"{
         "_version": 1,
@@ -656,7 +666,7 @@ fn test_validate_invalid_flow() {
         },
         "_meta": null
     }"#;
-    fs::write(file.path(), flow_content).unwrap();
+    fs::write(file.path(), flow_content).expect("failed to write flow content to temp file");
 
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
     cmd.arg("validate")
@@ -681,7 +691,9 @@ fn test_validate_nonexistent_file() {
         .arg("/nonexistent/file.json")
         .assert()
         .failure()
-        .stdout(predicate::str::contains("flow file not found").or(predicate::str::contains("error")));
+        .stdout(
+            predicate::str::contains("flow file not found").or(predicate::str::contains("error")),
+        );
 }
 
 #[test]
@@ -698,8 +710,8 @@ fn test_validate_output_format() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
-    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
+    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
     assert!(json["success"].is_boolean());
     assert!(json["data"]["valid"].is_boolean());
@@ -711,7 +723,7 @@ fn test_validate_output_format() {
 #[test]
 fn test_flow_create() {
     // 使用临时目录作为 flows_dir
-    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_dir = tempfile::tempdir().expect("failed to create temp directory");
     let flows_dir = temp_dir.path().to_string_lossy().to_string();
 
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -736,7 +748,7 @@ fn test_flow_create() {
 
 #[test]
 fn test_flow_list() {
-    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_dir = tempfile::tempdir().expect("failed to create temp directory");
     let flows_dir = temp_dir.path().to_string_lossy().to_string();
 
     // 先创建一个流程
@@ -778,7 +790,7 @@ fn test_flow_list() {
 
 #[test]
 fn test_flow_create_and_show_crud_cycle() {
-    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_dir = tempfile::tempdir().expect("failed to create temp directory");
     let flows_dir = temp_dir.path().to_string_lossy().to_string();
     let reports_dir = temp_dir
         .path()
@@ -803,9 +815,12 @@ fn test_flow_create_and_show_crud_cycle() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
-    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
-    let flow_uuid = json["data"]["flow"]["uuid"].as_str().unwrap().to_string();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
+    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let flow_uuid = json["data"]["flow"]["uuid"]
+        .as_str()
+        .expect("flow uuid should be a string")
+        .to_string();
 
     // 查看流程
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -847,7 +862,7 @@ fn test_flow_create_and_show_crud_cycle() {
 
 #[test]
 fn test_flow_edit_node_add() {
-    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_dir = tempfile::tempdir().expect("failed to create temp directory");
     let flows_dir = temp_dir.path().to_string_lossy().to_string();
     let reports_dir = temp_dir
         .path()
@@ -872,9 +887,12 @@ fn test_flow_edit_node_add() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
-    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
-    let flow_uuid = json["data"]["flow"]["uuid"].as_str().unwrap().to_string();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
+    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let flow_uuid = json["data"]["flow"]["uuid"]
+        .as_str()
+        .expect("flow uuid should be a string")
+        .to_string();
 
     // 添加一个 HTTP 节点
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -897,7 +915,7 @@ fn test_flow_edit_node_add() {
 
 #[test]
 fn test_flow_edit_connection_add() {
-    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_dir = tempfile::tempdir().expect("failed to create temp directory");
     let flows_dir = temp_dir.path().to_string_lossy().to_string();
     let reports_dir = temp_dir
         .path()
@@ -922,14 +940,17 @@ fn test_flow_edit_connection_add() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
-    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
-    let flow_uuid = json["data"]["flow"]["uuid"].as_str().unwrap().to_string();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
+    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let flow_uuid = json["data"]["flow"]["uuid"]
+        .as_str()
+        .expect("flow uuid should be a string")
+        .to_string();
 
     // 获取 entry 节点 UUID
     let entry_node_uuid = json["data"]["flow"]["nodes"][0]["uuid"]
         .as_str()
-        .unwrap()
+        .expect("entry node uuid should be a string")
         .to_string();
 
     // 添加 HTTP 节点
@@ -953,17 +974,24 @@ fn test_flow_edit_connection_add() {
         .stdout
         .clone();
 
-    let node_output_str = String::from_utf8(node_output).unwrap();
-    let node_json: serde_json::Value = serde_json::from_str(&node_output_str).unwrap();
+    let node_output_str =
+        String::from_utf8(node_output).expect("CLI output should be valid UTF-8");
+    let node_json: serde_json::Value =
+        serde_json::from_str(&node_output_str).expect("CLI output should be valid JSON");
 
     // 找到新添加的 HTTP 节点 UUID
     let http_node_uuid = node_json["data"]["flow"]["nodes"]
         .as_array()
-        .unwrap()
+        .expect("nodes should be an array")
         .iter()
-        .find(|n| n["name"].as_str().unwrap() == "目标节点")
-        .map(|n| n["uuid"].as_str().unwrap().to_string())
-        .unwrap();
+        .find(|n| n["name"].as_str().expect("node name should be a string") == "目标节点")
+        .map(|n| {
+            n["uuid"]
+                .as_str()
+                .expect("node uuid should be a string")
+                .to_string()
+        })
+        .expect("target node not found in flow");
 
     // 添加连接
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -987,7 +1015,7 @@ fn test_flow_edit_connection_add() {
 
 #[test]
 fn test_flow_edit_variable_set() {
-    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_dir = tempfile::tempdir().expect("failed to create temp directory");
     let flows_dir = temp_dir.path().to_string_lossy().to_string();
     let reports_dir = temp_dir
         .path()
@@ -1012,9 +1040,12 @@ fn test_flow_edit_variable_set() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
-    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
-    let flow_uuid = json["data"]["flow"]["uuid"].as_str().unwrap().to_string();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
+    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let flow_uuid = json["data"]["flow"]["uuid"]
+        .as_str()
+        .expect("flow uuid should be a string")
+        .to_string();
 
     // 设置变量
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -1040,7 +1071,7 @@ fn test_flow_edit_variable_set() {
 
 #[test]
 fn test_report_list() {
-    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_dir = tempfile::tempdir().expect("failed to create temp directory");
 
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
     cmd.arg("report")
@@ -1089,7 +1120,10 @@ fn test_log_output_contains_execution_info() {
         .assert()
         .success()
         // 验证日志包含执行相关信息（匹配实际的日志消息）
-        .stderr(predicate::str::contains("Executing Entry node:").or(predicate::str::contains("[Complete]")));
+        .stderr(
+            predicate::str::contains("Executing Entry node:")
+                .or(predicate::str::contains("[Complete]")),
+        );
 }
 
 #[test]
@@ -1128,7 +1162,7 @@ fn test_log_level_info() {
 
 /// 创建断言通过流程（断言验证状态码 200，通过 true 分支）
 fn create_assertion_pass_flow() -> NamedTempFile {
-    let file = NamedTempFile::new().unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
     let flow_content = r#"    {
         "_version": 1,
         "flow": {
@@ -1254,13 +1288,13 @@ fn create_assertion_pass_flow() -> NamedTempFile {
         },
         "_meta": null
     }"#;
-    fs::write(file.path(), flow_content).unwrap();
+    fs::write(file.path(), flow_content).expect("failed to write flow content to temp file");
     file
 }
 
 /// 创建断言失败流程（断言验证状态码 999，实际返回 200，走 false 分支）
 fn create_assertion_fail_route_false_flow() -> NamedTempFile {
-    let file = NamedTempFile::new().unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
     let flow_content = r#"    {
         "_version": 1,
         "flow": {
@@ -1386,13 +1420,13 @@ fn create_assertion_fail_route_false_flow() -> NamedTempFile {
         },
         "_meta": null
     }"#;
-    fs::write(file.path(), flow_content).unwrap();
+    fs::write(file.path(), flow_content).expect("failed to write flow content to temp file");
     file
 }
 
 /// 创建断言失败抛出错误流程（流程在断言节点终止）
 fn create_assertion_fail_throw_flow() -> NamedTempFile {
-    let file = NamedTempFile::new().unwrap();
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
     let flow_content = r#"    {
         "_version": 1,
         "flow": {
@@ -1496,7 +1530,7 @@ fn create_assertion_fail_throw_flow() -> NamedTempFile {
         },
         "_meta": null
     }"#;
-    fs::write(file.path(), flow_content).unwrap();
+    fs::write(file.path(), flow_content).expect("failed to write flow content to temp file");
     file
 }
 
@@ -1515,21 +1549,28 @@ fn test_assertion_pass_routes_to_true() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
-    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
+    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
     // 验证流程执行成功
-    assert!(json["success"].as_bool().unwrap(), "流程应该成功执行");
+    assert!(
+        json["success"].as_bool().expect("success should be a boolean"),
+        "流程应该成功执行"
+    );
 
     // 验证 data 中包含成功标志
     let data = &json["data"];
     assert!(
-        data["success"].as_bool().unwrap(),
+        data["success"]
+            .as_bool()
+            .expect("data.success should be a boolean"),
         "data.success 应该为 true"
     );
 
     // 验证执行了 4 个节点 (entry, http, assertion, true-branch-http)
-    let executed_count = data["executed_count"].as_u64().unwrap();
+    let executed_count = data["executed_count"]
+        .as_u64()
+        .expect("executed_count should be a u64");
     assert_eq!(
         executed_count, 4,
         "应该执行了 4 个节点（entry + http + assertion + true-branch）"
@@ -1550,7 +1591,7 @@ fn test_assertion_fail_routes_to_false() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
     let json = parse_first_json(&output_str);
 
     // 验证流程路由行为：断言失败走 false 分支
@@ -1560,25 +1601,29 @@ fn test_assertion_fail_routes_to_false() {
 
     // 验证执行了 4 个节点 (entry, http, assertion, false-branch-http)
     let data = &json["data"];
-    let executed_count = data["executed_count"].as_u64().unwrap();
-    assert_eq!(
-        executed_count, 4,
-        "应该执行了 4 个节点（entry + http + assertion + false-branch），实际: {}",
-        executed_count
-    );
-
-    // 验证 assertion 节点路由到了 false 分支
-    if let Some(node_results) = data["node_results"].as_array() {
-        let assertion_node = node_results.iter().find(|n| n["node_type"] == "assertion");
-        assert!(assertion_node.is_some(), "应该包含 assertion 节点");
-        // assertion 节点自身状态应为 failed，因为断言条件不满足
+        let executed_count = data["executed_count"]
+            .as_u64()
+            .expect("executed_count should be a u64");
         assert_eq!(
-            assertion_node.unwrap()["status"],
-            "failed",
-            "assertion 节点的状态应为 failed（故意失败）"
+            executed_count, 4,
+            "应该执行了 4 个节点（entry + http + assertion + false-branch），实际: {}",
+            executed_count
         );
 
-        let false_branch = node_results.iter().find(|n| n["uuid"] == "false-branch-http");
+        // 验证 assertion 节点路由到了 false 分支
+        if let Some(node_results) = data["node_results"].as_array() {
+            let assertion_node = node_results.iter().find(|n| n["node_type"] == "assertion");
+            assert!(assertion_node.is_some(), "应该包含 assertion 节点");
+            // assertion 节点自身状态应为 failed，因为断言条件不满足
+            assert_eq!(
+                assertion_node.expect("assertion node should exist")["status"],
+                "failed",
+                "assertion 节点的状态应为 failed（故意失败）"
+            );
+
+        let false_branch = node_results
+            .iter()
+            .find(|n| n["uuid"] == "false-branch-http");
         assert!(false_branch.is_some(), "应该包含 false 分支的 HTTP 节点");
         // false-branch 节点被执行了（证明路由到了 false 端口）
     }
@@ -1598,7 +1643,7 @@ fn test_assertion_fail_throw_terminates_flow() {
         .stdout
         .clone();
 
-    let output_str = String::from_utf8(output).unwrap();
+    let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
     let json = parse_first_json(&output_str);
 
     // throw 模式：断言失败导致流程提前终止
@@ -1607,7 +1652,9 @@ fn test_assertion_fail_throw_terminates_flow() {
 
     // 验证执行了有限数量的节点（entry, http, assertion = 3 个），
     // 不包括 true-branch-http（因为 throw 模式终止了流程）
-    let executed_count = data["executed_count"].as_u64().unwrap();
+    let executed_count = data["executed_count"]
+        .as_u64()
+        .expect("executed_count should be a u64");
     assert!(
         executed_count <= 3,
         "throw 模式应该只执行了 3 个节点或更少（流程在断言节点终止），实际: {}",
@@ -1616,7 +1663,9 @@ fn test_assertion_fail_throw_terminates_flow() {
 
     // 验证 assertion 节点状态为 failed 且 true-branch 未被执行
     if let Some(node_results) = data["node_results"].as_array() {
-        let true_branch = node_results.iter().find(|n| n["uuid"] == "true-branch-http");
+        let true_branch = node_results
+            .iter()
+            .find(|n| n["uuid"] == "true-branch-http");
         assert!(
             true_branch.is_none(),
             "throw 模式下 true-branch 节点不应被执行"

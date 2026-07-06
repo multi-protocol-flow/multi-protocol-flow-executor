@@ -2,7 +2,9 @@
 
 use crate::stress_test::StressTestReport;
 use flow_engine_core::flow::Flow;
-use flow_engine_core::report::{ExecutionMode, ExecutionStatus, FlowExecutionReport, ReportMetadata};
+use flow_engine_core::report::{
+    ExecutionMode, ExecutionStatus, FlowExecutionReport, ReportMetadata,
+};
 use std::collections::HashSet;
 use std::fs::{self, File};
 use std::io::{Read, Write};
@@ -149,8 +151,8 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
         flow: flow.clone(),
         _meta: None,
     };
-    let json_string =
-        serde_json::to_string_pretty(&flow_file).map_err(|e| format!("序列化 Flow Failed: {}", e))?;
+    let json_string = serde_json::to_string_pretty(&flow_file)
+        .map_err(|e| format!("序列化 Flow Failed: {}", e))?;
 
     // 创建并写入文件
     let mut file =
@@ -282,8 +284,7 @@ pub fn save_flow_file_with_meta(
 
     // 确保目标目录存在
     if target_dir != flows_dir {
-        fs::create_dir_all(&target_dir)
-            .map_err(|e| format!("创建目标目录Failed: {}", e))?;
+        fs::create_dir_all(&target_dir).map_err(|e| format!("创建目标目录Failed: {}", e))?;
     }
 
     // 生成文件名，处理冲突
@@ -295,7 +296,11 @@ pub fn save_flow_file_with_meta(
         let candidate_path = target_dir.join(&filename);
         // 如果目标路径就是旧文件路径（名称未变），直接跳出
         let is_old_path = existing_path.as_ref() == Some(&candidate_path);
-        if is_old_path || !candidate_path.try_exists().map_err(|e| format!("检查文件Failed: {}", e))? {
+        if is_old_path
+            || !candidate_path
+                .try_exists()
+                .map_err(|e| format!("检查文件Failed: {}", e))?
+        {
             break;
         }
         filename = format!("{}_{}.mpf", safe_name, counter);
@@ -340,8 +345,7 @@ pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, Stri
         for path in &mpf_files {
             let mut content = String::new();
             if (|| -> Result<(), String> {
-                let mut file =
-                    File::open(path).map_err(|e| format!("打开文件Failed: {}", e))?;
+                let mut file = File::open(path).map_err(|e| format!("打开文件Failed: {}", e))?;
                 file.read_to_string(&mut content)
                     .map_err(|e| format!("读取文件Failed: {}", e))?;
                 Ok(())
@@ -364,18 +368,12 @@ pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, Stri
         Some(path) => {
             // 第二遍：读取并完整验证该文件
             let mut content = String::new();
-            let mut file =
-                File::open(&path).map_err(|e| format!("打开文件Failed: {}", e))?;
+            let mut file = File::open(&path).map_err(|e| format!("打开文件Failed: {}", e))?;
             file.read_to_string(&mut content)
                 .map_err(|e| format!("读取文件Failed: {}", e))?;
 
-            let flow_file: FlowFile = serde_json::from_str(&content).map_err(|e| {
-                format!(
-                    "流程文件已损坏: {} - {}",
-                    path.display(),
-                    e
-                )
-            })?;
+            let flow_file: FlowFile = serde_json::from_str(&content)
+                .map_err(|e| format!("流程文件已损坏: {} - {}", path.display(), e))?;
 
             Ok(flow_file)
         }
@@ -621,8 +619,8 @@ pub fn load_report(uuid: &str, reports_dir: &Path) -> Result<FlowExecutionReport
     };
 
     // 读取文件内容
-    let mut file =
-        File::open(&file_path).map_err(|e| format!("打开报告文件 {:?} Failed: {}", file_path, e))?;
+    let mut file = File::open(&file_path)
+        .map_err(|e| format!("打开报告文件 {:?} Failed: {}", file_path, e))?;
 
     let mut content = String::new();
     file.read_to_string(&mut content)
@@ -638,7 +636,7 @@ pub fn load_report(uuid: &str, reports_dir: &Path) -> Result<FlowExecutionReport
 /// 轻量级报告列表条目，仅包含列表展示所需的字段
 ///
 /// 用于 `list_reports` 中快速反序列化报告文件，
-/// 避免完整解析 `FlowExecutionReport` 中的大量嵌套数据（node_reports、ws_streams 等）。
+/// 避免完整解析 `FlowExecutionReport` `中的大量嵌套数据（node_reports、ws_streams` 等）。
 #[derive(Debug, Clone, serde::Deserialize)]
 struct ReportListEntry {
     uuid: String,
@@ -654,7 +652,7 @@ struct ReportListEntry {
 /// 列出报告元数据
 ///
 /// 使用轻量级 `ReportListEntry` 反序列化，避免完整解析 `FlowExecutionReport`。
-/// 仅读取每个文件头部的元数字段，跳过 node_reports、ws_streams、flow_snapshot 等大数据字段。
+/// 仅读取每个文件头部的元数字段，跳过 `node_reports、ws_streams、flow_snapshot` 等大数据字段。
 ///
 /// # 参数
 /// - `reports_dir`: 存储目录路径
@@ -758,7 +756,8 @@ pub fn delete_report(uuid: &str, reports_dir: &Path) -> Result<(), String> {
     };
 
     // 删除文件
-    fs::remove_file(&file_path).map_err(|e| format!("删除报告文件 {:?} Failed: {}", file_path, e))?;
+    fs::remove_file(&file_path)
+        .map_err(|e| format!("删除报告文件 {:?} Failed: {}", file_path, e))?;
 
     Ok(())
 }
@@ -882,7 +881,8 @@ pub fn delete_stress_report(file_path: &Path) -> Result<(), String> {
     {
         return Err(format!("压测报告文件不存在: {:?}", file_path));
     }
-    fs::remove_file(file_path).map_err(|e| format!("删除压测报告文件 {:?} Failed: {}", file_path, e))
+    fs::remove_file(file_path)
+        .map_err(|e| format!("删除压测报告文件 {:?} Failed: {}", file_path, e))
 }
 
 /// 列出压测报告摘要
@@ -1094,7 +1094,10 @@ pub fn create_folder(flows_dir: &Path, folder_path: &str) -> Result<FolderInfo, 
     // 创建目录（包括所有必要的父目录）
     fs::create_dir_all(&full_path).map_err(|e| format!("创建文件夹Failed: {}", e))?;
 
-    let name = clean_parts.last().expect("clean_parts 不为空").clone();
+    let name = clean_parts
+        .last()
+        .ok_or_else(|| "Internal error: clean_parts should not be empty".to_string())?
+        .clone();
 
     Ok(FolderInfo {
         name,
@@ -1369,7 +1372,7 @@ pub fn move_folder(
 mod tests {
     use super::*;
 
-    /// 测试 get_data_dir() 返回正确的路径格式
+    /// 测试 `get_data_dir()` 返回正确的路径格式
     ///
     /// 验证点：
     /// - 返回的路径以应用名称 "multi-protocol-flow-executor" 结尾
@@ -1391,7 +1394,7 @@ mod tests {
         // 如果环境变量不可用（如 CI 环境中某些情况），测试应跳过
     }
 
-    /// 测试 get_data_dir() 返回的路径是有效的目录路径
+    /// 测试 `get_data_dir()` 返回的路径是有效的目录路径
     #[test]
     fn test_get_data_dir_is_valid_path() {
         if let Ok(path) = get_data_dir() {
@@ -1408,7 +1411,7 @@ mod tests {
         }
     }
 
-    /// 测试 get_flows_dir() 返回数据目录下的 flows 子目录
+    /// 测试 `get_flows_dir()` 返回数据目录下的 flows 子目录
     #[test]
     fn test_get_flows_dir() {
         if let Ok(data_dir) = get_data_dir() {
@@ -1426,7 +1429,7 @@ mod tests {
         }
     }
 
-    /// 测试 get_reports_dir() 返回数据目录下的 reports 子目录
+    /// 测试 `get_reports_dir()` 返回数据目录下的 reports 子目录
     #[test]
     fn test_get_reports_dir() {
         if let Ok(data_dir) = get_data_dir() {
@@ -1446,7 +1449,7 @@ mod tests {
 
     /// 测试日志目录组合逻辑（模拟 CLI 中的用法）
     ///
-    /// CLI 中使用: get_data_dir().map(|d| d.join("logs")).unwrap_or_default()
+    /// CLI 中使用: `get_data_dir().map(|d`| `d.join("logs")).unwrap_or_default()`
     #[test]
     fn test_log_dir_composition() {
         let log_dir = get_data_dir().map(|d| d.join("logs"));
@@ -1467,7 +1470,7 @@ mod tests {
         }
     }
 
-    /// 测试默认值回退逻辑（模拟 CLI 中 unwrap_or_default 的行为）
+    /// 测试默认值回退逻辑（模拟 CLI 中 `unwrap_or_default` 的行为）
     #[test]
     fn test_log_dir_fallback_to_default() {
         // 模拟 CLI 中的逻辑：如果 get_data_dir() Failed，使用默认空路径
@@ -1488,7 +1491,7 @@ mod tests {
         }
     }
 
-    /// 测试 ensure_flows_dir() 创建目录
+    /// 测试 `ensure_flows_dir()` 创建目录
     #[test]
     fn test_ensure_flows_dir_creates_directory() {
         // 此测试需要文件系统访问，跳过如果环境不允许
@@ -1514,7 +1517,7 @@ mod tests {
     // 压测报告存储测试
     // ============================================================================
 
-    /// 测试 format_timestamp 函数
+    /// 测试 `format_timestamp` 函数
     #[test]
     fn test_format_timestamp() {
         // 使用 chrono 验证时间戳转换
@@ -1549,7 +1552,7 @@ mod tests {
         assert_eq!(second, 45);
     }
 
-    /// 测试 sanitize_filename 函数
+    /// 测试 `sanitize_filename` 函数
     #[test]
     fn test_sanitize_filename() {
         // 测试普通名称
@@ -1571,7 +1574,7 @@ mod tests {
         assert_eq!(sanitized.len(), 50);
     }
 
-    /// 测试 StressTestReportSummary 序列化
+    /// 测试 `StressTestReportSummary` 序列化
     #[test]
     fn test_stress_test_report_summary_serialization() {
         let summary = StressTestReportSummary {
@@ -1596,7 +1599,7 @@ mod tests {
         assert_eq!(deserialized, summary);
     }
 
-    /// 测试 save_stress_report 和 load_stress_report
+    /// 测试 `save_stress_report` 和 `load_stress_report`
     #[test]
     fn test_save_and_load_stress_report() {
         use crate::stress_test::{
@@ -1672,7 +1675,7 @@ mod tests {
         );
     }
 
-    /// 测试 list_stress_reports
+    /// 测试 `list_stress_reports`
     #[test]
     fn test_list_stress_reports() {
         use crate::stress_test::{
@@ -1753,7 +1756,7 @@ mod tests {
         assert_eq!(summaries[2].uuid, "report-001"); // start_time: 1705315845000
     }
 
-    /// 测试 list_stress_reports 空目录
+    /// 测试 `list_stress_reports` 空目录
     #[test]
     fn test_list_stress_reports_empty_dir() {
         use tempfile::TempDir;
@@ -1765,7 +1768,7 @@ mod tests {
         assert!(summaries.is_empty());
     }
 
-    /// 测试 load_stress_report 文件不存在
+    /// 测试 `load_stress_report` 文件不存在
     #[test]
     fn test_load_stress_report_not_found() {
         use tempfile::TempDir;
@@ -1778,12 +1781,22 @@ mod tests {
         assert!(result.unwrap_err().contains("不存在"));
     }
 
-    /// 测试 FlowFile 序列化/反序列化往返
+    /// 测试 `FlowFile` 序列化/反序列化往返
     #[test]
     fn test_flow_file_roundtrip() {
         use flow_engine_core::flow::Flow;
 
-        let flow = Flow { uuid: "test-flow-001".to_string(), name: "Test Flow".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: "test-flow-001".to_string(),
+            name: "Test Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![],
+            connections: vec![],
+            hooks: None,
+        };
         let flow_file = FlowFile {
             _version: 1,
             flow,
@@ -1799,12 +1812,22 @@ mod tests {
         assert_eq!(deserialized.flow.name, "Test Flow");
     }
 
-    /// 测试 FlowFile _meta 字段的序列化/反序列化往返
+    /// 测试 `FlowFile` _meta 字段的序列化/反序列化往返
     #[test]
     fn test_flow_file_meta_roundtrip() {
         use flow_engine_core::flow::Flow;
 
-        let flow = Flow { uuid: "builtin-flow-001".to_string(), name: "内置模板".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: "builtin-flow-001".to_string(),
+            name: "内置模板".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![],
+            connections: vec![],
+            hooks: None,
+        };
         let meta = serde_json::json!({
             "version": 5,
             "isBuiltin": true
@@ -1825,12 +1848,22 @@ mod tests {
         assert_eq!(meta["isBuiltin"], true);
     }
 
-    /// 测试 FlowFile 无 _meta 时不序列化该字段
+    /// 测试 `FlowFile` 无 _meta 时不序列化该字段
     #[test]
     fn test_flow_file_no_meta_serialization() {
         use flow_engine_core::flow::Flow;
 
-        let flow = Flow { uuid: "normal-flow".to_string(), name: "普通流程".to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
+        let flow = Flow {
+            uuid: "normal-flow".to_string(),
+            name: "普通流程".to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![],
+            connections: vec![],
+            hooks: None,
+        };
         let flow_file = FlowFile {
             _version: 1,
             flow,
@@ -1844,7 +1877,7 @@ mod tests {
         );
     }
 
-    /// 测试 save_flow_file_with_meta 和 load_flow_file_raw 的 _meta 往返
+    /// 测试 `save_flow_file_with_meta` 和 `load_flow_file_raw` 的 _meta 往返
     #[test]
     fn test_save_and_load_flow_file_with_meta() {
         use tempfile::TempDir;
@@ -1870,7 +1903,7 @@ mod tests {
         assert_eq!(loaded._meta.unwrap()["version"], 5);
     }
 
-    /// 测试 FlowMetadata 的 file_path 字段在 JSON 中为 camelCase
+    /// 测试 `FlowMetadata` 的 `file_path` 字段在 JSON 中为 camelCase
     #[test]
     fn test_flow_metadata_has_path() {
         let metadata = FlowMetadata {
@@ -1900,10 +1933,20 @@ mod tests {
 
     /// 创建测试用的 Flow 对象
     fn create_test_flow(uuid: &str, name: &str) -> Flow {
-        Flow { uuid: uuid.to_string(), name: name.to_string(), description: None, initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None }
+        Flow {
+            uuid: uuid.to_string(),
+            name: name.to_string(),
+            description: None,
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![],
+            connections: vec![],
+            hooks: None,
+        }
     }
 
-    /// 测试 save_flow_file 和 load_flow_file 的基本功能
+    /// 测试 `save_flow_file` 和 `load_flow_file` 的基本功能
     #[test]
     fn test_save_and_load_flow_file() {
         use tempfile::TempDir;
@@ -1953,7 +1996,7 @@ mod tests {
         assert!(result.unwrap_err().contains("流程不存在"));
     }
 
-    /// 测试 list_flow_files 递归扫描
+    /// 测试 `list_flow_files` 递归扫描
     #[test]
     fn test_list_flow_files_recursive() {
         use tempfile::TempDir;
@@ -2002,7 +2045,7 @@ mod tests {
         // 验证元数据字段
         assert_eq!(list[0].uuid, "list-001");
         assert!(list[0].file_path.contains("Alpha流程"));
-        assert!(list[0].updated_at > 0 || list[0].updated_at == 0); // mtime 可能为 0
+        // updated_at is u64, always >= 0; skip comparison
     }
 
     /// 测试损坏的 .mpf 文件被跳过而不报错
@@ -2081,7 +2124,7 @@ mod tests {
         assert_eq!(uuids.iter().filter(|&&u| u == duplicate_uuid).count(), 2);
     }
 
-    /// 测试 copy_flow_file 复制流程
+    /// 测试 `copy_flow_file` 复制流程
     #[test]
     fn test_copy_flow_file() {
         use tempfile::TempDir;
@@ -2125,7 +2168,7 @@ mod tests {
         assert_ne!(copied2.uuid, copied.uuid, "每次复制应有不同 UUID");
     }
 
-    /// 测试 delete_flow_file 删除流程
+    /// 测试 `delete_flow_file` 删除流程
     #[test]
     fn test_delete_flow_file() {
         use tempfile::TempDir;
@@ -2158,7 +2201,7 @@ mod tests {
         assert!(result.unwrap_err().contains("流程不存在"));
     }
 
-    /// 测试 save_flow_file 更新已有流程（同 UUID 覆盖写入）
+    /// 测试 `save_flow_file` 更新已有流程（同 UUID 覆盖写入）
     #[test]
     fn test_save_flow_file_updates_existing() {
         use tempfile::TempDir;

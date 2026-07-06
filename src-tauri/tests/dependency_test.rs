@@ -31,7 +31,7 @@ async fn test_websocket_echo_connection() {
     match result {
         Ok((ws_stream, _response)) => {
             // Connection successful! echo server is running.
-            
+
             // Send a test message
             let (mut tx, mut rx) = ws_stream.split();
             let test_message = "Hello, WebSocket!";
@@ -55,7 +55,10 @@ async fn test_websocket_echo_connection() {
                 panic!("TLS feature appears to be missing: {}", error_msg);
             }
             // Log the error but don't fail - network connectivity issues are expected
-            eprintln!("WebSocket connection failed (network issue expected in CI): {}", error_msg);
+            eprintln!(
+                "WebSocket connection failed (network issue expected in CI): {}",
+                error_msg
+            );
         }
     }
 }
