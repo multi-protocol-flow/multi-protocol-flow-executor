@@ -18,7 +18,8 @@ import { isTauriEnv } from '@/lib/platform';
 interface RedisConnectFormData {
   type: 'redis_connect';
   host: string;
-  port: number;
+  /** 端口，支持 {{variable}} 引用，所以使用 string 类型 */
+  port: string;
   password: string;
   db_index: number;
   connect_timeout_ms: number;
@@ -33,7 +34,7 @@ function toFormData(data: RedisConnectConfigType): RedisConnectFormData {
   return {
     type: 'redis_connect',
     host: data.host || '',
-    port: data.port ?? 6379,
+    port: data.port || '6379',
     password: data.password || '',
     db_index: data.db_index ?? 0,
     connect_timeout_ms: data.connect_timeout_ms ?? 10000,
@@ -44,8 +45,8 @@ function fromFormData(formData: RedisConnectFormData): RedisConnectConfigType {
   return {
     type: 'redis_connect',
     host: formData.host,
-    port: formData.port,
-    password: formData.password || undefined,
+    port: formData.port || '6379',
+    password: formData.password, // 保留空字符串，不再转换为 undefined
     db_index: formData.db_index,
     connect_timeout_ms: formData.connect_timeout_ms,
   };
@@ -93,6 +94,7 @@ export function RedisConnectConfig({ data, onSave }: RedisConnectConfigProps) {
 
     // 预替换 {{variable}} 为流程初始变量的实际值
     const resolvedHost = resolveVar(formData.host);
+    const resolvedPort = resolveVar(formData.port);
     const resolvedPassword = resolveVar(formData.password || '');
 
     try {
@@ -104,7 +106,7 @@ export function RedisConnectConfig({ data, onSave }: RedisConnectConfigProps) {
       const { invoke } = await import('@tauri-apps/api/core');
       const result = await invoke<boolean>('test_redis_connection', {
         host: resolvedHost,
-        port: formData.port,
+        port: resolvedPort,
         password: resolvedPassword || null,
         dbIndex: formData.db_index,
       });
@@ -224,8 +226,8 @@ export function RedisConnectConfig({ data, onSave }: RedisConnectConfigProps) {
           </Label>
           <Input
             id="port"
-            type="number"
-            {...register('port', { valueAsNumber: true })}
+            type="text"
+            {...register('port')}
             placeholder="6379"
             className="font-mono text-sm"
           />
@@ -237,7 +239,7 @@ export function RedisConnectConfig({ data, onSave }: RedisConnectConfigProps) {
           </Label>
           <Input
             id="password"
-            type="password"
+            type="text"
             {...register('password')}
             placeholder="optional"
             className="font-mono text-sm"

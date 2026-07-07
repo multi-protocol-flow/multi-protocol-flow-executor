@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { DbDriver } from '@/types/database';
 import type { TestDbConnectionResult } from '@/types/ipc';
 import { cn } from '@/lib/utils';
-import { Loader2, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { VariableInput } from '@/components/ui/VariableInput';
 import { useFlowVariables } from '@/hooks';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -57,7 +57,8 @@ export interface ConnectionFormData {
   name: string;
   driver: DbDriver;
   host?: string;
-  port?: number;
+  /** 端口，支持 {{variable}} 引用，使用 string 类型 */
+  port?: string;
   database?: string;
   username?: string;
   password?: string;
@@ -82,10 +83,10 @@ export interface ConnectionDialogProps {
 }
 
 /** 数据库驱动配置 */
-const DB_DRIVERS: { value: DbDriver; label: string; defaultPort: number }[] = [
-  { value: 'postgres', label: 'PostgreSQL', defaultPort: 5432 },
-  { value: 'mysql', label: 'MySQL', defaultPort: 3306 },
-  { value: 'sqlite', label: 'SQLite', defaultPort: 0 },
+const DB_DRIVERS: { value: DbDriver; label: string; defaultPort: string }[] = [
+  { value: 'postgres', label: 'PostgreSQL', defaultPort: '5432' },
+  { value: 'mysql', label: 'MySQL', defaultPort: '3306' },
+  { value: 'sqlite', label: 'SQLite', defaultPort: '' },
 
 ];
 
@@ -95,7 +96,7 @@ function getDefaultConnection(): ConnectionFormData {
     name: '',
     driver: 'postgres',
     host: 'localhost',
-    port: 5432,
+    port: '5432',
     database: '',
     username: '',
     password: '',
@@ -120,7 +121,6 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
   const { variables, nodeLabels } = useFlowVariables();
   // 构建变量名→值的映射，用于测试连接时预替换 {{variable}}
   const varMap = useMemo(
@@ -134,7 +134,6 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
       setFormData(buildInitialFormData(initialData));
       setTestResult(null);
       setTestError(null);
-      setShowPassword(false);
     }
   }, [open, initialData]);
 
@@ -173,6 +172,7 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
       // 预替换连接字段中的 {{variable}} 为实际值
       // 注意：变量是拍平存储的，使用 {{name}} 而非 {{initial_variables.name}}
       const resolvedHost = resolveVariables(formData.host, varMap);
+      const resolvedPort = resolveVariables(formData.port, varMap);
       const resolvedDatabase = resolveVariables(formData.database, varMap);
       const resolvedUsername = resolveVariables(formData.username, varMap);
       const resolvedPassword = resolveVariables(formData.password, varMap);
@@ -180,6 +180,9 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
         formData.connection_string,
         varMap,
       );
+
+      // 解析端口为数值（后端 DbConnection 仍使用 Option<u16>）
+      const parsedPort = resolvedPort ? parseInt(resolvedPort, 10) : null;
 
       // 动态导入 invoke，避免非 Tauri 环境加载报错
       const { invoke } = await import('@tauri-apps/api/core');
@@ -190,7 +193,7 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
           name: formData.name || LL.common.label_test_connection(),
           driver: formData.driver,
           host: resolvedHost || null,
-          port: formData.port || null,
+          port: parsedPort,
           database: resolvedDatabase || null,
           username: resolvedUsername || null,
           password: resolvedPassword || null,
@@ -325,9 +328,9 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
                   <Label htmlFor="conn-port">{LL.flow.db_conn_port()}</Label>
                   <Input
                     id="conn-port"
-                    type="number"
+                    type="text"
                     value={formData.port || ''}
-                    onChange={(e) => updateField('port', parseInt(e.target.value) || 0)}
+                    onChange={(e) => updateField('port', e.target.value)}
                     placeholder={LL.flow.db_conn_port_placeholder()}
                   />
                 </div>
@@ -361,29 +364,13 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="conn-password">{LL.flow.db_conn_password()}</Label>
-                  <div className="relative">
-                    <Input
-                      id="conn-password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password || ''}
-                      onChange={(e) => updateField('password', e.target.value)}
-                      placeholder={LL.flow.db_conn_password_placeholder()}
-                      className="pr-10"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full w-10 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </div>
+                  <Input
+                    id="conn-password"
+                    type="text"
+                    value={formData.password || ''}
+                    onChange={(e) => updateField('password', e.target.value)}
+                    placeholder={LL.flow.db_conn_password_placeholder()}
+                  />
                 </div>
               </div>
 
