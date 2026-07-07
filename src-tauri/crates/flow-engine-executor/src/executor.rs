@@ -304,7 +304,7 @@ impl FlowExecutor {
                 return ExecutionResult {
                     success: false,
                     data: None,
-                    error: Some("流程缺少开始节点".to_string()),
+                    error: Some("Flow missing start node".to_string()),
                     executed_count: 0,
                     node_reports: vec![],
                     flow_report: None,
@@ -353,7 +353,7 @@ impl FlowExecutor {
                 return ExecutionResult {
                     success: false,
                     data: None,
-                    error: Some(format!("检测到循环：节点 {} 已被访问", node.uuid)),
+                    error: Some(format!("Cycle detected: node {} already visited", node.uuid)),
                     executed_count: 0,
                     node_reports,
                     flow_report: None,
@@ -363,7 +363,7 @@ impl FlowExecutor {
             // 非阻塞取消检查：每次迭代开始时检查取消信号
             if context.is_cancelled() {
                 log::info!(
-                    "[流程 {}] Execution cancelled on node {} ",
+                    "[Flow {}] Execution cancelled on node {} ",
                     context.flow_uuid,
                     node.name
                 );
@@ -410,13 +410,16 @@ impl FlowExecutor {
                             match result {
                                 Ok(inner) => Some(inner),
                                 Err(_) => {
-                                    log::info!("[流程 {}] Node {} execution timeout ({}ms)", context.flow_uuid, node.name, ms);
-                                    Some(Err(ErrorDetail::new(ErrorKind::Timeout, format!("节点执行超时 ({}ms)", ms)).with_error_code_typed(ErrorCode::E_TIMEOUT)))
+                                    log::info!("[Flow {}] Node {} execution timeout ({}ms)", context.flow_uuid, node.name, ms);
+                                    Some(Err(ErrorDetail::new(ErrorKind::Timeout, format!("Node execution timeout ({}ms)", ms))
+                                    .with_error_code_typed(ErrorCode::E_TIMEOUT)
+                                    .with_i18n_arg("ms", ms.to_string())
+                                    .with_i18n_arg("operation", node.name.clone())))
                                 }
                             }
                         }
                         _ = rx.changed() => {
-                            log::info!("[流程 {}] 节点 {} received cancellation signal during execution", context.flow_uuid, node.name);
+                            log::info!("[Flow {}] Node {} received cancellation signal during execution", context.flow_uuid, node.name);
                             None
                         }
                     }
@@ -431,7 +434,7 @@ impl FlowExecutor {
                             Some(result)
                         }
                         _ = rx.changed() => {
-                            log::info!("[流程 {}] 节点 {} received cancellation signal during execution", context.flow_uuid, node.name);
+                            log::info!("[Flow {}] Node {} received cancellation signal during execution", context.flow_uuid, node.name);
                             None
                         }
                     }
@@ -448,16 +451,18 @@ impl FlowExecutor {
                         Ok(result) => Some(result),
                         Err(_) => {
                             log::info!(
-                                "[流程 {}] Node {} execution timeout ({}ms)",
+                                "[Flow {}] Node {} execution timeout ({}ms)",
                                 context.flow_uuid,
                                 node.name,
                                 ms
                             );
                             Some(Err(ErrorDetail::new(
                                 ErrorKind::Timeout,
-                                format!("节点执行超时 ({}ms)", ms),
+                                format!("Node execution timeout ({}ms)", ms),
                             )
-                            .with_error_code_typed(ErrorCode::E_TIMEOUT)))
+                            .with_error_code_typed(ErrorCode::E_TIMEOUT)
+                            .with_i18n_arg("ms", ms.to_string())
+                            .with_i18n_arg("operation", node.name.clone())))
                         }
                     }
                 }
@@ -498,7 +503,7 @@ impl FlowExecutor {
                     // 记录输出数据日志（不自动设置为变量）
                     if let Some(ref data) = output_data {
                         log::info!(
-                            "[流程 {}] Node {} output data: {}",
+                            "[Flow {}] Node {} output data: {}",
                             context.flow_uuid,
                             node.name,
                             data
@@ -592,7 +597,7 @@ impl FlowExecutor {
                     context
                         .emit_log(LogEvent {
                             level: LogLevel::Info,
-                            message: format!("节点 {} execution complete", node.name),
+                            message: format!("Node {} execution complete", node.name),
                             timestamp: node_end_ms,
                             node_uuid: Some(node.uuid.clone()),
                             node_name: Some(node.name.clone()),
@@ -605,7 +610,7 @@ impl FlowExecutor {
                         && next_node_id_from_executor.is_empty()
                     {
                         log::info!(
-                            "[流程 {}] Conditional node {} returned false, stopping flow",
+                            "[Flow {}] Conditional node {} returned false, stopping flow",
                             context.flow_uuid,
                             node.name
                         );
@@ -614,7 +619,7 @@ impl FlowExecutor {
                         context
                             .emit_log(LogEvent {
                                 level: LogLevel::Info,
-                                message: format!("条件节点 {} 返回 false，流程终止", node.name),
+                                message: format!("Conditional node {} returned false, flow terminated", node.name),
                                 timestamp: node_end_ms,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -642,7 +647,7 @@ impl FlowExecutor {
                         // 端口路由节点：如果执行器返回空列表，说明没有匹配的端口连接
                         // 不使用 connection_map 回退，直接终止
                         log::info!(
-                            "[流程 {}] Port routing node {} has no matching port connection, execution complete",
+                            "[Flow {}] Port routing node {} has no matching port connection, execution complete",
                             context.flow_uuid,
                             node.name
                         );
@@ -663,7 +668,7 @@ impl FlowExecutor {
                     } else {
                         // 节点没有输出连接或执行器返回空列表，execution complete
                         log::info!(
-                            "[流程 {}] 节点 {} 没有下一个节点，execution complete",
+                            "[Flow {}] Node {} has no next node, execution complete",
                             context.flow_uuid,
                             node.name
                         );
@@ -677,10 +682,10 @@ impl FlowExecutor {
 
                     // 检查是否是条件节点返回 false 的情况
                     if node.node_type == node_types::CONDITIONAL
-                        && error.message == "条件评估为false，停止执行"
+                        && error.message == "Condition evaluated to false, stopped execution"
                     {
                         log::info!(
-                            "[流程 {}] Conditional node {} evaluated to false, stopping flow",
+                            "[Flow {}] Conditional node {} evaluated to false, stopping flow",
                             context.flow_uuid,
                             node.name
                         );
@@ -707,7 +712,7 @@ impl FlowExecutor {
                             used_port_id: Some("false".to_string()),
                             error: Some(flow_engine_core::error::ErrorDetail::new(
                                 flow_engine_core::error::ErrorKind::Execution,
-                                "条件评估为false，流程终止".to_string(),
+                                "Condition evaluated to false, flow terminated".to_string(),
                             )),
                             // 新增字段（Task 13）
                             resolved_config,
@@ -814,7 +819,7 @@ impl FlowExecutor {
                     if route_to_false {
                         if let Some(next_node_uuid) = false_port_next_node {
                             log::info!(
-                                "[流程 {}] 节点 {} 执行Failed，但有 false 端口连接，继续执行节点 {}",
+                                "[Flow {}] Node {} execution failed, but has false port connection, continuing to node {}",
                                 context.flow_uuid,
                                 node.name,
                                 next_node_uuid
@@ -839,7 +844,7 @@ impl FlowExecutor {
 
                         if let Some(next_uuid) = next_node_id {
                             log::info!(
-                                "[流程 {}] Node {} execution failed, on_error=Ignore, continuing to node {}",
+                                "[Flow {}] Node {} execution failed, on_error=Ignore, continuing to node {}",
                                 context.flow_uuid,
                                 node.name,
                                 next_uuid
@@ -856,14 +861,14 @@ impl FlowExecutor {
                         if !route_to_false {
                             // AbortFlow 策略：立即终止流程
                             log::error!(
-                                "[流程 {}] 节点 {} 执行Failed，on_error=AbortFlow，终止流程",
+                                "[Flow {}] Node {} execution failed, on_error=AbortFlow, terminating flow",
                                 context.flow_uuid,
                                 node.name,
                             );
                         } else {
                             // 致命Error（Configuration, ConditionSyntax）：立即终止流程
                             log::error!(
-                                "[流程 {}] 节点 {} 发生致命Error ({:?}): {}",
+                                "[Flow {}] Node {} fatal error ({:?}): {}",
                                 context.flow_uuid,
                                 node.name,
                                 error_detail.error_kind,
@@ -873,9 +878,9 @@ impl FlowExecutor {
 
                         // 发送Error日志
                         let log_message = if !route_to_false {
-                            format!("节点 {} on_error=AbortFlow，终止流程", node.name)
+                            format!("Node {} on_error=AbortFlow, terminating flow", node.name)
                         } else {
-                            format!("节点 {} 致命Error: {}", node.name, error_detail.message)
+                            format!("Node {} fatal error: {}", node.name, error_detail.message)
                         };
                         context
                             .emit_log(LogEvent {
@@ -940,7 +945,7 @@ impl FlowExecutor {
                     } else {
                         // 可恢复Error（Execution, Connection, Timeout 等）：记录Failed，, terminating current branch
                         log::warn!(
-                            "[流程 {}] Node {} recoverable error ({:?}): {}，, terminating current branch",
+                            "[Flow {}] Node {} recoverable error ({:?}): {}, terminating current branch",
                             context.flow_uuid,
                             node.name,
                             error_detail.error_kind,
@@ -952,7 +957,7 @@ impl FlowExecutor {
                             .emit_log(LogEvent {
                                 level: LogLevel::Warn,
                                 message: format!(
-                                    "节点 {} 可恢复Error: {}",
+                                    "Node {} recoverable error: {}",
                                     node.name, error_detail.message
                                 ),
                                 timestamp: flow_engine_core::utils::unix_timestamp_ms(),
@@ -1025,12 +1030,12 @@ impl FlowExecutor {
         let flow_error = if is_cancelled {
             Some(ErrorDetail::new(
                 ErrorKind::Cancelled,
-                "流程执行被用户取消".to_string(),
+                "Flow execution cancelled by user".to_string(),
             ))
         } else if has_end_nodes && !reached_end_node {
             Some(ErrorDetail::new(
                 ErrorKind::Execution,
-                "流程存在 End 节点但执行路径未到达任何 End 节点".to_string(),
+                "Flow has End node(s) but execution path did not reach any End node".to_string(),
             ))
         } else {
             None
@@ -1072,7 +1077,7 @@ impl FlowExecutor {
             context
                 .emit_execution_event(ExecutionEvent::FlowCancelled {
                     flow_uuid: flow.uuid.clone(),
-                    reason: "用户取消执行".to_string(),
+                    reason: "User cancelled execution".to_string(),
                 })
                 .await;
         } else {
@@ -1114,7 +1119,7 @@ impl FlowExecutor {
             ExecutionResult {
                 success: false,
                 data: None,
-                error: Some("流程执行被取消".to_string()),
+                error: Some("Flow execution cancelled".to_string()),
                 executed_count,
                 node_reports,
                 flow_report: Some(flow_report),
@@ -1165,7 +1170,7 @@ impl FlowExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("执行节点 {} ({})", node.name, node.node_type),
+                message: format!("Executing node {} ({})", node.name, node.node_type),
                 timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -1177,7 +1182,7 @@ impl FlowExecutor {
         match self.registry.get(&type_id) {
             Some(plugin) => {
                 log::info!(
-                    "[流程 {}] Executing {} node: {} ({})",
+                    "[Flow {}] Executing {} node: {} ({})",
                     context.flow_uuid,
                     plugin.display_name(),
                     node.name,
@@ -1186,7 +1191,7 @@ impl FlowExecutor {
                 plugin.execute(node, context, connections, node_map).await
             }
             None => Err(ErrorDetail::execution_error(format!(
-                "未注册的节点类型: {}",
+                "Unregistered node type: {}",
                 type_id
             ))),
         }
@@ -1348,7 +1353,7 @@ impl FlowExecutor {
             }
             Err(_elapsed) => {
                 // Timeout
-                let error_msg = format!("节点执行超时 ({}ms)", timeout_ms);
+                let error_msg = format!("Node execution timeout ({}ms)", timeout_ms);
                 ExecutionResult {
                     success: false,
                     data: None,
@@ -1370,7 +1375,9 @@ impl FlowExecutor {
                                 flow_engine_core::error::ErrorKind::Timeout,
                                 error_msg,
                             )
-                            .with_error_code_typed(flow_engine_core::error::ErrorCode::E_TIMEOUT),
+                            .with_error_code_typed(flow_engine_core::error::ErrorCode::E_TIMEOUT)
+                            .with_i18n_arg("ms", timeout_ms.to_string())
+                            .with_i18n_arg("operation", node.name.clone()),
                         ),
                         resolved_config: None,
                         variable_changes: None,
@@ -2396,7 +2403,7 @@ mod tests {
         // 验证取消结果
         assert!(!result.success, "取消后不应该Success");
         assert!(result.error.is_some());
-        assert!(result.error.unwrap().contains("取消"));
+        assert!(result.error.unwrap().contains("cancelled"));
 
         // 验证报告状态为 Cancelled
         let report = result.flow_report.expect("取消时应有报告");

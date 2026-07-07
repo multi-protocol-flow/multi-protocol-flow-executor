@@ -59,7 +59,7 @@ impl NodeExecutor for EntryNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("Entry node {} 开始", node.name),
+                message: format!("Entry node {} started", node.name),
                 timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -69,7 +69,7 @@ impl NodeExecutor for EntryNodeExecutor {
 
         // 执行前日志
         log::info!(
-            "[流程 {}] [Entry] Node UUID: {}, NodeName: {}",
+            "[Flow {}] [Entry] Node UUID: {}, NodeName: {}",
             context.flow_uuid,
             node.uuid,
             node.name
@@ -89,7 +89,7 @@ impl NodeExecutor for EntryNodeExecutor {
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Info,
-                    message: "Entry node无后续连接，流程终止".to_string(),
+                    message: "Entry node has no output connection, flow terminated".to_string(),
                     timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                     node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()),
@@ -98,7 +98,7 @@ impl NodeExecutor for EntryNodeExecutor {
                 .await;
 
             log::info!(
-                "[流程 {}] Entry node {} ({}) has no output connection, flow terminated",
+                "[Flow {}] Entry node {} ({}) has no output connection, flow terminated",
                 context.flow_uuid,
                 node.name,
                 node.uuid
@@ -114,7 +114,7 @@ impl NodeExecutor for EntryNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("Entry node {} 完成", node.name),
+                message: format!("Entry node {} completed", node.name),
                 timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -124,7 +124,7 @@ impl NodeExecutor for EntryNodeExecutor {
 
         // 执行后日志
         log::info!(
-            "[流程 {}] [完成] Node UUID: {}, Duration: {}ms, Status: success",
+            "[Flow {}] [Completed] Node UUID: {}, Duration: {}ms, Status: success",
             context.flow_uuid,
             node.uuid,
             duration_ms
