@@ -1,8 +1,10 @@
 // 节点配置模块 - 强类型节点配置定义
 
 use crate::traits::{FramingConfig, GraphqlQueryTemplate, GrpcServiceInfo, TcpFramingMode};
+use serde::de::{self, Visitor};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 
 // ============================================================================
 // ============================================================================
@@ -945,9 +947,9 @@ pub struct DbConnectConfig {
     /// 主机地址（PostgreSQL/MySQL）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub host: Option<String>,
-    /// 端口号（PostgreSQL/MySQL）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub port: Option<u16>,
+    /// 端口号（PostgreSQL/MySQL，支持 {{variable}} 引用）
+    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_optional_port_as_string")]
+    pub port: Option<String>,
     /// 数据库名
     #[serde(skip_serializing_if = "Option::is_none")]
     pub database: Option<String>,
@@ -3292,11 +3294,83 @@ pub struct ImapCloseConfig {
 }
 
 // ============================================================================
+// 端口字段兼容反序列化（同时支持 number 和 string）
+// ============================================================================
+
+struct PortStringVisitor;
+
+impl<'de> Visitor<'de> for PortStringVisitor {
+    type Value = String;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("a port number or string")
+    }
+
+    fn visit_u64<E: de::Error>(self, v: u64) -> Result<String, E> {
+        Ok(v.to_string())
+    }
+
+    fn visit_i64<E: de::Error>(self, v: i64) -> Result<String, E> {
+        Ok(v.to_string())
+    }
+
+    fn visit_str<E: de::Error>(self, v: &str) -> Result<String, E> {
+        Ok(v.to_owned())
+    }
+}
+
+/// 反序列化 required port（Redis），接受 number 或 string
+fn deserialize_port_as_string<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    deserializer.deserialize_any(PortStringVisitor)
+}
+
+/// 反序列化 optional port（DB），接受 number / string / null
+fn deserialize_optional_port_as_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    struct OptionalPortVisitor;
+
+    impl<'de> Visitor<'de> for OptionalPortVisitor {
+        type Value = Option<String>;
+
+        fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            f.write_str("a port number, string, or null")
+        }
+
+        fn visit_u64<E: de::Error>(self, v: u64) -> Result<Option<String>, E> {
+            Ok(Some(v.to_string()))
+        }
+
+        fn visit_i64<E: de::Error>(self, v: i64) -> Result<Option<String>, E> {
+            Ok(Some(v.to_string()))
+        }
+
+        fn visit_str<E: de::Error>(self, v: &str) -> Result<Option<String>, E> {
+            Ok(Some(v.to_owned()))
+        }
+
+        fn visit_none<E: de::Error>(self) -> Result<Option<String>, E> {
+            Ok(None)
+        }
+
+        fn visit_unit<E: de::Error>(self) -> Result<Option<String>, E> {
+            Ok(None)
+        }
+    }
+
+    deserializer.deserialize_any(OptionalPortVisitor)
+}
+
+// ============================================================================
 // Redis 节点配置
 // ============================================================================
 
-fn default_redis_port() -> u16 {
-    6379
+fn default_redis_port() -> String {
+    "6379".to_string()
 }
 
 fn default_redis_connect_timeout() -> u64 {
@@ -3308,9 +3382,9 @@ fn default_redis_connect_timeout() -> u64 {
 pub struct RedisConnectConfig {
     /// 服务器地址
     pub host: String,
-    /// 端口
-    #[serde(default = "default_redis_port")]
-    pub port: u16,
+    /// 端口（支持 {{variable}} 引用）
+    #[serde(default = "default_redis_port", deserialize_with = "deserialize_port_as_string")]
+    pub port: String,
     /// 密码
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub password: Option<String>,

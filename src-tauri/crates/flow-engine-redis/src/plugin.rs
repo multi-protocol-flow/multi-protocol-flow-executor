@@ -60,7 +60,7 @@ impl NodePlugin for RedisConnectPlugin {
     fn default_config(&self) -> serde_json::Value {
         json!({
             "host": "127.0.0.1",
-            "port": 6379,
+            "port": "6379",
             "password": null,
             "db_index": 0,
             "connect_timeout_ms": 10000,
