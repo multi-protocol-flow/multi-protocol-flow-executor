@@ -8,8 +8,8 @@ export interface RedisConnectConfig {
   type: 'redis_connect';
   /** 服务器地址 */
   host: string;
-  /** 端口 */
-  port: number;
+  /** 端口（支持 {{variable}} 引用） */
+  port: string;
   /** 密码 */
   password?: string;
   /** 数据库索引 */

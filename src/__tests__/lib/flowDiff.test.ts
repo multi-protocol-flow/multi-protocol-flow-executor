@@ -461,14 +461,14 @@ describe('diffFlows', () => {
       type: 'db_connect',
       driver: 'postgres',
       host: 'localhost',
-      port: 5432,
+      port: '5432',
       database: 'olddb',
     });
     const nNew = createTestNode('n1', 'db_connect', 'DB连接', {
       type: 'db_connect',
       driver: 'mysql',
       host: 'remotehost',
-      port: 3306,
+      port: '3306',
       database: 'newdb',
     });
 

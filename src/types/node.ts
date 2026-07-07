@@ -2179,8 +2179,8 @@ export interface DbConnectConfig {
   connection_string?: string;
   /** 主机地址（PostgreSQL/MySQL） */
   host?: string;
-  /** 端口号（PostgreSQL/MySQL） */
-  port?: number;
+  /** 端口号（PostgreSQL/MySQL，支持 {{variable}} 引用） */
+  port?: string;
   /** 数据库名 */
   database?: string;
   /** 用户名 */

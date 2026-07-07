@@ -449,7 +449,7 @@ export const dbConnectConfigSchema = z.object({
   driver: z.string().optional(),
   connection_string: z.string().optional(),
   host: z.string().optional(),
-  port: z.number().optional(),
+  port: z.string().optional(),
   database: z.string().optional(),
   username: z.string().optional(),
   password: z.string().optional(),
