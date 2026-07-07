@@ -67,6 +67,7 @@
   --scrollbar-thumb: oklch(0.8 0 0);
   --scrollbar-thumb-hover: oklch(0.7 0 0);
   /* 画布专用颜色 */
+  --canvas-bg: oklch(0.975 0.005 250);
   --canvas-edge: oklch(0.2 0 0);
   --canvas-dot: #cbd5e1;
   --controls-icon: #1e293b;
@@ -102,6 +103,7 @@
   --scrollbar-thumb: oklch(0.4 0 0);
   --scrollbar-thumb-hover: oklch(0.5 0 0);
   /* 画布专用颜色 */
+  --canvas-bg: oklch(0.145 0 0);
   --canvas-edge: oklch(0.55 0 0);
   --canvas-dot: #475569;
   --controls-icon: #e2e8f0;

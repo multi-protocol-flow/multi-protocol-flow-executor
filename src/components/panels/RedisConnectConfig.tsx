@@ -46,7 +46,7 @@ function fromFormData(formData: RedisConnectFormData): RedisConnectConfigType {
     type: 'redis_connect',
     host: formData.host,
     port: formData.port || '6379',
-    password: formData.password, // 保留空字符串，不再转换为 undefined
+    password: formData.password || undefined, // 空密码转为 undefined，避免 redis-rs 发送 AUTH ""
     db_index: formData.db_index,
     connect_timeout_ms: formData.connect_timeout_ms,
   };

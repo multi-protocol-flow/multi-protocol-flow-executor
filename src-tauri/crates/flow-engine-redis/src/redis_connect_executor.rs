@@ -64,7 +64,8 @@ impl NodeExecutor for RedisConnectExecutor {
             .as_ref()
             .map(|p| replace_variables(p, context))
             .transpose()
-            .map_err(ErrorDetail::execution_error)?;
+            .map_err(ErrorDetail::execution_error)?
+            .filter(|p| !p.is_empty()); // 空密码转为 None，避免 redis-rs 发送 AUTH ""
 
         context
             .emit_log(LogEvent {

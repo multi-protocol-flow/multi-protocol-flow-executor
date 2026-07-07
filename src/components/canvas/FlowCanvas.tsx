@@ -1232,8 +1232,8 @@ function FlowCanvasInner() {
   return (
     <div 
       ref={canvasRef}
-      className={cn('w-full h-full', 'bg-background')}
-      style={CANVAS_CURSOR_STYLE}
+      className="w-full h-full"
+      style={{ backgroundColor: 'var(--canvas-bg)', ...CANVAS_CURSOR_STYLE }}
       data-guide="canvas-area"
     >
       {/* 全局样式（静态字符串，避免每次渲染重新创建 <style> 标签） */}
