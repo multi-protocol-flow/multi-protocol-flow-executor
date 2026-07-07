@@ -8,6 +8,7 @@
 import { AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getLL } from '@/i18n/i18n-lazy';
+import { resolveErrorCode } from '@/services/tauri/flow';
 import type { ErrorDetail } from '@/types';
 
 interface ErrorSectionProps {
@@ -54,10 +55,10 @@ export function ErrorSection({ error }: ErrorSectionProps) {
         </div>
       </div>
 
-      {/* 错误消息 */}
+      {/* 错误消息 — 优先通过 error_code + i18n_args 做 i18n 翻译，fallback 到后端原始 message */}
       <div className="p-3">
         <p className="text-sm text-red-700 dark:text-red-300 font-medium whitespace-pre-wrap break-words">
-          {error.message}
+          {error.error_code ? resolveErrorCode(error.error_code, error.i18n_args) : error.message}
         </p>
       </div>
 
