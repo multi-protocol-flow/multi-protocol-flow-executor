@@ -89,12 +89,40 @@ impl NodeExecutor for DbConnectExecutor {
         };
 
         let replaced_host = replace_opt(&config.host, "host")?;
+        let replaced_port = replace_opt(&config.port, "port")?;
         let replaced_database = replace_opt(&config.database, "database")?;
         let replaced_username = replace_opt(&config.username, "username")?;
         let replaced_password = replace_opt(&config.password, "password")?;
         let replaced_connection_string =
             replace_opt(&config.connection_string, "connection_string")?;
         let replaced_test_query = replace_opt(&config.test_query, "test_query")?;
+
+        // 端口变量替换后解析为 u16（DbConnection 仍使用 Option<u16>）
+        let parsed_port: Option<u16> = match replaced_port {
+            Some(p) => match p.parse() {
+                Ok(n) => Some(n),
+                Err(_) => {
+                    let err_msg = format!("Invalid port number: {}", p);
+                    log::error!(
+                        "[Flow {}] [Error] NodeID: {}, Error: {}",
+                        context.flow_uuid,
+                        node.uuid,
+                        err_msg
+                    );
+                    // 路由到 false 端口
+                    return Ok((
+                        self.get_false_port_nodes(node, connections),
+                        Some(self.build_error_output(
+                            &config,
+                            &pool_key,
+                            &err_msg,
+                            start_time.elapsed().as_millis() as u64,
+                        )),
+                    ));
+                }
+            },
+            None => None,
+        };
 
         // 3. 验证 driver（必填字段）
         if config.driver.is_none() {
@@ -168,7 +196,7 @@ impl NodeExecutor for DbConnectExecutor {
                     name: node.name.clone(),
                     driver: DbDriver::Sqlite,
                     host: replaced_host.clone(),
-                    port: config.port,
+                    port: parsed_port,
                     database: replaced_database.clone(),
                     username: replaced_username.clone(),
                     password: replaced_password.clone(),
@@ -249,7 +277,7 @@ impl NodeExecutor for DbConnectExecutor {
                     name: node.name.clone(),
                     driver: DbDriver::Mysql,
                     host: replaced_host.clone(),
-                    port: config.port,
+                    port: parsed_port,
                     database: replaced_database.clone(),
                     username: replaced_username.clone(),
                     password: replaced_password.clone(),
@@ -327,7 +355,7 @@ impl NodeExecutor for DbConnectExecutor {
                     name: node.name.clone(),
                     driver: DbDriver::Postgres,
                     host: replaced_host.clone(),
-                    port: config.port,
+                    port: parsed_port,
                     database: replaced_database.clone(),
                     username: replaced_username.clone(),
                     password: replaced_password.clone(),

@@ -1719,7 +1719,7 @@ pub async fn amqp_test_connection(url: String) -> Result<bool, String> {
 #[tauri::command]
 pub async fn test_redis_connection(
     host: String,
-    port: u16,
+    port: String,
     password: Option<String>,
     db_index: i64,
 ) -> Result<bool, String> {
@@ -1728,6 +1728,9 @@ pub async fn test_redis_connection(
     if host.is_empty() {
         return Err("Server address must not be empty".to_string());
     }
+    let port: u16 = port
+        .parse()
+        .map_err(|_| format!("Invalid port number: {}", port))?;
     if port == 0 {
         return Err("Invalid port number".to_string());
     }
