@@ -87,7 +87,7 @@ impl ConditionalNodeExecutor {
                 if value_str.is_empty() || value_str.to_lowercase() == "null" {
                     Ok(serde_json::Value::Null)
                 } else {
-                    Err(format!("期望 null 但得到: {}", value_str))
+                    Err(format!("Expected null but got: {}", value_str))
                 }
             }
             ExpectedValueType::String => {
@@ -120,7 +120,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("条件节点 {} 开始评估", node.name),
+                message: format!("Conditional node {} evaluating", node.name),
                 timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -134,7 +134,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
             _ => {
                 let error_msg = format!("Node data type is notConditionalConfig: {}", node.uuid);
                 log::error!(
-                    "[流程 {}] [Error] 节点UUID: {}, NodeName: {}, Error: {}",
+                    "[Flow {}] [Error] NodeUUID: {}, NodeName: {}, Error: {}",
                     context.flow_uuid,
                     node.uuid,
                     node.name,
@@ -172,7 +172,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Debug,
-                        message: "条件类型: Simple".to_string(),
+                        message: "Condition type: Simple".to_string(),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -187,13 +187,13 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 let field_path = conditional_config.field_path.as_ref().ok_or_else(|| {
                     ErrorDetail::new(
                         ErrorKind::ConditionSyntax,
-                        "简单条件缺少 field_path".to_string(),
+                        "Simple condition missing field_path".to_string(),
                     )
                 })?;
                 let operator = conditional_config.operator.as_ref().ok_or_else(|| {
                     ErrorDetail::new(
                         ErrorKind::ConditionSyntax,
-                        "简单条件缺少 operator".to_string(),
+                        "Simple condition missing operator".to_string(),
                     )
                 })?;
 
@@ -256,7 +256,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     )
                     .map_err(ErrorDetail::execution_error)?;
                 log::info!(
-                    "[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}",
+                    "[Flow {}] [ConditionEval] Condition type: Simple, Expression: {}, Result: {}",
                     context.flow_uuid,
                     expression,
                     result
@@ -266,7 +266,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Debug,
-                        message: format!("表达式: {} = {}", expression, result),
+                        message: format!("Expression: {} = {}", expression, result),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -286,7 +286,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Debug,
-                        message: "条件类型: Advanced".to_string(),
+                        message: "Condition type: Advanced".to_string(),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -308,7 +308,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     )
                     .map_err(ErrorDetail::execution_error)?;
                 log::info!(
-                    "[流程 {}] [条件判断] 条件类型: Advanced, 表达式: {}, 结果: {}",
+                    "[Flow {}] [ConditionEval] Condition type: Advanced, Expression: {}, Result: {}",
                     context.flow_uuid,
                     expression,
                     result
@@ -318,7 +318,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Debug,
-                        message: format!("表达式: {} = {}", expression, result),
+                        message: format!("Expression: {} = {}", expression, result),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -342,7 +342,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("条件结果: {}", condition_result),
+                message: format!("Condition result: {}", condition_result),
                 timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -365,7 +365,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
 
         // 执行后日志
         log::info!(
-            "[流程 {}] [完成] 节点UUID: {}, Duration: {}ms, Status: success, 使用的端口: {}",
+            "[Flow {}] [Done] NodeUUID: {}, Duration: {}ms, Status: success, Used port: {}",
             context.flow_uuid,
             node.uuid,
             duration_ms,
@@ -407,7 +407,7 @@ impl ConditionalNodeExecutor {
         let field_path = config.field_path.as_ref().ok_or_else(|| {
             let error = ErrorDetail::new(
                 ErrorKind::ConditionSyntax,
-                "简单条件缺少 field_path".to_string(),
+                "Simple condition missing field_path".to_string(),
             );
             log::error!("[Error] {}", error.message);
             error.message
@@ -417,14 +417,14 @@ impl ConditionalNodeExecutor {
         let operator = config.operator.as_ref().ok_or_else(|| {
             let error = ErrorDetail::new(
                 ErrorKind::ConditionSyntax,
-                "简单条件缺少 operator".to_string(),
+                "Simple condition missing operator".to_string(),
             );
             log::error!("[Error] {}", error.message);
             error.message
         })?;
 
         log::info!(
-            "[条件评估] 字段路径: {}, 操作符: {:?}",
+            "[ConditionEval] Field path: {}, Operator: {:?}",
             field_path,
             operator
         );
@@ -432,7 +432,7 @@ impl ConditionalNodeExecutor {
         // 从 variables 中提取 field_path 指定的值（传入 last_node_output 用于 jsonpath）
         let actual_value = self.extract_field_value(variables, last_node_output, field_path)?;
 
-        log::info!("[条件评估] 提取的值: {:?}", actual_value);
+        log::info!("[ConditionEval] Extracted value: {:?}", actual_value);
 
         // 获取 expected_value（对于 exists 操作符不需要 expected_value）
         let expected_value_raw = config.expected_value.as_ref();
@@ -456,7 +456,7 @@ impl ConditionalNodeExecutor {
         };
 
         log::info!(
-            "[条件评估] 期望值类型: {:?}, 解析后期望值: {:?}",
+            "[ConditionEval] Expected type: {:?}, Parsed expected value: {:?}",
             expected_value_type,
             expected_value
         );
@@ -464,7 +464,7 @@ impl ConditionalNodeExecutor {
         // 使用 operator 比较提取值和 expected_value
         let result = self.compare_values(operator, &actual_value, expected_value.as_ref())?;
 
-        log::info!("[条件评估] 比较结果: {}", result);
+        log::info!("[ConditionEval] Comparison result: {}", result);
         Ok(result)
     }
 
@@ -480,11 +480,11 @@ impl ConditionalNodeExecutor {
     ) -> Result<bool, String> {
         // 获取advanced_expression
         let expression = config.advanced_expression.as_ref().ok_or_else(|| {
-            log::error!("[Error] 高级条件缺少advanced_expression");
-            "高级条件缺少advanced_expression".to_string()
+            log::error!("[Error] Advanced condition missing advanced_expression");
+            "Advanced condition missing advanced_expression".to_string()
         })?;
 
-        log::info!("[条件评估] 高级表达式: {}", expression);
+        log::info!("[ConditionEval] Advanced expression: {}", expression);
 
         // 创建evalexpr上下文
         let mut evalexpr_context = HashMapContext::new();
@@ -504,12 +504,12 @@ impl ConditionalNodeExecutor {
         let eval_result = evalexpr::eval_with_context(&processed_expression, &evalexpr_context)
             .map_err(|e| {
                 log::error!(
-                    "[Error] 评估表达式 '{}' (预处理后: '{}') Failed: {}",
+                    "[Error] Evaluating expression '{}' (preprocessed: '{}') failed: {}",
                     expression,
                     processed_expression,
                     e
                 );
-                format!("评估表达式 '{}' Failed: {}", expression, e)
+                format!("Evaluating expression '{}' failed: {}", expression, e)
             })?;
 
         // 转换为布尔值
@@ -520,12 +520,12 @@ impl ConditionalNodeExecutor {
             EvalValue::String(s) => !s.is_empty(),
             EvalValue::Empty => false,
             _ => {
-                log::error!("[Error] 表达式返回不支持的类型: {:?}", eval_result);
-                return Err(format!("表达式返回不支持的类型: {:?}", eval_result));
+                log::error!("[Error] Expression returned unsupported type: {:?}", eval_result);
+                return Err(format!("Expression returned unsupported type: {:?}", eval_result));
             }
         };
 
-        log::info!("[条件评估] 表达式评估结果: {}", result);
+        log::info!("[ConditionEval] Expression eval result: {}", result);
         Ok(result)
     }
 
@@ -557,7 +557,7 @@ impl ConditionalNodeExecutor {
             variables
                 .get(var_name)
                 .cloned()
-                .ok_or_else(|| format!("变量 '{}' 不存在", var_name))
+                .ok_or_else(|| format!("Variable '{}' not found", var_name))
         } else if field_path.starts_with("$.") {
             // JSONPath: $.path.to.field
             // 优先从 last_node_output 提取（上游协议节点输出）
@@ -566,11 +566,11 @@ impl ConditionalNodeExecutor {
 
             let data_source = last_node_output.unwrap_or(variables);
             extract_value_by_path(data_source, field_path)
-                .ok_or_else(|| format!("JSONPath '{}' 提取Failed", field_path))
+                .ok_or_else(|| format!("JSONPath '{}' extraction failed", field_path))
         } else if field_path.contains(".") {
             // 旧语法：返回Error
             Err(format!(
-                "不支持的语法 '{}'，请使用 {{变量名}} 或 $.json.path 格式",
+                "Unsupported syntax '{}', use {{variable_name}} or $.json.path format",
                 field_path
             ))
         } else {
@@ -580,12 +580,12 @@ impl ConditionalNodeExecutor {
             } else if let Some(output) = last_node_output {
                 output.get(field_path).cloned().ok_or_else(|| {
                     format!(
-                        "变量 '{}' 不存在（已在变量池和上游节点输出中查找）",
+                        "Variable '{}' not found (checked variable pool and upstream node outputs)",
                         field_path
                     )
                 })
             } else {
-                Err(format!("变量 '{}' 不存在", field_path))
+                Err(format!("Variable '{}' not found", field_path))
             }
         }
     }
@@ -600,16 +600,16 @@ impl ConditionalNodeExecutor {
         match operator {
             ConditionOperator::Equal => {
                 let expected_val = expected.ok_or_else(|| {
-                    log::error!("[Error] equal操作符需要expected_value");
-                    "equal操作符需要expected_value".to_string()
+                    log::error!("[Error] equal operator requires expected_value");
+                    "equal operator requires expected_value".to_string()
                 })?;
                 let result = actual == expected_val;
                 Ok(result)
             }
             ConditionOperator::NotEqual => {
                 let expected_val = expected.ok_or_else(|| {
-                    log::error!("[Error] not_equal操作符需要expected_value");
-                    "not_equal操作符需要expected_value".to_string()
+                    log::error!("[Error] not_equal operator requires expected_value");
+                    "not_equal operator requires expected_value".to_string()
                 })?;
                 let result = actual != expected_val;
                 Ok(result)
@@ -626,22 +626,22 @@ impl ConditionalNodeExecutor {
             }
             ConditionOperator::Contains => {
                 let expected_val = expected.ok_or_else(|| {
-                    log::error!("[Error] contains操作符需要expected_value");
-                    "contains操作符需要expected_value".to_string()
+                    log::error!("[Error] contains operator requires expected_value");
+                    "contains operator requires expected_value".to_string()
                 })?;
                 self.compare_contains(actual, expected_val)
             }
             ConditionOperator::StartsWith => {
                 let expected_val = expected.ok_or_else(|| {
-                    log::error!("[Error] starts_with操作符需要expected_value");
-                    "starts_with操作符需要expected_value".to_string()
+                    log::error!("[Error] starts_with operator requires expected_value");
+                    "starts_with operator requires expected_value".to_string()
                 })?;
                 self.compare_starts_with(actual, expected_val)
             }
             ConditionOperator::EndsWith => {
                 let expected_val = expected.ok_or_else(|| {
-                    log::error!("[Error] ends_with操作符需要expected_value");
-                    "ends_with操作符需要expected_value".to_string()
+                    log::error!("[Error] ends_with operator requires expected_value");
+                    "ends_with operator requires expected_value".to_string()
                 })?;
                 self.compare_ends_with(actual, expected_val)
             }
@@ -666,8 +666,8 @@ impl ConditionalNodeExecutor {
     {
         let actual_num = self.value_to_number(actual, "actual")?;
         let expected_val = expected.ok_or_else(|| {
-            log::error!("[Error] {}操作符需要expected_value", operator_name);
-            format!("{}操作符需要expected_value", operator_name)
+            log::error!("[Error] {} operator requires expected_value", operator_name);
+            format!("{} operator requires expected_value", operator_name)
         })?;
         let expected_num = self.value_to_number(expected_val, "expected")?;
         let result = compare(actual_num, expected_num);
@@ -681,10 +681,10 @@ impl ConditionalNodeExecutor {
                 if let Some(f) = n.as_f64() {
                     Ok(f)
                 } else {
-                    Err(format!("{}不是有效的数字: {:?}", name, value))
+                    Err(format!("{} is not a valid number: {:?}", name, value))
                 }
             }
-            _ => Err(format!("{}不是数字类型: {:?}", name, value)),
+            _ => Err(format!("{} is not a numeric type: {:?}", name, value)),
         }
     }
 
@@ -730,7 +730,7 @@ impl ConditionalNodeExecutor {
             serde_json::Value::String(s) => Ok(s.clone()),
             serde_json::Value::Number(n) => Ok(n.to_string()),
             serde_json::Value::Bool(b) => Ok(b.to_string()),
-            _ => Err(format!("{}不是字符串类型: {:?}", name, value)),
+            _ => Err(format!("{} is not a string type: {:?}", name, value)),
         }
     }
 }
@@ -780,7 +780,7 @@ fn inject_json_to_context(
             let eval_value = json_to_evalexpr_value(value);
             context
                 .set_value(key.clone(), eval_value)
-                .map_err(|e| format!("设置变量 '{}' Failed: {}", key, e))?;
+                .map_err(|e| format!("Setting variable '{}' failed: {}", key, e))?;
 
             // 递归展开嵌套对象
             if matches!(value, serde_json::Value::Object(_)) {
@@ -798,7 +798,7 @@ fn inject_json_to_context(
                             let eval_value = json_to_evalexpr_value(item);
                             context
                                 .set_value(item_key.clone(), eval_value)
-                                .map_err(|e| format!("设置变量 '{}' Failed: {}", item_key, e))?;
+                                .map_err(|e| format!("Setting variable '{}' failed: {}", item_key, e))?;
                         }
                     }
                 }
@@ -823,7 +823,7 @@ fn flatten_json_to_context(
                     let eval_value = json_to_evalexpr_value(value);
                     context
                         .set_value(flat_key, eval_value)
-                        .map_err(|e| format!("设置变量Failed: {}", e))?;
+                        .map_err(|e| format!("Setting variable failed: {}", e))?;
                 }
                 serde_json::Value::Array(arr) => {
                     for (i, item) in arr.iter().enumerate() {
@@ -836,20 +836,20 @@ fn flatten_json_to_context(
                                 let eval_value = json_to_evalexpr_value(item);
                                 context
                                     .set_value(item_key, eval_value)
-                                    .map_err(|e| format!("设置变量Failed: {}", e))?;
+                                    .map_err(|e| format!("Setting variable failed: {}", e))?;
                             }
                         }
                     }
                     let eval_value = json_to_evalexpr_value(value);
                     context
                         .set_value(flat_key, eval_value)
-                        .map_err(|e| format!("设置变量Failed: {}", e))?;
+                        .map_err(|e| format!("Setting variable failed: {}", e))?;
                 }
                 _ => {
                     let eval_value = json_to_evalexpr_value(value);
                     context
                         .set_value(flat_key, eval_value)
-                        .map_err(|e| format!("设置变量Failed: {}", e))?;
+                        .map_err(|e| format!("Setting variable failed: {}", e))?;
                 }
             }
         }
@@ -1432,8 +1432,8 @@ mod tests {
             .await;
         assert!(result.is_err(), "类型不匹配应该返回Error");
         assert!(
-            result.unwrap_err().message.contains("actual不是数字类型"),
-            "Error信息应该包含 actual不是数字类型"
+            result.unwrap_err().message.contains("is not a numeric type"),
+            "Error message should contain 'is not a numeric type'"
         );
     }
 
@@ -1460,8 +1460,8 @@ mod tests {
             .await;
         assert!(result.is_err(), "语法Error应该返回Error");
         assert!(
-            result.unwrap_err().message.contains("评估表达式"),
-            "Error信息应该包含 评估表达式"
+            result.unwrap_err().message.contains("Evaluating expression"),
+            "Error message should contain 'Evaluating expression'"
         );
     }
 
@@ -1490,8 +1490,8 @@ mod tests {
             result
                 .unwrap_err()
                 .message
-                .contains("简单条件缺少 field_path"),
-            "Error信息应该包含 简单条件缺少 field_path"
+                .contains("missing field_path"),
+            "Error message should contain 'missing field_path'"
         );
     }
 
@@ -1520,8 +1520,8 @@ mod tests {
             result
                 .unwrap_err()
                 .message
-                .contains("简单条件缺少 operator"),
-            "Error信息应该包含 简单条件缺少 operator"
+                .contains("missing operator"),
+            "Error message should contain 'missing operator'"
         );
     }
 
@@ -1550,8 +1550,8 @@ mod tests {
             result
                 .unwrap_err()
                 .message
-                .contains("缺少advanced_expression"),
-            "Error信息应该包含 缺少advanced_expression"
+                .contains("missing advanced_expression"),
+            "Error message should contain 'missing advanced_expression'"
         );
     }
 
@@ -1771,7 +1771,7 @@ mod tests {
             Some(&ExpectedValueType::Null),
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("期望 null 但得到"));
+        assert!(result.unwrap_err().contains("Expected null but got"));
     }
 
     // ============================================================================
@@ -1918,10 +1918,10 @@ mod tests {
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
-        assert!(result.is_err(), "变量不存在应该返回Error");
+        assert!(result.is_err(), "variable not found should return error");
         assert!(
-            result.unwrap_err().message.contains("不存在"),
-            "Error信息应该包含 '不存在'"
+            result.unwrap_err().message.contains("not found"),
+            "Error message should contain 'not found'"
         );
     }
 
@@ -2014,8 +2014,8 @@ mod tests {
         assert!(result.is_err(), "旧语法应该返回Error");
         let error = result.unwrap_err();
         assert!(
-            error.message.contains("不支持的语法"),
-            "Error信息应该包含 '不支持的语法': {}",
+            error.message.contains("Unsupported syntax"),
+            "Error message should contain 'Unsupported syntax': {}",
             error
         );
     }
@@ -2557,7 +2557,7 @@ mod tests {
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
-        assert!(result.is_err(), "两边都找不到应报错");
-        assert!(result.unwrap_err().message.contains("不存在"));
+        assert!(result.is_err(), "should error when not found in either source");
+        assert!(result.unwrap_err().message.contains("not found"));
     }
 }

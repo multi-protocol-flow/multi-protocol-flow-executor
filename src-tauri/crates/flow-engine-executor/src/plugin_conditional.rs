@@ -37,12 +37,12 @@ impl NodePlugin for ConditionalPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "条件为真".into(),
+                label: "Condition is True".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "条件为假".into(),
+                label: "Condition is False".into(),
                 position: "bottom".into(),
             },
         ]
@@ -127,7 +127,7 @@ impl NodePlugin for ConditionalPlugin {
                     if !VALID_OPERATORS.contains(&op) {
                         errors.push(ValidationError {
                             field: "operator".into(),
-                            message: format!("未知的操作符: {}", op),
+                            message: format!("Unknown operator: {}", op),
                         });
                     }
                 }

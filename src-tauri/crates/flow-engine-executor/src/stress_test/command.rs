@@ -117,7 +117,7 @@ impl StressTestSessionManager {
         if let Some(ref executor) = *session {
             let progress = executor.get_progress().await;
             if progress.status != StressTestStatus::Stopped {
-                return Err("已有压测会话在运行，请先停止当前会话".to_string());
+                return Err("A stress test session is already running, please stop it first".to_string());
             }
             // 会话已停止，清理它以允许重新启动
             *session = None;
@@ -152,10 +152,10 @@ impl StressTestSessionManager {
                 // 停止执行器
                 executor.stop().await?;
 
-                log::info!("[压测会话管理器] 会话已停止");
+                log::info!("[StressTestSessionManager] Session stopped");
                 Ok(())
             }
-            None => Err("没有运行中的压测会话".to_string()),
+            None => Err("No running stress test session".to_string()),
         }
     }
 
@@ -208,7 +208,7 @@ pub async fn handle_start_stress_test(
     state: Arc<StressTestSessionManager>,
 ) -> Result<(), String> {
     log::info!(
-        "[压测命令] 启动压测: flow={}, concurrent={}, duration={}s",
+        "[StressTestCommand] Start stress test: flow={}, concurrent={}, duration={}s",
         input.flow.uuid,
         input.config.concurrent_users,
         input.config.duration_seconds
@@ -226,7 +226,7 @@ pub async fn handle_start_stress_test(
 /// - `Ok(())` - 停止Success
 /// - `Err(String)` - 停止Failed
 pub async fn handle_stop_stress_test(state: Arc<StressTestSessionManager>) -> Result<(), String> {
-    log::info!("[压测命令] 停止压测");
+    log::info!("[StressTestCommand] Stop stress test");
     state.stop().await
 }
 
@@ -510,7 +510,7 @@ mod tests {
         let result = manager.stop().await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("没有运行中的压测会话"));
+        assert!(result.unwrap_err().contains("No running stress test session"));
     }
 
     #[tokio::test]
@@ -597,7 +597,7 @@ mod tests {
         let result2 = handle_start_stress_test(input2, event_sender2, manager.clone()).await;
         assert!(result2.is_err(), "第二次启动应该Failed");
         let error = result2.unwrap_err();
-        assert!(error.contains("已有压测会话在运行"));
+        assert!(error.contains("A stress test session is already running"));
 
         // 清理
         let _ = handle_stop_stress_test(manager).await;
