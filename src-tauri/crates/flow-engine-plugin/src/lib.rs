@@ -8,6 +8,8 @@
 //! `mpe-protocol` for the shared wire contract. Transport, lifecycle, and
 //! manager logic land in M1+; this file declares the module skeleton only.
 
+/// Describe RPC handshake and P0 frontend normalization.
+pub mod describe;
 /// Plugin directory scanning and discovery.
 pub mod discovery;
 /// Plugin error types.
@@ -16,7 +18,7 @@ pub mod error;
 pub mod framing;
 /// Plugin process lifecycle (start, recycle, shutdown).
 pub mod lifecycle;
-/// `PluginManager`: discovery + lifecycle + registry registration.
+/// `PluginManager`: scan + describe + quarantine (lifecycle/registration in M2b/M2c).
 pub mod manager;
 /// Plugin manifest (`plugin.json`) parsing and validation.
 pub mod manifest;

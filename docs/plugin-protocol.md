@@ -128,7 +128,55 @@ and returns `Err(Timeout)`. Timeout is the **only** mechanism covering a
 stuck-but-alive plugin. A plugin that actually exits drains all pending
 requests with `Err(PluginCrashed)`.
 
-## 9. Spawn hygiene
+## 9. Describe handshake (M2a')
+
+The host runs `describe` once per discovered plugin, immediately after
+spawning its process, to learn the plugin's node types before any flow can
+use them.
+
+**Request.** `method: "describe"`, `params: {}` (the plugin echoes everything
+the host needs; the host sends no manifest — it already validated the
+on-disk `plugin.json` during discovery).
+
+**Response.** `result` is a `DescribeResult`:
+
+```json
+{
+  "plugin":  { "name": "demo", "version": "1.0.0",
+               "entry": {"command": "demo"},
+               "capabilities": {"streaming": true} },
+  "nodes": [
+    { "type_id": "demo:ping", "display_name": "Ping",
+      "category": "demo", "icon": "wave", "color": "#ff0000",
+      "ports": [{"id": "in", "label": "In", "kind": "in"},
+                {"id": "out", "label": "Out", "kind": "out"}],
+      "default_config": {"target": "localhost"},
+      "config_schema": {"type": "object"},
+      "frontend": {"type": "inline", "content": "<p>ping</p>"},
+      "capabilities": {"streaming": false} }
+  ]
+}
+```
+
+- `plugin` is the plugin's authoritative manifest echo; its `capabilities`
+  **override** the on-disk manifest (residency decision, M2b).
+- `nodes[].frontend`: P0 supports **only** `type: "inline"` with optional
+  inline `content`. The reserved `config_panel` / `viewer` / `help` frontend
+  fields are P1 and not part of the P0 schema. A plugin declaring any other
+  frontend type is **warned about and treated as having no frontend** —
+  never a crash.
+- `nodes[].category` / `icon` / `color` / `config_schema` are optional
+  (`null`-able); `ports` and `nodes` default to empty; `default_config`
+  defaults to `null`.
+
+**Quarantine policy.** A describe failure — spawn failure, RPC timeout,
+connection crash, or a JSON-RPC error response — counts against the plugin
+by name. After **3** consecutive failures (reset on success) the plugin is
+quarantined for the rest of the host manager's lifetime: every later scan
+skips it with a warning, and no node from it is ever registered. A plugin
+that crashes during `describe` can therefore never wedge the host.
+
+## 10. Spawn hygiene
 
 The host applies at spawn time: a stderr drain task (the 64 KB pipe buffer
 stalls a plugin forever otherwise), `PYTHONUTF8=1` /
