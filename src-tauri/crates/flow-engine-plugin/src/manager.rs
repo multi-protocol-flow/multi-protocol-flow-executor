@@ -1,4 +1,5 @@
-//! `PluginManager`: scan + describe handshake + quarantine + lifecycle.
+//! `PluginManager`: scan + describe handshake + quarantine + lifecycle +
+//! registration.
 //!
 //! Owns the plugins directory, the per-plugin describe connections, and the
 //! quarantine policy: a plugin whose describe handshake fails
@@ -11,6 +12,10 @@
 //! [`crate::lifecycle`]) so later [`PluginManager::connection_for`] calls get
 //! an on-demand connection, an idle reaper, and the restart policy for free.
 //! Streaming plugins (`capabilities.streaming`) are registered as Resident.
+//!
+//! Successful describes also retain a [`PluginRegistration`]; the registration
+//! path (collision policy + insertion into the host `NodeRegistry`) lives in
+//! [`crate::registration`] as inherent impls on this type.
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -25,6 +30,7 @@ use crate::discovery::{DiscoveredPlugin, PluginScan};
 use crate::error::PluginError;
 use crate::lifecycle::{LifecycleConfig, LifecycleEntry, ResidencyMode};
 use crate::process;
+use crate::registration::CollisionReport;
 use crate::transport::{ConnectionConfig, PluginConnection};
 
 /// Describe attempts before a plugin is quarantined for this manager's
@@ -61,6 +67,15 @@ pub struct PluginManager {
     entries: HashMap<String, Arc<LifecycleEntry>>,
     /// Lifecycle policy shared by all registered entries.
     lifecycle_config: LifecycleConfig,
+    /// Registrations retained from every successful describe; their nodes are
+    /// inserted into the host registry by `register_nodes` / `register_nodes_with`
+    /// (see [`crate::registration`]).
+    pub(crate) registrations: Vec<PluginRegistration>,
+    /// Node type ids already claimed by plugin registrations (first-wins set;
+    /// persisted for the manager's lifetime so later calls cannot shadow).
+    pub(crate) claimed_node_ids: HashSet<String>,
+    /// Every node the collision policy rejected (test-observable).
+    pub(crate) collisions: Vec<CollisionReport>,
 }
 
 impl PluginManager {
@@ -74,6 +89,9 @@ impl PluginManager {
             quarantined: HashSet::new(),
             entries: HashMap::new(),
             lifecycle_config: LifecycleConfig::default(),
+            registrations: Vec::new(),
+            claimed_node_ids: HashSet::new(),
+            collisions: Vec::new(),
         }
     }
 
@@ -145,6 +163,7 @@ impl PluginManager {
                 Ok(registration) => {
                     self.note_describe_success(&plugin.name);
                     self.register_plugin(registration.name.clone(), registration.manifest.clone());
+                    self.registrations.push(registration.clone());
                     registrations.push(registration);
                 }
                 Err(e) => {

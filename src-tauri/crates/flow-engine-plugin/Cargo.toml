@@ -11,6 +11,7 @@ description = "Host-side MPE plugin manager: discovery, lifecycle, JSON-RPC stdi
 plugin-manager = []
 
 [dependencies]
+async-trait = { workspace = true }
 flow-engine-core = { path = "../flow-engine-core" }
 mpe-protocol = { path = "../mpe-protocol" }
 tokio = { workspace = true, features = ["process"] }

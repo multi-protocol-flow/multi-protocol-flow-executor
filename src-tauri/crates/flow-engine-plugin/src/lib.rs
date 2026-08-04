@@ -18,7 +18,7 @@ pub mod error;
 pub mod framing;
 /// Plugin process lifecycle (start, recycle, shutdown).
 pub mod lifecycle;
-/// `PluginManager`: scan + describe + quarantine (lifecycle/registration in M2b/M2c).
+/// `PluginManager`: scan + describe + quarantine + lifecycle + registration.
 pub mod manager;
 /// Plugin manifest (`plugin.json`) parsing and validation.
 pub mod manifest;
@@ -26,6 +26,9 @@ pub mod manifest;
 pub mod process;
 /// JSON-RPC wire types shared with plugins (via `mpe-protocol`).
 pub mod protocol;
+/// Registration of describe-produced nodes into the host registry (collision
+/// policy, M2c).
+pub mod registration;
 /// Reserved built-in node type ids (collision policy).
 pub mod reserved;
 /// Minimal semver parsing and `min_host_version` gating.
@@ -34,3 +37,6 @@ pub mod semver;
 pub mod sidecar;
 /// Pipelined JSON-RPC transport over a child process's stdin/stdout.
 pub mod transport;
+
+#[cfg(test)]
+mod registration_tests;
