@@ -1,0 +1,16 @@
+[package]
+name = "mpe-plugin-sdk"
+version = "0.1.0"
+edition = "2021"
+description = "SDK for MPE sidecar plugin authors (Rust); deliberately free of host types"
+
+[dependencies]
+# Shared wire contract only. NO flow-engine-core dependency: plugin authors
+# must not inherit host types — the SDK is a leaf crate.
+mpe-protocol = { path = "../mpe-protocol" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

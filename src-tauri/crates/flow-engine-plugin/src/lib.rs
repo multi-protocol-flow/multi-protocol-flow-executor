@@ -1,0 +1,32 @@
+//! Flow Engine Plugin — host-side sidecar plugin manager.
+//!
+//! Implements the host half of the MPE plugin protocol (see
+//! `docs/plugin-protocol.md`): discovery, process lifecycle, JSON-RPC
+//! transport over stdio, and the `NodePlugin` wrapper (`SidecarPlugin`).
+//!
+//! L1-style crate: depends on `flow-engine-core` for host types and on
+//! `mpe-protocol` for the shared wire contract. Transport, lifecycle, and
+//! manager logic land in M1+; this file declares the module skeleton only.
+
+/// JSON-RPC wire types shared with plugins (via `mpe-protocol`).
+pub mod protocol;
+/// Line framing (`LF` delimiter, `2 MiB` cap) over child stdio.
+pub mod framing;
+/// Pipelined JSON-RPC transport over a child process's stdin/stdout.
+pub mod transport;
+/// Plugin manifest (`plugin.json`) parsing and validation.
+pub mod manifest;
+/// Plugin directory scanning and discovery.
+pub mod discovery;
+/// Plugin process lifecycle (start, recycle, shutdown).
+pub mod lifecycle;
+/// Child process spawning hygiene (stderr drain, Job Object, CLOEXEC).
+pub mod process;
+/// `PluginManager`: discovery + lifecycle + registry registration.
+pub mod manager;
+/// `SidecarPlugin`: the `NodePlugin` wrapper around a plugin connection.
+pub mod sidecar;
+/// Reserved built-in node type ids (collision policy).
+pub mod reserved;
+/// Plugin error types.
+pub mod error;

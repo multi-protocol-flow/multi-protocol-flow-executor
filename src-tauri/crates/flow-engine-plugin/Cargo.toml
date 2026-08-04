@@ -1,0 +1,52 @@
+[package]
+name = "flow-engine-plugin"
+version = "0.1.0"
+edition = "2021"
+description = "Host-side MPE plugin manager: discovery, lifecycle, JSON-RPC stdio transport, SidecarPlugin"
+
+[features]
+# Independent of `protocol-*`: the plugin manager is not a protocol executor
+# and must be usable in builds with any protocol subset (mpe-cli builds the
+# facade with default-features = false).
+plugin-manager = []
+
+[dependencies]
+flow-engine-core = { path = "../flow-engine-core" }
+mpe-protocol = { path = "../mpe-protocol" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
+
+# used in M1 process.rs for Job Object (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+# zombie prevention on Windows)
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = ["Win32_System_JobObjects", "Win32_System_Threading", "Win32_Foundation"] }
+
+# NOTE: cargo does not allow `[lints] workspace = true` to be combined with
+# local lint overrides in the same package ("cannot override workspace.lints").
+# The app crate (src-tauri/Cargo.toml:281-284) therefore defines its lints
+# locally; this crate mirrors that pattern exactly and restates the workspace
+# lint set so governance is preserved alongside the single `unsafe_code`
+# override. (`unwrap_used`/`expect_used` are clippy-namespace lints and live
+# in the clippy table to avoid rustc "unknown lint" noise.)
+[lints.rust]
+# Windows Job Object FFI requires unsafe; confined to process.rs (mirrors app crate override)
+unsafe_code = "allow"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+missing_docs_in_private_items = "allow"
+doc_markdown = "warn"
+too_many_arguments = "allow"
+type_complexity = "allow"
+unwrap_used = "deny"
+expect_used = "warn"
