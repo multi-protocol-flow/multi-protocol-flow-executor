@@ -7,6 +7,7 @@
 
 pub mod error;
 pub mod manifest;
+pub mod notification;
 pub mod request;
 pub mod response;
 
