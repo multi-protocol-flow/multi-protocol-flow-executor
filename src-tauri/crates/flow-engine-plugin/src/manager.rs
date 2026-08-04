@@ -1,4 +1,4 @@
-//! `PluginManager`: scan + describe handshake + describe-crash quarantine.
+//! `PluginManager`: scan + describe handshake + quarantine + lifecycle.
 //!
 //! Owns the plugins directory, the per-plugin describe connections, and the
 //! quarantine policy: a plugin whose describe handshake fails
@@ -7,12 +7,15 @@
 //! lifetime and skipped with a warning on every later scan. A successful
 //! describe resets the failure counter.
 //!
-//! Process lifecycle (on-demand start, idle recycle, restart policy,
-//! shutdown) is M2b's scope and deliberately absent here so that milestone
-//! can extend this struct without rewriting it.
+//! Every successful describe seeds a [`LifecycleEntry`] (from
+//! [`crate::lifecycle`]) so later [`PluginManager::connection_for`] calls get
+//! an on-demand connection, an idle reaper, and the restart policy for free.
+//! Streaming plugins (`capabilities.streaming`) are registered as Resident.
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 
 use mpe_protocol::describe::{DescribeResult, NodeDescription};
 use mpe_protocol::manifest::PluginManifest;
@@ -20,6 +23,7 @@ use mpe_protocol::manifest::PluginManifest;
 use crate::describe::{normalize_nodes, perform_describe};
 use crate::discovery::{DiscoveredPlugin, PluginScan};
 use crate::error::PluginError;
+use crate::lifecycle::{LifecycleConfig, LifecycleEntry, ResidencyMode};
 use crate::process;
 use crate::transport::{ConnectionConfig, PluginConnection};
 
@@ -44,7 +48,8 @@ pub struct PluginRegistration {
     pub nodes: Vec<NodeDescription>,
 }
 
-/// `PluginManager`: plugins-directory scan, describe handshake, quarantine.
+/// `PluginManager`: plugins-directory scan, describe handshake, quarantine,
+/// and process lifecycle.
 pub struct PluginManager {
     plugins_dir: PathBuf,
     connection_config: ConnectionConfig,
@@ -52,17 +57,71 @@ pub struct PluginManager {
     failures: HashMap<String, u32>,
     /// Plugin names disabled for this manager's lifetime.
     quarantined: HashSet<String>,
+    /// Registered lifecycle entries by plugin name (seeded by describe).
+    entries: HashMap<String, Arc<LifecycleEntry>>,
+    /// Lifecycle policy shared by all registered entries.
+    lifecycle_config: LifecycleConfig,
 }
 
 impl PluginManager {
     /// Creates a manager that scans `plugins_dir` with default connection
-    /// settings. Lifecycle configuration lands in M2b.
+    /// settings and default lifecycle policy.
     pub fn new(plugins_dir: PathBuf) -> Self {
         Self {
             plugins_dir,
             connection_config: ConnectionConfig::default(),
             failures: HashMap::new(),
             quarantined: HashSet::new(),
+            entries: HashMap::new(),
+            lifecycle_config: LifecycleConfig::default(),
+        }
+    }
+
+    /// Overrides the lifecycle policy for subsequently registered plugins.
+    pub fn with_lifecycle_config(mut self, config: LifecycleConfig) -> Self {
+        self.lifecycle_config = config;
+        self
+    }
+
+    /// Registers a plugin with the lifecycle manager, creating an entry whose
+    /// residency mode comes from `manifest.capabilities.streaming`
+    /// (streaming → [`ResidencyMode::Resident`], otherwise on-demand).
+    ///
+    /// An on-demand entry gets an idle reaper immediately; the process itself
+    /// is not spawned until the first [`PluginManager::connection_for`].
+    pub fn register_plugin(&mut self, name: String, manifest: PluginManifest) {
+        let mode = if manifest.capabilities.streaming {
+            ResidencyMode::Resident
+        } else {
+            ResidencyMode::OnDemand
+        };
+        let config = &self.lifecycle_config;
+        let entry = LifecycleEntry::new(
+            name.clone(),
+            manifest,
+            mode,
+            config.idle_recycle,
+            config.restart_min_interval,
+            config.shutdown_grace,
+            Arc::clone(&config.connector),
+        );
+        entry.spawn_reaper();
+        self.entries.insert(name, entry);
+    }
+
+    /// Acquires a live connection for a registered plugin, starting or
+    /// restarting its process as the lifecycle policy dictates.
+    pub async fn connection_for(&self, name: &str) -> Result<Arc<PluginConnection>, PluginError> {
+        match self.entries.get(name) {
+            Some(entry) => entry.connection().await,
+            None => Err(PluginError::ProtocolError(format!("unknown plugin {name}"))),
+        }
+    }
+
+    /// Shuts down every registered plugin's connection within `grace`.
+    pub async fn shutdown_all(&self, grace: Duration) {
+        for entry in self.entries.values() {
+            entry.shutdown(grace).await;
         }
     }
 
@@ -85,6 +144,7 @@ impl PluginManager {
             match self.describe_one(&plugin).await {
                 Ok(registration) => {
                     self.note_describe_success(&plugin.name);
+                    self.register_plugin(registration.name.clone(), registration.manifest.clone());
                     registrations.push(registration);
                 }
                 Err(e) => {
