@@ -187,3 +187,65 @@ stdout pipe and prevent EOF), and a Windows Job Object with
 and its grandchildren. Known limitation: a plugin compiled with
 `windows_subsystem = "windows"` has no usable stdio and cannot use this
 transport.
+
+## 11. Execute RPC (M3.2)
+
+The host wraps every plugin node in a `SidecarPlugin` and issues one `execute`
+RPC per node execution.
+
+**Request.** `method: "execute"`, `params`:
+
+```json
+{
+  "config": { "type": "demo:ping", "target": "resolved.example" },
+  "providers": {},
+  "referenced_variables": ["initial_variables.host"],
+  "execution_id": "flow-uuid",
+  "node_instance_id": "node-uuid"
+}
+```
+
+- `config` is the node's config **after host-side variable resolution** — the
+  plugin always receives final values, never `{{...}}` placeholders.
+- `providers` carries the subset of host providers that are JSON-serializable
+  (typed protocol providers cannot be encoded; P1).
+- `referenced_variables` lists the `{{path}}` references found in the config
+  (strategy A: only config-referenced).
+- `execution_id` / `node_instance_id` correlate logs/events (see §5).
+
+**Response.** `result` is an object:
+
+```json
+{
+  "success": true,
+  "next_ports": ["out"],
+  "output_data": { "ok": true },
+  "errors": [{ "code": "E_X", "message": "..." }],
+  "report_data": { "plugin_name": "demo", "metric": 42 },
+  "variable_updates": { "token": "abc" },
+  "provider_updates": { "demo_svc": { "base_url": "http://x" } }
+}
+```
+
+Host mapping (normative):
+
+- `success: true` → the RPC returns `Ok`; `next_ports` (port ids) are resolved
+  through the flow's connections into the next node ids; `output_data`
+  (null-able) is the node output.
+- `success: false` → the RPC returns `Err(ErrorDetail::Execution)` built from
+  `errors[0]` (or a generic message when `errors` is empty).
+- `report_data` (≤ 1 MiB, C3) → stored into
+  `ExecutionContext.current_node_plugin_data` and surfaced as the node
+  report's `plugin_data` (M3.3).
+- `variable_updates` → **A10**: keys MUST be flat top-level variable names.
+  A dotted key is warned + skipped (non-fatal); flat keys are merged into the
+  host `VariableStorage` and appear in the report's `variable_changes`.
+- `provider_updates` → absorbed into `context.providers` as
+  `serde_json::Value` providers (typed providers are P1).
+- A JSON-RPC error response (`error` instead of `result`) → single
+  `Err(PluginError::JsonRpc{..})`; a dead/stuck connection → `Err(PluginError
+  ::PluginCrashed)` / `Err(PluginError::Timeout)`, surfaced as one final
+  `ErrorDetail` (`ErrorCode::PluginCrashed` / `ErrorKind::Timeout`). The
+  host's wrapper owns the execute timeout (config `timeout_ms` /
+  `execution_timeout_ms`, default 30 s) because plugin nodes have no executor
+  timeout; the manager's restart-once policy handles the process.

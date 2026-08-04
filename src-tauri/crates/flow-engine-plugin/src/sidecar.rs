@@ -1,5 +1,207 @@
 //! `SidecarPlugin`: the `NodePlugin` wrapper around a plugin connection.
 //!
-//! Presents a plugin node type as a host `NodePlugin`: variable resolution,
-//! execute RPC, flat-key `variable_updates` merge, timeout/cancel/kill
-//! ownership. Implementation lands in M3.
+//! Presents one describe-produced plugin node type as a host `NodePlugin`:
+//! host-side variable resolution (the plugin receives FINAL values), the
+//! `execute` RPC with a **wrapper-owned** timeout + cancellation (the host
+//! executor's `execution_timeout_ms()` returns `None` for plugin nodes, so
+//! there is no tokio timeout safety net below us), result mapping
+//! (`report_data` back-channel, A10 flat-key `variable_updates`,
+//! `provider_updates`), and crash mapping into a single `ErrorDetail`.
+//!
+//! The mapping/error helpers live in [`crate::wrapper`] so this file stays
+//! under the workspace 250-pure-LOC ceiling; the tests live in
+//! `sidecar_tests.rs` (via `#[path]`, the same pattern as `lifecycle.rs`).
+//!
+//! The plugin process is owned by the `PluginManager`'s lifecycle entries
+//! (M2b); this wrapper only acquires a connection via
+//! [`PluginManager::connection_for_node`] and reports crashes — the manager's
+//! restart-once policy handles the process.
+
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::ErrorDetail;
+use flow_engine_core::executor::resolve_variables_in_json;
+use flow_engine_core::node::Node;
+use flow_engine_core::node_config::NodeData;
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
+use mpe_protocol::describe::NodeDescription;
+use serde_json::Value;
+
+use crate::manager::PluginManager;
+use crate::wrapper::{
+    execution_timeout, extract_referenced_variables, map_execute_response, map_plugin_error,
+    run_with_timeout_and_cancel,
+};
+
+/// Wire method name of the execute RPC.
+const EXECUTE_METHOD: &str = "execute";
+
+/// Wire method name of the validate RPC (documented for M4, which owns the
+/// async `validate_with_registry` path).
+pub const VALIDATE_METHOD: &str = "validate";
+
+/// The `NodePlugin` facade for one describe-produced plugin node type.
+pub struct SidecarPlugin {
+    node: NodeDescription,
+    manager: Arc<PluginManager>,
+}
+
+impl SidecarPlugin {
+    /// Wraps one describe-produced node description with its owning manager.
+    ///
+    /// M3.3's registration factory (`register_nodes_with`) supplies this
+    /// constructor; the manager provides the lifecycle connection for the
+    /// node's plugin.
+    pub fn new(node: NodeDescription, manager: Arc<PluginManager>) -> Arc<Self> {
+        Arc::new(Self { node, manager })
+    }
+}
+
+#[async_trait]
+impl NodePlugin for SidecarPlugin {
+    fn type_id(&self) -> &str {
+        &self.node.type_id
+    }
+
+    fn display_name(&self) -> &str {
+        &self.node.display_name
+    }
+
+    fn category(&self) -> &str {
+        self.node.category.as_deref().unwrap_or("plugin")
+    }
+
+    fn icon(&self) -> &str {
+        self.node.icon.as_deref().unwrap_or("plugin")
+    }
+
+    fn color(&self) -> &str {
+        self.node.color.as_deref().unwrap_or("#64748b")
+    }
+
+    fn ports(&self) -> Vec<PortDef> {
+        self.node
+            .ports
+            .iter()
+            .map(|p| PortDef {
+                id: p.id.clone(),
+                label: p.label.clone(),
+                position: if p.kind == "in" { "left" } else { "right" }.to_string(),
+            })
+            .collect()
+    }
+
+    fn default_config(&self) -> Value {
+        self.node.default_config.clone()
+    }
+
+    /// Structural validation only — the `NodePlugin` trait's `validate` is
+    /// synchronous and cannot await the plugin's `validate` RPC. Forwarding
+    /// that RPC is deferred to M4's async `validate_with_registry`, which owns
+    /// a registry handle it can call [`PluginManager::connection_for_node`]
+    /// from.
+    fn validate(&self, config: &Value) -> Vec<ValidationError> {
+        if config.is_object() || config.is_null() {
+            Vec::new()
+        } else {
+            vec![ValidationError {
+                field: "config".to_string(),
+                message: "plugin node config must be a JSON object".to_string(),
+            }]
+        }
+    }
+
+    fn config_schema(&self) -> Option<Value> {
+        self.node.config_schema.clone()
+    }
+
+    /// Report status fidelity: a plugin that returned `Ok` succeeded; only an
+    /// explicit `success: false` in its output data maps to the `false` port.
+    fn resolve_port(&self, output: &Option<Value>) -> String {
+        match output {
+            Some(Value::Object(map)) => {
+                if map.get("success").and_then(Value::as_bool) == Some(false) {
+                    "false".to_string()
+                } else {
+                    "true".to_string()
+                }
+            }
+            _ => "true".to_string(),
+        }
+    }
+
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        _node_map: &HashMap<String, &Node>,
+    ) -> Result<(Vec<String>, Option<Value>), ErrorDetail> {
+        // 1. Extract the plugin config from the node data.
+        let raw_config = match &node.data {
+            NodeData::Plugin(config) => config.clone(),
+            other => {
+                return Err(ErrorDetail::execution_error(format!(
+                    "plugin node {} has non-plugin data: {other:?}",
+                    node.uuid
+                )))
+            }
+        };
+
+        // 2. Referenced variable paths (strategy A: only config-referenced).
+        let referenced_variables = extract_referenced_variables(&raw_config);
+
+        // 3. Host-side variable resolution — the plugin receives FINAL values.
+        let resolved_config = resolve_variables_in_json(&raw_config, context);
+
+        // 4. Wrapper-owned timeout (the executor provides none for plugins).
+        let timeout = execution_timeout(&resolved_config);
+
+        // 5. JSON-serializable providers (typed providers cannot be encoded).
+        let mut providers = serde_json::Map::new();
+        for (key, provider) in &context.providers {
+            if let Some(value) = provider.downcast_ref::<Value>() {
+                providers.insert(key.clone(), value.clone());
+            }
+        }
+
+        // 6. Acquire the plugin connection (type_id → plugin → lifecycle).
+        let conn = self
+            .manager
+            .connection_for_node(&self.node.type_id)
+            .await
+            .map_err(map_plugin_error)?;
+
+        let params = serde_json::json!({
+            "config": resolved_config,
+            "providers": providers,
+            "referenced_variables": referenced_variables,
+            "execution_id": context.flow_uuid,
+            "node_instance_id": node.uuid,
+        });
+
+        // 7. Execute RPC under the wrapper-owned timeout + cancellation.
+        let response = match run_with_timeout_and_cancel(
+            conn.request(EXECUTE_METHOD, params),
+            context,
+            timeout,
+        )
+        .await
+        {
+            Ok(Ok(value)) => value,
+            Ok(Err(plugin_error)) => return Err(map_plugin_error(plugin_error)),
+            Err(detail) => return Err(detail),
+        };
+
+        // 8. Map the response into the NodePlugin return contract.
+        map_execute_response(&self.node.type_id, &response, node, context, connections)
+    }
+}
+
+#[cfg(test)]
+#[path = "sidecar_tests.rs"]
+mod tests;

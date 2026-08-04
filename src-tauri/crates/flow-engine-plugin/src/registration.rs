@@ -27,8 +27,10 @@ use flow_engine_core::plugin::{NodePlugin, PortDef};
 use flow_engine_core::registry::NodeRegistry;
 use mpe_protocol::describe::NodeDescription;
 
+use crate::error::PluginError;
 use crate::manager::{PluginManager, PluginRegistration};
 use crate::reserved::is_reserved_type_id;
+use crate::transport::PluginConnection;
 
 /// Why a plugin node was rejected by the collision policy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -160,9 +162,31 @@ impl PluginManager {
     /// [`PluginManager::register_nodes_with`].
     ///
     /// `scan_and_describe` calls this internally; tests and M3 use it to inject
-    /// registrations without spawning a plugin process.
+    /// registrations without spawning a plugin process. Indexes every node's
+    /// `type_id` → plugin name so [`PluginManager::connection_for_node`] can
+    /// resolve a node to its lifecycle entry.
     pub fn add_registration(&mut self, registration: PluginRegistration) {
+        for node in &registration.nodes {
+            self.type_id_to_plugin
+                .insert(node.type_id.clone(), registration.name.clone());
+        }
         self.registrations.push(registration);
+    }
+
+    /// Acquires a live connection for the plugin that owns a node `type_id`.
+    ///
+    /// Maps `type_id` → plugin name via the index populated by
+    /// [`PluginManager::add_registration`], then delegates to
+    /// [`PluginManager::connection_for`] (whose restart-once policy covers
+    /// dead connections). Unknown type ids are a protocol error.
+    pub async fn connection_for_node(
+        &self,
+        type_id: &str,
+    ) -> Result<Arc<PluginConnection>, PluginError> {
+        let name = self.type_id_to_plugin.get(type_id).ok_or_else(|| {
+            PluginError::ProtocolError(format!("unknown plugin node type {type_id}"))
+        })?;
+        self.connection_for(name).await
     }
 
     /// Registrations retained from successful describes, in scan order.

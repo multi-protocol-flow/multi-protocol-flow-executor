@@ -76,6 +76,10 @@ pub struct PluginManager {
     pub(crate) claimed_node_ids: HashSet<String>,
     /// Every node the collision policy rejected (test-observable).
     pub(crate) collisions: Vec<CollisionReport>,
+    /// Maps a registered node `type_id` to the plugin name that owns it
+    /// (populated by [`PluginManager::add_registration`]; drives
+    /// [`PluginManager::connection_for_node`]).
+    pub(crate) type_id_to_plugin: HashMap<String, String>,
 }
 
 impl PluginManager {
@@ -92,6 +96,7 @@ impl PluginManager {
             registrations: Vec::new(),
             claimed_node_ids: HashSet::new(),
             collisions: Vec::new(),
+            type_id_to_plugin: HashMap::new(),
         }
     }
 
@@ -163,7 +168,7 @@ impl PluginManager {
                 Ok(registration) => {
                     self.note_describe_success(&plugin.name);
                     self.register_plugin(registration.name.clone(), registration.manifest.clone());
-                    self.registrations.push(registration.clone());
+                    self.add_registration(registration.clone());
                     registrations.push(registration);
                 }
                 Err(e) => {

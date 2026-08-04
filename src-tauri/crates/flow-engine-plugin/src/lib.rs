@@ -37,6 +37,9 @@ pub mod semver;
 pub mod sidecar;
 /// Pipelined JSON-RPC transport over a child process's stdin/stdout.
 pub mod transport;
+/// Execute RPC mapping helpers for `SidecarPlugin` (kept out of `sidecar.rs`
+/// for the 250-pure-LOC ceiling).
+pub(crate) mod wrapper;
 
 #[cfg(test)]
 mod registration_tests;
