@@ -2484,6 +2484,43 @@ export interface Node {
 }
 
 // ============================================================================
+// 插件节点类型（store/注册表边界宽化）
+// 插件节点由后端注册表产生任意字符串 type_id（如 "vendor:my-node"，见 M2a'/M2c）。
+// 内置联合类型 NodeType / NodeData 保持闭合，以保留穷尽匹配与类型窄化；
+// 以下宽化类型仅用于 store 动作签名与注册表 API 边界。
+// ============================================================================
+
+/**
+ * 插件节点数据（任意 JSON 配置）
+ */
+export interface PluginNodeData {
+  /** 插件节点类型标识（任意字符串，如 "vendor:my-node"） */
+  type: string;
+  /** 插件自定义配置（任意 JSON 结构） */
+  [key: string]: unknown;
+}
+
+/**
+ * 节点类型在 store/注册表边界处的宽化类型。
+ * 接受任意插件 type_id，同时保留内置节点类型的自动补全与窄化。
+ */
+export type AnyNodeType = NodeType | (string & {});
+
+/**
+ * 节点数据在 store/注册表边界处的宽化类型。
+ * 接受插件节点的任意 JSON 配置。
+ */
+export type AnyNodeData = NodeData | PluginNodeData;
+
+/**
+ * 节点在 store 边界处的宽化类型（支持插件节点）。
+ */
+export type AnyNode = Omit<Node, 'type' | 'data'> & {
+  type: AnyNodeType;
+  data: AnyNodeData;
+};
+
+// ============================================================================
 // 类型守卫函数
 // ============================================================================
 

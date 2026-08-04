@@ -1114,19 +1114,19 @@ function FlowCanvasInner() {
     const inferred = selectedNode
       ? inferDefaults(
           { id: selectedNode.uuid, type: selectedNode.type, data: selectedNode.data as NodeData & Record<string, unknown> },
-          pendingAddNodeType
+          pendingAddNodeType as NodeType
         )
       : {};
 
     // 根据节点类型创建节点
     const nodeCount = flow.nodes.length + 1;
     const newNodeUuid = crypto.randomUUID();
-    const defaultData = createDefaultNodeData(pendingAddNodeType);
+    const defaultData = createDefaultNodeData(pendingAddNodeType as NodeType);
     const data = { ...defaultData, ...inferred };
-    const name = createDefaultNodeName(pendingAddNodeType, nodeCount);
+    const name = createDefaultNodeName(pendingAddNodeType as NodeType, nodeCount);
     addNode({
       uuid: newNodeUuid,
-      type: pendingAddNodeType,
+      type: pendingAddNodeType as NodeType,
       name,
       position,
       data,

@@ -2,7 +2,7 @@
  * 当前编辑流程状态管理
  */
 import { create } from 'zustand';
-import type { Flow, Node, NodeData, Connection, NodeType, EnvironmentSet } from '@/types';
+import type { Flow, Node, NodeData, Connection, EnvironmentSet, AnyNodeType } from '@/types';
 import { useExecutionStore } from './execution';
 import { useConsoleStore } from './console';
 
@@ -54,7 +54,7 @@ interface FlowState {
   /** 流程是否已修改（未保存） */
   isDirty: boolean;
   /** 待添加的节点类型（由 NodePalette 设置，FlowCanvas 处理） */
-  pendingAddNodeType: NodeType | null;
+  pendingAddNodeType: AnyNodeType | null;
   /** 需要聚焦的节点 UUID（由 DebugPanel 设置，FlowCanvas 处理） */
   focusNodeUuid: string | null;
   /** 需要居中定位的节点 UUID（由 FlowNodeList 设置，FlowCanvas 处理，仅居中不选中） */
@@ -109,8 +109,8 @@ interface FlowState {
   markSaved: () => void;
   /** 重置流程状态 */
   reset: () => void;
-  /** 设置待添加节点类型（用于跨组件通信） */
-  setPendingAddNodeType: (type: NodeType | null) => void;
+  /** 设置待添加节点类型（用于跨组件通信，接受插件 type_id） */
+  setPendingAddNodeType: (type: AnyNodeType | null) => void;
   /** 清除待添加节点类型 */
   clearPendingAddNodeType: () => void;
   /** 切换节点断点状态 */
