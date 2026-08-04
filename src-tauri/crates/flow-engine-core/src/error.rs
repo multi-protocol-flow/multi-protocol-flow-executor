@@ -539,6 +539,15 @@ pub enum ErrorCode {
     E_VARIABLE_EXTRACTOR_FAILED,
     /// Proxy node execution failed.
     E_PROXY_FAILED,
+
+    // ===== Plugin errors =====
+    /// Sidecar plugin process crashed or exited abnormally.
+    ///
+    /// Serde name stays `SCREAMING_SNAKE_CASE` (`E_PLUGIN_CRASHED`) to match
+    /// the i18n key and the frontend `ErrorCode` union conventions; the Rust
+    /// variant name is `PluginCrashed` per the plugin-architecture plan.
+    #[serde(rename = "E_PLUGIN_CRASHED")]
+    PluginCrashed,
 }
 
 impl ErrorCode {
@@ -655,6 +664,8 @@ impl ErrorCode {
             // Non-protocol nodes
             Self::E_VARIABLE_EXTRACTOR_FAILED => &["expression", "message"],
             Self::E_PROXY_FAILED => &["message"],
+            // Plugin
+            Self::PluginCrashed => &["plugin_name", "message"],
         }
     }
 
@@ -751,6 +762,7 @@ impl ErrorCode {
             Self::E_IMAP_TIMEOUT => "E_IMAP_TIMEOUT",
             Self::E_VARIABLE_EXTRACTOR_FAILED => "E_VARIABLE_EXTRACTOR_FAILED",
             Self::E_PROXY_FAILED => "E_PROXY_FAILED",
+            Self::PluginCrashed => "E_PLUGIN_CRASHED",
         }
     }
 
@@ -847,6 +859,7 @@ impl ErrorCode {
             Self::E_IMAP_TIMEOUT => ErrorKind::Timeout,
             Self::E_VARIABLE_EXTRACTOR_FAILED => ErrorKind::Execution,
             Self::E_PROXY_FAILED => ErrorKind::Execution,
+            Self::PluginCrashed => ErrorKind::Execution,
         }
     }
 }
@@ -944,6 +957,7 @@ impl std::fmt::Display for ErrorCode {
             Self::E_IMAP_TIMEOUT => write!(f, "IMAP operation timed out"),
             Self::E_VARIABLE_EXTRACTOR_FAILED => write!(f, "Variable extractor failed"),
             Self::E_PROXY_FAILED => write!(f, "Proxy node execution failed"),
+            Self::PluginCrashed => write!(f, "Plugin process crashed"),
         }
     }
 }
@@ -990,7 +1004,7 @@ mod tests {
 
         // deserialize
         let deserialized: ErrorDetail =
-            serde_json::from_str(&json).expect("deserialization failed");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
         assert_eq!(deserialized.error_kind, ErrorKind::Connection);
         assert_eq!(deserialized.message, "connection failed");
         assert_eq!(deserialized.error_code, Some(ErrorCode::E_CONN_REFUSED));
@@ -1174,7 +1188,7 @@ mod tests {
         for kind in kinds {
             let json = serde_json::to_string(&kind).expect("serialization failed");
             let deserialized: ErrorKind =
-                serde_json::from_str(&json).expect("deserialization failed");
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
             assert_eq!(kind, deserialized);
 
             // verify lowercase format
@@ -1256,7 +1270,7 @@ mod tests {
 
             let json = serde_json::to_string(&error).expect("serialization failed");
             let deserialized: ErrorDetail =
-                serde_json::from_str(&json).expect("deserialization failed");
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
 
             assert_eq!(error.error_kind, deserialized.error_kind);
             assert_eq!(error.message, deserialized.message);
@@ -1289,7 +1303,7 @@ mod tests {
             // verify serialization roundtrip
             let json = serde_json::to_string(&error).expect("serialization failed");
             let deserialized: ErrorDetail =
-                serde_json::from_str(&json).expect("deserialization failed");
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
 
             assert_eq!(error.error_kind, deserialized.error_kind);
             assert_eq!(error.message, deserialized.message);
@@ -1322,7 +1336,7 @@ mod tests {
             // verify serialization roundtrip
             let json = serde_json::to_string(&error).expect("serialization failed");
             let deserialized: ErrorDetail =
-                serde_json::from_str(&json).expect("deserialization failed");
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
 
             assert_eq!(error.error_kind, deserialized.error_kind);
             assert_eq!(error.message, deserialized.message);
@@ -1352,7 +1366,7 @@ mod tests {
         );
 
         let deserialized: ErrorDetail =
-            serde_json::from_str(&json).expect("deserialization failed");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
         assert_eq!(error.error_kind, deserialized.error_kind);
     }
 
@@ -1380,7 +1394,7 @@ mod tests {
             // verify serialization roundtrip
             let json = serde_json::to_string(&error).expect("serialization failed");
             let deserialized: ErrorDetail =
-                serde_json::from_str(&json).expect("deserialization failed");
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
 
             assert_eq!(error.error_kind, deserialized.error_kind);
             assert_eq!(error.message, deserialized.message);
@@ -1498,6 +1512,8 @@ mod tests {
             // Non-protocol nodes
             ErrorCode::E_VARIABLE_EXTRACTOR_FAILED,
             ErrorCode::E_PROXY_FAILED,
+            // Plugin
+            ErrorCode::PluginCrashed,
         ]
     }
 
@@ -1506,14 +1522,14 @@ mod tests {
         let all_codes = all_error_codes();
         assert_eq!(
             all_codes.len(),
-            82,
-            "ErrorCode should have exactly 82 variants"
+            83,
+            "ErrorCode should have exactly 83 variants"
         );
 
         for code in all_codes {
             let json = serde_json::to_string(&code).expect("serialization failed");
             let deserialized: ErrorCode =
-                serde_json::from_str(&json).expect("deserialization failed");
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
             assert_eq!(code, deserialized, "roundtrip failed for {:?}", code);
 
             // Verify SCREAMING_SNAKE_CASE serialization
@@ -1636,6 +1652,34 @@ mod tests {
         assert_ne!(json, "\"http_request_failed\"");
     }
 
+    /// `ErrorCode::PluginCrashed` 应有合法的 i18n key、Display 输出与 serde 往返
+    #[test]
+    fn error_plugin_crashed_i18n() {
+        // i18n key 与序列化名一致，且符合 SCREAMING_SNAKE_CASE + E_ 前缀约定
+        assert_eq!(ErrorCode::PluginCrashed.i18n_key(), "E_PLUGIN_CRASHED");
+        assert_eq!(
+            serde_json::to_string(&ErrorCode::PluginCrashed).unwrap_or_else(|e| panic!("serialization failed: {e}")),
+            "\"E_PLUGIN_CRASHED\""
+        );
+
+        // Display 输出为英文且非空
+        let display = format!("{}", ErrorCode::PluginCrashed);
+        assert!(!display.is_empty(), "Display output should not be empty");
+
+        // expected_i18n_args 非空
+        let args = ErrorCode::PluginCrashed.expected_i18n_args();
+        assert!(!args.is_empty(), "expected_i18n_args should not be empty");
+
+        // error_kind_hint 非致命
+        assert!(!ErrorCode::PluginCrashed.error_kind_hint().is_fatal());
+
+        // serde 往返
+        let json = serde_json::to_string(&ErrorCode::PluginCrashed).unwrap_or_else(|e| panic!("serialization failed: {e}"));
+        let deserialized: ErrorCode =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
+        assert_eq!(deserialized, ErrorCode::PluginCrashed);
+    }
+
     #[test]
     fn test_error_detail_serde_roundtrip_with_error_code() {
         // Comprehensive roundtrip test with multiple ErrorCode variants in ErrorDetail
@@ -1684,7 +1728,7 @@ mod tests {
             );
 
             let deserialized: ErrorDetail =
-                serde_json::from_str(&json).expect("deserialization failed");
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
             assert_eq!(deserialized.error_kind, kind);
             assert_eq!(deserialized.error_code, Some(code));
             assert_eq!(deserialized.message, msg);

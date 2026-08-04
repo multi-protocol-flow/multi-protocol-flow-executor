@@ -57,6 +57,28 @@ pub enum ExecutionEvent {
         /// 取消原因
         reason: String,
     },
+    /// 插件节点流式事件（`SidecarPlugin` 运行时推送）
+    ///
+    /// 插件在 execute 期间通过事件通道上报的实时事件（如日志、中间数据）。
+    /// M3.1 仅落地变体；P1 阶段前端消费者在 M4 接入。
+    PluginEvent {
+        #[serde(rename = "flowUuid")]
+        /// 流程唯一标识
+        flow_uuid: String,
+        #[serde(rename = "nodeUuid")]
+        /// 节点唯一标识
+        node_uuid: String,
+        #[serde(rename = "nodeType")]
+        /// 节点类型
+        node_type: String,
+        #[serde(rename = "eventType")]
+        /// 事件类型
+        event_type: String,
+        /// 事件数据
+        data: serde_json::Value,
+        /// 事件时间戳
+        timestamp: String,
+    },
 }
 
 #[cfg(test)]
@@ -74,7 +96,7 @@ mod tests {
             total_nodes: 5,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
 
         // 验证变体名使用 camelCase
         assert!(json.contains("\"flowStarted\""), "变体名应为 flowStarted");
@@ -105,7 +127,7 @@ mod tests {
             node_type: "http".to_string(),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
 
         // 验证变体名使用 camelCase
         assert!(
@@ -150,13 +172,14 @@ mod tests {
             variable_changes: None,
             skip_reason: None,
             wait_duration_ms: None,
+            plugin_data: None,
         };
 
         let event = ExecutionEvent::NodeCompleted {
             report: Box::new(report),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
 
         // 验证变体名使用 camelCase（而非 snake_case）
         assert!(
@@ -193,6 +216,7 @@ mod tests {
             execution_path: vec![],
             skipped_nodes: vec![],
             ws_streams: vec![],
+            plugin_streams: vec![],
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
@@ -202,7 +226,7 @@ mod tests {
             report: Box::new(report),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
 
         // 验证变体名使用 camelCase
         assert!(
@@ -221,8 +245,8 @@ mod tests {
             flow_name: "测试".to_string(),
             total_nodes: 3,
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
-        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let deserialized: ExecutionEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
 
         // NodeStarted
@@ -231,8 +255,8 @@ mod tests {
             node_name: "HTTP 请求".to_string(),
             node_type: "http".to_string(),
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
-        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let deserialized: ExecutionEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
 
         // NodeCompleted
@@ -252,12 +276,13 @@ mod tests {
             variable_changes: None,
             skip_reason: None,
             wait_duration_ms: None,
+            plugin_data: None,
         };
         let event = ExecutionEvent::NodeCompleted {
             report: Box::new(report),
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
-        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let deserialized: ExecutionEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
 
         // FlowCompleted
@@ -280,6 +305,7 @@ mod tests {
             execution_path: vec![],
             skipped_nodes: vec![],
             ws_streams: vec![],
+            plugin_streams: vec![],
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
@@ -287,8 +313,39 @@ mod tests {
         let event = ExecutionEvent::FlowCompleted {
             report: Box::new(report),
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
-        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let deserialized: ExecutionEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
+    }
+
+    /// `PluginEvent` 变体 serde 往返 + camelCase 字段名
+    #[test]
+    fn execution_event_plugin_event() {
+        let event = ExecutionEvent::PluginEvent {
+            flow_uuid: "flow-001".to_string(),
+            node_uuid: "node-plugin-1".to_string(),
+            node_type: "plugin:demo".to_string(),
+            event_type: "log".to_string(),
+            data: serde_json::json!({"level": "info", "msg": "hello"}),
+            timestamp: "2026-08-04T00:00:00Z".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(json.contains("\"pluginEvent\""), "变体名应为 pluginEvent");
+        assert!(json.contains("\"flowUuid\""), "字段名应为 flowUuid");
+        assert!(json.contains("\"nodeUuid\""), "字段名应为 nodeUuid");
+        assert!(json.contains("\"nodeType\""), "字段名应为 nodeType");
+        assert!(json.contains("\"eventType\""), "字段名应为 eventType");
+        assert!(json.contains("plugin:demo"));
+        assert!(json.contains("hello"));
+
+        // 往返
+        let deserialized: ExecutionEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        assert!(matches!(
+            &deserialized,
+            ExecutionEvent::PluginEvent { event_type, .. } if event_type == "log"
+        ));
+        assert_eq!(json, serde_json::to_string(&deserialized).unwrap_or_else(|e| panic!("序列化Failed: {e}")));
     }
 }

@@ -104,6 +104,12 @@ pub struct ExecutionContext {
     /// 使用 #[serde(skip)] 跳过序列化，因为 dyn Any 不支持序列化
     #[serde(skip)]
     pub providers: HashMap<String, Arc<dyn Any + Send + Sync>>,
+
+    /// 插件节点 back-channel：`SidecarPlugin`（M3.2）在 execute 末尾写入 `report_data`，
+    /// M3.3 在报告构造时读取并填充 `NodeExecutionReport.plugin_data`。
+    /// 使用 `skip_serializing_if` 在 None 时从序列化输出中省略。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_node_plugin_data: Option<Value>,
 }
 
 impl ExecutionContext {
@@ -135,6 +141,7 @@ impl ExecutionContext {
             execution_event_sender: None,
             cancel_receiver: None,
             providers: HashMap::new(),
+            current_node_plugin_data: None,
         }
     }
 
@@ -663,11 +670,11 @@ mod tests {
         let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
 
         // 序列化
-        let json = serde_json::to_string(&ctx).expect("序列化Failed");
+        let json = serde_json::to_string(&ctx).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("test-flow"));
 
         // 反序列化
-        let deserialized: ExecutionContext = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: ExecutionContext = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized.flow_uuid, ctx.flow_uuid);
         assert_eq!(deserialized.flow_trigger_time, ctx.flow_trigger_time);
     }
@@ -1067,7 +1074,7 @@ mod tests {
         assert!(json.contains("\"reason\""), "字段名应为 reason");
 
         // 反序列化往返测试
-        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: ExecutionEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
     }
 
@@ -1119,7 +1126,7 @@ mod tests {
         ctx.set_provider("test", value as Arc<dyn Any + Send + Sync>);
 
         // 序列化
-        let json = serde_json::to_string(&ctx).expect("序列化Failed");
+        let json = serde_json::to_string(&ctx).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
 
         // providers 不应出现在 JSON 中
         assert!(
@@ -1128,10 +1135,47 @@ mod tests {
         );
 
         // 反序列化后 providers 应为空
-        let deserialized: ExecutionContext = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: ExecutionContext = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert!(
             deserialized.providers.is_empty(),
             "反序列化后 providers 应为空"
+        );
+    }
+
+    /// 测试 `current_node_plugin_data` back-channel：set + read 往返；
+    /// None 时从序列化输出中省略
+    #[test]
+    fn context_current_node_plugin_data_backchannel() {
+        let mut ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        // None 时字段从 JSON 中省略
+        let json_none = serde_json::to_string(&ctx).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(
+            !json_none.contains("current_node_plugin_data"),
+            "None 时不应出现在序列化结果中"
+        );
+
+        // 设置后可通过字段读取
+        ctx.current_node_plugin_data = Some(serde_json::json!({
+            "plugin_name": "demo",
+            "result": "ok",
+        }));
+        assert_eq!(
+            ctx.current_node_plugin_data,
+            Some(serde_json::json!({"plugin_name": "demo", "result": "ok"}))
+        );
+
+        // 设置后序列化包含该字段
+        let json = serde_json::to_string(&ctx).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(json.contains("current_node_plugin_data"));
+        assert!(json.contains("demo"));
+
+        // 反序列化往返保留该值
+        let deserialized: ExecutionContext =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        assert_eq!(
+            deserialized.current_node_plugin_data,
+            Some(serde_json::json!({"plugin_name": "demo", "result": "ok"}))
         );
     }
 }

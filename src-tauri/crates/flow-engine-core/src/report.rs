@@ -87,6 +87,10 @@ pub struct NodeExecutionReport {
     /// 等待依赖节点的耗时（毫秒）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wait_duration_ms: Option<u64>,
+    /// 插件节点通过 `SidecarPlugin` 报告的自定义数据（M3.2 写入，M3.3 在报告构造时消费）
+    /// 为空时从序列化输出中省略，旧 JSON 消费者不受影响
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plugin_data: Option<serde_json::Value>,
 }
 
 /// 报告元数据（用于历史列表）
@@ -200,6 +204,48 @@ impl From<&crate::ws_stream::WsConnectionStream> for WsStreamSummary {
     }
 }
 
+/// 插件流事件样本
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct PluginStreamEvent {
+    /// 事件类型（如 "log"、"data"、"status"）
+    #[serde(rename = "type")]
+    pub event_type: String,
+    /// 事件时间戳（ISO 8601 或毫秒时间戳字符串）
+    pub timestamp: String,
+    /// 事件数据（任意 JSON 值）
+    pub data: serde_json::Value,
+}
+
+/// 插件流统计信息
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, Default)]
+pub struct PluginStreamStats {
+    /// 事件总数（样本可能被截断，count 始终为全量计数）
+    pub count: usize,
+    /// 首个事件时间戳
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_ts: Option<String>,
+    /// 末个事件时间戳
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_ts: Option<String>,
+}
+
+/// 插件流记录（C2 存储：summary + 前 N 条样本，N 见 [`MAX_PLUGIN_STREAM_SAMPLES`]）
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct PluginStreamRecord {
+    /// 节点 UUID
+    pub node_uuid: String,
+    /// 节点类型
+    pub node_type: String,
+    /// 事件样本（上限 [`MAX_PLUGIN_STREAM_SAMPLES`] 条）
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub events: Vec<PluginStreamEvent>,
+    /// 流统计信息
+    pub stats: PluginStreamStats,
+}
+
+/// 插件流记录中保存的事件样本上限
+pub const MAX_PLUGIN_STREAM_SAMPLES: usize = 20;
+
 /// 流程执行报告
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FlowExecutionReport {
@@ -245,6 +291,9 @@ pub struct FlowExecutionReport {
     /// WebSocket 消息流完整数据列表
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ws_streams: Vec<crate::ws_stream::WsConnectionStream>,
+    /// 插件流记录列表（`SidecarPlugin` 事件流，C2 存储）
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub plugin_streams: Vec<PluginStreamRecord>,
     /// Flow 快照（执行时的流程完整副本）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flow_snapshot: Option<crate::flow::Flow>,
@@ -449,12 +498,13 @@ mod tests {
             execution_path: vec![],
             skipped_nodes: vec![],
             ws_streams: vec![],
+            plugin_streams: vec![],
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化Failed");
+        let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         // 空的 ws_streams 应该被跳过
         assert!(!json.contains("ws_streams"));
     }
@@ -484,12 +534,13 @@ mod tests {
             execution_path: vec![],
             skipped_nodes: vec![],
             ws_streams: vec![ws_stream],
+            plugin_streams: vec![],
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化Failed");
+        let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         // 非空的 ws_streams 应该被包含
         assert!(json.contains("ws_streams"));
         assert!(json.contains("conn-1"));
@@ -507,7 +558,7 @@ mod tests {
         );
 
         // 反序列化往返测试
-        let deserialized: ExecutionStatus = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: ExecutionStatus = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(status, deserialized);
 
         // Display trait 测试
@@ -551,16 +602,17 @@ mod tests {
             flow_snapshot: Some(flow.clone()),
             end_node_reached: None,
             flow_warning: None,
+            plugin_streams: vec![],
         };
 
-        let json = serde_json::to_string(&report).expect("序列化Failed");
+        let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("flow_snapshot"));
         assert!(json.contains("flow-snap-001"));
         assert!(json.contains("Snapshot Flow"));
 
         // 反序列化往返
         let deserialized: FlowExecutionReport =
-            serde_json::from_str(&json).expect("反序列化Failed");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized.flow_snapshot, Some(flow));
     }
 
@@ -619,15 +671,134 @@ mod tests {
             execution_path: vec![],
             skipped_nodes: vec![],
             ws_streams: vec![],
+            plugin_streams: vec![],
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化Failed");
+        let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(
             !json.contains("flow_snapshot"),
             "flow_snapshot 为 None 时不应出现在 JSON 中"
         );
+    }
+
+    /// 测试 `plugin_data`：设置后 serde 往返保留；None 时从 JSON 中省略
+    #[test]
+    fn report_plugin_data_roundtrip() {
+        let mut report = NodeExecutionReport {
+            node_uuid: "node-plugin-1".to_string(),
+            node_type: "plugin:demo".to_string(),
+            node_name: "Demo Plugin".to_string(),
+            start_time: 1000,
+            end_time: 2000,
+            duration_ms: 1000,
+            status: ExecutionStatus::Success,
+            input_data: None,
+            output_data: None,
+            used_port_id: None,
+            error: None,
+            resolved_config: None,
+            variable_changes: None,
+            skip_reason: None,
+            wait_duration_ms: None,
+            plugin_data: Some(serde_json::json!({
+                "plugin_name": "demo",
+                "plugin_version": "1.0.0",
+                "result": "ok",
+            })),
+        };
+
+        // None 时字段从 JSON 中省略
+        report.plugin_data = None;
+        let json_none = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(
+            !json_none.contains("plugin_data"),
+            "plugin_data 为 None 时不应出现在 JSON 中"
+        );
+
+        // 设置后序列化并往返
+        report.plugin_data = Some(serde_json::json!({"result": "ok"}));
+        let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(json.contains("plugin_data"));
+        assert!(json.contains("ok"));
+
+        let deserialized: NodeExecutionReport =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        assert_eq!(deserialized.plugin_data, Some(serde_json::json!({"result": "ok"})));
+    }
+
+    /// 测试 `plugin_streams`：记录往返、事件样本封顶 20、空流从 JSON 中省略
+    #[test]
+    fn report_plugin_streams_aggregation() {
+        // 构造 25 个事件，应被封顶为 MAX_PLUGIN_STREAM_SAMPLES(20) 条
+        let mut events: Vec<PluginStreamEvent> = Vec::new();
+        for i in 0..25 {
+            events.push(PluginStreamEvent {
+                event_type: "log".to_string(),
+                timestamp: format!("ts-{}", i),
+                data: serde_json::json!({"seq": i}),
+            });
+        }
+        events.truncate(MAX_PLUGIN_STREAM_SAMPLES);
+        assert_eq!(events.len(), MAX_PLUGIN_STREAM_SAMPLES);
+        assert_eq!(MAX_PLUGIN_STREAM_SAMPLES, 20);
+
+        let record = PluginStreamRecord {
+            node_uuid: "node-plugin-2".to_string(),
+            node_type: "plugin:demo".to_string(),
+            events,
+            stats: PluginStreamStats {
+                count: 25,
+                first_ts: Some("ts-0".to_string()),
+                last_ts: Some("ts-24".to_string()),
+            },
+        };
+
+        // 非空流序列化往返
+        let json = serde_json::to_string(&record).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(json.contains("plugin")); // 节点类型
+        let deserialized: PluginStreamRecord =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        assert_eq!(deserialized, record);
+        assert_eq!(deserialized.events.len(), MAX_PLUGIN_STREAM_SAMPLES);
+
+        // 空流在 FlowExecutionReport 中省略
+        let report = FlowExecutionReport {
+            uuid: "report-plugin-1".to_string(),
+            flow_uuid: "flow-plugin-1".to_string(),
+            flow_name: "Plugin Flow".to_string(),
+            start_time: 1000,
+            end_time: 2000,
+            duration_ms: 1000,
+            total_nodes: 1,
+            executed_count: 1,
+            status: ExecutionStatus::Success,
+            node_reports: vec![],
+            statistics: crate::statistics::FlowStatistics::default(),
+            flow_error: None,
+            execution_mode: ExecutionMode::Normal,
+            initial_variables: None,
+            final_variables: None,
+            execution_path: vec![],
+            skipped_nodes: vec![],
+            ws_streams: vec![],
+            plugin_streams: vec![],
+            flow_snapshot: None,
+            end_node_reached: None,
+            flow_warning: None,
+        };
+        let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(
+            !json.contains("plugin_streams"),
+            "plugin_streams 为空时不应出现在 JSON 中"
+        );
+
+        // 非空流包含在报告中
+        let mut report = report;
+        report.plugin_streams = vec![record];
+        let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(json.contains("plugin_streams"));
     }
 }
