@@ -8,25 +8,27 @@
 //! `mpe-protocol` for the shared wire contract. Transport, lifecycle, and
 //! manager logic land in M1+; this file declares the module skeleton only.
 
-/// JSON-RPC wire types shared with plugins (via `mpe-protocol`).
-pub mod protocol;
-/// Line framing (`LF` delimiter, `2 MiB` cap) over child stdio.
-pub mod framing;
-/// Pipelined JSON-RPC transport over a child process's stdin/stdout.
-pub mod transport;
-/// Plugin manifest (`plugin.json`) parsing and validation.
-pub mod manifest;
 /// Plugin directory scanning and discovery.
 pub mod discovery;
-/// Plugin process lifecycle (start, recycle, shutdown).
-pub mod lifecycle;
-/// Child process spawning hygiene (stderr drain, Job Object, CLOEXEC).
-pub mod process;
-/// `PluginManager`: discovery + lifecycle + registry registration.
-pub mod manager;
-/// `SidecarPlugin`: the `NodePlugin` wrapper around a plugin connection.
-pub mod sidecar;
-/// Reserved built-in node type ids (collision policy).
-pub mod reserved;
 /// Plugin error types.
 pub mod error;
+/// Line framing (`LF` delimiter, `2 MiB` cap) over child stdio.
+pub mod framing;
+/// Plugin process lifecycle (start, recycle, shutdown).
+pub mod lifecycle;
+/// `PluginManager`: discovery + lifecycle + registry registration.
+pub mod manager;
+/// Plugin manifest (`plugin.json`) parsing and validation.
+pub mod manifest;
+/// Child process spawning hygiene (stderr drain, Job Object, CLOEXEC).
+pub mod process;
+/// JSON-RPC wire types shared with plugins (via `mpe-protocol`).
+pub mod protocol;
+/// Reserved built-in node type ids (collision policy).
+pub mod reserved;
+/// Minimal semver parsing and `min_host_version` gating.
+pub mod semver;
+/// `SidecarPlugin`: the `NodePlugin` wrapper around a plugin connection.
+pub mod sidecar;
+/// Pipelined JSON-RPC transport over a child process's stdin/stdout.
+pub mod transport;
