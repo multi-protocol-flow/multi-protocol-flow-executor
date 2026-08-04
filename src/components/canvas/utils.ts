@@ -368,7 +368,8 @@ export function createDefaultNodeData(type: NodeType): NodeData {
     case 'entry':
       return { type: 'entry' };
     default:
-      return { type: 'entry' } as NodeData;
+      // 未注册/插件节点类型：保留自身 type，避免被静默改写为 entry
+      return { type, ...(getCachedDefaultConfig(type) ?? {}) } as NodeData;
   }
 }
 
