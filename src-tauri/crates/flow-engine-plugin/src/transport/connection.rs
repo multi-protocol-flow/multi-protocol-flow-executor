@@ -8,7 +8,7 @@
 //!   the inflight semaphore, and the process handle.
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -242,6 +242,12 @@ impl ConnectionShared {
             .malformed_lines += 1;
     }
 
+    /// Pending-request count (diagnostics).
+    #[allow(dead_code)]
+    pub(crate) fn pending_count(&self) -> usize {
+        self.pending.lock().unwrap_or_else(|e| e.into_inner()).len()
+    }
+
     /// Best-effort kill of the plugin process (used after malformed spam).
     pub(crate) async fn kill_child(&self) {
         let child = self
@@ -329,9 +335,10 @@ impl Drop for PendingGuard<'_> {
 
 /// A pipelined JSON-RPC connection to a plugin process.
 ///
-/// Clone is cheap (all state is shared behind `Arc`); each clone can issue
-/// requests and subscribe to notifications concurrently.
-#[derive(Clone)]
+/// Cloning is cheap (all state is shared behind `Arc`); each clone can issue
+/// requests and subscribe to notifications concurrently. The plugin process
+/// is killed only when the **last** handle is dropped (each clone drops its
+/// own writer-channel sender; the child is reaped once).
 pub struct PluginConnection {
     writer_tx: Option<mpsc::Sender<OutboundFrame>>,
     shared: Arc<ConnectionShared>,
@@ -339,6 +346,46 @@ pub struct PluginConnection {
     #[cfg_attr(not(windows), allow(dead_code))]
     #[allow(dead_code)] // RAII: kept alive so the Job Object outlives the child
     job_guard: Option<Arc<crate::process::PluginProcessGuard>>,
+    /// Live handle count; the child is reaped when this reaches zero.
+    alive: Arc<AtomicUsize>,
+}
+
+impl Clone for PluginConnection {
+    fn clone(&self) -> Self {
+        self.alive.fetch_add(1, Ordering::Relaxed);
+        Self {
+            writer_tx: self.writer_tx.clone(),
+            shared: Arc::clone(&self.shared),
+            config: self.config.clone(),
+            job_guard: self.job_guard.clone(),
+            alive: Arc::clone(&self.alive),
+        }
+    }
+}
+
+impl Drop for PluginConnection {
+    fn drop(&mut self) {
+        // Closing this handle's sender moves the channel one step closer to
+        // close; when the last handle drops, the writer half-closes stdin.
+        self.writer_tx.take();
+        // Only the last handle reaps (kills) the plugin process.
+        if self.alive.fetch_sub(1, Ordering::AcqRel) == 1
+            && tokio::runtime::Handle::try_current().is_ok()
+        {
+            let shared = Arc::clone(&self.shared);
+            tokio::spawn(async move {
+                let child = shared
+                    .child
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .take();
+                if let Some(mut child) = child {
+                    let _ = child.kill().await;
+                    let _ = child.wait().await;
+                }
+            });
+        }
+    }
 }
 
 impl PluginConnection {
@@ -368,6 +415,7 @@ impl PluginConnection {
             shared,
             config,
             job_guard: Some(Arc::new(job_guard)),
+            alive: Arc::new(AtomicUsize::new(1)),
         })
     }
 
@@ -389,6 +437,7 @@ impl PluginConnection {
             shared,
             config,
             job_guard: None,
+            alive: Arc::new(AtomicUsize::new(1)),
         }
     }
 
@@ -590,29 +639,7 @@ impl PluginConnection {
     }
 }
 
-impl Drop for PluginConnection {
-    fn drop(&mut self) {
-        // Closing the writer channel makes the writer half-close stdin so the
-        // plugin can exit; the reader task observes EOF and reaps the child.
-        self.writer_tx.take();
-        // If a runtime is still live, ensure the child is eventually reaped
-        // even if the connection is dropped mid-flight.
-        if tokio::runtime::Handle::try_current().is_ok() {
-            let shared = Arc::clone(&self.shared);
-            tokio::spawn(async move {
-                let child = shared
-                    .child
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .take();
-                if let Some(mut child) = child {
-                    let _ = child.kill().await;
-                    let _ = child.wait().await;
-                }
-            });
-        }
-    }
-}
+
 
 
 #[cfg(test)]
