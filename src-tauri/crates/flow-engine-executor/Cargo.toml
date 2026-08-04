@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["all-protocols"]
+default = ["all-protocols", "plugin-manager"]
 all-protocols = [
     "protocol-http",
     "protocol-db",
@@ -39,6 +39,9 @@ protocol-amqp = ["dep:flow-engine-amqp"]
 protocol-smtp = ["dep:flow-engine-smtp"]
 protocol-imap = ["dep:flow-engine-imap"]
 protocol-redis = ["dep:flow-engine-redis"]
+# Plugin manager feature — independent of protocol-*; the sidecar plugin
+# system is not a protocol executor.
+plugin-manager = ["dep:flow-engine-plugin"]
 
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }
@@ -58,6 +61,7 @@ flow-engine-amqp = { path = "../flow-engine-amqp", optional = true }
 flow-engine-smtp = { path = "../flow-engine-smtp", optional = true }
 flow-engine-imap = { path = "../flow-engine-imap", optional = true }
 flow-engine-redis = { path = "../flow-engine-redis", optional = true }
+flow-engine-plugin = { path = "../flow-engine-plugin", optional = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -60,10 +60,12 @@ parking_lot = { version = "0.12", features = ["send_guard"] }
 percent-encoding = { version = "2" }
 phf_shared = { version = "0.13" }
 proc-macro2 = { version = "1", features = ["span-locations"] }
+quote = { version = "1" }
 rand = { version = "0.8", features = ["small_rng"] }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa-onepass", "dfa-search", "hybrid", "meta", "nfa-backtrack", "perf-inline", "perf-literal", "std", "unicode"] }
 reqwest = { version = "0.13", default-features = false, features = ["form", "json", "multipart", "rustls-no-provider", "stream"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "aws_lc_rs", "logging", "ring", "std", "tls12"] }
+rustls-pki-types = { version = "1", features = ["std"] }
 rustls-webpki = { version = "0.103", features = ["aws-lc-rs", "ring"] }
 schemars = { version = "0.8", features = ["preserve_order", "url", "uuid1"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
@@ -139,6 +141,7 @@ parking_lot = { version = "0.12", features = ["send_guard"] }
 percent-encoding = { version = "2" }
 phf_shared = { version = "0.13" }
 proc-macro2 = { version = "1", features = ["span-locations"] }
+quote = { version = "1" }
 rand = { version = "0.8", features = ["small_rng"] }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa-onepass", "dfa-search", "hybrid", "meta", "nfa-backtrack", "perf-inline", "perf-literal", "std", "unicode"] }
 schemars = { version = "0.8", features = ["preserve_order", "url", "uuid1"] }
@@ -174,6 +177,7 @@ chrono = { version = "0.4", default-features = false, features = ["serde"] }
 getrandom-9fbad63c4bcf4a8f = { package = "getrandom", version = "0.4", default-features = false, features = ["std", "sys_rng"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 tower = { version = "0.5", default-features = false, features = ["retry", "timeout"] }
+windows = { version = "0.58", features = ["Win32_System_Console", "Win32_System_JobObjects", "Win32_System_Threading"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Graphics_Dwm", "Win32_Graphics_Gdi", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_Debug", "Win32_System_LibraryLoader", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_Time", "Win32_UI_WindowsAndMessaging"] }
 windows-sys-d4189bed749088b6 = { package = "windows-sys", version = "0.61", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Globalization", "Win32_Graphics_Gdi", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_IO", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Accessibility", "Win32_UI_Controls", "Win32_UI_HiDpi", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
 

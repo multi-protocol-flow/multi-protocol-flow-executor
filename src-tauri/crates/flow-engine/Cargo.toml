@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["all-protocols"]
+default = ["all-protocols", "plugin-manager"]
 all-protocols = [
     "protocol-http",
     "protocol-db",
@@ -39,12 +39,18 @@ protocol-amqp = ["flow-engine-executor/protocol-amqp"]
 protocol-smtp = ["flow-engine-executor/protocol-smtp"]
 protocol-imap = ["flow-engine-executor/protocol-imap"]
 protocol-redis = ["flow-engine-executor/protocol-redis"]
+# Plugin manager — independent of protocol-*; explicitly re-forwards the
+# executor feature because the facade depends on executor with
+# default-features = false (the executor feature would otherwise never
+# activate through this path).
+plugin-manager = ["dep:flow-engine-plugin", "flow-engine-executor/plugin-manager"]
 
 [dependencies]
 # 子 crate 依赖（facade 只做 re-export）
 flow-engine-core = { path = "../flow-engine-core" }
 flow-engine-crypto = { path = "../flow-engine-crypto" }
 flow-engine-executor = { path = "../flow-engine-executor", default-features = false }
+flow-engine-plugin = { path = "../flow-engine-plugin", optional = true }
 
 # facade 自身代码需要的最小依赖（仅用于 re-export 类型的序列化边界）
 serde = { workspace = true }

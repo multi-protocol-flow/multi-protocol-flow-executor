@@ -2131,6 +2131,7 @@ dependencies = [
  "flow-engine-core",
  "flow-engine-crypto",
  "flow-engine-executor",
+ "flow-engine-plugin",
  "futures-util",
  "mockito",
  "predicates",
@@ -2245,6 +2246,7 @@ dependencies = [
  "flow-engine-kafka",
  "flow-engine-mcp",
  "flow-engine-mqtt",
+ "flow-engine-plugin",
  "flow-engine-redis",
  "flow-engine-script",
  "flow-engine-smtp",
@@ -2425,6 +2427,21 @@ dependencies = [
  "tokio",
  "uuid",
  "webpki-roots 0.26.11",
+ "workspace-hack",
+]
+
+[[package]]
+name = "flow-engine-plugin"
+version = "0.1.0"
+dependencies = [
+ "flow-engine-core",
+ "log",
+ "mpe-protocol",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "windows 0.58.0",
  "workspace-hack",
 ]
 
@@ -4226,6 +4243,24 @@ dependencies = [
  "toml 0.8.2",
  "uuid",
  "workspace-hack",
+]
+
+[[package]]
+name = "mpe-plugin-sdk"
+version = "0.1.0"
+dependencies = [
+ "mpe-protocol",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "mpe-protocol"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -9351,10 +9386,12 @@ dependencies = [
  "percent-encoding",
  "phf_shared",
  "proc-macro2",
+ "quote",
  "rand 0.8.6",
  "regex-automata",
  "reqwest",
  "rustls",
+ "rustls-pki-types",
  "rustls-webpki",
  "schemars 0.8.22",
  "serde",
@@ -9388,6 +9425,7 @@ dependencies = [
  "tracing-core",
  "url",
  "uuid",
+ "windows 0.58.0",
  "windows-sys 0.59.0",
  "windows-sys 0.61.2",
  "winnow 1.0.3",

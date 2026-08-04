@@ -22,6 +22,9 @@ members = [
     "crates/flow-engine-amqp",
     "crates/flow-engine-redis",
     "crates/mpe-cli",
+    "crates/mpe-protocol",
+    "crates/flow-engine-plugin",
+    "crates/mpe-plugin-sdk",
     "crates/workspace-hack",
 ]
 resolver = "2"
@@ -146,7 +149,7 @@ workspace-hack = { version = "0.1", path = "crates/workspace-hack" }
 
 # 协议特性开关（每个协议对应一个 feature，通过 flow-engine 转发）
 [features]
-default = ["all-protocols"]
+default = ["all-protocols", "plugin-manager"]
 all-protocols = [
     "protocol-http",
     "protocol-db",
@@ -181,6 +184,7 @@ protocol-amqp = ["flow-engine/protocol-amqp"]
 protocol-smtp = ["flow-engine/protocol-smtp"]
 protocol-imap = ["flow-engine/protocol-imap"]
 protocol-redis = ["flow-engine/protocol-redis"]
+plugin-manager = ["flow-engine/plugin-manager"]
 
 # Windows API（FreeConsole 用于分离控制台）
 [target.'cfg(windows)'.dependencies]
