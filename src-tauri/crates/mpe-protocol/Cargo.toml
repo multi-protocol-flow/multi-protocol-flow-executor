@@ -1,0 +1,12 @@
+[package]
+name = "mpe-protocol"
+version = "0.1.0"
+edition = "2021"
+description = "Shared MPE plugin wire protocol types (JSON-RPC 2.0 subset + manifest schema)"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
