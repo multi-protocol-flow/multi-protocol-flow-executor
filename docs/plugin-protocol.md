@@ -1,47 +1,95 @@
-# MPE Plugin Wire Protocol — Specification (Scaffold)
+# MPE Plugin Wire Protocol — Specification
 
-> **Status:** scaffold — the normative details are filled in M1 (work item
-> M1.7). This document is the source of truth for the JSON-RPC 2.0 stdio
-> transport between the MPE host (`flow-engine-plugin`) and sidecar plugins
-> (`mpe-plugin-sdk` and language templates). The wire types live in
-> `mpe-protocol` so host and SDK cannot drift.
+> **Status:** normative (M1). This document is the source of truth for the
+> JSON-RPC 2.0 stdio transport between the MPE host (`flow-engine-plugin`)
+> and sidecar plugins (`mpe-plugin-sdk` and language templates). The wire
+> types live in `mpe-protocol` so host and SDK cannot drift.
 >
-> Locked decisions this spec must honor: batch arrays forbidden by
-> construction; `variable_updates` flat-top-level keys only (A10);
-> event notifications carry `execution_id` + `node_instance_id`.
+> Locked decisions this spec honors: batch arrays forbidden by construction;
+> `variable_updates` flat-top-level keys only (A10); event notifications
+> carry `execution_id` + `node_instance_id`.
 
 ## 1. Framing
 
-- TODO(M1): single JSON value per line, `LF` delimiter; reader tolerates
-  trailing `CR` (`CRLF`, Python `print()`); byte-exact UTF-8 validation;
-  partial-line buffering until delimiter or EOF half-close; max line
-  `2 MiB` (`mpe-protocol::MAX_LINE_BYTES`).
+Each message is exactly **one JSON value per line**, terminated by a single
+`LF` (`0x0A`, `mpe_protocol::LINE_DELIMITER`).
+
+- **CRLF tolerance.** A trailing `CR` before the `LF` is stripped by the
+  reader. Plugins that emit `\r\n` (e.g. Python `print()`, which writes CRLF
+  on Windows) remain valid. Writers MUST emit a bare `\n`.
+- **Encoding.** Every line must be byte-exact UTF-8. A line with invalid
+  UTF-8 is a framing violation (see §1.1).
+- **BOM tolerance.** A UTF-8 BOM (`EF BB BF`) at the very start of the
+  stream is stripped from the first frame only.
+- **Partial-line buffering.** The reader buffers partial frames across reads
+  until the delimiter or EOF. A stream that reaches EOF in the middle of a
+  line (no trailing `LF`) is a violation (`UnexpectedEof`).
+- **Half-close (EOF).** The host half-closes stdin after `shutdown` so the
+  plugin observes EOF and can exit; the plugin half-closes stdout when it is
+  done writing. A clean EOF is one observed *after* shutdown with no pending
+  requests; EOF with pending requests or without shutdown is a crash.
+- **Max line.** `2 MiB` (`mpe_protocol::MAX_LINE_BYTES`). Lines longer than
+  the cap are rejected while reading — the reader never buffers without
+  bound (no unbounded `read_line`). The cap exceeds the 1 MiB `report_data`
+  budget so report payloads always fit.
+
+### 1.1 Malformed-line policy
+
+A malformed line (invalid JSON, non-object, batch array, mixed/empty
+response form, invalid UTF-8, over-long) is **skipped and logged**, never
+fatal. The host keeps a consecutive-malformed counter; after **10**
+consecutive malformed lines the plugin process is killed and all pending
+requests fail with `PluginCrashed`. A single malformed line never affects
+any other request.
 
 ## 2. Notification demux
 
-- TODO(M1): id-less notifications (including `log` and event streams) are
-  demuxed to registered handlers BEFORE pending-request lookup; a
-  notification must never be mistaken for a response.
+A **notification** is a message with `method` + `params` and **no top-level
+`id`** (`mpe_protocol::Notification` — the struct has no `id` field by
+construction). Notifications are fire-and-forget in both directions:
+
+- **Plugin → host.** Incoming frames are discriminated by shape: a frame
+  with `result`/`error` is a response; a frame with `method` (and no id) is a
+  notification. Notifications are demuxed to registered handlers **before**
+  any pending-request lookup — a notification is never mistaken for a
+  response (it cannot match a pending id).
+- **Host → plugin.** `send_notification` (e.g. best-effort `cancel`) never
+  blocks and never expects a response.
 
 ## 3. Error-object mapping
 
-- TODO(M1): JSON-RPC error objects (`JsonRpcError`) map to typed
-  host `PluginError` variants; standard codes (parse/invalid-request/
-  method-not-found/invalid-params/internal/server) get canonical
-  host-side translations.
+A JSON-RPC error response (`{"id":N,"error":{...}}`) resolves the pending
+request with a typed host error: `PluginError::JsonRpc { code, message,
+data }`, mapped canonically from `mpe_protocol::JsonRpcError`. Standard
+codes retain their wire values (`-32700` parse, `-32600` invalid request,
+`-32601` method not found, `-32602` invalid params, `-32603` internal,
+`-32000..=-32099` server) and are identifiable via
+`PluginError::is_standard_jsonrpc_code`. An error response never kills the
+reader; the connection stays usable.
 
 ## 4. `variable_updates` contract
 
-- TODO(M1): keys MUST be flat top-level variable names (no dots) — the host
-  `VariableStorage` is flat/exact-name-keyed; dotted keys are rejected with
-  a host warn + skip (non-fatal) and recorded in the report (locked
-  deviation A10).
+The `execute` result may carry `variable_updates` for the host to write back
+into `VariableStorage`. **Keys MUST be flat top-level variable names — no
+dots** (locked deviation A10): the host `VariableStorage` is flat and
+exact-name-keyed, so a dotted key like `"runtime.total"` would silently keep
+its placeholder. The host validates on receipt: a dotted key is warned +
+skipped (non-fatal) and recorded in the report. `execute` must therefore
+return keys that are already top-level names.
 
 ## 5. Event correlation fields
 
-- TODO(M1): every event/log notification carries `execution_id` +
-  `node_instance_id` so streams correlate to a single node execution;
-  frozen in the schema day one.
+Every event/log notification MUST carry two frozen params fields so streams
+correlate to a single node execution (schema frozen day one):
+
+```json
+{ "execution_id": "…", "node_instance_id": "…", "level": "…", "message": "…" }
+```
+
+The host's correlation registry (see `transport::CorrelationFilter`)
+subscribes handlers by method + optional `execution_id` / `node_instance_id`
+filters; the shape is defined in `mpe_protocol::notification` so host and
+SDK agree on the field names.
 
 ## 6. P1 frontend loading (CSP foundation)
 
@@ -55,3 +103,39 @@
   `connect-src` additions) must therefore land as a real, behavior-changing
   edit together with the P1 protocol registration — tracked here, not in
   tauri.conf.json.
+
+## 7. Backpressure and pipe-full behavior
+
+- The host bounds **in-flight requests** with a semaphore at
+  `max_concurrent_requests` and the **writer queue** with a bounded channel
+  (`queue_capacity`). When either is exhausted the caller **awaits** —
+  requests are never rejected.
+- A slow consumer (plugin not reading its stdin) backs up the OS pipe; the
+  writer blocks, the queue fills, and callers wait. This is **head-of-line
+  blocking across flows sharing the process** — documented and accepted,
+  not redesigned. The host surfaces it via a slow-consumer counter exposed
+  to stress metrics, plus a `log::warn` on queue-full.
+- Every blocking step in a request (permit acquisition, enqueue, response
+  wait) is bounded by the request timeout, so a wedged plugin can never hold
+  a caller forever.
+
+## 8. Per-request timeout and cancellation
+
+Each request carries a host-side timeout (`request_timeout`, default 30 s).
+On timeout the host removes the pending entry, fires a best-effort `cancel`
+notification (`{"method":"cancel","params":{"id":<id>}}`, fire-and-forget),
+and returns `Err(Timeout)`. Timeout is the **only** mechanism covering a
+stuck-but-alive plugin. A plugin that actually exits drains all pending
+requests with `Err(PluginCrashed)`.
+
+## 9. Spawn hygiene
+
+The host applies at spawn time: a stderr drain task (the 64 KB pipe buffer
+stalls a plugin forever otherwise), `PYTHONUTF8=1` /
+`PYTHONIOENCODING=utf-8` for interpreter plugins, `CREATE_NO_WINDOW` +
+non-inherited stdio handles on Windows (so grandchildren do not inherit the
+stdout pipe and prevent EOF), and a Windows Job Object with
+`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` so the host's death kills the plugin
+and its grandchildren. Known limitation: a plugin compiled with
+`windows_subsystem = "windows"` has no usable stdio and cannot use this
+transport.

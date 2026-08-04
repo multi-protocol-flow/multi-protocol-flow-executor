@@ -43,7 +43,14 @@ async fn run_bench() -> f64 {
     };
     let process = spawn_plugin(&entry, &HashMap::new())
         .unwrap_or_else(|e| panic!("spawn echo mock: {e}"));
-    let mut connection = PluginConnection::spawn(process, ConnectionConfig::default())
+    // A wide inflight window lets the pipe stay full; the transport's
+    // pipelining (not the 32-request default throttle) is what we measure.
+    let config = ConnectionConfig {
+        max_concurrent_requests: 4096,
+        queue_capacity: 8192,
+        ..ConnectionConfig::default()
+    };
+    let mut connection = PluginConnection::spawn(process, config)
         .unwrap_or_else(|e| panic!("connect: {e}"));
 
     // Warm-up: 200 requests, verify correctness, verify pipelining by
