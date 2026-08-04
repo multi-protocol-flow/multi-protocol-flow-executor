@@ -29,6 +29,7 @@ fn test_node_report_fields_exist() {
         }]),
         skip_reason: None,
         wait_duration_ms: Some(500),
+        plugin_data: None,
     };
 
     // 验证新字段值
@@ -104,6 +105,7 @@ fn test_node_report_skip_serializing_if() {
         variable_changes: None,
         skip_reason: None,
         wait_duration_ms: None,
+        plugin_data: None,
     };
 
     // 序列化
@@ -135,6 +137,7 @@ fn test_node_report_skipped_with_reason() {
         variable_changes: None,
         skip_reason: Some("condition not met".to_string()),
         wait_duration_ms: None,
+        plugin_data: None,
     };
 
     // 验证序列化包含 skip_reason

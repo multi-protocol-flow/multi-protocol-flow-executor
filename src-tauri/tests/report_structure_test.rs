@@ -174,6 +174,7 @@ fn test_report_structure_node_execution_report() {
         ]),
         skip_reason: None,
         wait_duration_ms: Some(150),
+        plugin_data: None,
     };
 
     // 序列化
@@ -247,6 +248,7 @@ fn test_report_structure_node_execution_report_failed() {
         variable_changes: None,
         skip_reason: None,
         wait_duration_ms: None,
+        plugin_data: None,
     };
 
     let json_str = serde_json::to_string(&report).expect("serialization failed");
@@ -282,6 +284,7 @@ fn test_report_structure_node_execution_report_skipped() {
         variable_changes: None,
         skip_reason: Some("condition expression evaluated to false".to_string()),
         wait_duration_ms: None,
+        plugin_data: None,
     };
 
     let json_str = serde_json::to_string(&report).expect("serialization failed");
@@ -327,6 +330,7 @@ fn test_report_structure_flow_execution_report() {
             }]),
             skip_reason: None,
             wait_duration_ms: None,
+            plugin_data: None,
         },
         NodeExecutionReport {
             node_uuid: "http-1".to_string(),
@@ -348,6 +352,7 @@ fn test_report_structure_flow_execution_report() {
             }]),
             skip_reason: None,
             wait_duration_ms: Some(0),
+            plugin_data: None,
         },
     ];
 
@@ -400,6 +405,7 @@ fn test_report_structure_flow_execution_report() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        plugin_streams: vec![],
     };
 
     // 序列化
@@ -485,6 +491,7 @@ fn test_report_structure_flow_execution_report_failed() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        plugin_streams: vec![],
     };
 
     let json_str = serde_json::to_string(&report).expect("serialization failed");
@@ -522,6 +529,7 @@ fn test_report_structure_flow_execution_report_debug_mode() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        plugin_streams: vec![],
     };
 
     let json_str = serde_json::to_string(&report).expect("serialization failed");
@@ -757,6 +765,7 @@ fn test_report_structure_full_roundtrip() {
                 variable_changes: None,
                 skip_reason: None,
                 wait_duration_ms: None,
+                plugin_data: None,
             },
             NodeExecutionReport {
                 node_uuid: "http-1".to_string(),
@@ -778,6 +787,7 @@ fn test_report_structure_full_roundtrip() {
                 }]),
                 skip_reason: None,
                 wait_duration_ms: Some(0),
+                plugin_data: None,
             },
             NodeExecutionReport {
                 node_uuid: "cond-1".to_string(),
@@ -795,6 +805,7 @@ fn test_report_structure_full_roundtrip() {
                 variable_changes: None,
                 skip_reason: None,
                 wait_duration_ms: Some(0),
+                plugin_data: None,
             },
         ],
         statistics: FlowStatistics {
@@ -833,6 +844,7 @@ fn test_report_structure_full_roundtrip() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        plugin_streams: vec![],
     };
 
     // 序列化

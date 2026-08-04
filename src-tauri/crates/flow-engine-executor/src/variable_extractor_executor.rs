@@ -250,6 +250,7 @@ mod tests {
             variable_changes: None,
             skip_reason: None,
             wait_duration_ms: None,
+            plugin_data: None,
         });
 
         let executor = VariableExtractorExecutor;

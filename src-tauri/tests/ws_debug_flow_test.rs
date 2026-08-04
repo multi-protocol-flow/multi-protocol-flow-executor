@@ -505,6 +505,7 @@ async fn test_report_includes_ws_streams() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        plugin_streams: vec![],
     };
 
     // 验证报告序列化包含 ws_streams

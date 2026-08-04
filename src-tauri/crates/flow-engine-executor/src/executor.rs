@@ -252,6 +252,7 @@ impl FlowExecutor {
             execution_event_sender: self.execution_event_sender.clone(),
             cancel_receiver: self.cancel_receiver.clone(),
             providers: std::collections::HashMap::new(),
+            current_node_plugin_data: None,
         }
         .with_default_providers()
         .with_default_providers_and_grpc(None);
@@ -581,6 +582,7 @@ impl FlowExecutor {
                         },
                         skip_reason: None,
                         wait_duration_ms: None,
+                        plugin_data: None,
                     };
                     let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
@@ -719,6 +721,7 @@ impl FlowExecutor {
                             variable_changes: None,
                             skip_reason: None,
                             wait_duration_ms: None,
+                            plugin_data: None,
                         };
                         let event_report = node_report.clone();
                         node_reports.push(node_report.clone());
@@ -801,6 +804,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
+                        plugin_data: None,
                     };
                     let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
@@ -932,6 +936,7 @@ impl FlowExecutor {
                             flow_snapshot: Some(flow.clone()),
                             end_node_reached: None,
                             flow_warning: None,
+                            plugin_streams: vec![],
                         };
 
                         return ExecutionResult {
@@ -1063,6 +1068,7 @@ impl FlowExecutor {
             execution_path,
             skipped_nodes,
             ws_streams,
+            plugin_streams: vec![],
             flow_snapshot: Some(flow.clone()),
             end_node_reached: if has_end_nodes {
                 Some(reached_end_node)
@@ -1270,6 +1276,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
+                        plugin_data: None,
                     }],
                     flow_report: None,
                 };
@@ -1319,6 +1326,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
+                        plugin_data: None,
                     }],
                     flow_report: None,
                 }
@@ -1347,6 +1355,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
+                        plugin_data: None,
                     }],
                     flow_report: None,
                 }
@@ -1383,6 +1392,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
+                        plugin_data: None,
                     }],
                     flow_report: None,
                 }
@@ -2113,6 +2123,7 @@ mod tests {
             execution_event_sender: None,
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
+            current_node_plugin_data: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -2148,6 +2159,7 @@ mod tests {
             execution_event_sender: None,
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
+            current_node_plugin_data: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -2174,6 +2186,7 @@ mod tests {
             execution_event_sender: None,
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
+            current_node_plugin_data: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -2201,6 +2214,7 @@ mod tests {
             execution_event_sender: None,
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
+            current_node_plugin_data: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -2246,6 +2260,7 @@ mod tests {
             execution_event_sender: None,
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
+            current_node_plugin_data: None,
         };
         let result = replace_variables(&template, &context);
         assert!(result.is_err());
@@ -2276,6 +2291,7 @@ mod tests {
                 execution_event_sender: None,
                 cancel_receiver: None,
                 providers: std::collections::HashMap::new(),
+                current_node_plugin_data: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -2306,6 +2322,7 @@ mod tests {
                 execution_event_sender: None,
                 cancel_receiver: None,
                 providers: std::collections::HashMap::new(),
+                current_node_plugin_data: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -2336,6 +2353,7 @@ mod tests {
                 execution_event_sender: None,
                 cancel_receiver: None,
                 providers: std::collections::HashMap::new(),
+                current_node_plugin_data: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());

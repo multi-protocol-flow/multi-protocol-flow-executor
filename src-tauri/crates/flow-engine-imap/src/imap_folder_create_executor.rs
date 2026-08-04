@@ -205,6 +205,7 @@ mod tests {
             execution_event_sender: None,
             cancel_receiver: None,
             providers: HashMap::new(),
+            current_node_plugin_data: None,
         }
     }
 

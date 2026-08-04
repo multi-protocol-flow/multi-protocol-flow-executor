@@ -174,6 +174,7 @@ impl DebuggableFlowExecutor {
             execution_event_sender: None,
             cancel_receiver: None,
             providers: HashMap::new(),
+            current_node_plugin_data: None,
         }
         .with_default_providers();
 
@@ -597,6 +598,7 @@ impl DebuggableFlowExecutor {
                         variable_changes: entry.variable_changes.clone(),
                         skip_reason: entry.skip_reason.clone(),
                         wait_duration_ms: None,
+                        plugin_data: None,
                     }
                 })
                 .collect();
@@ -1226,6 +1228,7 @@ impl DebuggableFlowExecutor {
                     variable_changes: entry.variable_changes.clone(),
                     skip_reason: entry.skip_reason.clone(),
                     wait_duration_ms: None,
+                    plugin_data: None,
                 }
             })
             .collect();
@@ -1279,6 +1282,7 @@ impl DebuggableFlowExecutor {
             flow_snapshot: Some(flow_snapshot),
             end_node_reached: None,
             flow_warning: None,
+            plugin_streams: vec![],
         }
     }
 }

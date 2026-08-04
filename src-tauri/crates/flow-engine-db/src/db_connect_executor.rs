@@ -826,6 +826,7 @@ mod tests {
             execution_event_sender: None,
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
+            current_node_plugin_data: None,
         }
     }
 

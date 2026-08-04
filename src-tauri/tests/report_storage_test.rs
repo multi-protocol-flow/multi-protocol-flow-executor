@@ -37,6 +37,7 @@ fn create_test_report(uuid: &str, flow_name: &str) -> flow_engine::report::FlowE
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        plugin_streams: vec![],
     }
 }
 

@@ -31,6 +31,7 @@ fn test_flow_report_fields_exist() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        plugin_streams: vec![],
     };
 
     // 验证新字段可以正常访问
@@ -92,6 +93,7 @@ fn test_flow_report_empty_path() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        plugin_streams: vec![],
     };
 
     // 验证空路径

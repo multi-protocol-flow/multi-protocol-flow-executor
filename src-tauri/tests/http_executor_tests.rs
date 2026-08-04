@@ -44,6 +44,7 @@ fn create_context(flow_id: &str) -> ExecutionContext {
         execution_event_sender: None,
         cancel_receiver: None,
         providers: std::collections::HashMap::new(),
+        current_node_plugin_data: None,
     }
 }
 

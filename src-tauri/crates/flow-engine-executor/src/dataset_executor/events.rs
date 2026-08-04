@@ -794,6 +794,7 @@ mod tests {
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
+            plugin_streams: vec![],
         }
     }
 }

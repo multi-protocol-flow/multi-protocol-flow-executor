@@ -83,6 +83,7 @@ mod tests {
                     variable_changes: None,
                     skip_reason: None,
                     wait_duration_ms: None,
+                    plugin_data: None,
                 },
                 NodeExecutionReport {
                     node_uuid: "node-2".to_string(),
@@ -100,6 +101,7 @@ mod tests {
                     variable_changes: None,
                     skip_reason: None,
                     wait_duration_ms: None,
+                    plugin_data: None,
                 },
             ],
             statistics: FlowStatistics::default(),
@@ -113,6 +115,7 @@ mod tests {
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
+            plugin_streams: vec![],
         }
     }
 
