@@ -12,5 +12,11 @@ tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+# Sample plugin used as the `sdk_plugin_roundtrip` test fixture. Declared as a
+# [[bin]] so integration tests can locate it via `env!("CARGO_BIN_EXE_...")`.
+[[bin]]
+name = "mpe_demo_plugin"
+path = "src/bin/demo_plugin.rs"
+
 [lints]
 workspace = true
