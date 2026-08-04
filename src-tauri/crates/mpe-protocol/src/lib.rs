@@ -5,6 +5,7 @@
 //! Consumed by both the host (`flow-engine-plugin`) and the SDK
 //! (`mpe-plugin-sdk`) so the wire contract can never drift between them.
 
+pub mod describe;
 pub mod error;
 pub mod manifest;
 pub mod notification;
