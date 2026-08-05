@@ -1,0 +1,12 @@
+{
+  "name": "nodedemo",
+  "version": "0.1.0",
+  "description": "Node.js template plugin (JSON-RPC 2.0 over stdio) — one node type: nodedemo:echo",
+  "entry": {
+    "command": "node",
+    "args": ["plugin.js"]
+  },
+  "capabilities": {
+    "streaming": false
+  }
+}

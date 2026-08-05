@@ -1,0 +1,12 @@
+{
+  "name": "pyecho",
+  "version": "0.1.0",
+  "description": "Python template plugin (JSON-RPC 2.0 over stdio) — one node type: pyecho:add",
+  "entry": {
+    "command": "python",
+    "args": ["plugin.py"]
+  },
+  "capabilities": {
+    "streaming": false
+  }
+}
