@@ -8,6 +8,7 @@ use tauri::Emitter;
 use tauri::Manager;
 
 use crate::tauri_adapters::{create_log_sender, TauriDebugEventSender, TauriExecutionEventSender};
+use crate::NodeRegistryState;
 use flow_engine::command::{
     CreateFlowCommandInput, CreateFlowCommandOutput, DeleteNodeCommandInput,
     DeleteNodeCommandOutput, ExecuteFlowCommandInput, ExecuteFlowCommandOutput,
@@ -168,6 +169,7 @@ pub async fn execute_flow(
     on_ws_event: Channel<DebugEvent>,
     state: State<'_, ExecutionSessionManager>,
     grpc_state: State<'_, GrpcCancelSessionManager>,
+    node_registry: State<'_, NodeRegistryState>,
 ) -> Result<ExecuteFlowCommandOutput, String> {
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
@@ -205,7 +207,8 @@ pub async fn execute_flow(
     let flow_name = flow.name.clone();
     let input_variables = input.variables.clone();
 
-    let mut executor = flow_engine::executor::FlowExecutor::new();
+    let mut executor = flow_engine::executor::FlowExecutor::new()
+        .with_registry(Arc::clone(&node_registry.registry));
     if let Some(sender) = execution_event_sender {
         executor = executor.with_execution_event_sender(sender);
     }
@@ -277,6 +280,7 @@ pub async fn execute_single_node(
     node: Node,
     variables: Option<serde_json::Value>,
     state: State<'_, ExecutionSessionManager>,
+    node_registry: State<'_, NodeRegistryState>,
 ) -> Result<NodeExecutionReport, String> {
     // 白名单检查（纵深防御）
     let supported = [
@@ -323,6 +327,7 @@ pub async fn execute_single_node(
     }
 
     let executor = flow_engine::executor::FlowExecutor::new()
+        .with_registry(Arc::clone(&node_registry.registry))
         .with_cancel_receiver(cancel_rx)
         .with_hook_executor(std::sync::Arc::new(
             flow_engine::hook_runner::DefaultHookExecutor::new(),
@@ -366,10 +371,12 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
 /// 检查流程结构是否正确，返回带有Error码的结构化验证结果。
 /// 每个Error项包含 `code`（Error码，前端用于 i18n 映射）、`message`（详细描述）和可选的 `field`。
 #[tauri::command]
-pub fn validate_flow(flow: Flow) -> flow_engine::validator::ValidationResult {
+pub fn validate_flow(
+    flow: Flow,
+    node_registry: State<'_, NodeRegistryState>,
+) -> flow_engine::validator::ValidationResult {
     let validator = flow_engine::validator::FlowValidator::new();
-    let registry = flow_engine::default_registry::default_registry();
-    validator.validate_with_registry(&flow, &registry)
+    validator.validate_with_registry(&flow, &node_registry.registry)
 }
 
 // ============================================================================
@@ -3347,6 +3354,7 @@ pub async fn start_debug(
     on_event: Channel<DebugEvent>,
     on_log: Channel<LogEvent>,
     state: State<'_, Arc<Mutex<DebugSessionManager>>>,
+    node_registry: State<'_, NodeRegistryState>,
     _app: tauri::AppHandle,
 ) -> Result<(), String> {
     // 检查是否已有调试会话
@@ -3382,8 +3390,10 @@ pub async fn start_debug(
     tokio::spawn(log_worker);
 
     // 启动调试会话（在后台任务中）
+    let debug_registry = Arc::clone(&node_registry.registry);
     tokio::spawn(async move {
-        let executor = flow_engine::debug::DebuggableFlowExecutor::new();
+        let executor =
+            flow_engine::debug::DebuggableFlowExecutor::new().with_registry(debug_registry);
         let _ = executor
             .start_debug(
                 &flow,
@@ -3662,12 +3672,11 @@ pub fn move_folder(
 
 /// 获取所有已注册的节点类型元数据
 ///
-/// 从默认节点注册表获取全部 14 种节点类型的元数据信息，
+/// 从共享节点注册表（内置 + 插件节点）获取全部节点类型的元数据信息，
 /// 供前端动态渲染节点面板和画布。
 #[tauri::command]
-pub fn get_registered_node_types() -> Vec<NodeMetadata> {
-    let registry = flow_engine::default_registry::default_registry();
-    registry.all_metadata()
+pub fn get_registered_node_types(node_registry: State<'_, NodeRegistryState>) -> Vec<NodeMetadata> {
+    node_registry.registry.all_metadata()
 }
 
 /// 获取指定节点类型的配置 JSON Schema
@@ -3675,9 +3684,12 @@ pub fn get_registered_node_types() -> Vec<NodeMetadata> {
 /// 通过 `type_id` 查找已注册的节点插件，返回其配置 schema。
 /// 若 `type_id` 不存在或插件未提供 schema，返回 None。
 #[tauri::command]
-pub fn get_node_config_schema(type_id: String) -> Option<serde_json::Value> {
-    let registry = flow_engine::default_registry::default_registry();
-    registry
+pub fn get_node_config_schema(
+    type_id: String,
+    node_registry: State<'_, NodeRegistryState>,
+) -> Option<serde_json::Value> {
+    node_registry
+        .registry
         .get(&type_id)
         .and_then(|plugin| plugin.config_schema())
 }
@@ -3685,11 +3697,10 @@ pub fn get_node_config_schema(type_id: String) -> Option<serde_json::Value> {
 /// 获取所有已注册插件的元数据列表
 ///
 /// 与 `get_registered_node_types` 相同，语义上更侧重"插件"概念。
-/// 返回全部插件的 `NodeMetadata` 列表。
+/// 返回全部插件（含 sidecar 插件节点）的 `NodeMetadata` 列表。
 #[tauri::command]
-pub fn list_registered_plugins() -> Vec<NodeMetadata> {
-    let registry = flow_engine::default_registry::default_registry();
-    registry.all_metadata()
+pub fn list_registered_plugins(node_registry: State<'_, NodeRegistryState>) -> Vec<NodeMetadata> {
+    node_registry.registry.all_metadata()
 }
 
 // ============================================================================
@@ -3723,6 +3734,7 @@ pub async fn execute_flow_with_dataset(
     app: tauri::AppHandle,
     input: ExecuteDatasetInput,
     state: State<'_, DatasetExecutionSessionManager>,
+    node_registry: State<'_, NodeRegistryState>,
 ) -> Result<(), String> {
     // 获取应用数据目录（用于保存Failed行详情）
     let app_data_dir = app
@@ -3754,10 +3766,10 @@ pub async fn execute_flow_with_dataset(
     let flow = input.flow;
     let config = input.config;
     let state_cancel = state.cancel_sender.clone();
+    let registry = Arc::clone(&node_registry.registry);
 
     // 在后台启动执行
     tokio::spawn(async move {
-        let registry = std::sync::Arc::new(flow_engine::default_registry::default_registry());
         let executor = flow_engine::dataset_executor::DatasetExecutor::new(registry);
         let result = executor
             .execute(&config, &flow, Some(cancel_rx), Some(event_sender))

@@ -76,6 +76,7 @@ async fn test_input_data_timing_basic() {
         None,
         None,
         None,
+        Arc::new(flow_engine::default_registry::default_registry()),
     )
     .await;
 
@@ -156,6 +157,7 @@ async fn test_input_data_timing_with_initial_variables() {
         None,
         None,
         None,
+        Arc::new(flow_engine::default_registry::default_registry()),
     )
     .await;
 
@@ -276,6 +278,7 @@ async fn test_input_data_timing_http_node() {
         None,
         None,
         None,
+        Arc::new(flow_engine::default_registry::default_registry()),
     )
     .await;
 

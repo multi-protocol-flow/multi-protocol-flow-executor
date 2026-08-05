@@ -286,3 +286,7 @@ debug = false                   # 依赖项去掉调试符号，加速编译
 # 允许 unsafe（FreeConsole 等平台 API 需要）
 unsafe_code = "allow"
 missing_docs = "warn"
+
+[lints.clippy]
+# Tauri IPC 命令参数由前端调用契约决定，数量不受 7 参数上限约束
+too_many_arguments = "allow"

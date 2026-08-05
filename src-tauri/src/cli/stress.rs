@@ -1,15 +1,17 @@
 //! mpe stress 子命令 — 压力测试执行与报告管理
 
 use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
-use super::{CliError, StressCommands, StressReportCommands, config, output};
 use super::output::CliOutput;
+use super::{config, output, CliError, StressCommands, StressReportCommands};
 
 /// 执行 stress 子命令
 pub async fn execute(
     _format: &str,
     command: StressCommands,
+    registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<(), CliError> {
     match command {
@@ -19,7 +21,18 @@ pub async fn execute(
             ramp_up,
             duration,
             output,
-        } => execute_run(&flow, concurrent_users, ramp_up, duration, output.as_deref(), cancel_rx).await,
+        } => {
+            execute_run(
+                &flow,
+                concurrent_users,
+                ramp_up,
+                duration,
+                output.as_deref(),
+                registry,
+                cancel_rx,
+            )
+            .await
+        }
         StressCommands::Report { command } => execute_report(command, _format).await,
     }
 }
@@ -31,6 +44,7 @@ async fn execute_run(
     ramp_up: u32,
     duration: u32,
     output_path: Option<&str>,
+    registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<(), CliError> {
     let path = PathBuf::from(flow_path);
@@ -64,6 +78,7 @@ async fn execute_run(
         flow.clone(),
         stress_config.clone(),
         event_tx,
+        registry,
     );
 
     // 启动执行器
@@ -122,8 +137,10 @@ async fn execute_report(command: StressReportCommands, format: &str) -> Result<(
     match command {
         StressReportCommands::List => {
             let app_config = config::AppConfig::load().map_err(CliError::Config)?;
-            let reports = crate::storage::list_stress_reports(&app_config.reports_dir)
-                .map_err(|e| CliError::Execution(format!("Failed to list stress reports: {}", e)))?;
+            let reports =
+                crate::storage::list_stress_reports(&app_config.reports_dir).map_err(|e| {
+                    CliError::Execution(format!("Failed to list stress reports: {}", e))
+                })?;
 
             if format == "table" {
                 let headers = ["UUID", "Flow Name", "Start Time"];
@@ -133,11 +150,7 @@ async fn execute_report(command: StressReportCommands, format: &str) -> Result<(
                         let dt = chrono::DateTime::from_timestamp_millis(r.start_time as i64)
                             .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
                             .unwrap_or_else(|| r.start_time.to_string());
-                        vec![
-                            r.uuid.chars().take(8).collect(),
-                            r.flow_name.clone(),
-                            dt,
-                        ]
+                        vec![r.uuid.chars().take(8).collect(), r.flow_name.clone(), dt]
                     })
                     .collect();
                 print!("{}", output::format_table(&headers, &rows));
@@ -153,9 +166,12 @@ async fn execute_report(command: StressReportCommands, format: &str) -> Result<(
             Ok(())
         }
         StressReportCommands::Delete { file_path } => {
-            crate::storage::delete_stress_report(&PathBuf::from(&file_path))
-                .map_err(|e| CliError::Execution(format!("Failed to delete stress report: {}", e)))?;
-            output::output_json(&CliOutput::success(serde_json::json!({"deleted": file_path})));
+            crate::storage::delete_stress_report(&PathBuf::from(&file_path)).map_err(|e| {
+                CliError::Execution(format!("Failed to delete stress report: {}", e))
+            })?;
+            output::output_json(&CliOutput::success(
+                serde_json::json!({"deleted": file_path}),
+            ));
             Ok(())
         }
     }

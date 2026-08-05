@@ -156,6 +156,52 @@ fn default_logs_dir(app: &tauri::AppHandle) -> PathBuf {
         .unwrap_or_else(|_| PathBuf::from("logs"))
 }
 
+/// 共享节点注册表状态（Tauri State）
+///
+/// 应用启动时构建一次，所有执行/验证/注册表查询命令共享同一个注册表，
+/// 使插件节点（`SidecarPlugin`）的插件进程在多次执行之间复用。
+pub struct NodeRegistryState {
+    /// 共享节点注册表（内置节点 + 已登记的插件节点）
+    pub registry: Arc<flow_engine::registry::NodeRegistry>,
+    /// 插件管理器（持有插件进程生命周期；`plugin-manager` 特性关闭时不存在）
+    #[cfg(feature = "plugin-manager")]
+    pub manager: Arc<flow_engine::PluginManager>,
+}
+
+/// 解析插件目录：`MPE_PLUGIN_DIR` 环境变量优先，否则默认数据目录下 `plugins`
+fn plugins_dir() -> PathBuf {
+    std::env::var_os("MPE_PLUGIN_DIR")
+        .map(PathBuf::from)
+        .or_else(|| {
+            flow_engine::storage::get_data_dir()
+                .ok()
+                .map(|d| d.join("plugins"))
+        })
+        .unwrap_or_else(|| PathBuf::from("plugins"))
+}
+
+/// 构建共享节点注册表状态
+///
+/// 插件扫描与 describe 在启动时同步阻塞执行（describe 会拉起插件进程，
+/// 但数量有限、耗时毫秒级，可接受）；扫描失败仅告警，不阻塞启动。
+/// 关闭 `plugin-manager` 特性时仅构建内置节点注册表。
+fn build_node_registry_state() -> NodeRegistryState {
+    #[cfg(feature = "plugin-manager")]
+    {
+        let mut manager = flow_engine::PluginManager::new(plugins_dir());
+        let _ = tauri::async_runtime::block_on(manager.scan_and_describe());
+        let manager = Arc::new(manager);
+        let registry = Arc::new(flow_engine::default_registry_with_plugins(&manager));
+        NodeRegistryState { registry, manager }
+    }
+    #[cfg(not(feature = "plugin-manager"))]
+    {
+        NodeRegistryState {
+            registry: Arc::new(flow_engine::default_registry::default_registry()),
+        }
+    }
+}
+
 /// 启动 Tauri 应用
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -169,12 +215,18 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            // 注册共享节点注册表状态（内置节点 + 插件节点，全局构建一次）
+            let node_registry_state = build_node_registry_state();
+            let stress_registry = Arc::clone(&node_registry_state.registry);
+            app.manage(node_registry_state);
+
             // 注册调试会话管理器状态
             app.manage(Arc::new(Mutex::new(DebugSessionManager::default())));
 
-            // 注册压力测试会话管理器状态
+            // 注册压力测试会话管理器状态（共享注册表，使插件进程跨虚拟用户复用）
             app.manage(Arc::new(
-                flow_engine::stress_test::StressTestSessionManager::new(),
+                flow_engine::stress_test::StressTestSessionManager::new()
+                    .with_registry(stress_registry),
             ));
 
             // 注册执行会话管理器状态（用于取消流程执行）
