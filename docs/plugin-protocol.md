@@ -74,8 +74,12 @@ into `VariableStorage`. **Keys MUST be flat top-level variable names — no
 dots** (locked deviation A10): the host `VariableStorage` is flat and
 exact-name-keyed, so a dotted key like `"runtime.total"` would silently keep
 its placeholder. The host validates on receipt: a dotted key is warned +
-skipped (non-fatal) and recorded in the report. `execute` must therefore
-return keys that are already top-level names.
+skipped (non-fatal) via the host log (`log::warn!`), and the remaining keys
+are still merged. Dotted keys are **not** recorded in the node report in P0.
+`execute` must therefore return keys that are already top-level names.
+
+> **P1:** record skipped dotted keys in the node report so users can audit
+> which updates were dropped. P0 keeps the skip log-only.
 
 ## 5. Event correlation fields
 
