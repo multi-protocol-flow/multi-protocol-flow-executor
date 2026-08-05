@@ -183,6 +183,14 @@ pub use flow_engine_executor::stress_test;
 // Wave 8: 节点注册表
 pub use flow_engine_executor::default_registry;
 
+// 插件系统（sidecar 插件进程；`plugin-manager` 特性门控，与 `protocol-*` 无关）
+#[cfg(feature = "plugin-manager")]
+pub use flow_engine_executor::default_registry::default_registry_with_plugins;
+#[cfg(feature = "plugin-manager")]
+pub use flow_engine_plugin::manager::PluginManager;
+#[cfg(feature = "plugin-manager")]
+pub use flow_engine_plugin::sidecar::SidecarPlugin;
+
 // 数据集执行模块
 pub use flow_engine_executor::csv_parser;
 pub use flow_engine_executor::dataset_executor;
