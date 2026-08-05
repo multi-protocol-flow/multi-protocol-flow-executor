@@ -6,14 +6,14 @@
 
 多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 模式（同一二进制 `mpe`）。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + @xyflow/react
-- **后端:** Rust Workspace (20 crates) + Tauri 2.x
+- **后端:** Rust Workspace (23 crates) + Tauri 2.x
 
 ## 结构
 
 ```
 root/
 ├── src/                  # 前端 (React 19 + TypeScript)
-├── src-tauri/            # 后端 (Rust workspace, 20 crates)
+├── src-tauri/            # 后端 (Rust workspace, 23 crates)
 ├── tests/                # CLI 测试夹具 (JSON flow files)
 ├── echo/                 # 全协议 echo 测试服务 (Docker Compose)
 ├── docs/                 # 架构文档
@@ -35,6 +35,10 @@ root/
 | 执行引擎 | `src-tauri/crates/flow-engine-executor/` |
 | 协议执行器 | `src-tauri/crates/flow-engine-*/` |
 | CLI 入口 | `src-tauri/src/cli/` |
+| 插件管理器 | `src-tauri/crates/flow-engine-plugin/` |
+| 插件 SDK | `src-tauri/crates/mpe-plugin-sdk/` |
+| 插件 wire 协议 | `src-tauri/crates/mpe-protocol/` |
+| 插件文档 | `docs/plugin-{protocol,sdk,perf}.md` |
 
 ## 架构
 
@@ -51,9 +55,10 @@ Layer 2 (编排):     flow-engine-executor (依赖 Layer 0 + 可选 Layer 1)
 Layer 3 (门面):     flow-engine (re-export 全部)
 Layer 4 (应用):     app (src-tauri/) 仅依赖 flow-engine
 Extra:              workspace-hack (cargo-hakari 自动管理)
+插件系统:           mpe-protocol (共享 wire 契约) + flow-engine-plugin (宿主侧边进程插件管理) + mpe-plugin-sdk (作者 SDK)
 ```
 
-**增量编译**: 修改 Layer N → Layer N+1 及以上重编译。修改 core → 全量。
+**增量编译**: 修改 Layer N → Layer N+1 及以上重编译。修改 core → 全量。插件系统三个 crate 独立于协议分层：`mpe-protocol` 无依赖，`flow-engine-plugin` 依赖 `flow-engine-executor` + `mpe-protocol`，`mpe-plugin-sdk` 仅依赖 `mpe-protocol`。
 
 ### IPC 命令 (72 个)
 
