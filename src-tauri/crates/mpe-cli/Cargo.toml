@@ -60,6 +60,8 @@ plugin-manager = ["flow-engine/plugin-manager"]
 
 [dev-dependencies]
 tempfile = "3.0"
+assert_cmd = "2.0"
+predicates = "3"
 
 [lints]
 workspace = true

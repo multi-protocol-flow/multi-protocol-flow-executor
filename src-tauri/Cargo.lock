@@ -4232,11 +4232,13 @@ dependencies = [
 name = "mpe-cli"
 version = "0.1.0"
 dependencies = [
+ "assert_cmd",
  "chrono",
  "clap",
  "fern",
  "flow-engine",
  "log",
+ "predicates",
  "rustls",
  "serde",
  "serde_json",
