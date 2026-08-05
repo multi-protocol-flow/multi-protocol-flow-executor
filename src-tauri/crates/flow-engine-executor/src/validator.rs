@@ -263,6 +263,103 @@ impl FlowValidator {
         result
     }
 
+    /// Validate a flow with a shared registry AND per-plugin `validate` RPCs.
+    ///
+    /// Extends [`FlowValidator::validate_with_registry`] (structural checks +
+    /// unknown-type rejection + synchronous `NodePlugin::validate`) by
+    /// additionally running the plugin `validate` RPC (see
+    /// `flow_engine_plugin::sidecar::VALIDATE_METHOD`) for every node type the
+    /// plugin manager registered. A response of `{"valid": false, ...}`
+    /// becomes an `E_CONFIG_ERROR` entry carrying the plugin's `message`;
+    /// transport failures (JSON-RPC error, timeout, crash, unknown type id)
+    /// become "plugin validate failed" entries. Non-plugin nodes are skipped
+    /// (no RPC), and a `None` manager makes this exactly
+    /// [`FlowValidator::validate_with_registry`].
+    ///
+    /// # Parameters
+    ///
+    /// * `flow` - The flow to validate
+    /// * `registry` - The node registry containing all registered node plugins
+    /// * `manager` - The plugin manager whose registrations own plugin node
+    ///   types; `None` skips the per-plugin RPC phase
+    ///
+    /// # Returns
+    ///
+    /// A `ValidationResult` including structural, synchronous plugin, and
+    /// per-plugin RPC errors.
+    #[cfg(feature = "plugin-manager")]
+    pub async fn validate_with_registry_async(
+        &self,
+        flow: &Flow,
+        registry: &flow_engine_core::registry::NodeRegistry,
+        manager: Option<&flow_engine_plugin::manager::PluginManager>,
+    ) -> ValidationResult {
+        let mut result = self.validate_with_registry(flow, registry);
+        let Some(manager) = manager else {
+            return result;
+        };
+
+        // Node type ids owned by registered plugins (type_id → plugin name is
+        // indexed inside the manager; `registrations()` is the read-only view).
+        let plugin_type_ids: HashSet<&str> = manager
+            .registrations()
+            .iter()
+            .flat_map(|registration| registration.nodes.iter())
+            .map(|node| node.type_id.as_str())
+            .collect();
+
+        for node in &flow.nodes {
+            if !plugin_type_ids.contains(node.node_type.as_str()) {
+                continue;
+            }
+            let config = serde_json::to_value(&node.data).unwrap_or(serde_json::Value::Null);
+            let plugin_error = match manager.connection_for_node(&node.node_type).await {
+                Ok(conn) => {
+                    match conn
+                        .request(
+                            flow_engine_plugin::sidecar::VALIDATE_METHOD,
+                            serde_json::json!({ "config": config }),
+                        )
+                        .await
+                    {
+                        Ok(result_value) => {
+                            // The plugin answers `{"valid": true}` /
+                            // `{"valid": false, "message": ...}` as a SUCCESS
+                            // result; anything else is accepted.
+                            let rejected = result_value
+                                .get("valid")
+                                .and_then(serde_json::Value::as_bool)
+                                == Some(false);
+                            if !rejected {
+                                None
+                            } else {
+                                Some(
+                                    result_value
+                                        .get("message")
+                                        .and_then(serde_json::Value::as_str)
+                                        .unwrap_or("plugin validate failed")
+                                        .to_string(),
+                                )
+                            }
+                        }
+                        Err(e) => Some(e.to_string()),
+                    }
+                }
+                Err(e) => Some(e.to_string()),
+            };
+            if let Some(message) = plugin_error {
+                result.errors.push(ValidationEntry {
+                    code: ErrorCode::E_CONFIG_ERROR,
+                    message: format!("Node '{}': plugin validate failed: {}", node.name, message),
+                    field: Some("config".to_string()),
+                });
+                result.valid = false;
+            }
+        }
+
+        result
+    }
+
     /// 验证 WebSocket 节点配置
     ///
     /// # 参数

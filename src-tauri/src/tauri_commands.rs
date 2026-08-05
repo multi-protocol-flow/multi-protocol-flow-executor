@@ -370,13 +370,27 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
 ///
 /// 检查流程结构是否正确，返回带有Error码的结构化验证结果。
 /// 每个Error项包含 `code`（Error码，前端用于 i18n 映射）、`message`（详细描述）和可选的 `field`。
+/// 插件节点（`plugin-manager` 特性）额外执行插件的 `validate` RPC。
 #[tauri::command]
 pub fn validate_flow(
     flow: Flow,
     node_registry: State<'_, NodeRegistryState>,
 ) -> flow_engine::validator::ValidationResult {
     let validator = flow_engine::validator::FlowValidator::new();
-    validator.validate_with_registry(&flow, &node_registry.registry)
+    // 插件 validate RPC 是异步的；同步命令经全局异步运行时阻塞执行，
+    // 保持 IPC 返回形状（直接返回 ValidationResult）不变。
+    #[cfg(feature = "plugin-manager")]
+    {
+        return tauri::async_runtime::block_on(validator.validate_with_registry_async(
+            &flow,
+            &node_registry.registry,
+            Some(node_registry.manager.as_ref()),
+        ));
+    }
+    #[cfg(not(feature = "plugin-manager"))]
+    {
+        validator.validate_with_registry(&flow, &node_registry.registry)
+    }
 }
 
 // ============================================================================
