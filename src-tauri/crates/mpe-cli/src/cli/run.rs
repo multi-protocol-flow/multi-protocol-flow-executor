@@ -56,6 +56,7 @@ pub async fn execute(
     vars: &[String],
     stream: bool,
     no_report: bool,
+    registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<(), CliError> {
     let path = PathBuf::from(flow_path);
@@ -86,9 +87,9 @@ pub async fn execute(
 
     // Execute flow
     let result = if stream {
-        execute_with_streaming(path, &flow, variables, cancel_rx).await?
+        execute_with_streaming(path, &flow, variables, Arc::clone(&registry), cancel_rx).await?
     } else {
-        execute_simple(path, &flow, variables, cancel_rx).await?
+        execute_simple(path, &flow, variables, registry, cancel_rx).await?
     };
 
     // Build output data
@@ -161,9 +162,11 @@ async fn execute_simple(
     path: PathBuf,
     flow: &flow_engine::flow::Flow,
     variables: Option<serde_json::Value>,
+    registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<flow_engine::executor::ExecutionResult, CliError> {
     let executor = flow_engine::executor::FlowExecutor::new()
+        .with_registry(registry)
         .with_flow_file_path(path)
         .with_hook_executor(Arc::new(
             flow_engine::hook_runner::DefaultHookExecutor::new(),
@@ -177,6 +180,7 @@ async fn execute_with_streaming(
     path: PathBuf,
     flow: &flow_engine::flow::Flow,
     variables: Option<serde_json::Value>,
+    registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<flow_engine::executor::ExecutionResult, CliError> {
     let (event_tx, mut event_rx) = tokio::sync::mpsc::unbounded_channel();
@@ -184,6 +188,7 @@ async fn execute_with_streaming(
     let sender: Arc<dyn ExecutionEventSender> = Arc::new(CliExecutionEventSender { tx: event_tx });
 
     let executor = flow_engine::executor::FlowExecutor::new()
+        .with_registry(registry)
         .with_flow_file_path(path)
         .with_execution_event_sender(sender)
         .with_hook_executor(Arc::new(

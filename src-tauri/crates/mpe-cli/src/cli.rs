@@ -13,6 +13,9 @@ pub mod run_node;
 pub mod stress;
 pub mod validate;
 
+use std::path::PathBuf;
+use std::sync::Arc;
+
 use clap::{Parser, Subcommand};
 
 // ── CLI Error类型 ──────────────────────────────────────────────────
@@ -395,7 +398,7 @@ fn setup_logging() {
     }
 }
 
-/// CLI asynchronous main logic
+/// CLI 异步主逻辑
 async fn async_main() -> Result<(), CliError> {
     let cli = Cli::parse();
 
@@ -410,18 +413,35 @@ async fn async_main() -> Result<(), CliError> {
         let _ = ctrlc_cancel_tx.send(true);
     });
 
+    // 构建共享节点注册表（内置节点 + 插件节点，整个进程只构建一次，
+    // 使插件进程在多次执行/压测之间复用）
+    let registry = build_shared_registry().await;
+
     match cli.command {
         Commands::Run {
             flow,
             var,
             stream,
             no_report,
-        } => run::execute(&cli.format, &flow, &var, stream, no_report, cancel_rx).await,
+        } => {
+            run::execute(
+                &cli.format,
+                &flow,
+                &var,
+                stream,
+                no_report,
+                registry,
+                cancel_rx,
+            )
+            .await
+        }
         Commands::Validate { flow } => validate::execute(&cli.format, &flow).await,
         Commands::Debug { flow, r#break, var } => {
             debug_cmd::execute(&cli.format, &flow, &r#break, &var, cancel_rx).await
         }
-        Commands::Stress { command } => stress::execute(&cli.format, command, cancel_rx).await,
+        Commands::Stress { command } => {
+            stress::execute(&cli.format, command, registry, cancel_rx).await
+        }
         Commands::Flow { command } => flow::execute(&cli.format, command).await,
         Commands::RunNode {
             node_json,
@@ -429,6 +449,39 @@ async fn async_main() -> Result<(), CliError> {
             format,
         } => run_node::execute(&format, &node_json, &var).await,
         Commands::Report { command } => report::execute(&cli.format, command).await,
+    }
+}
+
+/// 解析插件目录：`MPE_PLUGIN_DIR` 环境变量优先，否则默认数据目录下 `plugins`
+fn plugins_dir() -> PathBuf {
+    std::env::var_os("MPE_PLUGIN_DIR")
+        .map(PathBuf::from)
+        .or_else(|| {
+            flow_engine::storage::get_data_dir()
+                .ok()
+                .map(|d| d.join("plugins"))
+        })
+        .unwrap_or_else(|| PathBuf::from("plugins"))
+}
+
+/// 构建 CLI 共享节点注册表
+///
+/// 启用 `plugin-manager` 特性时扫描插件目录并登记插件节点（describe 拉起
+/// 插件进程）；关闭时仅注册内置节点。扫描失败仅告警，不影响启动。
+async fn build_shared_registry() -> Arc<flow_engine::registry::NodeRegistry> {
+    #[cfg(feature = "plugin-manager")]
+    {
+        use flow_engine::default_registry_with_plugins;
+        use flow_engine::PluginManager;
+
+        let mut manager = PluginManager::new(plugins_dir());
+        let _ = manager.scan_and_describe().await;
+        let manager = Arc::new(manager);
+        Arc::new(default_registry_with_plugins(&manager))
+    }
+    #[cfg(not(feature = "plugin-manager"))]
+    {
+        Arc::new(flow_engine::default_registry::default_registry())
     }
 }
 

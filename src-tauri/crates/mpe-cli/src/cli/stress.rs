@@ -1,6 +1,7 @@
 //! mpe stress 子命令 — 压力测试执行与报告管理
 
 use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 use super::output::CliOutput;
@@ -10,6 +11,7 @@ use super::{config, output, CliError, StressCommands, StressReportCommands};
 pub async fn execute(
     _format: &str,
     command: StressCommands,
+    registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<(), CliError> {
     match command {
@@ -26,6 +28,7 @@ pub async fn execute(
                 ramp_up,
                 duration,
                 output.as_deref(),
+                registry,
                 cancel_rx,
             )
             .await
@@ -41,6 +44,7 @@ async fn execute_run(
     ramp_up: u32,
     duration: u32,
     output_path: Option<&str>,
+    registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<(), CliError> {
     let path = PathBuf::from(flow_path);
@@ -74,6 +78,7 @@ async fn execute_run(
         flow.clone(),
         stress_config.clone(),
         event_tx,
+        registry,
     );
 
     // 启动执行器
