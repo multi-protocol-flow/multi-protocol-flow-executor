@@ -196,6 +196,16 @@ impl FlowExecutor {
         self
     }
 
+    /// 设置节点插件注册表（默认包含全部内置节点）
+    ///
+    /// 调用方可通过 [`crate::default_registry::default_registry_with_plugins`]
+    /// 构建一个注入插件节点的共享注册表，从而让多次执行/数据驱动/压测复用
+    /// 同一批插件进程。
+    pub fn with_registry(mut self, registry: Arc<NodeRegistry>) -> Self {
+        self.registry = registry;
+        self
+    }
+
     /// 设置钩子执行器（流程完成时触发预定义动作）
     pub fn with_hook_executor(
         mut self,
@@ -582,7 +592,9 @@ impl FlowExecutor {
                         },
                         skip_reason: None,
                         wait_duration_ms: None,
-                        plugin_data: None,
+                        // 消费插件节点的 report_data back-channel（SidecarPlugin 在
+                        // execute 时写入；非插件节点保持 None）
+                        plugin_data: context.current_node_plugin_data.take(),
                     };
                     let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
@@ -721,7 +733,7 @@ impl FlowExecutor {
                             variable_changes: None,
                             skip_reason: None,
                             wait_duration_ms: None,
-                            plugin_data: None,
+                            plugin_data: context.current_node_plugin_data.take(),
                         };
                         let event_report = node_report.clone();
                         node_reports.push(node_report.clone());
@@ -804,7 +816,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
-                        plugin_data: None,
+                        plugin_data: context.current_node_plugin_data.take(),
                     };
                     let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
@@ -1276,7 +1288,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
-                        plugin_data: None,
+                        plugin_data: context.current_node_plugin_data.take(),
                     }],
                     flow_report: None,
                 };
@@ -1326,7 +1338,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
-                        plugin_data: None,
+                        plugin_data: context.current_node_plugin_data.take(),
                     }],
                     flow_report: None,
                 }
@@ -1355,7 +1367,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
-                        plugin_data: None,
+                        plugin_data: context.current_node_plugin_data.take(),
                     }],
                     flow_report: None,
                 }
@@ -1392,7 +1404,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
-                        plugin_data: None,
+                        plugin_data: context.current_node_plugin_data.take(),
                     }],
                     flow_report: None,
                 }

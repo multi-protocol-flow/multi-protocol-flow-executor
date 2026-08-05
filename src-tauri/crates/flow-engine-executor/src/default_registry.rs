@@ -6,6 +6,9 @@
 
 use flow_engine_core::registry::NodeRegistry;
 
+#[cfg(feature = "plugin-manager")]
+use flow_engine_plugin::manager::PluginManager;
+
 /// 创建包含全部内置节点的默认注册表
 ///
 /// # 注册的插件
@@ -192,6 +195,51 @@ pub fn default_registry() -> NodeRegistry {
     // Proxy (flow-engine-executor 内置)
     registry.register(std::sync::Arc::new(crate::plugin_proxy::ProxyPlugin));
 
+    registry
+}
+
+/// 构建包含全部内置节点和已注册插件节点的注册表
+///
+/// 先运行 [`default_registry`] 注册全部内置节点，再将 `manager` 中已登记
+/// （`add_registration` / `scan_and_describe`）的插件节点包装为
+/// [`flow_engine_plugin::sidecar::SidecarPlugin`] 并注册。
+///
+/// 冲突策略与 `flow-engine-plugin` 的 `PluginManager::register_nodes_with`
+/// 保持一致：内置 `type_id` 永不覆盖；插件之间先到先得。所有
+/// `SidecarPlugin` 共享同一个 `manager` Arc，因此插件进程在多次执行、
+/// 数据驱动与压测场景之间复用。
+///
+/// # 参数
+/// - `manager`: 已完成插件登记（`add_registration` / `scan_and_describe`）的管理器
+///
+/// # 返回
+/// 注册了全部内置节点和插件节点的 [`NodeRegistry`]
+#[cfg(feature = "plugin-manager")]
+pub fn default_registry_with_plugins(manager: &std::sync::Arc<PluginManager>) -> NodeRegistry {
+    use flow_engine_plugin::reserved::is_reserved_type_id;
+    use flow_engine_plugin::sidecar::SidecarPlugin;
+
+    let mut registry = default_registry();
+    // 本地 claimed 集合复刻 `register_nodes_with` 的单次调用语义（先到先得），
+    // 因为 `register_nodes_with` 需要 `&mut manager`，而 `SidecarPlugin` 持有
+    // `Arc<PluginManager>` —— 两者无法在同一借用中同时获得。
+    let mut claimed: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for registration in manager.registrations() {
+        for node in &registration.nodes {
+            let reserved = is_reserved_type_id(&node.type_id)
+                || (registry.get(&node.type_id).is_some() && !claimed.contains(&node.type_id));
+            if reserved || claimed.contains(&node.type_id) {
+                log::warn!(
+                    "plugin {} node {} rejected by collision policy (reserved or first-wins)",
+                    registration.name,
+                    node.type_id
+                );
+                continue;
+            }
+            registry.register(SidecarPlugin::new(node.clone(), std::sync::Arc::clone(manager)));
+            claimed.insert(node.type_id.clone());
+        }
+    }
     registry
 }
 

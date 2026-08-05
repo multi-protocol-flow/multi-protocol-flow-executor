@@ -75,6 +75,8 @@ pub struct StressTestSessionManager {
     /// - `Some(executor)` - 有正在运行的会话
     /// - `None` - 没有运行中的会话
     session: RwLock<Option<Arc<StressTestExecutor>>>,
+    /// 节点插件注册表（共享，注入到每个压测会话的执行器）
+    registry: Arc<flow_engine_core::registry::NodeRegistry>,
 }
 
 impl Default for StressTestSessionManager {
@@ -84,11 +86,20 @@ impl Default for StressTestSessionManager {
 }
 
 impl StressTestSessionManager {
-    /// 创建新的会话管理器
+    /// 创建新的会话管理器（默认注册表，仅含内置节点）
     pub fn new() -> Self {
         Self {
             session: RwLock::new(None),
+            registry: Arc::new(crate::default_registry::default_registry()),
         }
+    }
+
+    /// 设置共享节点插件注册表
+    ///
+    /// M3.3b 在应用层注入含插件节点的注册表，使压测虚拟用户复用插件进程。
+    pub fn with_registry(mut self, registry: Arc<flow_engine_core::registry::NodeRegistry>) -> Self {
+        self.registry = registry;
+        self
     }
 
     /// 启动新的压测会话
@@ -123,8 +134,13 @@ impl StressTestSessionManager {
             *session = None;
         }
 
-        // 创建执行器（传入 event_sender）
-        let executor = Arc::new(StressTestExecutor::new(flow, config, event_sender.clone()));
+        // 创建执行器（传入 event_sender 与共享注册表）
+        let executor = Arc::new(StressTestExecutor::new(
+            flow,
+            config,
+            event_sender.clone(),
+            Arc::clone(&self.registry),
+        ));
 
         // 启动执行器（在持有锁的情况下启动，确保状态一致性）
         executor.start().await?;

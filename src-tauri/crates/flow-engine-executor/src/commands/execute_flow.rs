@@ -19,6 +19,7 @@ use flow_engine_core::traits::{DebugEventSender, ExecutionEventSender, LogSender
 /// - `execution_event_sender`: 执行事件发送器（可选），Tauri 模式有值，CLI 模式为 None
 /// - `debug_event_sender`: 调试事件发送器（可选），普通模式下用于 WS 流事件广播
 /// - `cancel_receiver`: 取消信号接收器（可选），用于外部取消流程执行
+/// - `registry`: 节点插件注册表（共享），由调用方注入以复用插件进程
 ///
 /// # 返回
 /// - `ExecuteFlowCommandOutput`: 包含执行结果
@@ -29,6 +30,7 @@ pub async fn execute_flow(
     execution_event_sender: Option<Arc<dyn ExecutionEventSender>>,
     debug_event_sender: Option<Arc<dyn DebugEventSender>>,
     cancel_receiver: Option<tokio::sync::watch::Receiver<bool>>,
+    registry: Arc<flow_engine_core::registry::NodeRegistry>,
 ) -> ExecuteFlowCommandOutput {
     let flow_uuid = flow.uuid.clone();
     let flow_name = flow.name.clone();
@@ -56,7 +58,7 @@ pub async fn execute_flow(
     });
 
     // 调用执行器，传递 log_sender
-    let mut executor = FlowExecutor::new();
+    let mut executor = FlowExecutor::new().with_registry(registry);
     if let Some(sender) = execution_event_sender {
         executor = executor.with_execution_event_sender(sender);
     }
@@ -125,6 +127,11 @@ mod tests {
     use std::sync::Arc;
     use uuid::Uuid;
 
+    /// 测试用默认共享注册表
+    fn test_registry() -> Arc<flow_engine_core::registry::NodeRegistry> {
+        Arc::new(crate::default_registry::default_registry())
+    }
+
     /// 测试正常流程执行
     #[tokio::test]
     async fn test_execute_flow_normal() {
@@ -159,7 +166,7 @@ mod tests {
         };
 
         // 执行流程（不使用日志发送器，不使用执行事件发送器）
-        let result = execute_flow(input, flow, None, None, None, None).await;
+        let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
         // 验证结果
         assert!(result.success, "流程应该Success执行");
@@ -211,7 +218,7 @@ mod tests {
             variables: Some(variables.clone()),
         };
 
-        let result = execute_flow(input, flow, None, None, None, None).await;
+        let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
         // 验证结果
         assert!(result.success);
@@ -262,7 +269,7 @@ mod tests {
             variables: None,
         };
 
-        let result = execute_flow(input, flow, None, None, None, None).await;
+        let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
         // 验证Error结果
         assert!(!result.success, "流程应该Failed");
@@ -313,7 +320,8 @@ mod tests {
         let log_sender: Arc<dyn LogSender> = Arc::new(NoopLogSender);
 
         // 执行流程（应该不会因日志发送而Failed）
-        let result = execute_flow(input, flow, Some(log_sender), None, None, None).await;
+        let result = execute_flow(input, flow, Some(log_sender), None, None, None, test_registry())
+            .await;
 
         assert!(result.success, "流程应该Success执行");
     }
@@ -370,7 +378,7 @@ mod tests {
             variables: None,
         };
 
-        let result = execute_flow(input, flow, None, None, None, None).await;
+        let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
         // 验证结果
         assert!(result.success);
@@ -411,7 +419,7 @@ mod tests {
             variables: None,
         };
 
-        let result = execute_flow(input, flow, None, None, None, None).await;
+        let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
         // 验证执行时间字段存在
         // execution_time 来自 flow_report.duration_ms
@@ -456,7 +464,7 @@ mod tests {
             variables: None,
         };
 
-        let result = execute_flow(input, flow, None, None, None, None).await;
+        let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
         assert!(result.success);
         let report = result.flow_report.unwrap();
@@ -500,7 +508,7 @@ mod tests {
             variables: Some(json!({})),
         };
 
-        let result = execute_flow(input, flow, None, None, None, None).await;
+        let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
         // 应该Success执行
         assert!(result.success);
@@ -546,7 +554,7 @@ mod tests {
             variables: None,
         };
 
-        let result = execute_flow(input, flow, None, None, None, None).await;
+        let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
         assert!(result.success);
         let report = result.flow_report.unwrap();

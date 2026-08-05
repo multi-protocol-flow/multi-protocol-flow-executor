@@ -25,8 +25,7 @@ use super::types::{DatasetExecutionConfig, FailureStrategy};
 /// 从 CSV 文件逐行读取数据，每行注入为 `runtime_variables` 执行流程，
 /// 收集每行的执行结果并返回摘要列表。
 pub struct DatasetExecutor {
-    /// 节点插件注册表（预留用于未来的自定义执行器构建）
-    #[allow(dead_code)]
+    /// 节点插件注册表（共享，注入到每行的 `FlowExecutor`）
     registry: Arc<flow_engine_core::registry::NodeRegistry>,
 }
 
@@ -172,7 +171,7 @@ impl DatasetExecutor {
         let mut results: Vec<RowSummary> = Vec::new();
         let mut failed_details: HashMap<u32, FlowExecutionReport> = HashMap::new();
         let mut row_index: u32 = 0;
-        let executor = FlowExecutor::new();
+        let executor = FlowExecutor::new().with_registry(Arc::clone(&self.registry));
         let mut cancelled = false;
 
         while let Some(row_result) = csv_reader.next_row() {
@@ -351,6 +350,7 @@ impl DatasetExecutor {
 
         let mut handles: Vec<tokio::task::JoinHandle<()>> = Vec::new();
         let mut cancelled = false;
+        let shared_registry = Arc::clone(&self.registry);
 
         for (row_index, csv_row) in all_rows {
             // 检查取消信号
@@ -376,6 +376,7 @@ impl DatasetExecutor {
             let tx = tx.clone();
             let flow = Arc::clone(&flow);
             let dataset_name = dataset_name.clone();
+            let registry = Arc::clone(&shared_registry);
             let mut stop_rx = stop_tx_check.subscribe();
             let stop_tx_task = stop_tx_check.clone();
             let failure_strategy = failure_strategy.clone();
@@ -402,7 +403,7 @@ impl DatasetExecutor {
                     &dataset_name,
                 );
 
-                let executor = FlowExecutor::new();
+                let executor = FlowExecutor::new().with_registry(registry);
                 let row_start = Instant::now();
                 let execution_result = executor
                     .execute_flow(&flow, None, Some(row_vars), None)

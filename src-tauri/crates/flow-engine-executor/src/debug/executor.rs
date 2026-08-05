@@ -66,6 +66,15 @@ impl DebuggableFlowExecutor {
         self
     }
 
+    /// 设置节点插件注册表（默认包含全部内置节点）
+    ///
+    /// 与 [`crate::executor::FlowExecutor::with_registry`] 相同：注入共享注册表后，
+    /// 调试执行器可执行注入的插件节点。
+    pub fn with_registry(mut self, registry: Arc<NodeRegistry>) -> Self {
+        self.registry = registry;
+        self
+    }
+
     /// 启动调试会话
     ///
     /// # 参数

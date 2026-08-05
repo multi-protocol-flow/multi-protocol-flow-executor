@@ -2257,6 +2257,7 @@ dependencies = [
  "jsonpath-rust",
  "log",
  "mockito",
+ "mpe-protocol",
  "proptest",
  "rand 0.8.6",
  "regex",

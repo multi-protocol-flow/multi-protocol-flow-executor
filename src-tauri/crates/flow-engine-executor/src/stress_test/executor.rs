@@ -115,6 +115,8 @@ pub struct StressTestExecutor {
     config: StressTestConfig,
     /// 事件发送器
     event_sender: mpsc::UnboundedSender<StressTestEvent>,
+    /// 节点插件注册表（共享，注入到每个虚拟用户执行器）
+    registry: Arc<flow_engine_core::registry::NodeRegistry>,
     /// 内部状态（线程安全）
     state: Arc<RwLock<StressTestState>>,
 }
@@ -126,6 +128,7 @@ impl StressTestExecutor {
     /// - `flow`: 要执行的流程
     /// - `config`: 压力测试配置
     /// - `event_sender`: 事件发送器，用于向前端发送事件
+    /// - `registry`: 节点插件注册表（共享），所有虚拟用户复用同一批插件进程
     ///
     /// # 返回
     /// 新的压力测试执行器实例
@@ -133,11 +136,13 @@ impl StressTestExecutor {
         flow: Flow,
         config: StressTestConfig,
         event_sender: mpsc::UnboundedSender<StressTestEvent>,
+        registry: Arc<flow_engine_core::registry::NodeRegistry>,
     ) -> Self {
         Self {
             flow,
             config,
             event_sender,
+            registry,
             state: Arc::new(RwLock::new(StressTestState::default())),
         }
     }
@@ -192,10 +197,12 @@ impl StressTestExecutor {
         let config = self.config.clone();
         let event_sender = self.event_sender.clone();
         let state = Arc::clone(&self.state);
+        let registry = Arc::clone(&self.registry);
 
         // 启动主控任务
         tokio::spawn(async move {
-            Self::run_stress_test(flow, config, metrics, stop_flag, event_sender, state).await;
+            Self::run_stress_test(flow, config, metrics, stop_flag, event_sender, state, registry)
+                .await;
         });
 
         log::info!(
@@ -276,6 +283,7 @@ impl StressTestExecutor {
         stop_flag: Arc<AtomicBool>,
         event_sender: mpsc::UnboundedSender<StressTestEvent>,
         state: Arc<RwLock<StressTestState>>,
+        registry: Arc<flow_engine_core::registry::NodeRegistry>,
     ) {
         let start_time = Instant::now();
         let duration = Duration::from_secs(config.duration_seconds as u64);
@@ -361,6 +369,7 @@ impl StressTestExecutor {
                     let stop_rx = task_stop_tx.subscribe();
                     let csv_rows_clone = Arc::clone(&csv_rows);
                     let strategy = dataset_strategy.clone();
+                    let registry_clone = Arc::clone(&registry);
                     let virtual_user_id = current_active + user_id;
 
                     let handle = tokio::spawn(async move {
@@ -372,6 +381,7 @@ impl StressTestExecutor {
                             csv_rows_clone,
                             strategy,
                             virtual_user_id,
+                            registry_clone,
                         )
                         .await;
                     });
@@ -461,8 +471,9 @@ impl StressTestExecutor {
         csv_rows: Arc<Vec<serde_json::Value>>,
         dataset_strategy: DataPickStrategy,
         virtual_user_id: u32,
+        registry: Arc<flow_engine_core::registry::NodeRegistry>,
     ) {
-        let executor = FlowExecutor::new();
+        let executor = FlowExecutor::new().with_registry(registry);
         let mut iteration_index: u64 = 0;
 
         loop {
@@ -734,7 +745,12 @@ mod tests {
         let config = StressTestConfig::new(&flow.uuid);
         let (tx, _rx) = mpsc::unbounded_channel();
 
-        let executor = StressTestExecutor::new(flow, config, tx);
+        let executor = StressTestExecutor::new(
+            flow,
+            config,
+            tx,
+            Arc::new(crate::default_registry::default_registry()),
+        );
 
         // 验证初始状态
         let progress = executor.get_progress().await;
@@ -756,7 +772,12 @@ mod tests {
         };
         let (tx, mut rx) = mpsc::unbounded_channel();
 
-        let executor = StressTestExecutor::new(flow, config, tx);
+        let executor = StressTestExecutor::new(
+            flow,
+            config,
+            tx,
+            Arc::new(crate::default_registry::default_registry()),
+        );
 
         // 启动压测
         let result = executor.start().await;
@@ -798,7 +819,12 @@ mod tests {
         };
         let (tx, _rx) = mpsc::unbounded_channel();
 
-        let executor = StressTestExecutor::new(flow, config, tx);
+        let executor = StressTestExecutor::new(
+            flow,
+            config,
+            tx,
+            Arc::new(crate::default_registry::default_registry()),
+        );
 
         // 第一次启动应该Success
         let result = executor.start().await;
@@ -827,7 +853,12 @@ mod tests {
         };
         let (tx, _rx) = mpsc::unbounded_channel();
 
-        let executor = StressTestExecutor::new(flow, config, tx);
+        let executor = StressTestExecutor::new(
+            flow,
+            config,
+            tx,
+            Arc::new(crate::default_registry::default_registry()),
+        );
 
         // 启动应该Failed
         let result = executor.start().await;
@@ -843,7 +874,12 @@ mod tests {
         let config = StressTestConfig::default();
         let (tx, _rx) = mpsc::unbounded_channel();
 
-        let executor = StressTestExecutor::new(flow, config, tx);
+        let executor = StressTestExecutor::new(
+            flow,
+            config,
+            tx,
+            Arc::new(crate::default_registry::default_registry()),
+        );
 
         // 停止未运行的压测应该Failed
         let result = executor.stop().await;
@@ -864,7 +900,12 @@ mod tests {
         };
         let (tx, mut rx) = mpsc::unbounded_channel();
 
-        let executor = StressTestExecutor::new(flow, config, tx);
+        let executor = StressTestExecutor::new(
+            flow,
+            config,
+            tx,
+            Arc::new(crate::default_registry::default_registry()),
+        );
 
         // 启动压测
         let _ = executor.start().await;
@@ -901,7 +942,12 @@ mod tests {
         };
         let (tx, mut rx) = mpsc::unbounded_channel();
 
-        let executor = StressTestExecutor::new(flow.clone(), config.clone(), tx);
+        let executor = StressTestExecutor::new(
+            flow.clone(),
+            config.clone(),
+            tx,
+            Arc::new(crate::default_registry::default_registry()),
+        );
 
         // 启动压测
         let _ = executor.start().await;
@@ -1089,7 +1135,12 @@ mod tests {
         };
         let (tx, mut rx) = mpsc::unbounded_channel();
 
-        let executor = StressTestExecutor::new(flow.clone(), config.clone(), tx);
+        let executor = StressTestExecutor::new(
+            flow.clone(),
+            config.clone(),
+            tx,
+            Arc::new(crate::default_registry::default_registry()),
+        );
         let result = executor.start().await;
         assert!(result.is_ok(), "启动应该Success: {:?}", result);
 

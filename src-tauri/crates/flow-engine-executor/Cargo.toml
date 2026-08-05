@@ -86,6 +86,8 @@ wiremock = "0.6"
 proptest = "1.4"
 futures-util = { workspace = true }
 rustls = { workspace = true }
+# 插件 wire 类型（描述/清单），仅供 plugin-manager 特性下的注册表线程化测试使用
+mpe-protocol = { path = "../mpe-protocol" }
 
 [lints]
 workspace = true
