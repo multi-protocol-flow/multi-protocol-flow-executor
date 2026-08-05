@@ -228,6 +228,19 @@ mpe stress run -f <path-to-flow.json>
 mpe --help
 ```
 
+### 插件 (Plugins)
+
+插件系统允许第三方开发者以**独立进程**方式为 MPE 扩展新的节点类型，无需重新编译宿主应用。插件功能默认开启，启动时自动扫描插件目录。
+
+**安装插件：** 将包含 `plugin.json` 清单和入口脚本（如 `main.py`、`index.js`）的插件文件夹放入插件目录即可，开箱即用。
+
+| 插件目录 | 说明 |
+|----------|------|
+| 默认 | `get_data_dir()/plugins`（应用数据目录下的 `plugins` 文件夹） |
+| 环境变量 | 设置 `MPE_PLUGIN_DIR` 指向其他目录，优先于默认目录 |
+
+**插件作者**：开发指南见 [docs/plugin-sdk.md](./docs/plugin-sdk.md)，线协议规范见 [docs/plugin-protocol.md](./docs/plugin-protocol.md)，性能设计见 [docs/plugin-perf.md](./docs/plugin-perf.md)。
+
 ## 📖 使用指南
 
 ### 可视化编辑器

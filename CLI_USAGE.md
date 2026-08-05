@@ -454,6 +454,21 @@ mpe run -f tests/cli/edge_cases/02_no_entry_node.json
 错误: 流程缺少 Entry 节点
 ```
 
+## 插件支持
+
+MPE 内置插件系统（默认开启）。`mpe run` 可以执行插件提供的节点类型：插件节点通过 `SidecarPlugin` 包装，以独立子进程 + JSON-RPC over stdio 的方式运行。
+
+### 插件目录解析
+
+| 优先级 | 目录 |
+|--------|------|
+| 1 | `MPE_PLUGIN_DIR` 环境变量指定的目录 |
+| 2 | `get_data_dir()/plugins`（应用数据目录下的 `plugins` 文件夹） |
+
+> **P0 限制：** `mpe run-node` 仅支持内置节点类型，不解析插件节点。
+
+更多信息：插件安装与使用见 README「插件 (Plugins)」章节；线协议规范见 [docs/plugin-protocol.md](./docs/plugin-protocol.md)；作者开发指南见 [docs/plugin-sdk.md](./docs/plugin-sdk.md)。
+
 ## 注意事项
 
 ### 路径处理
