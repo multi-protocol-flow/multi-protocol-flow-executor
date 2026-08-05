@@ -142,8 +142,7 @@ mod tests {
     #[test]
     fn dispatch_rejects_mixed_response() {
         let shared = dummy_shared();
-        let mixed =
-            br#"{"jsonrpc":"2.0","id":1,"result":1,"error":{"code":-1,"message":"x"}}"#;
+        let mixed = br#"{"jsonrpc":"2.0","id":1,"result":1,"error":{"code":-1,"message":"x"}}"#;
         assert!(matches!(
             dispatch_frame(mixed, &shared),
             Dispatch::Malformed(_)
@@ -153,7 +152,10 @@ mod tests {
     #[test]
     fn dispatch_rejects_scalar_frame() {
         let shared = dummy_shared();
-        assert!(matches!(dispatch_frame(b"42", &shared), Dispatch::Malformed(_)));
+        assert!(matches!(
+            dispatch_frame(b"42", &shared),
+            Dispatch::Malformed(_)
+        ));
     }
 
     #[test]

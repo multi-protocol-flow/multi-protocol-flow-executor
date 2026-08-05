@@ -174,7 +174,9 @@ mod tests {
         assert!(result.flow_report.is_some(), "应该有执行报告");
         // duration_ms 是 u64 类型，总是 >= 0，所以移除无用的比较
 
-        let report = result.flow_report.unwrap_or_else(|| panic!("expected Some"));
+        let report = result
+            .flow_report
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(report.executed_count, 1, "应该执行了 1 个节点");
         assert_eq!(report.node_reports.len(), 1);
     }
@@ -224,9 +226,13 @@ mod tests {
         assert!(result.success);
 
         // 验证变量被正确传递到报告中
-        let report = result.flow_report.unwrap_or_else(|| panic!("expected Some"));
+        let report = result
+            .flow_report
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(report.initial_variables.is_some());
-        let init_vars = report.initial_variables.unwrap_or_else(|| panic!("expected Some"));
+        let init_vars = report
+            .initial_variables
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(init_vars["api_key"], "test-key-123");
         assert_eq!(init_vars["base_url"], "https://api.example.com");
         assert_eq!(init_vars["retry_count"], 3);
@@ -275,7 +281,10 @@ mod tests {
         assert!(!result.success, "流程应该Failed");
         assert!(result.error.is_some(), "应该有Error信息");
         assert!(
-            result.error.unwrap_or_else(|| panic!("expected Some")).contains("Flow validation failed"),
+            result
+                .error
+                .unwrap_or_else(|| panic!("expected Some"))
+                .contains("Flow validation failed"),
             "Error信息应该说明验证Failed"
         );
         // Error情况下 executed_count 为 0（没有 flow_report 或报告中的 executed_count 为 0）
@@ -320,8 +329,16 @@ mod tests {
         let log_sender: Arc<dyn LogSender> = Arc::new(NoopLogSender);
 
         // 执行流程（应该不会因日志发送而Failed）
-        let result = execute_flow(input, flow, Some(log_sender), None, None, None, test_registry())
-            .await;
+        let result = execute_flow(
+            input,
+            flow,
+            Some(log_sender),
+            None,
+            None,
+            None,
+            test_registry(),
+        )
+        .await;
 
         assert!(result.success, "流程应该Success执行");
     }
@@ -382,7 +399,9 @@ mod tests {
 
         // 验证结果
         assert!(result.success);
-        let report = result.flow_report.unwrap_or_else(|| panic!("expected Some"));
+        let report = result
+            .flow_report
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(report.executed_count, 2, "应该执行了 2 个节点");
         assert_eq!(report.node_reports.len(), 2);
     }
@@ -467,7 +486,9 @@ mod tests {
         let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
         assert!(result.success);
-        let report = result.flow_report.unwrap_or_else(|| panic!("expected Some"));
+        let report = result
+            .flow_report
+            .unwrap_or_else(|| panic!("expected Some"));
 
         // 验证报告包含正确的流程信息
         assert_eq!(report.flow_uuid, flow_id);
@@ -514,10 +535,20 @@ mod tests {
         assert!(result.success);
 
         // 验证报告中的初始变量为空对象
-        let report = result.flow_report.unwrap_or_else(|| panic!("expected Some"));
-        let init_vars = report.initial_variables.unwrap_or_else(|| panic!("expected Some"));
+        let report = result
+            .flow_report
+            .unwrap_or_else(|| panic!("expected Some"));
+        let init_vars = report
+            .initial_variables
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(init_vars.is_object());
-        assert_eq!(init_vars.as_object().unwrap_or_else(|| panic!("expected Some")).len(), 0);
+        assert_eq!(
+            init_vars
+                .as_object()
+                .unwrap_or_else(|| panic!("expected Some"))
+                .len(),
+            0
+        );
     }
 
     /// Test Node报告状态正确记录
@@ -557,7 +588,9 @@ mod tests {
         let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
         assert!(result.success);
-        let report = result.flow_report.unwrap_or_else(|| panic!("expected Some"));
+        let report = result
+            .flow_report
+            .unwrap_or_else(|| panic!("expected Some"));
         let node_report = &report.node_reports[0];
 
         // 验证节点报告

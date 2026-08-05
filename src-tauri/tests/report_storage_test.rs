@@ -153,5 +153,10 @@ fn test_list_reports_empty_directory() {
 
     let result = flow_engine::storage::list_reports(reports_dir);
     assert!(result.is_ok(), "listing empty directory should succeed");
-    assert_eq!(result.expect("listing empty directory should succeed").len(), 0);
+    assert_eq!(
+        result
+            .expect("listing empty directory should succeed")
+            .len(),
+        0
+    );
 }

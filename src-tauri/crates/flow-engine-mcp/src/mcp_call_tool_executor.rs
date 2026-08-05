@@ -398,7 +398,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).message.contains("McpCallToolConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("McpCallToolConfig"));
     }
 
     // ===== 调试事件测试 =====
@@ -547,7 +551,9 @@ mod tests {
         assert!(result.is_ok());
 
         // 验证收到 McpToolCalled 调试事件
-        let event = event_receiver.try_recv().unwrap_or_else(|e| panic!("应收到调试事件: {e}"));
+        let event = event_receiver
+            .try_recv()
+            .unwrap_or_else(|e| panic!("应收到调试事件: {e}"));
         match &event {
             DebugEvent::McpToolCalled {
                 node_uuid,

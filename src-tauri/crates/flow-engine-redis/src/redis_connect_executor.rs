@@ -54,11 +54,11 @@ impl NodeExecutor for RedisConnectExecutor {
         // 变量替换
         let host =
             replace_variables(&config.host, context).map_err(ErrorDetail::execution_error)?;
-        let port_str = replace_variables(&config.port, context)
-            .map_err(ErrorDetail::execution_error)?;
-        let port: u16 = port_str
-            .parse()
-            .map_err(|_| ErrorDetail::execution_error(format!("Invalid Redis port: {}", port_str)))?;
+        let port_str =
+            replace_variables(&config.port, context).map_err(ErrorDetail::execution_error)?;
+        let port: u16 = port_str.parse().map_err(|_| {
+            ErrorDetail::execution_error(format!("Invalid Redis port: {}", port_str))
+        })?;
         let password = config
             .password
             .as_ref()

@@ -99,7 +99,10 @@ mod tests {
             !json.contains("\"id\""),
             "notification must not carry an id, got: {json}"
         );
-        assert_eq!(json, r#"{"jsonrpc":"2.0","method":"event","params":{"n":1}}"#);
+        assert_eq!(
+            json,
+            r#"{"jsonrpc":"2.0","method":"event","params":{"n":1}}"#
+        );
 
         // A `Notification` never parses as a `Request` (Request requires a
         // numeric id; notifications have none by construction).

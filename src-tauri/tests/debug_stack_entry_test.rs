@@ -55,7 +55,9 @@ fn test_debug_stack_entry_fields_exist() {
     assert!(deserialized.variable_changes.is_some());
     assert!(deserialized.skip_reason.is_some());
 
-    let changes = deserialized.variable_changes.expect("variable_changes should be present after deserialization");
+    let changes = deserialized
+        .variable_changes
+        .expect("variable_changes should be present after deserialization");
     assert_eq!(changes.len(), 2);
     assert_eq!(changes[0].key, "status");
     assert_eq!(changes[1].key, "body");
@@ -203,7 +205,9 @@ fn test_debug_stack_entry_full_scenario() {
     assert!(deserialized.resolved_config.is_some());
     assert!(deserialized.variable_changes.is_some());
 
-    let changes = deserialized.variable_changes.expect("variable_changes should be present in full scenario");
+    let changes = deserialized
+        .variable_changes
+        .expect("variable_changes should be present in full scenario");
     assert_eq!(changes.len(), 1);
     assert_eq!(changes[0].key, "counter");
     assert_eq!(changes[0].old_value, None);

@@ -674,7 +674,8 @@ mod tests {
         assert!(json.contains("test-flow"));
 
         // 反序列化
-        let deserialized: ExecutionContext = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        let deserialized: ExecutionContext =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized.flow_uuid, ctx.flow_uuid);
         assert_eq!(deserialized.flow_trigger_time, ctx.flow_trigger_time);
     }
@@ -712,7 +713,9 @@ mod tests {
         assert_eq!(pool.get_variable("token"), Some(&json!("xyz789")));
 
         // 验证 source_node_uuid 被更新
-        let var = pool.get_variable_full("token").unwrap_or_else(|| panic!("expected Some"));
+        let var = pool
+            .get_variable_full("token")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(var.source_node_uuid, "refresh-node");
     }
 
@@ -736,7 +739,9 @@ mod tests {
             "entry-node".to_string(),
         );
 
-        let var = pool.get_variable_full("user_id").unwrap_or_else(|| panic!("expected Some"));
+        let var = pool
+            .get_variable_full("user_id")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(var.name, "user_id");
         assert_eq!(var.value, json!(12345));
         assert_eq!(var.source_node_uuid, "entry-node");
@@ -791,7 +796,8 @@ mod tests {
         pool.set_variable("key1".to_string(), json!("value1"), "node-1".to_string());
 
         let json_str = serde_json::to_string(&pool).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
-        let deserialized: VariablePool = serde_json::from_str(&json_str).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        let deserialized: VariablePool =
+            serde_json::from_str(&json_str).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
 
         assert_eq!(deserialized.variables.len(), 1);
         assert_eq!(deserialized.variables[0].name, "key1");
@@ -825,7 +831,9 @@ mod tests {
         pool.set_node_variable("node-1".to_string(), "key1".to_string(), json!("value1"));
 
         assert_eq!(pool.get_variable("key1"), Some(&json!("value1")));
-        let var = pool.get_variable_full("key1").unwrap_or_else(|| panic!("expected Some"));
+        let var = pool
+            .get_variable_full("key1")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(var.source_node_uuid, "node-1");
     }
 
@@ -902,7 +910,10 @@ mod tests {
         .await;
 
         // 验证所有权转移
-        let stream = ctx.get_ws_stream("conn-1").await.unwrap_or_else(|| panic!("expected Some"));
+        let stream = ctx
+            .get_ws_stream("conn-1")
+            .await
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(stream.current_owner_node_uuid, Some("node-2".to_string()));
         assert_eq!(stream.segments.len(), 2);
         // 第一个段应该已结束
@@ -954,7 +965,10 @@ mod tests {
         assert!(result.is_ok());
 
         // 验证消息已推送
-        let stream = ctx.get_ws_stream("conn-1").await.unwrap_or_else(|| panic!("expected Some"));
+        let stream = ctx
+            .get_ws_stream("conn-1")
+            .await
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(stream.total_message_count(), 1);
     }
 
@@ -972,7 +986,10 @@ mod tests {
 
         let result = ctx.push_ws_message("nonexistent", msg).await;
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -993,7 +1010,10 @@ mod tests {
         ctx.close_ws_stream("conn-1").await;
 
         // 验证已关闭
-        let stream = ctx.get_ws_stream("conn-1").await.unwrap_or_else(|| panic!("expected Some"));
+        let stream = ctx
+            .get_ws_stream("conn-1")
+            .await
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(stream.is_closed);
         assert!(stream.segments[0].ended_at.is_some());
     }
@@ -1035,7 +1055,10 @@ mod tests {
 
         let result = ctx.push_ws_message("conn-1", msg).await;
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("closed"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("closed"));
     }
 
     /// 测试 `is_cancelled` 默认返回 false
@@ -1053,7 +1076,8 @@ mod tests {
 
         assert!(!ctx.is_cancelled(), "初始状态不应被取消");
 
-        tx.send(true).unwrap_or_else(|e| panic!("发送取消信号Failed: {e}"));
+        tx.send(true)
+            .unwrap_or_else(|e| panic!("发送取消信号Failed: {e}"));
         assert!(ctx.is_cancelled(), "收到信号后应返回 true");
     }
 
@@ -1074,8 +1098,12 @@ mod tests {
         assert!(json.contains("\"reason\""), "字段名应为 reason");
 
         // 反序列化往返测试
-        let deserialized: ExecutionEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
-        assert_eq!(json, serde_json::to_string(&deserialized).unwrap_or_else(|e| panic!("{e}")));
+        let deserialized: ExecutionEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        assert_eq!(
+            json,
+            serde_json::to_string(&deserialized).unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     // ===== Provider 注册表测试 =====
@@ -1091,7 +1119,11 @@ mod tests {
 
         let retrieved: Option<Arc<i32>> = ctx.get_provider("test");
         assert!(retrieved.is_some(), "应该能获取到 provider");
-        assert_eq!(*retrieved.unwrap_or_else(|| panic!("expected Some")), 42, "值应该匹配");
+        assert_eq!(
+            *retrieved.unwrap_or_else(|| panic!("expected Some")),
+            42,
+            "值应该匹配"
+        );
     }
 
     /// 测试 `get_provider` 对不存在的 key 返回 None
@@ -1135,7 +1167,8 @@ mod tests {
         );
 
         // 反序列化后 providers 应为空
-        let deserialized: ExecutionContext = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        let deserialized: ExecutionContext =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert!(
             deserialized.providers.is_empty(),
             "反序列化后 providers 应为空"

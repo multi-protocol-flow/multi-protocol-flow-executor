@@ -126,7 +126,10 @@ mod tests {
     #[test]
     fn from_reference_impl_matches_constructor() {
         let wire = JsonRpcError::internal_error();
-        assert_eq!(PluginError::from(&wire), PluginError::from_jsonrpc_error(&wire));
+        assert_eq!(
+            PluginError::from(&wire),
+            PluginError::from_jsonrpc_error(&wire)
+        );
     }
 
     #[test]

@@ -405,7 +405,9 @@ mod tests {
                 content: "hello".to_string(),
             },
         );
-        stream.push_message(sent_msg).unwrap_or_else(|e| panic!("{e}"));
+        stream
+            .push_message(sent_msg)
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 添加接收消息
         let received_msg = WsMessage::new(
@@ -414,7 +416,9 @@ mod tests {
                 content: "world".to_string(),
             },
         );
-        stream.push_message(received_msg).unwrap_or_else(|e| panic!("{e}"));
+        stream
+            .push_message(received_msg)
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let summary = WsStreamSummary::from(&stream);
 
@@ -558,7 +562,8 @@ mod tests {
         );
 
         // 反序列化往返测试
-        let deserialized: ExecutionStatus = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        let deserialized: ExecutionStatus =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(status, deserialized);
 
         // Display trait 测试
@@ -644,7 +649,8 @@ mod tests {
             "skipped_nodes": []
         }"#;
 
-        let report: FlowExecutionReport = serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        let report: FlowExecutionReport =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(report.uuid, "report-bc-001");
         assert!(report.flow_snapshot.is_none());
     }
@@ -712,7 +718,8 @@ mod tests {
 
         // None 时字段从 JSON 中省略
         report.plugin_data = None;
-        let json_none = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let json_none =
+            serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(
             !json_none.contains("plugin_data"),
             "plugin_data 为 None 时不应出现在 JSON 中"
@@ -726,7 +733,10 @@ mod tests {
 
         let deserialized: NodeExecutionReport =
             serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
-        assert_eq!(deserialized.plugin_data, Some(serde_json::json!({"result": "ok"})));
+        assert_eq!(
+            deserialized.plugin_data,
+            Some(serde_json::json!({"result": "ok"}))
+        );
     }
 
     /// 测试 `plugin_streams`：记录往返、事件样本封顶 20、空流从 JSON 中省略

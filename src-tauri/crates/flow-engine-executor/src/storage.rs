@@ -108,7 +108,8 @@ pub fn ensure_flows_dir() -> Result<PathBuf, String> {
         .map_err(|e| format!("Failed to check directory: {}", e))?
     {
         // 创建目录（包括所有必要的父目录）
-        fs::create_dir_all(&flows_dir).map_err(|e| format!("Failed to create flows directory: {}", e))?;
+        fs::create_dir_all(&flows_dir)
+            .map_err(|e| format!("Failed to create flows directory: {}", e))?;
     }
 
     Ok(flows_dir)
@@ -184,8 +185,8 @@ pub fn load_flow(path: &str) -> Result<Flow, String> {
     };
 
     // 读取文件内容
-    let mut file =
-        File::open(&file_path).map_err(|e| format!("Failed to open file {:?}: {}", file_path, e))?;
+    let mut file = File::open(&file_path)
+        .map_err(|e| format!("Failed to open file {:?}: {}", file_path, e))?;
 
     let mut content = String::new();
     file.read_to_string(&mut content)
@@ -245,7 +246,8 @@ pub fn save_flow_file_with_meta(
     meta: Option<serde_json::Value>,
 ) -> Result<(), String> {
     // 确保目录存在
-    fs::create_dir_all(flows_dir).map_err(|e| format!("Failed to create flows directory: {}", e))?;
+    fs::create_dir_all(flows_dir)
+        .map_err(|e| format!("Failed to create flows directory: {}", e))?;
 
     // 包装为 FlowFile
     let flow_file = FlowFile {
@@ -255,8 +257,8 @@ pub fn save_flow_file_with_meta(
     };
 
     // 序列化为 JSON
-    let json_string =
-        serde_json::to_string_pretty(&flow_file).map_err(|e| format!("Failed to serialize flow: {}", e))?;
+    let json_string = serde_json::to_string_pretty(&flow_file)
+        .map_err(|e| format!("Failed to serialize flow: {}", e))?;
 
     // 检查是否已存在同 UUID 的文件（更新场景）
     let mut existing_path: Option<PathBuf> = None;
@@ -284,7 +286,8 @@ pub fn save_flow_file_with_meta(
 
     // 确保目标目录存在
     if target_dir != flows_dir {
-        fs::create_dir_all(&target_dir).map_err(|e| format!("Failed to create target directory: {}", e))?;
+        fs::create_dir_all(&target_dir)
+            .map_err(|e| format!("Failed to create target directory: {}", e))?;
     }
 
     // 生成文件名，处理冲突
@@ -345,7 +348,8 @@ pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, Stri
         for path in &mpf_files {
             let mut content = String::new();
             if (|| -> Result<(), String> {
-                let mut file = File::open(path).map_err(|e| format!("Failed to open file: {}", e))?;
+                let mut file =
+                    File::open(path).map_err(|e| format!("Failed to open file: {}", e))?;
                 file.read_to_string(&mut content)
                     .map_err(|e| format!("Failed to read file: {}", e))?;
                 Ok(())
@@ -1242,7 +1246,8 @@ pub fn move_flow_to_folder(
         .try_exists()
         .map_err(|e| format!("检查目标目录Failed: {}", e))?
     {
-        fs::create_dir_all(&target_dir).map_err(|e| format!("Failed to create target directory: {}", e))?;
+        fs::create_dir_all(&target_dir)
+            .map_err(|e| format!("Failed to create target directory: {}", e))?;
     }
 
     let file_name = source_path
@@ -1652,15 +1657,21 @@ mod tests {
         };
 
         // 保存报告
-        let saved_path = save_stress_report(&report, reports_dir).unwrap_or_else(|e| panic!("保存报告Failed: {e}"));
+        let saved_path = save_stress_report(&report, reports_dir)
+            .unwrap_or_else(|e| panic!("保存报告Failed: {e}"));
 
         // 验证文件名格式
-        let filename = saved_path.file_name().unwrap_or_else(|| panic!("expected Some")).to_str().unwrap_or_else(|| panic!("expected Some"));
+        let filename = saved_path
+            .file_name()
+            .unwrap_or_else(|| panic!("expected Some"))
+            .to_str()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(filename.starts_with("performance_Test_Flow_"));
         assert!(filename.ends_with(".json"));
 
         // 加载报告
-        let loaded_report = load_stress_report(&saved_path).unwrap_or_else(|e| panic!("加载报告Failed: {e}"));
+        let loaded_report =
+            load_stress_report(&saved_path).unwrap_or_else(|e| panic!("加载报告Failed: {e}"));
 
         // 验证报告内容
         assert_eq!(loaded_report.uuid, report.uuid);
@@ -1741,11 +1752,13 @@ mod tests {
 
         // 保存所有报告
         for report in &reports {
-            save_stress_report(report, reports_dir).unwrap_or_else(|e| panic!("保存报告Failed: {e}"));
+            save_stress_report(report, reports_dir)
+                .unwrap_or_else(|e| panic!("保存报告Failed: {e}"));
         }
 
         // 列出报告
-        let summaries = list_stress_reports(reports_dir).unwrap_or_else(|e| panic!("列出报告Failed: {e}"));
+        let summaries =
+            list_stress_reports(reports_dir).unwrap_or_else(|e| panic!("列出报告Failed: {e}"));
 
         // 验证数量
         assert_eq!(summaries.len(), 3);
@@ -1764,7 +1777,8 @@ mod tests {
         let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
         let reports_dir = temp_dir.path();
 
-        let summaries = list_stress_reports(reports_dir).unwrap_or_else(|e| panic!("列出报告Failed: {e}"));
+        let summaries =
+            list_stress_reports(reports_dir).unwrap_or_else(|e| panic!("列出报告Failed: {e}"));
         assert!(summaries.is_empty());
     }
 
@@ -1778,7 +1792,10 @@ mod tests {
 
         let result = load_stress_report(&non_existent_path);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     /// 测试 `FlowFile` 序列化/反序列化往返
@@ -1803,10 +1820,12 @@ mod tests {
             _meta: None,
         };
 
-        let json = serde_json::to_string(&flow_file).unwrap_or_else(|e| panic!("序列化 FlowFile Failed: {e}"));
+        let json = serde_json::to_string(&flow_file)
+            .unwrap_or_else(|e| panic!("序列化 FlowFile Failed: {e}"));
         assert!(json.contains("_version"), "JSON 应包含 _version 字段");
 
-        let deserialized: FlowFile = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化 FlowFile Failed: {e}"));
+        let deserialized: FlowFile =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化 FlowFile Failed: {e}"));
         assert_eq!(deserialized._version, 1);
         assert_eq!(deserialized.flow.uuid, "test-flow-001");
         assert_eq!(deserialized.flow.name, "Test Flow");
@@ -1838,12 +1857,16 @@ mod tests {
             _meta: Some(meta.clone()),
         };
 
-        let json = serde_json::to_string(&flow_file).unwrap_or_else(|e| panic!("序列化 FlowFile Failed: {e}"));
+        let json = serde_json::to_string(&flow_file)
+            .unwrap_or_else(|e| panic!("序列化 FlowFile Failed: {e}"));
         assert!(json.contains("_meta"), "JSON 应包含 _meta 字段");
         assert!(json.contains("isBuiltin"), "JSON 应包含 isBuiltin 字段");
 
-        let deserialized: FlowFile = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化 FlowFile Failed: {e}"));
-        let meta = deserialized._meta.unwrap_or_else(|| panic!("应包含 _meta 字段"));
+        let deserialized: FlowFile =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化 FlowFile Failed: {e}"));
+        let meta = deserialized
+            ._meta
+            .unwrap_or_else(|| panic!("应包含 _meta 字段"));
         assert_eq!(meta["version"], 5);
         assert_eq!(meta["isBuiltin"], true);
     }
@@ -1870,7 +1893,8 @@ mod tests {
             _meta: None,
         };
 
-        let json = serde_json::to_string(&flow_file).unwrap_or_else(|e| panic!("序列化 FlowFile Failed: {e}"));
+        let json = serde_json::to_string(&flow_file)
+            .unwrap_or_else(|e| panic!("序列化 FlowFile Failed: {e}"));
         assert!(
             !json.contains("_meta"),
             "无 _meta 时 JSON 不应包含 _meta 字段"
@@ -1896,11 +1920,15 @@ mod tests {
             .unwrap_or_else(|e| panic!("保存带 _meta 的流程Failed: {e}"));
 
         // 加载并验证 _meta
-        let loaded = load_flow_file_raw("builtin-001", flows_dir).unwrap_or_else(|e| panic!("加载流程文件Failed: {e}"));
+        let loaded = load_flow_file_raw("builtin-001", flows_dir)
+            .unwrap_or_else(|e| panic!("加载流程文件Failed: {e}"));
         assert_eq!(loaded.flow.uuid, "builtin-001");
         assert_eq!(loaded.flow.name, "内置模板流程");
         assert!(loaded._meta.is_some(), "应包含 _meta 字段");
-        assert_eq!(loaded._meta.unwrap_or_else(|| panic!("expected Some"))["version"], 5);
+        assert_eq!(
+            loaded._meta.unwrap_or_else(|| panic!("expected Some"))["version"],
+            5
+        );
     }
 
     /// 测试 `FlowMetadata` 的 `file_path` 字段在 JSON 中为 camelCase
@@ -1914,7 +1942,8 @@ mod tests {
             folder_path: String::new(),
         };
 
-        let json = serde_json::to_string(&metadata).unwrap_or_else(|e| panic!("序列化 FlowMetadata Failed: {e}"));
+        let json = serde_json::to_string(&metadata)
+            .unwrap_or_else(|e| panic!("序列化 FlowMetadata Failed: {e}"));
         assert!(
             json.contains("\"filePath\""),
             "JSON 应包含 camelCase 的 filePath 字段: {}",
@@ -1984,7 +2013,8 @@ mod tests {
         );
 
         // 加载
-        let loaded = load_flow_file("flow-save-001", flows_dir).unwrap_or_else(|e| panic!("加载流程文件Failed: {e}"));
+        let loaded = load_flow_file("flow-save-001", flows_dir)
+            .unwrap_or_else(|e| panic!("加载流程文件Failed: {e}"));
         assert_eq!(loaded.uuid, "flow-save-001");
         assert_eq!(loaded.name, "Test Flow");
         assert!(loaded.nodes.is_empty());
@@ -1993,7 +2023,10 @@ mod tests {
         // 加载不存在的 UUID 应Failed
         let result = load_flow_file("nonexistent", flows_dir);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Flow not found"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Flow not found"));
     }
 
     /// 测试 `list_flow_files` 递归扫描
@@ -2018,8 +2051,10 @@ mod tests {
             flow: flow2.clone(),
             _meta: None,
         };
-        let json = serde_json::to_string_pretty(&flow_file).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
-        fs::write(sub_dir.join("Beta流程.mpf"), json).unwrap_or_else(|e| panic!("写入文件Failed: {e}"));
+        let json = serde_json::to_string_pretty(&flow_file)
+            .unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        fs::write(sub_dir.join("Beta流程.mpf"), json)
+            .unwrap_or_else(|e| panic!("写入文件Failed: {e}"));
 
         // 在更深子目录创建流程
         let deep_dir = sub_dir.join("deep");
@@ -2030,8 +2065,10 @@ mod tests {
             flow: flow3.clone(),
             _meta: None,
         };
-        let json3 = serde_json::to_string_pretty(&flow_file3).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
-        fs::write(deep_dir.join("Gamma流程.mpf"), json3).unwrap_or_else(|e| panic!("写入文件Failed: {e}"));
+        let json3 = serde_json::to_string_pretty(&flow_file3)
+            .unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        fs::write(deep_dir.join("Gamma流程.mpf"), json3)
+            .unwrap_or_else(|e| panic!("写入文件Failed: {e}"));
 
         // 列出并验证
         let list = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列出流程文件Failed: {e}"));
@@ -2075,7 +2112,8 @@ mod tests {
         .unwrap_or_else(|e| panic!("写入Error结构文件Failed: {e}"));
 
         // 列出 — 应只返回正常流程，不报错
-        let list = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列出流程文件应Success: {e}"));
+        let list =
+            list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列出流程文件应Success: {e}"));
         assert_eq!(list.len(), 1, "应只找到 1 个有效流程");
         assert_eq!(list[0].uuid, "good-001");
         assert_eq!(list[0].name, "正常流程");
@@ -2098,8 +2136,10 @@ mod tests {
             flow: flow1,
             _meta: None,
         };
-        let json1 = serde_json::to_string_pretty(&flow_file1).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
-        fs::write(flows_dir.join("flow_a.mpf"), json1).unwrap_or_else(|e| panic!("写入文件 A Failed: {e}"));
+        let json1 = serde_json::to_string_pretty(&flow_file1)
+            .unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        fs::write(flows_dir.join("flow_a.mpf"), json1)
+            .unwrap_or_else(|e| panic!("写入文件 A Failed: {e}"));
 
         let flow2 = create_test_flow(duplicate_uuid, "流程B");
         let flow_file2 = FlowFile {
@@ -2107,11 +2147,14 @@ mod tests {
             flow: flow2,
             _meta: None,
         };
-        let json2 = serde_json::to_string_pretty(&flow_file2).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
-        fs::write(flows_dir.join("flow_b.mpf"), json2).unwrap_or_else(|e| panic!("写入文件 B Failed: {e}"));
+        let json2 = serde_json::to_string_pretty(&flow_file2)
+            .unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        fs::write(flows_dir.join("flow_b.mpf"), json2)
+            .unwrap_or_else(|e| panic!("写入文件 B Failed: {e}"));
 
         // 列出 — 列表不做验证，两个文件都会出现（UUID 可能重复）
-        let list = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列出流程文件应Success: {e}"));
+        let list =
+            list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列出流程文件应Success: {e}"));
         assert_eq!(list.len(), 2, "应返回 2 个流程");
 
         // 验证名称仍然正确
@@ -2136,7 +2179,8 @@ mod tests {
         save_flow_file(&flow, flows_dir).unwrap_or_else(|e| panic!("保存原始流程Failed: {e}"));
 
         // 复制
-        let copied = copy_flow_file("copy-001", flows_dir).unwrap_or_else(|e| panic!("复制流程Failed: {e}"));
+        let copied =
+            copy_flow_file("copy-001", flows_dir).unwrap_or_else(|e| panic!("复制流程Failed: {e}"));
 
         // 验证新 UUID
         assert_ne!(copied.uuid, "copy-001", "复制的流程应有新的 UUID");
@@ -2152,15 +2196,18 @@ mod tests {
         assert_eq!(list.len(), 2, "应存在 2 个流程");
 
         // 原始流程仍然可加载
-        let original = load_flow_file("copy-001", flows_dir).unwrap_or_else(|e| panic!("原始流程应可加载: {e}"));
+        let original = load_flow_file("copy-001", flows_dir)
+            .unwrap_or_else(|e| panic!("原始流程应可加载: {e}"));
         assert_eq!(original.name, "原始流程");
 
         // 复制的流程也可加载（通过新 UUID）
-        let copied_load = load_flow_file(&copied.uuid, flows_dir).unwrap_or_else(|e| panic!("复制流程应可加载: {e}"));
+        let copied_load = load_flow_file(&copied.uuid, flows_dir)
+            .unwrap_or_else(|e| panic!("复制流程应可加载: {e}"));
         assert_eq!(copied_load.name, "原始流程(副本)");
 
         // 再次复制同一流程 — 应生成 "(副本 2)"
-        let copied2 = copy_flow_file("copy-001", flows_dir).unwrap_or_else(|e| panic!("第二次复制Failed: {e}"));
+        let copied2 = copy_flow_file("copy-001", flows_dir)
+            .unwrap_or_else(|e| panic!("第二次复制Failed: {e}"));
         assert_eq!(
             copied2.name, "原始流程(副本 2)",
             "第二次复制的名称应为 (副本 2)"
@@ -2198,7 +2245,10 @@ mod tests {
         // 删除不存在的 UUID 应Failed
         let result = delete_flow_file("nonexistent", flows_dir);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Flow not found"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Flow not found"));
     }
 
     /// 测试 `save_flow_file` 更新已有流程（同 UUID 覆盖写入）
@@ -2227,12 +2277,14 @@ mod tests {
         assert_eq!(list_after.len(), 1, "更新后应仍只有 1 个文件");
 
         // 验证内容已更新
-        let loaded = load_flow_file("update-001", flows_dir).unwrap_or_else(|e| panic!("加载Failed: {e}"));
+        let loaded =
+            load_flow_file("update-001", flows_dir).unwrap_or_else(|e| panic!("加载Failed: {e}"));
         assert_eq!(loaded.name, "更新后名称");
 
         // 多次更新验证
         updated_flow.name = "第三次更新".to_string();
-        save_flow_file(&updated_flow, flows_dir).unwrap_or_else(|e| panic!("第三次保存Failed: {e}"));
+        save_flow_file(&updated_flow, flows_dir)
+            .unwrap_or_else(|e| panic!("第三次保存Failed: {e}"));
 
         let list_final = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列出Failed: {e}"));
         assert_eq!(list_final.len(), 1, "多次更新后应仍只有 1 个文件");

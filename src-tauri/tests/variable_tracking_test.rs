@@ -82,7 +82,9 @@ async fn test_variable_tracking_new_variable() {
     assert!(result.success);
     assert!(result.flow_report.is_some());
 
-    let flow_report = result.flow_report.expect("flow report should exist after successful execution");
+    let flow_report = result
+        .flow_report
+        .expect("flow report should exist after successful execution");
 
     // 验证 resolved_config 被填充（Task 13）
     for node_report in &flow_report.node_reports {
@@ -143,7 +145,9 @@ async fn test_execution_path_tracking() {
     let result = executor.execute_flow(&flow, None, None, None).await;
 
     assert!(result.success);
-    let flow_report = result.flow_report.expect("flow report should exist for execution path tracking");
+    let flow_report = result
+        .flow_report
+        .expect("flow report should exist for execution path tracking");
 
     // 验证 execution_path 包含所有执行的节点 UUID
     assert_eq!(flow_report.execution_path.len(), 2);
@@ -212,18 +216,24 @@ async fn test_variable_snapshots() {
         .await;
 
     assert!(result.success);
-    let flow_report = result.flow_report.expect("flow report should exist for variable snapshot test");
+    let flow_report = result
+        .flow_report
+        .expect("flow report should exist for variable snapshot test");
 
     // 验证 initial_variables 被正确记录
     assert!(flow_report.initial_variables.is_some());
-    let initial = flow_report.initial_variables.expect("initial_variables should be present after execution");
+    let initial = flow_report
+        .initial_variables
+        .expect("initial_variables should be present after execution");
     assert_eq!(initial["api_key"], json!("test-key-123"));
     assert_eq!(initial["base_url"], json!("https://api.example.com"));
 
     // 验证 final_variables 被正确记录
     assert!(flow_report.final_variables.is_some());
     // final_variables 应该包含初始变量（因为没有节点修改它们）
-    let final_vars = flow_report.final_variables.expect("final_variables should be present after execution");
+    let final_vars = flow_report
+        .final_variables
+        .expect("final_variables should be present after execution");
     assert_eq!(final_vars["api_key"], json!("test-key-123"));
 }
 
@@ -261,14 +271,20 @@ async fn test_variable_snapshots_empty_initial() {
     let result = executor.execute_flow(&flow, None, None, None).await;
 
     assert!(result.success);
-    let flow_report = result.flow_report.expect("flow report should exist for empty snapshot test");
+    let flow_report = result
+        .flow_report
+        .expect("flow report should exist for empty snapshot test");
 
     // 验证 initial_variables 和 final_variables 都存在（空对象）
     assert!(flow_report.initial_variables.is_some());
     assert!(flow_report.final_variables.is_some());
 
-    let initial = flow_report.initial_variables.expect("initial_variables should be present for empty initial");
-    let final_vars = flow_report.final_variables.expect("final_variables should be present for empty initial");
+    let initial = flow_report
+        .initial_variables
+        .expect("initial_variables should be present for empty initial");
+    let final_vars = flow_report
+        .final_variables
+        .expect("final_variables should be present for empty initial");
 
     // 空对象应该序列化为 {}
     assert!(initial.is_object());
@@ -307,7 +323,9 @@ async fn test_single_node_execution_path() {
     let result = executor.execute_flow(&flow, None, None, None).await;
 
     assert!(result.success);
-    let flow_report = result.flow_report.expect("flow report should exist for single node path test");
+    let flow_report = result
+        .flow_report
+        .expect("flow report should exist for single node path test");
 
     // 执行路径应该只包含一个节点
     assert_eq!(flow_report.execution_path.len(), 1);
@@ -348,7 +366,9 @@ async fn test_skipped_nodes_default_empty() {
     let result = executor.execute_flow(&flow, None, None, None).await;
 
     assert!(result.success);
-    let flow_report = result.flow_report.expect("flow report should exist for skipped nodes test");
+    let flow_report = result
+        .flow_report
+        .expect("flow report should exist for skipped nodes test");
 
     // skipped_nodes 默认为空
     assert_eq!(flow_report.skipped_nodes.len(), 0);
@@ -405,7 +425,9 @@ async fn test_all_nodes_have_resolved_config() {
     let result = executor.execute_flow(&flow, None, None, None).await;
 
     assert!(result.success);
-    let flow_report = result.flow_report.expect("flow report should exist for resolved config test");
+    let flow_report = result
+        .flow_report
+        .expect("flow report should exist for resolved config test");
 
     // 所有节点都应该有 resolved_config
     for node_report in &flow_report.node_reports {

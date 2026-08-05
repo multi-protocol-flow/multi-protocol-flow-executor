@@ -63,7 +63,8 @@ fn test_report_structure_variable_change_value_types() {
         new_value: json!("string value"),
     };
     let json_str = serde_json::to_string(&str_var).expect("VariableChange serialization failed");
-    let deserialized: VariableChange = serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
+    let deserialized: VariableChange =
+        serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
     assert_eq!(deserialized.new_value, json!("string value"));
 
     // 数字值
@@ -73,7 +74,8 @@ fn test_report_structure_variable_change_value_types() {
         new_value: json!(100),
     };
     let json_str = serde_json::to_string(&num_var).expect("VariableChange serialization failed");
-    let deserialized: VariableChange = serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
+    let deserialized: VariableChange =
+        serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
     assert_eq!(deserialized.new_value, json!(100));
 
     // 数组值
@@ -83,7 +85,8 @@ fn test_report_structure_variable_change_value_types() {
         new_value: json!([1, 2, 3]),
     };
     let json_str = serde_json::to_string(&arr_var).expect("VariableChange serialization failed");
-    let deserialized: VariableChange = serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
+    let deserialized: VariableChange =
+        serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
     assert_eq!(deserialized.new_value, json!([1, 2, 3]));
 
     // 嵌套对象
@@ -93,7 +96,8 @@ fn test_report_structure_variable_change_value_types() {
         new_value: json!({"nested": {"deep": "value"}}),
     };
     let json_str = serde_json::to_string(&obj_var).expect("VariableChange serialization failed");
-    let deserialized: VariableChange = serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
+    let deserialized: VariableChange =
+        serde_json::from_str(&json_str).expect("VariableChange deserialization failed");
     assert_eq!(deserialized.new_value, json!({"nested": {"deep": "value"}}));
 }
 
@@ -219,7 +223,11 @@ fn test_report_structure_node_execution_report() {
     assert!(deserialized.resolved_config.is_some());
     assert!(deserialized.variable_changes.is_some());
     assert_eq!(
-        deserialized.variable_changes.as_ref().expect("variable_changes should be present").len(),
+        deserialized
+            .variable_changes
+            .as_ref()
+            .expect("variable_changes should be present")
+            .len(),
         2
     );
     assert!(deserialized.skip_reason.is_none());
@@ -260,7 +268,11 @@ fn test_report_structure_node_execution_report_failed() {
     assert_eq!(deserialized.status, ExecutionStatus::Failed);
     assert!(deserialized.error.is_some());
     assert_eq!(
-        deserialized.error.as_ref().expect("error should be present").message,
+        deserialized
+            .error
+            .as_ref()
+            .expect("error should be present")
+            .message,
         "connection timeout"
     );
 }
@@ -683,26 +695,32 @@ fn test_report_structure_backward_compat_partial_fields() {
 fn test_report_structure_execution_status() {
     // 测试小写序列化
     assert_eq!(
-        serde_json::to_string(&ExecutionStatus::Success).expect("ExecutionStatus serialization failed"),
+        serde_json::to_string(&ExecutionStatus::Success)
+            .expect("ExecutionStatus serialization failed"),
         "\"success\""
     );
     assert_eq!(
-        serde_json::to_string(&ExecutionStatus::Failed).expect("ExecutionStatus serialization failed"),
+        serde_json::to_string(&ExecutionStatus::Failed)
+            .expect("ExecutionStatus serialization failed"),
         "\"failed\""
     );
     assert_eq!(
-        serde_json::to_string(&ExecutionStatus::Skipped).expect("ExecutionStatus serialization failed"),
+        serde_json::to_string(&ExecutionStatus::Skipped)
+            .expect("ExecutionStatus serialization failed"),
         "\"skipped\""
     );
 
     // 测试反序列化
-    let success: ExecutionStatus = serde_json::from_str("\"success\"").expect("ExecutionStatus deserialization failed");
+    let success: ExecutionStatus =
+        serde_json::from_str("\"success\"").expect("ExecutionStatus deserialization failed");
     assert_eq!(success, ExecutionStatus::Success);
 
-    let failed: ExecutionStatus = serde_json::from_str("\"failed\"").expect("ExecutionStatus deserialization failed");
+    let failed: ExecutionStatus =
+        serde_json::from_str("\"failed\"").expect("ExecutionStatus deserialization failed");
     assert_eq!(failed, ExecutionStatus::Failed);
 
-    let skipped: ExecutionStatus = serde_json::from_str("\"skipped\"").expect("ExecutionStatus deserialization failed");
+    let skipped: ExecutionStatus =
+        serde_json::from_str("\"skipped\"").expect("ExecutionStatus deserialization failed");
     assert_eq!(skipped, ExecutionStatus::Skipped);
 }
 
@@ -720,10 +738,12 @@ fn test_report_structure_execution_mode() {
     );
 
     // 测试反序列化
-    let normal: ExecutionMode = serde_json::from_str("\"normal\"").expect("ExecutionMode deserialization failed");
+    let normal: ExecutionMode =
+        serde_json::from_str("\"normal\"").expect("ExecutionMode deserialization failed");
     assert_eq!(normal, ExecutionMode::Normal);
 
-    let debug: ExecutionMode = serde_json::from_str("\"debug\"").expect("ExecutionMode deserialization failed");
+    let debug: ExecutionMode =
+        serde_json::from_str("\"debug\"").expect("ExecutionMode deserialization failed");
     assert_eq!(debug, ExecutionMode::Debug);
 
     // 测试默认值
@@ -868,7 +888,10 @@ fn test_report_structure_full_roundtrip() {
     // 验证嵌套的 variable_changes
     let http_report = &restored.node_reports[1];
     assert!(http_report.variable_changes.is_some());
-    let changes = http_report.variable_changes.as_ref().expect("variable_changes should be present");
+    let changes = http_report
+        .variable_changes
+        .as_ref()
+        .expect("variable_changes should be present");
     assert_eq!(changes.len(), 1);
     assert_eq!(changes[0].key, "users");
 }

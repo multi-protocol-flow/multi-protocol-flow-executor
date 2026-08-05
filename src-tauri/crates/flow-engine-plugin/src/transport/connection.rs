@@ -184,11 +184,7 @@ impl ConnectionShared {
     }
 
     /// Routes a response to its pending oneshot, if any.
-    pub(crate) fn resolve_response(
-        &self,
-        id: u64,
-        result: Result<serde_json::Value, PluginError>,
-    ) {
+    pub(crate) fn resolve_response(&self, id: u64, result: Result<serde_json::Value, PluginError>) {
         let removed = self
             .pending
             .lock()
@@ -212,12 +208,12 @@ impl ConnectionShared {
     /// lookup — notifications never carry an id, so they cannot be
     /// responses).
     pub(crate) fn dispatch_notification(&self, notification: &Notification) {
-        let subscriptions = self
-            .subscriptions
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let subscriptions = self.subscriptions.lock().unwrap_or_else(|e| e.into_inner());
         let correlation = notification.correlation();
-        for sub in subscriptions.iter().filter(|s| s.method == notification.method) {
+        for sub in subscriptions
+            .iter()
+            .filter(|s| s.method == notification.method)
+        {
             if let Some(expected) = &sub.filter.execution_id {
                 match &correlation {
                     Some(c) if &c.execution_id == expected => {}
@@ -250,11 +246,7 @@ impl ConnectionShared {
 
     /// Best-effort kill of the plugin process (used after malformed spam).
     pub(crate) async fn kill_child(&self) {
-        let child = self
-            .child
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .take();
+        let child = self.child.lock().unwrap_or_else(|e| e.into_inner()).take();
         if let Some(mut child) = child {
             let _ = child.kill().await;
             let _ = child.wait().await;
@@ -429,7 +421,11 @@ impl PluginConnection {
         let shared = Arc::new(ConnectionShared::new(config.clone()));
         let (writer_tx, writer_rx) = mpsc::channel(config.queue_capacity);
         let writer_shared = Arc::clone(&shared);
-        tokio::spawn(writer_task(Box::new(stdin_writer), writer_rx, writer_shared));
+        tokio::spawn(writer_task(
+            Box::new(stdin_writer),
+            writer_rx,
+            writer_shared,
+        ));
         let reader_shared = Arc::clone(&shared);
         tokio::spawn(reader_task(Box::new(stdout_reader), reader_shared));
         Self {
@@ -619,9 +615,9 @@ impl PluginConnection {
                     .await
                     .map_err(|_| PluginError::PluginCrashed("writer channel closed".to_string()))
             }
-            Err(TrySendError::Closed(_)) => {
-                Err(PluginError::PluginCrashed("writer channel closed".to_string()))
-            }
+            Err(TrySendError::Closed(_)) => Err(PluginError::PluginCrashed(
+                "writer channel closed".to_string(),
+            )),
         }
     }
 
@@ -639,9 +635,6 @@ impl PluginConnection {
     }
 }
 
-
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -658,11 +651,15 @@ mod tests {
     }
 
     impl PluginSide {
-        async fn read_frame(&mut self) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error + Send + Sync>> {
+        async fn read_frame(
+            &mut self,
+        ) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error + Send + Sync>> {
             Ok(self.reader.next_frame().await?)
         }
 
-        async fn read_request(&mut self) -> Result<Request, Box<dyn std::error::Error + Send + Sync>> {
+        async fn read_request(
+            &mut self,
+        ) -> Result<Request, Box<dyn std::error::Error + Send + Sync>> {
             let frame = self
                 .read_frame()
                 .await?
@@ -670,7 +667,10 @@ mod tests {
             Ok(serde_json::from_slice(&frame)?)
         }
 
-        async fn write_frame(&mut self, bytes: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        async fn write_frame(
+            &mut self,
+            bytes: &[u8],
+        ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let mut writer = FrameWriter::new(&mut self.tx);
             writer.write_frame(bytes).await?;
             Ok(())
@@ -685,7 +685,10 @@ mod tests {
             self.write_frame(&serde_json::to_vec(&response)?).await
         }
 
-        async fn respond_error(&mut self, id: u64) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        async fn respond_error(
+            &mut self,
+            id: u64,
+        ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let response = serde_json::json!({
                 "jsonrpc": "2.0",
                 "id": id,
@@ -697,10 +700,7 @@ mod tests {
 
     /// Wires an in-memory duplex pair with the given capacity into a host
     /// connection + plugin side.
-    fn host_and_plugin(
-        cap: usize,
-        config: ConnectionConfig,
-    ) -> (PluginConnection, PluginSide) {
+    fn host_and_plugin(cap: usize, config: ConnectionConfig) -> (PluginConnection, PluginSide) {
         let (host_tx, plugin_rx) = tokio::io::duplex(cap);
         let (plugin_tx, host_rx) = tokio::io::duplex(cap);
         let conn = PluginConnection::from_io(host_tx, host_rx, config);
@@ -714,7 +714,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn reader_demuxes_notification_before_pending() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn reader_demuxes_notification_before_pending(
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let (conn, mut plugin) = host_and_plugin(64 * 1024, ConnectionConfig::default());
         let (delivered_tx, delivered_rx) = std::sync::mpsc::channel();
         let _subscription = conn.register_notification_handler(
@@ -778,8 +779,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn reader_kills_after_consecutive_malformed() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let config = ConnectionConfig { max_malformed_lines: 3, ..ConnectionConfig::default() };
+    async fn reader_kills_after_consecutive_malformed(
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let config = ConnectionConfig {
+            max_malformed_lines: 3,
+            ..ConnectionConfig::default()
+        };
         let (conn, mut plugin) = host_and_plugin(64 * 1024, config);
         let plugin_task = tokio::spawn(async move {
             for _ in 0..3 {
@@ -789,9 +794,7 @@ mod tests {
             tokio::time::sleep(Duration::from_secs(5)).await;
             Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
         });
-        let result = conn
-            .request("echo", serde_json::json!({"n": 1}))
-            .await;
+        let result = conn.request("echo", serde_json::json!({"n": 1})).await;
         // The pending request is drained with a crash-style error.
         assert!(
             matches!(result, Err(PluginError::PluginCrashed(_))),
@@ -807,7 +810,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn reader_maps_error_response_to_typed_error() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn reader_maps_error_response_to_typed_error(
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let (conn, mut plugin) = host_and_plugin(64 * 1024, ConnectionConfig::default());
         let plugin_task = tokio::spawn(async move {
             let request = plugin.read_request().await?;
@@ -828,7 +832,11 @@ mod tests {
 
     #[tokio::test]
     async fn writer_writes_atomic_frames() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let config = ConnectionConfig { max_concurrent_requests: 64, queue_capacity: 128, ..ConnectionConfig::default() };
+        let config = ConnectionConfig {
+            max_concurrent_requests: 64,
+            queue_capacity: 128,
+            ..ConnectionConfig::default()
+        };
         let (conn, mut plugin) = host_and_plugin(64 * 1024, config);
         let plugin_task = tokio::spawn(async move {
             let mut received = Vec::new();
@@ -849,8 +857,7 @@ mod tests {
                 let seq = task * 10 + i;
                 let conn = conn.clone();
                 handles.push(tokio::spawn(async move {
-                    conn.request("echo", serde_json::json!({"seq": seq}))
-                        .await
+                    conn.request("echo", serde_json::json!({"seq": seq})).await
                 }));
             }
         }
@@ -868,8 +875,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn pending_timeout_removes_and_cancels() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let config = ConnectionConfig { request_timeout: Duration::from_millis(100), ..ConnectionConfig::default() };
+    async fn pending_timeout_removes_and_cancels(
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let config = ConnectionConfig {
+            request_timeout: Duration::from_millis(100),
+            ..ConnectionConfig::default()
+        };
         let (conn, mut plugin) = host_and_plugin(64 * 1024, config);
         let plugin_task = tokio::spawn(async move {
             let request = plugin.read_request().await?;
@@ -902,7 +913,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn pending_drained_on_reader_exit() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn pending_drained_on_reader_exit() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+    {
         let (conn, mut plugin) = host_and_plugin(64 * 1024, ConnectionConfig::default());
         let plugin_task = tokio::spawn(async move {
             let _request = plugin.read_request().await?;
@@ -953,8 +965,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn backpressure_awaits_when_queue_full() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let config = ConnectionConfig { max_concurrent_requests: 4, queue_capacity: 2, request_timeout: Duration::from_millis(300), ..ConnectionConfig::default() };
+    async fn backpressure_awaits_when_queue_full(
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let config = ConnectionConfig {
+            max_concurrent_requests: 4,
+            queue_capacity: 2,
+            request_timeout: Duration::from_millis(300),
+            ..ConnectionConfig::default()
+        };
         let (conn, plugin) = host_and_plugin(64, config);
         // Keep the plugin side alive but never read: the host pipe fills, the
         // writer blocks, the queue fills, and further callers must await.

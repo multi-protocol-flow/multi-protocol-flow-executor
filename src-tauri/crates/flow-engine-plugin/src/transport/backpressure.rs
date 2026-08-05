@@ -82,7 +82,10 @@ mod tests {
         let waiter_bp = Arc::clone(&bp2);
         let handle = tokio::spawn(async move { waiter_bp.acquire().await });
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-        assert!(!handle.is_finished(), "third acquire must await, not resolve");
+        assert!(
+            !handle.is_finished(),
+            "third acquire must await, not resolve"
+        );
         drop(p1);
         drop(p2);
         let permit = handle.await??;

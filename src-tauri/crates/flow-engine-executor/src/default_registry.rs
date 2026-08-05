@@ -236,7 +236,10 @@ pub fn default_registry_with_plugins(manager: &std::sync::Arc<PluginManager>) ->
                 );
                 continue;
             }
-            registry.register(SidecarPlugin::new(node.clone(), std::sync::Arc::clone(manager)));
+            registry.register(SidecarPlugin::new(
+                node.clone(),
+                std::sync::Arc::clone(manager),
+            ));
             claimed.insert(node.type_id.clone());
         }
     }

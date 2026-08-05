@@ -65,7 +65,9 @@ fn test_valid_flow_execution() {
 
     // Verify flow name
     assert_eq!(
-        flow_json["name"].as_str().expect("flow name should be a string"),
+        flow_json["name"]
+            .as_str()
+            .expect("flow name should be a string"),
         "Valid Flow - Start Node Connected to End Node"
     );
 
@@ -82,7 +84,12 @@ fn test_valid_flow_execution() {
         .expect("Node must have uuid field");
     assert_eq!(start_uuid, "start-550e8400-e29b-41d4-a716-446655440000");
     assert!(is_valid_uuid(start_uuid), "Start node UUID should be valid");
-    assert_eq!(start_node["type"].as_str().expect("start node type should be a string"), "entry");
+    assert_eq!(
+        start_node["type"]
+            .as_str()
+            .expect("start node type should be a string"),
+        "entry"
+    );
 
     // Verify end node
     let end_node = &nodes[1];
@@ -91,7 +98,12 @@ fn test_valid_flow_execution() {
         .expect("Node must have uuid field");
     assert_eq!(end_uuid, "end-550e8400-e29b-41d4-a716-446655440000");
     assert!(is_valid_uuid(end_uuid), "End node UUID should be valid");
-    assert_eq!(end_node["type"].as_str().expect("end node type should be a string"), "end");
+    assert_eq!(
+        end_node["type"]
+            .as_str()
+            .expect("end node type should be a string"),
+        "end"
+    );
 
     // Verify connections
     let connections = flow_json["connections"]
@@ -121,7 +133,10 @@ fn test_valid_flow_execution() {
     );
 
     // Verify connection references valid nodes
-    let all_node_uuids: Vec<&str> = nodes.iter().map(|n| n["uuid"].as_str().expect("node uuid should be a string")).collect();
+    let all_node_uuids: Vec<&str> = nodes
+        .iter()
+        .map(|n| n["uuid"].as_str().expect("node uuid should be a string"))
+        .collect();
     assert!(
         all_node_uuids.contains(&source_uuid),
         "Connection source UUID must reference an existing node"
@@ -139,11 +154,19 @@ fn test_valid_flow_all_uuid_fields_present() {
     // Verify all UUID fields exist
     assert!(flow_json["uuid"].is_string(), "Flow must have uuid field");
     assert!(
-        !flow_json["uuid"].as_str().expect("flow uuid should be a string").is_empty(),
+        !flow_json["uuid"]
+            .as_str()
+            .expect("flow uuid should be a string")
+            .is_empty(),
         "Flow uuid must not be empty"
     );
 
-    for (i, node) in flow_json["nodes"].as_array().expect("value should be an array").iter().enumerate() {
+    for (i, node) in flow_json["nodes"]
+        .as_array()
+        .expect("value should be an array")
+        .iter()
+        .enumerate()
+    {
         assert!(
             node["uuid"].is_string(),
             "Node {} must have uuid field",
@@ -173,7 +196,9 @@ fn test_valid_flow_all_uuid_fields_present() {
             "Connection {} must have id field",
             i + 1
         );
-        let conn_id = conn["id"].as_str().expect("connection id should be a string");
+        let conn_id = conn["id"]
+            .as_str()
+            .expect("connection id should be a string");
         assert!(
             !conn_id.is_empty(),
             "Connection {} id must not be empty",
@@ -185,7 +210,9 @@ fn test_valid_flow_all_uuid_fields_present() {
             "Connection {} must have source_node_uuid",
             i + 1
         );
-        let source_uuid = conn["source_node_uuid"].as_str().expect("source_node_uuid should be a string");
+        let source_uuid = conn["source_node_uuid"]
+            .as_str()
+            .expect("source_node_uuid should be a string");
         assert!(
             !source_uuid.is_empty(),
             "Connection {} source_node_uuid must not be empty",
@@ -197,7 +224,9 @@ fn test_valid_flow_all_uuid_fields_present() {
             "Connection {} must have target_node_uuid",
             i + 1
         );
-        let target_uuid = conn["target_node_uuid"].as_str().expect("target_node_uuid should be a string");
+        let target_uuid = conn["target_node_uuid"]
+            .as_str()
+            .expect("target_node_uuid should be a string");
         assert!(
             !target_uuid.is_empty(),
             "Connection {} target_node_uuid must not be empty",
@@ -223,7 +252,9 @@ fn test_no_start_node_error_handling() {
 
     // Verify flow name
     assert_eq!(
-        flow_json["name"].as_str().expect("flow name should be a string"),
+        flow_json["name"]
+            .as_str()
+            .expect("flow name should be a string"),
         "Invalid Flow - Missing Start Node"
     );
 
@@ -240,7 +271,12 @@ fn test_no_start_node_error_handling() {
         .expect("Node must have uuid field");
     assert_eq!(end_uuid, "end-6ba7b810-9dad-11d1-80b4-00c04fd430c8");
     assert!(is_valid_uuid(end_uuid), "End node UUID should be valid");
-    assert_eq!(end_node["type"].as_str().expect("end node type should be a string"), "end");
+    assert_eq!(
+        end_node["type"]
+            .as_str()
+            .expect("end node type should be a string"),
+        "end"
+    );
 
     // Verify no connections
     let connections = flow_json["connections"]
@@ -261,11 +297,15 @@ fn test_no_start_node_uuid_validity() {
     let flow_json = load_flow_fixture("02_no_start_node.json");
 
     // Verify flow UUID format
-    let flow_uuid = flow_json["uuid"].as_str().expect("flow uuid should be a string");
+    let flow_uuid = flow_json["uuid"]
+        .as_str()
+        .expect("flow uuid should be a string");
     assert!(is_valid_uuid(flow_uuid), "Flow UUID must be valid");
 
     // Verify node UUID format
-    let nodes = flow_json["nodes"].as_array().expect("value should be an array");
+    let nodes = flow_json["nodes"]
+        .as_array()
+        .expect("value should be an array");
     for (i, node) in nodes.iter().enumerate() {
         let node_uuid = node["uuid"].as_str().expect("node uuid should be a string");
         assert!(
@@ -293,7 +333,9 @@ fn test_loop_detection() {
 
     // Verify flow name
     assert_eq!(
-        flow_json["name"].as_str().expect("flow name should be a string"),
+        flow_json["name"]
+            .as_str()
+            .expect("flow name should be a string"),
         "Invalid Flow - Loop Detection"
     );
 
@@ -310,7 +352,12 @@ fn test_loop_detection() {
         .expect("Node must have uuid field");
     assert_eq!(start_uuid, "start-6ba7b812-9dad-11d1-80b4-00c04fd430c8");
     assert!(is_valid_uuid(start_uuid), "Start node UUID should be valid");
-    assert_eq!(start_node["type"].as_str().expect("start node type should be a string"), "entry");
+    assert_eq!(
+        start_node["type"]
+            .as_str()
+            .expect("start node type should be a string"),
+        "entry"
+    );
 
     // Verify connections
     let connections = flow_json["connections"]
@@ -342,15 +389,26 @@ fn test_loop_detection() {
 fn test_loop_detection_uuid_consistency() {
     let flow_json = load_flow_fixture("04_loop_detection.json");
 
-    let nodes = flow_json["nodes"].as_array().expect("value should be an array");
-    let connections = flow_json["connections"].as_array().expect("value should be an array");
+    let nodes = flow_json["nodes"]
+        .as_array()
+        .expect("value should be an array");
+    let connections = flow_json["connections"]
+        .as_array()
+        .expect("value should be an array");
 
     // Verify all connection source/target UUIDs reference existing nodes
-    let all_node_uuids: Vec<&str> = nodes.iter().map(|n| n["uuid"].as_str().expect("node uuid should be a string")).collect();
+    let all_node_uuids: Vec<&str> = nodes
+        .iter()
+        .map(|n| n["uuid"].as_str().expect("node uuid should be a string"))
+        .collect();
 
     for (i, conn) in connections.iter().enumerate() {
-        let source_uuid = conn["source_node_uuid"].as_str().expect("source_node_uuid should be a string");
-        let target_uuid = conn["target_node_uuid"].as_str().expect("target_node_uuid should be a string");
+        let source_uuid = conn["source_node_uuid"]
+            .as_str()
+            .expect("source_node_uuid should be a string");
+        let target_uuid = conn["target_node_uuid"]
+            .as_str()
+            .expect("target_node_uuid should be a string");
 
         assert!(
             all_node_uuids.contains(&source_uuid),
@@ -367,8 +425,12 @@ fn test_loop_detection_uuid_consistency() {
     // In the loop detection case, the same node is used for both source and target
     let conn = &connections[0];
     assert_eq!(
-        conn["source_node_uuid"].as_str().expect("source_node_uuid should be a string"),
-        conn["target_node_uuid"].as_str().expect("target_node_uuid should be a string"),
+        conn["source_node_uuid"]
+            .as_str()
+            .expect("source_node_uuid should be a string"),
+        conn["target_node_uuid"]
+            .as_str()
+            .expect("target_node_uuid should be a string"),
         "Loop connection should have same source and target"
     );
 }
@@ -391,7 +453,9 @@ fn test_all_fixture_uuids_are_unique() {
         let flow_json = load_flow_fixture(fixture_name);
 
         // Check flow UUID
-        let flow_uuid = flow_json["uuid"].as_str().expect("flow uuid should be a string");
+        let flow_uuid = flow_json["uuid"]
+            .as_str()
+            .expect("flow uuid should be a string");
         assert!(
             !all_uuids.contains(flow_uuid),
             "Flow UUID {} in {} is not unique",
@@ -401,7 +465,12 @@ fn test_all_fixture_uuids_are_unique() {
         all_uuids.insert(flow_uuid.to_string());
 
         // Check node UUIDs
-        for (i, node) in flow_json["nodes"].as_array().expect("value should be an array").iter().enumerate() {
+        for (i, node) in flow_json["nodes"]
+            .as_array()
+            .expect("value should be an array")
+            .iter()
+            .enumerate()
+        {
             let node_uuid = node["uuid"].as_str().expect("node uuid should be a string");
             assert!(
                 !all_uuids.contains(node_uuid),
@@ -420,7 +489,9 @@ fn test_all_fixture_uuids_are_unique() {
             .iter()
             .enumerate()
         {
-            let conn_id = conn["id"].as_str().expect("connection id should be a string");
+            let conn_id = conn["id"]
+                .as_str()
+                .expect("connection id should be a string");
             assert!(
                 !all_uuids.contains(conn_id),
                 "Connection UUID {} in {} (connection {}) is not unique",
@@ -472,7 +543,12 @@ fn test_all_uuids_are_strings() {
         );
 
         // Verify node.uuid fields are strings
-        for (i, node) in flow_json["nodes"].as_array().expect("value should be an array").iter().enumerate() {
+        for (i, node) in flow_json["nodes"]
+            .as_array()
+            .expect("value should be an array")
+            .iter()
+            .enumerate()
+        {
             assert!(
                 node["uuid"].is_string(),
                 "Node {} uuid in {} must be a string",
@@ -543,7 +619,10 @@ fn test_ws_basic_connect_flow_structure() {
     assert_eq!(nodes.len(), 3, "Flow should have 3 nodes");
 
     // 验证节点类型
-    let node_types: Vec<&str> = nodes.iter().map(|n| n["type"].as_str().expect("node type should be a string")).collect();
+    let node_types: Vec<&str> = nodes
+        .iter()
+        .map(|n| n["type"].as_str().expect("node type should be a string"))
+        .collect();
     assert!(node_types.contains(&"entry"));
     assert!(node_types.contains(&"ws_connect"));
     assert!(node_types.contains(&"ws_close"));
@@ -560,7 +639,9 @@ fn test_ws_basic_connect_flow_structure() {
         .find(|c| c["source_port_id"].as_str() == Some("true"))
         .expect("WS Connect should have output on 'true' port");
     assert_eq!(
-        ws_connect_to_close_conn["source_port_id"].as_str().expect("source_port_id should be a string"),
+        ws_connect_to_close_conn["source_port_id"]
+            .as_str()
+            .expect("source_port_id should be a string"),
         "true"
     );
 }
@@ -584,7 +665,10 @@ fn test_ws_send_wait_flow_structure() {
     assert_eq!(nodes.len(), 4, "Flow should have 4 nodes");
 
     // 验证节点类型
-    let node_types: Vec<&str> = nodes.iter().map(|n| n["type"].as_str().expect("node type should be a string")).collect();
+    let node_types: Vec<&str> = nodes
+        .iter()
+        .map(|n| n["type"].as_str().expect("node type should be a string"))
+        .collect();
     assert!(node_types.contains(&"entry"));
     assert!(node_types.contains(&"ws_connect"));
     assert!(node_types.contains(&"ws_send_collect"));
@@ -596,8 +680,15 @@ fn test_ws_send_wait_flow_structure() {
         .find(|n| n["type"] == "ws_send_collect")
         .expect("Should have ws_send_collect node");
     let node_data = &ws_send_collect_node["data"];
-    assert!(node_data["collect_response"].as_bool().expect("collect_response should be a boolean"));
-    assert_eq!(node_data["collect_mode"].as_str().expect("collect_mode should be a string"), "first_match");
+    assert!(node_data["collect_response"]
+        .as_bool()
+        .expect("collect_response should be a boolean"));
+    assert_eq!(
+        node_data["collect_mode"]
+            .as_str()
+            .expect("collect_mode should be a string"),
+        "first_match"
+    );
 }
 
 /// 测试 WebSocket 连接采集超时 + Conditional 判断流程结构
@@ -619,7 +710,10 @@ fn test_ws_connect_wait_timeout_flow_structure() {
     assert_eq!(nodes.len(), 5, "Flow should have 5 nodes");
 
     // 验证节点类型
-    let node_types: Vec<&str> = nodes.iter().map(|n| n["type"].as_str().expect("node type should be a string")).collect();
+    let node_types: Vec<&str> = nodes
+        .iter()
+        .map(|n| n["type"].as_str().expect("node type should be a string"))
+        .collect();
     assert!(node_types.contains(&"entry"));
     assert!(node_types.contains(&"ws_connect"));
     assert!(node_types.contains(&"conditional"));
@@ -631,9 +725,21 @@ fn test_ws_connect_wait_timeout_flow_structure() {
         .find(|n| n["type"] == "ws_connect")
         .expect("Should have ws_connect node");
     let node_data = &ws_connect_node["data"];
-    assert!(node_data["collect_message"].as_bool().expect("collect_message should be a boolean"));
-    assert_eq!(node_data["collect_mode"].as_str().expect("collect_mode should be a string"), "first_match");
-    assert!(node_data["collect_timeout_ms"].as_u64().expect("collect_timeout_ms should be an integer") > 0);
+    assert!(node_data["collect_message"]
+        .as_bool()
+        .expect("collect_message should be a boolean"));
+    assert_eq!(
+        node_data["collect_mode"]
+            .as_str()
+            .expect("collect_mode should be a string"),
+        "first_match"
+    );
+    assert!(
+        node_data["collect_timeout_ms"]
+            .as_u64()
+            .expect("collect_timeout_ms should be an integer")
+            > 0
+    );
 
     // 验证 Conditional 节点配置
     let conditional_node = nodes
@@ -641,13 +747,27 @@ fn test_ws_connect_wait_timeout_flow_structure() {
         .find(|n| n["type"] == "conditional")
         .expect("Should have conditional node");
     let cond_data = &conditional_node["data"];
-    assert_eq!(cond_data["condition_type"].as_str().expect("condition_type should be a string"), "simple");
     assert_eq!(
-        cond_data["field_path"].as_str().expect("field_path should be a string"),
+        cond_data["condition_type"]
+            .as_str()
+            .expect("condition_type should be a string"),
+        "simple"
+    );
+    assert_eq!(
+        cond_data["field_path"]
+            .as_str()
+            .expect("field_path should be a string"),
         "{{collect_timed_out}}"
     );
-    assert_eq!(cond_data["operator"].as_str().expect("operator should be a string"), "equal");
-    assert!(cond_data["expected_value"].as_bool().expect("expected_value should be a boolean"));
+    assert_eq!(
+        cond_data["operator"]
+            .as_str()
+            .expect("operator should be a string"),
+        "equal"
+    );
+    assert!(cond_data["expected_value"]
+        .as_bool()
+        .expect("expected_value should be a boolean"));
 }
 
 /// 测试 WebSocket 发送采集超时 + Conditional 判断流程结构
@@ -669,7 +789,10 @@ fn test_ws_send_wait_timeout_conditional_flow_structure() {
     assert_eq!(nodes.len(), 6, "Flow should have 6 nodes");
 
     // 验证节点类型
-    let node_types: Vec<&str> = nodes.iter().map(|n| n["type"].as_str().expect("node type should be a string")).collect();
+    let node_types: Vec<&str> = nodes
+        .iter()
+        .map(|n| n["type"].as_str().expect("node type should be a string"))
+        .collect();
     assert!(node_types.contains(&"entry"));
     assert!(node_types.contains(&"ws_connect"));
     assert!(node_types.contains(&"ws_send_collect"));
@@ -682,8 +805,15 @@ fn test_ws_send_wait_timeout_conditional_flow_structure() {
         .find(|n| n["type"] == "ws_send_collect")
         .expect("Should have ws_send_collect node");
     let node_data = &ws_send_collect_node["data"];
-    assert!(node_data["collect_response"].as_bool().expect("collect_response should be a boolean"));
-    assert!(node_data["collect_timeout_ms"].as_u64().expect("collect_timeout_ms should be an integer") > 0);
+    assert!(node_data["collect_response"]
+        .as_bool()
+        .expect("collect_response should be a boolean"));
+    assert!(
+        node_data["collect_timeout_ms"]
+            .as_u64()
+            .expect("collect_timeout_ms should be an integer")
+            > 0
+    );
 
     // 验证 Conditional 节点配置
     let conditional_node = nodes
@@ -692,10 +822,17 @@ fn test_ws_send_wait_timeout_conditional_flow_structure() {
         .expect("Should have conditional node");
     let cond_data = &conditional_node["data"];
     assert_eq!(
-        cond_data["field_path"].as_str().expect("field_path should be a string"),
+        cond_data["field_path"]
+            .as_str()
+            .expect("field_path should be a string"),
         "{{collect_timed_out}}"
     );
-    assert_eq!(cond_data["operator"].as_str().expect("operator should be a string"), "equal");
+    assert_eq!(
+        cond_data["operator"]
+            .as_str()
+            .expect("operator should be a string"),
+        "equal"
+    );
 }
 
 /// 测试 WebSocket 完整流程（采集响应）结构
@@ -717,7 +854,10 @@ fn test_ws_full_flow_wait_response_structure() {
     assert_eq!(nodes.len(), 4, "Flow should have 4 nodes");
 
     // 验证节点类型
-    let node_types: Vec<&str> = nodes.iter().map(|n| n["type"].as_str().expect("node type should be a string")).collect();
+    let node_types: Vec<&str> = nodes
+        .iter()
+        .map(|n| n["type"].as_str().expect("node type should be a string"))
+        .collect();
     assert!(node_types.contains(&"entry"));
     assert!(node_types.contains(&"ws_connect"));
     assert!(node_types.contains(&"ws_send_collect"));
@@ -729,9 +869,13 @@ fn test_ws_full_flow_wait_response_structure() {
         .find(|n| n["type"] == "ws_connect")
         .expect("Should have ws_connect node");
     let connect_data = &ws_connect_node["data"];
-    assert!(connect_data["collect_message"].as_bool().expect("collect_message should be a boolean"));
+    assert!(connect_data["collect_message"]
+        .as_bool()
+        .expect("collect_message should be a boolean"));
     assert_eq!(
-        connect_data["collect_mode"].as_str().expect("collect_mode should be a string"),
+        connect_data["collect_mode"]
+            .as_str()
+            .expect("collect_mode should be a string"),
         "first_match"
     );
 
@@ -741,9 +885,13 @@ fn test_ws_full_flow_wait_response_structure() {
         .find(|n| n["type"] == "ws_send_collect")
         .expect("Should have ws_send_collect node");
     let send_collect_data = &ws_send_collect_node["data"];
-    assert!(send_collect_data["collect_response"].as_bool().expect("collect_response should be a boolean"));
+    assert!(send_collect_data["collect_response"]
+        .as_bool()
+        .expect("collect_response should be a boolean"));
     assert_eq!(
-        send_collect_data["collect_mode"].as_str().expect("collect_mode should be a string"),
+        send_collect_data["collect_mode"]
+            .as_str()
+            .expect("collect_mode should be a string"),
         "first_match"
     );
 
@@ -757,26 +905,47 @@ fn test_ws_full_flow_wait_response_structure() {
     // Entry → WS Connect
     let conn1 = &connections[0];
     assert_eq!(
-        conn1["source_node_uuid"].as_str().expect("source_node_uuid should be a string"),
+        conn1["source_node_uuid"]
+            .as_str()
+            .expect("source_node_uuid should be a string"),
         "entry-full-wait"
     );
-    assert_eq!(conn1["source_port_id"].as_str().expect("source_port_id should be a string"), "output");
+    assert_eq!(
+        conn1["source_port_id"]
+            .as_str()
+            .expect("source_port_id should be a string"),
+        "output"
+    );
 
     // WS Connect → WS Send+Collect
     let conn2 = &connections[1];
     assert_eq!(
-        conn2["source_node_uuid"].as_str().expect("source_node_uuid should be a string"),
+        conn2["source_node_uuid"]
+            .as_str()
+            .expect("source_node_uuid should be a string"),
         "ws-connect-full-wait"
     );
-    assert_eq!(conn2["source_port_id"].as_str().expect("source_port_id should be a string"), "true");
+    assert_eq!(
+        conn2["source_port_id"]
+            .as_str()
+            .expect("source_port_id should be a string"),
+        "true"
+    );
 
     // WS Send+Collect → WS Close
     let conn3 = &connections[2];
     assert_eq!(
-        conn3["source_node_uuid"].as_str().expect("source_node_uuid should be a string"),
+        conn3["source_node_uuid"]
+            .as_str()
+            .expect("source_node_uuid should be a string"),
         "ws-send-wait-full-wait"
     );
-    assert_eq!(conn3["source_port_id"].as_str().expect("source_port_id should be a string"), "true");
+    assert_eq!(
+        conn3["source_port_id"]
+            .as_str()
+            .expect("source_port_id should be a string"),
+        "true"
+    );
 }
 
 /// 测试 WebSocket 条件匹配流程结构
@@ -803,15 +972,25 @@ fn test_ws_conditional_match_flow_structure() {
         .expect("Should have ws_send_collect node");
     let node_data = &ws_send_collect_node["data"];
     assert_eq!(
-        node_data["collect_mode"].as_str().expect("collect_mode should be a string"),
+        node_data["collect_mode"]
+            .as_str()
+            .expect("collect_mode should be a string"),
         "condition_match"
     );
     assert!(node_data["collect_condition"].is_object());
 
     // 验证 collect_condition 配置
     let collect_condition = &node_data["collect_condition"];
-    assert_eq!(collect_condition["match_type"].as_str().expect("match_type should be a string"), "regex");
-    assert!(!collect_condition["expression"].as_str().expect("expression should be a string").is_empty());
+    assert_eq!(
+        collect_condition["match_type"]
+            .as_str()
+            .expect("match_type should be a string"),
+        "regex"
+    );
+    assert!(!collect_condition["expression"]
+        .as_str()
+        .expect("expression should be a string")
+        .is_empty());
 }
 
 /// 验证 WebSocket 节点输出数据结构（collect_timed_out 字段）

@@ -359,12 +359,7 @@ impl ProtocolParser for DelimiterParser {
 
         // 查找第一个分隔符位置
         let pos = find_delimiter(data, &self.delimiter)
-            .ok_or_else(|| {
-                format!(
-                    "Delimiter {} not found",
-                    hex::encode(&self.delimiter)
-                )
-            })?;
+            .ok_or_else(|| format!("Delimiter {} not found", hex::encode(&self.delimiter)))?;
         let msg_end = pos; // 消息结束位置（分隔符开始位置）
         let delim_end = pos + self.delimiter.len(); // 分隔符结束位置
 
@@ -567,7 +562,9 @@ mod tests {
             includes_self: false,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields.len(), 2);
 
         // 验证 length 字段
@@ -594,7 +591,9 @@ mod tests {
             includes_self: false,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[1].value_bytes, b"ABC");
         assert_eq!(result.remaining, b"DE");
     }
@@ -610,7 +609,9 @@ mod tests {
             includes_self: false,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[1].value_bytes, b"ABC");
     }
 
@@ -625,7 +626,9 @@ mod tests {
             includes_self: false,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[1].value_bytes, b"TEST");
     }
 
@@ -640,7 +643,9 @@ mod tests {
             includes_self: false,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[1].value_bytes, b"OK");
     }
 
@@ -656,7 +661,9 @@ mod tests {
             includes_self: false,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[1].value_bytes, b"HELLO");
     }
 
@@ -673,7 +680,9 @@ mod tests {
             includes_self: true,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[0].value_display, "7");
         assert_eq!(result.fields[1].value_bytes, b"HELLO");
     }
@@ -688,7 +697,9 @@ mod tests {
             includes_self: false,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         // 只有 length 字段，无 payload
         assert_eq!(result.fields.len(), 1);
         assert_eq!(result.fields[0].name, "length");
@@ -709,7 +720,10 @@ mod tests {
 
         let result = parser.parse(&data);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Data truncated"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Data truncated"));
     }
 
     #[test]
@@ -722,7 +736,10 @@ mod tests {
 
         let result = parser.parse(&[]);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Data is empty"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Data is empty"));
     }
 
     #[test]
@@ -735,7 +752,10 @@ mod tests {
 
         let result = parser.parse(&[0x00, 0x01]);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("less than prefix byte count"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("less than prefix byte count"));
     }
 
     // === DelimiterParser 测试 ===
@@ -748,7 +768,9 @@ mod tests {
             keep_delimiter: false,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields.len(), 1);
         assert_eq!(result.fields[0].name, "message");
         assert_eq!(result.fields[0].value_bytes, b"hello");
@@ -764,7 +786,9 @@ mod tests {
             keep_delimiter: false,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[0].value_bytes, b"hello");
         assert_eq!(result.remaining, b"world\r\n");
     }
@@ -777,7 +801,9 @@ mod tests {
             keep_delimiter: true,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields.len(), 2);
         assert_eq!(result.fields[0].name, "message");
         assert_eq!(result.fields[1].name, "delimiter");
@@ -794,7 +820,9 @@ mod tests {
 
         let parser = create_parser(&config).unwrap_or_else(|e| panic!("创建解析器应Success: {e}"));
         let data = b"hello\r\n".to_vec();
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[0].value_bytes, b"hello");
     }
 
@@ -808,7 +836,10 @@ mod tests {
 
         let result = parser.parse(&data);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Delimiter"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Delimiter"));
     }
 
     #[test]
@@ -831,7 +862,9 @@ mod tests {
             keep_delimiter: false,
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[0].value_bytes, b"");
         assert_eq!(result.fields[0].length, 0);
     }
@@ -849,7 +882,9 @@ mod tests {
             byte_order: "big".to_string(),
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         // 2 个 TLV 条目，每个 3 个字段
         assert_eq!(result.fields.len(), 6);
 
@@ -884,7 +919,9 @@ mod tests {
             byte_order: "big".to_string(),
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[0].name, "tag_0");
         assert_eq!(result.fields[0].value_display, "1");
         assert_eq!(result.fields[2].value_bytes, b"AB");
@@ -902,7 +939,9 @@ mod tests {
             byte_order: "big".to_string(),
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[0].value_display, "1");
         assert_eq!(result.fields[2].value_bytes, b"AB");
     }
@@ -918,7 +957,9 @@ mod tests {
             byte_order: "big".to_string(),
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         // tag + length 字段，无 value（长度为 0）
         assert_eq!(result.fields.len(), 2);
         assert_eq!(result.fields[0].name, "tag_0");
@@ -937,7 +978,9 @@ mod tests {
             byte_order: "big".to_string(),
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         // 剩余数据不足一个完整 header，放入 remaining
         assert_eq!(result.fields.len(), 0);
         assert_eq!(result.remaining, vec![0x01]);
@@ -956,7 +999,10 @@ mod tests {
 
         let result = parser.parse(&data);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("data truncated"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("data truncated"));
     }
 
     #[test]
@@ -969,7 +1015,10 @@ mod tests {
 
         let result = parser.parse(&[]);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Data is empty"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Data is empty"));
     }
 
     #[test]
@@ -986,7 +1035,9 @@ mod tests {
             byte_order: "little".to_string(),
         };
 
-        let result = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let result = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         assert_eq!(result.fields[0].value_display, "1");
         assert_eq!(result.fields[1].value_display, "2");
         assert_eq!(result.fields[2].value_bytes, b"AB");
@@ -1005,7 +1056,9 @@ mod tests {
             includes_self: false,
         };
 
-        let message = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let message = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         let re_encoded = re_encode_message(&message);
         assert_eq!(re_encoded, data);
     }
@@ -1021,7 +1074,9 @@ mod tests {
             includes_self: false,
         };
 
-        let message = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let message = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         let re_encoded = re_encode_message(&message);
         assert_eq!(re_encoded, data);
     }
@@ -1034,7 +1089,9 @@ mod tests {
             keep_delimiter: true, // 保留分隔符才能精确匹配
         };
 
-        let message = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let message = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         let re_encoded = re_encode_message(&message);
         assert_eq!(re_encoded, data);
     }
@@ -1047,7 +1104,9 @@ mod tests {
             keep_delimiter: false,
         };
 
-        let message = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let message = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         let re_encoded = re_encode_message(&message);
         // 不保留分隔符时，re-encode 不含分隔符
         assert_eq!(re_encoded, b"hello");
@@ -1063,7 +1122,9 @@ mod tests {
             byte_order: "big".to_string(),
         };
 
-        let message = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let message = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         let re_encoded = re_encode_message(&message);
         assert_eq!(re_encoded, data);
     }
@@ -1078,7 +1139,9 @@ mod tests {
             byte_order: "big".to_string(),
         };
 
-        let message = parser.parse(&data).unwrap_or_else(|e| panic!("解析应Success: {e}"));
+        let message = parser
+            .parse(&data)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         let re_encoded = re_encode_message(&message);
         assert_eq!(re_encoded, data);
     }
@@ -1096,7 +1159,9 @@ mod tests {
             includes_self: false,
         };
 
-        assert!(roundtrip_verify(&data, &config).unwrap_or_else(|e| panic!("往返验证应Success: {e}")));
+        assert!(
+            roundtrip_verify(&data, &config).unwrap_or_else(|e| panic!("往返验证应Success: {e}"))
+        );
     }
 
     #[test]
@@ -1108,7 +1173,9 @@ mod tests {
             byte_order: "big".to_string(),
         };
 
-        assert!(roundtrip_verify(&data, &config).unwrap_or_else(|e| panic!("往返验证应Success: {e}")));
+        assert!(
+            roundtrip_verify(&data, &config).unwrap_or_else(|e| panic!("往返验证应Success: {e}"))
+        );
     }
 
     // === create_parser 工厂测试 ===
@@ -1184,8 +1251,10 @@ mod tests {
             includes_self: false,
         };
 
-        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
-        let deserialized: ParserConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
+        let json =
+            serde_json::to_string(&config).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: ParserConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(config, deserialized);
     }
 
@@ -1197,10 +1266,12 @@ mod tests {
             byte_order: "little".to_string(),
         };
 
-        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let json =
+            serde_json::to_string(&config).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("\"type\":\"tlv\""));
 
-        let deserialized: ParserConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
+        let deserialized: ParserConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(config, deserialized);
     }
 
@@ -1226,9 +1297,11 @@ mod tests {
         for &num_bytes in &[1u8, 2, 4, 8] {
             for byte_order in &["big", "little"] {
                 let value: u64 = 42;
-                let encoded = write_uint(value, num_bytes, byte_order).unwrap_or_else(|e| panic!("编码应Success: {e}"));
+                let encoded = write_uint(value, num_bytes, byte_order)
+                    .unwrap_or_else(|e| panic!("编码应Success: {e}"));
                 assert_eq!(encoded.len(), num_bytes as usize);
-                let decoded = read_uint(&encoded, byte_order).unwrap_or_else(|e| panic!("解码应Success: {e}"));
+                let decoded = read_uint(&encoded, byte_order)
+                    .unwrap_or_else(|e| panic!("解码应Success: {e}"));
                 assert_eq!(decoded, value);
             }
         }
@@ -1247,6 +1320,9 @@ mod tests {
 
         let result = parser.parse(&data);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("less than prefix length"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("less than prefix length"));
     }
 }

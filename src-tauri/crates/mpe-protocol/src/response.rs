@@ -55,22 +55,18 @@ impl Serialize for Response {
         S: serde::Serializer,
     {
         match self {
-            Response::Success { id, result } => {
-                SuccessRepr {
-                    jsonrpc: "2.0",
-                    id: *id,
-                    result,
-                }
-                .serialize(serializer)
+            Response::Success { id, result } => SuccessRepr {
+                jsonrpc: "2.0",
+                id: *id,
+                result,
             }
-            Response::Error { id, error } => {
-                ErrorRepr {
-                    jsonrpc: "2.0",
-                    id: *id,
-                    error,
-                }
-                .serialize(serializer)
+            .serialize(serializer),
+            Response::Error { id, error } => ErrorRepr {
+                jsonrpc: "2.0",
+                id: *id,
+                error,
             }
+            .serialize(serializer),
         }
     }
 }
@@ -100,8 +96,7 @@ impl<'de> Deserialize<'de> for Response {
                     id: u64,
                     result: serde_json::Value,
                 }
-                let wire =
-                    SuccessWire::deserialize(value).map_err(D::Error::custom)?;
+                let wire = SuccessWire::deserialize(value).map_err(D::Error::custom)?;
                 Ok(Response::Success {
                     id: wire.id,
                     result: wire.result,
@@ -137,10 +132,7 @@ mod tests {
             result: serde_json::json!({"ok": true}),
         };
         let json = serde_json::to_string(&response)?;
-        assert_eq!(
-            json,
-            r#"{"jsonrpc":"2.0","id":1,"result":{"ok":true}}"#
-        );
+        assert_eq!(json, r#"{"jsonrpc":"2.0","id":1,"result":{"ok":true}}"#);
         let back: Response = serde_json::from_str(&json)?;
         assert_eq!(back, response);
         Ok(())

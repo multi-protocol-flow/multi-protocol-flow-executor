@@ -794,10 +794,9 @@ impl KafkaProvider for KafkaConnectionManager {
 
         Self::ensure_schema_registry(conn).await?;
 
-        let sr_client = conn
-            .schema_registry
-            .as_ref()
-            .ok_or_else(|| "schema_registry 未初始化，ensure_schema_registry 调用失败".to_string())?;
+        let sr_client = conn.schema_registry.as_ref().ok_or_else(|| {
+            "schema_registry 未初始化，ensure_schema_registry 调用失败".to_string()
+        })?;
 
         match config.operation.as_str() {
             "list_subjects" => {
@@ -1089,7 +1088,10 @@ mod tests {
     #[test]
     fn test_manager_new() {
         let manager = KafkaConnectionManager::new();
-        let connections = manager.connections.try_read().unwrap_or_else(|e| panic!("应能获取读锁: {e}"));
+        let connections = manager
+            .connections
+            .try_read()
+            .unwrap_or_else(|e| panic!("应能获取读锁: {e}"));
         assert!(connections.is_empty(), "新建管理器应无连接");
     }
 
@@ -1119,7 +1121,11 @@ mod tests {
         assert!(!output.success, "关闭不存在的连接 success 应为 false");
         assert!(output.error.is_some(), "关闭不存在的连接应有Error信息");
         assert!(
-            output.error.as_ref().unwrap_or_else(|| panic!("expected Some")).contains("不存在"),
+            output
+                .error
+                .as_ref()
+                .unwrap_or_else(|| panic!("expected Some"))
+                .contains("不存在"),
             "Error信息应包含'不存在'"
         );
     }

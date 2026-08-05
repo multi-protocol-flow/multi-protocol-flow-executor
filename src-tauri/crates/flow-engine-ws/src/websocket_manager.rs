@@ -1697,7 +1697,8 @@ mod tests {
     #[test]
     fn test_connection_status_serialization() {
         let status = ConnectionStatus::Connected;
-        let json = serde_json::to_string(&status).unwrap_or_else(|e| panic!("Serialization failed: {e}"));
+        let json =
+            serde_json::to_string(&status).unwrap_or_else(|e| panic!("Serialization failed: {e}"));
         assert_eq!(json, r#""connected""#);
 
         let deserialized: ConnectionStatus =
@@ -1853,7 +1854,9 @@ mod tests {
         assert_eq!(manager.connection_count(), 1);
 
         // 验证更新Success
-        let current = manager.get_connection("uuid-1").unwrap_or_else(|| panic!("expected Some"));
+        let current = manager
+            .get_connection("uuid-1")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(current.name, "conn1-updated");
         assert_eq!(current.url, "wss://example.com/ws2");
     }
@@ -1868,7 +1871,10 @@ mod tests {
         // 存在的连接
         let found = manager.get_connection("uuid-1");
         assert!(found.is_some());
-        assert_eq!(found.unwrap_or_else(|| panic!("expected Some")).name, "conn1");
+        assert_eq!(
+            found.unwrap_or_else(|| panic!("expected Some")).name,
+            "conn1"
+        );
 
         // 不存在的连接
         let not_found = manager.get_connection("uuid-999");
@@ -1916,7 +1922,9 @@ mod tests {
         let success = manager.update_status("uuid-1", ConnectionStatus::Connected);
         assert!(success.is_ok());
 
-        let conn = manager.get_connection("uuid-1").unwrap_or_else(|| panic!("expected Some"));
+        let conn = manager
+            .get_connection("uuid-1")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(conn.status, ConnectionStatus::Connected);
 
         // 更新不存在的连接
@@ -2047,10 +2055,15 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Invalid WebSocket URL"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Invalid WebSocket URL"));
 
         // 验证连接状态为 Error
-        let conn = manager.get_connection("conn-1").unwrap_or_else(|| panic!("expected Some"));
+        let conn = manager
+            .get_connection("conn-1")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(conn.status, ConnectionStatus::Error);
     }
 
@@ -2076,7 +2089,9 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        let error = result.err().unwrap_or_else(|| panic!("expected Err, got Ok"));
+        let error = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(
             error.contains("timeout") || error.contains("failed"),
             "Error消息应该包含超时或Failed: {}",
@@ -2091,7 +2106,10 @@ mod tests {
         let result = manager.close("nonexistent", 1000, None, 5000).await;
 
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Connection not found"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Connection not found"));
     }
 
     #[tokio::test]
@@ -2103,7 +2121,10 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Connection not found"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Connection not found"));
     }
 
     #[tokio::test]
@@ -2113,7 +2134,10 @@ mod tests {
         let result = manager.receive("nonexistent", 5000).await;
 
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Connection not found"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Connection not found"));
     }
 
     #[tokio::test]
@@ -2141,7 +2165,9 @@ mod tests {
         match result {
             Ok(()) => {
                 // 验证连接状态
-                let status = manager.get_status("echo-conn").unwrap_or_else(|| panic!("expected Some"));
+                let status = manager
+                    .get_status("echo-conn")
+                    .unwrap_or_else(|| panic!("expected Some"));
                 assert_eq!(status, ConnectionStatus::Connected);
 
                 // 接收并丢弃初始问候消息（echo.websocket.org 会发送欢迎消息）
@@ -2158,7 +2184,10 @@ mod tests {
                 assert!(recv_result.is_ok());
                 let message = recv_result.unwrap_or_else(|e| panic!("{e}"));
                 assert!(message.is_some());
-                assert_eq!(message.unwrap_or_else(|| panic!("expected Some")), "Hello, WebSocket!");
+                assert_eq!(
+                    message.unwrap_or_else(|| panic!("expected Some")),
+                    "Hello, WebSocket!"
+                );
 
                 // 关闭连接
                 let close_result = manager
@@ -2167,7 +2196,9 @@ mod tests {
                 assert!(close_result.is_ok());
 
                 // 验证连接状态
-                let status = manager.get_status("echo-conn").unwrap_or_else(|| panic!("expected Some"));
+                let status = manager
+                    .get_status("echo-conn")
+                    .unwrap_or_else(|| panic!("expected Some"));
                 assert_eq!(status, ConnectionStatus::Closed);
             }
             Err(e) => {
@@ -2215,7 +2246,10 @@ mod tests {
             let message = recv_result.unwrap_or_else(|e| panic!("{e}"));
             assert!(message.is_some());
             // 二进制消息会被转换为十六进制字符串
-            assert_eq!(message.unwrap_or_else(|| panic!("expected Some")), "0102030405");
+            assert_eq!(
+                message.unwrap_or_else(|| panic!("expected Some")),
+                "0102030405"
+            );
 
             // 清理
             let _ = manager.close("binary-conn", 1000, None, 5000).await;
@@ -2362,7 +2396,10 @@ mod tests {
 
         let result = manager.match_message(message, &condition);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("JSON parse failed"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("JSON parse failed"));
     }
 
     #[test]
@@ -2376,7 +2413,10 @@ mod tests {
 
         let result = manager.match_message(message, &condition);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("JSONPath syntax error"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("JSONPath syntax error"));
     }
 
     #[test]
@@ -2432,7 +2472,10 @@ mod tests {
 
         let result = manager.match_message(message, &condition);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Regex syntax error"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Regex syntax error"));
     }
 
     #[test]
@@ -2544,7 +2587,10 @@ mod tests {
 
         let result = manager.match_message(message, &condition);
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Expression evaluation failed"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Expression evaluation failed"));
     }
 
     #[test]
@@ -2736,7 +2782,8 @@ mod tests {
     fn test_preprocess_expression_deeply_nested() {
         // 多层嵌套
         assert_eq!(
-            preprocess_expression(r#"data.result.title == "hello""#).unwrap_or_else(|e| panic!("{e}")),
+            preprocess_expression(r#"data.result.title == "hello""#)
+                .unwrap_or_else(|e| panic!("{e}")),
             r#"data__result__title == "hello""#
         );
     }
@@ -2745,7 +2792,8 @@ mod tests {
     fn test_preprocess_expression_preserves_strings() {
         // 字符串字面量内的点号不被转换
         assert_eq!(
-            preprocess_expression(r#"data.url == "http://example.com""#).unwrap_or_else(|e| panic!("{e}")),
+            preprocess_expression(r#"data.url == "http://example.com""#)
+                .unwrap_or_else(|e| panic!("{e}")),
             r#"data__url == "http://example.com""#
         );
     }
@@ -2763,10 +2811,8 @@ mod tests {
     fn test_preprocess_expression_multiple_chains() {
         // 多个标识符链
         assert_eq!(
-            preprocess_expression(
-                r#"data.stepKey == "test" && data.result.code == 0"#
-            )
-            .unwrap_or_else(|e| panic!("{e}")),
+            preprocess_expression(r#"data.stepKey == "test" && data.result.code == 0"#)
+                .unwrap_or_else(|e| panic!("{e}")),
             r#"data__stepKey == "test" && data__result__code == 0"#
         );
     }
@@ -2791,6 +2837,9 @@ mod tests {
     #[test]
     fn test_flatten_identifier_chains_float_not_matched() {
         // 浮点数字面量不以字母开头，不会被匹配
-        assert_eq!(flatten_identifier_chains("3.14").unwrap_or_else(|e| panic!("{e}")), "3.14");
+        assert_eq!(
+            flatten_identifier_chains("3.14").unwrap_or_else(|e| panic!("{e}")),
+            "3.14"
+        );
     }
 }

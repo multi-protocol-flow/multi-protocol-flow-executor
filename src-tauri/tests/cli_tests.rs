@@ -340,7 +340,8 @@ fn test_cli_output_has_success_data_error_fields() {
         .clone();
 
     let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
-    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
     // 验证统一输出格式: { success, data, error }
     assert!(json["success"].is_boolean(), "missing success field");
@@ -366,7 +367,8 @@ fn test_execution_output_contains_execution_time() {
         .clone();
 
     let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
-    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
     // data 内部应该包含 execution_time_ms
     let data = &json["data"];
@@ -393,7 +395,8 @@ fn test_execution_output_contains_executed_count() {
         .clone();
 
     let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
-    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
     let data = &json["data"];
     assert!(
@@ -441,8 +444,12 @@ fn test_concurrent_execution() {
             .success();
     });
 
-    handle1.join().expect("thread 1 panicked during concurrent execution");
-    handle2.join().expect("thread 2 panicked during concurrent execution");
+    handle1
+        .join()
+        .expect("thread 1 panicked during concurrent execution");
+    handle2
+        .join()
+        .expect("thread 2 panicked during concurrent execution");
 }
 
 #[test]
@@ -545,7 +552,8 @@ fn test_execution_time_reasonable() {
         .clone();
 
     let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
-    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
     let execution_time_ms = json["data"]["execution_time_ms"]
         .as_u64()
@@ -711,7 +719,8 @@ fn test_validate_output_format() {
         .clone();
 
     let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
-    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
     assert!(json["success"].is_boolean());
     assert!(json["data"]["valid"].is_boolean());
@@ -816,7 +825,8 @@ fn test_flow_create_and_show_crud_cycle() {
         .clone();
 
     let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
-    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
     let flow_uuid = json["data"]["flow"]["uuid"]
         .as_str()
         .expect("flow uuid should be a string")
@@ -888,7 +898,8 @@ fn test_flow_edit_node_add() {
         .clone();
 
     let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
-    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
     let flow_uuid = json["data"]["flow"]["uuid"]
         .as_str()
         .expect("flow uuid should be a string")
@@ -941,7 +952,8 @@ fn test_flow_edit_connection_add() {
         .clone();
 
     let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
-    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
     let flow_uuid = json["data"]["flow"]["uuid"]
         .as_str()
         .expect("flow uuid should be a string")
@@ -974,8 +986,7 @@ fn test_flow_edit_connection_add() {
         .stdout
         .clone();
 
-    let node_output_str =
-        String::from_utf8(node_output).expect("CLI output should be valid UTF-8");
+    let node_output_str = String::from_utf8(node_output).expect("CLI output should be valid UTF-8");
     let node_json: serde_json::Value =
         serde_json::from_str(&node_output_str).expect("CLI output should be valid JSON");
 
@@ -1041,7 +1052,8 @@ fn test_flow_edit_variable_set() {
         .clone();
 
     let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
-    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
     let flow_uuid = json["data"]["flow"]["uuid"]
         .as_str()
         .expect("flow uuid should be a string")
@@ -1550,11 +1562,14 @@ fn test_assertion_pass_routes_to_true() {
         .clone();
 
     let output_str = String::from_utf8(output).expect("CLI output should be valid UTF-8");
-    let json: serde_json::Value = serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&output_str).expect("CLI output should be valid JSON");
 
     // 验证流程执行成功
     assert!(
-        json["success"].as_bool().expect("success should be a boolean"),
+        json["success"]
+            .as_bool()
+            .expect("success should be a boolean"),
         "流程应该成功执行"
     );
 
@@ -1601,25 +1616,25 @@ fn test_assertion_fail_routes_to_false() {
 
     // 验证执行了 4 个节点 (entry, http, assertion, false-branch-http)
     let data = &json["data"];
-        let executed_count = data["executed_count"]
-            .as_u64()
-            .expect("executed_count should be a u64");
-        assert_eq!(
-            executed_count, 4,
-            "应该执行了 4 个节点（entry + http + assertion + false-branch），实际: {}",
-            executed_count
-        );
+    let executed_count = data["executed_count"]
+        .as_u64()
+        .expect("executed_count should be a u64");
+    assert_eq!(
+        executed_count, 4,
+        "应该执行了 4 个节点（entry + http + assertion + false-branch），实际: {}",
+        executed_count
+    );
 
-        // 验证 assertion 节点路由到了 false 分支
-        if let Some(node_results) = data["node_results"].as_array() {
-            let assertion_node = node_results.iter().find(|n| n["node_type"] == "assertion");
-            assert!(assertion_node.is_some(), "应该包含 assertion 节点");
-            // assertion 节点自身状态应为 failed，因为断言条件不满足
-            assert_eq!(
-                assertion_node.expect("assertion node should exist")["status"],
-                "failed",
-                "assertion 节点的状态应为 failed（故意失败）"
-            );
+    // 验证 assertion 节点路由到了 false 分支
+    if let Some(node_results) = data["node_results"].as_array() {
+        let assertion_node = node_results.iter().find(|n| n["node_type"] == "assertion");
+        assert!(assertion_node.is_some(), "应该包含 assertion 节点");
+        // assertion 节点自身状态应为 failed，因为断言条件不满足
+        assert_eq!(
+            assertion_node.expect("assertion node should exist")["status"],
+            "failed",
+            "assertion 节点的状态应为 failed（故意失败）"
+        );
 
         let false_branch = node_results
             .iter()

@@ -520,8 +520,14 @@ impl ConditionalNodeExecutor {
             EvalValue::String(s) => !s.is_empty(),
             EvalValue::Empty => false,
             _ => {
-                log::error!("[Error] Expression returned unsupported type: {:?}", eval_result);
-                return Err(format!("Expression returned unsupported type: {:?}", eval_result));
+                log::error!(
+                    "[Error] Expression returned unsupported type: {:?}",
+                    eval_result
+                );
+                return Err(format!(
+                    "Expression returned unsupported type: {:?}",
+                    eval_result
+                ));
             }
         };
 
@@ -798,7 +804,9 @@ fn inject_json_to_context(
                             let eval_value = json_to_evalexpr_value(item);
                             context
                                 .set_value(item_key.clone(), eval_value)
-                                .map_err(|e| format!("Setting variable '{}' failed: {}", item_key, e))?;
+                                .map_err(|e| {
+                                    format!("Setting variable '{}' failed: {}", item_key, e)
+                                })?;
                         }
                     }
                 }
@@ -893,8 +901,8 @@ fn preprocess_expression(expr: &str) -> Result<String, String> {
 /// 不含点号的标识符（如 `status`）不会被修改。
 fn flatten_identifier_chains(s: &str) -> Result<String, String> {
     // 先处理 $. 前缀的 JSONPath 风格：$.x.y → x__y
-    let jsonpath_re = Regex::new(r"\$\.[a-zA-Z_]\w*(?:\.\w+)*")
-        .map_err(|e| format!("Invalid regex: {}", e))?;
+    let jsonpath_re =
+        Regex::new(r"\$\.[a-zA-Z_]\w*(?:\.\w+)*").map_err(|e| format!("Invalid regex: {}", e))?;
     let intermediate = jsonpath_re.replace_all(s, |caps: &regex::Captures| {
         // 去掉 "$." 前缀后，将剩余点号替换为 "__"
         caps[0][2..].replace('.', "__")
@@ -1433,7 +1441,11 @@ mod tests {
             .await;
         assert!(result.is_err(), "类型不匹配应该返回Error");
         assert!(
-            result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).message.contains("is not a numeric type"),
+            result
+                .err()
+                .unwrap_or_else(|| panic!("expected Err, got Ok"))
+                .message
+                .contains("is not a numeric type"),
             "Error message should contain 'is not a numeric type'"
         );
     }
@@ -1461,7 +1473,11 @@ mod tests {
             .await;
         assert!(result.is_err(), "语法Error应该返回Error");
         assert!(
-            result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).message.contains("Evaluating expression"),
+            result
+                .err()
+                .unwrap_or_else(|| panic!("expected Err, got Ok"))
+                .message
+                .contains("Evaluating expression"),
             "Error message should contain 'Evaluating expression'"
         );
     }
@@ -1489,7 +1505,8 @@ mod tests {
         assert!(result.is_err(), "缺少field_path应该返回Error");
         assert!(
             result
-                .err().unwrap_or_else(|| panic!("expected Err, got Ok"))
+                .err()
+                .unwrap_or_else(|| panic!("expected Err, got Ok"))
                 .message
                 .contains("missing field_path"),
             "Error message should contain 'missing field_path'"
@@ -1519,7 +1536,8 @@ mod tests {
         assert!(result.is_err(), "缺少operator应该返回Error");
         assert!(
             result
-                .err().unwrap_or_else(|| panic!("expected Err, got Ok"))
+                .err()
+                .unwrap_or_else(|| panic!("expected Err, got Ok"))
                 .message
                 .contains("missing operator"),
             "Error message should contain 'missing operator'"
@@ -1549,7 +1567,8 @@ mod tests {
         assert!(result.is_err(), "缺少advanced_expression应该返回Error");
         assert!(
             result
-                .err().unwrap_or_else(|| panic!("expected Err, got Ok"))
+                .err()
+                .unwrap_or_else(|| panic!("expected Err, got Ok"))
                 .message
                 .contains("missing advanced_expression"),
             "Error message should contain 'missing advanced_expression'"
@@ -1674,7 +1693,9 @@ mod tests {
         .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(
             result,
-            serde_json::Value::Number(serde_json::Number::from_f64(3.14).unwrap_or_else(|| panic!("expected Some")))
+            serde_json::Value::Number(
+                serde_json::Number::from_f64(3.14).unwrap_or_else(|| panic!("expected Some"))
+            )
         );
     }
 
@@ -1754,7 +1775,10 @@ mod tests {
             Some(&ExpectedValueType::Boolean),
         );
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Cannot parse as boolean"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Cannot parse as boolean"));
     }
 
     #[test]
@@ -1764,7 +1788,10 @@ mod tests {
             Some(&ExpectedValueType::Number),
         );
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Cannot parse as number"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Cannot parse as number"));
     }
 
     #[test]
@@ -1774,7 +1801,10 @@ mod tests {
             Some(&ExpectedValueType::Null),
         );
         assert!(result.is_err());
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Expected null but got"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Expected null but got"));
     }
 
     // ============================================================================
@@ -1923,7 +1953,11 @@ mod tests {
             .await;
         assert!(result.is_err(), "variable not found should return error");
         assert!(
-            result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).message.contains("not found"),
+            result
+                .err()
+                .unwrap_or_else(|| panic!("expected Err, got Ok"))
+                .message
+                .contains("not found"),
             "Error message should contain 'not found'"
         );
     }
@@ -2015,7 +2049,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_err(), "旧语法应该返回Error");
-        let error = result.err().unwrap_or_else(|| panic!("expected Err, got Ok"));
+        let error = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(
             error.message.contains("Unsupported syntax"),
             "Error message should contain 'Unsupported syntax': {}",
@@ -2043,7 +2079,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_err(), "空 field_path 应该返回Error");
-        let error = result.err().unwrap_or_else(|| panic!("expected Err, got Ok"));
+        let error = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(
             error.message.contains("required"),
             "Error信息应该包含 'required': {}",
@@ -2122,7 +2160,10 @@ mod tests {
             .await;
         assert!(result.is_ok(), "嵌套字段从变量池提取应该Success");
         let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
+        assert_eq!(
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
+            json!(true)
+        );
     }
 
     #[tokio::test]
@@ -2159,7 +2200,10 @@ mod tests {
             "嵌套字段从 last_node_output 提取应该Success"
         );
         let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
+        assert_eq!(
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
+            json!(true)
+        );
     }
 
     #[tokio::test]
@@ -2223,7 +2267,10 @@ mod tests {
             .await;
         assert!(result.is_ok(), "多条件嵌套字段应该Success");
         let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
+        assert_eq!(
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
+            json!(true)
+        );
     }
 
     #[tokio::test]
@@ -2254,7 +2301,10 @@ mod tests {
             .await;
         assert!(result.is_ok(), "三层嵌套字段应该Success");
         let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
+        assert_eq!(
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
+            json!(true)
+        );
     }
 
     #[tokio::test]
@@ -2282,7 +2332,10 @@ mod tests {
             .await;
         assert!(result.is_ok(), "嵌套数值比较应该Success");
         let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
+        assert_eq!(
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
+            json!(true)
+        );
     }
 
     #[tokio::test]
@@ -2313,7 +2366,10 @@ mod tests {
             .await;
         assert!(result.is_ok(), "顶层 + 嵌套混合应该Success");
         let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
+        assert_eq!(
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
+            json!(true)
+        );
     }
 
     #[tokio::test]
@@ -2341,7 +2397,10 @@ mod tests {
             .await;
         assert!(result.is_ok(), "不匹配应该返回 Ok");
         let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(false));
+        assert_eq!(
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
+            json!(false)
+        );
     }
 
     // ============================================================================
@@ -2359,21 +2418,26 @@ mod tests {
     #[test]
     fn test_preprocess_expression_deep() {
         assert_eq!(
-            preprocess_expression("data.result.title == \"test\"").unwrap_or_else(|e| panic!("{e}")),
+            preprocess_expression("data.result.title == \"test\"")
+                .unwrap_or_else(|e| panic!("{e}")),
             "data__result__title == \"test\""
         );
     }
 
     #[test]
     fn test_preprocess_expression_no_dots() {
-        assert_eq!(preprocess_expression("status == 200").unwrap_or_else(|e| panic!("{e}")), "status == 200");
+        assert_eq!(
+            preprocess_expression("status == 200").unwrap_or_else(|e| panic!("{e}")),
+            "status == 200"
+        );
     }
 
     #[test]
     fn test_preprocess_expression_preserves_strings() {
         // 字符串字面量内的点号不应被替换
         assert_eq!(
-            preprocess_expression(r#"url == "http://example.com""#).unwrap_or_else(|e| panic!("{e}")),
+            preprocess_expression(r#"url == "http://example.com""#)
+                .unwrap_or_else(|e| panic!("{e}")),
             r#"url == "http://example.com""#
         );
     }
@@ -2384,8 +2448,14 @@ mod tests {
             flatten_identifier_chains("data.stepKey == 200").unwrap_or_else(|e| panic!("{e}")),
             "data__stepKey == 200"
         );
-        assert_eq!(flatten_identifier_chains("code == 200").unwrap_or_else(|e| panic!("{e}")), "code == 200");
-        assert_eq!(flatten_identifier_chains("a.b.c.d > 0").unwrap_or_else(|e| panic!("{e}")), "a__b__c__d > 0");
+        assert_eq!(
+            flatten_identifier_chains("code == 200").unwrap_or_else(|e| panic!("{e}")),
+            "code == 200"
+        );
+        assert_eq!(
+            flatten_identifier_chains("a.b.c.d > 0").unwrap_or_else(|e| panic!("{e}")),
+            "a__b__c__d > 0"
+        );
     }
 
     #[test]
@@ -2397,12 +2467,14 @@ mod tests {
         );
         // $.body.data.token → body__data__token
         assert_eq!(
-            flatten_identifier_chains(r#"$.body.data.token == "abc""#).unwrap_or_else(|e| panic!("{e}")),
+            flatten_identifier_chains(r#"$.body.data.token == "abc""#)
+                .unwrap_or_else(|e| panic!("{e}")),
             r#"body__data__token == "abc""#
         );
         // 混合 $. 和普通标识符
         assert_eq!(
-            flatten_identifier_chains("$.status >= 200 && $.status < 300").unwrap_or_else(|e| panic!("{e}")),
+            flatten_identifier_chains("$.status >= 200 && $.status < 300")
+                .unwrap_or_else(|e| panic!("{e}")),
             "status >= 200 && status < 300"
         );
     }
@@ -2410,14 +2482,19 @@ mod tests {
     #[test]
     fn test_preprocess_expression_jsonpath_style() {
         // $.status 在表达式中应被正确处理
-        assert_eq!(preprocess_expression("$.status == 200").unwrap_or_else(|e| panic!("{e}")), "status == 200");
         assert_eq!(
-            preprocess_expression(r#"$.body.data.token == "abc""#).unwrap_or_else(|e| panic!("{e}")),
+            preprocess_expression("$.status == 200").unwrap_or_else(|e| panic!("{e}")),
+            "status == 200"
+        );
+        assert_eq!(
+            preprocess_expression(r#"$.body.data.token == "abc""#)
+                .unwrap_or_else(|e| panic!("{e}")),
             r#"body__data__token == "abc""#
         );
         // 混合使用
         assert_eq!(
-            preprocess_expression("status == 200 && $.body.success == true").unwrap_or_else(|e| panic!("{e}")),
+            preprocess_expression("status == 200 && $.body.success == true")
+                .unwrap_or_else(|e| panic!("{e}")),
             "status == 200 && body__success == true"
         );
     }
@@ -2446,7 +2523,10 @@ mod tests {
             .await;
         assert!(result.is_ok(), "$.status 表达式应该Success");
         let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
+        assert_eq!(
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
+            json!(true)
+        );
     }
 
     #[tokio::test]
@@ -2473,7 +2553,10 @@ mod tests {
             .await;
         assert!(result.is_ok(), "$.body.data.token 表达式应该Success");
         let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
+        assert_eq!(
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
+            json!(true)
+        );
     }
 
     // ============================================================================
@@ -2504,7 +2587,10 @@ mod tests {
             .await;
         assert!(result.is_ok(), "简单变量名应从 last_node_output 中提取");
         let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
+        assert_eq!(
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
+            json!(true)
+        );
     }
 
     #[tokio::test]
@@ -2560,7 +2646,14 @@ mod tests {
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
-        assert!(result.is_err(), "should error when not found in either source");
-        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).message.contains("not found"));
+        assert!(
+            result.is_err(),
+            "should error when not found in either source"
+        );
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("not found"));
     }
 }

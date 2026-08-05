@@ -36,7 +36,11 @@ fn test_node_report_fields_exist() {
     assert!(report.resolved_config.is_some());
     assert!(report.variable_changes.is_some());
     assert_eq!(
-        report.variable_changes.as_ref().expect("variable_changes should be Some").len(),
+        report
+            .variable_changes
+            .as_ref()
+            .expect("variable_changes should be Some")
+            .len(),
         1
     );
     assert!(report.skip_reason.is_none());
@@ -68,8 +72,8 @@ fn test_node_report_backward_compat() {
     });
 
     // 反序列化应该成功，新字段使用默认值
-    let report: NodeExecutionReport = serde_json::from_value(old_json)
-        .expect("legacy JSON deserialization should succeed");
+    let report: NodeExecutionReport =
+        serde_json::from_value(old_json).expect("legacy JSON deserialization should succeed");
 
     // 验证基本字段
     assert_eq!(report.node_uuid, "old-uuid");

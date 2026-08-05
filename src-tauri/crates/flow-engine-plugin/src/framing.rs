@@ -300,7 +300,7 @@ mod tests {
         let mut writer = FrameWriter::new(tx);
         writer.write_frame(b"{\"a\":1}").await?;
         writer.shutdown().await?; // half-close so the read side reaches EOF
-        // Reader sees payload + delimiter atomically.
+                                  // Reader sees payload + delimiter atomically.
         let mut buf = Vec::new();
         rx.read_to_end(&mut buf).await?;
         assert_eq!(buf, b"{\"a\":1}\n".to_vec());

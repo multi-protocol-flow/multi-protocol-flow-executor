@@ -948,7 +948,11 @@ pub struct DbConnectConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub host: Option<String>,
     /// 端口号（PostgreSQL/MySQL，支持 {{variable}} 引用）
-    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_optional_port_as_string")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_optional_port_as_string"
+    )]
     pub port: Option<String>,
     /// 数据库名
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -3383,7 +3387,10 @@ pub struct RedisConnectConfig {
     /// 服务器地址
     pub host: String,
     /// 端口（支持 {{variable}} 引用）
-    #[serde(default = "default_redis_port", deserialize_with = "deserialize_port_as_string")]
+    #[serde(
+        default = "default_redis_port",
+        deserialize_with = "deserialize_port_as_string"
+    )]
     pub port: String,
     /// 密码
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -4593,7 +4600,8 @@ mod tests {
         assert!(json.contains("get"));
 
         // 反序列化测试
-        let deserialized: HttpConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: HttpConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.url, config.url);
         assert_eq!(deserialized.method, HttpMethod::Get);
     }
@@ -4704,7 +4712,8 @@ mod tests {
         let json = serde_json::to_string(&mode).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, r#""first_match""#);
 
-        let deserialized: WsCollectMode = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: WsCollectMode =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, WsCollectMode::FirstMatch);
     }
 
@@ -4726,7 +4735,8 @@ mod tests {
         let json = serde_json::to_string(&msg_type).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, r#""binary""#);
 
-        let deserialized: WsMessageType = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: WsMessageType =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, WsMessageType::Binary);
     }
 
@@ -4741,7 +4751,8 @@ mod tests {
         assert!(json.contains("regex"));
         assert!(json.contains("status == 200"));
 
-        let deserialized: WsCollectCondition = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: WsCollectCondition =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.match_type, WsMatchType::Regex);
         assert_eq!(deserialized.expression, "status == 200");
     }
@@ -4787,7 +4798,8 @@ mod tests {
         assert!(json.contains("chat"));
         assert!(json.contains("first_match"));
 
-        let deserialized: WsConnectConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: WsConnectConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.url, "wss://example.com/ws");
         assert_eq!(deserialized.headers.len(), 1);
         assert_eq!(deserialized.subprotocols.len(), 1);
@@ -4828,7 +4840,8 @@ mod tests {
         assert!(json.contains("condition_match"));
         assert!(json.contains("$.type == 'pong'"));
 
-        let deserialized: WsSendCollectConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: WsSendCollectConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.connection_id, "conn-123");
         assert_eq!(deserialized.collect_mode, WsCollectMode::ConditionMatch);
         assert!(deserialized.collect_condition.is_some());
@@ -4857,7 +4870,8 @@ mod tests {
         assert!(json.contains("1001"));
         assert!(json.contains("Going Away"));
 
-        let deserialized: WsCloseConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: WsCloseConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.close_code, 1001);
         assert_eq!(deserialized.close_reason, Some("Going Away".to_string()));
     }
@@ -4934,7 +4948,8 @@ mod tests {
         let json = serde_json::to_string(&phase).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, r#""pre_request""#);
 
-        let deserialized: ScriptExecutionPhase = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ScriptExecutionPhase =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, ScriptExecutionPhase::PreRequest);
     }
 
@@ -4977,7 +4992,8 @@ mod tests {
         assert!(json.contains("standalone"));
         assert!(json.contains("fatal"));
 
-        let deserialized: ScriptNodeConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ScriptNodeConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.script, "return status === 200;");
         assert_eq!(deserialized.timeout_ms, 10000);
         assert_eq!(deserialized.memory_limit_mb, 20);
@@ -5019,8 +5035,18 @@ mod tests {
         match data {
             NodeData::Plugin(val) => {
                 // 原始 JSON（含 type 字段）应完整保留
-                assert_eq!(val.get("type").unwrap_or_else(|| panic!("expected Some")).as_str(), Some("grpc_request"));
-                assert_eq!(val.get("url").unwrap_or_else(|| panic!("expected Some")).as_str(), Some("http://example.com"));
+                assert_eq!(
+                    val.get("type")
+                        .unwrap_or_else(|| panic!("expected Some"))
+                        .as_str(),
+                    Some("grpc_request")
+                );
+                assert_eq!(
+                    val.get("url")
+                        .unwrap_or_else(|| panic!("expected Some"))
+                        .as_str(),
+                    Some("http://example.com")
+                );
             }
             _ => panic!("Expected Plugin variant for unknown type"),
         }
@@ -5121,7 +5147,8 @@ mod tests {
 
         // Plugin 无 type 字段应回退到 "plugin"
         let json_no_type = r#"{"config": "value"}"#;
-        let data_no_type: NodeData = serde_json::from_str(json_no_type).unwrap_or_else(|e| panic!("{e}"));
+        let data_no_type: NodeData =
+            serde_json::from_str(json_no_type).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data_no_type.type_name(), "plugin");
     }
 

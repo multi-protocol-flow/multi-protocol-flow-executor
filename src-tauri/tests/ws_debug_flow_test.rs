@@ -305,7 +305,10 @@ async fn test_ownership_transfer() {
 
     // 验证所有权转移
     {
-        let stream = context.get_ws_stream(&connection_id).await.expect("should get stream after first ownership transfer");
+        let stream = context
+            .get_ws_stream(&connection_id)
+            .await
+            .expect("should get stream after first ownership transfer");
         assert_eq!(
             stream.current_owner_node_uuid,
             Some(format!("ws-send-collect-1-{}", flow_uuid))
@@ -336,7 +339,10 @@ async fn test_ownership_transfer() {
 
     // 验证所有权再次转移
     {
-        let stream = context.get_ws_stream(&connection_id).await.expect("should get stream after second ownership transfer");
+        let stream = context
+            .get_ws_stream(&connection_id)
+            .await
+            .expect("should get stream after second ownership transfer");
         assert_eq!(
             stream.current_owner_node_uuid,
             Some(format!("ws-send-collect-2-{}", flow_uuid))
@@ -350,11 +356,19 @@ async fn test_ownership_transfer() {
 
     // 验证连接已关闭
     {
-        let stream = context.get_ws_stream(&connection_id).await.expect("should get stream after close");
+        let stream = context
+            .get_ws_stream(&connection_id)
+            .await
+            .expect("should get stream after close");
         assert!(stream.is_closed, "connection should be closed");
         // 最后一个段应该已结束
         assert!(
-            stream.segments.last().expect("should have at least one segment").ended_at.is_some(),
+            stream
+                .segments
+                .last()
+                .expect("should have at least one segment")
+                .ended_at
+                .is_some(),
             "last segment should have ended"
         );
     }
@@ -611,7 +625,10 @@ async fn test_normal_mode_no_debug_events() {
 
     // 验证最终状态
     {
-        let stream = context.get_ws_stream(connection_id).await.expect("should get stream for final state check");
+        let stream = context
+            .get_ws_stream(connection_id)
+            .await
+            .expect("should get stream for final state check");
         assert!(stream.is_closed, "connection should be closed");
         assert_eq!(stream.segments.len(), 1, "should have 1 segment");
         assert_eq!(
@@ -810,7 +827,10 @@ async fn test_ws_stream_message_recording() {
 
     // 验证消息记录
     {
-        let stream = context.get_ws_stream(connection_id).await.expect("should get stream to verify message recording");
+        let stream = context
+            .get_ws_stream(connection_id)
+            .await
+            .expect("should get stream to verify message recording");
         assert_eq!(
             stream.total_message_count(),
             10,
@@ -859,7 +879,10 @@ async fn test_ws_stream_message_recording() {
 
     // 验证新段的消息
     {
-        let stream = context.get_ws_stream(connection_id).await.expect("should get stream after ownership transfer");
+        let stream = context
+            .get_ws_stream(connection_id)
+            .await
+            .expect("should get stream after ownership transfer");
         assert_eq!(
             stream.total_message_count(),
             15,

@@ -96,8 +96,8 @@ async fn execute_assertion(
         )
         .await;
     let (next_nodes, output) = result.expect("execution should succeed");
-    let output: AssertionOutput =
-        serde_json::from_value(output.expect("output should be present")).expect("output deserialization failed");
+    let output: AssertionOutput = serde_json::from_value(output.expect("output should be present"))
+        .expect("output deserialization failed");
     (next_nodes, output)
 }
 
