@@ -33,4 +33,8 @@ export interface NodeMetadata {
   ports: PortDef[];
   /** 拖拽创建节点时的默认配置 */
   default_config: Record<string, unknown>;
+  /** 配置 JSON Schema（插件节点动态表单，可选） */
+  config_schema?: unknown;
+  /** 前端描述（P0 仅支持 inline；P1 支持 iframe 等） */
+  frontend?: { type: string; content?: string };
 }

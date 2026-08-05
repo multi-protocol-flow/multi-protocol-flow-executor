@@ -119,6 +119,9 @@ const zh_CN_errors: BaseTranslation = {
   E_VARIABLE_EXTRACTOR_FAILED: '变量提取失败: {path}',
   E_PROXY_FAILED: '代理失败: {host}',
 
+  // Plugin
+  E_PLUGIN_CRASHED: '插件进程崩溃: {plugin_name} - {message}',
+
   // UI
   clipboard_save_failed: '节点配置保存到剪贴板失败',
 };

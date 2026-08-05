@@ -585,6 +585,60 @@ describe('ExecutionStore', () => {
       expect(state.completedNodeCount).toBe(0);
       expect(state.totalNodes).toBe(5);
     });
+
+    it('should append PluginEvent to bounded pluginEvents log', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'f1',
+          nodeUuid: 'n1',
+          nodeType: 'demo:ping',
+          eventType: 'log',
+          data: { level: 'info', msg: 'hello' },
+          timestamp: '2026-08-04T00:00:00Z',
+        },
+      });
+      useExecutionStore.getState().handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'f1',
+          nodeUuid: 'n1',
+          nodeType: 'demo:ping',
+          eventType: 'status',
+          data: { state: 'done' },
+          timestamp: '2026-08-04T00:00:01Z',
+        },
+      });
+
+      const events = useExecutionStore.getState().pluginEvents;
+      expect(events).toHaveLength(2);
+      expect(events[0].eventType).toBe('log');
+      expect(events[0].data).toEqual({ level: 'info', msg: 'hello' });
+      expect(events[1].eventType).toBe('status');
+    });
+
+    it('pluginEvents is capped at MAX_PLUGIN_EVENTS and reset on new flow', () => {
+      // 超出上限（200）时应截断最旧事件
+      for (let i = 0; i < 205; i++) {
+        useExecutionStore.getState().handleExecutionEvent({
+          pluginEvent: {
+            flowUuid: 'f1',
+            nodeUuid: 'n1',
+            nodeType: 'demo:ping',
+            eventType: 'log',
+            data: { index: i },
+            timestamp: `2026-08-04T00:00:${String(i % 60).padStart(2, '0')}Z`,
+          },
+        });
+      }
+      expect(useExecutionStore.getState().pluginEvents).toHaveLength(200);
+      expect(useExecutionStore.getState().pluginEvents[0].data).toEqual({ index: 5 });
+      expect(useExecutionStore.getState().pluginEvents[199].data).toEqual({ index: 204 });
+
+      // 新流程开始时清空
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f2', flowName: 'Test 2', totalNodes: 1 },
+      });
+      expect(useExecutionStore.getState().pluginEvents).toEqual([]);
+    });
   });
 
   describe('getNodeExecutionStatus', () => {
@@ -672,6 +726,12 @@ describe('ExecutionStore', () => {
       useExecutionStore.getState().handleExecutionEvent({
         flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 3 },
       });
+      useExecutionStore.getState().handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'f1', nodeUuid: 'n1', nodeType: 'demo:ping',
+          eventType: 'log', data: { msg: 'x' }, timestamp: '2026-08-04T00:00:00Z',
+        },
+      });
       useExecutionStore.getState().clearExecutionState();
 
       const state = useExecutionStore.getState();
@@ -679,6 +739,7 @@ describe('ExecutionStore', () => {
       expect(state.currentNodeUuid).toBeNull();
       expect(state.completedNodeCount).toBe(0);
       expect(state.totalNodes).toBe(0);
+      expect(state.pluginEvents).toEqual([]);
     });
 
     it('should also clear report and error', () => {

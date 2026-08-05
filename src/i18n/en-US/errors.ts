@@ -117,6 +117,9 @@ const en_US_errors = {
   E_VARIABLE_EXTRACTOR_FAILED: 'Variable extraction failed: {path}',
   E_PROXY_FAILED: 'Proxy failed: {host}',
 
+  // Plugin
+  E_PLUGIN_CRASHED: 'Plugin process crashed: {plugin_name} - {message}',
+
   // UI
   clipboard_save_failed: 'Failed to save node configuration to clipboard',
 };

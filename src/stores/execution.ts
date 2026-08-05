@@ -3,7 +3,7 @@
  */
 import { create } from 'zustand';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types';
-import type { ExecutionEvent } from '@/types/execution_event';
+import type { ExecutionEvent, PluginEventData } from '@/types/execution_event';
 import { useWsStreamStore } from './wsStream';
 
 interface ExecutionState {
@@ -29,6 +29,8 @@ interface ExecutionState {
   isReportDialogOpen: boolean;
   /** 选中的历史报告（用于对话框展示） */
   selectedHistoryReport: FlowExecutionReport | null;
+  /** 插件流事件日志（有界，保留最近 N 条；P1 消费者） */
+  pluginEvents: PluginEventData[];
 
   // ===== Actions =====
   /** 开始执行 */
@@ -67,6 +69,9 @@ interface ExecutionState {
 
 const MAX_HISTORY_SIZE = 10;
 
+/** 插件流事件日志上限（有界内存，P1 消费者再做完整视图） */
+const MAX_PLUGIN_EVENTS = 200;
+
 const initialState = {
   isExecuting: false,
   report: null,
@@ -78,6 +83,7 @@ const initialState = {
   totalNodes: 0,
   isReportDialogOpen: false,
   selectedHistoryReport: null as FlowExecutionReport | null,
+  pluginEvents: [] as PluginEventData[],
 };
 
 export const useExecutionStore = create<ExecutionState>((set, get) => {
@@ -192,6 +198,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           totalNodes,
           report: null,
           error: null,
+          pluginEvents: [],
         });
       } else if ('nodeStarted' in event) {
         const { nodeUuid } = event.nodeStarted;
@@ -221,6 +228,11 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         });
       } else if ('flowCancelled' in event) {
         set({ isExecuting: false });
+      } else if ('pluginEvent' in event) {
+        // 插件流式事件：有界追加，P1 消费者消费；P0 仅保证不崩溃且可追溯
+        set((state) => ({
+          pluginEvents: [...state.pluginEvents, event.pluginEvent].slice(-MAX_PLUGIN_EVENTS),
+        }));
       }
     },
 
@@ -233,6 +245,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         totalNodes: 0,
         report: null,
         error: null,
+        pluginEvents: [],
       });
     },
 
@@ -332,3 +345,5 @@ export const selectTotalNodes = (state: ExecutionState) => state.totalNodes;
 /** 按 UUID 选择特定节点的执行报告（工厂选择器，用于需要单节点报告的组件） */
 export const selectNodeReportByUuid = (uuid: string) => (state: ExecutionState) =>
   state.nodeReportsMap[uuid];
+/** 选择插件流事件日志 */
+export const selectPluginEvents = (state: ExecutionState) => state.pluginEvents;

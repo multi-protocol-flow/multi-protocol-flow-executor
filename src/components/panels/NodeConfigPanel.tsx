@@ -27,7 +27,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
 }
 
 /** 检查是否为普通对象（非数组、非 null） */
-function isPlainObject(obj: unknown): boolean {
+function isPlainObject(obj: unknown): obj is Record<string, unknown> {
   return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
 }
 
@@ -294,12 +294,28 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             {/* 根据节点类型注册表渲染对应的配置组件（懒加载） */}
             {(() => {
               const nodeType = selectedNode.type;
-              // 未知节点类型 → SchemaConfigPanel fallback（同步渲染）
+              // 注册表元数据（插件节点携带 config_schema / frontend）
+              const meta = getCachedNodeMeta(nodeType);
+              // 无硬编码面板的类型（含插件节点）→ Schema 驱动渲染
               if (isSchemaDriven(nodeType)) {
+                // 插件声明了自定义前端 → P1 提示（P0 仅支持 inline，此处渲染惰性占位）
+                if (meta?.frontend) {
+                  return (
+                    <div className="w-full rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
+                      <p className="text-xs text-muted-foreground">
+                        {ll.pluginFrontendNotSupported()}
+                      </p>
+                    </div>
+                  );
+                }
+                // 插件提供了 config_schema → 动态 JSON-Schema 表单；否则保持空白 fallback
+                const rawSchema: unknown = meta?.config_schema;
+                const pluginSchema: Record<string, unknown> =
+                  isPlainObject(rawSchema) ? rawSchema : {};
                 return (
                   <SchemaConfigPanel
                     key={selectedNode.uuid}
-                    schema={{}}
+                    schema={pluginSchema}
                     data={nodeData as NodeData & Record<string, unknown>}
                     onSave={(data: Record<string, unknown>) => handleSave(data as NodeData & Record<string, unknown>)}
                   />

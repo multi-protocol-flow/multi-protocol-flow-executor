@@ -2874,6 +2874,10 @@ type RootTranslation = {
 			 * 帮​助
 			 */
 			help: string
+			/**
+			 * 此​版​本​暂​不​支​持​插​件​前​端​界​面​（​P​1​）
+			 */
+			pluginFrontendNotSupported: string
 		}
 		tcpConnect: {
 			/**
@@ -19441,7 +19445,13 @@ type RootTranslation = {
 		 */
 		E_PROXY_FAILED: RequiredParams<'host'>
 		/**
-		 * 剪​贴​板​保​存​失​败
+		 * 插​件​进​程​崩​溃​:​ ​{​p​l​u​g​i​n​_​n​a​m​e​}​ ​-​ ​{​m​e​s​s​a​g​e​}
+		 * @param {unknown} message
+		 * @param {unknown} plugin_name
+		 */
+		E_PLUGIN_CRASHED: RequiredParams<'message' | 'plugin_name'>
+		/**
+		 * 节​点​配​置​保​存​到​剪​贴​板​失​败
 		 */
 		clipboard_save_failed: string
 	}
@@ -22286,6 +22296,10 @@ export type TranslationFunctions = {
 			 * 帮助
 			 */
 			help: () => LocalizedString
+			/**
+			 * 此版本暂不支持插件前端界面（P1）
+			 */
+			pluginFrontendNotSupported: () => LocalizedString
 		}
 		tcpConnect: {
 			/**
@@ -38568,7 +38582,11 @@ export type TranslationFunctions = {
 		 */
 		E_PROXY_FAILED: (arg: { host: unknown }) => LocalizedString
 		/**
-		 * 剪贴板保存失败
+		 * 插件进程崩溃: {plugin_name} - {message}
+		 */
+		E_PLUGIN_CRASHED: (arg: { message: unknown, plugin_name: unknown }) => LocalizedString
+		/**
+		 * 节点配置保存到剪贴板失败
 		 */
 		clipboard_save_failed: () => LocalizedString
 	}

@@ -115,7 +115,9 @@ export type ErrorCode =
   | 'E_IMAP_STORE' | 'E_IMAP_TIMEOUT'
   // Non-protocol
   | 'E_VARIABLE_EXTRACTOR_FAILED'
-  | 'E_PROXY_FAILED';
+  | 'E_PROXY_FAILED'
+  // Plugin
+  | 'E_PLUGIN_CRASHED';
 
 // ============================================================================
 // 错误详情结构体

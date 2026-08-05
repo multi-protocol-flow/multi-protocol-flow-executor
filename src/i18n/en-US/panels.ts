@@ -598,6 +598,7 @@
     readOnly: 'Read-only',
     editConfig: 'Edit Config',
     help: 'Help',
+    pluginFrontendNotSupported: 'Plugin frontend is not supported in this version (P1)',
   },
 
 

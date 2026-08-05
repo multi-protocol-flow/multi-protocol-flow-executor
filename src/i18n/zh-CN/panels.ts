@@ -600,6 +600,7 @@ const zh_CN_panels: BaseTranslation = {
     readOnly: '只读',
     editConfig: '编辑配置',
     help: '帮助',
+    pluginFrontendNotSupported: '此版本暂不支持插件前端界面（P1）',
   },
 
 

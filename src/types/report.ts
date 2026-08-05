@@ -136,6 +136,50 @@ export interface NodeExecutionReport {
   skip_reason?: string;
   /** 等待依赖节点的耗时（毫秒） */
   wait_duration_ms?: number;
+  /** 插件节点附加数据（SidecarPlugin 上报的 report_data） */
+  plugin_data?: unknown;
+}
+
+// ============================================================================
+// 插件流记录
+// ============================================================================
+
+/**
+ * 插件流事件样本
+ */
+export interface PluginStreamEvent {
+  /** 事件类型（如 "log"、"data"、"status"） */
+  type: string;
+  /** 事件时间戳（ISO 8601 或毫秒时间戳字符串） */
+  timestamp: string;
+  /** 事件数据（任意 JSON 值） */
+  data: unknown;
+}
+
+/**
+ * 插件流统计信息
+ */
+export interface PluginStreamStats {
+  /** 事件总数（样本可能被截断，count 始终为全量计数） */
+  count: number;
+  /** 首个事件时间戳 */
+  first_ts?: string;
+  /** 末个事件时间戳 */
+  last_ts?: string;
+}
+
+/**
+ * 插件流记录（summary + 前 N 条样本，N 上限 20）
+ */
+export interface PluginStreamRecord {
+  /** 节点 UUID */
+  node_uuid: string;
+  /** 节点类型 */
+  node_type: string;
+  /** 事件样本（上限 20 条） */
+  events?: PluginStreamEvent[];
+  /** 流统计信息 */
+  stats: PluginStreamStats;
 }
 
 // ============================================================================
@@ -243,6 +287,8 @@ export interface FlowExecutionReport {
   skipped_nodes?: SkippedNodeInfo[];
   /** WebSocket 消息流列表（完整数据，为空时不序列化） */
   ws_streams?: WsConnectionStream[];
+  /** 插件流记录列表（SidecarPlugin 事件流，为空时不序列化） */
+  plugin_streams?: PluginStreamRecord[];
   /** Flow 快照（执行时的流程完整副本） */
   flow_snapshot?: Flow;
   /** 结束节点到达状态：undefined=无End节点, true=已到达, false=未到达 */

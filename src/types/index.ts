@@ -283,10 +283,13 @@ export type {
   NodeExecutionReport,
   FlowStatistics,
   FlowExecutionReport,
+  PluginStreamEvent,
+  PluginStreamStats,
+  PluginStreamRecord,
 } from './report';
 
 // 执行事件类型
-export type { ExecutionEvent } from './execution_event';
+export type { ExecutionEvent, PluginEventData } from './execution_event';
 
 // IPC 类型
 export type {

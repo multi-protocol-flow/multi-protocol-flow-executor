@@ -104,6 +104,8 @@ declare module './i18n-types' {
 			// Non-protocol
 			E_VARIABLE_EXTRACTOR_FAILED: RequiredParams<'path'>
 			E_PROXY_FAILED: RequiredParams<'host'>
+			// Plugin
+			E_PLUGIN_CRASHED: RequiredParams<'plugin_name' | 'message'>
 		}
 	}
 }

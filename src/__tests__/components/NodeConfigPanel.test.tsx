@@ -5,7 +5,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { NodeConfigPanel, HttpConfig, ConditionalConfig, EntryConfig } from '@/components/panels';
 import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
-import type { Flow, HttpConfig as HttpConfigType, ConditionalConfig as ConditionalConfigType } from '@/types';
+import { getCachedNodeMeta } from '@/lib/NodeRegistry';
+import { isSchemaDriven } from '@/lib/configPanelRegistry';
+import type { NodeMetadata } from '@/types/nodeRegistry';
+import type { Flow, HttpConfig as HttpConfigType, ConditionalConfig as ConditionalConfigType, AnyNode } from '@/types';
 import type { ComponentType } from 'react';
 
 // Mock configPanelRegistry 使面板同步加载
@@ -24,6 +27,12 @@ vi.mock('@/lib/configPanelRegistry', () => {
     }),
     isSchemaDriven: vi.fn(() => false),
   };
+});
+
+// Mock NodeRegistry 的缓存访问（保留真实导出，仅替换 getCachedNodeMeta）
+vi.mock('@/lib/NodeRegistry', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/NodeRegistry')>();
+  return { ...actual, getCachedNodeMeta: vi.fn() };
 });
 
 // Mock useFlowStore and useUIStore
@@ -163,6 +172,77 @@ describe('NodeConfigPanel', () => {
       });
       await waitFor(() => {
         expect(screen.getByText('高级表达式')).toBeDefined();
+      });
+    });
+  });
+
+  describe('Plugin 节点（Schema 驱动）', () => {
+    const pluginNode: AnyNode = {
+      uuid: 'plugin-001',
+      type: 'demo:ping',
+      name: 'Demo Ping',
+      position: { x: 0, y: 0 },
+      data: { type: 'demo:ping', target: 'localhost' },
+    };
+
+    const pluginMeta: NodeMetadata = {
+      type_id: 'demo:ping',
+      display_name: 'Demo Ping',
+      category: 'plugin',
+      icon: 'plug',
+      color: '#000000',
+      ports: [],
+      default_config: { target: 'localhost' },
+    };
+
+    beforeEach(() => {
+      (isSchemaDriven as unknown as ReturnType<typeof vi.fn>).mockReturnValue(true);
+      (getCachedNodeMeta as unknown as ReturnType<typeof vi.fn>).mockReturnValue(null);
+      (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
+        const state = {
+          getSelectedNode: () => pluginNode,
+          updateNode: mockUpdateNode,
+          flow: { nodes: [pluginNode] },
+        };
+        return selector ? selector(state) : state;
+      });
+    });
+
+    it('metadata 携带 config_schema 时渲染动态 JSON-Schema 表单', async () => {
+      (getCachedNodeMeta as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+        ...pluginMeta,
+        config_schema: {
+          type: 'object',
+          properties: { target: { type: 'string', title: 'Target' } },
+        },
+      });
+
+      render(<NodeConfigPanel />);
+
+      // SchemaConfigPanel 渲染 schema.properties.target 字段
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Target/)).toBeDefined();
+      });
+    });
+
+    it('metadata 声明 frontend 时显示 P1 提示（惰性占位）', async () => {
+      (getCachedNodeMeta as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+        ...pluginMeta,
+        frontend: { type: 'inline', content: '<p>ping</p>' },
+      });
+
+      render(<NodeConfigPanel />);
+
+      await waitFor(() => {
+        expect(screen.getByText('此版本暂不支持插件前端界面（P1）')).toBeDefined();
+      });
+    });
+
+    it('无 config_schema 且无 frontend 时保持空白 fallback', async () => {
+      render(<NodeConfigPanel />);
+
+      await waitFor(() => {
+        expect(screen.getByText('无可配置字段')).toBeDefined();
       });
     });
   });
