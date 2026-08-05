@@ -370,7 +370,9 @@ mod tests {
             }],
         };
         let mut details_buf = Vec::new();
-        rpc_status.encode(&mut details_buf).expect("编码应Success");
+        rpc_status
+            .encode(&mut details_buf)
+            .unwrap_or_else(|e| panic!("编码应Success: {e}"));
 
         let status = tonic::Status::with_details(
             tonic::Code::ResourceExhausted,
@@ -417,7 +419,9 @@ mod tests {
             ],
         };
         let mut details_buf = Vec::new();
-        rpc_status.encode(&mut details_buf).expect("编码应Success");
+        rpc_status
+            .encode(&mut details_buf)
+            .unwrap_or_else(|e| panic!("编码应Success: {e}"));
 
         let status = tonic::Status::with_details(
             tonic::Code::InvalidArgument,
@@ -492,8 +496,11 @@ mod tests {
             }],
         };
         let mut buf = Vec::new();
-        original.encode(&mut buf).expect("编码应Success");
-        let decoded = RpcStatus::decode(buf.as_slice()).expect("解码应Success");
+        original
+            .encode(&mut buf)
+            .unwrap_or_else(|e| panic!("编码应Success: {e}"));
+        let decoded =
+            RpcStatus::decode(buf.as_slice()).unwrap_or_else(|e| panic!("解码应Success: {e}"));
         assert_eq!(decoded.code, 5);
         assert_eq!(decoded.message, "test error");
         assert_eq!(decoded.details.len(), 1);

@@ -501,10 +501,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
     }
@@ -522,11 +522,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["request"]["topic"], "test-topic");
         assert_eq!(data["request"]["connection_id"], "conn-1");
@@ -556,10 +556,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["message_count"], 1);
-        let msgs = data["messages"].as_array().expect("messages 应为数组");
+        let msgs = data["messages"]
+            .as_array()
+            .unwrap_or_else(|| panic!("messages 应为数组"));
         assert_eq!(msgs.len(), 1);
         assert_eq!(msgs[0]["topic"], "test-topic");
         assert_eq!(msgs[0]["partition"], 0);
@@ -582,9 +584,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
     }
@@ -612,7 +614,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("KafkaConsumeConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("KafkaConsumeConfig"));
     }
 
     /// 测试：变量替换
@@ -667,8 +673,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["request"]["topic"], "sensors/temperature");
         assert_eq!(data["request"]["connection_id"], "my-connection");
         assert_eq!(data["request"]["group_id"], "group-prod");
@@ -691,7 +697,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // 取消时应返回空结果
         assert!(next_nodes.is_empty());
         assert!(output_data.is_none());

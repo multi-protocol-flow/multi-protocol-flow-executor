@@ -83,7 +83,9 @@ mod tests {
         };
         let result = config.validate();
         assert!(result.is_err());
-        let error = result.unwrap_err();
+        let error = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(error.contains("并发用户数必须大于等于 1"));
         assert!(error.contains("当前值: 0"));
     }
@@ -99,7 +101,9 @@ mod tests {
         };
         let result = config.validate();
         assert!(result.is_err());
-        let error = result.unwrap_err();
+        let error = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(error.contains("预热时长(120秒)不能超过总时长(60秒)"));
     }
 
@@ -154,7 +158,9 @@ mod tests {
         };
         let result = config.validate();
         assert!(result.is_err());
-        let error = result.unwrap_err();
+        let error = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(error.contains("预热时长(10秒)不能超过总时长(0秒)"));
     }
 

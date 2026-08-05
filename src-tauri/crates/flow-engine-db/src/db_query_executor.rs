@@ -625,7 +625,7 @@ mod tests {
                 mock_pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let node = create_db_query_node(
             "query-001",
@@ -644,11 +644,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output) = result.unwrap();
+        let (next_nodes, output) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_nodes.is_empty()); // 没有连接
         assert!(output.is_some());
 
-        let output = output.unwrap();
+        let output = output.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], true);
         assert!(output["rows"].is_array());
     }
@@ -672,12 +672,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output) = result.unwrap();
-        let output = output.unwrap();
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        let output = output.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false);
         assert!(output["error"]
             .as_str()
-            .unwrap()
+            .unwrap_or_else(|| panic!("expected Some"))
             .contains("Connection UUID is required"));
     }
 
@@ -713,10 +713,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output) = result.unwrap();
-        let output = output.unwrap();
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        let output = output.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false);
-        assert!(output["error"].as_str().unwrap().contains("SQL"));
+        assert!(output["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("SQL"));
     }
 
     #[tokio::test]
@@ -732,7 +735,7 @@ mod tests {
                 mock_pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let node = create_db_query_node(
             "query-001",
@@ -751,8 +754,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output) = result.unwrap();
-        let output = output.unwrap();
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        let output = output.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], true);
     }
 
@@ -769,7 +772,7 @@ mod tests {
                 mock_pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let node = create_db_query_node(
             "query-001",
@@ -788,8 +791,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output) = result.unwrap();
-        let output = output.unwrap();
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        let output = output.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], true);
         // MockPool 返回 1 行
         assert_eq!(output["row_count"], 1);
@@ -808,7 +811,7 @@ mod tests {
                 mock_pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let node = create_db_query_node(
             "query-001",
@@ -827,8 +830,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output) = result.unwrap();
-        let output = output.unwrap();
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        let output = output.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], true);
         assert_eq!(output["row_count"], 1);
     }
@@ -846,7 +849,7 @@ mod tests {
                 mock_pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let node = create_db_query_node(
             "query-001",
@@ -869,8 +872,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output) = result.unwrap();
-        let output = output.unwrap();
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        let output = output.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], true);
     }
 
@@ -894,12 +897,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output) = result.unwrap();
-        let output = output.unwrap();
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        let output = output.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false);
         assert!(output["error"]
             .as_str()
-            .unwrap()
+            .unwrap_or_else(|| panic!("expected Some"))
             .contains("Connection pool not found"));
     }
 
@@ -931,8 +934,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output) = result.unwrap();
-        let output = output.unwrap();
+        let (next_nodes, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        let output = output.unwrap_or_else(|| panic!("expected Some"));
 
         // 应该路由到 false 端口
         assert_eq!(next_nodes.len(), 1);
@@ -953,7 +956,7 @@ mod tests {
                 mock_pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let node = create_db_query_node(
             "query-001",
@@ -981,8 +984,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output) = result.unwrap();
-        let output = output.unwrap();
+        let (next_nodes, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        let output = output.unwrap_or_else(|| panic!("expected Some"));
 
         // 应该路由到 true 端口
         assert_eq!(next_nodes.len(), 1);
@@ -1003,7 +1006,7 @@ mod tests {
                 mock_pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let node = create_db_query_node(
             "query-001",
@@ -1022,8 +1025,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output) = result.unwrap();
-        let output = output.unwrap();
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        let output = output.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 timing 字段存在
         assert!(output["timing"].is_object());

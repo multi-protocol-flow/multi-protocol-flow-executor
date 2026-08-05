@@ -833,7 +833,7 @@ mod tests {
         // 第二次启动应该Failed
         let result = executor.start().await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("已在运行"));
+        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("已在运行"));
 
         // 清理：停止压测
         let _ = executor.stop().await;
@@ -863,7 +863,7 @@ mod tests {
         // 启动应该Failed
         let result = executor.start().await;
         assert!(result.is_err());
-        let error = result.unwrap_err();
+        let error = result.err().unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(error.contains("并发用户数"));
     }
 
@@ -884,7 +884,7 @@ mod tests {
         // 停止未运行的压测应该Failed
         let result = executor.stop().await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("未在运行"));
+        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("未在运行"));
     }
 
     /// 测试进度报告
@@ -987,8 +987,8 @@ mod tests {
         let mut file = tempfile::Builder::new()
             .suffix(".csv")
             .tempfile()
-            .expect("创建临时文件Failed");
-        file.write_all(content).expect("写入临时文件Failed");
+            .unwrap_or_else(|e| panic!("创建临时文件Failed: {e}"));
+        file.write_all(content).unwrap_or_else(|e| panic!("写入临时文件Failed: {e}"));
         file
     }
 
@@ -1013,7 +1013,7 @@ mod tests {
                 DataPickStrategy::RoundRobin => &csv_rows[iteration as usize % csv_rows.len()],
                 _ => panic!("不应到达此分支"),
             };
-            results.push(row["name"].as_str().unwrap().to_string());
+            results.push(row["name"].as_str().unwrap_or_else(|| panic!("expected Some")).to_string());
         }
 
         assert_eq!(
@@ -1038,8 +1038,8 @@ mod tests {
         // 用户 0 → row0, 用户 1 → row1
         let row0 = &csv_rows[0u32 as usize % csv_rows.len()];
         let row1 = &csv_rows[1u32 as usize % csv_rows.len()];
-        assert_eq!(row0["name"].as_str().unwrap(), "row0");
-        assert_eq!(row1["name"].as_str().unwrap(), "row1");
+        assert_eq!(row0["name"].as_str().unwrap_or_else(|| panic!("expected Some")), "row0");
+        assert_eq!(row1["name"].as_str().unwrap_or_else(|| panic!("expected Some")), "row1");
     }
 
     /// 测试无 CSV `时行为不变（runtime_variables` 为 None）
@@ -1076,14 +1076,14 @@ mod tests {
             dataset_strategy: Some(DataPickStrategy::RoundRobin),
         };
 
-        let json = serde_json::to_string(&config).expect("序列化Failed");
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("datasetPath"));
         assert!(json.contains("datasetEncoding"));
         assert!(json.contains("datasetStrategy"));
         assert!(json.contains("round_robin"));
 
         // 反序列化往返
-        let deserialized: StressTestConfig = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: StressTestConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(
             deserialized.dataset_path,
             Some("/data/test.csv".to_string())
@@ -1105,7 +1105,7 @@ mod tests {
             "flowUuid": "flow-001"
         }"#;
 
-        let config: StressTestConfig = serde_json::from_str(json).expect("反序列化Failed");
+        let config: StressTestConfig = serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(config.concurrent_users, 10);
         assert_eq!(config.dataset_path, None);
         assert_eq!(config.dataset_encoding, None);
@@ -1119,7 +1119,7 @@ mod tests {
         let csv_path = csv_file
             .path()
             .to_str()
-            .expect("路径转换Failed")
+            .unwrap_or_else(|| panic!("路径转换Failed"))
             .to_string();
 
         let flow = create_test_flow();
@@ -1131,7 +1131,6 @@ mod tests {
             dataset_path: Some(csv_path),
             dataset_encoding: Some("utf-8".to_string()),
             dataset_strategy: Some(flow_engine_core::dataset::DataPickStrategy::RoundRobin),
-            ..Default::default()
         };
         let (tx, mut rx) = mpsc::unbounded_channel();
 

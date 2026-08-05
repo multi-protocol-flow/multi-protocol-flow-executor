@@ -692,12 +692,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["message_count_remaining"], 5);
         assert!(data["error"].is_null());
@@ -727,11 +727,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // Success（即使无消息）仍走 true 端口
         assert_eq!(next_nodes, vec!["true"]);
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["message_count_remaining"], 0);
         // 消息应为 null
@@ -751,12 +751,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // Failed应路由到 false 端口
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "队列不存在");
         assert!(data["message"].is_null());
@@ -785,7 +785,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("AmqpGetConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("AmqpGetConfig"));
     }
 
     /// 测试：变量替换在 queue 中生效
@@ -820,8 +824,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证变量替换生效
         assert_eq!(data["request"]["queue"], "staging-orders");
@@ -841,11 +845,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "通道未打开");
     }
@@ -872,7 +876,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 }

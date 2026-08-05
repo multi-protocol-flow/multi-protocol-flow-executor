@@ -1406,97 +1406,131 @@ mod tests {
 
     #[test]
     fn test_fn_variables_set_get() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_variables_api(&ctx).unwrap();
+            script_ctx
+                .register_variables_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.variables.set('test', 'hello')")
                 .catch(&ctx)
-                .unwrap();
-            let result: String = ctx.eval("fn.variables.get('test')").catch(&ctx).unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
+            let result: String = ctx
+                .eval("fn.variables.get('test')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(result, "hello");
         });
     }
 
     #[test]
     fn test_fn_variables_has() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_variables_api(&ctx).unwrap();
+            script_ctx
+                .register_variables_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.variables.set('exists', 'value')")
                 .catch(&ctx)
-                .unwrap();
-            let has_key: bool = ctx.eval("fn.variables.has('exists')").catch(&ctx).unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
+            let has_key: bool = ctx
+                .eval("fn.variables.has('exists')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(has_key);
             let not_has: bool = ctx
                 .eval("fn.variables.has('nonexistent')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!not_has);
         });
     }
 
     #[test]
     fn test_fn_variables_unset() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_variables_api(&ctx).unwrap();
+            script_ctx
+                .register_variables_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.variables.set('remove_me', 'value')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.variables.unset('remove_me')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             let result: Option<String> = ctx
                 .eval("fn.variables.get('remove_me')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(result.is_none());
         });
     }
 
     #[test]
     fn test_fn_variables_clear() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_variables_api(&ctx).unwrap();
-            let _: () = ctx.eval("fn.variables.set('a', '1')").catch(&ctx).unwrap();
-            let _: () = ctx.eval("fn.variables.set('b', '2')").catch(&ctx).unwrap();
-            let _: () = ctx.eval("fn.variables.clear()").catch(&ctx).unwrap();
-            let has_a: bool = ctx.eval("fn.variables.has('a')").catch(&ctx).unwrap();
+            script_ctx
+                .register_variables_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let _: () = ctx
+                .eval("fn.variables.set('a', '1')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let _: () = ctx
+                .eval("fn.variables.set('b', '2')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let _: () = ctx
+                .eval("fn.variables.clear()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let has_a: bool = ctx
+                .eval("fn.variables.has('a')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!has_a);
         });
     }
 
     #[test]
     fn test_fn_variables_set_all() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_variables_api(&ctx).unwrap();
+            script_ctx
+                .register_variables_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.variables.setAll({ x: '10', y: '20' })")
                 .catch(&ctx)
-                .unwrap();
-            let x: String = ctx.eval("fn.variables.get('x')").catch(&ctx).unwrap();
-            let y: String = ctx.eval("fn.variables.get('y')").catch(&ctx).unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
+            let x: String = ctx
+                .eval("fn.variables.get('x')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let y: String = ctx
+                .eval("fn.variables.get('y')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(x, "10");
             assert_eq!(y, "20");
         });
@@ -1504,23 +1538,34 @@ mod tests {
 
     #[test]
     fn test_fn_variables_all() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_variables_api(&ctx).unwrap();
-            let _: () = ctx.eval("fn.variables.set('a', '1')").catch(&ctx).unwrap();
-            let _: () = ctx.eval("fn.variables.set('b', '2')").catch(&ctx).unwrap();
+            script_ctx
+                .register_variables_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let _: () = ctx
+                .eval("fn.variables.set('a', '1')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let _: () = ctx
+                .eval("fn.variables.set('b', '2')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 获取所有变量并检查（返回 JSON 字符串，需要解析）
-            let all_json: String = ctx.eval("fn.variables.all()").catch(&ctx).unwrap();
+            let all_json: String = ctx
+                .eval("fn.variables.all()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             let all_obj: Object = ctx
                 .eval(format!("JSON.parse('{}')", all_json).as_bytes())
                 .catch(&ctx)
-                .unwrap();
-            let a_val: String = all_obj.get("a").unwrap();
-            let b_val: String = all_obj.get("b").unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
+            let a_val: String = all_obj.get("a").unwrap_or_else(|e| panic!("{e}"));
+            let b_val: String = all_obj.get("b").unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(a_val, "1");
             assert_eq!(b_val, "2");
         });
@@ -1528,21 +1573,26 @@ mod tests {
 
     #[test]
     fn test_fn_variables_overwrite() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_variables_api(&ctx).unwrap();
+            script_ctx
+                .register_variables_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.variables.set('key', 'first')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.variables.set('key', 'second')")
                 .catch(&ctx)
-                .unwrap();
-            let result: String = ctx.eval("fn.variables.get('key')").catch(&ctx).unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
+            let result: String = ctx
+                .eval("fn.variables.get('key')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(result, "second");
         });
     }
@@ -1558,8 +1608,8 @@ mod tests {
 
     #[test]
     fn test_fn_response_with_data() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
         let raw_output = serde_json::json!({
             "status": 200,
@@ -1585,37 +1635,61 @@ mod tests {
         let script_ctx = ScriptExecutionContext::new().with_response(response);
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let code: u16 = ctx.eval("fn.response.code").catch(&ctx).unwrap();
+            let code: u16 = ctx
+                .eval("fn.response.code")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(code, 200);
 
-            let status: String = ctx.eval("fn.response.status").catch(&ctx).unwrap();
+            let status: String = ctx
+                .eval("fn.response.status")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(status, "OK");
 
             let content_type: String = ctx
                 .eval("fn.response.headers['Content-Type']")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(content_type, "application/json");
 
-            let size: usize = ctx.eval("fn.response.size").catch(&ctx).unwrap();
+            let size: usize = ctx
+                .eval("fn.response.size")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(size, 19);
 
-            let time: u64 = ctx.eval("fn.response.time").catch(&ctx).unwrap();
+            let time: u64 = ctx
+                .eval("fn.response.time")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(time, 150);
 
             // 测试 text() 函数
-            let text: String = ctx.eval("fn.response.text()").catch(&ctx).unwrap();
+            let text: String = ctx
+                .eval("fn.response.text()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(text, r#"{"token":"abc123"}"#);
 
             // 测试 json() 函数
-            let json: String = ctx.eval("fn.response.json()").catch(&ctx).unwrap();
+            let json: String = ctx
+                .eval("fn.response.json()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(json.contains("token"));
 
             // 测试 raw 属性 - 完整原始输出
-            let raw_str: String = ctx.eval("fn.response.raw").catch(&ctx).unwrap();
-            let raw_parsed: serde_json::Value = serde_json::from_str(&raw_str).unwrap();
+            let raw_str: String = ctx
+                .eval("fn.response.raw")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let raw_parsed: serde_json::Value =
+                serde_json::from_str(&raw_str).unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(raw_parsed["status"], 200);
             assert_eq!(raw_parsed["body"]["token"], "abc123");
         });
@@ -1623,24 +1697,29 @@ mod tests {
 
     #[test]
     fn test_fn_response_null_when_no_response() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
         let script_ctx = ScriptExecutionContext::new(); // response = None
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 访问不存在的 response 应该返回 undefined
-            let code: Option<u16> = ctx.eval("fn.response?.code").catch(&ctx).unwrap();
+            let code: Option<u16> = ctx
+                .eval("fn.response?.code")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(code.is_none());
         });
     }
 
     #[test]
     fn test_fn_response_body_parsing() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
         let response = ResponseData {
             code: 200,
@@ -1662,24 +1741,29 @@ mod tests {
         let script_ctx = ScriptExecutionContext::new().with_response(response);
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // body 返回 JSON 字符串，可以用 JSON.parse 解析
-            let body_str: String = ctx.eval("fn.response.body").catch(&ctx).unwrap();
+            let body_str: String = ctx
+                .eval("fn.response.body")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             let parsed: Object = ctx
                 .eval(format!("JSON.parse('{}')", body_str).as_bytes())
                 .catch(&ctx)
-                .unwrap();
-            let user: Object = parsed.get("user").unwrap();
-            let id: i32 = user.get("id").unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
+            let user: Object = parsed.get("user").unwrap_or_else(|e| panic!("{e}"));
+            let id: i32 = user.get("id").unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(id, 1);
         });
     }
 
     #[test]
     fn test_fn_response_raw_with_non_http_output() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
         // 模拟数据库查询输出（非 HTTP 格式）
         let raw_output = serde_json::json!({
@@ -1705,17 +1789,29 @@ mod tests {
         let script_ctx = ScriptExecutionContext::new().with_response(response);
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // HTTP 专属字段应该为空或 0
-            let code: u16 = ctx.eval("fn.response.code").catch(&ctx).unwrap();
+            let code: u16 = ctx
+                .eval("fn.response.code")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(code, 0);
-            let status: String = ctx.eval("fn.response.status").catch(&ctx).unwrap();
+            let status: String = ctx
+                .eval("fn.response.status")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(status, "");
 
             // 通过 raw 访问完整输出
-            let raw_str: String = ctx.eval("fn.response.raw").catch(&ctx).unwrap();
-            let raw_parsed: serde_json::Value = serde_json::from_str(&raw_str).unwrap();
+            let raw_str: String = ctx
+                .eval("fn.response.raw")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let raw_parsed: serde_json::Value =
+                serde_json::from_str(&raw_str).unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(raw_parsed["rows"][0]["name"], "Alice");
             assert_eq!(raw_parsed["affected"], 2);
 
@@ -1728,15 +1824,15 @@ mod tests {
                 "#,
                 )
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(names, r#"["Alice","Bob"]"#);
         });
     }
 
     #[test]
     fn test_fn_request_with_data() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
         let request = RequestData {
             url: "https://api.example.com/users".to_string(),
@@ -1752,51 +1848,66 @@ mod tests {
         let script_ctx = ScriptExecutionContext::new().with_request(request);
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let url: String = ctx.eval("fn.request.url").catch(&ctx).unwrap();
+            let url: String = ctx
+                .eval("fn.request.url")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(url, "https://api.example.com/users");
 
-            let method: String = ctx.eval("fn.request.method").catch(&ctx).unwrap();
+            let method: String = ctx
+                .eval("fn.request.method")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(method, "POST");
 
             let content_type: String = ctx
                 .eval("fn.request.headers['Content-Type']")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(content_type, "application/json");
         });
     }
 
     #[test]
     fn test_fn_request_null_when_no_request() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
         let script_ctx = ScriptExecutionContext::new(); // request = None
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 当没有请求数据时，fn.request 对象存在但属性为 undefined
             // 使用可选链访问会返回 undefined (在 rquickjs 中转换为 null)
-            let result: Option<String> = ctx.eval("fn.request?.url").catch(&ctx).unwrap();
+            let result: Option<String> = ctx
+                .eval("fn.request?.url")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(result.is_none());
         });
     }
 
     #[test]
     fn test_fn_console_log() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.console.log('hello world')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
             let logs = script_ctx.logs.borrow();
             assert_eq!(logs.len(), 1);
@@ -1807,27 +1918,38 @@ mod tests {
 
     #[test]
     fn test_fn_console_levels() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
-            let _: () = ctx.eval("fn.console.log('log msg')").catch(&ctx).unwrap();
-            let _: () = ctx.eval("fn.console.info('info msg')").catch(&ctx).unwrap();
-            let _: () = ctx.eval("fn.console.warn('warn msg')").catch(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let _: () = ctx
+                .eval("fn.console.log('log msg')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let _: () = ctx
+                .eval("fn.console.info('info msg')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let _: () = ctx
+                .eval("fn.console.warn('warn msg')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.console.error('error msg')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.console.debug('debug msg')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.console.table('table data')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
             let logs = script_ctx.logs.borrow();
             assert_eq!(logs.len(), 6);
@@ -1842,33 +1964,40 @@ mod tests {
 
     #[test]
     fn test_fn_flow_skip() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!*script_ctx.should_skip.borrow()); // 初始值应为 false
 
-            let _: () = ctx.eval("fn.flow.skip()").catch(&ctx).unwrap();
+            let _: () = ctx
+                .eval("fn.flow.skip()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(*script_ctx.should_skip.borrow()); // 调用后应为 true
         });
     }
 
     #[test]
     fn test_fn_flow_abort() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!*script_ctx.should_abort.borrow());
 
             let _: () = ctx
                 .eval("fn.flow.abort('Something went wrong')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
             assert!(*script_ctx.should_abort.borrow());
             assert_eq!(
@@ -1880,15 +2009,20 @@ mod tests {
 
     #[test]
     fn test_fn_flow_abort_without_message() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 传入空字符串表示无消息
-            let _: () = ctx.eval("fn.flow.abort('')").catch(&ctx).unwrap();
+            let _: () = ctx
+                .eval("fn.flow.abort('')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             assert!(*script_ctx.should_abort.borrow());
             assert_eq!(*script_ctx.abort_message.borrow(), None);
@@ -1897,25 +2031,33 @@ mod tests {
 
     #[test]
     fn test_fn_flow_stop() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!*script_ctx.should_stop.borrow());
 
             // 测试无参调用
             script_ctx.should_stop.replace(false);
             script_ctx.stop_message.replace(None);
-            let _: () = ctx.eval("fn.flow.stop()").catch(&ctx).unwrap();
+            let _: () = ctx
+                .eval("fn.flow.stop()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(*script_ctx.should_stop.borrow());
             assert_eq!(*script_ctx.stop_message.borrow(), None);
 
             // 测试传空字符串
             script_ctx.should_stop.replace(false);
             script_ctx.stop_message.replace(None);
-            let _: () = ctx.eval("fn.flow.stop('')").catch(&ctx).unwrap();
+            let _: () = ctx
+                .eval("fn.flow.stop('')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(*script_ctx.should_stop.borrow());
             assert_eq!(*script_ctx.stop_message.borrow(), None);
 
@@ -1925,7 +2067,7 @@ mod tests {
             let _: () = ctx
                 .eval("fn.flow.stop('自定义终止消息')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(*script_ctx.should_stop.borrow());
             assert_eq!(
                 *script_ctx.stop_message.borrow(),
@@ -1936,45 +2078,67 @@ mod tests {
 
     #[test]
     fn test_fn_info_basic() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
         let script_ctx = ScriptExecutionContext::new()
             .with_flow_info("Test Flow".to_string(), "flow-123".to_string())
             .with_node_info("node-456".to_string(), "Script Node".to_string());
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let flow_name: String = ctx.eval("fn.info.flowName").catch(&ctx).unwrap();
+            let flow_name: String = ctx
+                .eval("fn.info.flowName")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(flow_name, "Test Flow");
 
-            let flow_id: String = ctx.eval("fn.info.flowId").catch(&ctx).unwrap();
+            let flow_id: String = ctx
+                .eval("fn.info.flowId")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(flow_id, "flow-123");
 
-            let node_id: String = ctx.eval("fn.info.nodeId").catch(&ctx).unwrap();
+            let node_id: String = ctx
+                .eval("fn.info.nodeId")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(node_id, "node-456");
 
-            let node_name: String = ctx.eval("fn.info.nodeName").catch(&ctx).unwrap();
+            let node_name: String = ctx
+                .eval("fn.info.nodeName")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(node_name, "Script Node");
         });
     }
 
     #[test]
     fn test_fn_info_none() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
         let script_ctx = ScriptExecutionContext::new(); // No flow/node info
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 当没有设置信息时，属性应该为 undefined
-            let flow_name: Option<String> = ctx.eval("fn.info?.flowName").catch(&ctx).unwrap();
+            let flow_name: Option<String> = ctx
+                .eval("fn.info?.flowName")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(flow_name.is_none());
 
-            let flow_id: Option<String> = ctx.eval("fn.info?.flowId").catch(&ctx).unwrap();
+            let flow_id: Option<String> = ctx
+                .eval("fn.info?.flowId")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(flow_id.is_none());
         });
     }
@@ -1999,82 +2163,88 @@ mod tests {
 
     #[test]
     fn test_fn_util_base64_encode_decode() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试编码
             let encoded: String = ctx
                 .eval("fn.util.base64Encode('Hello, World!')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(encoded, "SGVsbG8sIFdvcmxkIQ==");
 
             // 测试解码
             let decoded: String = ctx
                 .eval("fn.util.base64Decode('SGVsbG8sIFdvcmxkIQ==')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(decoded, "Hello, World!");
 
             // 测试往返
             let roundtrip: String = ctx
                 .eval("fn.util.base64Decode(fn.util.base64Encode('测试中文'))")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(roundtrip, "测试中文");
         });
     }
 
     #[test]
     fn test_fn_util_url_encode_decode() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 URL 编码
             let encoded: String = ctx
                 .eval("fn.util.urlEncode('hello world&key=value')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(encoded, "hello%20world%26key%3Dvalue");
 
             // 测试 URL 解码
             let decoded: String = ctx
                 .eval("fn.util.urlDecode('hello%20world%26key%3Dvalue')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(decoded, "hello world&key=value");
 
             // 测试往返
             let roundtrip: String = ctx
                 .eval("fn.util.urlDecode(fn.util.urlEncode('测试/路径?查询=值'))")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(roundtrip, "测试/路径?查询=值");
         });
     }
 
     #[test]
     fn test_fn_util_html_escape_unescape() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 HTML 转义
             let escaped: String = ctx
                 .eval("fn.util.htmlEscape('<script>alert(\"XSS\")</script>')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(
                 escaped,
                 "&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;"
@@ -2084,69 +2254,86 @@ mod tests {
             let unescaped: String = ctx
                 .eval("fn.util.htmlUnescape('&lt;div&gt;Hello&amp;World&lt;/div&gt;')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(unescaped, "<div>Hello&World</div>");
 
             // 测试往返
             let roundtrip: String = ctx
                 .eval("fn.util.htmlUnescape(fn.util.htmlEscape('<a href=\"test\">link</a>'))")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(roundtrip, "<a href=\"test\">link</a>");
         });
     }
 
     #[test]
     fn test_fn_util_md5() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
-            let hash: String = ctx.eval("fn.util.md5('test')").catch(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let hash: String = ctx
+                .eval("fn.util.md5('test')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(hash, "098f6bcd4621d373cade4e832627b4f6");
         });
     }
 
     #[test]
     fn test_fn_util_sha256() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
-            let hash: String = ctx.eval("fn.util.sha256('test')").catch(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let hash: String = ctx
+                .eval("fn.util.sha256('test')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(hash.len(), 64); // SHA-256 = 32 bytes = 64 hex chars
         });
     }
 
     #[test]
     fn test_fn_util_sha512() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
-            let hash: String = ctx.eval("fn.util.sha512('test')").catch(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let hash: String = ctx
+                .eval("fn.util.sha512('test')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(hash.len(), 128); // SHA-512 = 64 bytes = 128 hex chars
         });
     }
 
     #[test]
     fn test_fn_util_hmac_sha256() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             let hash: String = ctx
                 .eval("fn.util.hmacSha256('key', 'data')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!hash.is_empty());
             assert_eq!(hash.len(), 64); // SHA256 = 32 bytes = 64 hex chars
         });
@@ -2154,16 +2341,18 @@ mod tests {
 
     #[test]
     fn test_fn_util_hmac_sha512() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             let hash: String = ctx
                 .eval("fn.util.hmacSha512('key', 'data')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!hash.is_empty());
             assert_eq!(hash.len(), 128); // SHA512 = 64 bytes = 128 hex chars
         });
@@ -2171,114 +2360,189 @@ mod tests {
 
     #[test]
     fn test_fn_util_type_checks() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 isString
-            let is_str: bool = ctx.eval("fn.util.isString('hello')").catch(&ctx).unwrap();
+            let is_str: bool = ctx
+                .eval("fn.util.isString('hello')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_str);
-            let not_str: bool = ctx.eval("fn.util.isString(123)").catch(&ctx).unwrap();
+            let not_str: bool = ctx
+                .eval("fn.util.isString(123)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!not_str);
 
             // 测试 isNumber
-            let is_num: bool = ctx.eval("fn.util.isNumber(123)").catch(&ctx).unwrap();
+            let is_num: bool = ctx
+                .eval("fn.util.isNumber(123)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_num);
-            let not_num: bool = ctx.eval("fn.util.isNumber('123')").catch(&ctx).unwrap();
+            let not_num: bool = ctx
+                .eval("fn.util.isNumber('123')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!not_num);
 
             // 测试 isBoolean
-            let is_bool: bool = ctx.eval("fn.util.isBoolean(true)").catch(&ctx).unwrap();
+            let is_bool: bool = ctx
+                .eval("fn.util.isBoolean(true)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_bool);
-            let not_bool: bool = ctx.eval("fn.util.isBoolean(1)").catch(&ctx).unwrap();
+            let not_bool: bool = ctx
+                .eval("fn.util.isBoolean(1)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!not_bool);
 
             // 测试 isNull
-            let is_null: bool = ctx.eval("fn.util.isNull(null)").catch(&ctx).unwrap();
+            let is_null: bool = ctx
+                .eval("fn.util.isNull(null)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_null);
-            let not_null: bool = ctx.eval("fn.util.isNull(undefined)").catch(&ctx).unwrap();
+            let not_null: bool = ctx
+                .eval("fn.util.isNull(undefined)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!not_null);
 
             // 测试 isUndefined
             let is_undef: bool = ctx
                 .eval("fn.util.isUndefined(undefined)")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_undef);
-            let not_undef: bool = ctx.eval("fn.util.isUndefined(null)").catch(&ctx).unwrap();
+            let not_undef: bool = ctx
+                .eval("fn.util.isUndefined(null)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!not_undef);
 
             // 测试 isArray
-            let is_arr: bool = ctx.eval("fn.util.isArray([1,2,3])").catch(&ctx).unwrap();
+            let is_arr: bool = ctx
+                .eval("fn.util.isArray([1,2,3])")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_arr);
-            let not_arr: bool = ctx.eval("fn.util.isArray({})").catch(&ctx).unwrap();
+            let not_arr: bool = ctx
+                .eval("fn.util.isArray({})")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!not_arr);
 
             // 测试 isObject
-            let is_obj: bool = ctx.eval("fn.util.isObject({a:1})").catch(&ctx).unwrap();
+            let is_obj: bool = ctx
+                .eval("fn.util.isObject({a:1})")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_obj);
-            let not_obj: bool = ctx.eval("fn.util.isObject([1,2])").catch(&ctx).unwrap();
+            let not_obj: bool = ctx
+                .eval("fn.util.isObject([1,2])")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!not_obj);
 
             // 测试 typeOf
-            let type_str: String = ctx.eval("fn.util.typeOf('test')").catch(&ctx).unwrap();
+            let type_str: String = ctx
+                .eval("fn.util.typeOf('test')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(type_str, "string");
-            let type_num: String = ctx.eval("fn.util.typeOf(42)").catch(&ctx).unwrap();
+            let type_num: String = ctx
+                .eval("fn.util.typeOf(42)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(type_num, "number");
-            let type_arr: String = ctx.eval("fn.util.typeOf([])").catch(&ctx).unwrap();
+            let type_arr: String = ctx
+                .eval("fn.util.typeOf([])")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(type_arr, "array");
-            let type_obj: String = ctx.eval("fn.util.typeOf({})").catch(&ctx).unwrap();
+            let type_obj: String = ctx
+                .eval("fn.util.typeOf({})")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(type_obj, "object");
         });
     }
 
     #[test]
     fn test_fn_util_is_empty() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 null 和 undefined
-            let is_empty_null: bool = ctx.eval("fn.util.isEmpty(null)").catch(&ctx).unwrap();
+            let is_empty_null: bool = ctx
+                .eval("fn.util.isEmpty(null)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_empty_null);
-            let is_empty_undef: bool = ctx.eval("fn.util.isEmpty(undefined)").catch(&ctx).unwrap();
+            let is_empty_undef: bool = ctx
+                .eval("fn.util.isEmpty(undefined)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_empty_undef);
 
             // 测试空字符串
-            let is_empty_str: bool = ctx.eval("fn.util.isEmpty('')").catch(&ctx).unwrap();
+            let is_empty_str: bool = ctx
+                .eval("fn.util.isEmpty('')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_empty_str);
-            let not_empty_str: bool = ctx.eval("fn.util.isEmpty('test')").catch(&ctx).unwrap();
+            let not_empty_str: bool = ctx
+                .eval("fn.util.isEmpty('test')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!not_empty_str);
 
             // 测试空数组
-            let is_empty_arr: bool = ctx.eval("fn.util.isEmpty([])").catch(&ctx).unwrap();
+            let is_empty_arr: bool = ctx
+                .eval("fn.util.isEmpty([])")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_empty_arr);
 
             // 测试空对象
-            let is_empty_obj: bool = ctx.eval("fn.util.isEmpty({})").catch(&ctx).unwrap();
+            let is_empty_obj: bool = ctx
+                .eval("fn.util.isEmpty({})")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(is_empty_obj);
         });
     }
 
     #[test]
     fn test_fn_util_object_keys() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             let keys_json: String = ctx
                 .eval("fn.util.keys({a: '1', b: '2'})")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(keys_json.contains("a"));
             assert!(keys_json.contains("b"));
         });
@@ -2286,39 +2550,43 @@ mod tests {
 
     #[test]
     fn test_fn_util_has_key() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             let has_a: bool = ctx
                 .eval("fn.util.hasKey({a: '1', b: '2'}, 'a')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(has_a);
             let has_c: bool = ctx
                 .eval("fn.util.hasKey({a: '1', b: '2'}, 'c')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!has_c);
         });
     }
 
     #[test]
     fn test_fn_util_object_values() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             let values_json: String = ctx
                 .eval("fn.util.values({a: 'x', b: 'y'})")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(values_json.contains("x"));
             assert!(values_json.contains("y"));
         });
@@ -2326,14 +2594,19 @@ mod tests {
 
     #[test]
     fn test_fn_util_object_entries() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let entries_json: String = ctx.eval("fn.util.entries({a: '1'})").catch(&ctx).unwrap();
+            let entries_json: String = ctx
+                .eval("fn.util.entries({a: '1'})")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(entries_json.contains("a"));
             assert!(entries_json.contains("1"));
         });
@@ -2341,18 +2614,20 @@ mod tests {
 
     #[test]
     fn test_fn_util_pick_omit() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 pick
             let picked: String = ctx
                 .eval("fn.util.pick({a: '1', b: '2', c: '3'}, '[\"a\", \"b\"]')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(picked.contains("a"));
             assert!(picked.contains("b"));
             assert!(!picked.contains("c"));
@@ -2361,7 +2636,7 @@ mod tests {
             let omitted: String = ctx
                 .eval("fn.util.omit({a: '1', b: '2', c: '3'}, '[\"c\"]')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(omitted.contains("a"));
             assert!(omitted.contains("b"));
             assert!(!omitted.contains("c"));
@@ -2370,23 +2645,28 @@ mod tests {
 
     #[test]
     fn test_fn_util_merge_clone() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 merge
             let merged: String = ctx
                 .eval("fn.util.merge({a: '1'}, {b: '2'})")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(merged.contains("a"));
             assert!(merged.contains("b"));
 
             // 测试 clone
-            let cloned: String = ctx.eval("fn.util.clone({x: 'test'})").catch(&ctx).unwrap();
+            let cloned: String = ctx
+                .eval("fn.util.clone({x: 'test'})")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(cloned.contains("x"));
             assert!(cloned.contains("test"));
         });
@@ -2396,14 +2676,19 @@ mod tests {
 
     #[test]
     fn test_fn_util_timestamp() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let ts: i64 = ctx.eval("fn.util.timestamp()").catch(&ctx).unwrap();
+            let ts: i64 = ctx
+                .eval("fn.util.timestamp()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             // 时间戳应该是当前时间的毫秒数（约 1.7 万亿）
             assert!(ts > 1700000000000);
             // 应该是 13 位数字
@@ -2413,14 +2698,19 @@ mod tests {
 
     #[test]
     fn test_fn_util_now() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let now_str: String = ctx.eval("fn.util.now()").catch(&ctx).unwrap();
+            let now_str: String = ctx
+                .eval("fn.util.now()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             // 应该返回 ISO 8601 格式，例如 "2026-03-12T10:30:00+00:00"
             assert!(now_str.contains('T'));
             assert!(now_str.contains('-'));
@@ -2430,18 +2720,20 @@ mod tests {
 
     #[test]
     fn test_fn_util_format_time() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试格式化
             let formatted: String = ctx
                 .eval("fn.util.formatTime('%Y-%m-%d %H:%M:%S')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             // 应该包含日期时间格式的字符串
             assert!(formatted.contains('-'));
             assert!(formatted.contains(':'));
@@ -2452,28 +2744,30 @@ mod tests {
 
     #[test]
     fn test_fn_util_parse_time() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试解析 ISO 8601 格式
             let ts: String = ctx
                 .eval("fn.util.parseTime('2026-03-12T10:30:00Z', '')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             // 应该返回时间戳
             assert!(!ts.is_empty());
-            let ts_num: i64 = ts.parse().unwrap();
+            let ts_num: i64 = ts.parse().unwrap_or_else(|e| panic!("{e}"));
             assert!(ts_num > 0);
 
             // 测试解析自定义格式
             let ts2: String = ctx
                 .eval("fn.util.parseTime('2026-03-12 10:30:00', '%Y-%m-%d %H:%M:%S')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(!ts2.is_empty());
         });
     }
@@ -2482,14 +2776,19 @@ mod tests {
 
     #[test]
     fn test_fn_util_uuid() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let uuid: String = ctx.eval("fn.util.uuid()").catch(&ctx).unwrap();
+            let uuid: String = ctx
+                .eval("fn.util.uuid()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             // UUID v4 格式: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
             assert_eq!(uuid.len(), 36);
             assert!(uuid.contains('-'));
@@ -2501,15 +2800,23 @@ mod tests {
 
     #[test]
     fn test_fn_util_uuidv4() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let uuid1: String = ctx.eval("fn.util.uuidv4()").catch(&ctx).unwrap();
-            let uuid2: String = ctx.eval("fn.util.uuidv4()").catch(&ctx).unwrap();
+            let uuid1: String = ctx
+                .eval("fn.util.uuidv4()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let uuid2: String = ctx
+                .eval("fn.util.uuidv4()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 两个 UUID 应该不同
             assert_ne!(uuid1, uuid2);
@@ -2523,18 +2830,20 @@ mod tests {
 
     #[test]
     fn test_fn_util_json_parse() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试解析有效 JSON
             let parsed: String = ctx
                 .eval("fn.util.jsonParse('{\"name\":\"test\",\"value\":123}')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(parsed.contains("name"));
             assert!(parsed.contains("test"));
 
@@ -2542,25 +2851,27 @@ mod tests {
             let invalid: String = ctx
                 .eval("fn.util.jsonParse('not valid json')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(invalid, "null");
         });
     }
 
     #[test]
     fn test_fn_util_json_stringify() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试无缩进
             let json: String = ctx
                 .eval("fn.util.jsonStringify({a: '1', b: '2'}, 0)")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(json.contains("a"));
             assert!(json.contains("b"));
 
@@ -2568,7 +2879,7 @@ mod tests {
             let pretty: String = ctx
                 .eval("fn.util.jsonStringify({x: 'test'}, 2)")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(pretty.contains("x"));
             // 美化输出应该有换行
             assert!(pretty.contains('\n'));
@@ -2577,18 +2888,18 @@ mod tests {
 
     #[test]
     fn test_fn_util_json_path() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_all_apis(&ctx).unwrap();
+            script_ctx.register_all_apis(&ctx).unwrap_or_else(|e| panic!("{e}"));
 
             // 测试简单路径查询
             let result: String = ctx
                 .eval("fn.util.jsonPath('{\"store\":{\"book\":[{\"title\":\"Title1\"},{\"title\":\"Title2\"}]}}', '$.store.book[*].title')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             // 应该返回标题数组
             assert!(result.contains("Title1") || result.contains("Title2") || result.contains("title"));
 
@@ -2596,7 +2907,7 @@ mod tests {
             let root: String = ctx
                 .eval("fn.util.jsonPath('{\"a\":1}', '$')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             assert!(root.contains("a"));
         });
     }
@@ -2605,18 +2916,25 @@ mod tests {
 
     #[test]
     fn test_fn_expect_equal() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试相等情况
-            let _: () = ctx.eval("fn.expect(5).to.equal(5)").catch(&ctx).unwrap();
+            let _: () = ctx
+                .eval("fn.expect(5).to.equal(5)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 获取测试结果
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 1);
             assert!(results[0].passed);
         });
@@ -2624,20 +2942,24 @@ mod tests {
 
     #[test]
     fn test_fn_expect_equal_with_not() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 not.equal
             let _: () = ctx
                 .eval("fn.expect(5).to.not.equal(3)")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 1);
             assert!(results[0].passed);
         });
@@ -2645,20 +2967,24 @@ mod tests {
 
     #[test]
     fn test_fn_expect_eql_deep_equal() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试深度相等
             let _: () = ctx
                 .eval("fn.expect({a: 1, b: 2}).to.eql({a: 1, b: 2})")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 1);
             assert!(results[0].passed);
         });
@@ -2666,20 +2992,24 @@ mod tests {
 
     #[test]
     fn test_fn_expect_chain_modifiers() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试链式调用 to.be.have
             let _: () = ctx
                 .eval("fn.expect('hello').to.be.have.equal('hello')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 1);
             assert!(results[0].passed);
         });
@@ -2687,26 +3017,39 @@ mod tests {
 
     #[test]
     fn test_fn_expect_boolean_assertions() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 beTrue
-            let _: () = ctx.eval("fn.expect(true).to.beTrue()").catch(&ctx).unwrap();
+            let _: () = ctx
+                .eval("fn.expect(true).to.beTrue()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             // 测试 beFalse
             let _: () = ctx
                 .eval("fn.expect(false).to.beFalse()")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             // 测试 beTruthy
-            let _: () = ctx.eval("fn.expect(1).to.beTruthy()").catch(&ctx).unwrap();
+            let _: () = ctx
+                .eval("fn.expect(1).to.beTruthy()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             // 测试 beFalsy
-            let _: () = ctx.eval("fn.expect(0).to.beFalsy()").catch(&ctx).unwrap();
+            let _: () = ctx
+                .eval("fn.expect(0).to.beFalsy()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 4);
             assert!(results.iter().all(|r| r.passed));
         });
@@ -2714,22 +3057,29 @@ mod tests {
 
     #[test]
     fn test_fn_expect_null_assertions() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 beNull
-            let _: () = ctx.eval("fn.expect(null).to.beNull()").catch(&ctx).unwrap();
+            let _: () = ctx
+                .eval("fn.expect(null).to.beNull()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             // 测试 notBeNull
             let _: () = ctx
                 .eval("fn.expect('value').to.notBeNull()")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 2);
             assert!(results.iter().all(|r| r.passed));
         });
@@ -2737,26 +3087,30 @@ mod tests {
 
     #[test]
     fn test_fn_expect_contain() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试字符串包含
             let _: () = ctx
                 .eval("fn.expect('hello world').to.contain('world')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试数组包含
             let _: () = ctx
                 .eval("fn.expect([1, 2, 3]).to.contain(2)")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 2);
             assert!(results.iter().all(|r| r.passed));
         });
@@ -2764,20 +3118,24 @@ mod tests {
 
     #[test]
     fn test_fn_expect_contain_key() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试对象包含键
             let _: () = ctx
                 .eval("fn.expect({name: 'test', age: 25}).to.containKey('name')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 1);
             assert!(results[0].passed);
         });
@@ -2785,26 +3143,30 @@ mod tests {
 
     #[test]
     fn test_fn_expect_have_length() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试字符串长度
             let _: () = ctx
                 .eval("fn.expect('hello').to.haveLength(5)")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试数组长度
             let _: () = ctx
                 .eval("fn.expect([1, 2, 3]).to.haveLength(3)")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 2);
             assert!(results.iter().all(|r| r.passed));
         });
@@ -2812,32 +3174,36 @@ mod tests {
 
     #[test]
     fn test_fn_expect_string_assertions() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试正则匹配
             let _: () = ctx
                 .eval("fn.expect('hello123').to.match('[0-9]+')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 startWith
             let _: () = ctx
                 .eval("fn.expect('hello world').to.startWith('hello')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 endWith
             let _: () = ctx
                 .eval("fn.expect('hello world').to.endWith('world')")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 3);
             assert!(results.iter().all(|r| r.passed));
         });
@@ -2845,26 +3211,30 @@ mod tests {
 
     #[test]
     fn test_fn_expect_numeric_assertions() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 above
             let _: () = ctx
                 .eval("fn.expect(10).to.be.above(5)")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 below
             let _: () = ctx
                 .eval("fn.expect(3).to.be.below(10)")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 2);
             assert!(results.iter().all(|r| r.passed));
         });
@@ -2872,17 +3242,24 @@ mod tests {
 
     #[test]
     fn test_fn_expect_failed_assertion() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试Failed的断言
-            let _: () = ctx.eval("fn.expect(5).to.equal(10)").catch(&ctx).unwrap();
+            let _: () = ctx
+                .eval("fn.expect(5).to.equal(10)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 1);
             assert!(!results[0].passed);
             assert!(results[0].message.contains("5"));
@@ -2892,30 +3269,34 @@ mod tests {
 
     #[test]
     fn test_fn_expect_exist_defined() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 测试 exist
             let _: () = ctx
                 .eval("fn.expect('value').to.exist()")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             // 测试 beDefined
             let _: () = ctx
                 .eval("fn.expect('value').to.beDefined()")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             // 测试 not exist (null)
             let _: () = ctx
                 .eval("fn.expect(null).to.not.exist()")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 3);
             assert!(results.iter().all(|r| r.passed));
         });
@@ -2923,25 +3304,32 @@ mod tests {
 
     #[test]
     fn test_fn_expect_multiple_assertions() {
-        let rt = Runtime::new().unwrap();
-        let ctx = Context::full(&rt).unwrap();
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
         let script_ctx = ScriptExecutionContext::new();
 
         ctx.with(|ctx| {
-            script_ctx.register_expect_api(&ctx).unwrap();
+            script_ctx
+                .register_expect_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
             // 多个断言
             let _: () = ctx
                 .eval("fn.expect(200).to.equal(200)")
                 .catch(&ctx)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
             let _: () = ctx
                 .eval("fn.expect('success').to.contain('succ')")
                 .catch(&ctx)
-                .unwrap();
-            let _: () = ctx.eval("fn.expect(true).to.beTrue()").catch(&ctx).unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
+            let _: () = ctx
+                .eval("fn.expect(true).to.beTrue()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
 
-            let results = script_ctx.get_test_results(&ctx).unwrap();
+            let results = script_ctx
+                .get_test_results(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 3);
             assert!(results.iter().all(|r| r.passed));
         });

@@ -480,7 +480,7 @@ mod tests {
         });
         let report = plugin.build_report_input(&config);
         assert!(report.is_some());
-        let report = report.unwrap();
+        let report = report.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(report["url"], "https://example.com/events");
         assert_eq!(report["last_event_id"], "evt-123");
     }
@@ -493,7 +493,9 @@ mod tests {
             "event_filter": "message",
             "max_events": 5,
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["event_filter"], "message");
         assert_eq!(report["max_events"], 5);
@@ -503,7 +505,9 @@ mod tests {
     fn test_disconnect_build_report_input() {
         let plugin = SseDisconnectPlugin;
         let config = serde_json::json!({"connection_id": "conn-123"});
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-123");
     }
 

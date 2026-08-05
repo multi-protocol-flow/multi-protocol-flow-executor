@@ -156,8 +156,9 @@ mod tests {
     #[test]
     fn test_framing_mode_length_prefix_serde() {
         let mode = TcpFramingMode::LengthPrefix { prefix_bytes: 4 };
-        let json = serde_json::to_string(&mode).expect("序列化应Success");
-        let deserialized: TcpFramingMode = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&mode).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: TcpFramingMode =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(mode, deserialized);
     }
 
@@ -166,32 +167,36 @@ mod tests {
         let mode = TcpFramingMode::Delimiter {
             delimiter: "\r\n".to_string(),
         };
-        let json = serde_json::to_string(&mode).expect("序列化应Success");
-        let deserialized: TcpFramingMode = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&mode).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: TcpFramingMode =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(mode, deserialized);
     }
 
     #[test]
     fn test_framing_mode_fixed_length_serde() {
         let mode = TcpFramingMode::FixedLength { length: 256 };
-        let json = serde_json::to_string(&mode).expect("序列化应Success");
-        let deserialized: TcpFramingMode = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&mode).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: TcpFramingMode =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(mode, deserialized);
     }
 
     #[test]
     fn test_framing_mode_timeout_serde() {
         let mode = TcpFramingMode::Timeout { timeout_ms: 5000 };
-        let json = serde_json::to_string(&mode).expect("序列化应Success");
-        let deserialized: TcpFramingMode = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&mode).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: TcpFramingMode =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(mode, deserialized);
     }
 
     #[test]
     fn test_framing_mode_manual_serde() {
         let mode = TcpFramingMode::Manual;
-        let json = serde_json::to_string(&mode).expect("序列化应Success");
-        let deserialized: TcpFramingMode = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&mode).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: TcpFramingMode =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(mode, deserialized);
     }
 
@@ -215,8 +220,10 @@ mod tests {
             max_frame_size: 4096,
             include_framing_in_data: true,
         };
-        let json = serde_json::to_string(&config).expect("序列化应Success");
-        let deserialized: FramingConfig = serde_json::from_str(&json).expect("反序列化应Success");
+        let json =
+            serde_json::to_string(&config).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: FramingConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(config.max_frame_size, deserialized.max_frame_size);
         assert_eq!(
             config.include_framing_in_data,
@@ -237,9 +244,9 @@ mod tests {
             use_tls: false,
             last_error: None,
         };
-        let json = serde_json::to_string(&info).expect("序列化应Success");
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         let deserialized: TcpConnectionInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.uuid, "conn-001");
         assert_eq!(deserialized.host, "127.0.0.1");
         assert_eq!(deserialized.port, 8080);
@@ -259,9 +266,9 @@ mod tests {
             use_tls: true,
             last_error: Some("连接被拒绝".to_string()),
         };
-        let json = serde_json::to_string(&info).expect("序列化应Success");
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         let deserialized: TcpConnectionInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.last_error, Some("连接被拒绝".to_string()));
         assert!(deserialized.use_tls);
     }
@@ -270,7 +277,8 @@ mod tests {
     fn test_framing_config_missing_optional_fields() {
         // 仅提供 mode，其余使用默认值
         let json = r#"{"mode":{"length_prefix":{"prefix_bytes":2}}}"#;
-        let config: FramingConfig = serde_json::from_str(json).expect("反序列化应Success");
+        let config: FramingConfig =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert!(matches!(
             config.mode,
             TcpFramingMode::LengthPrefix { prefix_bytes: 2 }

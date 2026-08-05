@@ -1096,7 +1096,7 @@ mod tests {
         });
         let report = plugin.build_report_input(&config);
         assert!(report.is_some());
-        let report = report.unwrap();
+        let report = report.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(report["url"], "mqtt://broker.example.com:1883");
         assert_eq!(report["mqtt_version"], "5.0");
     }
@@ -1109,7 +1109,9 @@ mod tests {
             "topic": "test/topic",
             "qos": 1,
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["topic"], "test/topic");
         assert_eq!(report["qos"], 1);
@@ -1124,7 +1126,9 @@ mod tests {
             "qos": 0,
             "output_mode": "first",
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["topic"], "sensor/#");
     }
@@ -1133,7 +1137,9 @@ mod tests {
     fn test_disconnect_build_report_input() {
         let plugin = MqttDisconnectPlugin;
         let config = serde_json::json!({"connection_id": "conn-123"});
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-123");
     }
 
@@ -1146,7 +1152,9 @@ mod tests {
             "response_topic": "resp/topic",
             "timeout_ms": 5000,
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["request_topic"], "req/topic");
         assert_eq!(report["response_topic"], "resp/topic");

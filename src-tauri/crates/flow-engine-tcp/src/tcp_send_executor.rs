@@ -574,8 +574,14 @@ mod tests {
             _send_timeout_ms: u64,
         ) -> Result<(), String> {
             self.send_count.fetch_add(1, AtomicOrdering::SeqCst);
-            *self.last_sent_data.lock().expect("锁不应Failed") = data;
-            self.send_result.lock().expect("锁不应Failed").clone()
+            *self
+                .last_sent_data
+                .lock()
+                .unwrap_or_else(|e| panic!("锁不应Failed: {e}")) = data;
+            self.send_result
+                .lock()
+                .unwrap_or_else(|e| panic!("锁不应Failed: {e}"))
+                .clone()
         }
 
         async fn receive(
@@ -584,7 +590,10 @@ mod tests {
             _receive_timeout_ms: u64,
         ) -> Result<Option<Vec<u8>>, String> {
             self.receive_count.fetch_add(1, AtomicOrdering::SeqCst);
-            self.receive_result.lock().expect("锁不应Failed").clone()
+            self.receive_result
+                .lock()
+                .unwrap_or_else(|e| panic!("锁不应Failed: {e}"))
+                .clone()
         }
 
         async fn close(&self, _uuid: &str, _close_timeout_ms: u64) -> Result<(), String> {
@@ -634,9 +643,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_id"], "conn-1");
 
@@ -644,8 +653,18 @@ mod tests {
         let sent = &data["sent"];
         assert_eq!(sent["encoding"], "base64");
         assert_eq!(sent["framing"], "LengthPrefix(4)");
-        assert!(sent["size"].as_u64().unwrap() > 0);
-        assert!(sent["raw_size"].as_u64().unwrap() > 0);
+        assert!(
+            sent["size"]
+                .as_u64()
+                .unwrap_or_else(|| panic!("expected Some"))
+                > 0
+        );
+        assert!(
+            sent["raw_size"]
+                .as_u64()
+                .unwrap_or_else(|| panic!("expected Some"))
+                > 0
+        );
 
         // 验证 timing 结构
         let timing = &data["timing"];
@@ -653,7 +672,10 @@ mod tests {
         assert!(timing["total_ms"].as_u64().is_some());
 
         // 验证实际发送的数据包含 4 字节前缀 + "Hello, TCP!" (11 字节) = 15 字节
-        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
+        let sent_data = mock
+            .last_sent_data
+            .lock()
+            .unwrap_or_else(|e| panic!("锁不应Failed: {e}"));
         assert_eq!(sent_data.len(), 15); // 4 + 11
         assert_eq!(&sent_data[4..], b"Hello, TCP!");
     }
@@ -685,19 +707,22 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
 
         // 验证 framing 描述包含 Delimiter
         let framing = data["sent"]["framing"]
             .as_str()
-            .expect("framing 应为字符串");
+            .unwrap_or_else(|| panic!("framing 应为字符串"));
         assert!(framing.starts_with("Delimiter("));
 
         // 验证发送的数据是 "Hello\r\n" (5 + 2 = 7 字节)
-        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
+        let sent_data = mock
+            .last_sent_data
+            .lock()
+            .unwrap_or_else(|e| panic!("锁不应Failed: {e}"));
         assert_eq!(sent_data.len(), 7);
         assert_eq!(&sent_data[..5], b"Hello");
         assert_eq!(&sent_data[5..], b"\r\n");
@@ -728,14 +753,17 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         assert_eq!(data["sent"]["framing"], "Manual");
 
         // Manual 模式不添加帧，直接发送 "Hello World" (11 字节)
-        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
+        let sent_data = mock
+            .last_sent_data
+            .lock()
+            .unwrap_or_else(|e| panic!("锁不应Failed: {e}"));
         assert_eq!(sent_data.len(), 11);
         assert_eq!(&sent_data[..], b"Hello World");
     }
@@ -765,12 +793,15 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         // 空数据 + 4 字节前缀 = 4 字节
-        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
+        let sent_data = mock
+            .last_sent_data
+            .lock()
+            .unwrap_or_else(|e| panic!("锁不应Failed: {e}"));
         assert_eq!(sent_data.len(), 4); // 只有长度前缀 (0)
     }
 
@@ -801,13 +832,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], false);
         assert!(data["error"]
             .as_str()
-            .expect("should have error message")
+            .unwrap_or_else(|| panic!("should have error message"))
             .contains("不存在"));
     }
 
@@ -854,13 +885,16 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应Success");
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_id"], "tcp-connection-123");
 
         // 验证发送的数据包含替换后的内容
-        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
+        let sent_data = mock
+            .last_sent_data
+            .lock()
+            .unwrap_or_else(|e| panic!("锁不应Failed: {e}"));
         assert_eq!(&sent_data[..], b"Message: Hello");
     }
 
@@ -899,13 +933,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], false);
         assert!(data["error"]
             .as_str()
-            .expect("should have error")
+            .unwrap_or_else(|| panic!("should have error"))
             .contains("Unsupported"));
     }
 
@@ -934,13 +968,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], false);
         assert!(data["error"]
             .as_str()
-            .expect("should have error")
+            .unwrap_or_else(|| panic!("should have error"))
             .contains("Hex"));
     }
 
@@ -976,7 +1010,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.expect("执行应Success");
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 
@@ -1008,9 +1042,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["error-handler"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], false);
     }
 
@@ -1041,7 +1075,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("TcpSendConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("TcpSendConfig"));
     }
 
     // ========================================================================
@@ -1071,12 +1109,17 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应Success");
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         // 验证接收到响应数据
         assert!(data["received"].is_object());
-        assert!(data["received"]["size"].as_u64().unwrap() > 0);
+        assert!(
+            data["received"]["size"]
+                .as_u64()
+                .unwrap_or_else(|| panic!("expected Some"))
+                > 0
+        );
         assert!(data["timing"]["receive_ms"].as_u64().is_some());
 
         // 验证 receive 被调用
@@ -1089,19 +1132,22 @@ mod tests {
 
     #[test]
     fn test_decode_user_data_text() {
-        let result = TcpSendExecutor::decode_user_data("Hello", "text").expect("应Success");
+        let result = TcpSendExecutor::decode_user_data("Hello", "text")
+            .unwrap_or_else(|e| panic!("应Success: {e}"));
         assert_eq!(result, b"Hello".to_vec());
     }
 
     #[test]
     fn test_decode_user_data_hex() {
-        let result = TcpSendExecutor::decode_user_data("48656c6c6f", "hex").expect("应Success");
+        let result = TcpSendExecutor::decode_user_data("48656c6c6f", "hex")
+            .unwrap_or_else(|e| panic!("应Success: {e}"));
         assert_eq!(result, b"Hello".to_vec());
     }
 
     #[test]
     fn test_decode_user_data_base64() {
-        let result = TcpSendExecutor::decode_user_data("SGVsbG8=", "base64").expect("应Success");
+        let result = TcpSendExecutor::decode_user_data("SGVsbG8=", "base64")
+            .unwrap_or_else(|e| panic!("应Success: {e}"));
         assert_eq!(result, b"Hello".to_vec());
     }
 
@@ -1109,7 +1155,10 @@ mod tests {
     fn test_decode_user_data_invalid_encoding() {
         let result = TcpSendExecutor::decode_user_data("test", "json");
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Unsupported"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Unsupported"));
     }
 
     #[test]
@@ -1188,11 +1237,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应Success");
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
 
-        let sent_data = mock.last_sent_data.lock().expect("锁不应Failed");
+        let sent_data = mock
+            .last_sent_data
+            .lock()
+            .unwrap_or_else(|e| panic!("锁不应Failed: {e}"));
         assert_eq!(sent_data.len(), 8);
         assert_eq!(&sent_data[..], b"12345678");
     }
@@ -1219,9 +1271,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], false);
     }
 }

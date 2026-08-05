@@ -66,7 +66,7 @@ mod tests {
 
         let result = provider.app_data_dir();
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), expected);
+        assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), expected);
     }
 
     #[test]
@@ -76,7 +76,10 @@ mod tests {
 
         let result = provider.app_data_dir();
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains(error_msg));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains(error_msg));
     }
 
     #[test]

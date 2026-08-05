@@ -369,7 +369,8 @@ mod tests {
             ..Default::default()
         };
 
-        let mut client = KafkaClient::new(&config).expect("KafkaClient 创建应Success");
+        let mut client =
+            KafkaClient::new(&config).unwrap_or_else(|e| panic!("KafkaClient 创建应Success: {e}"));
         let cc = client.client_config();
 
         // 验证底层 ClientConfig 的关键参数已正确设置
@@ -401,7 +402,8 @@ mod tests {
             ..Default::default()
         };
 
-        let client = KafkaClient::new(&config).expect("SASL KafkaClient 创建应Success");
+        let client = KafkaClient::new(&config)
+            .unwrap_or_else(|e| panic!("SASL KafkaClient 创建应Success: {e}"));
 
         // Producer 创建应能正常构建（BaseProducer 不需要 Tokio runtime）
         assert!(
@@ -428,7 +430,8 @@ mod tests {
             ..Default::default()
         };
 
-        let client = KafkaClient::new(&config).expect("SASL KafkaClient 创建应Success");
+        let client = KafkaClient::new(&config)
+            .unwrap_or_else(|e| panic!("SASL KafkaClient 创建应Success: {e}"));
 
         // StreamConsumer 需要 Tokio runtime
         assert!(
@@ -454,7 +457,8 @@ mod tests {
         };
 
         // 验证配置映射Success（KafkaClient::new 不实际连接 Kafka）
-        let client = KafkaClient::new(&config).expect("SSL KafkaClient 创建应Success");
+        let client = KafkaClient::new(&config)
+            .unwrap_or_else(|e| panic!("SSL KafkaClient 创建应Success: {e}"));
 
         // 验证 client_config 可访问
         let _ = client.client_config();

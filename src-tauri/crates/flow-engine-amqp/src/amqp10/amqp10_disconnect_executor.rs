@@ -358,9 +358,12 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, data) = result.unwrap();
+        let (next_nodes, data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["out"]);
-        assert_eq!(data.unwrap()["success"], true);
+        assert_eq!(
+            data.unwrap_or_else(|| panic!("expected Some"))["success"],
+            true
+        );
     }
 
     /// 测试：断开Failed时仍然路由到 out 端口（Failed不阻塞）
@@ -373,9 +376,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, data) = result.unwrap();
+        let (next_nodes, data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["out"]);
-        let data = data.unwrap();
+        let data = data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "断开Failed");
     }
@@ -400,7 +403,8 @@ mod tests {
             .await;
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .message
             .contains("Amqp10DisconnectConfig"));
     }
@@ -422,7 +426,10 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let data = result.unwrap().1.unwrap();
+        let data = result
+            .unwrap_or_else(|e| panic!("{e}"))
+            .1
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "my-amqp10-conn");
     }
 
@@ -445,7 +452,7 @@ mod tests {
             .execute(&node, &mut context, &connections, &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 }

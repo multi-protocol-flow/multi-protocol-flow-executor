@@ -135,9 +135,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "执行不应Failed");
-        let (next_ids, output) = result.unwrap();
+        let (next_ids, output) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_ids.is_empty(), "无连接时 next_ids 为空");
-        let output = output.expect("应有输出数据");
+        let output = output.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(output["mapped_count"], 2);
         assert_eq!(output["mappings_applied"], true);
 
@@ -148,7 +148,10 @@ mod tests {
             .iter()
             .find(|v| v.name == "status_code");
         assert!(status_var.is_some(), "status_code 变量应存在");
-        assert_eq!(status_var.unwrap().value, serde_json::json!(200));
+        assert_eq!(
+            status_var.unwrap_or_else(|| panic!("expected Some")).value,
+            serde_json::json!(200)
+        );
 
         let token_var = context
             .variables
@@ -156,7 +159,10 @@ mod tests {
             .iter()
             .find(|v| v.name == "auth_token");
         assert!(token_var.is_some(), "auth_token 变量应存在");
-        assert_eq!(token_var.unwrap().value, serde_json::json!("abc"));
+        assert_eq!(
+            token_var.unwrap_or_else(|| panic!("expected Some")).value,
+            serde_json::json!("abc")
+        );
     }
 
     /// 测试：无上游输出且未指定 `source_node_id` → 返回Error
@@ -179,7 +185,9 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        let err = result.unwrap_err();
+        let err = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(
             err.message.contains("没有上游节点输出可提取"),
             "Error信息应提示无上游输出: {}",
@@ -207,7 +215,9 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        let err = result.unwrap_err();
+        let err = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(
             err.message.contains("未找到节点 nonexistent 的执行结果"),
             "Error信息应提示节点未找到: {}",
@@ -268,7 +278,7 @@ mod tests {
             .find(|v| v.name == "extracted_token");
         assert!(token_var.is_some(), "extracted_token 变量应存在");
         assert_eq!(
-            token_var.unwrap().value,
+            token_var.unwrap_or_else(|| panic!("expected Some")).value,
             serde_json::json!("from-http-node")
         );
     }
@@ -300,7 +310,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_ids, _) = result.unwrap();
+        let (next_ids, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_ids, vec!["next-node"]);
     }
 }

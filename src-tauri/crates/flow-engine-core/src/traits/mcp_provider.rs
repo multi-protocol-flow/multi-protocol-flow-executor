@@ -181,11 +181,12 @@ mod tests {
             input_schema: Some(serde_json::json!({"type": "object"})),
         };
 
-        let json = serde_json::to_string(&info).expect("序列化应Success");
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("get_weather"));
         assert!(json.contains("获取天气信息"));
 
-        let deserialized: McpToolInfo = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: McpToolInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.name, "get_weather");
         assert_eq!(deserialized.description, Some("获取天气信息".to_string()));
     }
@@ -199,8 +200,9 @@ mod tests {
             mime_type: Some("application/json".to_string()),
         };
 
-        let json = serde_json::to_string(&info).expect("序列化应Success");
-        let deserialized: McpResourceInfo = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: McpResourceInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.uri, "file:///data/config.json");
         assert_eq!(deserialized.mime_type, Some("application/json".to_string()));
     }
@@ -212,8 +214,9 @@ mod tests {
             version: Some("1.0.0".to_string()),
         };
 
-        let json = serde_json::to_string(&info).expect("序列化应Success");
-        let deserialized: McpServerInfo = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: McpServerInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.name, "test-server");
         assert_eq!(deserialized.version, Some("1.0.0".to_string()));
     }
@@ -237,11 +240,11 @@ mod tests {
             transport: McpTransportMode::StreamableHttp,
         };
 
-        let json = serde_json::to_string(&info).expect("序列化应Success");
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("conn-1"));
 
         let deserialized: McpConnectionInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.connection_id, "conn-1");
         assert_eq!(deserialized.tools.len(), 1);
         assert!(deserialized.resources.is_empty());
@@ -257,9 +260,10 @@ mod tests {
             timing_ms: 150,
         };
 
-        let json = serde_json::to_string(&result).expect("序列化应Success");
+        let json =
+            serde_json::to_string(&result).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         let deserialized: McpToolCallResult =
-            serde_json::from_str(&json).expect("反序列化应Success");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert!(!deserialized.is_error);
         assert_eq!(deserialized.timing_ms, 150);
         assert_eq!(deserialized.content.len(), 1);
@@ -272,9 +276,10 @@ mod tests {
             timing_ms: 80,
         };
 
-        let json = serde_json::to_string(&result).expect("序列化应Success");
+        let json =
+            serde_json::to_string(&result).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         let deserialized: McpResourceReadResult =
-            serde_json::from_str(&json).expect("反序列化应Success");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.timing_ms, 80);
         assert_eq!(deserialized.contents.len(), 1);
     }

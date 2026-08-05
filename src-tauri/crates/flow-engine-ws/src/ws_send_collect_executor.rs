@@ -981,13 +981,13 @@ mod tests {
 
         // 应该返回 Ok，但包含Error数据（连接不存在）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert!(data["error"]
             .as_str()
-            .unwrap()
+            .unwrap_or_else(|| panic!("expected Some"))
             .contains("Connection not found"));
     }
     #[tokio::test]
@@ -1022,13 +1022,13 @@ mod tests {
 
         // 应该返回 Ok，但包含Error数据（连接不存在），变量替换正常工作
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert!(data["error"]
             .as_str()
-            .unwrap()
+            .unwrap_or_else(|| panic!("expected Some"))
             .contains("Connection not found"));
     }
     #[tokio::test]
@@ -1065,13 +1065,13 @@ mod tests {
 
         // 应该返回 Ok，但包含Error数据（连接不存在）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert!(data["error"]
             .as_str()
-            .unwrap()
+            .unwrap_or_else(|| panic!("expected Some"))
             .contains("Connection not found"));
     }
     #[tokio::test]
@@ -1111,13 +1111,13 @@ mod tests {
 
         // 应该返回 Ok，但包含Error数据（连接不存在）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert!(data["error"]
             .as_str()
-            .unwrap()
+            .unwrap_or_else(|| panic!("expected Some"))
             .contains("Connection not found"));
     }
     #[tokio::test]
@@ -1154,13 +1154,13 @@ mod tests {
 
         // 应该返回 Ok，但包含Error数据（连接不存在）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert!(data["error"]
             .as_str()
-            .unwrap()
+            .unwrap_or_else(|| panic!("expected Some"))
             .contains("Connection not found"));
     }
     #[tokio::test]
@@ -1197,13 +1197,13 @@ mod tests {
 
         // 应该返回 Ok，但包含Error数据（连接不存在）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert!(data["error"]
             .as_str()
-            .unwrap()
+            .unwrap_or_else(|| panic!("expected Some"))
             .contains("Connection not found"));
     }
     #[tokio::test]
@@ -1247,7 +1247,7 @@ mod tests {
                     // 没有连接时返回端口名称
                     assert_eq!(next_nodes, vec!["true".to_string()]);
                     assert!(output_data.is_some());
-                    let data = output_data.unwrap();
+                    let data = output_data.unwrap_or_else(|| panic!("expected Some"));
                     assert_eq!(data["connection_id"], "echo-conn");
                     assert_eq!(data["sent"]["data"], "Hello, WebSocket!");
                     assert_eq!(data["sent"]["type"], "text");
@@ -1326,7 +1326,7 @@ mod tests {
                     // 没有连接时返回端口名称
                     assert_eq!(next_nodes, vec!["true".to_string()]);
                     assert!(output_data.is_some());
-                    let data = output_data.unwrap();
+                    let data = output_data.unwrap_or_else(|| panic!("expected Some"));
                     assert_eq!(data["connection_id"], "echo-conn-2");
                     assert_eq!(data["sent"]["data"], "Test Message");
                     assert!(data["message"]["data"].is_string());
@@ -1368,13 +1368,13 @@ mod tests {
                 10,
                 Some(5),
             )
-            .expect("Failed to build output data")
-            .expect("Should return Some");
+            .unwrap_or_else(|e| panic!("Failed to build output data: {e}"))
+            .unwrap_or_else(|| panic!("Should return Some"));
 
         // 验证 collected_messages 数组
         let collected_arr = result["collected_messages"]
             .as_array()
-            .expect("Should be an array");
+            .unwrap_or_else(|| panic!("Should be an array"));
         assert_eq!(collected_arr.len(), 1, "FirstMatch 应返回 1 条消息");
         assert_eq!(collected_arr[0]["data"], "hello world");
         assert_eq!(collected_arr[0]["type"], "text");
@@ -1414,13 +1414,13 @@ mod tests {
                 10,
                 Some(50),
             )
-            .expect("Failed to build output data")
-            .expect("Should return Some");
+            .unwrap_or_else(|e| panic!("Failed to build output data: {e}"))
+            .unwrap_or_else(|| panic!("Should return Some"));
 
         // 验证 collected_messages 包含所有消息
         let collected_arr = result["collected_messages"]
             .as_array()
-            .expect("Should be an array");
+            .unwrap_or_else(|| panic!("Should be an array"));
         assert_eq!(collected_arr.len(), 3, "ConditionMatch 应返回所有消息");
         assert_eq!(
             collected_arr[0]["data"],
@@ -1479,13 +1479,13 @@ mod tests {
                 5,
                 Some(2000),
             )
-            .expect("Failed to build output data")
-            .expect("Should return Some");
+            .unwrap_or_else(|e| panic!("Failed to build output data: {e}"))
+            .unwrap_or_else(|| panic!("Should return Some"));
 
         // 验证 collected_messages 包含所有 4 条消息
         let collected_arr = result["collected_messages"]
             .as_array()
-            .expect("Should be an array");
+            .unwrap_or_else(|| panic!("Should be an array"));
         assert_eq!(collected_arr.len(), 4, "DurationCollect 应返回所有消息");
         assert_eq!(collected_arr[0]["data"], "msg1");
         assert_eq!(collected_arr[1]["data"], "msg2");
@@ -1517,13 +1517,13 @@ mod tests {
                 10,
                 Some(10000),
             )
-            .expect("Failed to build output data")
-            .expect("Should return Some");
+            .unwrap_or_else(|e| panic!("Failed to build output data: {e}"))
+            .unwrap_or_else(|| panic!("Should return Some"));
 
         // 验证 collected_messages 为空数组
         let collected_arr = result["collected_messages"]
             .as_array()
-            .expect("Should be an array");
+            .unwrap_or_else(|| panic!("Should be an array"));
         assert_eq!(collected_arr.len(), 0, "超时时应返回空数组");
 
         // 验证 matched_message 为 null
@@ -1559,8 +1559,8 @@ mod tests {
                 10,
                 Some(5),
             )
-            .expect("Failed to build output data")
-            .expect("Should return Some");
+            .unwrap_or_else(|e| panic!("Failed to build output data: {e}"))
+            .unwrap_or_else(|| panic!("Should return Some"));
 
         // 验证 $.collected_messages[0].data 路径可以提取值
         let value = flow_engine_core::utils::extract_value_by_path(
@@ -1571,7 +1571,10 @@ mod tests {
             value.is_some(),
             "$.collected_messages[0].data 应该能提取到值"
         );
-        assert_eq!(value.expect("Value does not exist"), r#"{"status":"ok"}"#);
+        assert_eq!(
+            value.unwrap_or_else(|| panic!("Value does not exist")),
+            r#"{"status":"ok"}"#
+        );
 
         // 验证 $.collected_messages[1].data 路径
         let value2 = flow_engine_core::utils::extract_value_by_path(
@@ -1583,21 +1586,21 @@ mod tests {
             "$.collected_messages[1].data 应该能提取到值"
         );
         assert_eq!(
-            value2.expect("Value does not exist"),
+            value2.unwrap_or_else(|| panic!("Value does not exist")),
             r#"{"status":"done"}"#
         );
 
         // 验证 $.message_count 路径
         let count = flow_engine_core::utils::extract_value_by_path(&output_data, "$.message_count");
         assert!(count.is_some());
-        assert_eq!(count.expect("Value does not exist"), 2);
+        assert_eq!(count.unwrap_or_else(|| panic!("Value does not exist")), 2);
 
         // 验证 $.matched_message.data 路径
         let matched =
             flow_engine_core::utils::extract_value_by_path(&output_data, "$.matched_message.data");
         assert!(matched.is_some());
         assert_eq!(
-            matched.expect("Value does not exist"),
+            matched.unwrap_or_else(|| panic!("Value does not exist")),
             r#"{"status":"done"}"#
         );
     }

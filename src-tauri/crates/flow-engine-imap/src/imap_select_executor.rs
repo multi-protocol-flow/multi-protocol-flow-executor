@@ -424,9 +424,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["exists"], 42);
     }
@@ -453,6 +453,10 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("ImapSelectConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("ImapSelectConfig"));
     }
 }

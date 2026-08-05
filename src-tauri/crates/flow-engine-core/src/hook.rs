@@ -151,10 +151,11 @@ mod tests {
     #[test]
     fn test_hook_trigger_serialization() {
         let trigger = HookTrigger::OnSuccess;
-        let json = serde_json::to_string(&trigger).unwrap();
+        let json = serde_json::to_string(&trigger).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "\"on_success\"");
 
-        let deserialized: HookTrigger = serde_json::from_str(&json).unwrap();
+        let deserialized: HookTrigger =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, HookTrigger::OnSuccess);
     }
 
@@ -167,8 +168,8 @@ mod tests {
             HookTrigger::OnComplete,
         ];
         for trigger in &triggers {
-            let json = serde_json::to_string(trigger).unwrap();
-            let back: HookTrigger = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(trigger).unwrap_or_else(|e| panic!("{e}"));
+            let back: HookTrigger = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(*trigger, back);
         }
     }
@@ -186,11 +187,11 @@ mod tests {
             body_template: Some(r#"{"status":"{{status}}"}"#.to_string()),
             timeout_ms: Some(5000),
         };
-        let json = serde_json::to_string(&action).unwrap();
+        let json = serde_json::to_string(&action).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"webhook\""));
         assert!(json.contains("\"url\":\"https://example.com/hook\""));
 
-        let back: HookAction = serde_json::from_str(&json).unwrap();
+        let back: HookAction = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(action, back);
     }
 
@@ -200,10 +201,10 @@ mod tests {
             code: "console.log('hello')".to_string(),
             timeout_ms: Some(10000),
         };
-        let json = serde_json::to_string(&action).unwrap();
+        let json = serde_json::to_string(&action).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"script\""));
 
-        let back: HookAction = serde_json::from_str(&json).unwrap();
+        let back: HookAction = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(action, back);
     }
 
@@ -213,10 +214,10 @@ mod tests {
             title_template: "流程 {{flow_name}} 完成".to_string(),
             message_template: "Status: {{status}}, Duration: {{duration_ms}}ms".to_string(),
         };
-        let json = serde_json::to_string(&action).unwrap();
+        let json = serde_json::to_string(&action).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"notify\""));
 
-        let back: HookAction = serde_json::from_str(&json).unwrap();
+        let back: HookAction = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(action, back);
     }
 
@@ -289,8 +290,8 @@ mod tests {
             },
         };
 
-        let json = serde_json::to_string(&hook).unwrap();
-        let back: FlowHook = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&hook).unwrap_or_else(|e| panic!("{e}"));
+        let back: FlowHook = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(hook, back);
     }
 
@@ -304,7 +305,8 @@ mod tests {
             "connections": []
         }"#;
 
-        let val: serde_json::Value = serde_json::from_str(flow_json).unwrap();
+        let val: serde_json::Value =
+            serde_json::from_str(flow_json).unwrap_or_else(|e| panic!("{e}"));
         assert!(val.get("hooks").is_none());
     }
 
@@ -317,11 +319,11 @@ mod tests {
             body_template: None,
             timeout_ms: None,
         };
-        let json = serde_json::to_string(&action).unwrap();
+        let json = serde_json::to_string(&action).unwrap_or_else(|e| panic!("{e}"));
         assert!(!json.contains("body_template"));
         assert!(!json.contains("timeout_ms"));
 
-        let back: HookAction = serde_json::from_str(&json).unwrap();
+        let back: HookAction = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(action, back);
     }
 

@@ -381,10 +381,10 @@ mod tests {
 
         // 应该返回 false 端口（没有 proto 文件）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
     }
 
@@ -407,10 +407,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         // 验证变量替换生效（URL 中包含替换后的值）
         assert_eq!(data["url"], "http://localhost:50051");
@@ -440,7 +440,11 @@ mod tests {
 
         // 应该返回Error
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("GrpcConnectConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("GrpcConnectConfig"));
     }
 
     #[tokio::test]
@@ -495,9 +499,9 @@ message GetUserResponse {
         // 所以即使地址不可路由，proto 解析通过后连接可能返回Success。
         // 这里只验证执行器不会崩溃，且返回有效的结构化输出。
         assert!(result.is_ok());
-        let (_next_nodes, output_data) = result.unwrap();
+        let (_next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 验证输出结构完整
         assert!(data.get("success").is_some());
         assert!(data.get("connection_id").is_some() || data.get("url").is_some());

@@ -1197,7 +1197,7 @@ mod tests {
         });
         let report = plugin.build_report_input(&config);
         assert!(report.is_some());
-        let report = report.unwrap();
+        let report = report.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(report["host"], "127.0.0.1");
         assert_eq!(report["port"], 8080);
         assert_eq!(report["use_tls"], false);
@@ -1273,7 +1273,9 @@ mod tests {
             "framing_mode": { "LengthPrefix": { "prefix_bytes": 4 } },
             "send_timeout_ms": 30000,
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["data_encoding"], "text");
         assert_eq!(report["send_timeout_ms"], 30000);
@@ -1359,7 +1361,9 @@ mod tests {
             "receive_timeout_ms": 5000,
             "framing_mode": { "LengthPrefix": { "prefix_bytes": 4 } },
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["receive_timeout_ms"], 5000);
     }
@@ -1424,7 +1428,9 @@ mod tests {
             "connection_id": "conn-1",
             "close_timeout_ms": 5000,
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["close_timeout_ms"], 5000);
     }
@@ -1487,7 +1493,9 @@ mod tests {
             "local_port": 8080,
             "reuse_addr": true,
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["local_addr"], "0.0.0.0");
         assert_eq!(report["local_port"], 8080);
     }
@@ -1550,7 +1558,9 @@ mod tests {
             "target_port": 9090,
             "send_timeout_ms": 30000,
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["target_addr"], "127.0.0.1");
         assert_eq!(report["send_timeout_ms"], 30000);
@@ -1609,7 +1619,9 @@ mod tests {
             "receive_timeout_ms": 5000,
             "max_size": 65536,
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["receive_timeout_ms"], 5000);
     }
@@ -1663,7 +1675,9 @@ mod tests {
         let config = serde_json::json!({
             "connection_id": "conn-1",
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
     }
 

@@ -324,7 +324,7 @@ mod tests {
             message_count: 5,
         };
 
-        let json = serde_json::to_string(&summary).expect("序列化Failed");
+        let json = serde_json::to_string(&summary).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("node-1"));
         assert!(json.contains("Connect Node"));
         assert!(json.contains("ws_connect"));
@@ -348,7 +348,7 @@ mod tests {
             }],
         };
 
-        let json = serde_json::to_string(&summary).expect("序列化Failed");
+        let json = serde_json::to_string(&summary).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("conn-1"));
         assert!(json.contains("wss://example.com/ws"));
         assert!(json.contains("total_received"));
@@ -374,7 +374,7 @@ mod tests {
                     content: format!("msg-{}", i),
                 },
             );
-            segment.push_message(msg).unwrap();
+            segment.push_message(msg).unwrap_or_else(|e| panic!("{e}"));
         }
 
         let summary = WsSegmentSummary::from(&segment);
@@ -405,7 +405,7 @@ mod tests {
                 content: "hello".to_string(),
             },
         );
-        stream.push_message(sent_msg).unwrap();
+        stream.push_message(sent_msg).unwrap_or_else(|e| panic!("{e}"));
 
         // 添加接收消息
         let received_msg = WsMessage::new(
@@ -414,7 +414,7 @@ mod tests {
                 content: "world".to_string(),
             },
         );
-        stream.push_message(received_msg).unwrap();
+        stream.push_message(received_msg).unwrap_or_else(|e| panic!("{e}"));
 
         let summary = WsStreamSummary::from(&stream);
 
@@ -448,7 +448,7 @@ mod tests {
                     content: format!("msg-{}", i),
                 },
             );
-            stream.push_message(msg).unwrap();
+            stream.push_message(msg).unwrap_or_else(|e| panic!("{e}"));
         }
 
         // 转移所有权
@@ -465,7 +465,7 @@ mod tests {
                 content: "response".to_string(),
             },
         );
-        stream.push_message(msg).unwrap();
+        stream.push_message(msg).unwrap_or_else(|e| panic!("{e}"));
 
         let summary = WsStreamSummary::from(&stream);
 
@@ -551,7 +551,7 @@ mod tests {
     #[test]
     fn test_execution_status_cancelled_serialization() {
         let status = ExecutionStatus::Cancelled;
-        let json = serde_json::to_string(&status).expect("序列化Failed");
+        let json = serde_json::to_string(&status).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(
             json.contains("cancelled"),
             "Cancelled 应序列化为 'cancelled'"
@@ -644,7 +644,7 @@ mod tests {
             "skipped_nodes": []
         }"#;
 
-        let report: FlowExecutionReport = serde_json::from_str(json).expect("反序列化Failed");
+        let report: FlowExecutionReport = serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(report.uuid, "report-bc-001");
         assert!(report.flow_snapshot.is_none());
     }

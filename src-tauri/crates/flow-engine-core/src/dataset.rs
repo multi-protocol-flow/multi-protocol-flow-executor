@@ -136,8 +136,9 @@ mod tests {
             delimiter: Some(','),
             has_headers: true,
         };
-        let json = serde_json::to_string(&config).expect("序列化Failed");
-        let deserialized: DatasetConfig = serde_json::from_str(&json).expect("反序列化Failed");
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let deserialized: DatasetConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(config.path, deserialized.path);
         assert_eq!(config.encoding, deserialized.encoding);
         assert_eq!(config.delimiter, deserialized.delimiter);
@@ -157,7 +158,8 @@ mod tests {
     fn test_dataset_config_minimal_json() {
         // 只提供必填字段，可选字段应有默认值
         let json = r#"{"path":"/data/test.csv"}"#;
-        let config: DatasetConfig = serde_json::from_str(json).expect("反序列化Failed");
+        let config: DatasetConfig =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(config.path, "/data/test.csv");
         assert!(config.encoding.is_none());
         assert!(config.delimiter.is_none());
@@ -172,9 +174,10 @@ mod tests {
             DataPickStrategy::Unique,
         ];
         for strategy in strategies {
-            let json = serde_json::to_string(&strategy).expect("序列化Failed");
+            let json =
+                serde_json::to_string(&strategy).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
             let deserialized: DataPickStrategy =
-                serde_json::from_str(&json).expect("反序列化Failed");
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
             assert_eq!(strategy, deserialized);
         }
     }
@@ -182,15 +185,18 @@ mod tests {
     #[test]
     fn test_data_pick_strategy_snake_case() {
         let json = r#""round_robin""#;
-        let strategy: DataPickStrategy = serde_json::from_str(json).expect("反序列化Failed");
+        let strategy: DataPickStrategy =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(strategy, DataPickStrategy::RoundRobin);
 
         let json = r#""random""#;
-        let strategy: DataPickStrategy = serde_json::from_str(json).expect("反序列化Failed");
+        let strategy: DataPickStrategy =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(strategy, DataPickStrategy::Random);
 
         let json = r#""unique""#;
-        let strategy: DataPickStrategy = serde_json::from_str(json).expect("反序列化Failed");
+        let strategy: DataPickStrategy =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(strategy, DataPickStrategy::Unique);
     }
 
@@ -198,8 +204,10 @@ mod tests {
     fn test_row_status_roundtrip() {
         let statuses = vec![RowStatus::Success, RowStatus::Fail, RowStatus::Error];
         for status in statuses {
-            let json = serde_json::to_string(&status).expect("序列化Failed");
-            let deserialized: RowStatus = serde_json::from_str(&json).expect("反序列化Failed");
+            let json =
+                serde_json::to_string(&status).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+            let deserialized: RowStatus =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
             assert_eq!(status, deserialized);
         }
     }
@@ -207,15 +215,18 @@ mod tests {
     #[test]
     fn test_row_status_snake_case() {
         let json = r#""success""#;
-        let status: RowStatus = serde_json::from_str(json).expect("反序列化Failed");
+        let status: RowStatus =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(status, RowStatus::Success);
 
         let json = r#""fail""#;
-        let status: RowStatus = serde_json::from_str(json).expect("反序列化Failed");
+        let status: RowStatus =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(status, RowStatus::Fail);
 
         let json = r#""error""#;
-        let status: RowStatus = serde_json::from_str(json).expect("反序列化Failed");
+        let status: RowStatus =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(status, RowStatus::Error);
     }
 
@@ -229,8 +240,10 @@ mod tests {
             error_message: None,
             has_detail_report: false,
         };
-        let json_str = serde_json::to_string(&summary).expect("序列化Failed");
-        let deserialized: RowSummary = serde_json::from_str(&json_str).expect("反序列化Failed");
+        let json_str =
+            serde_json::to_string(&summary).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let deserialized: RowSummary =
+            serde_json::from_str(&json_str).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(summary.row_index, deserialized.row_index);
         assert_eq!(summary.status, deserialized.status);
         assert_eq!(summary.duration_ms, deserialized.duration_ms);
@@ -248,8 +261,10 @@ mod tests {
             error_message: Some("连接超时".to_string()),
             has_detail_report: true,
         };
-        let json_str = serde_json::to_string(&summary).expect("序列化Failed");
-        let deserialized: RowSummary = serde_json::from_str(&json_str).expect("反序列化Failed");
+        let json_str =
+            serde_json::to_string(&summary).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let deserialized: RowSummary =
+            serde_json::from_str(&json_str).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized.error_message, Some("连接超时".to_string()));
     }
 
@@ -281,9 +296,10 @@ mod tests {
                 has_detail_report: false,
             }],
         };
-        let json_str = serde_json::to_string(&report).expect("序列化Failed");
+        let json_str =
+            serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         let deserialized: DatasetExecutionReport =
-            serde_json::from_str(&json_str).expect("反序列化Failed");
+            serde_json::from_str(&json_str).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(report.uuid, deserialized.uuid);
         assert_eq!(report.total_rows, deserialized.total_rows);
         assert_eq!(report.success_count, deserialized.success_count);
@@ -310,7 +326,8 @@ mod tests {
             "p95_duration_ms": 0,
             "p99_duration_ms": 0
         }"#;
-        let report: DatasetExecutionReport = serde_json::from_str(json).expect("反序列化Failed");
+        let report: DatasetExecutionReport =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert!(report.row_summaries.is_empty());
     }
 }

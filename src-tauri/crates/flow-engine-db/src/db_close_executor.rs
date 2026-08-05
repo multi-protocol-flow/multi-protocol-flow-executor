@@ -290,7 +290,7 @@ mod tests {
                 pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let executor = DbCloseExecutor::new(db_manager.clone());
         let node = create_test_node("test-1", "测试关闭", "conn-001");
@@ -305,11 +305,11 @@ mod tests {
 
         // 应该返回单一输出端口（Success）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["out"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_uuid"], "conn-001");
 
@@ -330,11 +330,11 @@ mod tests {
 
         // 关闭不存在的连接池也应该Success（幂等操作）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["out"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_uuid"], "conn-002");
     }
@@ -352,11 +352,11 @@ mod tests {
 
         // 空 UUID 时跳过关闭，返回Success
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["out"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["skipped"], true);
     }
@@ -385,7 +385,7 @@ mod tests {
 
         // 应该返回输出端口连接的目标节点
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["target-node"]);
     }
 
@@ -401,8 +401,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 timing 信息存在
         assert!(data["timing"].is_object());
@@ -434,7 +434,8 @@ mod tests {
         // 应该返回Error
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .message
             .contains("Node data type is not DbCloseConfig"));
     }

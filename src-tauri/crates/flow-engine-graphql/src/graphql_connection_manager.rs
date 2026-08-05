@@ -838,7 +838,10 @@ mod tests {
         let config = GraphqlDisconnectConfig::default();
         let result = manager.disconnect("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -869,7 +872,10 @@ mod tests {
         let config = GraphqlQueryConfig::default();
         let result = manager.query("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -878,7 +884,10 @@ mod tests {
         let config = GraphqlSubscribeConfig::default();
         let result = manager.subscribe("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -887,7 +896,10 @@ mod tests {
         let config = GraphqlIntrospectConfig::default();
         let result = manager.introspect("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     // ---- 状态显示测试 ----
@@ -1012,8 +1024,8 @@ mod tests {
             }
         });
 
-        let templates =
-            GraphqlConnectionManager::generate_templates(&schema).expect("应该生成模板");
+        let templates = GraphqlConnectionManager::generate_templates(&schema)
+            .unwrap_or_else(|| panic!("应该生成模板"));
 
         // Query 模板（排除 __internal）
         assert_eq!(
@@ -1143,7 +1155,7 @@ mod tests {
         };
         let result = manager.connect("reuse-conn", &config).await;
         assert!(result.is_ok());
-        let output = result.expect("连接应Success");
+        let output = result.unwrap_or_else(|e| panic!("连接应Success: {e}"));
         assert!(output.success);
     }
 }

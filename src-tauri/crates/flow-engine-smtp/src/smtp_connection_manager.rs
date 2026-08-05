@@ -563,14 +563,20 @@ mod tests {
     fn test_connection_manager_new() {
         let manager = SmtpConnectionManager::new();
         // 新创建的 manager 应该没有连接
-        let conns = manager.connections.try_read().unwrap();
+        let conns = manager
+            .connections
+            .try_read()
+            .unwrap_or_else(|e| panic!("{e}"));
         assert!(conns.is_empty());
     }
 
     #[test]
     fn test_connection_manager_default() {
         let manager = SmtpConnectionManager::default();
-        let conns = manager.connections.try_read().unwrap();
+        let conns = manager
+            .connections
+            .try_read()
+            .unwrap_or_else(|e| panic!("{e}"));
         assert!(conns.is_empty());
     }
 
@@ -622,16 +628,19 @@ mod tests {
     fn test_decrypt_password_empty() {
         let result = SmtpConnectionManager::decrypt_password("");
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "");
+        assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), "");
     }
 
     #[tokio::test]
     async fn test_disconnect_nonexistent_connection() {
         let manager = SmtpConnectionManager::new();
         let result = manager.disconnect("non-existent").await;
-        let output = result.unwrap();
+        let output = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(!output.success);
-        assert!(output.error.unwrap().contains("不存在"));
+        assert!(output
+            .error
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -652,7 +661,10 @@ mod tests {
             )
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[test]
@@ -695,7 +707,10 @@ mod tests {
 
         let result = SmtpConnectionManager::build_attachment_part(&attachment);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("解码附件 base64 Failed"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("解码附件 base64 Failed"));
     }
 
     #[test]
@@ -719,7 +734,10 @@ mod tests {
 
         let result = SmtpConnectionManager::build_attachment_part(&attachment);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("解析附件 Content-Type Failed"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("解析附件 Content-Type Failed"));
     }
 
     #[test]

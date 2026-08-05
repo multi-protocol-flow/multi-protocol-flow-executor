@@ -599,7 +599,10 @@ mod tests {
             )
             .await;
         assert!(result2.is_err());
-        assert!(result2.unwrap_err().contains("已存在"));
+        assert!(result2
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("已存在"));
     }
 
     #[tokio::test]
@@ -615,16 +618,16 @@ mod tests {
                 pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let retrieved = manager.get_pool("conn-001").await;
         assert!(retrieved.is_some());
 
         let result = retrieved
-            .unwrap()
+            .unwrap_or_else(|| panic!("expected Some"))
             .execute("SELECT 1", vec![])
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result.rows.len(), 1);
     }
 
@@ -649,7 +652,7 @@ mod tests {
                 pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         assert_eq!(manager.pool_count().await, 1);
 
@@ -664,7 +667,10 @@ mod tests {
 
         let result = manager.close_pool("non-existent").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     /// 创建带 `MockPool` 的管理器（用于事务测试）
@@ -679,7 +685,7 @@ mod tests {
                 pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
         manager
     }
 
@@ -696,7 +702,7 @@ mod tests {
                     pool,
                 )
                 .await
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
         }
         manager
     }
@@ -716,18 +722,27 @@ mod tests {
     async fn test_begin_transaction_duplicate() {
         let manager = create_manager_with_mock_pool().await;
 
-        manager.begin_transaction("conn-001", None).await.unwrap();
+        manager
+            .begin_transaction("conn-001", None)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let result = manager.begin_transaction("conn-001", None).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("已有活跃事务"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("已有活跃事务"));
     }
 
     #[tokio::test]
     async fn test_commit_transaction_success() {
         let manager = create_manager_with_mock_pool().await;
 
-        manager.begin_transaction("conn-001", None).await.unwrap();
+        manager
+            .begin_transaction("conn-001", None)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let result = manager.commit_transaction("conn-001").await;
         assert!(result.is_ok());
@@ -742,14 +757,20 @@ mod tests {
 
         let result = manager.commit_transaction("conn-001").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("没有活跃事务"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("没有活跃事务"));
     }
 
     #[tokio::test]
     async fn test_rollback_transaction_success() {
         let manager = create_manager_with_mock_pool().await;
 
-        manager.begin_transaction("conn-001", None).await.unwrap();
+        manager
+            .begin_transaction("conn-001", None)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let result = manager.rollback_transaction("conn-001").await;
         assert!(result.is_ok());
@@ -764,19 +785,37 @@ mod tests {
 
         let result = manager.rollback_transaction("conn-001").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("没有活跃事务"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("没有活跃事务"));
     }
 
     #[tokio::test]
     async fn test_cleanup_transactions() {
         let manager = create_manager_with_multiple_mock_pools().await;
 
-        manager.begin_transaction("conn-001", None).await.unwrap();
-        manager.begin_transaction("conn-002", None).await.unwrap();
-        manager.begin_transaction("conn-003", None).await.unwrap();
+        manager
+            .begin_transaction("conn-001", None)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
+        manager
+            .begin_transaction("conn-002", None)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
+        manager
+            .begin_transaction("conn-003", None)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
-        manager.commit_transaction("conn-001").await.unwrap();
-        manager.rollback_transaction("conn-002").await.unwrap();
+        manager
+            .commit_transaction("conn-001")
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
+        manager
+            .rollback_transaction("conn-002")
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         manager.cleanup_transactions().await;
 
@@ -799,12 +838,12 @@ mod tests {
                 pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let metadata = manager.get_pool_metadata("conn-001").await;
         assert!(metadata.is_some());
 
-        let metadata = metadata.unwrap();
+        let metadata = metadata.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(metadata.connection_uuid, "conn-001");
         assert_eq!(metadata.name, "Test Connection");
         assert_eq!(metadata.db_type, "postgres");
@@ -823,7 +862,7 @@ mod tests {
                 Arc::new(MockPool::new("pool-1".to_string())),
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         manager
             .create_pool(
@@ -833,7 +872,7 @@ mod tests {
                 Arc::new(MockPool::new("pool-2".to_string())),
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let all_metadata = manager.get_all_pools_metadata().await;
         assert_eq!(all_metadata.len(), 2);
@@ -858,9 +897,12 @@ mod tests {
                 Arc::new(MockPool::new("pool-1".to_string())),
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
-        manager.begin_transaction("conn-001", None).await.unwrap();
+        manager
+            .begin_transaction("conn-001", None)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         assert_eq!(manager.pool_count().await, 1);
 
@@ -883,13 +925,16 @@ mod tests {
                 pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         manager
             .set_pool_error("conn-001", "Connection failed")
             .await;
 
-        let metadata = manager.get_pool_metadata("conn-001").await.unwrap();
+        let metadata = manager
+            .get_pool_metadata("conn-001")
+            .await
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(metadata.last_error, Some("Connection failed".to_string()));
         assert!(!metadata.is_available);
     }
@@ -907,7 +952,7 @@ mod tests {
                 pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         manager
             .set_pool_error("conn-001", "Connection failed")
@@ -915,7 +960,10 @@ mod tests {
 
         manager.clear_pool_error("conn-001").await;
 
-        let metadata = manager.get_pool_metadata("conn-001").await.unwrap();
+        let metadata = manager
+            .get_pool_metadata("conn-001")
+            .await
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(metadata.last_error, None);
         assert!(metadata.is_available);
     }
@@ -932,7 +980,7 @@ mod tests {
                 Arc::new(MockPool::new("pool-1".to_string())),
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         manager
             .create_pool(
@@ -942,7 +990,7 @@ mod tests {
                 Arc::new(MockPool::new("pool-2".to_string())),
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         assert_eq!(manager.pool_count().await, 2);
         assert_eq!(manager.active_pool_count().await, 2);
@@ -1025,8 +1073,9 @@ mod tests {
             is_available: false,
         };
 
-        let json = serde_json::to_string(&metadata).unwrap();
-        let deserialized: PoolMetadata = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&metadata).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: PoolMetadata =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
 
         assert_eq!(deserialized.connection_uuid, "conn-001");
         assert_eq!(deserialized.name, "Test Pool");
@@ -1037,7 +1086,10 @@ mod tests {
     async fn test_mock_pool_execute() {
         let pool = MockPool::new("test".to_string());
 
-        let result = pool.execute("SELECT 1", vec![]).await.unwrap();
+        let result = pool
+            .execute("SELECT 1", vec![])
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result.rows.len(), 1);
         assert_eq!(result.row_count, 1);
 

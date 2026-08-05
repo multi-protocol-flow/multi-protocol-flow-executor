@@ -216,7 +216,10 @@ mod tests {
             .iter()
             .find(|v| v.name == "status_code");
         assert!(status_var.is_some());
-        assert_eq!(status_var.unwrap().value, serde_json::json!(200));
+        assert_eq!(
+            status_var.unwrap_or_else(|| panic!("expected Some")).value,
+            serde_json::json!(200)
+        );
 
         let token_var = context
             .variables
@@ -224,7 +227,10 @@ mod tests {
             .iter()
             .find(|v| v.name == "auth_token");
         assert!(token_var.is_some());
-        assert_eq!(token_var.unwrap().value, serde_json::json!("abc"));
+        assert_eq!(
+            token_var.unwrap_or_else(|| panic!("expected Some")).value,
+            serde_json::json!("abc")
+        );
     }
 
     #[test]

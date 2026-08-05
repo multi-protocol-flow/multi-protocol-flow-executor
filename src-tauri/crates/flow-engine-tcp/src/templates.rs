@@ -323,7 +323,7 @@ mod tests {
 
     #[test]
     fn test_get_template_redis_resp() {
-        let t = get_template("redis_resp").expect("应找到 redis_resp 模板");
+        let t = get_template("redis_resp").unwrap_or_else(|| panic!("应找到 redis_resp 模板"));
         assert_eq!(t.name, "Redis RESP");
         assert_eq!(t.category, "cache");
         assert!(t.parser_config.is_some());
@@ -331,7 +331,7 @@ mod tests {
 
     #[test]
     fn test_get_template_custom_tlv() {
-        let t = get_template("custom_tlv").expect("应找到 custom_tlv 模板");
+        let t = get_template("custom_tlv").unwrap_or_else(|| panic!("应找到 custom_tlv 模板"));
         assert_eq!(t.name, "Custom TLV");
         assert_eq!(t.category, "binary");
         assert!(t.parser_config.is_some());
@@ -339,21 +339,21 @@ mod tests {
 
     #[test]
     fn test_get_template_fixed_header() {
-        let t = get_template("fixed_header").expect("应找到 fixed_header 模板");
+        let t = get_template("fixed_header").unwrap_or_else(|| panic!("应找到 fixed_header 模板"));
         assert_eq!(t.name, "Fixed Header");
         assert!(t.parser_config.is_some());
     }
 
     #[test]
     fn test_get_template_http_like() {
-        let t = get_template("http_like").expect("应找到 http_like 模板");
+        let t = get_template("http_like").unwrap_or_else(|| panic!("应找到 http_like 模板"));
         assert_eq!(t.name, "HTTP-like");
         assert!(t.parser_config.is_some());
     }
 
     #[test]
     fn test_get_template_blank() {
-        let t = get_template("blank").expect("应找到 blank 模板");
+        let t = get_template("blank").unwrap_or_else(|| panic!("应找到 blank 模板"));
         assert_eq!(t.name, "Blank");
         assert!(t.parser_config.is_none());
         assert!(t.example_data_hex.is_none());
@@ -369,41 +369,41 @@ mod tests {
 
     #[test]
     fn test_roundtrip_redis_resp() {
-        let original = get_template("redis_resp").expect("应找到模板");
-        let json = export_template(&original).expect("导出应Success");
-        let restored = load_template(&json).expect("加载应Success");
+        let original = get_template("redis_resp").unwrap_or_else(|| panic!("应找到模板"));
+        let json = export_template(&original).unwrap_or_else(|e| panic!("导出应Success: {e}"));
+        let restored = load_template(&json).unwrap_or_else(|e| panic!("加载应Success: {e}"));
         assert_eq!(original, restored);
     }
 
     #[test]
     fn test_roundtrip_custom_tlv() {
-        let original = get_template("custom_tlv").expect("应找到模板");
-        let json = export_template(&original).expect("导出应Success");
-        let restored = load_template(&json).expect("加载应Success");
+        let original = get_template("custom_tlv").unwrap_or_else(|| panic!("应找到模板"));
+        let json = export_template(&original).unwrap_or_else(|e| panic!("导出应Success: {e}"));
+        let restored = load_template(&json).unwrap_or_else(|e| panic!("加载应Success: {e}"));
         assert_eq!(original, restored);
     }
 
     #[test]
     fn test_roundtrip_fixed_header() {
-        let original = get_template("fixed_header").expect("应找到模板");
-        let json = export_template(&original).expect("导出应Success");
-        let restored = load_template(&json).expect("加载应Success");
+        let original = get_template("fixed_header").unwrap_or_else(|| panic!("应找到模板"));
+        let json = export_template(&original).unwrap_or_else(|e| panic!("导出应Success: {e}"));
+        let restored = load_template(&json).unwrap_or_else(|e| panic!("加载应Success: {e}"));
         assert_eq!(original, restored);
     }
 
     #[test]
     fn test_roundtrip_http_like() {
-        let original = get_template("http_like").expect("应找到模板");
-        let json = export_template(&original).expect("导出应Success");
-        let restored = load_template(&json).expect("加载应Success");
+        let original = get_template("http_like").unwrap_or_else(|| panic!("应找到模板"));
+        let json = export_template(&original).unwrap_or_else(|e| panic!("导出应Success: {e}"));
+        let restored = load_template(&json).unwrap_or_else(|e| panic!("加载应Success: {e}"));
         assert_eq!(original, restored);
     }
 
     #[test]
     fn test_roundtrip_blank() {
-        let original = get_template("blank").expect("应找到模板");
-        let json = export_template(&original).expect("导出应Success");
-        let restored = load_template(&json).expect("加载应Success");
+        let original = get_template("blank").unwrap_or_else(|| panic!("应找到模板"));
+        let json = export_template(&original).unwrap_or_else(|e| panic!("导出应Success: {e}"));
+        let restored = load_template(&json).unwrap_or_else(|e| panic!("加载应Success: {e}"));
         assert_eq!(original, restored);
     }
 
@@ -413,7 +413,9 @@ mod tests {
     fn test_load_template_invalid_json() {
         let result = load_template("not json at all");
         assert!(result.is_err());
-        let err = result.expect_err("should return error");
+        let err = result
+            .err()
+            .unwrap_or_else(|| panic!("should return error"));
         assert!(
             err.contains("parsing failed"),
             "error should contain 'parsing failed', actual: {}",
@@ -432,10 +434,10 @@ mod tests {
     #[test]
     fn test_export_template_is_valid_json() {
         for template in builtin_templates() {
-            let json = export_template(&template).expect("导出应Success");
+            let json = export_template(&template).unwrap_or_else(|e| panic!("导出应Success: {e}"));
             // 验证导出的 JSON 可以重新解析
-            let reparsed: serde_json::Value =
-                serde_json::from_str(&json).expect("导出结果应为有效 JSON");
+            let reparsed: serde_json::Value = serde_json::from_str(&json)
+                .unwrap_or_else(|e| panic!("导出结果应为有效 JSON: {e}"));
             assert!(reparsed.is_object());
             assert_eq!(reparsed["id"], template.id);
         }
@@ -443,9 +445,10 @@ mod tests {
 
     #[test]
     fn test_export_template_contains_expected_keys() {
-        let t = get_template("redis_resp").expect("应找到模板");
-        let json = export_template(&t).expect("导出应Success");
-        let val: serde_json::Value = serde_json::from_str(&json).expect("应有效 JSON");
+        let t = get_template("redis_resp").unwrap_or_else(|| panic!("应找到模板"));
+        let json = export_template(&t).unwrap_or_else(|e| panic!("导出应Success: {e}"));
+        let val: serde_json::Value =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("应有效 JSON: {e}"));
 
         assert!(val.get("id").is_some());
         assert!(val.get("name").is_some());
@@ -468,8 +471,9 @@ mod tests {
             offset: Some(4),
             length: Some(2),
         };
-        let json = serde_json::to_string(&field).expect("序列化应Success");
-        let restored: FieldDescription = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&field).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let restored: FieldDescription =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(field, restored);
     }
 
@@ -482,8 +486,9 @@ mod tests {
             offset: Some(0),
             length: None,
         };
-        let json = serde_json::to_string(&field).expect("序列化应Success");
-        let restored: FieldDescription = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&field).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let restored: FieldDescription =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(field, restored);
         assert!(restored.length.is_none());
     }

@@ -496,7 +496,7 @@ mod tests {
         });
         let report = plugin.build_report_input(&config);
         assert!(report.is_some());
-        let report = report.unwrap();
+        let report = report.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(report["url"], "http://localhost:50051");
         assert_eq!(report["use_tls"], true);
     }
@@ -557,7 +557,7 @@ mod tests {
         });
         let report = plugin.build_report_input(&config);
         assert!(report.is_some());
-        let report = report.unwrap();
+        let report = report.unwrap_or_else(|| panic!("expected Some"));
         // 验证新字段包含在报告输入中
         assert!(
             report.get("request_messages").is_some(),
@@ -669,7 +669,9 @@ mod tests {
             "default_metadata": [{"key": "auth", "value": "Bearer test"}],
             "connect_timeout_ms": 5000,
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["url"], "http://localhost:50051");
         assert_eq!(report["enable_reflection"], true);
         assert_eq!(report["connect_timeout_ms"], 5000);
@@ -679,7 +681,9 @@ mod tests {
     fn test_close_build_report_input() {
         let plugin = GrpcClosePlugin;
         let config = serde_json::json!({"connection_id": "conn-123"});
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-123");
     }
 }

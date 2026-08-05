@@ -728,7 +728,7 @@ mod tests {
 
         // 应该返回 false 端口（无效 URL）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
     }
@@ -760,10 +760,10 @@ mod tests {
 
         // 应该返回 false 端口（超时）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connected"], false);
         assert!(!data["error"].is_null());
     }
@@ -787,10 +787,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connected"], false);
     }
 
@@ -822,10 +822,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connected"], false);
     }
 
@@ -861,10 +861,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connected"], false);
     }
 
@@ -896,10 +896,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connected"], false);
     }
 
@@ -923,7 +923,7 @@ mod tests {
                 if next_nodes == vec!["true"] {
                     // 连接Success
                     assert!(output_data.is_some());
-                    let data = output_data.unwrap();
+                    let data = output_data.unwrap_or_else(|| panic!("expected Some"));
                     assert_eq!(data["connected"], true);
                     assert_eq!(data["connection_id"], "echo-test");
 
@@ -933,7 +933,7 @@ mod tests {
                         stream.is_some(),
                         "WebSocket stream should be created after successful connection"
                     );
-                    let stream = stream.unwrap();
+                    let stream = stream.unwrap_or_else(|| panic!("expected Some"));
                     assert_eq!(stream.connection_id, "echo-test");
                     assert_eq!(stream.url, "ws://localhost:19091");
                     assert_eq!(
@@ -981,7 +981,7 @@ mod tests {
                     "WebSocket stream should be created after successful connection"
                 );
 
-                let stream = stream.unwrap();
+                let stream = stream.unwrap_or_else(|| panic!("expected Some"));
                 assert_eq!(stream.connection_id, "stream-test");
                 assert_eq!(stream.url, "ws://localhost:19091");
                 assert_eq!(
@@ -1024,7 +1024,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"], "应该返回 false 端口");
 
         // 验证没有创建消息流

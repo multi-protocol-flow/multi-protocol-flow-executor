@@ -153,20 +153,21 @@ mod tests {
     #[test]
     fn test_db_driver_serialize() {
         let driver = DbDriver::Postgres;
-        let json = serde_json::to_string(&driver).unwrap();
+        let json = serde_json::to_string(&driver).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "\"postgres\"");
 
         let driver = DbDriver::Mysql;
-        let json = serde_json::to_string(&driver).unwrap();
+        let json = serde_json::to_string(&driver).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "\"mysql\"");
     }
 
     #[test]
     fn test_db_driver_deserialize() {
-        let driver: DbDriver = serde_json::from_str("\"postgres\"").unwrap();
+        let driver: DbDriver =
+            serde_json::from_str("\"postgres\"").unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(driver, DbDriver::Postgres);
 
-        let driver: DbDriver = serde_json::from_str("\"mysql\"").unwrap();
+        let driver: DbDriver = serde_json::from_str("\"mysql\"").unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(driver, DbDriver::Mysql);
     }
 
@@ -178,7 +179,7 @@ mod tests {
             "driver": "postgres"
         }"#;
 
-        let conn: DbConnection = serde_json::from_str(json).unwrap();
+        let conn: DbConnection = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(conn.id, "test-001");
         assert_eq!(conn.name, "Test Connection");
         assert_eq!(conn.driver, DbDriver::Postgres);
@@ -207,7 +208,7 @@ mod tests {
             "status": "disconnected"
         }"#;
 
-        let conn: DbConnection = serde_json::from_str(json).unwrap();
+        let conn: DbConnection = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(conn.host, Some("localhost".to_string()));
         assert_eq!(conn.port, Some(5432));
         assert_eq!(conn.database, Some("testdb".to_string()));
@@ -233,11 +234,11 @@ mod tests {
     #[test]
     fn test_db_connection_status_serialize() {
         let status = DbConnectionStatus::Connected;
-        let json = serde_json::to_string(&status).unwrap();
+        let json = serde_json::to_string(&status).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "\"connected\"");
 
         let status = DbConnectionStatus::Disconnected;
-        let json = serde_json::to_string(&status).unwrap();
+        let json = serde_json::to_string(&status).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "\"disconnected\"");
     }
 }

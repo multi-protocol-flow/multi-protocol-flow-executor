@@ -89,7 +89,10 @@ mod tests {
         // 测试查找
         let found = pool.variables.iter().find(|v| v.name == "token");
         assert!(found.is_some());
-        assert_eq!(found.unwrap().value, json!("abc123"));
+        assert_eq!(
+            found.unwrap_or_else(|| panic!("expected Some")).value,
+            json!("abc123")
+        );
 
         let not_found = pool.variables.iter().find(|v| v.name == "nonexistent");
         assert!(not_found.is_none());
@@ -105,8 +108,10 @@ mod tests {
             description: Some("API响应数据".to_string()),
         };
 
-        let json_str = serde_json::to_string(&variable).expect("序列化Failed");
-        let deserialized: Variable = serde_json::from_str(&json_str).expect("反序列化Failed");
+        let json_str =
+            serde_json::to_string(&variable).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let deserialized: Variable =
+            serde_json::from_str(&json_str).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
 
         assert_eq!(deserialized.name, variable.name);
         assert_eq!(deserialized.value, variable.value);
@@ -124,7 +129,8 @@ mod tests {
             description: None,
         };
 
-        let json_str = serde_json::to_string(&variable).expect("序列化Failed");
+        let json_str =
+            serde_json::to_string(&variable).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(!json_str.contains("description"));
     }
 
@@ -132,7 +138,8 @@ mod tests {
     fn test_output_mapping_basic() {
         // 测试 OutputMapping 基本序列化/反序列化
         let json_str = r#"{"source": "body.id", "target": "user_id"}"#;
-        let mapping: OutputMapping = serde_json::from_str(json_str).expect("反序列化Failed");
+        let mapping: OutputMapping =
+            serde_json::from_str(json_str).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
 
         assert_eq!(mapping.source, "body.id");
         assert_eq!(mapping.target, "user_id");
@@ -147,8 +154,10 @@ mod tests {
             description: Some("HTTP状态码映射".to_string()),
         };
 
-        let json_str = serde_json::to_string(&mapping).expect("序列化Failed");
-        let deserialized: OutputMapping = serde_json::from_str(&json_str).expect("反序列化Failed");
+        let json_str =
+            serde_json::to_string(&mapping).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let deserialized: OutputMapping =
+            serde_json::from_str(&json_str).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
 
         assert_eq!(deserialized.source, "status");
         assert_eq!(deserialized.target, "http_status");
@@ -180,8 +189,9 @@ mod tests {
             ],
         };
 
-        let json_str = serde_json::to_string(&pool).expect("序列化Failed");
-        let deserialized: VariablePool = serde_json::from_str(&json_str).expect("反序列化Failed");
+        let json_str = serde_json::to_string(&pool).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let deserialized: VariablePool =
+            serde_json::from_str(&json_str).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
 
         assert_eq!(deserialized.variables.len(), 2);
         assert_eq!(deserialized.variables[0].name, "var1");

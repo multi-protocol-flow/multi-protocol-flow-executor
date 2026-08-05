@@ -770,7 +770,8 @@ mod tests {
             last_tested_at: None,
         };
 
-        let conn_str = PostgresConnection::build_connection_string(&config).unwrap();
+        let conn_str =
+            PostgresConnection::build_connection_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(conn_str.contains("testuser"));
         assert!(conn_str.contains("testpass"));
         assert!(conn_str.contains("192.168.1.100"));
@@ -802,7 +803,8 @@ mod tests {
             last_tested_at: None,
         };
 
-        let conn_str = PostgresConnection::build_connection_string(&config).unwrap();
+        let conn_str =
+            PostgresConnection::build_connection_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(conn_str, "postgres://custom:pass@custom.host:9999/customdb");
     }
 
@@ -830,7 +832,8 @@ mod tests {
             last_tested_at: None,
         };
 
-        let conn_str = PostgresConnection::build_connection_string(&config).unwrap();
+        let conn_str =
+            PostgresConnection::build_connection_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(conn_str.contains("localhost"));
         assert!(conn_str.contains("5432"));
         assert!(conn_str.contains("postgres"));
@@ -860,7 +863,8 @@ mod tests {
             last_tested_at: None,
         };
 
-        let conn_str = PostgresConnection::build_connection_string(&config).unwrap();
+        let conn_str =
+            PostgresConnection::build_connection_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(conn_str.contains("appuser"));
         assert!(conn_str.contains("db.example.com"));
         assert!(conn_str.contains("myapp"));

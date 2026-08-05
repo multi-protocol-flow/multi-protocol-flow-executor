@@ -532,7 +532,7 @@ mod tests {
         // 创建内存数据库连接池
         let conn = SqliteConnection::new("test-memory".to_string(), ":memory:".to_string(), 1, 5)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         assert_eq!(conn.name(), "test-memory");
         assert_eq!(conn.connection_string(), ":memory:");
@@ -543,7 +543,7 @@ mod tests {
     async fn test_sqlite_test_connection() {
         let conn = SqliteConnection::new("test-conn".to_string(), ":memory:".to_string(), 1, 5)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 测试连接
         let result = conn.test_connection().await;
@@ -554,10 +554,13 @@ mod tests {
     async fn test_sqlite_execute_select() {
         let conn = SqliteConnection::new("test-select".to_string(), ":memory:".to_string(), 1, 5)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 执行 SELECT 1
-        let result = conn.execute("SELECT 1 AS value", vec![]).await.unwrap();
+        let result = conn
+            .execute("SELECT 1 AS value", vec![])
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result.rows.len(), 1);
         assert_eq!(result.row_count, 1);
         assert_eq!(result.columns, vec!["value"]);
@@ -568,7 +571,7 @@ mod tests {
     async fn test_sqlite_execute_insert_and_select() {
         let conn = SqliteConnection::new("test-insert".to_string(), ":memory:".to_string(), 1, 5)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 创建表
         let create_result = conn
@@ -577,7 +580,7 @@ mod tests {
                 vec![],
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(create_result.affected_rows, 0);
 
         // 插入数据
@@ -587,11 +590,14 @@ mod tests {
                 vec![serde_json::json!("Alice"), serde_json::json!(30)],
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(insert_result.affected_rows, 1);
 
         // 查询数据
-        let select_result = conn.execute("SELECT * FROM users", vec![]).await.unwrap();
+        let select_result = conn
+            .execute("SELECT * FROM users", vec![])
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(select_result.rows.len(), 1);
         assert_eq!(select_result.row_count, 1);
         assert!(select_result.columns.contains(&"id".to_string()));
@@ -608,7 +614,7 @@ mod tests {
     async fn test_sqlite_execute_update() {
         let conn = SqliteConnection::new("test-update".to_string(), ":memory:".to_string(), 1, 5)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 创建表并插入数据
         conn.execute(
@@ -616,14 +622,14 @@ mod tests {
             vec![],
         )
         .await
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
 
         conn.execute(
             "INSERT INTO products (name, price) VALUES (?, ?)",
             vec![serde_json::json!("Widget"), serde_json::json!(9.99)],
         )
         .await
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
 
         // 更新数据
         let update_result = conn
@@ -632,7 +638,7 @@ mod tests {
                 vec![serde_json::json!(19.99), serde_json::json!("Widget")],
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(update_result.affected_rows, 1);
 
         // 验证更新
@@ -642,7 +648,7 @@ mod tests {
                 vec![serde_json::json!("Widget")],
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
         let row = &select_result.rows[0];
         assert_eq!(row.get("price"), Some(&serde_json::json!(19.99)));
     }
@@ -651,7 +657,7 @@ mod tests {
     async fn test_sqlite_execute_delete() {
         let conn = SqliteConnection::new("test-delete".to_string(), ":memory:".to_string(), 1, 5)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 创建表并插入数据
         conn.execute(
@@ -659,14 +665,14 @@ mod tests {
             vec![],
         )
         .await
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
 
         conn.execute(
             "INSERT INTO items (name) VALUES (?), (?)",
             vec![serde_json::json!("Item1"), serde_json::json!("Item2")],
         )
         .await
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
 
         // 删除数据
         let delete_result = conn
@@ -675,11 +681,14 @@ mod tests {
                 vec![serde_json::json!("Item1")],
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(delete_result.affected_rows, 1);
 
         // 验证删除
-        let select_result = conn.execute("SELECT * FROM items", vec![]).await.unwrap();
+        let select_result = conn
+            .execute("SELECT * FROM items", vec![])
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(select_result.rows.len(), 1);
     }
 
@@ -687,7 +696,7 @@ mod tests {
     async fn test_sqlite_close() {
         let conn = SqliteConnection::new("test-close".to_string(), ":memory:".to_string(), 1, 5)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 关闭连接池
         conn.close().await;
@@ -700,7 +709,7 @@ mod tests {
     async fn test_sqlite_status_info() {
         let conn = SqliteConnection::new("test-status".to_string(), ":memory:".to_string(), 1, 5)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let status = conn.status_info();
         assert!(status.contains("test-status"));
@@ -731,7 +740,9 @@ mod tests {
             last_tested_at: None,
         };
 
-        let conn = SqliteConnection::from_config(&config).await.unwrap();
+        let conn = SqliteConnection::from_config(&config)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(conn.name(), "Test SQLite");
 
         // 测试连接
@@ -764,7 +775,9 @@ mod tests {
             last_tested_at: None,
         };
 
-        let conn = SqliteConnection::from_config(&config).await.unwrap();
+        let conn = SqliteConnection::from_config(&config)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(conn.connection_string(), ":memory:");
     }
 
@@ -772,18 +785,18 @@ mod tests {
     async fn test_sqlite_empty_result() {
         let conn = SqliteConnection::new("test-empty".to_string(), ":memory:".to_string(), 1, 5)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 创建表
         conn.execute("CREATE TABLE empty_table (id INTEGER PRIMARY KEY)", vec![])
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 查询空表
         let result = conn
             .execute("SELECT * FROM empty_table", vec![])
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result.rows.len(), 0);
         assert_eq!(result.row_count, 0);
     }
@@ -792,7 +805,7 @@ mod tests {
     async fn test_sqlite_param_types() {
         let conn = SqliteConnection::new("test-params".to_string(), ":memory:".to_string(), 1, 5)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 创建表
         conn.execute(
@@ -800,7 +813,7 @@ mod tests {
             vec![],
         )
         .await
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
 
         // 插入不同类型的值
         conn.execute(
@@ -808,19 +821,19 @@ mod tests {
             vec![
                 serde_json::json!(true),
                 serde_json::json!(42),
-                serde_json::json!(3.14),
+                serde_json::json!(2.5),
                 serde_json::json!("hello"),
                 serde_json::Value::Null,
             ],
         )
         .await
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
 
         // 查询并验证
         let result = conn
             .execute("SELECT * FROM test_types", vec![])
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result.rows.len(), 1);
 
         let row = &result.rows[0];
@@ -836,7 +849,7 @@ mod tests {
         let conn =
             SqliteConnection::new("test-tx-commit".to_string(), ":memory:".to_string(), 1, 5)
                 .await
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
         // 创建表
         conn.execute(
@@ -844,10 +857,12 @@ mod tests {
             vec![],
         )
         .await
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
 
         // 开始事务
-        conn.begin_db_transaction(None).await.unwrap();
+        conn.begin_db_transaction(None)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 在事务中插入数据
         conn.execute(
@@ -855,17 +870,25 @@ mod tests {
             vec![serde_json::json!("tx_data")],
         )
         .await
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
 
         // 事务内查询可以看到数据
-        let result = conn.execute("SELECT * FROM tx_test", vec![]).await.unwrap();
+        let result = conn
+            .execute("SELECT * FROM tx_test", vec![])
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result.rows.len(), 1);
 
         // 提交事务
-        conn.commit_db_transaction().await.unwrap();
+        conn.commit_db_transaction()
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 提交后数据仍然可见
-        let result = conn.execute("SELECT * FROM tx_test", vec![]).await.unwrap();
+        let result = conn
+            .execute("SELECT * FROM tx_test", vec![])
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result.rows.len(), 1);
         let row = &result.rows[0];
         assert_eq!(row.get("value"), Some(&serde_json::json!("tx_data")));
@@ -876,7 +899,7 @@ mod tests {
         let conn =
             SqliteConnection::new("test-tx-rollback".to_string(), ":memory:".to_string(), 1, 5)
                 .await
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
         // 创建表
         conn.execute(
@@ -884,10 +907,12 @@ mod tests {
             vec![],
         )
         .await
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
 
         // 开始事务
-        conn.begin_db_transaction(None).await.unwrap();
+        conn.begin_db_transaction(None)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 在事务中插入数据
         conn.execute(
@@ -895,16 +920,18 @@ mod tests {
             vec![serde_json::json!("will_be_rolled_back")],
         )
         .await
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
 
         // 回滚事务
-        conn.rollback_db_transaction().await.unwrap();
+        conn.rollback_db_transaction()
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 回滚后数据不可见
         let result = conn
             .execute("SELECT * FROM tx_rollback", vec![])
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result.rows.len(), 0);
     }
 
@@ -913,18 +940,25 @@ mod tests {
         let conn =
             SqliteConnection::new("test-tx-nested".to_string(), ":memory:".to_string(), 1, 5)
                 .await
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
         // 开始事务
-        conn.begin_db_transaction(None).await.unwrap();
+        conn.begin_db_transaction(None)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 重复开始应报错
         let result = conn.begin_db_transaction(None).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("已在进行中"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("已在进行中"));
 
         // 清理：回滚
-        conn.rollback_db_transaction().await.unwrap();
+        conn.rollback_db_transaction()
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
     }
 
     #[tokio::test]
@@ -932,12 +966,15 @@ mod tests {
         let conn =
             SqliteConnection::new("test-tx-no-begin".to_string(), ":memory:".to_string(), 1, 5)
                 .await
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
 
         // 未开始事务直接提交应报错
         let result = conn.commit_db_transaction().await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("没有进行中的事务"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("没有进行中的事务"));
     }
 
     #[tokio::test]
@@ -949,11 +986,14 @@ mod tests {
             5,
         )
         .await
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
 
         // 未开始事务直接回滚应报错
         let result = conn.rollback_db_transaction().await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("没有进行中的事务"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("没有进行中的事务"));
     }
 }

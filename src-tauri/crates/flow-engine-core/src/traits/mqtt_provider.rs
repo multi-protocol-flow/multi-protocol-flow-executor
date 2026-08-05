@@ -214,13 +214,14 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).expect("序列化应Success");
+        let json =
+            serde_json::to_string(&output).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("\"success\":true"));
         assert!(json.contains("MQTT 5.0"));
         assert!(json.contains("client-001"));
 
         let deserialized: MqttConnectOutput =
-            serde_json::from_str(&json).expect("反序列化应Success");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert!(deserialized.success);
         assert!(deserialized.broker_info.is_some());
     }
@@ -233,9 +234,10 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).expect("序列化应Success");
+        let json =
+            serde_json::to_string(&output).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         let deserialized: MqttPublishOutput =
-            serde_json::from_str(&json).expect("反序列化应Success");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert!(deserialized.success);
         assert_eq!(deserialized.reason_code, Some(0));
     }
@@ -251,11 +253,11 @@ mod tests {
             timestamp_ms: 1700000000000,
         };
 
-        let json = serde_json::to_string(&msg).expect("序列化应Success");
+        let json = serde_json::to_string(&msg).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("test/topic"));
 
         let deserialized: MqttReceivedMessage =
-            serde_json::from_str(&json).expect("反序列化应Success");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.topic, "test/topic");
         assert_eq!(deserialized.payload, vec![72, 101, 108, 108, 111]);
         assert_eq!(deserialized.qos, 1);
@@ -268,8 +270,10 @@ mod tests {
             first_message_ms: Some(50),
         };
 
-        let json = serde_json::to_string(&timing).expect("序列化应Success");
-        let deserialized: MqttTimingInfo = serde_json::from_str(&json).expect("反序列化应Success");
+        let json =
+            serde_json::to_string(&timing).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: MqttTimingInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.total_ms, 150);
         assert_eq!(deserialized.first_message_ms, Some(50));
     }
@@ -284,12 +288,12 @@ mod tests {
             connected_at: 1700000000000,
         };
 
-        let json = serde_json::to_string(&info).expect("序列化应Success");
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("conn-uuid-001"));
         assert!(json.contains("mqtt://localhost:1883"));
 
         let deserialized: MqttConnectionInfo =
-            serde_json::from_str(&json).expect("反序列化应Success");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.uuid, "conn-uuid-001");
         assert_eq!(deserialized.status, "connected");
     }
@@ -313,13 +317,18 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).expect("序列化应Success");
+        let json =
+            serde_json::to_string(&output).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         let deserialized: MqttMessageOutput =
-            serde_json::from_str(&json).expect("反序列化应Success");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert!(deserialized.success);
         assert_eq!(deserialized.messages.len(), 1);
         assert_eq!(
-            deserialized.timing.as_ref().expect("应有时间信息").total_ms,
+            deserialized
+                .timing
+                .as_ref()
+                .unwrap_or_else(|| panic!("应有时间信息"))
+                .total_ms,
             200
         );
     }

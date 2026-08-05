@@ -597,9 +597,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["request"]["connection_id"], "conn-1");
         assert_eq!(data["request"]["address"], "test-queue");
@@ -617,9 +617,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "Link detached");
     }
@@ -645,7 +645,11 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("Amqp10SendConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("Amqp10SendConfig"));
     }
 
     /// 测试：变量替换在 `connection_id` 和 address 中生效
@@ -681,7 +685,10 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let data = result.unwrap().1.unwrap();
+        let data = result
+            .unwrap_or_else(|e| panic!("{e}"))
+            .1
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["request"]["connection_id"], "my-conn");
         assert_eq!(data["request"]["address"], "queue://orders");
     }
@@ -698,9 +705,12 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        assert_eq!(output_data.unwrap()["error"], "发送Failed");
+        assert_eq!(
+            output_data.unwrap_or_else(|| panic!("expected Some"))["error"],
+            "发送Failed"
+        );
     }
 
     /// 测试：连接端口路由
@@ -723,7 +733,7 @@ mod tests {
             .execute(&node, &mut context, &connections, &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 }

@@ -248,10 +248,10 @@ mod tests {
 
         // 应该返回 Ok，走 out 端口（关闭Failed不阻塞）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["out"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "nonexistent-conn");
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
@@ -279,10 +279,10 @@ mod tests {
 
         // 应该返回 Ok，走 out 端口
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["out"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "mcp-connection-123");
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
@@ -310,7 +310,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("McpCloseConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("McpCloseConfig"));
     }
 
     // ===== 调试事件测试 =====
@@ -471,7 +475,9 @@ mod tests {
 
         assert!(result.is_ok());
 
-        let event = event_receiver.try_recv().expect("应收到调试事件");
+        let event = event_receiver
+            .try_recv()
+            .unwrap_or_else(|e| panic!("应收到调试事件: {e}"));
         match &event {
             DebugEvent::McpConnectionClosed {
                 node_uuid,

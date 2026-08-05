@@ -209,7 +209,7 @@ mod tests {
         // 验证执行Success
         assert!(result.is_ok());
 
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // 验证下一个节点 UUID 列表
         assert_eq!(next_node_ids, vec!["next-1".to_string()]);
         // 验证输出数据为空（Entry node不产生数据）
@@ -263,7 +263,7 @@ mod tests {
 
         // 验证执行Success（没有连接是正常终止）
         assert!(result.is_ok());
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // 验证下一个节点 UUID 列表为空（流程终止）
         assert!(next_node_ids.is_empty());
         // 验证输出数据为空（Entry node不产生数据）
@@ -358,7 +358,7 @@ mod tests {
         // 验证执行Success
         assert!(result.is_ok());
 
-        let (next_node_ids, _) = result.unwrap();
+        let (next_node_ids, _) = result.unwrap_or_else(|e| panic!("{e}"));
         // 验证返回所有连接的目标节点 UUID
         assert_eq!(next_node_ids.len(), 2);
         assert!(next_node_ids.contains(&"next-1".to_string()));
@@ -509,7 +509,7 @@ mod tests {
 
         // 验证 execute 方法正确使用了 node.uuid
         assert!(result.is_ok());
-        let (next_node_ids, _) = result.unwrap();
+        let (next_node_ids, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(!next_node_ids.is_empty());
     }
 
@@ -577,7 +577,7 @@ mod tests {
         // 1. 执行Success
         assert!(result.is_ok());
         // 2. 返回下一个节点 UUID 列表
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_node_ids, vec!["logic-test-next".to_string()]);
         // 3. Entry node不产生数据
         assert!(output_data.is_none());
@@ -650,7 +650,7 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok());
-        let (next_node_ids, _) = result.unwrap();
+        let (next_node_ids, _) = result.unwrap_or_else(|e| panic!("{e}"));
         // 验证返回所有连接的目标节点 UUID
         assert_eq!(next_node_ids.len(), 2);
         assert!(next_node_ids.contains(&target1_uuid.to_string()));

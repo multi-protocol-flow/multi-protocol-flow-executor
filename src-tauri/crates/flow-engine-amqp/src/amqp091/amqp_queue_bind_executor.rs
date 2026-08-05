@@ -540,11 +540,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert!(data["timing"]["bind_ms"].is_number());
         assert!(data["timing"]["total_ms"].is_number());
@@ -564,11 +564,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "交换器不存在");
     }
@@ -596,7 +596,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("AmqpQueueBindConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("AmqpQueueBindConfig"));
     }
 
     /// 测试：变量替换在 `queue、exchange、connection_id` 和 `routing_key` 中生效
@@ -647,8 +651,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["request"]["connection_id"], "amqp-conn-789");
         assert_eq!(data["request"]["queue"], "order.queue");
         assert_eq!(data["request"]["exchange"], "order.exchange");
@@ -682,7 +686,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 
@@ -715,8 +719,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         assert!(data.get("success").is_some());
         assert!(data.get("request").is_some());
@@ -760,10 +764,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert!(data["request"]["routing_key"].is_null());
     }

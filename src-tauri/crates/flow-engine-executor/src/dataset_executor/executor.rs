@@ -598,8 +598,9 @@ mod tests {
         let mut file = tempfile::Builder::new()
             .suffix(".csv")
             .tempfile()
-            .expect("创建临时文件Failed");
-        file.write_all(content).expect("写入临时文件Failed");
+            .unwrap_or_else(|e| panic!("创建临时文件Failed: {e}"));
+        file.write_all(content)
+            .unwrap_or_else(|e| panic!("写入临时文件Failed: {e}"));
         file
     }
 
@@ -613,7 +614,10 @@ mod tests {
     #[tokio::test]
     async fn test_sequential_execution() {
         let csv = create_temp_csv(b"name,age\nAlice,30\nBob,25\nCharlie,35\n");
-        let path = csv.path().to_str().expect("路径转换Failed");
+        let path = csv
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -629,7 +633,7 @@ mod tests {
         let (results, _failed, _report_uuid) = executor
             .execute(&config, &flow, None, None)
             .await
-            .expect("执行Failed");
+            .unwrap_or_else(|e| panic!("执行Failed: {e}"));
 
         assert_eq!(results.len(), 3);
         assert_eq!(results[0].row_index, 0);
@@ -650,7 +654,10 @@ mod tests {
     #[tokio::test]
     async fn test_concurrent_execution() {
         let csv = create_temp_csv(b"name,age\nA,1\nB,2\nC,3\nD,4\nE,5\n");
-        let path = csv.path().to_str().expect("路径转换Failed");
+        let path = csv
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -666,7 +673,7 @@ mod tests {
         let (results, _failed, _report_uuid) = executor
             .execute(&config, &flow, None, None)
             .await
-            .expect("执行Failed");
+            .unwrap_or_else(|e| panic!("执行Failed: {e}"));
 
         assert_eq!(results.len(), 5);
 
@@ -685,7 +692,10 @@ mod tests {
     async fn test_continue_failure_strategy() {
         // 创建含空行的 CSV（空行不会导致Failed，但我们可以验证 continue 行为）
         let csv = create_temp_csv(b"name\nAlice\nBob\nCharlie\n");
-        let path = csv.path().to_str().expect("路径转换Failed");
+        let path = csv
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -701,7 +711,7 @@ mod tests {
         let (results, _failed, _report_uuid) = executor
             .execute(&config, &flow, None, None)
             .await
-            .expect("执行Failed");
+            .unwrap_or_else(|e| panic!("执行Failed: {e}"));
         assert_eq!(results.len(), 3, "Continue 策略应执行全部行");
     }
 
@@ -709,7 +719,10 @@ mod tests {
     #[tokio::test]
     async fn test_empty_csv() {
         let csv = create_temp_csv(b"name,age\n");
-        let path = csv.path().to_str().expect("路径转换Failed");
+        let path = csv
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -725,7 +738,7 @@ mod tests {
         let (results, _failed, _report_uuid) = executor
             .execute(&config, &flow, None, None)
             .await
-            .expect("执行Failed");
+            .unwrap_or_else(|e| panic!("执行Failed: {e}"));
         assert!(results.is_empty(), "空 CSV 应返回空结果");
     }
 
@@ -733,7 +746,10 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_signal() {
         let csv = create_temp_csv(b"name\nA\nB\nC\nD\nE\n");
-        let path = csv.path().to_str().expect("路径转换Failed");
+        let path = csv
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -752,7 +768,7 @@ mod tests {
         let (results, _failed, _report_uuid) = executor
             .execute(&config, &flow, Some(rx), None)
             .await
-            .expect("执行Failed");
+            .unwrap_or_else(|e| panic!("执行Failed: {e}"));
         // 取消信号已触发，不应执行任何行
         assert!(results.is_empty(), "已取消时应返回空结果");
 
@@ -776,7 +792,10 @@ mod tests {
         let result = executor.execute(&config, &flow, None, None).await;
         assert!(result.is_err(), "文件不存在应返回Error");
         assert!(
-            result.unwrap_err().contains("无法打开文件"),
+            result
+                .err()
+                .unwrap_or_else(|| panic!("expected Err, got Ok"))
+                .contains("无法打开文件"),
             "Error信息应包含文件相关提示"
         );
     }
@@ -785,7 +804,10 @@ mod tests {
     #[tokio::test]
     async fn test_custom_delimiter() {
         let csv = create_temp_csv(b"name;age\nAlice;30\nBob;25\n");
-        let path = csv.path().to_str().expect("路径转换Failed");
+        let path = csv
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -801,7 +823,7 @@ mod tests {
         let (results, _failed, _report_uuid) = executor
             .execute(&config, &flow, None, None)
             .await
-            .expect("执行Failed");
+            .unwrap_or_else(|e| panic!("执行Failed: {e}"));
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].input_data["name"], json!("Alice"));
         assert_eq!(results[0].input_data["age"], json!("30"));
@@ -826,7 +848,10 @@ mod tests {
     #[tokio::test]
     async fn test_event_sequence_sequential() {
         let csv = create_temp_csv(b"name\nA\nB\nC\n");
-        let path = csv.path().to_str().expect("路径转换Failed");
+        let path = csv
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -845,7 +870,7 @@ mod tests {
         let (results, _failed, _report_uuid) = executor
             .execute(&config, &flow, None, Some(event_sender))
             .await
-            .expect("执行Failed");
+            .unwrap_or_else(|e| panic!("执行Failed: {e}"));
         assert_eq!(results.len(), 3);
 
         // 收集所有事件
@@ -889,7 +914,10 @@ mod tests {
     #[tokio::test]
     async fn test_cancelled_event_with_partial_report() {
         let csv = create_temp_csv(b"name\nA\nB\nC\nD\nE\n");
-        let path = csv.path().to_str().expect("路径转换Failed");
+        let path = csv
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
         let flow = create_test_flow();
         let executor = create_executor();
@@ -909,7 +937,7 @@ mod tests {
         let _results = executor
             .execute(&config, &flow, Some(rx), Some(event_sender))
             .await
-            .expect("执行Failed");
+            .unwrap_or_else(|e| panic!("执行Failed: {e}"));
 
         // 收集事件
         let mut collected_events: Vec<super::events::DatasetEvent> = Vec::new();

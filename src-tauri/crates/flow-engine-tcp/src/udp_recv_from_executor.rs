@@ -333,7 +333,10 @@ mod tests {
             _receive_timeout_ms: u64,
         ) -> Result<Option<(Vec<u8>, String, u16)>, String> {
             self.recv_count.fetch_add(1, AtomicOrdering::SeqCst);
-            self.recv_result.lock().expect("锁不应Failed").clone()
+            self.recv_result
+                .lock()
+                .unwrap_or_else(|e| panic!("锁不应Failed: {e}"))
+                .clone()
         }
 
         async fn close(&self, _uuid: &str) -> Result<(), String> {
@@ -407,9 +410,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_id"], "conn-1");
 
@@ -446,14 +449,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], false);
         assert!(data["received"].is_null());
         assert!(data["error"]
             .as_str()
-            .expect("should have error")
+            .unwrap_or_else(|| panic!("should have error"))
             .contains("timeout"));
     }
 
@@ -476,13 +479,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], false);
         assert!(data["error"]
             .as_str()
-            .expect("should have error")
+            .unwrap_or_else(|| panic!("should have error"))
             .contains("不存在"));
     }
 
@@ -526,8 +529,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应Success");
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_id"], "udp-connection-789");
     }
@@ -560,7 +563,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.expect("执行应Success");
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 
@@ -591,6 +594,10 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("UdpRecvFromConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("UdpRecvFromConfig"));
     }
 }

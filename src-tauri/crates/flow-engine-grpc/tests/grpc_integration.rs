@@ -44,8 +44,9 @@ fn test_grpc_connect_config_serde_roundtrip() {
     };
 
     // 序列化 → JSON → 反序列化
-    let json = serde_json::to_string(&config).expect("序列化应Success");
-    let deserialized: GrpcConnectConfig = serde_json::from_str(&json).expect("反序列化应Success");
+    let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+    let deserialized: GrpcConnectConfig =
+        serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
 
     assert_eq!(deserialized, config);
 }
@@ -55,7 +56,7 @@ fn test_grpc_connect_config_serde_minimal() {
     // 只有 url 是必须字段，其他都有 default
     let json = r#"{"url":"http://example.com:50051"}"#;
     let config: GrpcConnectConfig =
-        serde_json::from_str(json).expect("最小 JSON 应反序列化Success");
+        serde_json::from_str(json).unwrap_or_else(|e| panic!("最小 JSON 应反序列化Success: {e}"));
 
     assert_eq!(config.url, "http://example.com:50051");
     assert!(!config.use_tls);
@@ -81,8 +82,10 @@ fn test_grpc_connect_config_via_node_data_roundtrip() {
     };
     let node_data = NodeData::GrpcConnect(config.clone());
 
-    let json = serde_json::to_string(&node_data).expect("序列化 NodeData 应Success");
-    let deserialized: NodeData = serde_json::from_str(&json).expect("反序列化 NodeData 应Success");
+    let json = serde_json::to_string(&node_data)
+        .unwrap_or_else(|e| panic!("序列化 NodeData 应Success: {e}"));
+    let deserialized: NodeData =
+        serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化 NodeData 应Success: {e}"));
 
     assert_eq!(deserialized, node_data);
     assert_eq!(deserialized.type_name(), "grpc_connect");
@@ -104,8 +107,9 @@ fn test_grpc_call_config_serde_roundtrip() {
         ..Default::default()
     };
 
-    let json = serde_json::to_string(&config).expect("序列化应Success");
-    let deserialized: GrpcCallConfig = serde_json::from_str(&json).expect("反序列化应Success");
+    let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+    let deserialized: GrpcCallConfig =
+        serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
 
     assert_eq!(deserialized, config);
 }
@@ -124,8 +128,9 @@ fn test_grpc_call_config_via_node_data_roundtrip() {
     };
     let node_data = NodeData::GrpcCall(config.clone());
 
-    let json = serde_json::to_string(&node_data).expect("序列化应Success");
-    let deserialized: NodeData = serde_json::from_str(&json).expect("反序列化应Success");
+    let json = serde_json::to_string(&node_data).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+    let deserialized: NodeData =
+        serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
 
     assert_eq!(deserialized, node_data);
     assert_eq!(deserialized.type_name(), "grpc_call");
@@ -137,8 +142,9 @@ fn test_grpc_close_config_serde_roundtrip() {
         connection_id: "conn-001".to_string(),
     };
 
-    let json = serde_json::to_string(&config).expect("序列化应Success");
-    let deserialized: GrpcCloseConfig = serde_json::from_str(&json).expect("反序列化应Success");
+    let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+    let deserialized: GrpcCloseConfig =
+        serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
 
     assert_eq!(deserialized, config);
 }
@@ -150,8 +156,9 @@ fn test_grpc_close_config_via_node_data_roundtrip() {
     };
     let node_data = NodeData::GrpcClose(config.clone());
 
-    let json = serde_json::to_string(&node_data).expect("序列化应Success");
-    let deserialized: NodeData = serde_json::from_str(&json).expect("反序列化应Success");
+    let json = serde_json::to_string(&node_data).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+    let deserialized: NodeData =
+        serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
 
     assert_eq!(deserialized, node_data);
     assert_eq!(deserialized.type_name(), "grpc_close");
@@ -164,8 +171,9 @@ fn test_grpc_metadata_entry_serde() {
         value: "Bearer my-token".to_string(),
     };
 
-    let json = serde_json::to_string(&entry).expect("序列化应Success");
-    let deserialized: GrpcMetadataEntry = serde_json::from_str(&json).expect("反序列化应Success");
+    let json = serde_json::to_string(&entry).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+    let deserialized: GrpcMetadataEntry =
+        serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
 
     assert_eq!(deserialized, entry);
 }
@@ -177,8 +185,9 @@ fn test_proto_file_serde() {
         content: "syntax = \"proto3\";".to_string(),
     };
 
-    let json = serde_json::to_string(&proto).expect("序列化应Success");
-    let deserialized: ProtoFile = serde_json::from_str(&json).expect("反序列化应Success");
+    let json = serde_json::to_string(&proto).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+    let deserialized: ProtoFile =
+        serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
 
     assert_eq!(deserialized, proto);
 }
@@ -198,8 +207,9 @@ fn test_connect_config_skip_empty_vectors() {
         ..Default::default()
     };
 
-    let json = serde_json::to_string(&config).expect("序列化应Success");
-    let json_obj: serde_json::Value = serde_json::from_str(&json).expect("JSON 解析应Success");
+    let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+    let json_obj: serde_json::Value =
+        serde_json::from_str(&json).unwrap_or_else(|e| panic!("JSON 解析应Success: {e}"));
 
     // 空 vec 应被跳过
     assert!(json_obj.get("proto_files").is_none());
@@ -213,8 +223,10 @@ fn test_connect_config_skip_empty_vectors() {
         }],
         ..config
     };
-    let json2 = serde_json::to_string(&config_with_files).expect("序列化应Success");
-    let json_obj2: serde_json::Value = serde_json::from_str(&json2).expect("JSON 解析应Success");
+    let json2 = serde_json::to_string(&config_with_files)
+        .unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+    let json_obj2: serde_json::Value =
+        serde_json::from_str(&json2).unwrap_or_else(|e| panic!("JSON 解析应Success: {e}"));
     assert!(json_obj2.get("proto_files").is_some());
 }
 
@@ -440,7 +452,7 @@ fn test_build_report_input_connect() {
 
     let report = plugin.build_report_input(&config);
     assert!(report.is_some());
-    let report = report.unwrap();
+    let report = report.unwrap_or_else(|| panic!("expected Some"));
     assert_eq!(report["url"], "http://localhost:50051");
     assert_eq!(report["use_tls"], true);
     assert_eq!(report["enable_reflection"], true);
@@ -461,7 +473,7 @@ fn test_build_report_input_call() {
 
     let report = plugin.build_report_input(&config);
     assert!(report.is_some());
-    let report = report.unwrap();
+    let report = report.unwrap_or_else(|| panic!("expected Some"));
     assert_eq!(report["connection_id"], "conn-1");
     assert_eq!(report["service_name"], "test.Service");
     assert_eq!(report["method_name"], "GetUser");
@@ -476,7 +488,7 @@ fn test_build_report_input_close() {
 
     let report = plugin.build_report_input(&config);
     assert!(report.is_some());
-    let report = report.unwrap();
+    let report = report.unwrap_or_else(|| panic!("expected Some"));
     assert_eq!(report["connection_id"], "conn-1");
 }
 
@@ -535,11 +547,11 @@ async fn test_connect_call_close_flow_wiring() {
     let (next_nodes, output) = connect_executor
         .execute(&connect_node, &mut context, &[], &HashMap::new())
         .await
-        .expect("Connect 执行应返回 Ok");
+        .unwrap_or_else(|e| panic!("Connect 执行应返回 Ok: {e}"));
 
     // 没有 proto 文件，应走 false 端口
     assert_eq!(next_nodes, vec!["false"]);
-    let output_data = output.expect("应有输出数据");
+    let output_data = output.unwrap_or_else(|| panic!("应有输出数据"));
     assert_eq!(output_data["success"], false);
     assert!(output_data["error"].is_string());
 
@@ -569,10 +581,10 @@ async fn test_connect_call_close_flow_wiring() {
     let (next_nodes, output) = call_executor
         .execute(&call_node, &mut context, &[], &HashMap::new())
         .await
-        .expect("Call 执行应返回 Ok");
+        .unwrap_or_else(|e| panic!("Call 执行应返回 Ok: {e}"));
 
     assert_eq!(next_nodes, vec!["false"]);
-    let output_data = output.expect("应有输出数据");
+    let output_data = output.unwrap_or_else(|| panic!("应有输出数据"));
     assert_eq!(output_data["success"], false);
     assert!(output_data["error"].is_string());
 
@@ -595,10 +607,10 @@ async fn test_connect_call_close_flow_wiring() {
     let (next_nodes, output) = close_executor
         .execute(&close_node, &mut context, &[], &HashMap::new())
         .await
-        .expect("Close 执行应返回 Ok");
+        .unwrap_or_else(|e| panic!("Close 执行应返回 Ok: {e}"));
 
     assert_eq!(next_nodes, Vec::<String>::new());
-    let output_data = output.expect("应有输出数据");
+    let output_data = output.unwrap_or_else(|| panic!("应有输出数据"));
     assert_eq!(output_data["success"], false);
     assert!(output_data["error"].is_string());
 }
@@ -658,9 +670,9 @@ message PongResponse { string message = 1; }
     // tonic 的 endpoint.connect() 是惰性的，proto 解析通过后可能返回Success
     // 无论Success还是Failed，关键是执行器不崩溃且返回有效结构
     assert!(result.is_ok());
-    let (_next_nodes, output_data) = result.unwrap();
+    let (_next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
     assert!(output_data.is_some());
-    let data = output_data.unwrap();
+    let data = output_data.unwrap_or_else(|| panic!("expected Some"));
     assert!(data.get("success").is_some());
     assert!(data.get("url").is_some());
 }
@@ -701,7 +713,7 @@ async fn test_plugin_execute_delegates_to_executor() {
         .await;
 
     assert!(result.is_ok());
-    let (next_nodes, output) = result.unwrap();
+    let (next_nodes, output) = result.unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(next_nodes, vec!["false"]);
     assert!(output.is_some());
 }
@@ -738,7 +750,7 @@ async fn test_call_and_close_plugins_delegate() {
         .execute(&call_node, &mut ctx, &[], &HashMap::new())
         .await;
     assert!(result.is_ok());
-    let (next, out) = result.unwrap();
+    let (next, out) = result.unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(next, vec!["false"]);
     assert!(out.is_some());
 
@@ -761,6 +773,6 @@ async fn test_call_and_close_plugins_delegate() {
         .execute(&close_node, &mut ctx2, &[], &HashMap::new())
         .await;
     assert!(result.is_ok());
-    let (_, out) = result.unwrap();
+    let (_, out) = result.unwrap_or_else(|e| panic!("{e}"));
     assert!(out.is_some());
 }

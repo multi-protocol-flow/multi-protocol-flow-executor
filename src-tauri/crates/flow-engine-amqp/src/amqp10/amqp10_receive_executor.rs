@@ -599,9 +599,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["message_count"], 1);
     }
@@ -618,9 +618,12 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, data) = result.unwrap();
+        let (next_nodes, data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        assert_eq!(data.unwrap()["error"], "No messages");
+        assert_eq!(
+            data.unwrap_or_else(|| panic!("expected Some"))["error"],
+            "No messages"
+        );
     }
 
     /// 测试：节点数据类型不匹配时返回Error
@@ -643,7 +646,11 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("Amqp10ReceiveConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("Amqp10ReceiveConfig"));
     }
 
     /// 测试：provider 返回 Err 时走 false 端口
@@ -658,9 +665,12 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, data) = result.unwrap();
+        let (next_nodes, data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        assert_eq!(data.unwrap()["error"], "接收超时");
+        assert_eq!(
+            data.unwrap_or_else(|| panic!("expected Some"))["error"],
+            "接收超时"
+        );
     }
 
     /// 测试：输出数据包含 messages 数组
@@ -675,9 +685,18 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let data = result.unwrap().1.unwrap();
+        let data = result
+            .unwrap_or_else(|e| panic!("{e}"))
+            .1
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(data["messages"].is_array());
-        assert_eq!(data["messages"].as_array().unwrap().len(), 1);
+        assert_eq!(
+            data["messages"]
+                .as_array()
+                .unwrap_or_else(|| panic!("expected Some"))
+                .len(),
+            1
+        );
         assert_eq!(data["messages"][0]["body"], "hello");
     }
 }

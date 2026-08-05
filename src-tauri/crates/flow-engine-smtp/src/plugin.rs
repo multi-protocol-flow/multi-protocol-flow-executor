@@ -564,7 +564,7 @@ mod tests {
         });
         let report = plugin.build_report_input(&config);
         assert!(report.is_some());
-        let report = report.unwrap();
+        let report = report.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(report["host"], "smtp.gmail.com");
         assert_eq!(report["port"], 465);
         assert_eq!(report["tls_mode"], "implicit");
@@ -580,7 +580,9 @@ mod tests {
             "subject": "Test",
             "body_type": "plain_text",
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["from"], "sender@test.com");
         assert_eq!(report["subject"], "Test");
@@ -590,7 +592,9 @@ mod tests {
     fn test_disconnect_build_report_input() {
         let plugin = SmtpDisconnectPlugin;
         let config = serde_json::json!({"connection_id": "conn-123"});
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-123");
     }
 

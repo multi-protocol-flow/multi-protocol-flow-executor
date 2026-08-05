@@ -1214,9 +1214,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回Error）");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["result"], json!(false));
         assert_eq!(output["expression"], "{{user.age}} == 30");
         assert_eq!(output["field_value"], 25);
@@ -1292,9 +1292,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回Error）");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["result"], json!(false));
         assert_eq!(output["expression"], "age > 30 && name == \"Jane\"");
         assert_eq!(output["field_value"], serde_json::Value::Null);
@@ -1329,9 +1329,9 @@ mod tests {
             .execute(&node, &mut context, &connections, &HashMap::new())
             .await;
         assert!(result.is_ok(), "条件为true应该Success");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_node_ids, vec!["next-node-id".to_string()]);
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["result"], json!(true));
         assert_eq!(output["expression"], "{{status}} == \"active\"");
         assert_eq!(output["field_value"], "active");
@@ -1404,9 +1404,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回Error）");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["result"], json!(false));
         assert_eq!(output["expression"], "{{user.email}} exists null");
     }
@@ -1433,7 +1433,7 @@ mod tests {
             .await;
         assert!(result.is_err(), "类型不匹配应该返回Error");
         assert!(
-            result.unwrap_err().message.contains("is not a numeric type"),
+            result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).message.contains("is not a numeric type"),
             "Error message should contain 'is not a numeric type'"
         );
     }
@@ -1461,7 +1461,7 @@ mod tests {
             .await;
         assert!(result.is_err(), "语法Error应该返回Error");
         assert!(
-            result.unwrap_err().message.contains("Evaluating expression"),
+            result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).message.contains("Evaluating expression"),
             "Error message should contain 'Evaluating expression'"
         );
     }
@@ -1489,7 +1489,7 @@ mod tests {
         assert!(result.is_err(), "缺少field_path应该返回Error");
         assert!(
             result
-                .unwrap_err()
+                .err().unwrap_or_else(|| panic!("expected Err, got Ok"))
                 .message
                 .contains("missing field_path"),
             "Error message should contain 'missing field_path'"
@@ -1519,7 +1519,7 @@ mod tests {
         assert!(result.is_err(), "缺少operator应该返回Error");
         assert!(
             result
-                .unwrap_err()
+                .err().unwrap_or_else(|| panic!("expected Err, got Ok"))
                 .message
                 .contains("missing operator"),
             "Error message should contain 'missing operator'"
@@ -1549,7 +1549,7 @@ mod tests {
         assert!(result.is_err(), "缺少advanced_expression应该返回Error");
         assert!(
             result
-                .unwrap_err()
+                .err().unwrap_or_else(|| panic!("expected Err, got Ok"))
                 .message
                 .contains("missing advanced_expression"),
             "Error message should contain 'missing advanced_expression'"
@@ -1659,20 +1659,22 @@ mod tests {
             &serde_json::json!("200"),
             Some(&ExpectedValueType::Number),
         )
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, serde_json::Value::Number(200.into()));
     }
 
     #[test]
+    // allow: 测试固定使用 3.14 作为浮点字面量（输入字符串 "3.14" 必须与期望值一致）
+    #[allow(clippy::approx_constant)]
     fn test_parse_number_float() {
         let result = ConditionalNodeExecutor::parse_expected_value(
             &serde_json::json!("3.14"),
             Some(&ExpectedValueType::Number),
         )
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(
             result,
-            serde_json::Value::Number(serde_json::Number::from_f64(3.14).unwrap())
+            serde_json::Value::Number(serde_json::Number::from_f64(3.14).unwrap_or_else(|| panic!("expected Some")))
         );
     }
 
@@ -1682,7 +1684,7 @@ mod tests {
             &serde_json::json!("true"),
             Some(&ExpectedValueType::Boolean),
         )
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, serde_json::Value::Bool(true));
     }
 
@@ -1692,7 +1694,7 @@ mod tests {
             &serde_json::json!("false"),
             Some(&ExpectedValueType::Boolean),
         )
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, serde_json::Value::Bool(false));
     }
 
@@ -1702,7 +1704,7 @@ mod tests {
             &serde_json::json!("null"),
             Some(&ExpectedValueType::Null),
         )
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, serde_json::Value::Null);
     }
 
@@ -1712,7 +1714,7 @@ mod tests {
             &serde_json::json!(""),
             Some(&ExpectedValueType::Null),
         )
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, serde_json::Value::Null);
     }
 
@@ -1722,7 +1724,7 @@ mod tests {
             &serde_json::json!("hello"),
             Some(&ExpectedValueType::String),
         )
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, serde_json::Value::String("hello".to_string()));
     }
 
@@ -1730,7 +1732,7 @@ mod tests {
     fn test_parse_no_type_returns_original() {
         let result =
             ConditionalNodeExecutor::parse_expected_value(&serde_json::json!("hello"), None)
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, serde_json::Value::String("hello".to_string()));
     }
 
@@ -1741,7 +1743,7 @@ mod tests {
             &serde_json::json!(200),
             Some(&ExpectedValueType::Number),
         )
-        .unwrap();
+        .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, serde_json::Value::Number(200.into()));
     }
 
@@ -1752,7 +1754,7 @@ mod tests {
             Some(&ExpectedValueType::Boolean),
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Cannot parse as boolean"));
+        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Cannot parse as boolean"));
     }
 
     #[test]
@@ -1762,7 +1764,7 @@ mod tests {
             Some(&ExpectedValueType::Number),
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Cannot parse as number"));
+        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Cannot parse as number"));
     }
 
     #[test]
@@ -1772,7 +1774,7 @@ mod tests {
             Some(&ExpectedValueType::Null),
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Expected null but got"));
+        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Expected null but got"));
     }
 
     // ============================================================================
@@ -1800,9 +1802,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty()); // true 分支无连接
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["result"], json!(true));
         assert_eq!(output["expression"], "{{status}} == \"200\"");
         assert_eq!(output["field_value"], 200);
@@ -1829,9 +1831,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["result"], json!(true));
         assert_eq!(output["expression"], "{{enabled}} == \"true\"");
         assert_eq!(output["field_value"], true);
@@ -1858,9 +1860,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["result"], json!(true));
         assert_eq!(output["expression"], "{{name}} == 200");
         assert_eq!(output["field_value"], "200");
@@ -1892,9 +1894,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "变量引用应该Success");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["result"], json!(true));
         assert_eq!(output["expression"], "{{token}} == \"abc123\"");
         assert_eq!(output["field_value"], "abc123");
@@ -1921,7 +1923,7 @@ mod tests {
             .await;
         assert!(result.is_err(), "variable not found should return error");
         assert!(
-            result.unwrap_err().message.contains("not found"),
+            result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).message.contains("not found"),
             "Error message should contain 'not found'"
         );
     }
@@ -1950,9 +1952,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "JSONPath 提取应该Success");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["result"], json!(true));
         assert_eq!(output["expression"], "$.body.token == \"secret\"");
         assert_eq!(output["field_value"], "secret");
@@ -1983,9 +1985,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "JSONPath 数组索引提取应该Success");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["result"], json!(true));
         assert_eq!(output["expression"], "$.items[0].id == 1");
         assert_eq!(output["field_value"], 1);
@@ -2013,7 +2015,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_err(), "旧语法应该返回Error");
-        let error = result.unwrap_err();
+        let error = result.err().unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(
             error.message.contains("Unsupported syntax"),
             "Error message should contain 'Unsupported syntax': {}",
@@ -2041,7 +2043,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_err(), "空 field_path 应该返回Error");
-        let error = result.unwrap_err();
+        let error = result.err().unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(
             error.message.contains("required"),
             "Error信息应该包含 'required': {}",
@@ -2071,9 +2073,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "简单变量名应该Success");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["result"], json!(true));
         assert_eq!(output["expression"], "status == \"active\"");
         assert_eq!(output["field_value"], "active");
@@ -2119,8 +2121,8 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "嵌套字段从变量池提取应该Success");
-        let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(true));
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
     }
 
     #[tokio::test]
@@ -2156,8 +2158,8 @@ mod tests {
             result.is_ok(),
             "嵌套字段从 last_node_output 提取应该Success"
         );
-        let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(true));
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
     }
 
     #[tokio::test]
@@ -2184,9 +2186,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "last_node_output 应覆盖变量池同名键");
-        let (_, output) = result.unwrap();
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(
-            output.unwrap()["result"],
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
             json!(true),
             "status 应为 200（来自 last_node_output）"
         );
@@ -2220,8 +2222,8 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "多条件嵌套字段应该Success");
-        let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(true));
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
     }
 
     #[tokio::test]
@@ -2251,8 +2253,8 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "三层嵌套字段应该Success");
-        let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(true));
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
     }
 
     #[tokio::test]
@@ -2279,8 +2281,8 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "嵌套数值比较应该Success");
-        let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(true));
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
     }
 
     #[tokio::test]
@@ -2310,8 +2312,8 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "顶层 + 嵌套混合应该Success");
-        let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(true));
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
     }
 
     #[tokio::test]
@@ -2338,8 +2340,8 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "不匹配应该返回 Ok");
-        let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(false));
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(false));
     }
 
     // ============================================================================
@@ -2349,7 +2351,7 @@ mod tests {
     #[test]
     fn test_preprocess_expression_basic() {
         assert_eq!(
-            preprocess_expression(r#"data.stepKey == "value""#).unwrap(),
+            preprocess_expression(r#"data.stepKey == "value""#).unwrap_or_else(|e| panic!("{e}")),
             r#"data__stepKey == "value""#
         );
     }
@@ -2357,21 +2359,21 @@ mod tests {
     #[test]
     fn test_preprocess_expression_deep() {
         assert_eq!(
-            preprocess_expression("data.result.title == \"test\"").unwrap(),
+            preprocess_expression("data.result.title == \"test\"").unwrap_or_else(|e| panic!("{e}")),
             "data__result__title == \"test\""
         );
     }
 
     #[test]
     fn test_preprocess_expression_no_dots() {
-        assert_eq!(preprocess_expression("status == 200").unwrap(), "status == 200");
+        assert_eq!(preprocess_expression("status == 200").unwrap_or_else(|e| panic!("{e}")), "status == 200");
     }
 
     #[test]
     fn test_preprocess_expression_preserves_strings() {
         // 字符串字面量内的点号不应被替换
         assert_eq!(
-            preprocess_expression(r#"url == "http://example.com""#).unwrap(),
+            preprocess_expression(r#"url == "http://example.com""#).unwrap_or_else(|e| panic!("{e}")),
             r#"url == "http://example.com""#
         );
     }
@@ -2379,28 +2381,28 @@ mod tests {
     #[test]
     fn test_flatten_identifier_chains() {
         assert_eq!(
-            flatten_identifier_chains("data.stepKey == 200").unwrap(),
+            flatten_identifier_chains("data.stepKey == 200").unwrap_or_else(|e| panic!("{e}")),
             "data__stepKey == 200"
         );
-        assert_eq!(flatten_identifier_chains("code == 200").unwrap(), "code == 200");
-        assert_eq!(flatten_identifier_chains("a.b.c.d > 0").unwrap(), "a__b__c__d > 0");
+        assert_eq!(flatten_identifier_chains("code == 200").unwrap_or_else(|e| panic!("{e}")), "code == 200");
+        assert_eq!(flatten_identifier_chains("a.b.c.d > 0").unwrap_or_else(|e| panic!("{e}")), "a__b__c__d > 0");
     }
 
     #[test]
     fn test_flatten_jsonpath_prefix() {
         // $.status → status（去掉 $. 后无点号）
         assert_eq!(
-            flatten_identifier_chains("$.status == 200").unwrap(),
+            flatten_identifier_chains("$.status == 200").unwrap_or_else(|e| panic!("{e}")),
             "status == 200"
         );
         // $.body.data.token → body__data__token
         assert_eq!(
-            flatten_identifier_chains(r#"$.body.data.token == "abc""#).unwrap(),
+            flatten_identifier_chains(r#"$.body.data.token == "abc""#).unwrap_or_else(|e| panic!("{e}")),
             r#"body__data__token == "abc""#
         );
         // 混合 $. 和普通标识符
         assert_eq!(
-            flatten_identifier_chains("$.status >= 200 && $.status < 300").unwrap(),
+            flatten_identifier_chains("$.status >= 200 && $.status < 300").unwrap_or_else(|e| panic!("{e}")),
             "status >= 200 && status < 300"
         );
     }
@@ -2408,14 +2410,14 @@ mod tests {
     #[test]
     fn test_preprocess_expression_jsonpath_style() {
         // $.status 在表达式中应被正确处理
-        assert_eq!(preprocess_expression("$.status == 200").unwrap(), "status == 200");
+        assert_eq!(preprocess_expression("$.status == 200").unwrap_or_else(|e| panic!("{e}")), "status == 200");
         assert_eq!(
-            preprocess_expression(r#"$.body.data.token == "abc""#).unwrap(),
+            preprocess_expression(r#"$.body.data.token == "abc""#).unwrap_or_else(|e| panic!("{e}")),
             r#"body__data__token == "abc""#
         );
         // 混合使用
         assert_eq!(
-            preprocess_expression("status == 200 && $.body.success == true").unwrap(),
+            preprocess_expression("status == 200 && $.body.success == true").unwrap_or_else(|e| panic!("{e}")),
             "status == 200 && body__success == true"
         );
     }
@@ -2443,8 +2445,8 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "$.status 表达式应该Success");
-        let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(true));
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
     }
 
     #[tokio::test]
@@ -2470,8 +2472,8 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "$.body.data.token 表达式应该Success");
-        let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(true));
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
     }
 
     // ============================================================================
@@ -2501,8 +2503,8 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "简单变量名应从 last_node_output 中提取");
-        let (_, output) = result.unwrap();
-        assert_eq!(output.unwrap()["result"], json!(true));
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(output.unwrap_or_else(|| panic!("expected Some"))["result"], json!(true));
     }
 
     #[tokio::test]
@@ -2528,9 +2530,9 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok(), "变量池应优先于 last_node_output");
-        let (_, output) = result.unwrap();
+        let (_, output) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(
-            output.unwrap()["result"],
+            output.unwrap_or_else(|| panic!("expected Some"))["result"],
             json!(true),
             "应为 404（来自变量池）"
         );
@@ -2559,6 +2561,6 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_err(), "should error when not found in either source");
-        assert!(result.unwrap_err().message.contains("not found"));
+        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).message.contains("not found"));
     }
 }

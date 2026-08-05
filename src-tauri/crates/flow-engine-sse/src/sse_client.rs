@@ -266,7 +266,7 @@ mod tests {
             data: r#"{"status":"ok"}"#.to_string(),
             retry: None,
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("\"event\":\"update\""));
         assert!(json.contains("\"id\":\"42\""));
         assert!(json.contains(r#""data":"{\"status\":\"ok\"}"#));
@@ -277,7 +277,8 @@ mod tests {
     #[test]
     fn test_sse_event_deserialization() {
         let json = r#"{"event":"message","data":"hello","id":"1"}"#;
-        let event: SseEvent = serde_json::from_str(json).expect("反序列化Failed");
+        let event: SseEvent =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(event.event, Some("message".to_string()));
         assert_eq!(event.data, "hello");
         assert_eq!(event.id, Some("1".to_string()));
@@ -297,11 +298,8 @@ mod tests {
             Duration::from_secs(5)
         };
         let mut events = Vec::new();
-        loop {
-            match tokio::time::timeout(timeout, rx.recv()).await {
-                Ok(Ok(event)) => events.push(event),
-                _ => break,
-            }
+        while let Ok(Ok(event)) = tokio::time::timeout(timeout, rx.recv()).await {
+            events.push(event);
         }
         events
     }
@@ -469,11 +467,16 @@ mod tests {
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
-            .expect("绑定端口Failed");
-        let addr = listener.local_addr().expect("获取地址Failed");
+            .unwrap_or_else(|e| panic!("绑定端口Failed: {e}"));
+        let addr = listener
+            .local_addr()
+            .unwrap_or_else(|e| panic!("获取地址Failed: {e}"));
 
         tokio::spawn(async move {
-            let (mut stream, _) = listener.accept().await.expect("接受connection failed");
+            let (mut stream, _) = listener
+                .accept()
+                .await
+                .unwrap_or_else(|e| panic!("接受connection failed: {e}"));
             use tokio::io::{AsyncReadExt, AsyncWriteExt};
             let mut buf = vec![0u8; 4096];
             let _ = stream.read(&mut buf).await;
@@ -497,6 +500,6 @@ mod tests {
             .get(format!("http://{}", addr))
             .send()
             .await
-            .expect("mock 请求Failed")
+            .unwrap_or_else(|e| panic!("mock 请求Failed: {e}"))
     }
 }

@@ -1136,12 +1136,12 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok(), "GET请求应该Success");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty());
 
         // 验证输出数据
         assert!(output_data.is_some(), "应该有输出数据");
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200, "状态码应该是200");
         assert_eq!(output["success"], true, "success 应该为 true");
         assert!(output["body"].is_object(), "响应体应该是JSON对象");
@@ -1172,9 +1172,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok(), "POST请求应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
         assert_eq!(output["success"], true, "success 应该为 true");
 
@@ -1214,9 +1214,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "PUT请求应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
         assert_eq!(output["success"], true, "success 应该为 true");
     }
@@ -1242,9 +1242,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "DELETE请求应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
         assert_eq!(output["success"], true, "success 应该为 true");
     }
@@ -1273,9 +1273,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "PATCH请求应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
         assert_eq!(output["success"], true, "success 应该为 true");
     }
@@ -1306,12 +1306,12 @@ mod tests {
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "404Error应该返回Ok（走false端口）");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty(), "没有连接时next_node_ids应该为空");
 
         // 验证输出数据
         assert!(output_data.is_some(), "应该有输出数据");
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false, "success 应该为 false");
         assert_eq!(output["status"], 404, "状态码应该是404");
     }
@@ -1338,9 +1338,9 @@ mod tests {
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "500Error应该返回Ok（走false端口）");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false, "success 应该为 false");
         assert_eq!(output["status"], 500, "状态码应该是500");
     }
@@ -1367,9 +1367,9 @@ mod tests {
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "403Error应该返回Ok（走false端口）");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false, "success 应该为 false");
         assert_eq!(output["status"], 403, "状态码应该是403");
     }
@@ -1396,9 +1396,9 @@ mod tests {
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "401Error应该返回Ok（走false端口）");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false, "success 应该为 false");
         assert_eq!(output["status"], 401, "状态码应该是401");
     }
@@ -1429,9 +1429,9 @@ mod tests {
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "DNS解析Failed应该返回Ok（走false端口）");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some(), "应该有输出数据");
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false, "success 应该为 false");
         assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
         assert!(output["body"].is_null(), "网络Error时 body 应该为 null");
@@ -1440,7 +1440,9 @@ mod tests {
             "网络Error时 headers 应该为 null"
         );
         assert!(output["error"].is_string(), "网络Error时应该有 error 字段");
-        let error_msg = output["error"].as_str().unwrap();
+        let error_msg = output["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(
             error_msg.contains("HTTP请求Failed")
                 || error_msg.contains("HTTP request failed")
@@ -1477,9 +1479,9 @@ mod tests {
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "连接超时应该返回Ok（走false端口）");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some(), "应该有输出数据");
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false, "success 应该为 false");
         assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
         assert!(output["body"].is_null(), "网络Error时 body 应该为 null");
@@ -1488,7 +1490,9 @@ mod tests {
             "网络Error时 headers 应该为 null"
         );
         assert!(output["error"].is_string(), "网络Error时应该有 error 字段");
-        let error_msg = output["error"].as_str().unwrap();
+        let error_msg = output["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(
             error_msg.contains("HTTP请求Failed")
                 || error_msg.contains("HTTP request failed")
@@ -1531,9 +1535,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok(), "变量替换应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
 
         // 验证响应体包含替换后的变量值
@@ -1587,9 +1591,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok(), "请求头变量替换应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
 
         // 验证响应体包含替换后的请求头值（echo 服务返回的 header key 为小写）
@@ -1654,9 +1658,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok(), "请求体变量替换应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
 
         // 验证响应体包含替换后的请求体数据
@@ -1722,9 +1726,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok(), "全部变量替换应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
 
         // 验证URL参数被替换
@@ -1778,16 +1782,18 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证响应体被解析为JSON对象
         assert!(output["body"].is_object(), "JSON响应应该被解析为对象");
 
         // 验证响应头存在
         assert!(output["headers"].is_object(), "响应头应该存在");
-        let headers = output["headers"].as_object().unwrap();
+        let headers = output["headers"]
+            .as_object()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(
             headers.contains_key("content-type"),
             "应该包含content-type头"
@@ -1815,9 +1821,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 JSON 响应被解析为对象
         assert!(output["body"].is_object(), "JSON 响应应该被解析为对象");
@@ -1848,13 +1854,15 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证响应头被收集
         assert!(output["headers"].is_object());
-        let headers = output["headers"].as_object().unwrap();
+        let headers = output["headers"]
+            .as_object()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(!headers.is_empty(), "响应头不应该为空");
 
         // 验证常见响应头存在
@@ -1887,9 +1895,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "空请求头应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        assert_eq!(output_data.unwrap()["status"], 200);
+        assert_eq!(
+            output_data.unwrap_or_else(|| panic!("expected Some"))["status"],
+            200
+        );
     }
 
     #[tokio::test]
@@ -1916,9 +1927,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "空请求体应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        assert_eq!(output_data.unwrap()["status"], 200);
+        assert_eq!(
+            output_data.unwrap_or_else(|| panic!("expected Some"))["status"],
+            200
+        );
     }
 
     #[tokio::test]
@@ -1942,9 +1956,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "URL编码应该被正确处理");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证请求Success
         assert_eq!(output["status"], 200);
@@ -2017,12 +2031,12 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok());
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_node_ids.is_empty()); // Test Node没有连接
 
         // 验证输出数据包含响应
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert!(output["status"].is_number());
         assert_eq!(output["status"], 200);
         assert!(output["body"].is_object());
@@ -2084,9 +2098,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
     }
 
@@ -2142,9 +2156,9 @@ mod tests {
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "404Error应该返回Ok（走false端口）");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false, "success 应该为 false");
         assert_eq!(output["status"], 404, "状态码应该是404");
     }
@@ -2201,9 +2215,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
     }
 
@@ -2259,9 +2273,9 @@ mod tests {
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "500Error应该返回Ok（走false端口）");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false, "success 应该为 false");
         assert_eq!(output["status"], 500, "状态码应该是500");
     }
@@ -2330,9 +2344,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
 
         // 验证响应体包含替换后的变量值
@@ -2401,9 +2415,9 @@ mod tests {
 
         // 验证执行Success（不返回 Err，而是返回 Ok 并标记 success: false）
         assert!(result.is_ok(), "网络Error应该返回Ok（走false端口）");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some(), "应该有输出数据");
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false, "success 应该为 false");
         assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
         assert!(output["body"].is_null(), "网络Error时 body 应该为 null");
@@ -2412,7 +2426,9 @@ mod tests {
             "网络Error时 headers 应该为 null"
         );
         assert!(output["error"].is_string(), "网络Error时应该有 error 字段");
-        let error_msg = output["error"].as_str().unwrap();
+        let error_msg = output["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(
             error_msg.contains("HTTP请求Failed")
                 || error_msg.contains("HTTP request failed")
@@ -2481,9 +2497,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
 
         // 验证响应体被解析为JSON对象
@@ -2542,9 +2558,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
 
         // 验证响应体为 JSON 对象
@@ -2607,9 +2623,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
     }
 
@@ -2665,9 +2681,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
     }
 
@@ -2727,9 +2743,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
     }
 
@@ -2785,13 +2801,15 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证响应头存在
         assert!(output["headers"].is_object());
-        let headers = output["headers"].as_object().unwrap();
+        let headers = output["headers"]
+            .as_object()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(headers.contains_key("content-type"));
     }
 
@@ -2821,9 +2839,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok(), "GET请求应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // ===== 向后兼容性验证 =====
         assert!(
@@ -2842,11 +2860,17 @@ mod tests {
             output.get("request").is_some(),
             "output_data 应包含 request 字段"
         );
-        let request = output.get("request").unwrap();
+        let request = output
+            .get("request")
+            .unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 request.url
         assert!(request.get("url").is_some(), "request 应包含 url 字段");
-        let url = request.get("url").unwrap().as_str().unwrap();
+        let url = request
+            .get("url")
+            .unwrap_or_else(|| panic!("expected Some"))
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(
             url.contains("localhost:19090/api/status"),
             "request.url 应包含请求地址"
@@ -2858,7 +2882,11 @@ mod tests {
             "request 应包含 method 字段"
         );
         assert_eq!(
-            request.get("method").unwrap().as_str().unwrap(),
+            request
+                .get("method")
+                .unwrap_or_else(|| panic!("expected Some"))
+                .as_str()
+                .unwrap_or_else(|| panic!("expected Some")),
             "GET",
             "request.method 应该是 GET"
         );
@@ -2869,7 +2897,10 @@ mod tests {
             "request 应包含 headers 字段"
         );
         assert!(
-            request.get("headers").unwrap().is_object(),
+            request
+                .get("headers")
+                .unwrap_or_else(|| panic!("expected Some"))
+                .is_object(),
             "request.headers 应该是对象"
         );
 
@@ -2879,7 +2910,11 @@ mod tests {
             "request 应包含 body_type 字段"
         );
         assert_eq!(
-            request.get("body_type").unwrap().as_str().unwrap(),
+            request
+                .get("body_type")
+                .unwrap_or_else(|| panic!("expected Some"))
+                .as_str()
+                .unwrap_or_else(|| panic!("expected Some")),
             "none",
             "GET 请求的 body_type 应该是 none"
         );
@@ -2887,7 +2922,10 @@ mod tests {
         // 验证 request.body (GET 请求应该是 null)
         assert!(request.get("body").is_some(), "request 应包含 body 字段");
         assert!(
-            request.get("body").unwrap().is_null(),
+            request
+                .get("body")
+                .unwrap_or_else(|| panic!("expected Some"))
+                .is_null(),
             "GET 请求的 request.body 应该是 null"
         );
     }
@@ -2917,34 +2955,65 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "POST请求应该Success");
-        let output = result.unwrap().1.unwrap();
+        let output = result
+            .unwrap_or_else(|e| panic!("{e}"))
+            .1
+            .unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 request 字段
-        let request = output.get("request").unwrap();
+        let request = output
+            .get("request")
+            .unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 method
-        assert_eq!(request.get("method").unwrap().as_str().unwrap(), "POST");
+        assert_eq!(
+            request
+                .get("method")
+                .unwrap_or_else(|| panic!("expected Some"))
+                .as_str()
+                .unwrap_or_else(|| panic!("expected Some")),
+            "POST"
+        );
 
         // 验证 headers 包含自定义头
-        let req_headers = request.get("headers").unwrap().as_object().unwrap();
+        let req_headers = request
+            .get("headers")
+            .unwrap_or_else(|| panic!("expected Some"))
+            .as_object()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(
             req_headers
                 .get("X-Custom-Header")
-                .unwrap()
+                .unwrap_or_else(|| panic!("expected Some"))
                 .as_str()
-                .unwrap(),
+                .unwrap_or_else(|| panic!("expected Some")),
             "custom-value"
         );
         assert_eq!(
-            req_headers.get("Content-Type").unwrap().as_str().unwrap(),
+            req_headers
+                .get("Content-Type")
+                .unwrap_or_else(|| panic!("expected Some"))
+                .as_str()
+                .unwrap_or_else(|| panic!("expected Some")),
             "application/json"
         );
 
         // 验证 body_type
-        assert_eq!(request.get("body_type").unwrap().as_str().unwrap(), "body");
+        assert_eq!(
+            request
+                .get("body_type")
+                .unwrap_or_else(|| panic!("expected Some"))
+                .as_str()
+                .unwrap_or_else(|| panic!("expected Some")),
+            "body"
+        );
 
         // 验证 body 包含发送的数据
-        let req_body = request.get("body").unwrap().as_str().unwrap();
+        let req_body = request
+            .get("body")
+            .unwrap_or_else(|| panic!("expected Some"))
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(req_body.contains("test_key"));
         assert!(req_body.contains("test_value"));
     }
@@ -2971,11 +3040,20 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let output = result.unwrap().1.unwrap();
-        let request = output.get("request").unwrap();
+        let output = result
+            .unwrap_or_else(|e| panic!("{e}"))
+            .1
+            .unwrap_or_else(|| panic!("expected Some"));
+        let request = output
+            .get("request")
+            .unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 request.url 是变量替换后的值
-        let url = request.get("url").unwrap().as_str().unwrap();
+        let url = request
+            .get("url")
+            .unwrap_or_else(|| panic!("expected Some"))
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(
             url.contains("param=replaced_value"),
             "request.url 应该包含替换后的变量值"
@@ -3014,12 +3092,25 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let output = result.unwrap().1.unwrap();
-        let request = output.get("request").unwrap();
+        let output = result
+            .unwrap_or_else(|e| panic!("{e}"))
+            .1
+            .unwrap_or_else(|| panic!("expected Some"));
+        let request = output
+            .get("request")
+            .unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 request.headers 包含替换后的值
-        let req_headers = request.get("headers").unwrap().as_object().unwrap();
-        let auth_header = req_headers.get("X-Auth-Token").unwrap().as_str().unwrap();
+        let req_headers = request
+            .get("headers")
+            .unwrap_or_else(|| panic!("expected Some"))
+            .as_object()
+            .unwrap_or_else(|| panic!("expected Some"));
+        let auth_header = req_headers
+            .get("X-Auth-Token")
+            .unwrap_or_else(|| panic!("expected Some"))
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(
             auth_header.contains("secret_token_123"),
             "request.headers 应该包含替换后的变量值"
@@ -3237,9 +3328,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok(), "Header key 变量替换应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
 
         // 验证响应体包含替换后的 header key（echo 服务返回的 header key 为小写）
@@ -3293,9 +3384,9 @@ mod tests {
 
         // 验证执行Success
         assert!(result.is_ok(), "Header key 部分变量替换应该Success");
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["status"], 200);
 
         // 验证 request.headers 中包含替换后的 header key
@@ -3357,7 +3448,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "请求应该Success");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
 
         // 验证：应该路由到 true 端口连接的节点
         assert_eq!(
@@ -3367,7 +3458,7 @@ mod tests {
         );
 
         // 验证输出数据
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], true);
         assert_eq!(output["status"], 200);
     }
@@ -3413,7 +3504,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "请求应该返回Ok");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
 
         // 验证：应该路由到 false 端口连接的节点
         assert_eq!(
@@ -3423,7 +3514,7 @@ mod tests {
         );
 
         // 验证输出数据
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false);
         assert_eq!(output["status"], 404);
     }
@@ -3469,7 +3560,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "网络Error应该返回Ok");
-        let (next_node_ids, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
 
         // 验证：应该路由到 false 端口连接的节点
         assert_eq!(
@@ -3479,7 +3570,7 @@ mod tests {
         );
 
         // 验证输出数据
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false);
         assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
         assert!(output["error"].is_string(), "网络Error时应该有 error 字段");

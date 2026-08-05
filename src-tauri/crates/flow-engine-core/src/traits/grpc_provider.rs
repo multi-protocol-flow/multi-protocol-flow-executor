@@ -396,8 +396,10 @@ mod tests {
             GrpcPattern::ClientStreaming,
             GrpcPattern::BidiStreaming,
         ] {
-            let json = serde_json::to_string(&pattern).expect("序列化应Success");
-            let deserialized: GrpcPattern = serde_json::from_str(&json).expect("反序列化应Success");
+            let json =
+                serde_json::to_string(&pattern).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+            let deserialized: GrpcPattern =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
             assert_eq!(
                 pattern, deserialized,
                 "GrpcPattern serde 往返Failed: {:?}",
@@ -411,7 +413,8 @@ mod tests {
         // is_client_streaming 有 #[serde(default)]，缺少时应默认为 false
         let json =
             r#"{"method_name":"M","input_type":"I","output_type":"O","is_server_streaming":true}"#;
-        let info: GrpcMethodInfo = serde_json::from_str(json).expect("反序列化应Success");
+        let info: GrpcMethodInfo =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert!(!info.is_client_streaming);
         assert!(info.is_server_streaming);
     }
@@ -422,8 +425,10 @@ mod tests {
             total_ms: 150,
             first_response_ms: Some(50),
         };
-        let json = serde_json::to_string(&timing).expect("序列化应Success");
-        let deserialized: GrpcTimingInfo = serde_json::from_str(&json).expect("反序列化应Success");
+        let json =
+            serde_json::to_string(&timing).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: GrpcTimingInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.total_ms, 150);
         assert_eq!(deserialized.first_response_ms, Some(50));
     }
@@ -443,9 +448,10 @@ mod tests {
             },
             cancelled: false,
         };
-        let json = serde_json::to_string(&result).expect("序列化应Success");
+        let json =
+            serde_json::to_string(&result).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         let deserialized: GrpcStreamingResult =
-            serde_json::from_str(&json).expect("反序列化应Success");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.status, 0);
         assert_eq!(deserialized.sent_count, 3);
         assert_eq!(deserialized.received_count, 1);
@@ -457,12 +463,14 @@ mod tests {
             name: "VALUE_A".to_string(),
             number: 0,
         };
-        let json = serde_json::to_string(&ev).expect("serialize");
-        let deserialized: GrpcEnumValue = serde_json::from_str(&json).expect("deserialize");
+        let json = serde_json::to_string(&ev).unwrap_or_else(|e| panic!("serialize: {e}"));
+        let deserialized: GrpcEnumValue =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialize: {e}"));
         assert_eq!(ev, deserialized);
 
         // verify field names
-        let parsed: serde_json::Value = serde_json::from_str(&json).expect("parse");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("parse: {e}"));
         assert_eq!(parsed["name"], "VALUE_A");
         assert_eq!(parsed["number"], 0);
     }
@@ -473,8 +481,9 @@ mod tests {
             name: "result".to_string(),
             field_numbers: vec![1, 2, 3],
         };
-        let json = serde_json::to_string(&oneof).expect("serialize");
-        let deserialized: GrpcOneofInfo = serde_json::from_str(&json).expect("deserialize");
+        let json = serde_json::to_string(&oneof).unwrap_or_else(|e| panic!("serialize: {e}"));
+        let deserialized: GrpcOneofInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialize: {e}"));
         assert_eq!(oneof, deserialized);
     }
 
@@ -493,8 +502,9 @@ mod tests {
             enum_values: vec![],
             nested_message: None,
         };
-        let json = serde_json::to_string(&field).expect("serialize");
-        let deserialized: GrpcFieldInfo = serde_json::from_str(&json).expect("deserialize");
+        let json = serde_json::to_string(&field).unwrap_or_else(|e| panic!("serialize: {e}"));
+        let deserialized: GrpcFieldInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialize: {e}"));
         assert_eq!(field, deserialized);
     }
 
@@ -533,8 +543,9 @@ mod tests {
             enum_values: vec![],
             nested_message: Some(Box::new(inner)),
         };
-        let json = serde_json::to_string(&outer).expect("serialize");
-        let deserialized: GrpcFieldInfo = serde_json::from_str(&json).expect("deserialize");
+        let json = serde_json::to_string(&outer).unwrap_or_else(|e| panic!("serialize: {e}"));
+        let deserialized: GrpcFieldInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialize: {e}"));
         assert_eq!(outer, deserialized);
         assert!(deserialized.nested_message.is_some());
     }
@@ -588,8 +599,9 @@ mod tests {
             reserved_ranges: vec![(1000, 2000)],
             reserved_names: vec!["deprecated".to_string()],
         };
-        let json = serde_json::to_string(&msg).expect("serialize");
-        let deserialized: GrpcMessageInfo = serde_json::from_str(&json).expect("deserialize");
+        let json = serde_json::to_string(&msg).unwrap_or_else(|e| panic!("serialize: {e}"));
+        let deserialized: GrpcMessageInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialize: {e}"));
         assert_eq!(msg, deserialized);
         assert_eq!(deserialized.full_name, "pkg.MyMessage");
         assert_eq!(deserialized.fields.len(), 2);
@@ -611,8 +623,8 @@ mod tests {
                 }
             ]
         }"#;
-        let info: GrpcServiceInfo =
-            serde_json::from_str(old_json).expect("backward compat deserialize");
+        let info: GrpcServiceInfo = serde_json::from_str(old_json)
+            .unwrap_or_else(|e| panic!("backward compat deserialize: {e}"));
         assert_eq!(info.service_name, "pkg.MyService");
         assert_eq!(info.methods.len(), 1);
         assert!(
@@ -657,8 +669,9 @@ mod tests {
             }],
             message_definitions: Arc::new(defs),
         };
-        let json = serde_json::to_string(&info).expect("serialize");
-        let deserialized: GrpcServiceInfo = serde_json::from_str(&json).expect("deserialize");
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("serialize: {e}"));
+        let deserialized: GrpcServiceInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialize: {e}"));
         assert_eq!(info, deserialized);
         assert_eq!(deserialized.message_definitions.len(), 1);
         assert!(deserialized.message_definitions.contains_key("pkg.Input"));

@@ -530,7 +530,8 @@ mod tests {
 
     /// 辅助：创建指向 mockito mock 服务器的客户端（无认证）
     fn create_client(server: &mockito::ServerGuard) -> SchemaRegistryClient {
-        SchemaRegistryClient::new(&server.url(), None).expect("Failed to create client")
+        SchemaRegistryClient::new(&server.url(), None)
+            .unwrap_or_else(|e| panic!("Failed to create client: {e}"))
     }
 
     /// 辅助：创建带 Basic Auth 的客户端
@@ -543,7 +544,7 @@ mod tests {
                 bearer_token: None,
             }),
         )
-        .expect("Failed to create client")
+        .unwrap_or_else(|e| panic!("Failed to create client: {e}"))
     }
 
     // ===== 列出所有 Subject =====
@@ -560,7 +561,10 @@ mod tests {
             .await;
 
         let client = create_client(&server);
-        let subjects = client.list_subjects().await.expect("list_subjects failed");
+        let subjects = client
+            .list_subjects()
+            .await
+            .unwrap_or_else(|e| panic!("list_subjects failed: {e}"));
 
         assert_eq!(subjects, vec!["subject1", "subject2"]);
         mock.assert_async().await;
@@ -583,7 +587,7 @@ mod tests {
         let versions = client
             .get_subject_versions("test")
             .await
-            .expect("get_subject_versions failed");
+            .unwrap_or_else(|e| panic!("get_subject_versions failed: {e}"));
 
         assert_eq!(versions, vec![1, 2, 3]);
         mock.assert_async().await;
@@ -613,7 +617,7 @@ mod tests {
         let schema = client
             .get_schema_by_version("test", 1)
             .await
-            .expect("get_schema_by_version failed");
+            .unwrap_or_else(|e| panic!("get_schema_by_version failed: {e}"));
 
         assert_eq!(schema.subject, "test");
         assert_eq!(schema.version, 1);
@@ -645,7 +649,7 @@ mod tests {
         let schema = client
             .get_latest_schema("test")
             .await
-            .expect("get_latest_schema failed");
+            .unwrap_or_else(|e| panic!("get_latest_schema failed: {e}"));
 
         assert_eq!(schema.version, 3);
         assert_eq!(schema.id, 100);
@@ -670,7 +674,7 @@ mod tests {
         let id = client
             .register_schema("test", r#"{"type":"string"}"#, "AVRO")
             .await
-            .expect("register_schema failed");
+            .unwrap_or_else(|e| panic!("register_schema failed: {e}"));
 
         assert_eq!(id, 42);
         mock.assert_async().await;
@@ -694,7 +698,7 @@ mod tests {
         let compatible = client
             .check_compatibility("test", r#"{"type":"string"}"#, "AVRO", None)
             .await
-            .expect("check_compatibility failed");
+            .unwrap_or_else(|e| panic!("check_compatibility failed: {e}"));
 
         assert!(compatible);
         mock.assert_async().await;
@@ -718,7 +722,7 @@ mod tests {
         let compatible = client
             .check_compatibility("test", r#"{"type":"int"}"#, "AVRO", Some(2))
             .await
-            .expect("check_compatibility failed");
+            .unwrap_or_else(|e| panic!("check_compatibility failed: {e}"));
 
         assert!(!compatible);
         mock.assert_async().await;
@@ -741,7 +745,7 @@ mod tests {
         let level = client
             .get_compatibility("test")
             .await
-            .expect("get_compatibility failed");
+            .unwrap_or_else(|e| panic!("get_compatibility failed: {e}"));
 
         assert_eq!(level, "BACKWARD");
         mock.assert_async().await;
@@ -765,7 +769,7 @@ mod tests {
         client
             .set_compatibility("test", "FULL")
             .await
-            .expect("set_compatibility failed");
+            .unwrap_or_else(|e| panic!("set_compatibility failed: {e}"));
 
         mock.assert_async().await;
     }
@@ -785,7 +789,10 @@ mod tests {
             .await;
 
         let client = create_client_with_basic_auth(&server);
-        let subjects = client.list_subjects().await.expect("list_subjects failed");
+        let subjects = client
+            .list_subjects()
+            .await
+            .unwrap_or_else(|e| panic!("list_subjects failed: {e}"));
         assert!(subjects.is_empty());
         mock.assert_async().await;
     }
@@ -812,9 +819,12 @@ mod tests {
                 bearer_token: Some("my-token-123".to_string()),
             }),
         )
-        .expect("Failed to create client");
+        .unwrap_or_else(|e| panic!("Failed to create client: {e}"));
 
-        let subjects = client.list_subjects().await.expect("list_subjects failed");
+        let subjects = client
+            .list_subjects()
+            .await
+            .unwrap_or_else(|e| panic!("list_subjects failed: {e}"));
         assert!(subjects.is_empty());
         mock.assert_async().await;
     }
@@ -940,7 +950,7 @@ mod tests {
     #[test]
     fn test_base_url_trailing_slash_stripped() {
         let client = SchemaRegistryClient::new("http://localhost:8081/", None)
-            .expect("Failed to create client");
+            .unwrap_or_else(|e| panic!("Failed to create client: {e}"));
         assert_eq!(client.base_url, "http://localhost:8081");
     }
 
@@ -959,7 +969,10 @@ mod tests {
             .await;
 
         let client = create_client(&server);
-        client.list_subjects().await.expect("should succeed");
+        client
+            .list_subjects()
+            .await
+            .unwrap_or_else(|e| panic!("should succeed: {e}"));
         mock.assert_async().await;
     }
 }

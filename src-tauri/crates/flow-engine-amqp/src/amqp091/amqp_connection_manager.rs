@@ -830,7 +830,10 @@ mod tests {
         let config = AmqpCloseConfig::default();
         let result = manager.close("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -860,7 +863,10 @@ mod tests {
         let config = AmqpExchangeDeclareConfig::default();
         let result = manager.exchange_declare("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -869,7 +875,10 @@ mod tests {
         let config = AmqpExchangeDeleteConfig::default();
         let result = manager.exchange_delete("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -878,7 +887,10 @@ mod tests {
         let config = AmqpQueueDeclareConfig::default();
         let result = manager.queue_declare("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -887,7 +899,10 @@ mod tests {
         let config = AmqpQueueDeleteConfig::default();
         let result = manager.queue_delete("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -896,7 +911,10 @@ mod tests {
         let config = AmqpQueueBindConfig::default();
         let result = manager.queue_bind("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -905,7 +923,10 @@ mod tests {
         let config = AmqpPublishConfig::default();
         let result = manager.publish("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -914,7 +935,10 @@ mod tests {
         let config = AmqpConsumeConfig::default();
         let result = manager.consume("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -923,7 +947,10 @@ mod tests {
         let config = AmqpGetConfig::default();
         let result = manager.get("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -938,7 +965,10 @@ mod tests {
         };
         let result = manager.ack("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -966,7 +996,10 @@ mod tests {
         let config = Amqp10SendConfig::default();
         let result = manager.amqp10_send("any", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -975,7 +1008,10 @@ mod tests {
         let config = Amqp10ReceiveConfig::default();
         let result = manager.amqp10_receive("any", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -984,7 +1020,10 @@ mod tests {
         let config = Amqp10AcceptConfig::default();
         let result = manager.amqp10_accept("any", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -993,7 +1032,10 @@ mod tests {
         let config = Amqp10RejectConfig::default();
         let result = manager.amqp10_reject("any", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -1002,7 +1044,10 @@ mod tests {
         let config = Amqp10DisconnectConfig::default();
         let result = manager.amqp10_disconnect("any", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     // ---- 状态显示测试 ----
@@ -1250,7 +1295,7 @@ mod tests {
         // 连接
         let result = provider.connect("conn-1", &config).await;
         assert!(result.is_ok());
-        let output = result.unwrap();
+        let output = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(output.success);
         assert_eq!(output.connection_id, "conn-1");
 
@@ -1278,7 +1323,10 @@ mod tests {
             url: "amqp://localhost:5672".to_string(),
             ..Default::default()
         };
-        provider.connect("conn-1", &connect_config).await.unwrap();
+        provider
+            .connect("conn-1", &connect_config)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 声明交换器
         let declare_config = AmqpExchangeDeclareConfig {
@@ -1290,7 +1338,7 @@ mod tests {
         };
         let result = provider.exchange_declare("conn-1", &declare_config).await;
         assert!(result.is_ok());
-        let output = result.unwrap();
+        let output = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(output.success);
         assert_eq!(output.exchange, Some("test-exchange".to_string()));
 
@@ -1311,7 +1359,10 @@ mod tests {
             url: "amqp://localhost:5672".to_string(),
             ..Default::default()
         };
-        provider.connect("conn-1", &connect_config).await.unwrap();
+        provider
+            .connect("conn-1", &connect_config)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 声明队列
         let declare_config = AmqpQueueDeclareConfig {
@@ -1351,7 +1402,10 @@ mod tests {
             url: "amqp://localhost:5672".to_string(),
             ..Default::default()
         };
-        provider.connect("conn-1", &connect_config).await.unwrap();
+        provider
+            .connect("conn-1", &connect_config)
+            .await
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 发布消息
         let publish_config = AmqpPublishConfig {
@@ -1376,7 +1430,7 @@ mod tests {
         };
         let result = provider.ack("conn-1", &ack_config).await;
         assert!(result.is_ok());
-        let output = result.unwrap();
+        let output = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(output.success);
         assert_eq!(output.action, Some("ack".to_string()));
     }

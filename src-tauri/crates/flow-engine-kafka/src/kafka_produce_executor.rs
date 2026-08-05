@@ -478,10 +478,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
     }
@@ -506,9 +506,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["partition"], 0);
         assert_eq!(data["offset"], 42);
@@ -551,9 +551,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 验证变量替换生效
         assert_eq!(data["request"]["topic"], "sensor/sensor-001/data");
         assert_eq!(data["request"]["connection_id"], "kafka-connection-123");
@@ -582,7 +582,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("KafkaProduceConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("KafkaProduceConfig"));
     }
 
     /// 测试：输出 JSON 结构完整性
@@ -605,8 +609,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         // 验证所有预期字段存在
         assert!(data.get("success").is_some(), "应有 success 字段");

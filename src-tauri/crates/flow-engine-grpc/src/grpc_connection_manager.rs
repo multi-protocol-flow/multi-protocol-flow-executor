@@ -1149,14 +1149,15 @@ mod tests {
 
     #[test]
     fn test_build_method_path() {
-        let path = build_method_path("test.TestService", "GetUser").expect("路径构建应Success");
+        let path = build_method_path("test.TestService", "GetUser")
+            .unwrap_or_else(|e| panic!("路径构建应Success: {e}"));
         assert_eq!(path.as_str(), "/test.TestService/GetUser");
     }
 
     #[test]
     fn test_build_method_path_with_package() {
-        let path =
-            build_method_path("myapp.v1.OrderService", "CreateOrder").expect("路径构建应Success");
+        let path = build_method_path("myapp.v1.OrderService", "CreateOrder")
+            .unwrap_or_else(|e| panic!("路径构建应Success: {e}"));
         assert_eq!(path.as_str(), "/myapp.v1.OrderService/CreateOrder");
     }
 
@@ -1175,7 +1176,8 @@ message TestMessage {
             path: "test.proto".to_string(),
             content: proto_content.to_string(),
         }];
-        let pool = proto_parser::parse_proto_files(&files).expect("解析应Success");
+        let pool = proto_parser::parse_proto_files(&files)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
 
         // DynamicCodec 需要一个 MethodDescriptor 来确定输入输出类型
         // 由于我们无法从 pool 直接获取独立方法的 MethodDescriptor，
@@ -1183,7 +1185,7 @@ message TestMessage {
         // 真正的编解码测试需要通过 tonic 的 Grpc 客户端
         let msg_desc = pool
             .get_message_by_name("test.TestMessage")
-            .expect("应能找到 TestMessage");
+            .unwrap_or_else(|| panic!("应能找到 TestMessage"));
 
         // 创建 DynamicMessage 并设置字段
         let mut msg = prost_reflect::DynamicMessage::new(msg_desc);
@@ -1216,13 +1218,15 @@ message TestRequest {
             path: "test.proto".to_string(),
             content: proto_content.to_string(),
         }];
-        let pool = proto_parser::parse_proto_files(&files).expect("解析应Success");
+        let pool = proto_parser::parse_proto_files(&files)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         let msg_desc = pool
             .get_message_by_name("test.TestRequest")
-            .expect("应能找到 TestRequest");
+            .unwrap_or_else(|| panic!("应能找到 TestRequest"));
 
         let json = r#"{"user_id": "abc123", "count": 5}"#;
-        let msg = json_to_dynamic_message(json, msg_desc).expect("反序列化应Success");
+        let msg = json_to_dynamic_message(json, msg_desc)
+            .unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
 
         assert_eq!(
             msg.get_field_by_name("user_id")
@@ -1249,16 +1253,17 @@ message TestResponse {
             path: "test.proto".to_string(),
             content: proto_content.to_string(),
         }];
-        let pool = proto_parser::parse_proto_files(&files).expect("解析应Success");
+        let pool = proto_parser::parse_proto_files(&files)
+            .unwrap_or_else(|e| panic!("解析应Success: {e}"));
         let msg_desc = pool
             .get_message_by_name("test.TestResponse")
-            .expect("应能找到 TestResponse");
+            .unwrap_or_else(|| panic!("应能找到 TestResponse"));
 
         let mut msg = prost_reflect::DynamicMessage::new(msg_desc);
         msg.set_field_by_name("name", prost_reflect::Value::String("Alice".to_string()));
         msg.set_field_by_name("age", prost_reflect::Value::I32(30));
 
-        let json = dynamic_message_to_json(&msg).expect("序列化应Success");
+        let json = dynamic_message_to_json(&msg).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert_eq!(json["name"], "Alice");
         assert_eq!(json["age"], 30);
     }
@@ -1339,8 +1344,9 @@ message TestResponse {
             active_calls: 3,
             last_error: None,
         };
-        let json = serde_json::to_string(&info).expect("序列化应Success");
-        let deserialized: ChannelzInfo = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: ChannelzInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.state, "READY");
         assert_eq!(deserialized.uptime_secs, 3600);
         assert_eq!(deserialized.active_calls, 3);
@@ -1356,8 +1362,9 @@ message TestResponse {
             active_calls: 0,
             last_error: Some("connection refused".to_string()),
         };
-        let json = serde_json::to_string(&info).expect("序列化应Success");
-        let deserialized: ChannelzInfo = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let deserialized: ChannelzInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(deserialized.state, "TRANSIENT_FAILURE");
         assert_eq!(
             deserialized.last_error,

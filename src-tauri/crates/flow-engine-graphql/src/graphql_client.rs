@@ -780,7 +780,7 @@ mod tests {
                 server_ms: Some(90),
             }),
         };
-        let json = serde_json::to_string(&response).expect("序列化Failed");
+        let json = serde_json::to_string(&response).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("\"status_code\":200"));
         assert!(json.contains("\"total_ms\":150"));
         // errors 为 None 时不应序列化
@@ -807,7 +807,7 @@ mod tests {
                 server_ms: None,
             }),
         };
-        let json = serde_json::to_string(&response).expect("序列化Failed");
+        let json = serde_json::to_string(&response).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("Field 'foo' not found"));
         assert!(json.contains("\"line\":1"));
         assert!(json.contains("\"column\":5"));
@@ -820,12 +820,16 @@ mod tests {
             "status_code": 200,
             "timing": {"total_ms": 100}
         }"#;
-        let response: GraphqlResponse = serde_json::from_str(json).expect("反序列化Failed");
+        let response: GraphqlResponse =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(response.status_code, 200);
         assert!(response.data.is_some());
         assert!(response.errors.is_none());
         assert!(response.timing.is_some());
-        assert_eq!(response.timing.expect("timing").total_ms, 100);
+        assert_eq!(
+            response.timing.unwrap_or_else(|| panic!("timing")).total_ms,
+            100
+        );
     }
 
     // ---- GraphqlError 测试 ----
@@ -838,7 +842,7 @@ mod tests {
             path: None,
             extensions: None,
         };
-        let json = serde_json::to_string(&error).expect("序列化Failed");
+        let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("\"message\":\"Syntax Error\""));
         // 可选字段为 None 时不序列化
         assert!(!json.contains("locations"));
@@ -854,7 +858,7 @@ mod tests {
             path: Some(serde_json::json!("query.user")),
             extensions: Some(serde_json::json!({"code": "VALIDATION_ERROR"})),
         };
-        let json = serde_json::to_string(&error).expect("序列化Failed");
+        let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("\"line\":2"));
         assert!(json.contains("\"column\":3"));
         assert!(json.contains("VALIDATION_ERROR"));
@@ -871,7 +875,7 @@ mod tests {
             tls_ms: None,
             server_ms: None,
         };
-        let json = serde_json::to_string(&timing).expect("序列化Failed");
+        let json = serde_json::to_string(&timing).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("\"total_ms\":200"));
         assert!(!json.contains("dns_ms"));
     }
@@ -886,7 +890,7 @@ mod tests {
             extensions: None,
             received_at: 1234567890,
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("newMessage"));
         assert!(json.contains("\"received_at\":1234567890"));
         // errors 为空数组时仍然序列化（serde default）
@@ -902,7 +906,7 @@ mod tests {
             event_count: 0,
             duration_ms: 1000,
         };
-        let json = serde_json::to_string(&response).expect("序列化Failed");
+        let json = serde_json::to_string(&response).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("\"event_count\":0"));
         assert!(json.contains("\"duration_ms\":1000"));
     }
@@ -918,7 +922,7 @@ mod tests {
     #[test]
     fn test_auth_serialization() {
         let auth = GraphqlAuth::Bearer("my-token".to_string());
-        let json = serde_json::to_string(&auth).expect("序列化Failed");
+        let json = serde_json::to_string(&auth).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("Bearer"));
         assert!(json.contains("my-token"));
     }
@@ -979,12 +983,15 @@ mod tests {
             Duration::from_millis(100),
         );
         assert!(result.is_ok());
-        let response = result.expect("响应解析Failed");
+        let response = result.unwrap_or_else(|e| panic!("响应解析Failed: {e}"));
         assert_eq!(response.status_code, 200);
         assert!(response.data.is_some());
         assert!(response.errors.is_none());
         assert!(response.timing.is_some());
-        assert_eq!(response.timing.expect("timing").total_ms, 100);
+        assert_eq!(
+            response.timing.unwrap_or_else(|| panic!("timing")).total_ms,
+            100
+        );
     }
 
     #[test]
@@ -993,9 +1000,9 @@ mod tests {
         let result =
             GraphqlClient::parse_graphql_response(body.to_string(), 200, Duration::from_millis(50));
         assert!(result.is_ok());
-        let response = result.expect("响应解析Failed");
+        let response = result.unwrap_or_else(|e| panic!("响应解析Failed: {e}"));
         assert!(response.data.is_some()); // null 值仍被解析为 Some(Value::Null)
-        let errors = response.errors.expect("应有Error");
+        let errors = response.errors.unwrap_or_else(|| panic!("应有Error"));
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].message, "Not found");
     }
@@ -1006,7 +1013,10 @@ mod tests {
         let result =
             GraphqlClient::parse_graphql_response(body.to_string(), 200, Duration::from_millis(10));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("JSON 解析Failed"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("JSON 解析Failed"));
     }
 
     #[test]
@@ -1015,9 +1025,11 @@ mod tests {
         let result =
             GraphqlClient::parse_graphql_response(body.to_string(), 200, Duration::from_millis(20));
         assert!(result.is_ok());
-        let response = result.expect("响应解析Failed");
+        let response = result.unwrap_or_else(|e| panic!("响应解析Failed: {e}"));
         assert!(response.extensions.is_some());
-        let ext = response.extensions.expect("应有扩展信息");
+        let ext = response
+            .extensions
+            .unwrap_or_else(|| panic!("应有扩展信息"));
         assert!(ext.get("tracing").is_some());
     }
 
@@ -1026,7 +1038,7 @@ mod tests {
     #[test]
     fn test_error_location() {
         let loc = GraphqlErrorLocation { line: 3, column: 7 };
-        let json = serde_json::to_string(&loc).expect("序列化Failed");
+        let json = serde_json::to_string(&loc).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("\"line\":3"));
         assert!(json.contains("\"column\":7"));
     }
@@ -1104,7 +1116,9 @@ mod tests {
             .await;
         // 连接被拒绝是预期的（无服务在 localhost:1 监听）
         assert!(result.is_err());
-        let err = result.unwrap_err();
+        let err = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(err.contains("connection failed") || err.contains("Connection refused"));
     }
 
@@ -1120,12 +1134,17 @@ mod tests {
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
-            .expect("绑定端口Failed");
-        let addr = listener.local_addr().expect("获取地址Failed");
+            .unwrap_or_else(|e| panic!("绑定端口Failed: {e}"));
+        let addr = listener
+            .local_addr()
+            .unwrap_or_else(|e| panic!("获取地址Failed: {e}"));
         let port = addr.port();
 
         let handle = tokio::spawn(async move {
-            let (mut stream, _) = listener.accept().await.expect("接受connection failed");
+            let (mut stream, _) = listener
+                .accept()
+                .await
+                .unwrap_or_else(|e| panic!("接受connection failed: {e}"));
             use tokio::io::{AsyncReadExt, AsyncWriteExt};
             let mut buf = vec![0u8; 8192];
             let _ = stream.read(&mut buf).await;
@@ -1164,7 +1183,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "查询应该Success: {:?}", result);
-        let response = result.expect("响应解析Failed");
+        let response = result.unwrap_or_else(|e| panic!("响应解析Failed: {e}"));
         assert_eq!(response.status_code, 200);
         assert!(response.data.is_some());
         assert!(response.errors.is_none());
@@ -1232,9 +1251,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let response = result.expect("响应解析Failed");
-        let data = response.data.expect("应有数据");
-        let user = data.get("user").expect("应有 user 字段");
+        let response = result.unwrap_or_else(|e| panic!("响应解析Failed: {e}"));
+        let data = response.data.unwrap_or_else(|| panic!("应有数据"));
+        let user = data.get("user").unwrap_or_else(|| panic!("应有 user 字段"));
         assert_eq!(user["id"], 42);
         assert_eq!(user["name"], "Bob");
     }
@@ -1257,11 +1276,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let response = result.expect("响应解析Failed");
-        let errors = response.errors.expect("应有Error");
+        let response = result.unwrap_or_else(|e| panic!("响应解析Failed: {e}"));
+        let errors = response.errors.unwrap_or_else(|| panic!("应有Error"));
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].message, "Not found");
-        let locations = errors[0].locations.clone().expect("应有位置信息");
+        let locations = errors[0]
+            .locations
+            .clone()
+            .unwrap_or_else(|| panic!("应有位置信息"));
         assert_eq!(locations[0].line, 1);
         assert_eq!(locations[0].column, 3);
     }
@@ -1277,7 +1299,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let response = result.expect("响应解析Failed");
+        let response = result.unwrap_or_else(|e| panic!("响应解析Failed: {e}"));
         assert_eq!(response.status_code, 500);
     }
 }

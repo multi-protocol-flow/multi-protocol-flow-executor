@@ -300,11 +300,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // 无连接，所以 next_nodes 为空
         assert_eq!(next_nodes, vec![] as Vec<String>);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_id"], "conn-123");
         assert!(data["timing"]["total_ms"].is_number());
@@ -323,10 +323,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec![] as Vec<String>);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "nonexistent-conn");
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
@@ -354,8 +354,8 @@ mod tests {
 
         // 变量应被替换
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "udp-connection-456");
     }
 
@@ -381,6 +381,10 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("UdpCloseConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("UdpCloseConfig"));
     }
 }

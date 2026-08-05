@@ -843,11 +843,11 @@ mod tests {
 
         // 应该返回 true 端口（连接Success）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connected"], true);
         assert_eq!(data["connection_uuid"], "test-1");
@@ -870,11 +870,11 @@ mod tests {
 
         // MockPool 的 test_connection 会Success
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connected"], true);
     }
@@ -892,11 +892,11 @@ mod tests {
 
         // 应该返回 false 端口（driver 为空）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["connected"], false);
         assert!(!data["error"].is_null());
@@ -915,7 +915,7 @@ mod tests {
             .execute(&node1, &mut context1, &[], &HashMap::new())
             .await;
         assert!(result1.is_ok());
-        let (next_nodes1, _) = result1.unwrap();
+        let (next_nodes1, _) = result1.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes1, vec!["true"]);
 
         // 第二次连接相同 pool key（相同节点 uuid）
@@ -928,12 +928,15 @@ mod tests {
 
         // 应该返回 false 端口（连接池已存在）
         assert!(result2.is_ok());
-        let (next_nodes2, output_data2) = result2.unwrap();
+        let (next_nodes2, output_data2) = result2.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes2, vec!["false"]);
 
-        let data = output_data2.unwrap();
+        let data = output_data2.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().unwrap().contains("已存在"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("已存在"));
     }
 
     #[tokio::test]
@@ -960,7 +963,7 @@ mod tests {
 
         // 应该返回 false 端口连接的目标节点
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["target-node"]);
     }
 
@@ -976,8 +979,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 timing 信息存在
         assert!(data["timing"].is_object());
@@ -1011,7 +1014,8 @@ mod tests {
         // 应该返回Error
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .message
             .contains("Node data type is not DbConnectConfig"));
     }
@@ -1087,11 +1091,11 @@ mod tests {
 
         // 应该返回 true 端口（连接Success）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connected"], true);
         assert_eq!(data["connection_uuid"], "sqlite-1");
@@ -1099,7 +1103,7 @@ mod tests {
         // 验证连接池已创建（pool key = node uuid）
         let pool_metadata: Option<PoolMetadata> = db_manager.get_pool_metadata("sqlite-1").await;
         assert!(pool_metadata.is_some());
-        let metadata = pool_metadata.unwrap();
+        let metadata = pool_metadata.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(metadata.db_type, "sqlite");
     }
 
@@ -1116,11 +1120,11 @@ mod tests {
 
         // SQLite 测试查询应该Success
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connected"], true);
     }
@@ -1162,13 +1166,16 @@ mod tests {
 
         // 应该返回 false 端口（connection failed）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["connected"], false);
-        assert!(data["error"].as_str().unwrap().contains("SQLite"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("SQLite"));
     }
 }

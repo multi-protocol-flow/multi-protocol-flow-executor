@@ -326,10 +326,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec![] as Vec<String>);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
     }
@@ -363,10 +363,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口（连接不存在）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec![] as Vec<String>);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
     }
 
@@ -392,7 +392,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("KafkaAdminConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("KafkaAdminConfig"));
     }
 
     #[tokio::test]
@@ -408,7 +412,8 @@ mod tests {
             "dry_run": false,
         });
 
-        let config: KafkaAdminConfig = serde_json::from_value(json).expect("反序列化应Success");
+        let config: KafkaAdminConfig =
+            serde_json::from_value(json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(config.connection_id, "conn-1");
         assert_eq!(config.operation, "topic_create");
         assert_eq!(config.topic_name, Some("test-topic".to_string()));

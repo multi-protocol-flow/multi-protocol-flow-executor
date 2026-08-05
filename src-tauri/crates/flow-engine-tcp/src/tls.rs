@@ -217,7 +217,7 @@ mod tests {
     /// 测试 TLS 连接器可以克隆（TlsConnector 内部使用 Arc）
     #[test]
     fn test_tls_connector_clonable() {
-        let connector = create_tls_connector(true).expect("创建应Success");
+        let connector = create_tls_connector(true).unwrap_or_else(|e| panic!("创建应Success: {e}"));
         let _cloned = connector.clone();
     }
 

@@ -531,7 +531,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
@@ -561,7 +561,8 @@ mod tests {
 
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .message
             .contains("GraphqlIntrospectConfig"));
     }
@@ -579,11 +580,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         // error 应为 null
         assert!(data["error"].is_null());
@@ -602,11 +603,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "Endpoint unreachable");
     }
@@ -624,8 +625,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         // 验证顶层字段
         assert!(data.get("success").is_some());
@@ -636,14 +637,16 @@ mod tests {
         assert!(data.get("error").is_some());
 
         // 验证 schema 包含类型信息
-        let schema = data["schema"].as_object().expect("schema 应为对象");
+        let schema = data["schema"]
+            .as_object()
+            .unwrap_or_else(|| panic!("schema 应为对象"));
         assert!(schema.contains_key("queryType"));
         assert!(schema.contains_key("types"));
 
         // 验证 query_templates 包含模板列表
         let templates = data["query_templates"]
             .as_array()
-            .expect("query_templates 应为数组");
+            .unwrap_or_else(|| panic!("query_templates 应为数组"));
         assert_eq!(templates.len(), 2);
         assert_eq!(templates[0]["type_name"], "User");
         assert_eq!(templates[0]["operation"], "query");
@@ -656,7 +659,9 @@ mod tests {
         assert_eq!(request["timeout_ms"], 30000);
 
         // 验证 timing 子结构
-        let timing = data["timing"].as_object().expect("timing 应为对象");
+        let timing = data["timing"]
+            .as_object()
+            .unwrap_or_else(|| panic!("timing 应为对象"));
         assert!(timing.contains_key("total_ms"));
     }
 
@@ -673,13 +678,16 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().unwrap().contains("不存在"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("不存在"));
         assert!(data["schema"].is_null());
         assert!(data["query_templates"].is_null());
     }
@@ -697,8 +705,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         assert_eq!(data["success"], true);
         // query_templates 为 null
@@ -729,7 +737,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         // 应路由到连接中指定的目标节点
         assert_eq!(next_nodes, vec!["next-node"]);
     }

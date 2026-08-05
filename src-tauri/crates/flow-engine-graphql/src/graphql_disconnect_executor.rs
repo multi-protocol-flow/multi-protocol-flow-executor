@@ -246,10 +246,10 @@ mod tests {
 
         // 应该返回 Ok，走 out 端口（断开Failed不阻塞）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["out"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "nonexistent-conn");
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
@@ -279,7 +279,8 @@ mod tests {
 
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .message
             .contains("GraphqlDisconnectConfig"));
     }
@@ -307,10 +308,10 @@ mod tests {
 
         // 应该返回 Ok，走 out 端口
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["out"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "graphql-connection-456");
         // 连接不存在所以 success=false
         assert_eq!(data["success"], false);
@@ -331,10 +332,10 @@ mod tests {
 
         // 共享模式下 disconnect 是 no-op，应返回 Ok + success=true
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["out"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
     }
 
@@ -352,7 +353,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         // 无连接时默认返回 ["out"]
         assert_eq!(next_nodes, vec!["out"]);
     }
@@ -371,8 +372,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "my-graphql-conn");
         assert_eq!(data["request"]["connection_id"], "my-graphql-conn");
     }

@@ -782,7 +782,7 @@ mod tests {
         });
         let report = plugin.build_report_input(&config);
         assert!(report.is_some());
-        let report = report.unwrap();
+        let report = report.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(report["endpoint"], "https://api.example.com/graphql");
     }
 
@@ -793,7 +793,9 @@ mod tests {
             "query": "{ users { id name } }",
             "variables": {"limit": 10},
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["query"], "{ users { id name } }");
     }
 
@@ -803,7 +805,9 @@ mod tests {
         let config = serde_json::json!({
             "subscription": "subscription { messageAdded { id } }",
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(
             report["subscription"],
             "subscription { messageAdded { id } }"
@@ -816,7 +820,9 @@ mod tests {
         let config = serde_json::json!({
             "endpoint": "https://api.example.com/graphql",
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["endpoint"], "https://api.example.com/graphql");
     }
 
@@ -824,7 +830,9 @@ mod tests {
     fn test_disconnect_build_report_input() {
         let plugin = GraphqlDisconnectPlugin;
         let config = serde_json::json!({"connection_id": "conn-123"});
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-123");
     }
 

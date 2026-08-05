@@ -118,7 +118,7 @@ mod tests {
         assert!(parsed.is_ok(), "Flow UUID should be a valid UUID");
 
         // 验证是 UUID v4
-        let uuid = parsed.unwrap();
+        let uuid = parsed.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(
             uuid.get_version(),
             Some(uuid::Version::Random),
@@ -198,14 +198,15 @@ mod tests {
         };
         let output = create_flow(input);
 
-        let json = serde_json::to_string(&output.flow).unwrap();
+        let json = serde_json::to_string(&output.flow).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains(&output.flow.uuid));
         assert!(json.contains("序列化测试"));
         assert!(json.contains("start-"));
         assert!(json.contains("end-"));
 
         // 反序列化验证
-        let deserialized: flow_engine_core::flow::Flow = serde_json::from_str(&json).unwrap();
+        let deserialized: flow_engine_core::flow::Flow =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.uuid, output.flow.uuid);
         assert_eq!(deserialized.name, "序列化测试");
         assert_eq!(deserialized.nodes.len(), 2);

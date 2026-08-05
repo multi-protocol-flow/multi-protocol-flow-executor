@@ -554,17 +554,26 @@ mod tests {
             )
             .await;
         assert!(send_result.is_err());
-        assert!(send_result.unwrap_err().contains("not found"));
+        assert!(send_result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("not found"));
 
         // 从不存在的 socket 接收
         let recv_result = manager.recv_from("non-existent", 1000).await;
         assert!(recv_result.is_err());
-        assert!(recv_result.unwrap_err().contains("not found"));
+        assert!(recv_result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("not found"));
 
         // 关闭不存在的 socket
         let close_result = manager.close("non-existent").await;
         assert!(close_result.is_err());
-        assert!(close_result.unwrap_err().contains("not found"));
+        assert!(close_result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("not found"));
     }
 
     /// 测试 UDP 接收超时
@@ -587,7 +596,10 @@ mod tests {
         // 短超时接收，没有人发送数据，应返回 Ok(None)
         let recv_result = manager.recv_from("timeout-socket", 100).await;
         assert!(recv_result.is_ok(), "接收应Success");
-        assert!(recv_result.unwrap().is_none(), "超时应返回 None");
+        assert!(
+            recv_result.unwrap_or_else(|e| panic!("{e}")).is_none(),
+            "超时应返回 None"
+        );
 
         // 清理
         let close_result = manager.close("timeout-socket").await;
@@ -624,8 +636,13 @@ mod tests {
 
         // 获取 receiver 的端口
         let recv_port = {
-            let sockets = manager.sockets.lock().expect("应获取锁");
-            let sock = sockets.get("receiver").expect("receiver 应存在");
+            let sockets = manager
+                .sockets
+                .lock()
+                .unwrap_or_else(|e| panic!("应获取锁: {e}"));
+            let sock = sockets
+                .get("receiver")
+                .unwrap_or_else(|| panic!("receiver 应存在"));
             sock.local_port
         };
 
@@ -645,9 +662,10 @@ mod tests {
         // 接收数据
         let recv_result = manager.recv_from("receiver", 3000).await;
         assert!(recv_result.is_ok(), "接收应Success");
-        let received = recv_result.expect("接收应Success");
+        let received = recv_result.unwrap_or_else(|e| panic!("接收应Success: {e}"));
         assert!(received.is_some(), "应接收到数据");
-        let (recv_data, sender_addr, sender_port) = received.expect("应接收到数据");
+        let (recv_data, sender_addr, sender_port) =
+            received.unwrap_or_else(|| panic!("应接收到数据"));
         assert_eq!(recv_data, test_data, "接收数据应与发送数据一致");
         assert_eq!(sender_addr, "127.0.0.1", "来源地址应为 127.0.0.1");
         assert!(sender_port > 0, "来源端口应大于 0");
@@ -656,11 +674,11 @@ mod tests {
         manager
             .close("sender")
             .await
-            .expect("关闭 sender 应Success");
+            .unwrap_or_else(|e| panic!("关闭 sender 应Success: {e}"));
         manager
             .close("receiver")
             .await
-            .expect("关闭 receiver 应Success");
+            .unwrap_or_else(|e| panic!("关闭 receiver 应Success: {e}"));
     }
 
     /// 测试 UDP Socket 池生命周期：绑定 → 发送 → 接收 → 关闭
@@ -686,8 +704,13 @@ mod tests {
 
         // 验证端口不为 0（自动分配）
         let port = {
-            let sockets = manager.sockets.lock().expect("应获取锁");
-            let sock = sockets.get("lifecycle-1").expect("应存在");
+            let sockets = manager
+                .sockets
+                .lock()
+                .unwrap_or_else(|e| panic!("应获取锁: {e}"));
+            let sock = sockets
+                .get("lifecycle-1")
+                .unwrap_or_else(|| panic!("应存在"));
             assert!(sock.local_port > 0, "端口应已自动分配");
             assert!(sock.is_bound());
             assert!(sock.last_error.is_none());
@@ -722,9 +745,9 @@ mod tests {
         // 4. 接收数据
         let recv_result = manager.recv_from("lifecycle-1", 3000).await;
         assert!(recv_result.is_ok(), "接收应Success");
-        let received = recv_result.unwrap();
+        let received = recv_result.unwrap_or_else(|e| panic!("{e}"));
         assert!(received.is_some());
-        let (recv_data, _, _) = received.unwrap();
+        let (recv_data, _, _) = received.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(recv_data, data);
 
         // 5. 关闭
@@ -762,7 +785,7 @@ mod tests {
 
         let mut uuids = Vec::new();
         for handle in handles {
-            let result = handle.await.expect("任务应完成");
+            let result = handle.await.unwrap_or_else(|e| panic!("任务应完成: {e}"));
             if let Ok(uuid) = result {
                 uuids.push(uuid);
             }
@@ -782,7 +805,7 @@ mod tests {
         }
 
         for handle in close_handles {
-            let result = handle.await.expect("任务应完成");
+            let result = handle.await.unwrap_or_else(|e| panic!("任务应完成: {e}"));
             assert!(result.is_ok(), "关闭应Success");
         }
     }
@@ -805,8 +828,14 @@ mod tests {
         assert!(result1.is_ok());
 
         let port1 = {
-            let sockets = manager.sockets.lock().expect("应获取锁");
-            sockets.get("dup-uuid").expect("应存在").local_port
+            let sockets = manager
+                .sockets
+                .lock()
+                .unwrap_or_else(|e| panic!("应获取锁: {e}"));
+            sockets
+                .get("dup-uuid")
+                .unwrap_or_else(|| panic!("应存在"))
+                .local_port
         };
 
         // 第二次绑定（同一 UUID）
@@ -822,8 +851,11 @@ mod tests {
         assert!(result2.is_ok());
 
         // 验证端口已变化（被覆盖）
-        let sockets = manager.sockets.lock().expect("应获取锁");
-        let sock = sockets.get("dup-uuid").expect("应存在");
+        let sockets = manager
+            .sockets
+            .lock()
+            .unwrap_or_else(|e| panic!("应获取锁: {e}"));
+        let sock = sockets.get("dup-uuid").unwrap_or_else(|| panic!("应存在"));
         assert_ne!(sock.local_port, port1, "端口应已变化");
         assert_eq!(sock.name, "第二次绑定");
     }
@@ -845,7 +877,9 @@ mod tests {
             .await;
 
         assert!(result.is_err(), "绑定应Failed");
-        let err_msg = result.unwrap_err();
+        let err_msg = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         // 无效地址可能在解析阶段Failed，也可能在 bind 阶段Failed
         assert!(
             err_msg.contains("bind failed") || err_msg.contains("Address parsing failed"),
@@ -857,8 +891,13 @@ mod tests {
     /// 测试 `ActiveUdpSocket` 创建和状态
     #[tokio::test]
     async fn test_active_udp_socket_new() {
-        let socket = UdpSocket::bind("127.0.0.1:0").await.expect("绑定应Success");
-        let port = socket.local_addr().expect("应获取地址").port();
+        let socket = UdpSocket::bind("127.0.0.1:0")
+            .await
+            .unwrap_or_else(|e| panic!("绑定应Success: {e}"));
+        let port = socket
+            .local_addr()
+            .unwrap_or_else(|e| panic!("应获取地址: {e}"))
+            .port();
 
         let active = ActiveUdpSocket::new(
             "uuid-1".to_string(),
@@ -881,8 +920,13 @@ mod tests {
     /// 测试 `ActiveUdpSocket` Error状态
     #[tokio::test]
     async fn test_active_udp_socket_error() {
-        let socket = UdpSocket::bind("127.0.0.1:0").await.expect("绑定应Success");
-        let port = socket.local_addr().expect("应获取地址").port();
+        let socket = UdpSocket::bind("127.0.0.1:0")
+            .await
+            .unwrap_or_else(|e| panic!("绑定应Success: {e}"));
+        let port = socket
+            .local_addr()
+            .unwrap_or_else(|e| panic!("应获取地址: {e}"))
+            .port();
 
         let mut active = ActiveUdpSocket::new(
             "uuid-2".to_string(),
@@ -901,8 +945,13 @@ mod tests {
     /// 测试 `ActiveUdpSocket` Debug 输出
     #[tokio::test]
     async fn test_active_udp_socket_debug() {
-        let socket = UdpSocket::bind("127.0.0.1:0").await.expect("绑定应Success");
-        let port = socket.local_addr().expect("应获取地址").port();
+        let socket = UdpSocket::bind("127.0.0.1:0")
+            .await
+            .unwrap_or_else(|e| panic!("绑定应Success: {e}"));
+        let port = socket
+            .local_addr()
+            .unwrap_or_else(|e| panic!("应获取地址: {e}"))
+            .port();
 
         let active = ActiveUdpSocket::new(
             "uuid-debug".to_string(),
@@ -921,8 +970,13 @@ mod tests {
     /// 测试 `ActiveUdpSocket` `to_socket_info`
     #[tokio::test]
     async fn test_active_udp_socket_to_info() {
-        let socket = UdpSocket::bind("127.0.0.1:0").await.expect("绑定应Success");
-        let port = socket.local_addr().expect("应获取地址").port();
+        let socket = UdpSocket::bind("127.0.0.1:0")
+            .await
+            .unwrap_or_else(|e| panic!("绑定应Success: {e}"));
+        let port = socket
+            .local_addr()
+            .unwrap_or_else(|e| panic!("应获取地址: {e}"))
+            .port();
 
         let active = ActiveUdpSocket::new(
             "uuid-info".to_string(),

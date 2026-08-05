@@ -744,19 +744,19 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["request_topic"], "request/device");
         assert_eq!(data["response_topic"], "response/device");
         // correlation_data 应自动生成（UUID 格式）
         let cd = data["correlation_data"]
             .as_str()
-            .expect("应有 correlation_data");
+            .unwrap_or_else(|| panic!("应有 correlation_data"));
         assert!(!cd.is_empty(), "correlation_data 不应为空");
         assert!(
             uuid::Uuid::parse_str(cd).is_ok(),
@@ -764,7 +764,9 @@ mod tests {
         );
         // 响应消息
         assert_eq!(data["response_count"], 1);
-        let msgs = data["response_messages"].as_array().expect("应为数组");
+        let msgs = data["response_messages"]
+            .as_array()
+            .unwrap_or_else(|| panic!("应为数组"));
         assert_eq!(msgs.len(), 1);
         assert_eq!(msgs[0]["topic"], "response/device-001");
         assert_eq!(msgs[0]["payload"], "ok");
@@ -796,19 +798,19 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // 超时应路由到 false 端口
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "响应超时");
         assert_eq!(data["response_count"], 0);
         assert_eq!(
             data["response_messages"]
                 .as_array()
-                .expect("应为数组")
+                .unwrap_or_else(|| panic!("应为数组"))
                 .len(),
             0
         );
@@ -839,7 +841,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("MqttRequestConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("MqttRequestConfig"));
     }
 
     /// 测试：变量替换在 `connection_id、request_topic、response_topic、payload` 中生效
@@ -876,9 +882,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证变量替换生效
         assert_eq!(data["request_topic"], "device/sensor-001/request");
@@ -915,9 +921,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "连接不存在");
         assert_eq!(data["response_count"], 0);
@@ -944,8 +950,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 显式提供的 correlation_data 应保持原值
         assert_eq!(data["correlation_data"], "my-custom-correlation-id");
         assert_eq!(
@@ -984,7 +990,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         // 应路由到连接中指定的目标节点
         assert_eq!(next_nodes, vec!["next-node"]);
     }

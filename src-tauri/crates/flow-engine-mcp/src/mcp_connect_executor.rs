@@ -457,10 +457,10 @@ mod tests {
 
         // 应该返回 false 端口（连接不可达）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
     }
@@ -485,10 +485,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 验证变量替换生效
         assert_eq!(data["url"], "http://localhost:9999/mcp");
     }
@@ -515,7 +515,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("McpConnectConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("McpConnectConfig"));
     }
 
     // ===== 调试事件测试 =====
@@ -685,7 +689,9 @@ mod tests {
         assert!(result.is_ok());
 
         // 验证收到 McpConnectionCreated 调试事件
-        let event = event_receiver.try_recv().expect("应收到调试事件");
+        let event = event_receiver
+            .try_recv()
+            .unwrap_or_else(|e| panic!("应收到调试事件: {e}"));
         match &event {
             DebugEvent::McpConnectionCreated {
                 node_uuid,

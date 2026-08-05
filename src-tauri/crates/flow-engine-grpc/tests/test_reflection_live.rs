@@ -52,7 +52,7 @@ async fn test_reflection_echo_plaintext() {
 
     assert!(result.is_ok(), "Reflection 应该Success");
 
-    let services = result.unwrap();
+    let services = result.unwrap_or_else(|e| panic!("{e}"));
     assert!(!services.is_empty(), "应该发现至少一个服务");
 
     // 验证 echo 服务的 TestService
@@ -61,7 +61,7 @@ async fn test_reflection_echo_plaintext() {
         .find(|s| s.service_name == "testserver.TestService");
     assert!(test_service.is_some(), "应该发现 testserver.TestService");
 
-    let svc = test_service.unwrap();
+    let svc = test_service.unwrap_or_else(|| panic!("expected Some"));
     assert_eq!(svc.methods.len(), 6, "TestService 应有 6 个方法");
 
     // 验证各方法的流式属性
@@ -69,7 +69,7 @@ async fn test_reflection_echo_plaintext() {
         .methods
         .iter()
         .find(|m| m.method_name == "SayHello")
-        .unwrap();
+        .unwrap_or_else(|| panic!("expected Some"));
     assert!(!say_hello.is_client_streaming);
     assert!(!say_hello.is_server_streaming);
 
@@ -77,7 +77,7 @@ async fn test_reflection_echo_plaintext() {
         .methods
         .iter()
         .find(|m| m.method_name == "ServerStream")
-        .unwrap();
+        .unwrap_or_else(|| panic!("expected Some"));
     assert!(!server_stream.is_client_streaming);
     assert!(server_stream.is_server_streaming);
 
@@ -85,7 +85,7 @@ async fn test_reflection_echo_plaintext() {
         .methods
         .iter()
         .find(|m| m.method_name == "ClientStream")
-        .unwrap();
+        .unwrap_or_else(|| panic!("expected Some"));
     assert!(client_stream.is_client_streaming);
     assert!(!client_stream.is_server_streaming);
 
@@ -93,7 +93,7 @@ async fn test_reflection_echo_plaintext() {
         .methods
         .iter()
         .find(|m| m.method_name == "BidiStream")
-        .unwrap();
+        .unwrap_or_else(|| panic!("expected Some"));
     assert!(bidi.is_client_streaming);
     assert!(bidi.is_server_streaming);
 }
@@ -110,15 +110,15 @@ async fn test_raw_tonic_reflection_echo() {
     println!("=== 直接测试 tonic 连接 + 反射 (echo 明文) ===");
 
     let endpoint = tonic::transport::Endpoint::from_shared(GRPC_PLAINTEXT.to_string())
-        .expect("创建端点Failed")
+        .unwrap_or_else(|e| panic!("创建端点Failed: {e}"))
         .connect_timeout(std::time::Duration::from_secs(10))
         .timeout(std::time::Duration::from_secs(30));
 
     println!("[1] 连接中...");
     let channel = tokio::time::timeout(std::time::Duration::from_secs(15), endpoint.connect())
         .await
-        .expect("TCP 连接超时")
-        .expect("TCP connection failed");
+        .unwrap_or_else(|e| panic!("TCP 连接超时: {e}"))
+        .unwrap_or_else(|e| panic!("TCP connection failed: {e}"));
 
     println!("[2] TCP 连接Success! 创建反射客户端...");
 
@@ -147,7 +147,7 @@ async fn test_raw_tonic_reflection_echo() {
                 )),
             })
             .await
-            .expect("发送Failed");
+            .unwrap_or_else(|e| panic!("发送Failed: {e}"));
 
             println!("[6] 等待响应...");
             let list_resp =
@@ -194,7 +194,7 @@ async fn test_lazy_connect_reflection() {
     println!("=== 测试 connect_lazy + 反射 (echo 明文) ===");
 
     let channel = tonic::transport::Endpoint::from_shared(GRPC_PLAINTEXT.to_string())
-        .expect("创建端点Failed")
+        .unwrap_or_else(|e| panic!("创建端点Failed: {e}"))
         .connect_timeout(std::time::Duration::from_secs(10))
         .timeout(std::time::Duration::from_secs(30))
         .connect_lazy();
@@ -213,7 +213,7 @@ async fn test_lazy_connect_reflection() {
         )),
     })
     .await
-    .expect("发送Failed");
+    .unwrap_or_else(|e| panic!("发送Failed: {e}"));
 
     println!("[2] 已发送 ListServices 请求到通道");
 

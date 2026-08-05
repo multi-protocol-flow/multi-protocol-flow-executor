@@ -159,31 +159,33 @@ mod tests {
         assert!(result.download_ms.is_some());
 
         // 验证计时值在合理范围内（允许 ±10ms 误差）
-        let dns = result.dns_ms.unwrap();
+        let dns = result.dns_ms.unwrap_or_else(|| panic!("expected Some"));
         assert!((5..=20).contains(&dns), "DNS 应在 10ms 左右，实际: {}", dns);
 
-        let connect = result.connect_ms.unwrap();
+        let connect = result.connect_ms.unwrap_or_else(|| panic!("expected Some"));
         assert!(
             (10..=25).contains(&connect),
             "Connect 应在 15ms 左右，实际: {}",
             connect
         );
 
-        let tls = result.tls_ms.unwrap();
+        let tls = result.tls_ms.unwrap_or_else(|| panic!("expected Some"));
         assert!(
             (15..=30).contains(&tls),
             "TLS 应在 20ms 左右，实际: {}",
             tls
         );
 
-        let ttfb = result.ttfb_ms.unwrap();
+        let ttfb = result.ttfb_ms.unwrap_or_else(|| panic!("expected Some"));
         assert!(
             (25..=40).contains(&ttfb),
             "TTFB 应在 30ms 左右，实际: {}",
             ttfb
         );
 
-        let download = result.download_ms.unwrap();
+        let download = result
+            .download_ms
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(
             (20..=35).contains(&download),
             "Download 应在 25ms 左右，实际: {}",
@@ -243,7 +245,7 @@ mod tests {
             total_ms: Some(240),
         };
 
-        let json = serde_json::to_string(&timing).expect("序列化Failed");
+        let json = serde_json::to_string(&timing).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("\"dns_ms\":15"));
         assert!(json.contains("\"connect_ms\":32"));
         assert!(json.contains("\"tls_ms\":28"));
@@ -251,7 +253,8 @@ mod tests {
         assert!(json.contains("\"download_ms\":45"));
         assert!(json.contains("\"total_ms\":240"));
 
-        let deserialized: HttpTiming = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: HttpTiming =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(timing.dns_ms, deserialized.dns_ms);
         assert_eq!(timing.connect_ms, deserialized.connect_ms);
         assert_eq!(timing.tls_ms, deserialized.tls_ms);

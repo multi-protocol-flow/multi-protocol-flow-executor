@@ -725,7 +725,8 @@ mod tests {
             last_tested_at: None,
         };
 
-        let conn_str = MySqlConnection::build_connection_string(&config).unwrap();
+        let conn_str =
+            MySqlConnection::build_connection_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(conn_str, "mysql://admin:secret@192.168.1.100:3307/mydb");
     }
 
@@ -753,7 +754,8 @@ mod tests {
             last_tested_at: None,
         };
 
-        let conn_str = MySqlConnection::build_connection_string(&config).unwrap();
+        let conn_str =
+            MySqlConnection::build_connection_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(conn_str, "mysql://root:@localhost:3306/testdb");
     }
 
@@ -781,7 +783,8 @@ mod tests {
             last_tested_at: None,
         };
 
-        let conn_str = MySqlConnection::build_connection_string(&config).unwrap();
+        let conn_str =
+            MySqlConnection::build_connection_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(conn_str, "mysql://custom:pass@server:3309/customdb");
     }
 
@@ -809,7 +812,8 @@ mod tests {
             last_tested_at: None,
         };
 
-        let conn_str = MySqlConnection::build_connection_string(&config).unwrap();
+        let conn_str =
+            MySqlConnection::build_connection_string(&config).unwrap_or_else(|e| panic!("{e}"));
         // 使用默认值
         assert_eq!(conn_str, "mysql://localhost:3306/mysql");
     }
@@ -1158,7 +1162,7 @@ mod tests {
                 "INSERT INTO test_types (int_val, float_val, str_val, bool_val) VALUES (?, ?, ?, ?)",
                 vec![
                     serde_json::json!(42),
-                    serde_json::json!(3.14),
+                    serde_json::json!(2.5),
                     serde_json::json!("hello"),
                     serde_json::json!(true),
                 ],

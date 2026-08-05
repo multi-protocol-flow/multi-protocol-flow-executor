@@ -192,14 +192,17 @@ mod tests {
         }
 
         fn get_events(&self) -> Vec<LogEvent> {
-            self.events.lock().unwrap().clone()
+            self.events.lock().unwrap_or_else(|e| panic!("{e}")).clone()
         }
     }
 
     impl UnderlyingLogSender for TestUnderlyingSender {
         fn send_sync(&self, event: LogEvent) -> Result<(), String> {
             self.count.fetch_add(1, Ordering::SeqCst);
-            self.events.lock().unwrap().push(event);
+            self.events
+                .lock()
+                .unwrap_or_else(|e| panic!("{e}"))
+                .push(event);
             Ok(())
         }
     }
@@ -242,7 +245,7 @@ mod tests {
             node_name: None,
             flow_uuid: "test".to_string(),
         };
-        sender.send(event).await.unwrap();
+        sender.send(event).await.unwrap_or_else(|e| panic!("{e}"));
 
         // 验证日志已发送
         assert_eq!(test_sender.get_count(), 1);
@@ -279,11 +282,11 @@ mod tests {
                 node_name: None,
                 flow_uuid: "test".to_string(),
             };
-            tx.send(event).unwrap();
+            tx.send(event).unwrap_or_else(|e| panic!("{e}"));
         }
 
         // 等待消费完成
-        handle.await.unwrap();
+        handle.await.unwrap_or_else(|e| panic!("{e}"));
 
         // 验证所有日志都已发送
         assert_eq!(test_sender.get_count(), 3);

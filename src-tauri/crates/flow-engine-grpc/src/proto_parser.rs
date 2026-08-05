@@ -936,12 +936,13 @@ message User {
             content: TEST_PROTO.to_string(),
         }];
 
-        let pool = parse_proto_files(&files).expect("解析 proto 文件应Success");
+        let pool =
+            parse_proto_files(&files).unwrap_or_else(|e| panic!("解析 proto 文件应Success: {e}"));
 
         // 验证可以找到服务
         let service = pool
             .get_service_by_name("test.TestService")
-            .expect("应能找到 TestService");
+            .unwrap_or_else(|| panic!("应能找到 TestService"));
         assert_eq!(service.name(), "TestService");
     }
 
@@ -953,7 +954,8 @@ message User {
             content: TEST_PROTO.to_string(),
         }];
 
-        let pool = parse_proto_files(&files).expect("解析 proto 文件应Success");
+        let pool =
+            parse_proto_files(&files).unwrap_or_else(|e| panic!("解析 proto 文件应Success: {e}"));
         let services = list_services(&pool);
 
         assert_eq!(services.len(), 1, "应只有一个服务");
@@ -967,7 +969,7 @@ message User {
             .methods
             .iter()
             .find(|m| m.method_name == "GetUser")
-            .expect("应能找到 GetUser 方法");
+            .unwrap_or_else(|| panic!("应能找到 GetUser 方法"));
         assert_eq!(get_user.input_type, "test.GetUserRequest");
         assert_eq!(get_user.output_type, "test.GetUserResponse");
         assert!(!get_user.is_server_streaming, "GetUser 不应是服务端流式");
@@ -977,7 +979,7 @@ message User {
             .methods
             .iter()
             .find(|m| m.method_name == "ListUsers")
-            .expect("应能找到 ListUsers 方法");
+            .unwrap_or_else(|| panic!("应能找到 ListUsers 方法"));
         assert_eq!(list_users.input_type, "test.ListUsersRequest");
         assert_eq!(list_users.output_type, "test.User");
         assert!(list_users.is_server_streaming, "ListUsers 应是服务端流式");
@@ -991,18 +993,21 @@ message User {
             content: TEST_PROTO.to_string(),
         }];
 
-        let pool = parse_proto_files(&files).expect("解析 proto 文件应Success");
+        let pool =
+            parse_proto_files(&files).unwrap_or_else(|e| panic!("解析 proto 文件应Success: {e}"));
 
         let msg = pool
             .get_message_by_name("test.GetUserRequest")
-            .expect("应能找到 GetUserRequest 消息");
+            .unwrap_or_else(|| panic!("应能找到 GetUserRequest 消息"));
 
         let skeleton = generate_json_skeleton(&msg);
 
         // 骨架应该是 JSON 对象，包含字段名
         assert!(skeleton.is_object(), "骨架应该是 JSON 对象");
 
-        let obj = skeleton.as_object().expect("应为 JSON 对象");
+        let obj = skeleton
+            .as_object()
+            .unwrap_or_else(|| panic!("应为 JSON 对象"));
         assert!(obj.contains_key("user_id"), "骨架应包含 user_id 字段");
     }
 
@@ -1028,9 +1033,13 @@ message User {
     /// 测试目录扫描 — 空目录应返回Error
     #[test]
     fn test_scan_empty_dir_returns_error() {
-        let temp_dir = tempfile::tempdir().expect("创建临时目录应Success");
-        let result =
-            discover_proto_files_in_dir(temp_dir.path().to_str().expect("路径转换应Success"));
+        let temp_dir = tempfile::tempdir().unwrap_or_else(|e| panic!("创建临时目录应Success: {e}"));
+        let result = discover_proto_files_in_dir(
+            temp_dir
+                .path()
+                .to_str()
+                .unwrap_or_else(|| panic!("路径转换应Success")),
+        );
         assert!(result.is_err(), "空目录应返回Error");
     }
 
@@ -1044,39 +1053,43 @@ message User {
     /// 测试目录扫描 — 正常扫描 .proto 文件
     #[test]
     fn test_scan_dir_finds_proto_files() {
-        let temp_dir = tempfile::tempdir().expect("创建临时目录应Success");
+        let temp_dir = tempfile::tempdir().unwrap_or_else(|e| panic!("创建临时目录应Success: {e}"));
 
         // 创建 proto 文件
         std::fs::write(temp_dir.path().join("test.proto"), TEST_PROTO)
-            .expect("写入 proto 文件应Success");
+            .unwrap_or_else(|e| panic!("写入 proto 文件应Success: {e}"));
 
         // 创建子目录中的 proto 文件
         let sub_dir = temp_dir.path().join("sub");
-        std::fs::create_dir_all(&sub_dir).expect("创建子目录应Success");
+        std::fs::create_dir_all(&sub_dir).unwrap_or_else(|e| panic!("创建子目录应Success: {e}"));
         std::fs::write(
             sub_dir.join("nested.proto"),
             r#"syntax = "proto3"; package nested; message Nested { string id = 1; }"#,
         )
-        .expect("写入嵌套 proto 文件应Success");
+        .unwrap_or_else(|e| panic!("写入嵌套 proto 文件应Success: {e}"));
 
         // 创建非 proto 文件（应被跳过）
         std::fs::write(temp_dir.path().join("readme.txt"), "not a proto file")
-            .expect("写入非 proto 文件应Success");
+            .unwrap_or_else(|e| panic!("写入非 proto 文件应Success: {e}"));
 
         // 创建隐藏目录（应被跳过）
         let hidden_dir = temp_dir.path().join(".hidden");
-        std::fs::create_dir_all(&hidden_dir).expect("创建隐藏目录应Success");
+        std::fs::create_dir_all(&hidden_dir)
+            .unwrap_or_else(|e| panic!("创建隐藏目录应Success: {e}"));
         std::fs::write(
             hidden_dir.join("hidden.proto"),
             r#"syntax = "proto3"; package hidden;"#,
         )
-        .expect("写入隐藏 proto 文件应Success");
+        .unwrap_or_else(|e| panic!("写入隐藏 proto 文件应Success: {e}"));
 
-        let dir_path = temp_dir.path().to_str().expect("路径转换应Success");
+        let dir_path = temp_dir
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换应Success"));
         let result = discover_proto_files_in_dir(dir_path);
 
         assert!(result.is_ok(), "扫描目录应Success: {:?}", result);
-        let (files, _) = result.expect("应Success获取文件列表");
+        let (files, _) = result.unwrap_or_else(|e| panic!("应Success获取文件列表: {e}"));
         assert_eq!(
             files.len(),
             2,
@@ -1107,7 +1120,7 @@ message User {
         // 空数据解码Success但 pool 为空，这是 prost 的默认行为
         // 验证可以解码（即使结果为空）
         assert!(result.is_ok(), "空数据解码为空的 DescriptorPool");
-        let pool = result.expect("应Success解码");
+        let pool = result.unwrap_or_else(|e| panic!("应Success解码: {e}"));
         // 空 pool 中没有服务
         assert_eq!(pool.services().count(), 0, "空 DescriptorPool 应没有服务");
     }
@@ -1121,24 +1134,27 @@ message User {
             content: TEST_PROTO.to_string(),
         }];
 
-        let temp_dir = tempfile::tempdir().expect("创建临时目录应Success");
+        let temp_dir = tempfile::tempdir().unwrap_or_else(|e| panic!("创建临时目录应Success: {e}"));
         let file_path = temp_dir.path().join("test.proto");
-        std::fs::write(&file_path, &files[0].content).expect("写入 proto 文件应Success");
+        std::fs::write(&file_path, &files[0].content)
+            .unwrap_or_else(|e| panic!("写入 proto 文件应Success: {e}"));
 
-        let fds =
-            protox::compile(["test.proto"], [temp_dir.path()]).expect("编译 proto 文件应Success");
+        let fds = protox::compile(["test.proto"], [temp_dir.path()])
+            .unwrap_or_else(|e| panic!("编译 proto 文件应Success: {e}"));
 
         // 将 FileDescriptorSet 编码为字节
         let mut buf = Vec::new();
-        prost::Message::encode(&fds, &mut buf).expect("编码 FileDescriptorSet 应Success");
+        prost::Message::encode(&fds, &mut buf)
+            .unwrap_or_else(|e| panic!("编码 FileDescriptorSet 应Success: {e}"));
 
         // 使用 parse_descriptor_set 解码
-        let pool = parse_descriptor_set(&buf).expect("解析 FileDescriptorSet 应Success");
+        let pool = parse_descriptor_set(&buf)
+            .unwrap_or_else(|e| panic!("解析 FileDescriptorSet 应Success: {e}"));
 
         // 验证服务存在
         let service = pool
             .get_service_by_name("test.TestService")
-            .expect("应能找到 TestService");
+            .unwrap_or_else(|| panic!("应能找到 TestService"));
         assert_eq!(service.name(), "TestService");
         assert_eq!(service.methods().count(), 2);
     }
@@ -1190,7 +1206,8 @@ message Status {
             content: main_proto.to_string(),
         }];
 
-        let pool = parse_proto_files(&files).expect("解析多消息 proto 文件应Success");
+        let pool = parse_proto_files(&files)
+            .unwrap_or_else(|e| panic!("解析多消息 proto 文件应Success: {e}"));
         let services = list_services(&pool);
 
         assert_eq!(services.len(), 1);
@@ -1200,11 +1217,13 @@ message Status {
         // 验证嵌套消息的 JSON 骨架
         let response_msg = pool
             .get_message_by_name("myapp.CreateOrderResponse")
-            .expect("应能找到 CreateOrderResponse");
+            .unwrap_or_else(|| panic!("应能找到 CreateOrderResponse"));
         let skeleton = generate_json_skeleton(&response_msg);
 
         assert!(skeleton.is_object());
-        let obj = skeleton.as_object().expect("应为 JSON 对象");
+        let obj = skeleton
+            .as_object()
+            .unwrap_or_else(|| panic!("应为 JSON 对象"));
         assert!(obj.contains_key("order_id"));
         assert!(obj.contains_key("status"));
     }
@@ -1219,7 +1238,7 @@ message Status {
             path: "test.proto".to_string(),
             content: TEST_PROTO.to_string(),
         }];
-        parse_proto_files(&files).expect("解析 proto 文件应Success")
+        parse_proto_files(&files).unwrap_or_else(|e| panic!("解析 proto 文件应Success: {e}"))
     }
 
     /// 测试验证 — 有效的 JSON
@@ -1228,7 +1247,7 @@ message Status {
         let pool = get_test_pool();
         let result = validate_request_json(&pool, "test.GetUserRequest", r#"{"user_id": "abc"}"#);
         assert!(result.is_ok(), "应Success验证");
-        let vr = result.expect("应返回验证结果");
+        let vr = result.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(vr.valid, "应通过验证");
         assert!(vr.errors.is_empty(), "不应有Error");
     }
@@ -1255,7 +1274,7 @@ message Status {
         let pool = get_test_pool();
         let result = validate_request_json(&pool, "test.GetUserRequest", r#"[1,2,3]"#);
         assert!(result.is_ok(), "应返回验证结果");
-        let vr = result.expect("应返回验证结果");
+        let vr = result.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(!vr.valid, "非 JSON 对象应不通过");
         assert_eq!(vr.errors.len(), 1);
         assert!(vr.errors[0].message.contains("期望 JSON 对象"));
@@ -1271,7 +1290,7 @@ message Status {
             r#"{"user_id": "abc", "unknown_field": 123}"#,
         );
         assert!(result.is_ok());
-        let vr = result.expect("应返回验证结果");
+        let vr = result.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(!vr.valid, "有未知字段应不通过");
         assert!(vr
             .errors
@@ -1290,7 +1309,7 @@ message Status {
             r#"{"user_id": 123, "name": "test", "age": "not_a_number"}"#,
         );
         assert!(result.is_ok());
-        let vr = result.expect("应返回验证结果");
+        let vr = result.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(!vr.valid, "类型不匹配应不通过");
         assert_eq!(vr.errors.len(), 2, "应有 2 个类型Error");
         assert!(vr.errors.iter().any(|e| e.path == "user_id"));
@@ -1318,7 +1337,7 @@ message Person {
             path: "nested.proto".to_string(),
             content: proto.to_string(),
         }];
-        let pool = parse_proto_files(&files).expect("解析应Success");
+        let pool = parse_proto_files(&files).unwrap_or_else(|e| panic!("解析应Success: {e}"));
 
         // 嵌套字段类型Error
         let result = validate_request_json(
@@ -1327,7 +1346,7 @@ message Person {
             r#"{"name": "Alice", "address": {"street": 123, "zip": "abc"}}"#,
         );
         assert!(result.is_ok());
-        let vr = result.expect("应返回验证结果");
+        let vr = result.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(!vr.valid);
         assert!(vr.errors.iter().any(|e| e.path == "address.street"));
         assert!(vr.errors.iter().any(|e| e.path == "address.zip"));
@@ -1339,7 +1358,7 @@ message Person {
             r#"{"name": "Alice", "address": {"street": "Main St", "zip": 12345}}"#,
         );
         assert!(result2.is_ok());
-        let vr2 = result2.expect("应返回验证结果");
+        let vr2 = result2.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(vr2.valid, "正确的嵌套消息应通过");
     }
 
@@ -1349,7 +1368,7 @@ message Person {
         let pool = get_test_pool();
         let result = validate_request_json(&pool, "test.GetUserRequest", r#"{}"#);
         assert!(result.is_ok());
-        let vr = result.expect("应返回验证结果");
+        let vr = result.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(vr.valid, "空对象应通过验证（proto3 所有字段可选）");
     }
 
@@ -1363,7 +1382,7 @@ message Person {
             r#"{"user_id": null, "name": null, "age": null}"#,
         );
         assert!(result.is_ok());
-        let vr = result.expect("应返回验证结果");
+        let vr = result.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(vr.valid, "null 值应通过验证");
     }
 
@@ -1383,7 +1402,7 @@ message ItemList {
             path: "rep.proto".to_string(),
             content: proto.to_string(),
         }];
-        let pool = parse_proto_files(&files).expect("解析应Success");
+        let pool = parse_proto_files(&files).unwrap_or_else(|e| panic!("解析应Success: {e}"));
 
         // repeated 使用数组 — 通过
         let result = validate_request_json(
@@ -1392,13 +1411,13 @@ message ItemList {
             r#"{"items": ["a", "b"], "counts": [1, 2]}"#,
         );
         assert!(result.is_ok());
-        let vr = result.expect("应返回验证结果");
+        let vr = result.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(vr.valid, "正确的数组应通过");
 
         // repeated 使用非数组 — 不通过
         let result2 = validate_request_json(&pool, "rep.ItemList", r#"{"items": "not_array"}"#);
         assert!(result2.is_ok());
-        let vr2 = result2.expect("应返回验证结果");
+        let vr2 = result2.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(!vr2.valid, "repeated 字段传入非数组应不通过");
     }
 
@@ -1417,19 +1436,19 @@ message Config {
             path: "maptest.proto".to_string(),
             content: proto.to_string(),
         }];
-        let pool = parse_proto_files(&files).expect("解析应Success");
+        let pool = parse_proto_files(&files).unwrap_or_else(|e| panic!("解析应Success: {e}"));
 
         // map 使用对象 — 通过
         let result =
             validate_request_json(&pool, "maptest.Config", r#"{"labels": {"key": "value"}}"#);
         assert!(result.is_ok());
-        let vr = result.expect("应返回验证结果");
+        let vr = result.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(vr.valid, "正确的 map 应通过");
 
         // map 使用非对象 — 不通过
         let result2 = validate_request_json(&pool, "maptest.Config", r#"{"labels": [1,2]}"#);
         assert!(result2.is_ok());
-        let vr2 = result2.expect("应返回验证结果");
+        let vr2 = result2.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(!vr2.valid, "map 字段传入非对象应不通过");
     }
 
@@ -1453,22 +1472,34 @@ message User {
             path: "enumtest.proto".to_string(),
             content: proto.to_string(),
         }];
-        let pool = parse_proto_files(&files).expect("解析应Success");
+        let pool = parse_proto_files(&files).unwrap_or_else(|e| panic!("解析应Success: {e}"));
 
         // enum 使用字符串 — 通过
         let result = validate_request_json(&pool, "enumtest.User", r#"{"status": "ACTIVE"}"#);
         assert!(result.is_ok());
-        assert!(result.expect("应返回验证结果").valid);
+        assert!(
+            result
+                .unwrap_or_else(|e| panic!("应返回验证结果: {e}"))
+                .valid
+        );
 
         // enum 使用数字 — 通过
         let result2 = validate_request_json(&pool, "enumtest.User", r#"{"status": 1}"#);
         assert!(result2.is_ok());
-        assert!(result2.expect("应返回验证结果").valid);
+        assert!(
+            result2
+                .unwrap_or_else(|e| panic!("应返回验证结果: {e}"))
+                .valid
+        );
 
         // enum 使用数组 — 不通过
         let result3 = validate_request_json(&pool, "enumtest.User", r#"{"status": [1]}"#);
         assert!(result3.is_ok());
-        assert!(!result3.expect("应返回验证结果").valid);
+        assert!(
+            !result3
+                .unwrap_or_else(|e| panic!("应返回验证结果: {e}"))
+                .valid
+        );
     }
 
     // ========================================================================
@@ -1564,12 +1595,16 @@ message CircularB {
 
         let simple = defs
             .get("testdef.SimpleMessage")
-            .expect("SimpleMessage should exist");
+            .unwrap_or_else(|| panic!("SimpleMessage should exist"));
         assert_eq!(simple.fields.len(), 5, "SimpleMessage should have 5 fields");
         assert!(!simple.is_wkt, "SimpleMessage is not a WKT");
 
         // Check name (string)
-        let name_f = simple.fields.iter().find(|f| f.name == "name").unwrap();
+        let name_f = simple
+            .fields
+            .iter()
+            .find(|f| f.name == "name")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(name_f.number, 1);
         assert_eq!(name_f.type_kind, "string");
         assert_eq!(name_f.type_display, "string");
@@ -1577,23 +1612,39 @@ message CircularB {
         assert!(!name_f.is_map);
 
         // Check age (int32)
-        let age_f = simple.fields.iter().find(|f| f.name == "age").unwrap();
+        let age_f = simple
+            .fields
+            .iter()
+            .find(|f| f.name == "age")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(age_f.number, 2);
         assert_eq!(age_f.type_kind, "int32");
         assert_eq!(age_f.type_display, "int32");
 
         // Check active (bool)
-        let active_f = simple.fields.iter().find(|f| f.name == "active").unwrap();
+        let active_f = simple
+            .fields
+            .iter()
+            .find(|f| f.name == "active")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(active_f.number, 3);
         assert_eq!(active_f.type_kind, "bool");
 
         // Check score (double)
-        let score_f = simple.fields.iter().find(|f| f.name == "score").unwrap();
+        let score_f = simple
+            .fields
+            .iter()
+            .find(|f| f.name == "score")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(score_f.number, 4);
         assert_eq!(score_f.type_kind, "double");
 
         // Check data (bytes)
-        let data_f = simple.fields.iter().find(|f| f.name == "data").unwrap();
+        let data_f = simple
+            .fields
+            .iter()
+            .find(|f| f.name == "data")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data_f.number, 5);
         assert_eq!(data_f.type_kind, "bytes");
     }
@@ -1604,7 +1655,9 @@ message CircularB {
         let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
         let defs = get_message_definitions(&pool);
 
-        let with_enum = defs.get("testdef.WithEnum").expect("WithEnum should exist");
+        let with_enum = defs
+            .get("testdef.WithEnum")
+            .unwrap_or_else(|| panic!("WithEnum should exist"));
         assert_eq!(with_enum.fields.len(), 1);
 
         let color_f = &with_enum.fields[0];
@@ -1634,7 +1687,7 @@ message CircularB {
 
         let with_oneof = defs
             .get("testdef.WithOneof")
-            .expect("WithOneof should exist");
+            .unwrap_or_else(|| panic!("WithOneof should exist"));
         assert_eq!(
             with_oneof.oneof_groups.len(),
             1,
@@ -1657,7 +1710,9 @@ message CircularB {
         let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
         let defs = get_message_definitions(&pool);
 
-        let with_map = defs.get("testdef.WithMap").expect("WithMap should exist");
+        let with_map = defs
+            .get("testdef.WithMap")
+            .unwrap_or_else(|| panic!("WithMap should exist"));
         assert_eq!(with_map.fields.len(), 1);
 
         let labels_f = &with_map.fields[0];
@@ -1685,7 +1740,9 @@ message CircularB {
         let pool = parse_defs_pool(TEST_DEFINITIONS_PROTO, "testdef.proto");
         let defs = get_message_definitions(&pool);
 
-        let with_wkt = defs.get("testdef.WithWkt").expect("WithWkt should exist");
+        let with_wkt = defs
+            .get("testdef.WithWkt")
+            .unwrap_or_else(|| panic!("WithWkt should exist"));
         assert_eq!(with_wkt.fields.len(), 2, "WithWkt should have 2 fields");
 
         // created_at field referencing google.protobuf.Timestamp
@@ -1693,7 +1750,7 @@ message CircularB {
             .fields
             .iter()
             .find(|f| f.name == "created_at")
-            .unwrap();
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(
             ts_f.type_kind, "message",
             "WKT field should be 'message' type"
@@ -1714,14 +1771,14 @@ message CircularB {
             .fields
             .iter()
             .find(|f| f.name == "description")
-            .unwrap();
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(desc_f.type_kind, "string");
 
         // Verify that google.protobuf.Timestamp itself appears with is_wkt = true
         let ts_msg = defs.get("google.protobuf.Timestamp");
         assert!(ts_msg.is_some(), "Timestamp should exist in definitions");
         assert!(
-            ts_msg.unwrap().is_wkt,
+            ts_msg.unwrap_or_else(|| panic!("expected Some")).is_wkt,
             "google.protobuf.Timestamp should be marked is_wkt"
         );
     }
@@ -1734,7 +1791,7 @@ message CircularB {
 
         let empty = defs
             .get("testdef.EmptyMessage")
-            .expect("EmptyMessage should exist");
+            .unwrap_or_else(|| panic!("EmptyMessage should exist"));
         assert!(
             empty.fields.is_empty(),
             "EmptyMessage should have no fields"
@@ -1754,15 +1811,23 @@ message CircularB {
 
         let outer = defs
             .get("testdef.NestedOuter")
-            .expect("NestedOuter should exist");
+            .unwrap_or_else(|| panic!("NestedOuter should exist"));
         assert_eq!(outer.fields.len(), 2, "NestedOuter should have 2 fields");
 
         // id field
-        let id_f = outer.fields.iter().find(|f| f.name == "id").unwrap();
+        let id_f = outer
+            .fields
+            .iter()
+            .find(|f| f.name == "id")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(id_f.type_kind, "string");
 
         // inner field referencing NestedOuter.Inner
-        let inner_f = outer.fields.iter().find(|f| f.name == "inner").unwrap();
+        let inner_f = outer
+            .fields
+            .iter()
+            .find(|f| f.name == "inner")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(inner_f.type_kind, "message");
         assert_eq!(
             inner_f.type_full_name.as_deref(),
@@ -1773,7 +1838,7 @@ message CircularB {
         let nested = inner_f
             .nested_message
             .as_ref()
-            .expect("inner field should have nested_message");
+            .unwrap_or_else(|| panic!("inner field should have nested_message"));
         assert_eq!(nested.full_name, "testdef.NestedOuter.Inner");
         assert_eq!(nested.fields.len(), 2, "Inner should have 2 fields");
         assert!(nested.fields.iter().any(|f| f.name == "value"));
@@ -1782,7 +1847,7 @@ message CircularB {
         // The nested message should also be in the flat map
         let inner_def = defs
             .get("testdef.NestedOuter.Inner")
-            .expect("Inner should be in flat map too");
+            .unwrap_or_else(|| panic!("Inner should be in flat map too"));
         assert_eq!(inner_def.fields.len(), 2);
     }
 
@@ -1826,15 +1891,23 @@ message CircularB {
 
         let circular_a = defs
             .get("circref.CircularA")
-            .expect("CircularA should exist");
+            .unwrap_or_else(|| panic!("CircularA should exist"));
         assert_eq!(circular_a.fields.len(), 2, "CircularA should have 2 fields");
 
         // name field
-        let name_f = circular_a.fields.iter().find(|f| f.name == "name").unwrap();
+        let name_f = circular_a
+            .fields
+            .iter()
+            .find(|f| f.name == "name")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(name_f.type_kind, "string");
 
         // b field referencing CircularB — should be a circular_ref type
-        let b_f = circular_a.fields.iter().find(|f| f.name == "b").unwrap();
+        let b_f = circular_a
+            .fields
+            .iter()
+            .find(|f| f.name == "b")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(
             b_f.type_kind, "circular_ref",
             "Field referencing CircularB should be marked as circular_ref"
@@ -1853,11 +1926,15 @@ message CircularB {
         // CircularB should exist in the flat map too
         let circular_b = defs
             .get("circref.CircularB")
-            .expect("CircularB should exist in definitions");
+            .unwrap_or_else(|| panic!("CircularB should exist in definitions"));
         assert_eq!(circular_b.fields.len(), 2, "CircularB should have 2 fields");
 
         // a field referencing CircularA — should be circular_ref type
-        let a_f = circular_b.fields.iter().find(|f| f.name == "a").unwrap();
+        let a_f = circular_b
+            .fields
+            .iter()
+            .find(|f| f.name == "a")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(
             a_f.type_kind, "circular_ref",
             "Field referencing CircularA should be marked as circular_ref"
@@ -1880,12 +1957,14 @@ message CircularB {
         let defs = get_message_definitions(&pool);
 
         // Verify the HashMap can be serialized to JSON
-        let json = serde_json::to_string(&defs).expect("Serialization should succeed");
+        let json = serde_json::to_string(&defs)
+            .unwrap_or_else(|e| panic!("Serialization should succeed: {e}"));
         assert!(!json.is_empty(), "Serialized JSON should not be empty");
 
         // Verify the JSON can be deserialized back
         let deserialized: std::collections::HashMap<String, GrpcMessageInfo> =
-            serde_json::from_str(&json).expect("Deserialization should succeed");
+            serde_json::from_str(&json)
+                .unwrap_or_else(|e| panic!("Deserialization should succeed: {e}"));
 
         // Verify roundtrip preserved all keys
         assert_eq!(
@@ -1901,8 +1980,12 @@ message CircularB {
             "testdef.WithMap",
             "testdef.WithWkt",
         ] {
-            let original = defs.get(*key).expect("Original should have key");
-            let restored = deserialized.get(*key).expect("Restored should have key");
+            let original = defs
+                .get(*key)
+                .unwrap_or_else(|| panic!("Original should have key"));
+            let restored = deserialized
+                .get(*key)
+                .unwrap_or_else(|| panic!("Restored should have key"));
             assert_eq!(
                 original.full_name, restored.full_name,
                 "Roundtrip failed for {}",
@@ -1922,8 +2005,12 @@ message CircularB {
         }
 
         // Verify WithMap has serde roundtrip for is_map + map_key_type + map_value_type
-        let wm_original = defs.get("testdef.WithMap").unwrap();
-        let wm_restored = deserialized.get("testdef.WithMap").unwrap();
+        let wm_original = defs
+            .get("testdef.WithMap")
+            .unwrap_or_else(|| panic!("expected Some"));
+        let wm_restored = deserialized
+            .get("testdef.WithMap")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(wm_original.fields[0].is_map, wm_restored.fields[0].is_map);
         assert_eq!(
             wm_original.fields[0].map_key_type,
@@ -1935,8 +2022,12 @@ message CircularB {
         );
 
         // Verify NestedOuter roundtrip maintains nested_message
-        let no_original = defs.get("testdef.NestedOuter").unwrap();
-        let no_restored = deserialized.get("testdef.NestedOuter").unwrap();
+        let no_original = defs
+            .get("testdef.NestedOuter")
+            .unwrap_or_else(|| panic!("expected Some"));
+        let no_restored = deserialized
+            .get("testdef.NestedOuter")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(
             no_original.fields[1].nested_message.is_some(),
             no_restored.fields[1].nested_message.is_some(),

@@ -416,7 +416,7 @@ mod tests {
                     pool,
                 )
                 .await
-                .unwrap();
+                .unwrap_or_else(|e| panic!("{e}"));
         }
         manager
     }
@@ -434,11 +434,11 @@ mod tests {
 
         // 应该返回 true 端口（事务开始Success）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_uuid"], "conn-001");
     }
@@ -457,11 +457,11 @@ mod tests {
 
         // 应该返回 true 端口
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["isolation_level"], "READ COMMITTED");
     }
@@ -479,11 +479,11 @@ mod tests {
 
         // 应该返回 false 端口（空 UUID）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(!data["error"].is_null());
     }
@@ -502,15 +502,15 @@ mod tests {
 
         // 应该返回 false 端口（无效隔离级别）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(data["error"]
             .as_str()
-            .unwrap()
+            .unwrap_or_else(|| panic!("expected Some"))
             .contains("Invalid isolation level"));
     }
 
@@ -527,7 +527,7 @@ mod tests {
             .execute(&node1, &mut context1, &[], &HashMap::new())
             .await;
         assert!(result1.is_ok());
-        let (next_nodes1, _) = result1.unwrap();
+        let (next_nodes1, _) = result1.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes1, vec!["true"]);
 
         // 第二次开始相同连接的事务
@@ -540,12 +540,15 @@ mod tests {
 
         // 应该返回 false 端口（已有活跃事务）
         assert!(result2.is_ok());
-        let (next_nodes2, output_data2) = result2.unwrap();
+        let (next_nodes2, output_data2) = result2.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes2, vec!["false"]);
 
-        let data = output_data2.unwrap();
+        let data = output_data2.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().unwrap().contains("已有活跃事务"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("已有活跃事务"));
     }
 
     #[tokio::test]
@@ -572,7 +575,7 @@ mod tests {
 
         // 应该返回 false 端口连接的目标节点
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["target-node"]);
     }
 
@@ -588,8 +591,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 timing 信息存在
         assert!(data["timing"].is_object());
@@ -621,7 +624,8 @@ mod tests {
         // 应该返回Error
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .message
             .contains("Node data type is not DbBeginConfig"));
     }
@@ -654,10 +658,10 @@ mod tests {
                 .await;
 
             assert!(result.is_ok());
-            let (next_nodes, output_data) = result.unwrap();
+            let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(next_nodes, vec!["true"]);
 
-            let data = output_data.unwrap();
+            let data = output_data.unwrap_or_else(|| panic!("expected Some"));
             assert_eq!(data["success"], true);
             assert_eq!(data["isolation_level"], *level);
         }

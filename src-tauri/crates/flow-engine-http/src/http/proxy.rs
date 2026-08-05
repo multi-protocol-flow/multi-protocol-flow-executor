@@ -265,7 +265,7 @@ mod tests {
     #[test]
     fn test_build_connect_request() {
         let req = build_connect_request("target.com", 443, None);
-        let req_str = String::from_utf8(req).unwrap();
+        let req_str = String::from_utf8(req).unwrap_or_else(|e| panic!("{e}"));
         assert!(req_str.contains("CONNECT target.com:443"));
         assert!(req_str.contains("Host: target.com:443"));
     }
@@ -305,9 +305,12 @@ mod tests {
             username: None,
             password: None,
         };
-        let rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
         let result = rt.block_on(connect_via_proxy(&state, "example.com", 443, 5000));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Clear"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Clear"));
     }
 }

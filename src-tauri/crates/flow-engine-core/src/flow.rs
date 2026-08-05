@@ -115,7 +115,10 @@ mod tests {
 
         assert_eq!(flow.uuid, "test-uuid-456");
         assert!(flow.initial_variables.is_some());
-        let vars_ref = flow.initial_variables.as_ref().unwrap();
+        let vars_ref = flow
+            .initial_variables
+            .as_ref()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(vars_ref.len(), 2);
         assert_eq!(vars_ref.get("key1"), Some(&json!("value1")));
         assert_eq!(vars_ref.get("key2"), Some(&json!(42)));
@@ -135,7 +138,7 @@ mod tests {
             hooks: None,
         };
 
-        let json = serde_json::to_string(&flow).unwrap();
+        let json = serde_json::to_string(&flow).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("test-uuid-789"));
         assert!(json.contains("Serialization Test"));
     }
@@ -157,16 +160,19 @@ mod tests {
             hooks: None,
         };
 
-        let json = serde_json::to_string(&flow).unwrap();
+        let json = serde_json::to_string(&flow).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("test-uuid-999"));
         assert!(json.contains("api_key"));
         assert!(json.contains("secret123"));
 
         // 反序列化测试
-        let deserialized: Flow = serde_json::from_str(&json).unwrap();
+        let deserialized: Flow = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.uuid, "test-uuid-999");
         assert!(deserialized.initial_variables.is_some());
-        let vars_ref = deserialized.initial_variables.as_ref().unwrap();
+        let vars_ref = deserialized
+            .initial_variables
+            .as_ref()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(vars_ref.get("api_key"), Some(&json!("secret123")));
     }
 
@@ -179,7 +185,7 @@ mod tests {
             "connections": []
         }"#;
 
-        let flow: Flow = serde_json::from_str(json).unwrap();
+        let flow: Flow = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(flow.uuid, "test-uuid-deser");
         assert_eq!(flow.name, "Deserialization Test");
         assert!(flow.initial_variables.is_none());
@@ -198,7 +204,7 @@ mod tests {
             "connections": []
         }"#;
 
-        let flow: Flow = serde_json::from_str(json).unwrap();
+        let flow: Flow = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(flow.uuid, "test-uuid-default");
         // 如果 JSON 中没有 initial_variables 字段，serde default 应该使其为 None
         assert!(flow.initial_variables.is_none());
@@ -221,8 +227,9 @@ mod tests {
             },
         };
 
-        let json_str = serde_json::to_string(&env).unwrap();
-        let deserialized: EnvironmentSet = serde_json::from_str(&json_str).unwrap();
+        let json_str = serde_json::to_string(&env).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: EnvironmentSet =
+            serde_json::from_str(&json_str).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.name, "dev");
         assert_eq!(
             deserialized.variables.get("api_url"),
@@ -250,7 +257,9 @@ mod tests {
             hooks: None,
         };
 
-        let vars = flow.get_active_variables().unwrap();
+        let vars = flow
+            .get_active_variables()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(vars.get("key"), Some(&json!("fallback")));
     }
 
@@ -290,7 +299,9 @@ mod tests {
             hooks: None,
         };
 
-        let vars = flow.get_active_variables().unwrap();
+        let vars = flow
+            .get_active_variables()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(vars.get("key"), Some(&json!("dev-value")));
     }
 
@@ -313,7 +324,9 @@ mod tests {
             hooks: None,
         };
 
-        let vars = flow.get_active_variables().unwrap();
+        let vars = flow
+            .get_active_variables()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(vars.get("key"), Some(&json!("fallback")));
     }
 
@@ -344,7 +357,9 @@ mod tests {
             hooks: None,
         };
 
-        let vars = flow.get_active_variables().unwrap();
+        let vars = flow
+            .get_active_variables()
+            .unwrap_or_else(|| panic!("expected Some"));
         // 环境变量覆盖同名 key
         assert_eq!(
             vars.get("base_url"),
@@ -374,7 +389,7 @@ mod tests {
             hooks: None,
         };
 
-        let json_str = serde_json::to_string(&flow).unwrap();
+        let json_str = serde_json::to_string(&flow).unwrap_or_else(|e| panic!("{e}"));
         // environments 为空时不序列化
         assert!(!json_str.contains("environments"));
         assert!(!json_str.contains("active_environment"));
@@ -391,12 +406,15 @@ mod tests {
             "connections": []
         }"#;
 
-        let flow: Flow = serde_json::from_str(json).unwrap();
+        let flow: Flow = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(flow.uuid, "compat-test");
         assert!(flow.environments.is_empty());
         assert!(flow.active_environment.is_none());
         assert_eq!(
-            flow.initial_variables.as_ref().unwrap().get("key"),
+            flow.initial_variables
+                .as_ref()
+                .unwrap_or_else(|| panic!("expected Some"))
+                .get("key"),
             Some(&json!("value"))
         );
     }

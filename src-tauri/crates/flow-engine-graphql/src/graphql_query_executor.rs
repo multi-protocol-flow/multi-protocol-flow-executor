@@ -587,7 +587,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
@@ -616,7 +616,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("GraphqlQueryConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("GraphqlQueryConfig"));
     }
 
     /// 测试：变量替换在 query 和 variables 中生效
@@ -658,11 +662,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 验证变量替换在 query 中生效
         assert_eq!(data["request"]["query"], "query { user(id: 42) { name } }");
         // 验证 operation_name 替换
@@ -682,7 +686,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
 
         // 测试网络Error → false
@@ -696,7 +700,7 @@ mod tests {
             .execute(&node_err, &mut context_err, &[], &HashMap::new())
             .await;
         assert!(result_err.is_ok());
-        let (next_nodes_err, _) = result_err.unwrap();
+        let (next_nodes_err, _) = result_err.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes_err, vec!["false"]);
     }
 
@@ -730,8 +734,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         // 验证顶层字段
         assert!(data.get("success").is_some());
@@ -752,7 +756,9 @@ mod tests {
         assert_eq!(request["timeout_ms"], 5000);
 
         // 验证 timing 子结构
-        let timing = data["timing"].as_object().expect("timing 应为对象");
+        let timing = data["timing"]
+            .as_object()
+            .unwrap_or_else(|| panic!("timing 应为对象"));
         assert!(timing.contains_key("total_ms"));
     }
 
@@ -790,8 +796,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         // 验证 has_files 为 true
         assert_eq!(data["request"]["has_files"], true);
@@ -810,13 +816,16 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().unwrap().contains("不存在"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("不存在"));
     }
 
     /// 测试：GraphQL Error（200 + errors）走 true 端口
@@ -833,21 +842,23 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // GraphQL Error（非网络Error）应走 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // success 应为 false（有 GraphQL Error）
         assert_eq!(data["success"], false);
         // 但路由到了 true 端口
         // errors 应包含Error详情
-        let errors = data["errors"].as_array().expect("errors 应为数组");
+        let errors = data["errors"]
+            .as_array()
+            .unwrap_or_else(|| panic!("errors 应为数组"));
         assert!(!errors.is_empty());
         assert!(errors[0]["message"]
             .as_str()
-            .unwrap()
+            .unwrap_or_else(|| panic!("expected Some"))
             .contains("Field 'foo' not found"));
     }
 
@@ -864,13 +875,17 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         // 验证 timing 字段存在且有 total_ms
-        let timing = data["timing"].as_object().expect("timing 应为对象");
+        let timing = data["timing"]
+            .as_object()
+            .unwrap_or_else(|| panic!("timing 应为对象"));
         assert!(timing.contains_key("total_ms"));
-        let total_ms = timing["total_ms"].as_u64().expect("total_ms 应为数字");
+        let total_ms = timing["total_ms"]
+            .as_u64()
+            .unwrap_or_else(|| panic!("total_ms 应为数字"));
         // timing 中有详细的子字段（来自 provider 的输出）
         assert!(timing.contains_key("dns_ms"));
         assert!(timing.contains_key("connect_ms"));
@@ -902,7 +917,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         // 应路由到连接中指定的目标节点
         assert_eq!(next_nodes, vec!["next-node"]);
     }

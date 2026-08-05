@@ -306,7 +306,7 @@ mod tests {
         };
         let input = StartStressTestInput { flow, config };
 
-        let json = serde_json::to_string(&input).expect("序列化Failed");
+        let json = serde_json::to_string(&input).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("flow"));
         assert!(json.contains("config"));
         assert!(json.contains("concurrentUsers"));
@@ -314,7 +314,7 @@ mod tests {
         assert!(json.contains("durationSeconds"));
 
         let deserialized: StartStressTestInput =
-            serde_json::from_str(&json).expect("反序列化Failed");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized.config.concurrent_users, 5);
     }
 
@@ -322,11 +322,11 @@ mod tests {
     fn test_stop_stress_test_input_serialization() {
         let input = StopStressTestInput {};
 
-        let json = serde_json::to_string(&input).expect("序列化Failed");
+        let json = serde_json::to_string(&input).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert_eq!(json, "{}");
 
         let deserialized: StopStressTestInput =
-            serde_json::from_str(&json).expect("反序列化Failed");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         // 空结构体，验证反序列化Success即可
         let _ = deserialized;
     }
@@ -347,7 +347,7 @@ mod tests {
             }),
         };
 
-        let json = serde_json::to_string(&output).expect("序列化Failed");
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("status"));
         assert!(json.contains("progress"));
         assert!(json.contains("elapsedSeconds"));
@@ -358,7 +358,7 @@ mod tests {
         assert!(json.contains("avgLatencyMs"));
 
         let deserialized: GetStressTestStatusOutput =
-            serde_json::from_str(&json).expect("反序列化Failed");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized.status, StressTestStatus::Running);
         assert!(deserialized.progress.is_some());
     }
@@ -370,12 +370,12 @@ mod tests {
             progress: None,
         };
 
-        let json = serde_json::to_string(&output).expect("序列化Failed");
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("status"));
         assert!(json.contains("null"));
 
         let deserialized: GetStressTestStatusOutput =
-            serde_json::from_str(&json).expect("反序列化Failed");
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized.status, StressTestStatus::Idle);
         assert!(deserialized.progress.is_none());
     }
@@ -394,12 +394,12 @@ mod tests {
             config,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("started"));
         assert!(json.contains("flowUuid"));
         assert!(json.contains("config"));
 
-        let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: StressTestEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(event, deserialized);
     }
 
@@ -418,12 +418,12 @@ mod tests {
             },
         };
 
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("progress"));
         assert!(json.contains("elapsedSeconds"));
         assert!(json.contains("currentRps"));
 
-        let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: StressTestEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(event, deserialized);
     }
 
@@ -463,12 +463,12 @@ mod tests {
             report: Box::new(report),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("ended"));
         assert!(json.contains("report"));
         assert!(json.contains("report-001"));
 
-        let deserialized: StressTestEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: StressTestEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(event, deserialized);
     }
 
@@ -488,9 +488,9 @@ mod tests {
         ];
 
         for event in events {
-            let json = serde_json::to_string(&event).expect("序列化Failed");
+            let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
             let deserialized: StressTestEvent =
-                serde_json::from_str(&json).expect("反序列化Failed");
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
             assert_eq!(event, deserialized);
         }
     }
@@ -514,7 +514,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_manager_get_status_idle() {
         let manager = StressTestSessionManager::new();
-        let result = manager.get_status().await.expect("获取状态Failed");
+        let result = manager.get_status().await.unwrap_or_else(|e| panic!("获取状态Failed: {e}"));
 
         assert_eq!(result.status, StressTestStatus::Idle);
         assert!(result.progress.is_none());
@@ -526,7 +526,7 @@ mod tests {
         let result = manager.stop().await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("No running stress test session"));
+        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("No running stress test session"));
     }
 
     #[tokio::test]
@@ -612,7 +612,7 @@ mod tests {
 
         let result2 = handle_start_stress_test(input2, event_sender2, manager.clone()).await;
         assert!(result2.is_err(), "第二次启动应该Failed");
-        let error = result2.unwrap_err();
+        let error = result2.err().unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(error.contains("A stress test session is already running"));
 
         // 清理
@@ -638,7 +638,7 @@ mod tests {
 
         let result = handle_start_stress_test(input, event_sender, manager.clone()).await;
         assert!(result.is_err(), "无效配置应该Failed");
-        let error = result.unwrap_err();
+        let error = result.err().unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(error.contains("并发用户数"));
 
         assert!(!manager.is_running().await);
@@ -692,7 +692,7 @@ mod tests {
         let result = handle_get_stress_test_status(manager.clone()).await;
         assert!(result.is_ok());
 
-        let output = result.unwrap();
+        let output = result.unwrap_or_else(|e| panic!("{e}"));
         // 状态应该是 RampUp 或 Running（取决于执行速度）
         assert_ne!(output.status, StressTestStatus::Idle);
 
@@ -707,7 +707,7 @@ mod tests {
         let result = handle_get_stress_test_status(manager).await;
         assert!(result.is_ok());
 
-        let output = result.unwrap();
+        let output = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(output.status, StressTestStatus::Idle);
         assert!(output.progress.is_none());
     }
@@ -718,7 +718,7 @@ mod tests {
 
         // 初始状态：空闲
         assert!(!manager.is_running().await);
-        let status = manager.get_status().await.expect("获取状态Failed");
+        let status = manager.get_status().await.unwrap_or_else(|e| panic!("获取状态Failed: {e}"));
         assert_eq!(status.status, StressTestStatus::Idle);
 
         // 启动
@@ -735,12 +735,12 @@ mod tests {
         manager
             .start(flow, config, event_sender)
             .await
-            .expect("启动Failed");
+            .unwrap_or_else(|e| panic!("启动Failed: {e}"));
 
         assert!(manager.is_running().await);
 
         // 停止
-        manager.stop().await.expect("停止Failed");
+        manager.stop().await.unwrap_or_else(|e| panic!("停止Failed: {e}"));
         assert!(!manager.is_running().await);
 
         // 验证可以重新启动

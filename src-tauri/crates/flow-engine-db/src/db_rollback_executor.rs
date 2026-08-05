@@ -314,13 +314,13 @@ mod tests {
                 pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 先开始一个事务
         db_manager
             .begin_transaction("conn-001", None)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let executor = DbRollbackExecutor::new(db_manager.clone());
         let node = create_test_node("test-1", "测试回滚", "conn-001");
@@ -338,11 +338,11 @@ mod tests {
 
         // 应该返回 true 端口（Success）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_nodes.is_empty());
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_uuid"], "conn-001");
 
@@ -366,11 +366,11 @@ mod tests {
 
         // 回滚不存在的活跃事务，路由到 false 端口（幂等操作）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_nodes.is_empty());
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_uuid"], "conn-002");
     }
@@ -388,11 +388,11 @@ mod tests {
 
         // 空 UUID 时跳过回滚，路由到 true 端口
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_nodes.is_empty());
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["skipped"], true);
     }
@@ -409,13 +409,13 @@ mod tests {
                 pool,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 先开始一个事务
         db_manager
             .begin_transaction("conn-004", None)
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         let executor = DbRollbackExecutor::new(db_manager);
 
@@ -438,7 +438,7 @@ mod tests {
 
         // 应该返回 true 端口连接的目标节点
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["target-node"]);
     }
 
@@ -466,11 +466,11 @@ mod tests {
 
         // 应该返回 false 端口连接的目标节点（幂等但不阻断）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["error-handler"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
     }
 
@@ -486,8 +486,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 timing 信息存在
         assert!(data["timing"].is_object());
@@ -519,7 +519,8 @@ mod tests {
         // 应该返回Error
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .message
             .contains("Node data type is not DbRollbackConfig"));
     }

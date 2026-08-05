@@ -649,7 +649,10 @@ mod tests {
         };
         let result = manager.disconnect("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -681,7 +684,10 @@ mod tests {
         let config = Amqp10SendConfig::default();
         let result = manager.send("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -690,7 +696,10 @@ mod tests {
         let config = Amqp10ReceiveConfig::default();
         let result = manager.receive("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -699,7 +708,10 @@ mod tests {
         let config = Amqp10AcceptConfig::default();
         let result = manager.accept("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -708,7 +720,10 @@ mod tests {
         let config = Amqp10RejectConfig::default();
         let result = manager.reject("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     // ---- 状态显示测试 ----
@@ -740,7 +755,10 @@ mod tests {
         }
 
         for handle in handles {
-            assert!(handle.await.expect("task panicked").is_none());
+            assert!(handle
+                .await
+                .unwrap_or_else(|e| panic!("task panicked: {e}"))
+                .is_none());
         }
     }
 

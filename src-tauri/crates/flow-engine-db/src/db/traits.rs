@@ -111,20 +111,22 @@ mod tests {
     #[test]
     fn test_transaction_state_serialization() {
         let state = TransactionState::Active;
-        let json = serde_json::to_string(&state).unwrap();
+        let json = serde_json::to_string(&state).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, r#""Active""#);
 
-        let deserialized: TransactionState = serde_json::from_str(&json).unwrap();
+        let deserialized: TransactionState =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, TransactionState::Active);
     }
 
     #[test]
     fn test_isolation_level_serialization() {
         let level = IsolationLevel::ReadCommitted;
-        let json = serde_json::to_string(&level).unwrap();
+        let json = serde_json::to_string(&level).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, r#""READ_COMMITTED""#);
 
-        let deserialized: IsolationLevel = serde_json::from_str(&json).unwrap();
+        let deserialized: IsolationLevel =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, IsolationLevel::ReadCommitted);
     }
 }

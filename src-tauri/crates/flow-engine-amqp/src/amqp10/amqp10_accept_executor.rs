@@ -473,9 +473,12 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, data) = result.unwrap();
+        let (next_nodes, data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        assert_eq!(data.unwrap()["success"], true);
+        assert_eq!(
+            data.unwrap_or_else(|| panic!("expected Some"))["success"],
+            true
+        );
     }
 
     /// 测试：确认Failed时路由到 false 端口
@@ -489,9 +492,12 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, data) = result.unwrap();
+        let (next_nodes, data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        assert_eq!(data.unwrap()["error"], "Session closed");
+        assert_eq!(
+            data.unwrap_or_else(|| panic!("expected Some"))["error"],
+            "Session closed"
+        );
     }
 
     /// 测试：节点数据类型不匹配时返回Error
@@ -513,7 +519,11 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("Amqp10AcceptConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("Amqp10AcceptConfig"));
     }
 
     /// 测试：provider 返回 Err 时走 false 端口
@@ -526,9 +536,12 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, data) = result.unwrap();
+        let (next_nodes, data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        assert_eq!(data.unwrap()["error"], "确认Failed");
+        assert_eq!(
+            data.unwrap_or_else(|| panic!("expected Some"))["error"],
+            "确认Failed"
+        );
     }
 
     /// 测试：输出数据包含 `delivery_id`
@@ -541,7 +554,10 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let data = result.unwrap().1.unwrap();
+        let data = result
+            .unwrap_or_else(|e| panic!("{e}"))
+            .1
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["request"]["delivery_id"], 99);
     }
 }

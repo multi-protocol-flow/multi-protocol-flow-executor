@@ -189,28 +189,29 @@ mod tests {
 
     #[test]
     fn test_tls_mode_serialization() {
-        let json = serde_json::to_string(&TlsMode::StartTls).unwrap();
+        let json = serde_json::to_string(&TlsMode::StartTls).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "\"start_tls\"");
 
-        let json = serde_json::to_string(&TlsMode::None).unwrap();
+        let json = serde_json::to_string(&TlsMode::None).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "\"none\"");
 
-        let deserialized: TlsMode = serde_json::from_str("\"implicit\"").unwrap();
+        let deserialized: TlsMode =
+            serde_json::from_str("\"implicit\"").unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, TlsMode::Implicit);
     }
 
     #[test]
     fn test_email_body_type_serialization() {
         assert_eq!(
-            serde_json::to_string(&EmailBodyType::PlainText).unwrap(),
+            serde_json::to_string(&EmailBodyType::PlainText).unwrap_or_else(|e| panic!("{e}")),
             "\"plain_text\""
         );
         assert_eq!(
-            serde_json::to_string(&EmailBodyType::Html).unwrap(),
+            serde_json::to_string(&EmailBodyType::Html).unwrap_or_else(|e| panic!("{e}")),
             "\"html\""
         );
         assert_eq!(
-            serde_json::to_string(&EmailBodyType::Both).unwrap(),
+            serde_json::to_string(&EmailBodyType::Both).unwrap_or_else(|e| panic!("{e}")),
             "\"both\""
         );
     }
@@ -224,11 +225,12 @@ mod tests {
             auth: None,
         };
 
-        let json = serde_json::to_string(&config).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("smtp.gmail.com"));
         assert!(json.contains("465"));
 
-        let deserialized: SmtpConfig = serde_json::from_str(&json).unwrap();
+        let deserialized: SmtpConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.host, "smtp.gmail.com");
         assert_eq!(deserialized.port, 465);
     }
@@ -242,8 +244,9 @@ mod tests {
             auth: None,
         };
 
-        let json = serde_json::to_string(&config).unwrap();
-        let deserialized: ImapConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.host, "imap.gmail.com");
     }
 
@@ -254,10 +257,11 @@ mod tests {
             encrypted_password: "encrypted".to_string(),
         };
 
-        let json = serde_json::to_string(&auth).unwrap();
+        let json = serde_json::to_string(&auth).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"plain\""));
 
-        let deserialized: EmailAuthConfig = serde_json::from_str(&json).unwrap();
+        let deserialized: EmailAuthConfig =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(auth, deserialized);
     }
 
@@ -279,11 +283,11 @@ mod tests {
     #[test]
     fn test_email_provider_serialization() {
         assert_eq!(
-            serde_json::to_string(&EmailProvider::Gmail).unwrap(),
+            serde_json::to_string(&EmailProvider::Gmail).unwrap_or_else(|e| panic!("{e}")),
             "\"gmail\""
         );
         assert_eq!(
-            serde_json::to_string(&EmailProvider::Outlook).unwrap(),
+            serde_json::to_string(&EmailProvider::Outlook).unwrap_or_else(|e| panic!("{e}")),
             "\"outlook\""
         );
     }
@@ -302,8 +306,9 @@ mod tests {
             scope: Some("https://mail.google.com/".to_string()),
         };
 
-        let json = serde_json::to_string(&tokens).unwrap();
-        let deserialized: EmailOAuthTokens = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&tokens).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: EmailOAuthTokens =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(tokens, deserialized);
     }
 
@@ -315,8 +320,9 @@ mod tests {
             content_base64: "SGVsbG8=".to_string(),
         };
 
-        let json = serde_json::to_string(&attachment).unwrap();
-        let deserialized: EmailAttachment = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&attachment).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: EmailAttachment =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(attachment, deserialized);
     }
 
@@ -327,8 +333,9 @@ mod tests {
             address: "test@example.com".to_string(),
         };
 
-        let json = serde_json::to_string(&addr).unwrap();
-        let deserialized: EmailAddress = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&addr).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: EmailAddress =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(addr, deserialized);
     }
 }

@@ -238,7 +238,7 @@ mod tests {
         // 顶级字段
         let result = AssertionEvaluator::extract_target(&input, "$.status");
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), json!(200));
+        assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), json!(200));
     }
 
     #[test]
@@ -258,12 +258,15 @@ mod tests {
         // 嵌套对象
         let result = AssertionEvaluator::extract_target(&input, "$.body.data.token");
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), json!("secret_token"));
+        assert_eq!(
+            result.unwrap_or_else(|e| panic!("{e}")),
+            json!("secret_token")
+        );
 
         // 深层嵌套
         let result = AssertionEvaluator::extract_target(&input, "$.body.data.user.name");
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), json!("alice"));
+        assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), json!("alice"));
     }
 
     #[test]
@@ -281,12 +284,15 @@ mod tests {
         // 数组索引 [0]
         let result = AssertionEvaluator::extract_target(&input, "$.body.items[0]");
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), json!({"id": 1, "name": "Item1"}));
+        assert_eq!(
+            result.unwrap_or_else(|e| panic!("{e}")),
+            json!({"id": 1, "name": "Item1"})
+        );
 
         // 数组索引 + 嵌套字段
         let result = AssertionEvaluator::extract_target(&input, "$.body.items[1].name");
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), json!("Item2"));
+        assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), json!("Item2"));
     }
 
     #[test]
@@ -304,7 +310,10 @@ mod tests {
         let result = AssertionEvaluator::extract_target(&input, "$.body.items[*].name");
         assert!(result.is_ok());
         // 通配符返回数组
-        assert_eq!(result.unwrap(), json!(["Item1", "Item2"]));
+        assert_eq!(
+            result.unwrap_or_else(|e| panic!("{e}")),
+            json!(["Item1", "Item2"])
+        );
     }
 
     #[test]
@@ -322,10 +331,12 @@ mod tests {
         // 过滤器 [?(@.price < 100)]
         let result = AssertionEvaluator::extract_target(&input, "$.body.items[?(@.price < 100)]");
         assert!(result.is_ok());
-        let filtered = result.unwrap();
+        let filtered = result.unwrap_or_else(|e| panic!("{e}"));
         // 过滤器返回数组
         assert!(filtered.is_array());
-        let arr = filtered.as_array().unwrap();
+        let arr = filtered
+            .as_array()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(arr.len(), 2);
     }
 
@@ -336,7 +347,7 @@ mod tests {
         // 不存在的路径返回 null
         let result = AssertionEvaluator::extract_target(&input, "$.not.exist");
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), Value::Null);
+        assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), Value::Null);
     }
 
     #[test]
@@ -346,7 +357,7 @@ mod tests {
         // 空路径返回 null
         let result = AssertionEvaluator::extract_target(&input, "");
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), Value::Null);
+        assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), Value::Null);
     }
 
     #[test]
@@ -356,7 +367,9 @@ mod tests {
         // 无效的 JSONPath 语法
         let result = AssertionEvaluator::extract_target(&input, "invalid[");
         assert!(result.is_err());
-        let error = result.unwrap_err();
+        let error = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert_eq!(error.error_kind, ErrorKind::ConditionSyntax);
         assert!(error.message.contains("Invalid JSONPath syntax"));
     }
@@ -377,9 +390,11 @@ mod tests {
         let result =
             AssertionEvaluator::extract_target(&input, "$.body.users[?(@.age >= 25)].name");
         assert!(result.is_ok());
-        let filtered = result.unwrap();
+        let filtered = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(filtered.is_array());
-        let arr = filtered.as_array().unwrap();
+        let arr = filtered
+            .as_array()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(arr.len(), 2);
     }
 
@@ -475,7 +490,10 @@ mod tests {
 
         assert!(!result.passed);
         assert!(result.error.is_some());
-        assert!(result.error.unwrap().contains("Invalid JSONPath syntax"));
+        assert!(result
+            .error
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("Invalid JSONPath syntax"));
     }
 
     // ========================================================================

@@ -465,21 +465,22 @@ mod tests {
     #[test]
     fn test_message_direction_serialization() {
         let sent = MessageDirection::Sent;
-        let json = serde_json::to_string(&sent).expect("序列化Failed");
+        let json = serde_json::to_string(&sent).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert_eq!(json, r#""sent""#);
 
         let received = MessageDirection::Received;
-        let json = serde_json::to_string(&received).expect("序列化Failed");
+        let json = serde_json::to_string(&received).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert_eq!(json, r#""received""#);
     }
 
     #[test]
     fn test_message_direction_deserialization() {
-        let sent: MessageDirection = serde_json::from_str(r#""sent""#).expect("反序列化Failed");
+        let sent: MessageDirection =
+            serde_json::from_str(r#""sent""#).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(sent, MessageDirection::Sent);
 
         let received: MessageDirection =
-            serde_json::from_str(r#""received""#).expect("反序列化Failed");
+            serde_json::from_str(r#""received""#).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(received, MessageDirection::Received);
     }
 
@@ -492,7 +493,7 @@ mod tests {
         let text = MessageContent::Text {
             content: "hello".to_string(),
         };
-        let json = serde_json::to_string(&text).expect("序列化Failed");
+        let json = serde_json::to_string(&text).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert_eq!(json, r#"{"type":"text","content":"hello"}"#);
     }
 
@@ -501,7 +502,7 @@ mod tests {
         let binary = MessageContent::Binary {
             content: vec![1, 2, 3],
         };
-        let json = serde_json::to_string(&binary).expect("序列化Failed");
+        let json = serde_json::to_string(&binary).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         // Base64 编码: [1, 2, 3] -> "AQID"
         assert!(json.contains(r#""type":"binary""#));
         assert!(json.contains(r#""content""#));
@@ -509,12 +510,12 @@ mod tests {
 
     #[test]
     fn test_message_content_deserialization() {
-        let text: MessageContent =
-            serde_json::from_str(r#"{"type":"text","content":"hello"}"#).expect("反序列化Failed");
+        let text: MessageContent = serde_json::from_str(r#"{"type":"text","content":"hello"}"#)
+            .unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert!(matches!(text, MessageContent::Text { content } if content == "hello"));
 
-        let binary: MessageContent =
-            serde_json::from_str(r#"{"type":"binary","content":[1,2,3]}"#).expect("反序列化Failed");
+        let binary: MessageContent = serde_json::from_str(r#"{"type":"binary","content":[1,2,3]}"#)
+            .unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert!(matches!(binary, MessageContent::Binary { content } if content == vec![1, 2, 3]));
     }
 
@@ -561,7 +562,7 @@ mod tests {
             1234567890,
         );
 
-        let json = serde_json::to_string(&msg).expect("序列化Failed");
+        let json = serde_json::to_string(&msg).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains(r#""timestamp":1234567890"#));
         assert!(json.contains(r#""direction":"sent""#));
         assert!(json.contains(r#""is_binary":false"#));
@@ -627,7 +628,10 @@ mod tests {
 
         let result = segment.push_message(msg);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("exceeds limit"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("exceeds limit"));
     }
 
     #[test]
@@ -649,7 +653,7 @@ mod tests {
                 },
                 1000 + i,
             );
-            segment.push_message(msg).unwrap();
+            segment.push_message(msg).unwrap_or_else(|e| panic!("{e}"));
         }
 
         // 应该只保留最后 3 条
@@ -657,7 +661,10 @@ mod tests {
         assert_eq!(segment.dropped_message_count, 1);
 
         // 第一条消息应该被丢弃
-        let first_msg = segment.messages.front().unwrap();
+        let first_msg = segment
+            .messages
+            .front()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert!(
             matches!(&first_msg.content, MessageContent::Text { content } if content == "msg-1")
         );
@@ -783,7 +790,10 @@ mod tests {
 
         let result = stream.push_message(msg);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("No current message segment"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("No current message segment"));
     }
 
     #[test]
@@ -808,7 +818,10 @@ mod tests {
 
         let result = stream.push_message(msg);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("closed"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("closed"));
     }
 
     #[test]
@@ -850,7 +863,7 @@ mod tests {
                     content: format!("msg-{}", i),
                 },
             );
-            stream.push_message(msg).unwrap();
+            stream.push_message(msg).unwrap_or_else(|e| panic!("{e}"));
         }
 
         assert_eq!(stream.total_message_count(), 3);
@@ -873,7 +886,13 @@ mod tests {
         );
 
         assert!(stream.current_segment().is_some());
-        assert_eq!(stream.current_segment().unwrap().node_uuid, "node-1");
+        assert_eq!(
+            stream
+                .current_segment()
+                .unwrap_or_else(|| panic!("expected Some"))
+                .node_uuid,
+            "node-1"
+        );
     }
 
     #[test]
@@ -894,16 +913,17 @@ mod tests {
             },
             1234567890,
         );
-        stream.push_message(msg).unwrap();
+        stream.push_message(msg).unwrap_or_else(|e| panic!("{e}"));
 
-        let json = serde_json::to_string(&stream).expect("序列化Failed");
+        let json = serde_json::to_string(&stream).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains(r#""connection_id":"conn-1""#));
         assert!(json.contains(r#""url":"wss://example.com/ws""#));
         assert!(json.contains(r#""current_owner_node_uuid":"node-1""#));
         assert!(json.contains(r#""is_closed":false"#));
 
         // 反序列化
-        let deserialized: WsConnectionStream = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: WsConnectionStream =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized.connection_id, "conn-1");
         assert_eq!(deserialized.url, "wss://example.com/ws");
         assert_eq!(deserialized.segments.len(), 1);

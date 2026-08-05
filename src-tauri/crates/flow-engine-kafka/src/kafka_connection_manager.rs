@@ -1089,7 +1089,7 @@ mod tests {
     #[test]
     fn test_manager_new() {
         let manager = KafkaConnectionManager::new();
-        let connections = manager.connections.try_read().expect("应能获取读锁");
+        let connections = manager.connections.try_read().unwrap_or_else(|e| panic!("应能获取读锁: {e}"));
         assert!(connections.is_empty(), "新建管理器应无连接");
     }
 
@@ -1115,11 +1115,11 @@ mod tests {
         let manager = KafkaConnectionManager::new();
         let config = KafkaCloseConfig::default();
         let result = manager.close("non-existent-id", &config).await;
-        let output = result.expect("close 不应返回 Err");
+        let output = result.unwrap_or_else(|e| panic!("close 不应返回 Err: {e}"));
         assert!(!output.success, "关闭不存在的连接 success 应为 false");
         assert!(output.error.is_some(), "关闭不存在的连接应有Error信息");
         assert!(
-            output.error.as_ref().unwrap().contains("不存在"),
+            output.error.as_ref().unwrap_or_else(|| panic!("expected Some")).contains("不存在"),
             "Error信息应包含'不存在'"
         );
     }

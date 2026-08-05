@@ -628,12 +628,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output) = result.unwrap();
+        let (next_nodes, output) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_nodes.is_empty()); // 没有连接
         assert!(output.is_some());
 
         let output: AssertionOutput =
-            serde_json::from_value(output.unwrap()).expect("输出反序列化Failed");
+            serde_json::from_value(output.unwrap_or_else(|| panic!("expected Some")))
+                .unwrap_or_else(|e| panic!("输出反序列化Failed: {e}"));
         assert!(output.passed);
         assert_eq!(output.passed_count, 1);
         assert_eq!(output.failed_count, 0);
@@ -666,11 +667,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output) = result.unwrap();
+        let (next_nodes, output) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_nodes.is_empty()); // 没有连接，走 false 端口
 
         let output: AssertionOutput =
-            serde_json::from_value(output.unwrap()).expect("输出反序列化Failed");
+            serde_json::from_value(output.unwrap_or_else(|| panic!("expected Some")))
+                .unwrap_or_else(|e| panic!("输出反序列化Failed: {e}"));
         assert!(!output.passed);
         assert_eq!(output.passed_count, 0);
         assert_eq!(output.failed_count, 1);
@@ -697,8 +699,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
+        let output: AssertionOutput = serde_json::from_value(
+            result
+                .unwrap_or_else(|e| panic!("{e}"))
+                .1
+                .unwrap_or_else(|| panic!("expected Some")),
+        )
+        .unwrap_or_else(|e| panic!("输出反序列化Failed: {e}"));
         assert!(output.passed);
         assert_eq!(output.total, 0);
     }
@@ -727,8 +734,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
+        let output: AssertionOutput = serde_json::from_value(
+            result
+                .unwrap_or_else(|e| panic!("{e}"))
+                .1
+                .unwrap_or_else(|| panic!("expected Some")),
+        )
+        .unwrap_or_else(|e| panic!("输出反序列化Failed: {e}"));
         assert!(output.passed);
         assert_eq!(output.total, 0);
     }
@@ -772,7 +784,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["next-true"]);
     }
 
@@ -820,7 +832,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["next-false"]);
     }
 
@@ -853,8 +865,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
+        let output: AssertionOutput = serde_json::from_value(
+            result
+                .unwrap_or_else(|e| panic!("{e}"))
+                .1
+                .unwrap_or_else(|| panic!("expected Some")),
+        )
+        .unwrap_or_else(|e| panic!("输出反序列化Failed: {e}"));
         assert!(!output.passed); // all 模式，有一个Failed则Failed
         assert_eq!(output.passed_count, 1);
         assert_eq!(output.failed_count, 1);
@@ -886,8 +903,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
+        let output: AssertionOutput = serde_json::from_value(
+            result
+                .unwrap_or_else(|e| panic!("{e}"))
+                .1
+                .unwrap_or_else(|| panic!("expected Some")),
+        )
+        .unwrap_or_else(|e| panic!("输出反序列化Failed: {e}"));
         assert!(output.passed); // any 模式，有一个通过则通过
         assert!(output.passed_count > 0);
     }
@@ -923,7 +945,9 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        let error = result.unwrap_err();
+        let error = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(error.message.contains("Assertion failed"));
     }
 
@@ -952,8 +976,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
+        let output: AssertionOutput = serde_json::from_value(
+            result
+                .unwrap_or_else(|e| panic!("{e}"))
+                .1
+                .unwrap_or_else(|| panic!("expected Some")),
+        )
+        .unwrap_or_else(|e| panic!("输出反序列化Failed: {e}"));
         assert!(output.passed);
     }
 
@@ -986,8 +1015,13 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let output: AssertionOutput =
-            serde_json::from_value(result.unwrap().1.unwrap()).expect("输出反序列化Failed");
+        let output: AssertionOutput = serde_json::from_value(
+            result
+                .unwrap_or_else(|e| panic!("{e}"))
+                .1
+                .unwrap_or_else(|| panic!("expected Some")),
+        )
+        .unwrap_or_else(|e| panic!("输出反序列化Failed: {e}"));
         // 两个断言都执行了
         assert_eq!(output.total, 2);
         assert_eq!(output.passed_count, 1);

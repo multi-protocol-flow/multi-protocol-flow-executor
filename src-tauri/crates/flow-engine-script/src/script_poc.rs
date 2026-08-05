@@ -13,15 +13,15 @@ use rquickjs::{function::Func, object::Object, CatchResultExt, Context, Runtime}
 /// 测试基本脚本执行
 #[test]
 fn rquickjs_poc_basic() {
-    let rt = Runtime::new().unwrap();
-    let ctx = Context::full(&rt).unwrap();
+    let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+    let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
     let result = ctx.with(|ctx| {
         let code = r#"
             let message = "Hello from QuickJS";
             message
         "#;
-        let value: String = ctx.eval(code).catch(&ctx).unwrap();
+        let value: String = ctx.eval(code).catch(&ctx).unwrap_or_else(|e| panic!("{e}"));
         value
     });
 
@@ -35,8 +35,8 @@ fn rquickjs_poc_global_object() {
     use std::collections::HashMap;
     use std::rc::Rc;
 
-    let rt = Runtime::new().unwrap();
-    let ctx = Context::full(&rt).unwrap();
+    let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+    let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
     // 使用 RefCell 存储变量
     let variables: Rc<RefCell<HashMap<String, String>>> = Rc::new(RefCell::new(HashMap::new()));
@@ -44,8 +44,8 @@ fn rquickjs_poc_global_object() {
     let vars_clone = variables.clone();
     ctx.with(|ctx| {
         // 创建 fn.variables 对象
-        let fn_obj = Object::new(ctx.clone()).unwrap();
-        let vars_obj = Object::new(ctx.clone()).unwrap();
+        let fn_obj = Object::new(ctx.clone()).unwrap_or_else(|e| panic!("{e}"));
+        let vars_obj = Object::new(ctx.clone()).unwrap_or_else(|e| panic!("{e}"));
 
         // set 函数
         let vars_set = vars_clone.clone();
@@ -56,7 +56,7 @@ fn rquickjs_poc_global_object() {
                     vars_set.borrow_mut().insert(key, value);
                 }),
             )
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // get 函数
         let vars_get = variables.clone();
@@ -67,19 +67,26 @@ fn rquickjs_poc_global_object() {
                     vars_get.borrow().get(&key).cloned()
                 }),
             )
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
-        fn_obj.set("variables", vars_obj).unwrap();
-        ctx.globals().set("fn", fn_obj).unwrap();
+        fn_obj
+            .set("variables", vars_obj)
+            .unwrap_or_else(|e| panic!("{e}"));
+        ctx.globals()
+            .set("fn", fn_obj)
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 测试 set
         let _: () = ctx
             .eval("fn.variables.set('test', 'hello')")
             .catch(&ctx)
-            .unwrap();
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 测试 get
-        let result: String = ctx.eval("fn.variables.get('test')").catch(&ctx).unwrap();
+        let result: String = ctx
+            .eval("fn.variables.get('test')")
+            .catch(&ctx)
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, "hello");
     });
 }
@@ -92,7 +99,7 @@ fn rquickjs_poc_timeout_interrupt() {
     use std::sync::Arc;
     use std::time::{Duration, Instant};
 
-    let rt = Runtime::new().unwrap();
+    let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     let should_interrupt = Arc::new(AtomicBool::new(false));
     let interrupt_clone = should_interrupt.clone();
 
@@ -101,7 +108,7 @@ fn rquickjs_poc_timeout_interrupt() {
         interrupt_clone.load(Ordering::Relaxed)
     })));
 
-    let ctx = Context::full(&rt).unwrap();
+    let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
     let start = Instant::now();
 
     // 在另一个线程中设置中断标志
@@ -113,7 +120,10 @@ fn rquickjs_poc_timeout_interrupt() {
 
     ctx.with(|ctx| {
         // 简单脚本执行（非无限循环）
-        let result: i32 = ctx.eval("1 + 1").catch(&ctx).unwrap();
+        let result: i32 = ctx
+            .eval("1 + 1")
+            .catch(&ctx)
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, 2);
     });
 
@@ -125,18 +135,24 @@ fn rquickjs_poc_timeout_interrupt() {
 /// 测试 JSON 数据转换
 #[test]
 fn rquickjs_poc_json_conversion() {
-    let rt = Runtime::new().unwrap();
-    let ctx = Context::full(&rt).unwrap();
+    let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+    let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
     ctx.with(|ctx| {
         // 从 Rust 传递 JSON 到 JS
         let json_str = r#"{"name": "test", "value": 123}"#;
         let code = format!("const data = JSON.parse('{}'); data.name", json_str);
-        let result: String = ctx.eval(code.as_bytes()).catch(&ctx).unwrap();
+        let result: String = ctx
+            .eval(code.as_bytes())
+            .catch(&ctx)
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, "test");
 
         // 从 JS 返回值到 Rust
-        let value: i32 = ctx.eval("data.value").catch(&ctx).unwrap();
+        let value: i32 = ctx
+            .eval("data.value")
+            .catch(&ctx)
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(value, 123);
     });
 }
@@ -144,14 +160,17 @@ fn rquickjs_poc_json_conversion() {
 /// 测试内存限制（QuickJS 特性）
 #[test]
 fn rquickjs_poc_memory_limit() {
-    let rt = Runtime::new().unwrap();
+    let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     rt.set_memory_limit(1024 * 1024); // 1MB
 
-    let ctx = Context::full(&rt).unwrap();
+    let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
     ctx.with(|ctx| {
         // 正常小脚本应该工作
-        let result: i32 = ctx.eval("1 + 1").catch(&ctx).unwrap();
+        let result: i32 = ctx
+            .eval("1 + 1")
+            .catch(&ctx)
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, 2);
     });
 }
@@ -159,8 +178,8 @@ fn rquickjs_poc_memory_limit() {
 /// 测试脚本Error捕获
 #[test]
 fn rquickjs_poc_error_handling() {
-    let rt = Runtime::new().unwrap();
-    let ctx = Context::full(&rt).unwrap();
+    let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+    let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
     ctx.with(|ctx| {
         // 测试语法Error
@@ -176,8 +195,8 @@ fn rquickjs_poc_error_handling() {
 /// 测试异步代码解析（ES2020 支持）
 #[test]
 fn rquickjs_poc_async_support() {
-    let rt = Runtime::new().unwrap();
-    let ctx = Context::full(&rt).unwrap();
+    let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+    let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
     ctx.with(|ctx| {
         // QuickJS 支持 async/await 语法解析
@@ -187,7 +206,7 @@ fn rquickjs_poc_async_support() {
             }
             typeof asyncFunc
         "#;
-        let result: String = ctx.eval(code).catch(&ctx).unwrap();
+        let result: String = ctx.eval(code).catch(&ctx).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, "function");
     });
 }
@@ -195,8 +214,8 @@ fn rquickjs_poc_async_support() {
 /// 测试可选链和空值合并（ES2020 支持）
 #[test]
 fn rquickjs_poc_es2020_features() {
-    let rt = Runtime::new().unwrap();
-    let ctx = Context::full(&rt).unwrap();
+    let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+    let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
 
     ctx.with(|ctx| {
         // 可选链
@@ -204,7 +223,7 @@ fn rquickjs_poc_es2020_features() {
             const obj = { a: { b: 1 } };
             obj?.a?.b
         "#;
-        let result: i32 = ctx.eval(code).catch(&ctx).unwrap();
+        let result: i32 = ctx.eval(code).catch(&ctx).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, 1);
 
         // 空值合并
@@ -212,7 +231,7 @@ fn rquickjs_poc_es2020_features() {
             const val = null;
             val ?? 'default'
         "#;
-        let result: String = ctx.eval(code).catch(&ctx).unwrap();
+        let result: String = ctx.eval(code).catch(&ctx).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(result, "default");
     });
 }

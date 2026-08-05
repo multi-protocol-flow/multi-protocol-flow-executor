@@ -104,32 +104,27 @@ fn connector_with_validate(validate_result: serde_json::Value) -> Connector {
         tokio::spawn(async move {
             let mut reader = FrameReader::new(plugin_rx);
             let mut writer = FrameWriter::new(plugin_tx);
-            loop {
-                match reader.next_frame().await {
-                    Ok(Some(frame)) => {
-                        let request = match serde_json::from_slice::<Request>(&frame) {
-                            Ok(request) => request,
-                            Err(_) => continue,
-                        };
-                        let result = if request.method == "validate" {
-                            validate_result.clone()
-                        } else {
-                            request.params
-                        };
-                        let response = serde_json::json!({
-                            "jsonrpc": "2.0",
-                            "id": request.id,
-                            "result": result,
-                        });
-                        let bytes = match serde_json::to_vec(&response) {
-                            Ok(bytes) => bytes,
-                            Err(_) => continue,
-                        };
-                        if writer.write_frame(&bytes).await.is_err() {
-                            break;
-                        }
-                    }
-                    Ok(None) | Err(_) => break,
+            while let Ok(Some(frame)) = reader.next_frame().await {
+                let request = match serde_json::from_slice::<Request>(&frame) {
+                    Ok(request) => request,
+                    Err(_) => continue,
+                };
+                let result = if request.method == "validate" {
+                    validate_result.clone()
+                } else {
+                    request.params
+                };
+                let response = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": result,
+                });
+                let bytes = match serde_json::to_vec(&response) {
+                    Ok(bytes) => bytes,
+                    Err(_) => continue,
+                };
+                if writer.write_frame(&bytes).await.is_err() {
+                    break;
                 }
             }
         });

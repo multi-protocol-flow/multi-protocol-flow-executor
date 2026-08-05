@@ -566,7 +566,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
@@ -596,7 +596,8 @@ mod tests {
 
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .message
             .contains("GraphqlSubscribeConfig"));
     }
@@ -641,11 +642,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 验证变量替换在 subscription 中生效
         assert_eq!(
             data["request"]["subscription"],
@@ -673,7 +674,7 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
 
         // 测试Failed → false
@@ -693,7 +694,7 @@ mod tests {
             .execute(&node_fail, &mut context_fail, &[], &HashMap::new())
             .await;
         assert!(result_fail.is_ok());
-        let (next_nodes_fail, _) = result_fail.unwrap();
+        let (next_nodes_fail, _) = result_fail.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes_fail, vec!["false"]);
     }
 
@@ -727,8 +728,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         // 验证顶层字段
         assert!(data.get("success").is_some());
@@ -740,7 +741,9 @@ mod tests {
         assert!(data.get("error").is_some());
 
         // 验证事件列表
-        let events = data["events"].as_array().expect("events 应为数组");
+        let events = data["events"]
+            .as_array()
+            .unwrap_or_else(|| panic!("events 应为数组"));
         assert_eq!(events.len(), 2);
         assert_eq!(events[0]["data"]["messageAdded"]["text"], "hello");
         assert_eq!(events[1]["data"]["messageAdded"]["text"], "world");
@@ -760,7 +763,9 @@ mod tests {
         assert_eq!(request["timeout_ms"], 10000);
 
         // 验证 timing 子结构
-        let timing = data["timing"].as_object().expect("timing 应为对象");
+        let timing = data["timing"]
+            .as_object()
+            .unwrap_or_else(|| panic!("timing 应为对象"));
         assert!(timing.contains_key("subscribe_ms"));
         assert!(timing.contains_key("total_ms"));
     }
@@ -783,13 +788,16 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().unwrap().contains("不存在"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("不存在"));
     }
 
     /// 测试：连接端口路由（通过 connections 查找目标节点）
@@ -819,7 +827,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         // 应路由到连接中指定的目标节点
         assert_eq!(next_nodes, vec!["next-node"]);
     }

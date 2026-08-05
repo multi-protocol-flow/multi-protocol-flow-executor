@@ -275,12 +275,13 @@ mod tests {
             total_rows: 100,
             dataset_name: "test.csv".to_string(),
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("started"));
         assert!(json.contains("total_rows"));
         assert!(json.contains("test.csv"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let de: DatasetEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         if let DatasetEvent::Started {
             total_rows,
             dataset_name,
@@ -300,10 +301,11 @@ mod tests {
             status: RowStatus::Success,
             duration_ms: 120,
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("row_completed"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let de: DatasetEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         if let DatasetEvent::RowCompleted {
             row_index,
             status,
@@ -325,11 +327,12 @@ mod tests {
             error: "连接超时".to_string(),
             duration_ms: 5000,
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("row_failed"));
         assert!(json.contains("连接超时"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let de: DatasetEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         if let DatasetEvent::RowFailed {
             row_index,
             error,
@@ -355,11 +358,12 @@ mod tests {
             elapsed_ms: 5000,
             estimated_remaining_ms: Some(45000),
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("progress"));
         assert!(json.contains("estimated_remaining_ms"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let de: DatasetEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         if let DatasetEvent::Progress {
             completed,
             total,
@@ -381,10 +385,11 @@ mod tests {
         let event = DatasetEvent::Ended {
             report: Box::new(report),
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("ended"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let de: DatasetEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         if let DatasetEvent::Ended { report } = de {
             assert_eq!(report.total_rows, 3);
         } else {
@@ -398,10 +403,11 @@ mod tests {
         let event = DatasetEvent::Cancelled {
             report: Box::new(report),
         };
-        let json = serde_json::to_string(&event).expect("序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("cancelled"));
 
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let de: DatasetEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         if let DatasetEvent::Cancelled { report } = de {
             assert_eq!(report.total_rows, 5);
         } else {
@@ -416,19 +422,19 @@ mod tests {
                 total_rows: 10,
                 dataset_name: "data.csv".to_string(),
             })
-            .expect("序列化Failed"),
+            .unwrap_or_else(|e| panic!("序列化Failed: {e}")),
             serde_json::to_string(&DatasetEvent::RowCompleted {
                 row_index: 0,
                 status: RowStatus::Success,
                 duration_ms: 50,
             })
-            .expect("序列化Failed"),
+            .unwrap_or_else(|e| panic!("序列化Failed: {e}")),
             serde_json::to_string(&DatasetEvent::RowFailed {
                 row_index: 1,
                 error: "err".to_string(),
                 duration_ms: 100,
             })
-            .expect("序列化Failed"),
+            .unwrap_or_else(|e| panic!("序列化Failed: {e}")),
             serde_json::to_string(&DatasetEvent::Progress {
                 completed: 2,
                 total: 10,
@@ -438,19 +444,20 @@ mod tests {
                 elapsed_ms: 200,
                 estimated_remaining_ms: Some(800),
             })
-            .expect("序列化Failed"),
+            .unwrap_or_else(|e| panic!("序列化Failed: {e}")),
             serde_json::to_string(&DatasetEvent::Ended {
                 report: Box::new(create_test_report(2, 1, 0, 1)),
             })
-            .expect("序列化Failed"),
+            .unwrap_or_else(|e| panic!("序列化Failed: {e}")),
             serde_json::to_string(&DatasetEvent::Cancelled {
                 report: Box::new(create_test_report(1, 1, 0, 0)),
             })
-            .expect("序列化Failed"),
+            .unwrap_or_else(|e| panic!("序列化Failed: {e}")),
         ];
 
         for json in events_json {
-            let _: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
+            let _: DatasetEvent =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         }
     }
 
@@ -543,7 +550,7 @@ mod tests {
 
     #[test]
     fn test_save_report_creates_files() {
-        let temp_dir = TempDir::new().expect("创建临时目录Failed");
+        let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
 
         let report = create_test_report(3, 2, 1, 0);
         let row_details = HashMap::new();
@@ -563,9 +570,10 @@ mod tests {
         );
 
         // 验证 summary.json 可反序列化
-        let content = std::fs::read_to_string(report_dir.join("summary.json")).expect("读取Failed");
+        let content = std::fs::read_to_string(report_dir.join("summary.json"))
+            .unwrap_or_else(|e| panic!("读取Failed: {e}"));
         let loaded: DatasetExecutionReport =
-            serde_json::from_str(&content).expect("反序列化Failed");
+            serde_json::from_str(&content).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(loaded.uuid, report.uuid);
         assert_eq!(loaded.total_rows, 3);
 
@@ -578,7 +586,7 @@ mod tests {
 
     #[test]
     fn test_save_report_with_failed_rows() {
-        let temp_dir = TempDir::new().expect("创建临时目录Failed");
+        let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
 
         let report = create_test_report(5, 3, 1, 1);
 
@@ -602,20 +610,22 @@ mod tests {
         assert!(rows_dir.join("row_4.json").exists(), "row_4.json 应存在");
 
         // 验证行详情文件可反序列化
-        let content = std::fs::read_to_string(rows_dir.join("row_2.json")).expect("读取Failed");
+        let content = std::fs::read_to_string(rows_dir.join("row_2.json"))
+            .unwrap_or_else(|e| panic!("读取Failed: {e}"));
         let flow_report: FlowExecutionReport =
-            serde_json::from_str(&content).expect("反序列化Failed");
+            serde_json::from_str(&content).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(flow_report.flow_uuid, "flow-001");
     }
 
     #[test]
     fn test_save_report_no_rows_dir_when_empty_map() {
-        let temp_dir = TempDir::new().expect("创建临时目录Failed");
+        let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
 
         let report = create_test_report(3, 3, 0, 0);
         let row_details = HashMap::new();
 
-        save_report(&report, temp_dir.path(), &row_details).expect("保存Failed");
+        save_report(&report, temp_dir.path(), &row_details)
+            .unwrap_or_else(|e| panic!("保存Failed: {e}"));
 
         let report_dir = temp_dir
             .path()
@@ -677,8 +687,9 @@ mod tests {
 
         // 验证事件序列可序列化/反序列化
         for event in &events {
-            let json = serde_json::to_string(event).expect("序列化Failed");
-            let _: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
+            let json = serde_json::to_string(event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+            let _: DatasetEvent =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         }
 
         // 验证事件顺序: Started → Row* → Ended
@@ -710,8 +721,9 @@ mod tests {
             report: Box::new(report),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化Failed");
-        let de: DatasetEvent = serde_json::from_str(&json).expect("反序列化Failed");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let de: DatasetEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
 
         if let DatasetEvent::Cancelled { report } = de {
             assert_eq!(report.total_rows, 2);

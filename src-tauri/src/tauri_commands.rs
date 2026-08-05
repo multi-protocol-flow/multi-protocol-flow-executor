@@ -381,11 +381,11 @@ pub fn validate_flow(
     // 保持 IPC 返回形状（直接返回 ValidationResult）不变。
     #[cfg(feature = "plugin-manager")]
     {
-        return tauri::async_runtime::block_on(validator.validate_with_registry_async(
+        tauri::async_runtime::block_on(validator.validate_with_registry_async(
             &flow,
             &node_registry.registry,
             Some(node_registry.manager.as_ref()),
-        ));
+        ))
     }
     #[cfg(not(feature = "plugin-manager"))]
     {

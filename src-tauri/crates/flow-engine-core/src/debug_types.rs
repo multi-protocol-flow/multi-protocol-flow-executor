@@ -654,12 +654,13 @@ mod tests {
             service_count: 3,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应Success");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("GrpcChannelCreated"), "应包含变体名");
         assert!(json.contains("conn-grpc-1"));
         assert!(json.contains("http://localhost:50051"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -674,12 +675,13 @@ mod tests {
             duration_ms: 120,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应Success");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("GrpcMethodCalled"), "应包含变体名");
         assert!(json.contains("package.ServiceName"));
         assert!(json.contains("unary"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
 
         // 验证 pattern 字段为 String 类型（非枚举）
@@ -704,11 +706,12 @@ mod tests {
             url: "http://localhost:50051".to_string(),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应Success");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("GrpcChannelClosed"), "应包含变体名");
         assert!(json.contains("conn-grpc-1"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -723,12 +726,13 @@ mod tests {
             server_name: "test-server".to_string(),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应Success");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("McpConnectionCreated"), "应包含变体名");
         assert!(json.contains("conn-mcp-1"));
         assert!(json.contains("test-server"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -741,11 +745,12 @@ mod tests {
             duration_ms: 200,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应Success");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("McpToolCalled"), "应包含变体名");
         assert!(json.contains("get_weather"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -758,10 +763,11 @@ mod tests {
             duration_ms: 80,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应Success");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("McpResourceRead"), "应包含变体名");
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -774,11 +780,12 @@ mod tests {
             duration_ms: 50,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应Success");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("McpPromptGet"), "应包含变体名");
         assert!(json.contains("greeting"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -790,10 +797,11 @@ mod tests {
             url: "http://localhost:8080/mcp".to_string(),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应Success");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("McpConnectionClosed"), "应包含变体名");
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -812,12 +820,13 @@ mod tests {
             is_last: false,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应Success");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("GrpcStreamMessage"), "应包含变体名");
         assert!(json.contains("call-001"));
         assert!(json.contains("conn-grpc-1"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 
@@ -834,10 +843,11 @@ mod tests {
             is_last: true,
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应Success");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("GrpcStreamMessage"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
 
         if let DebugEvent::GrpcStreamMessage { is_last, index, .. } = &deserialized {
@@ -857,12 +867,13 @@ mod tests {
             message: "流式响应Error: internal (INTERNAL)".to_string(),
         };
 
-        let json = serde_json::to_string(&event).expect("序列化应Success");
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
         assert!(json.contains("GrpcStreamError"), "应包含变体名");
         assert!(json.contains("call-002"));
         assert!(json.contains("internal"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).expect("反序列化应Success");
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 }

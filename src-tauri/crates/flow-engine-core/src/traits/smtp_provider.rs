@@ -103,11 +103,12 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"success\":true"));
         assert!(json.contains("conn-1"));
 
-        let deserialized: SmtpConnectOutput = serde_json::from_str(&json).unwrap();
+        let deserialized: SmtpConnectOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert!(deserialized.success);
         assert_eq!(deserialized.connection_id, Some("conn-1".to_string()));
     }
@@ -121,8 +122,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: SmtpSendOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: SmtpSendOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert!(deserialized.success);
         assert_eq!(deserialized.response_code, Some(250));
     }
@@ -134,8 +136,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: SmtpDisconnectOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: SmtpDisconnectOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert!(deserialized.success);
     }
 
@@ -147,10 +150,11 @@ mod tests {
             port: 465,
         };
 
-        let json = serde_json::to_string(&info).unwrap();
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("smtp.gmail.com"));
 
-        let deserialized: SmtpConnectionInfo = serde_json::from_str(&json).unwrap();
+        let deserialized: SmtpConnectionInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.connection_id, "conn-1");
         assert_eq!(deserialized.port, 465);
     }

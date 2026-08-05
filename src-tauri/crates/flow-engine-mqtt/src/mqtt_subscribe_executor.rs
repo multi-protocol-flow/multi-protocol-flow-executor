@@ -491,11 +491,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["request"]["topic"], "test/topic");
         assert_eq!(data["request"]["connection_id"], "conn-1");
@@ -539,8 +539,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 共享订阅 topic 应为 $share/group-a/sensors/temperature
         assert_eq!(
@@ -605,12 +605,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // output_mode=first 应仅返回 1 条消息
         assert_eq!(data["message_count"], 1);
-        let msgs = data["messages"].as_array().expect("messages 应为数组");
+        let msgs = data["messages"]
+            .as_array()
+            .unwrap_or_else(|| panic!("messages 应为数组"));
         assert_eq!(msgs.len(), 1);
         assert_eq!(msgs[0]["payload_text"], "hello");
     }
@@ -671,12 +673,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // output_mode=all 应返回 2 条消息
         assert_eq!(data["message_count"], 2);
-        let msgs = data["messages"].as_array().expect("messages 应为数组");
+        let msgs = data["messages"]
+            .as_array()
+            .unwrap_or_else(|| panic!("messages 应为数组"));
         assert_eq!(msgs.len(), 2);
     }
 
@@ -695,9 +699,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
     }
@@ -725,7 +729,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("MqttSubscribeConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("MqttSubscribeConfig"));
     }
 
     /// 测试：变量替换
@@ -775,8 +783,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["request"]["topic"], "sensors/temperature");
         assert_eq!(data["request"]["connection_id"], "my-connection");
     }

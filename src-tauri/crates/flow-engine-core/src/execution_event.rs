@@ -247,7 +247,7 @@ mod tests {
         };
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         let deserialized: ExecutionEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
-        assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
+        assert_eq!(json, serde_json::to_string(&deserialized).unwrap_or_else(|e| panic!("{e}")));
 
         // NodeStarted
         let event = ExecutionEvent::NodeStarted {
@@ -257,7 +257,7 @@ mod tests {
         };
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         let deserialized: ExecutionEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
-        assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
+        assert_eq!(json, serde_json::to_string(&deserialized).unwrap_or_else(|e| panic!("{e}")));
 
         // NodeCompleted
         let report = NodeExecutionReport {
@@ -283,7 +283,7 @@ mod tests {
         };
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         let deserialized: ExecutionEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
-        assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
+        assert_eq!(json, serde_json::to_string(&deserialized).unwrap_or_else(|e| panic!("{e}")));
 
         // FlowCompleted
         let report = FlowExecutionReport {
@@ -315,7 +315,7 @@ mod tests {
         };
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         let deserialized: ExecutionEvent = serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
-        assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
+        assert_eq!(json, serde_json::to_string(&deserialized).unwrap_or_else(|e| panic!("{e}")));
     }
 
     /// `PluginEvent` 变体 serde 往返 + camelCase 字段名

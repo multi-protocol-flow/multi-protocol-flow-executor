@@ -91,7 +91,12 @@ mod tests {
         let opener = MockDirectoryOpener::with_error("目录不存在");
         let result = opener.open("/invalid/path").await;
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "目录不存在");
+        assert_eq!(
+            result
+                .err()
+                .unwrap_or_else(|| panic!("expected Err, got Ok")),
+            "目录不存在"
+        );
     }
 
     /// 使用 trait object 测试动态分发

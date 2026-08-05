@@ -643,7 +643,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "HTTP 连接应该Success");
-        let connection = result.unwrap();
+        let connection = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(matches!(connection, LegacyConnection::Http(_)));
 
         // 验证计时数据
@@ -668,7 +668,9 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        let error = result.unwrap_err();
+        let error = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(matches!(
             error,
             HttpError::DnsFailed(_) | HttpError::DnsTimeout | HttpError::DnsNoAddress
@@ -684,7 +686,9 @@ mod tests {
         let result = connector.connect("not-a-valid-url", &mut timing).await;
 
         assert!(result.is_err());
-        let error = result.unwrap_err();
+        let error = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(matches!(error, HttpError::InvalidUrl(_)));
     }
 
@@ -694,18 +698,20 @@ mod tests {
         let timing = Arc::new(std::sync::Mutex::new(TimingContext::new()));
         let mut connector = TimingConnector::new(10000, timing.clone());
 
-        let uri: Uri = "http://localhost:19090/api/status".parse().unwrap();
+        let uri: Uri = "http://localhost:19090/api/status"
+            .parse()
+            .unwrap_or_else(|e| panic!("{e}"));
         let result = Service::<Uri>::call(&mut connector, uri).await;
 
         assert!(result.is_ok(), "HTTP 连接应该Success");
-        let stream = result.unwrap();
+        let stream = result.unwrap_or_else(|e| panic!("{e}"));
 
         // 检查是否为 HTTP 流
         assert!(matches!(stream, TimedStream::Http(_)));
 
         // 验证计时数据
         let timing_data = {
-            let t = timing.lock().unwrap();
+            let t = timing.lock().unwrap_or_else(|e| panic!("{e}"));
             t.calculate()
         };
         assert!(timing_data.dns_ms.is_some());

@@ -287,8 +287,9 @@ mod tests {
         let mut file = tempfile::Builder::new()
             .suffix(suffix)
             .tempfile()
-            .expect("创建临时文件Failed");
-        file.write_all(content).expect("写入临时文件Failed");
+            .unwrap_or_else(|e| panic!("创建临时文件Failed: {e}"));
+        file.write_all(content)
+            .unwrap_or_else(|e| panic!("写入临时文件Failed: {e}"));
         file
     }
 
@@ -369,28 +370,31 @@ mod tests {
     fn test_parse_csv_utf8_basic() {
         let content = "name,age,city\n张三,25,北京\n李四,30,上海\n王五,28,广州\n";
         let file = create_temp_csv(content.as_bytes(), ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let mut reader = parse_csv(path, None, None).expect("解析Failed");
+        let mut reader = parse_csv(path, None, None).unwrap_or_else(|e| panic!("解析Failed: {e}"));
 
         let row1 = reader
             .next_row()
-            .expect("应有第1行")
-            .expect("第1行应Success");
+            .unwrap_or_else(|| panic!("应有第1行"))
+            .unwrap_or_else(|e| panic!("第1行应Success: {e}"));
         assert_eq!(row1["name"], json!("张三"));
         assert_eq!(row1["age"], json!("25"));
         assert_eq!(row1["city"], json!("北京"));
 
         let row2 = reader
             .next_row()
-            .expect("应有第2行")
-            .expect("第2行应Success");
+            .unwrap_or_else(|| panic!("应有第2行"))
+            .unwrap_or_else(|e| panic!("第2行应Success: {e}"));
         assert_eq!(row2["name"], json!("李四"));
 
         let row3 = reader
             .next_row()
-            .expect("应有第3行")
-            .expect("第3行应Success");
+            .unwrap_or_else(|| panic!("应有第3行"))
+            .unwrap_or_else(|e| panic!("第3行应Success: {e}"));
         assert_eq!(row3["name"], json!("王五"));
 
         assert!(reader.next_row().is_none(), "不应有第4行");
@@ -399,10 +403,15 @@ mod tests {
     #[test]
     fn test_parse_csv_collect_all() {
         let file = create_temp_csv(b"x,y\n1,2\n3,4\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let reader = parse_csv(path, None, None).expect("解析Failed");
-        let rows = reader.collect_all().expect("收集Failed");
+        let reader = parse_csv(path, None, None).unwrap_or_else(|e| panic!("解析Failed: {e}"));
+        let rows = reader
+            .collect_all()
+            .unwrap_or_else(|e| panic!("收集Failed: {e}"));
 
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0]["x"], json!("1"));
@@ -417,10 +426,15 @@ mod tests {
         content.extend_from_slice(b"name,age\nAlice,30\n");
 
         let file = create_temp_csv(&content, ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let reader = parse_csv(path, None, None).expect("解析Failed");
-        let rows = reader.collect_all().expect("收集Failed");
+        let reader = parse_csv(path, None, None).unwrap_or_else(|e| panic!("解析Failed: {e}"));
+        let rows = reader
+            .collect_all()
+            .unwrap_or_else(|e| panic!("收集Failed: {e}"));
 
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0]["name"], json!("Alice"));
@@ -431,10 +445,15 @@ mod tests {
     #[test]
     fn test_parse_csv_empty() {
         let file = create_temp_csv(b"name,age,city\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let reader = parse_csv(path, None, None).expect("解析Failed");
-        let rows = reader.collect_all().expect("收集Failed");
+        let reader = parse_csv(path, None, None).unwrap_or_else(|e| panic!("解析Failed: {e}"));
+        let rows = reader
+            .collect_all()
+            .unwrap_or_else(|e| panic!("收集Failed: {e}"));
         assert!(rows.is_empty(), "空 CSV 应返回 0 行");
     }
 
@@ -443,10 +462,16 @@ mod tests {
     #[test]
     fn test_parse_csv_tab_delimiter() {
         let file = create_temp_csv(b"name\tage\nAlice\t30\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let reader = parse_csv(path, None, Some('\t')).expect("解析Failed");
-        let rows = reader.collect_all().expect("收集Failed");
+        let reader =
+            parse_csv(path, None, Some('\t')).unwrap_or_else(|e| panic!("解析Failed: {e}"));
+        let rows = reader
+            .collect_all()
+            .unwrap_or_else(|e| panic!("收集Failed: {e}"));
 
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0]["name"], json!("Alice"));
@@ -459,10 +484,15 @@ mod tests {
     fn test_parse_csv_ragged_rows_missing_columns() {
         // 第二行缺少一列 → 填充空字符串
         let file = create_temp_csv(b"a,b,c\n1,2,3\n4,5\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let reader = parse_csv(path, None, None).expect("解析Failed");
-        let rows = reader.collect_all().expect("收集Failed");
+        let reader = parse_csv(path, None, None).unwrap_or_else(|e| panic!("解析Failed: {e}"));
+        let rows = reader
+            .collect_all()
+            .unwrap_or_else(|e| panic!("收集Failed: {e}"));
 
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0]["c"], json!("3"));
@@ -474,10 +504,15 @@ mod tests {
     fn test_parse_csv_ragged_rows_extra_columns() {
         // 第二行多一列 → 忽略多余列
         let file = create_temp_csv(b"a,b\n1,2\n3,4,5\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let reader = parse_csv(path, None, None).expect("解析Failed");
-        let rows = reader.collect_all().expect("收集Failed");
+        let reader = parse_csv(path, None, None).unwrap_or_else(|e| panic!("解析Failed: {e}"));
+        let rows = reader
+            .collect_all()
+            .unwrap_or_else(|e| panic!("收集Failed: {e}"));
 
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[1]["a"], json!("3"));
@@ -492,7 +527,7 @@ mod tests {
     fn test_parse_csv_file_not_found() {
         let result = parse_csv("/nonexistent/path.csv", None, None);
         assert!(result.is_err(), "文件不存在应返回Error");
-        let err = result.err().unwrap();
+        let err = result.err().unwrap_or_else(|| panic!("expected Some"));
         assert!(
             err.contains("无法打开文件"),
             "Error信息应包含'无法打开文件'，实际: {}",
@@ -508,9 +543,12 @@ mod tests {
             b"name,age\nAlice,30\nBob,25\nCharlie,35\nDiana,28\n",
             ".csv",
         );
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let rows = preview(path, None, None, 2).expect("预览Failed");
+        let rows = preview(path, None, None, 2).unwrap_or_else(|e| panic!("预览Failed: {e}"));
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0]["name"], json!("Alice"));
         assert_eq!(rows[1]["name"], json!("Bob"));
@@ -519,27 +557,36 @@ mod tests {
     #[test]
     fn test_preview_fewer_rows_than_requested() {
         let file = create_temp_csv(b"name,age\nAlice,30\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let rows = preview(path, None, None, 10).expect("预览Failed");
+        let rows = preview(path, None, None, 10).unwrap_or_else(|e| panic!("预览Failed: {e}"));
         assert_eq!(rows.len(), 1, "请求 10 行但只有 1 行数据");
     }
 
     #[test]
     fn test_preview_empty_csv() {
         let file = create_temp_csv(b"name,age\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let rows = preview(path, None, None, 5).expect("预览Failed");
+        let rows = preview(path, None, None, 5).unwrap_or_else(|e| panic!("预览Failed: {e}"));
         assert!(rows.is_empty(), "空 CSV 预览应返回空数组");
     }
 
     #[test]
     fn test_preview_zero_rows() {
         let file = create_temp_csv(b"name,age\nAlice,30\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let rows = preview(path, None, None, 0).expect("预览Failed");
+        let rows = preview(path, None, None, 0).unwrap_or_else(|e| panic!("预览Failed: {e}"));
         assert!(rows.is_empty(), "预览 0 行应返回空数组");
     }
 
@@ -551,9 +598,12 @@ mod tests {
             b"name,age,city\nAlice,30,Beijing\nBob,25,Shanghai\n",
             ".csv",
         );
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let info = validate(path, None, None).expect("验证Failed");
+        let info = validate(path, None, None).unwrap_or_else(|e| panic!("验证Failed: {e}"));
         assert_eq!(info.row_count, 2);
         assert_eq!(info.column_names, vec!["name", "age", "city"]);
         assert_eq!(info.detected_encoding, "utf-8");
@@ -562,9 +612,12 @@ mod tests {
     #[test]
     fn test_validate_empty_csv() {
         let file = create_temp_csv(b"col1,col2,col3\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let info = validate(path, None, None).expect("验证Failed");
+        let info = validate(path, None, None).unwrap_or_else(|e| panic!("验证Failed: {e}"));
         assert_eq!(info.row_count, 0, "空 CSV 应有 0 行数据");
         assert_eq!(info.column_names.len(), 3);
     }
@@ -578,18 +631,25 @@ mod tests {
     #[test]
     fn test_validate_with_specified_encoding() {
         let file = create_temp_csv(b"name,age\nAlice,30\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let info = validate(path, Some("utf-8"), None).expect("验证Failed");
+        let info =
+            validate(path, Some("utf-8"), None).unwrap_or_else(|e| panic!("验证Failed: {e}"));
         assert_eq!(info.detected_encoding, "utf-8");
     }
 
     #[test]
     fn test_validate_custom_delimiter() {
         let file = create_temp_csv(b"a;b;c\n1;2;3\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let info = validate(path, None, Some(';')).expect("验证Failed");
+        let info = validate(path, None, Some(';')).unwrap_or_else(|e| panic!("验证Failed: {e}"));
         assert_eq!(info.column_names, vec!["a", "b", "c"]);
         assert_eq!(info.row_count, 1);
     }
@@ -604,9 +664,13 @@ mod tests {
         gbk_data.extend_from_slice(&encoding_rs::GBK.encode("张三,25\n").0);
 
         let file = create_temp_csv(&gbk_data, ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let rows = preview(path, Some("gbk"), None, 10).expect("预览Failed");
+        let rows =
+            preview(path, Some("gbk"), None, 10).unwrap_or_else(|e| panic!("预览Failed: {e}"));
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0]["姓名"], json!("张三"));
         assert_eq!(rows[0]["年龄"], json!("25"));
@@ -621,9 +685,12 @@ mod tests {
         gbk_data.extend_from_slice(&encoding_rs::GBK.encode("李四,30\n").0);
 
         let file = create_temp_csv(&gbk_data, ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let info = validate(path, None, None).expect("验证Failed");
+        let info = validate(path, None, None).unwrap_or_else(|e| panic!("验证Failed: {e}"));
         assert_eq!(info.row_count, 2);
         assert_eq!(info.column_names, vec!["姓名", "年龄"]);
     }
@@ -638,9 +705,13 @@ mod tests {
         big5_data.extend_from_slice(&encoding_rs::BIG5.encode("測試,25\n").0);
 
         let file = create_temp_csv(&big5_data, ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let rows = preview(path, Some("big5"), None, 10).expect("预览Failed");
+        let rows =
+            preview(path, Some("big5"), None, 10).unwrap_or_else(|e| panic!("预览Failed: {e}"));
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0]["姓名"], json!("測試"));
     }
@@ -653,10 +724,15 @@ mod tests {
             b"name,description\nAlice,\"Hello, World\"\nBob,\"He said \"\"hi\"\"\"\n",
             ".csv",
         );
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let reader = parse_csv(path, None, None).expect("解析Failed");
-        let rows = reader.collect_all().expect("收集Failed");
+        let reader = parse_csv(path, None, None).unwrap_or_else(|e| panic!("解析Failed: {e}"));
+        let rows = reader
+            .collect_all()
+            .unwrap_or_else(|e| panic!("收集Failed: {e}"));
 
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0]["description"], json!("Hello, World"));
@@ -666,10 +742,15 @@ mod tests {
     #[test]
     fn test_parse_csv_empty_fields() {
         let file = create_temp_csv(b"a,b,c\n1,,3\n,2,\n", ".csv");
-        let path = file.path().to_str().expect("路径转换Failed");
+        let path = file
+            .path()
+            .to_str()
+            .unwrap_or_else(|| panic!("路径转换Failed"));
 
-        let reader = parse_csv(path, None, None).expect("解析Failed");
-        let rows = reader.collect_all().expect("收集Failed");
+        let reader = parse_csv(path, None, None).unwrap_or_else(|e| panic!("解析Failed: {e}"));
+        let rows = reader
+            .collect_all()
+            .unwrap_or_else(|e| panic!("收集Failed: {e}"));
 
         assert_eq!(rows[0]["b"], json!(""));
         assert_eq!(rows[1]["a"], json!(""));

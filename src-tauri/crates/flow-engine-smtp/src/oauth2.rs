@@ -545,7 +545,7 @@ mod tests {
             None,
             8080,
         )
-        .expect("创建 Gmail OAuth2 配置Failed");
+        .unwrap_or_else(|e| panic!("创建 Gmail OAuth2 配置Failed: {e}"));
 
         assert_eq!(
             config.client_id,
@@ -567,7 +567,7 @@ mod tests {
             Some("outlook-secret"),
             9090,
         )
-        .expect("创建 Outlook OAuth2 配置Failed");
+        .unwrap_or_else(|e| panic!("创建 Outlook OAuth2 配置Failed: {e}"));
 
         assert_eq!(config.client_id, "outlook-client-id");
         assert_eq!(config.client_secret, Some("outlook-secret".to_string()));
@@ -590,7 +590,10 @@ mod tests {
 
         let result = oauth2_config_from_provider(&custom, "client-id", None, 8080);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("自定义服务商"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("自定义服务商"));
     }
 
     /// 测试 PKCE 授权 URL 包含必需参数
@@ -605,7 +608,8 @@ mod tests {
             redirect_port: 8080,
         };
 
-        let (url, verifier, state) = build_pkce_auth_url(&config).expect("构建授权 URL Failed");
+        let (url, verifier, state) =
+            build_pkce_auth_url(&config).unwrap_or_else(|e| panic!("构建授权 URL Failed: {e}"));
 
         // URL 必须包含关键参数
         assert!(url.contains("response_type=code"), "缺少 response_type");
@@ -743,8 +747,8 @@ mod tests {
     /// 测试 Device Code URL 推导 — Google
     #[test]
     fn test_derive_device_code_url_google() {
-        let url =
-            derive_device_code_url("https://oauth2.googleapis.com/token").expect("推导Failed");
+        let url = derive_device_code_url("https://oauth2.googleapis.com/token")
+            .unwrap_or_else(|e| panic!("推导Failed: {e}"));
         assert_eq!(url, "https://oauth2.googleapis.com/device/code");
     }
 
@@ -753,7 +757,7 @@ mod tests {
     fn test_derive_device_code_url_microsoft() {
         let url =
             derive_device_code_url("https://login.microsoftonline.com/common/oauth2/v2.0/token")
-                .expect("推导Failed");
+                .unwrap_or_else(|e| panic!("推导Failed: {e}"));
         assert_eq!(
             url,
             "https://login.microsoftonline.com/common/oauth2/v2.0/devicecode"
@@ -778,7 +782,7 @@ mod tests {
             "token_type": "Bearer"
         });
 
-        let tokens = parse_token_response(&json).expect("解析Failed");
+        let tokens = parse_token_response(&json).unwrap_or_else(|e| panic!("解析Failed: {e}"));
 
         assert_eq!(tokens.access_token, "ya29.token");
         assert_eq!(tokens.refresh_token, Some("1//refresh".to_string()));
@@ -787,7 +791,7 @@ mod tests {
 
         // expires_at 应该是未来时间
         let now_ms = flow_engine_core::utils::unix_timestamp_ms();
-        assert!(tokens.expires_at.unwrap() > now_ms);
+        assert!(tokens.expires_at.unwrap_or_else(|| panic!("expected Some")) > now_ms);
     }
 
     /// 测试 `parse_token_response` 缺少 `access_token`
@@ -800,7 +804,10 @@ mod tests {
 
         let result = parse_token_response(&json);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("access_token"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("access_token"));
     }
 
     /// 测试 `parse_token_response` 无 `refresh_token`
@@ -811,7 +818,7 @@ mod tests {
             "expires_in": 1800
         });
 
-        let tokens = parse_token_response(&json).expect("解析Failed");
+        let tokens = parse_token_response(&json).unwrap_or_else(|e| panic!("解析Failed: {e}"));
         assert_eq!(tokens.access_token, "short_lived_token");
         assert!(tokens.refresh_token.is_none());
     }
@@ -829,7 +836,8 @@ mod tests {
             redirect_port: 8080,
         };
 
-        let (url, _, _) = build_pkce_auth_url(&config).expect("构建 URL Failed");
+        let (url, _, _) =
+            build_pkce_auth_url(&config).unwrap_or_else(|e| panic!("构建 URL Failed: {e}"));
 
         // scope 中不包含 offline_access，URL 应自动追加
         assert!(
@@ -850,7 +858,8 @@ mod tests {
             redirect_port: 8080,
         };
 
-        let (url, _, _) = build_pkce_auth_url(&config).expect("构建 URL Failed");
+        let (url, _, _) =
+            build_pkce_auth_url(&config).unwrap_or_else(|e| panic!("构建 URL Failed: {e}"));
 
         // Gmail token_url 不含 microsoftonline.com，不应追加 offline_access
         assert!(

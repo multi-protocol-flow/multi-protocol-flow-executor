@@ -739,10 +739,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "nonexistent-conn");
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
@@ -791,10 +791,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口（连接不存在）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "grpc-connection-123");
         assert_eq!(data["success"], false);
     }
@@ -840,10 +840,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口（连接不存在）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
     }
 
@@ -869,7 +869,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("GrpcCallConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("GrpcCallConfig"));
     }
 
     // ========================================================================
@@ -1047,7 +1051,7 @@ mod tests {
                 .call_log
                 .last_client_messages
                 .lock()
-                .expect("锁不应Failed") = request_messages;
+                .unwrap_or_else(|e| panic!("锁不应Failed: {e}")) = request_messages;
             self.client_streaming_response.clone().map(|v| (v, vec![]))
         }
 
@@ -1071,7 +1075,7 @@ mod tests {
                 .call_log
                 .last_bidi_messages
                 .lock()
-                .expect("锁不应Failed") = request_messages;
+                .unwrap_or_else(|e| panic!("锁不应Failed: {e}")) = request_messages;
             self.bidi_streaming_response.clone()
         }
 
@@ -1149,9 +1153,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         assert_eq!(data["pattern"], "unary");
         assert_eq!(data["data"]["result"], "ok");
@@ -1206,14 +1210,16 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         assert_eq!(data["pattern"], "server_streaming");
         // server streaming 的 data 应为 null，响应在 responses 数组中
         assert_eq!(data["data"], serde_json::Value::Null);
-        let responses = data["responses"].as_array().expect("responses 应为数组");
+        let responses = data["responses"]
+            .as_array()
+            .unwrap_or_else(|| panic!("responses 应为数组"));
         assert_eq!(responses.len(), 2);
         // 每条响应包装为 { index, data } 格式
         assert_eq!(responses[0]["index"], 1);
@@ -1281,9 +1287,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         assert_eq!(data["pattern"], "client_streaming");
         assert_eq!(data["data"]["aggregated"], true);
@@ -1295,7 +1301,7 @@ mod tests {
             .call_log
             .last_client_messages
             .lock()
-            .expect("锁不应Failed");
+            .unwrap_or_else(|e| panic!("锁不应Failed: {e}"));
         assert_eq!(msgs.len(), 2);
         assert!(msgs[0].contains("item\": 1"));
         assert!(msgs[1].contains("item\": 3"));
@@ -1340,13 +1346,15 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         assert_eq!(data["pattern"], "bidi_streaming");
         // bidi streaming 有 responses 数组，每条包装为 { index, data } 格式
-        let responses = data["responses"].as_array().expect("responses 应为数组");
+        let responses = data["responses"]
+            .as_array()
+            .unwrap_or_else(|| panic!("responses 应为数组"));
         assert_eq!(responses.len(), 1);
         assert_eq!(responses[0]["index"], 1);
         assert_eq!(responses[0]["data"]["resp"], "bidi1");
@@ -1407,15 +1415,15 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应Success");
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["sent_count"], 1); // 只有 1 条启用的
 
         let msgs = mock
             .call_log
             .last_client_messages
             .lock()
-            .expect("锁不应Failed");
+            .unwrap_or_else(|e| panic!("锁不应Failed: {e}"));
         assert_eq!(msgs.len(), 1);
         assert!(msgs[0].contains("keep"));
     }
@@ -1447,7 +1455,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.expect("执行应Success");
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["next-node"]); // 走 true 端口
     }
 
@@ -1474,9 +1482,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["error-handler"]); // 走 false 端口
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "模拟调用Failed");
     }
@@ -1499,8 +1507,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应Success");
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         // 验证必需字段存在
         assert!(data.get("success").is_some(), "缺少 success 字段");
@@ -1515,12 +1523,16 @@ mod tests {
         assert!(data.get("method_name").is_some(), "缺少 method_name 字段");
 
         // 验证 timing 结构
-        let timing = data.get("timing").expect("timing 应存在");
+        let timing = data
+            .get("timing")
+            .unwrap_or_else(|| panic!("timing 应存在"));
         assert!(timing.get("call_ms").is_some(), "缺少 timing.call_ms");
         assert!(timing.get("total_ms").is_some(), "缺少 timing.total_ms");
 
         // 验证 request 结构
-        let request = data.get("request").expect("request 应存在");
+        let request = data
+            .get("request")
+            .unwrap_or_else(|| panic!("request 应存在"));
         assert!(request.get("connection_id").is_some());
         assert!(request.get("service_name").is_some());
         assert!(request.get("method_name").is_some());
@@ -1546,8 +1558,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应Success");
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["pattern"], "unary");
     }
 
@@ -1572,13 +1584,19 @@ mod tests {
 
         /// 获取已发送的事件
         fn events(&self) -> Vec<DebugEvent> {
-            self.events.lock().expect("锁不应Failed").clone()
+            self.events
+                .lock()
+                .unwrap_or_else(|e| panic!("锁不应Failed: {e}"))
+                .clone()
         }
     }
 
     impl DebugEventSender for MockDebugEventSender {
         fn send_event(&self, event: DebugEvent) -> Result<(), String> {
-            self.events.lock().expect("锁不应Failed").push(event);
+            self.events
+                .lock()
+                .unwrap_or_else(|e| panic!("锁不应Failed: {e}"))
+                .push(event);
             Ok(())
         }
     }
@@ -1609,8 +1627,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.expect("执行应Success");
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
 
         // 验证 debug 事件已发送
@@ -2000,9 +2018,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["true"]); // Success走 true 端口
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], true);
         assert_eq!(data["data"]["success"], true);
         // 验证重试了 1 次后Success（第一次Failed，第二次Success）
@@ -2043,9 +2061,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.expect("执行应Success");
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["false"]); // Failed走 false 端口
-        let data = output_data.expect("应有输出数据");
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
         assert_eq!(data["success"], false);
         // 验证只调用了一次（没有重试）
         assert_eq!(
@@ -2224,7 +2242,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.expect("执行应Success");
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("执行应Success: {e}"));
         assert_eq!(next_nodes, vec!["false"]); // 全部重试Failed，走 false 端口
                                                // 验证调用了 3 次（初始 1 次 + 2 次重试）
         assert_eq!(

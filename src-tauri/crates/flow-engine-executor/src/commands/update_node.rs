@@ -92,7 +92,7 @@ mod tests {
         // 桩实现应该返回Failed
         assert!(!output.success);
         assert!(output.error.is_some());
-        let error_msg = output.error.unwrap();
+        let error_msg = output.error.unwrap_or_else(|| panic!("expected Some"));
         assert!(error_msg.contains("暂未实现持久化"));
     }
 
@@ -114,7 +114,7 @@ mod tests {
         // 桩实现总是返回相同的Error
         assert!(!output.success);
         assert!(output.error.is_some());
-        let error_msg = output.error.unwrap();
+        let error_msg = output.error.unwrap_or_else(|| panic!("expected Some"));
         assert!(error_msg.contains("暂未实现持久化"));
     }
 
@@ -136,7 +136,7 @@ mod tests {
         // 桩实现应该返回Failed
         assert!(!output.success);
         assert!(output.error.is_some());
-        let error_msg = output.error.unwrap();
+        let error_msg = output.error.unwrap_or_else(|| panic!("expected Some"));
         assert!(error_msg.contains("暂未实现持久化"));
     }
 
@@ -184,7 +184,7 @@ mod tests {
             error: Some("测试Error信息".to_string()),
         };
 
-        let json = serde_json::to_string(&output).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"success\":false"));
         assert!(json.contains("测试Error信息"));
     }

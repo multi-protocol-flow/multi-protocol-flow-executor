@@ -244,9 +244,12 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_ok());
-        let (next_nodes, data) = result.unwrap();
+        let (next_nodes, data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        assert_eq!(data.unwrap()["success"], false);
+        assert_eq!(
+            data.unwrap_or_else(|| panic!("expected Some"))["success"],
+            false
+        );
     }
 
     #[tokio::test]
@@ -268,6 +271,10 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("ImapFetchConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("ImapFetchConfig"));
     }
 }

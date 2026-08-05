@@ -202,7 +202,7 @@ mod tests {
 
         let response = HttpResponse::from_stream(&mut stream, &mut timing)
             .await
-            .expect("解析Failed");
+            .unwrap_or_else(|e| panic!("解析Failed: {e}"));
 
         assert_eq!(response.status, 200);
         assert_eq!(response.status_text, "OK");
@@ -210,7 +210,10 @@ mod tests {
             response.headers.get("Content-Length"),
             Some(&"13".to_string())
         );
-        assert_eq!(response.body_text().unwrap(), "Hello, World!");
+        assert_eq!(
+            response.body_text().unwrap_or_else(|e| panic!("{e}")),
+            "Hello, World!"
+        );
 
         // 验证计时数据
         let timing_data = timing.calculate();
@@ -226,7 +229,7 @@ mod tests {
 
         let response = HttpResponse::from_stream(&mut stream, &mut timing)
             .await
-            .expect("解析Failed");
+            .unwrap_or_else(|e| panic!("解析Failed: {e}"));
 
         assert_eq!(response.status, 201);
         assert_eq!(response.status_text, "Created");
@@ -249,7 +252,7 @@ mod tests {
 
         let response = HttpResponse::from_stream(&mut stream, &mut timing)
             .await
-            .expect("解析Failed");
+            .unwrap_or_else(|e| panic!("解析Failed: {e}"));
 
         assert_eq!(response.status, 404);
         assert_eq!(response.status_text, "Not Found");
@@ -264,10 +267,13 @@ mod tests {
 
         let response = HttpResponse::from_stream(&mut stream, &mut timing)
             .await
-            .expect("解析Failed");
+            .unwrap_or_else(|e| panic!("解析Failed: {e}"));
 
         assert_eq!(response.status, 200);
-        assert_eq!(response.body_text().unwrap(), "Chunked content");
+        assert_eq!(
+            response.body_text().unwrap_or_else(|e| panic!("{e}")),
+            "Chunked content"
+        );
     }
 
     #[test]
@@ -294,7 +300,9 @@ mod tests {
             body: br#"{"key":"value"}"#.to_vec(),
         };
 
-        let json = response.body_json().expect("JSON 解析Failed");
+        let json = response
+            .body_json()
+            .unwrap_or_else(|e| panic!("JSON 解析Failed: {e}"));
         assert_eq!(json["key"], "value");
     }
 }

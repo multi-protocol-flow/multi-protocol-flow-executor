@@ -79,44 +79,43 @@ fn live_connector() -> Connector {
         tokio::spawn(async move {
             let mut reader = FrameReader::new(plugin_rx);
             let mut writer = FrameWriter::new(plugin_tx);
-            loop {
-                match reader.next_frame().await {
-                    Ok(Some(frame)) => {
-                        let request = match serde_json::from_slice::<Request>(&frame) {
-                            Ok(request) => request,
-                            Err(_) => continue,
-                        };
-                        let result = if request.method == "execute" {
-                            serde_json::json!({
-                                "success": true,
-                                "next_ports": ["out"],
-                                "output_data": {"pong": true},
-                                "errors": [],
-                                "report_data": {"plugin_name": "demo", "metric": 42},
-                                "variable_updates": {"plugin_var": "set"},
-                                "provider_updates": {},
-                            })
-                        } else {
-                            request.params
-                        };
-                        let response = serde_json::json!({
-                            "jsonrpc": "2.0",
-                            "id": request.id,
-                            "result": result,
-                        });
-                        let bytes = match serde_json::to_vec(&response) {
-                            Ok(bytes) => bytes,
-                            Err(_) => continue,
-                        };
-                        if writer.write_frame(&bytes).await.is_err() {
-                            break;
-                        }
-                    }
-                    Ok(None) | Err(_) => break,
+            while let Ok(Some(frame)) = reader.next_frame().await {
+                let request = match serde_json::from_slice::<Request>(&frame) {
+                    Ok(request) => request,
+                    Err(_) => continue,
+                };
+                let result = if request.method == "execute" {
+                    serde_json::json!({
+                        "success": true,
+                        "next_ports": ["out"],
+                        "output_data": {"pong": true},
+                        "errors": [],
+                        "report_data": {"plugin_name": "demo", "metric": 42},
+                        "variable_updates": {"plugin_var": "set"},
+                        "provider_updates": {},
+                    })
+                } else {
+                    request.params
+                };
+                let response = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": result,
+                });
+                let bytes = match serde_json::to_vec(&response) {
+                    Ok(bytes) => bytes,
+                    Err(_) => continue,
+                };
+                if writer.write_frame(&bytes).await.is_err() {
+                    break;
                 }
             }
         });
-        Ok(PluginConnection::from_io(host_tx, host_rx, ConnectionConfig::default()))
+        Ok(PluginConnection::from_io(
+            host_tx,
+            host_rx,
+            ConnectionConfig::default(),
+        ))
     })
 }
 

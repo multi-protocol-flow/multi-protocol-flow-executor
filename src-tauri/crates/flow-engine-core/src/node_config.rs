@@ -4560,7 +4560,7 @@ mod tests {
     #[test]
     fn test_entry_config_serialization() {
         let config = EntryConfig::default();
-        let json = serde_json::to_string(&config).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "{}");
     }
 
@@ -4568,7 +4568,7 @@ mod tests {
     fn test_entry_config_empty_structure() {
         // 测试 EntryConfig 默认值
         let config = EntryConfig::default();
-        let json = serde_json::to_string(&config).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "{}");
     }
 
@@ -4576,7 +4576,7 @@ mod tests {
     fn test_entry_config_default_impl() {
         // 测试 Default impl
         let config = EntryConfig::default();
-        let json = serde_json::to_string(&config).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "{}");
     }
 
@@ -4588,12 +4588,12 @@ mod tests {
             ..Default::default()
         };
 
-        let json = serde_json::to_string_pretty(&config).unwrap();
+        let json = serde_json::to_string_pretty(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("https://api.example.com/users"));
         assert!(json.contains("get"));
 
         // 反序列化测试
-        let deserialized: HttpConfig = serde_json::from_str(&json).unwrap();
+        let deserialized: HttpConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.url, config.url);
         assert_eq!(deserialized.method, HttpMethod::Get);
     }
@@ -4610,7 +4610,7 @@ mod tests {
             source_node_id: None,
         };
 
-        let json = serde_json::to_string_pretty(&config).unwrap();
+        let json = serde_json::to_string_pretty(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("simple"));
         assert!(json.contains("http_response.status"));
         assert!(json.contains("equal"));
@@ -4631,7 +4631,7 @@ mod tests {
             source_node_id: None,
         };
 
-        let json = serde_json::to_string_pretty(&config).unwrap();
+        let json = serde_json::to_string_pretty(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("advanced"));
         assert!(json.contains("http_response.status >= 200"));
     }
@@ -4649,12 +4649,12 @@ mod tests {
     #[test]
     fn test_node_data_serialization_with_tag() {
         let data = NodeData::http("https://api.example.com");
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains(r#""type":"http""#));
         assert!(json.contains("https://api.example.com"));
 
         // 反序列化测试
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         match deserialized {
             NodeData::Http(config) => {
                 assert_eq!(config.url, "https://api.example.com");
@@ -4678,7 +4678,7 @@ mod tests {
             ..Default::default()
         };
 
-        let json = serde_json::to_string_pretty(&config).unwrap();
+        let json = serde_json::to_string_pretty(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("Authorization"));
         assert!(json.contains("Bearer xxx"));
         assert!(json.contains("Content-Type"));
@@ -4701,10 +4701,10 @@ mod tests {
     #[test]
     fn test_ws_collect_mode_serialization() {
         let mode = WsCollectMode::FirstMatch;
-        let json = serde_json::to_string(&mode).unwrap();
+        let json = serde_json::to_string(&mode).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, r#""first_match""#);
 
-        let deserialized: WsCollectMode = serde_json::from_str(&json).unwrap();
+        let deserialized: WsCollectMode = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, WsCollectMode::FirstMatch);
     }
 
@@ -4723,10 +4723,10 @@ mod tests {
     #[test]
     fn test_ws_message_type_serialization() {
         let msg_type = WsMessageType::Binary;
-        let json = serde_json::to_string(&msg_type).unwrap();
+        let json = serde_json::to_string(&msg_type).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, r#""binary""#);
 
-        let deserialized: WsMessageType = serde_json::from_str(&json).unwrap();
+        let deserialized: WsMessageType = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, WsMessageType::Binary);
     }
 
@@ -4737,11 +4737,11 @@ mod tests {
             expression: r#"status == 200"#.to_string(),
         };
 
-        let json = serde_json::to_string(&condition).unwrap();
+        let json = serde_json::to_string(&condition).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("regex"));
         assert!(json.contains("status == 200"));
 
-        let deserialized: WsCollectCondition = serde_json::from_str(&json).unwrap();
+        let deserialized: WsCollectCondition = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.match_type, WsMatchType::Regex);
         assert_eq!(deserialized.expression, "status == 200");
     }
@@ -4781,13 +4781,13 @@ mod tests {
             ping_timeout_ms: None,
         };
 
-        let json = serde_json::to_string_pretty(&config).unwrap();
+        let json = serde_json::to_string_pretty(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("wss://example.com/ws"));
         assert!(json.contains("Authorization"));
         assert!(json.contains("chat"));
         assert!(json.contains("first_match"));
 
-        let deserialized: WsConnectConfig = serde_json::from_str(&json).unwrap();
+        let deserialized: WsConnectConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.url, "wss://example.com/ws");
         assert_eq!(deserialized.headers.len(), 1);
         assert_eq!(deserialized.subprotocols.len(), 1);
@@ -4822,13 +4822,13 @@ mod tests {
             collect_timeout_ms: 8000,
         };
 
-        let json = serde_json::to_string_pretty(&config).unwrap();
+        let json = serde_json::to_string_pretty(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("conn-123"));
         assert!(json.contains("ping"));
         assert!(json.contains("condition_match"));
         assert!(json.contains("$.type == 'pong'"));
 
-        let deserialized: WsSendCollectConfig = serde_json::from_str(&json).unwrap();
+        let deserialized: WsSendCollectConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.connection_id, "conn-123");
         assert_eq!(deserialized.collect_mode, WsCollectMode::ConditionMatch);
         assert!(deserialized.collect_condition.is_some());
@@ -4852,12 +4852,12 @@ mod tests {
             close_timeout_ms: 3000,
         };
 
-        let json = serde_json::to_string_pretty(&config).unwrap();
+        let json = serde_json::to_string_pretty(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("conn-456"));
         assert!(json.contains("1001"));
         assert!(json.contains("Going Away"));
 
-        let deserialized: WsCloseConfig = serde_json::from_str(&json).unwrap();
+        let deserialized: WsCloseConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.close_code, 1001);
         assert_eq!(deserialized.close_reason, Some("Going Away".to_string()));
     }
@@ -4867,11 +4867,11 @@ mod tests {
         let data = NodeData::ws_connect("wss://example.com/ws");
         assert_eq!(data.type_name(), "ws_connect");
 
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains(r#""type":"ws_connect""#));
         assert!(json.contains("wss://example.com/ws"));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         match deserialized {
             NodeData::WsConnect(config) => {
                 assert_eq!(config.url, "wss://example.com/ws");
@@ -4885,11 +4885,11 @@ mod tests {
         let data = NodeData::ws_send_collect("conn-123", r#"{"type":"ping"}"#);
         assert_eq!(data.type_name(), "ws_send_collect");
 
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains(r#""type":"ws_send_collect""#));
         assert!(json.contains("conn-123"));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         match deserialized {
             NodeData::WsSendCollect(config) => {
                 assert_eq!(config.connection_id, "conn-123");
@@ -4904,11 +4904,11 @@ mod tests {
         let data = NodeData::ws_close("conn-456");
         assert_eq!(data.type_name(), "ws_close");
 
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains(r#""type":"ws_close""#));
         assert!(json.contains("conn-456"));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         match deserialized {
             NodeData::WsClose(config) => {
                 assert_eq!(config.connection_id, "conn-456");
@@ -4931,10 +4931,10 @@ mod tests {
     #[test]
     fn test_script_execution_phase_serialization() {
         let phase = ScriptExecutionPhase::PreRequest;
-        let json = serde_json::to_string(&phase).unwrap();
+        let json = serde_json::to_string(&phase).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, r#""pre_request""#);
 
-        let deserialized: ScriptExecutionPhase = serde_json::from_str(&json).unwrap();
+        let deserialized: ScriptExecutionPhase = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, ScriptExecutionPhase::PreRequest);
     }
 
@@ -4970,14 +4970,14 @@ mod tests {
             on_error: ScriptErrorStrategy::Fatal,
         };
 
-        let json = serde_json::to_string_pretty(&config).unwrap();
+        let json = serde_json::to_string_pretty(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("return status === 200;"));
         assert!(json.contains("10000"));
         assert!(json.contains("20"));
         assert!(json.contains("standalone"));
         assert!(json.contains("fatal"));
 
-        let deserialized: ScriptNodeConfig = serde_json::from_str(&json).unwrap();
+        let deserialized: ScriptNodeConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.script, "return status === 200;");
         assert_eq!(deserialized.timeout_ms, 10000);
         assert_eq!(deserialized.memory_limit_mb, 20);
@@ -4993,11 +4993,11 @@ mod tests {
         let data = NodeData::script("console.log('hello');");
         assert_eq!(data.type_name(), "script");
 
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains(r#""type":"script""#));
         assert!(json.contains("console.log('hello');"));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         match deserialized {
             NodeData::Script(config) => {
                 assert_eq!(config.script, "console.log('hello');");
@@ -5015,12 +5015,12 @@ mod tests {
     fn test_node_data_plugin_catch_all() {
         // 未知 type 字符串应反序列化为 Plugin 变体
         let json = r#"{"type":"grpc_request","url":"http://example.com"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         match data {
             NodeData::Plugin(val) => {
                 // 原始 JSON（含 type 字段）应完整保留
-                assert_eq!(val.get("type").unwrap().as_str(), Some("grpc_request"));
-                assert_eq!(val.get("url").unwrap().as_str(), Some("http://example.com"));
+                assert_eq!(val.get("type").unwrap_or_else(|| panic!("expected Some")).as_str(), Some("grpc_request"));
+                assert_eq!(val.get("url").unwrap_or_else(|| panic!("expected Some")).as_str(), Some("http://example.com"));
             }
             _ => panic!("Expected Plugin variant for unknown type"),
         }
@@ -5030,12 +5030,12 @@ mod tests {
     fn test_node_data_plugin_type_name() {
         // Plugin 变体应从 JSON 的 "type" 字段提取类型名称
         let json = r#"{"type":"custom_node","foo":"bar"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data.type_name(), "custom_node");
 
         // 无 "type" 字段时回退到 "plugin"
         let json = r#"{"foo":"bar"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data.type_name(), "plugin");
     }
 
@@ -5043,7 +5043,7 @@ mod tests {
     fn test_node_data_existing_types_unchanged() {
         // HTTP 应正常反序列化
         let json = r#"{"type":"http","url":"https://example.com","method":"get"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         match data {
             NodeData::Http(config) => assert_eq!(config.url, "https://example.com"),
             _ => panic!("Expected Http variant"),
@@ -5051,7 +5051,7 @@ mod tests {
 
         // ws_connect 应正常反序列化
         let json = r#"{"type":"ws_connect","url":"wss://example.com"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         match data {
             NodeData::WsConnect(config) => assert_eq!(config.url, "wss://example.com"),
             _ => panic!("Expected WsConnect variant"),
@@ -5059,12 +5059,12 @@ mod tests {
 
         // entry 应正常反序列化
         let json = r#"{"type":"entry"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert!(matches!(data, NodeData::Entry(_)));
 
         // script 应正常反序列化
         let json = r#"{"type":"script","script":"return 1;"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         match data {
             NodeData::Script(config) => assert_eq!(config.script, "return 1;"),
             _ => panic!("Expected Script variant"),
@@ -5072,7 +5072,7 @@ mod tests {
 
         // db_connect 应正常反序列化
         let json = r#"{"type":"db_connect","driver":"postgres","connection_string":"postgres://localhost/test"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         match data {
             NodeData::DbConnect(config) => {
                 assert_eq!(
@@ -5092,7 +5092,7 @@ mod tests {
     fn test_unknown_node_type_deserialize() {
         // 未知节点类型应反序列化为 Plugin 变体，保留完整 JSON
         let json = r#"{"type": "custom_grpc", "endpoint": "localhost:50051"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
 
         match &data {
             NodeData::Plugin(val) => {
@@ -5116,12 +5116,12 @@ mod tests {
     fn test_plugin_type_name_from_json() {
         // Plugin 带 type 字段应返回 type 值
         let json = r#"{"type": "my_custom_node", "some_config": "value"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data.type_name(), "my_custom_node");
 
         // Plugin 无 type 字段应回退到 "plugin"
         let json_no_type = r#"{"config": "value"}"#;
-        let data_no_type: NodeData = serde_json::from_str(json_no_type).unwrap();
+        let data_no_type: NodeData = serde_json::from_str(json_no_type).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data_no_type.type_name(), "plugin");
     }
 
@@ -5145,13 +5145,13 @@ mod tests {
         };
 
         // 序列化
-        let json = serde_json::to_string(&node).unwrap();
+        let json = serde_json::to_string(&node).unwrap_or_else(|e| panic!("{e}"));
 
         // 验证序列化格式保留 type 字段
         assert!(json.contains(r#""type":"custom_grpc""#));
 
         // 反序列化
-        let deserialized: Node = serde_json::from_str(&json).unwrap();
+        let deserialized: Node = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.node_type, "custom_grpc");
         assert_eq!(deserialized.uuid, "test-uuid");
         assert_eq!(deserialized.name, "Custom Node");
@@ -5175,13 +5175,13 @@ mod tests {
             on_error: None,
         };
 
-        let json = serde_json::to_string(&node).unwrap();
+        let json = serde_json::to_string(&node).unwrap_or_else(|e| panic!("{e}"));
 
         // 序列化后 JSON 应包含 "type":"http"
         assert!(json.contains(r#""type":"http""#));
 
         // 往返验证
-        let back: Node = serde_json::from_str(&json).unwrap();
+        let back: Node = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(back.node_type, "http");
         assert_eq!(back.uuid, "test-http");
     }
@@ -5206,8 +5206,8 @@ mod tests {
             },
             framing_config: FramingConfig::default(),
         };
-        let json = serde_json::to_string(&config).unwrap();
-        let back: TcpConnectConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
+        let back: TcpConnectConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(back.host, "127.0.0.1");
         assert_eq!(back.port, 8080);
         assert!(back.use_tls);
@@ -5225,8 +5225,8 @@ mod tests {
             send_timeout_ms: 5000,
             parser_config: None,
         };
-        let json = serde_json::to_string(&config).unwrap();
-        let back: TcpSendConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
+        let back: TcpSendConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(back.connection_id, "conn-1");
         assert_eq!(back.data, "hello");
         assert_eq!(back.send_timeout_ms, 5000);
@@ -5238,8 +5238,8 @@ mod tests {
             connection_id: "conn-1".to_string(),
             close_timeout_ms: 3000,
         };
-        let json = serde_json::to_string(&config).unwrap();
-        let back: TcpCloseConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
+        let back: TcpCloseConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(back.connection_id, "conn-1");
         assert_eq!(back.close_timeout_ms, 3000);
     }
@@ -5256,8 +5256,8 @@ mod tests {
             multicast_loop: None,
             multicast_interface: None,
         };
-        let json = serde_json::to_string(&config).unwrap();
-        let back: UdpBindConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
+        let back: UdpBindConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(back.local_addr, "0.0.0.0");
         assert_eq!(back.local_port, 9090);
         assert!(back.reuse_addr);
@@ -5273,8 +5273,8 @@ mod tests {
             target_port: 5000,
             send_timeout_ms: 10000,
         };
-        let json = serde_json::to_string(&config).unwrap();
-        let back: UdpSendToConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
+        let back: UdpSendToConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(back.connection_id, "conn-1");
         assert_eq!(back.data_encoding, "hex");
         assert_eq!(back.target_addr, "192.168.1.1");
@@ -5288,8 +5288,8 @@ mod tests {
             receive_timeout_ms: 8000,
             max_size: 32768,
         };
-        let json = serde_json::to_string(&config).unwrap();
-        let back: UdpRecvFromConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
+        let back: UdpRecvFromConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(back.connection_id, "conn-1");
         assert_eq!(back.receive_timeout_ms, 8000);
         assert_eq!(back.max_size, 32768);
@@ -5300,15 +5300,15 @@ mod tests {
         let config = UdpCloseConfig {
             connection_id: "conn-1".to_string(),
         };
-        let json = serde_json::to_string(&config).unwrap();
-        let back: UdpCloseConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
+        let back: UdpCloseConfig = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(back.connection_id, "conn-1");
     }
 
     #[test]
     fn test_node_data_tcp_connect_roundtrip() {
         let json = r#"{"type":"tcp_connect","host":"127.0.0.1","port":8080,"use_tls":false,"tls_skip_verify":false,"connect_timeout_ms":30000,"framing_mode":{"length_prefix":{"prefix_bytes":4}},"framing_config":{"mode":{"length_prefix":{"prefix_bytes":4}},"max_frame_size":1048576,"include_framing_in_data":false}}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data.type_name(), "tcp_connect");
         match &data {
             NodeData::TcpConnect(cfg) => {
@@ -5318,15 +5318,15 @@ mod tests {
             _ => panic!("Expected TcpConnect variant"),
         }
         // 往返验证
-        let serialized = serde_json::to_string(&data).unwrap();
-        let back: NodeData = serde_json::from_str(&serialized).unwrap();
+        let serialized = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
+        let back: NodeData = serde_json::from_str(&serialized).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(back.type_name(), "tcp_connect");
     }
 
     #[test]
     fn test_node_data_tcp_send_roundtrip() {
         let json = r#"{"type":"tcp_send","connection_id":"c1","data":"hello","data_encoding":"text","send_timeout_ms":30000}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data.type_name(), "tcp_send");
         match &data {
             NodeData::TcpSend(cfg) => {
@@ -5340,7 +5340,7 @@ mod tests {
     #[test]
     fn test_node_data_tcp_close_roundtrip() {
         let json = r#"{"type":"tcp_close","connection_id":"c1","close_timeout_ms":5000}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data.type_name(), "tcp_close");
         match &data {
             NodeData::TcpClose(cfg) => {
@@ -5354,7 +5354,7 @@ mod tests {
     fn test_node_data_udp_bind_roundtrip() {
         let json =
             r#"{"type":"udp_bind","local_addr":"0.0.0.0","local_port":9090,"reuse_addr":true}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data.type_name(), "udp_bind");
         match &data {
             NodeData::UdpBind(cfg) => {
@@ -5367,7 +5367,7 @@ mod tests {
     #[test]
     fn test_node_data_udp_send_to_roundtrip() {
         let json = r#"{"type":"udp_send_to","connection_id":"c1","data":"ping","target_addr":"10.0.0.1","target_port":5000,"send_timeout_ms":30000}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data.type_name(), "udp_send_to");
         match &data {
             NodeData::UdpSendTo(cfg) => {
@@ -5381,7 +5381,7 @@ mod tests {
     #[test]
     fn test_node_data_udp_recv_from_roundtrip() {
         let json = r#"{"type":"udp_recv_from","connection_id":"c1","receive_timeout_ms":5000,"max_size":65536}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data.type_name(), "udp_recv_from");
         match &data {
             NodeData::UdpRecvFrom(cfg) => {
@@ -5395,7 +5395,7 @@ mod tests {
     #[test]
     fn test_node_data_udp_close_roundtrip() {
         let json = r#"{"type":"udp_close","connection_id":"c1"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap();
+        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(data.type_name(), "udp_close");
         match &data {
             NodeData::UdpClose(cfg) => {
@@ -5448,7 +5448,7 @@ mod tests {
     fn test_entry_config_backward_compat_empty() {
         // 空 JSON 应正常反序列化
         let json = r#"{}"#;
-        let config: EntryConfig = serde_json::from_str(json).unwrap();
+        let config: EntryConfig = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(config.dataset_path, None);
         assert_eq!(config.dataset_encoding, None);
     }
@@ -5456,7 +5456,7 @@ mod tests {
     #[test]
     fn test_entry_config_with_dataset_fields() {
         let json = r#"{"dataset_path":"/path/file.csv","dataset_encoding":"utf-8"}"#;
-        let config: EntryConfig = serde_json::from_str(json).unwrap();
+        let config: EntryConfig = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(config.dataset_path, Some("/path/file.csv".to_string()));
         assert_eq!(config.dataset_encoding, Some("utf-8".to_string()));
     }
@@ -5475,7 +5475,7 @@ mod tests {
             dataset_encoding: None,
             hooks: None,
         };
-        let json = serde_json::to_string(&config).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(!json.contains("dataset_path"));
         assert!(!json.contains("dataset_encoding"));
     }
@@ -5487,7 +5487,7 @@ mod tests {
             dataset_encoding: Some("gbk".to_string()),
             hooks: None,
         };
-        let json = serde_json::to_string(&config).unwrap();
+        let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("dataset_path"));
         assert!(json.contains("/data/test.csv"));
         assert!(json.contains("dataset_encoding"));
@@ -5497,7 +5497,7 @@ mod tests {
     #[test]
     fn test_entry_config_only_dataset_path() {
         let json = r#"{"dataset_path":"/path/data.csv"}"#;
-        let config: EntryConfig = serde_json::from_str(json).unwrap();
+        let config: EntryConfig = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(config.dataset_path, Some("/path/data.csv".to_string()));
         assert_eq!(config.dataset_encoding, None);
     }
@@ -5515,11 +5515,11 @@ mod tests {
             auth: None,
             connect_timeout_ms: 30000,
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"smtp_connect\""));
         assert!(json.contains("smtp.gmail.com"));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "smtp_connect");
     }
 
@@ -5538,10 +5538,10 @@ mod tests {
             attachments: None,
             timeout_ms: 30000,
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"smtp_send\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "smtp_send");
     }
 
@@ -5550,10 +5550,10 @@ mod tests {
         let data = NodeData::SmtpDisconnect(SmtpDisconnectConfig {
             connection_id: "conn-1".to_string(),
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"smtp_disconnect\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "smtp_disconnect");
     }
 
@@ -5566,11 +5566,11 @@ mod tests {
             auth: None,
             connect_timeout_ms: 30000,
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_connect\""));
         assert!(json.contains("imap.gmail.com"));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_connect");
     }
 
@@ -5581,10 +5581,10 @@ mod tests {
             mailbox: "INBOX".to_string(),
             readonly: false,
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_select\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_select");
     }
 
@@ -5596,10 +5596,10 @@ mod tests {
             criteria: "UNSEEN".to_string(),
             max_results: Some(10),
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_search\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_search");
     }
 
@@ -5612,10 +5612,10 @@ mod tests {
             max_fetch_count: 50,
             max_size_bytes: 5 * 1024 * 1024,
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_fetch\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_fetch");
     }
 
@@ -5627,10 +5627,10 @@ mod tests {
             operation: "add".to_string(),
             flags: vec!["\\Seen".to_string(), "\\Flagged".to_string()],
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_store_flags\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_store_flags");
     }
 
@@ -5641,10 +5641,10 @@ mod tests {
             uids: "1:5".to_string(),
             target_mailbox: "Archive".to_string(),
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_copy\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_copy");
     }
 
@@ -5655,10 +5655,10 @@ mod tests {
             uids: "1:3".to_string(),
             target_mailbox: "Trash".to_string(),
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_move\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_move");
     }
 
@@ -5667,10 +5667,10 @@ mod tests {
         let data = NodeData::ImapExpunge(ImapExpungeConfig {
             connection_id: "conn-1".to_string(),
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_expunge\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_expunge");
     }
 
@@ -5681,10 +5681,10 @@ mod tests {
             reference_name: String::new(),
             pattern: "*".to_string(),
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_list\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_list");
     }
 
@@ -5694,10 +5694,10 @@ mod tests {
             connection_id: "conn-1".to_string(),
             folder_name: "NewFolder".to_string(),
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_folder_create\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_folder_create");
     }
 
@@ -5707,10 +5707,10 @@ mod tests {
             connection_id: "conn-1".to_string(),
             folder_name: "OldFolder".to_string(),
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_folder_delete\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_folder_delete");
     }
 
@@ -5721,10 +5721,10 @@ mod tests {
             mailbox: Some("INBOX".to_string()),
             timeout_seconds: 300,
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_idle\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_idle");
     }
 
@@ -5733,10 +5733,10 @@ mod tests {
         let data = NodeData::ImapClose(ImapCloseConfig {
             connection_id: "conn-1".to_string(),
         });
-        let json = serde_json::to_string(&data).unwrap();
+        let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"type\":\"imap_close\""));
 
-        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_name(), "imap_close");
     }
 }

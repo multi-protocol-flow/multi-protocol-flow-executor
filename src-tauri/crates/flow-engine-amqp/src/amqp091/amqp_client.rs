@@ -614,10 +614,12 @@ mod tests {
 
     #[test]
     fn test_build_basic_properties_with_content_type() {
-        let mut config = flow_engine_core::node_config::AmqpPublishConfig::default();
-        config.content_type = Some("application/json".to_string());
-        config.delivery_mode = 2;
-        config.priority = 5;
+        let config = flow_engine_core::node_config::AmqpPublishConfig {
+            content_type: Some("application/json".to_string()),
+            delivery_mode: 2,
+            priority: 5,
+            ..Default::default()
+        };
         let _props = build_basic_properties(&config);
     }
 
@@ -634,20 +636,22 @@ mod tests {
 
     #[test]
     fn test_build_basic_properties_with_all_fields() {
-        let mut config = flow_engine_core::node_config::AmqpPublishConfig::default();
-        config.content_type = Some("text/plain".to_string());
-        config.content_encoding = Some("utf-8".to_string());
-        config.delivery_mode = 2;
-        config.priority = 1;
-        config.correlation_id = Some("corr-123".to_string());
-        config.reply_to = Some("reply-queue".to_string());
-        config.expiration = Some("60000".to_string());
-        config.message_id = Some("msg-123".to_string());
-        config.timestamp = Some(1234567890);
-        config.message_type = Some("test".to_string());
-        config.user_id = Some("guest".to_string());
-        config.app_id = Some("mpe".to_string());
-        config.cluster_id = Some("cluster-1".to_string());
+        let config = flow_engine_core::node_config::AmqpPublishConfig {
+            content_type: Some("text/plain".to_string()),
+            content_encoding: Some("utf-8".to_string()),
+            delivery_mode: 2,
+            priority: 1,
+            correlation_id: Some("corr-123".to_string()),
+            reply_to: Some("reply-queue".to_string()),
+            expiration: Some("60000".to_string()),
+            message_id: Some("msg-123".to_string()),
+            timestamp: Some(1234567890),
+            message_type: Some("test".to_string()),
+            user_id: Some("guest".to_string()),
+            app_id: Some("mpe".to_string()),
+            cluster_id: Some("cluster-1".to_string()),
+            ..Default::default()
+        };
         let _props = build_basic_properties(&config);
     }
 

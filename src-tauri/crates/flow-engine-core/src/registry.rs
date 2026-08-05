@@ -145,8 +145,16 @@ mod tests {
 
         let found = registry.get("http");
         assert!(found.is_some());
-        assert_eq!(found.unwrap().type_id(), "http");
-        assert_eq!(found.unwrap().display_name(), "HTTP 请求");
+        assert_eq!(
+            found.unwrap_or_else(|| panic!("expected Some")).type_id(),
+            "http"
+        );
+        assert_eq!(
+            found
+                .unwrap_or_else(|| panic!("expected Some"))
+                .display_name(),
+            "HTTP 请求"
+        );
     }
 
     /// `测试：all_metadata` 返回正确的元数据
@@ -170,7 +178,10 @@ mod tests {
         assert_eq!(metadata.len(), 2);
 
         // 验证元数据内容（不依赖顺序）
-        let http_meta = metadata.iter().find(|m| m.type_id == "http").unwrap();
+        let http_meta = metadata
+            .iter()
+            .find(|m| m.type_id == "http")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(http_meta.display_name, "HTTP 请求");
         assert_eq!(http_meta.category, "http");
         assert_eq!(http_meta.icon, "test-icon");
@@ -178,7 +189,10 @@ mod tests {
         assert_eq!(http_meta.ports.len(), 1);
         assert_eq!(http_meta.ports[0].id, "output");
 
-        let db_meta = metadata.iter().find(|m| m.type_id == "db_connect").unwrap();
+        let db_meta = metadata
+            .iter()
+            .find(|m| m.type_id == "db_connect")
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(db_meta.display_name, "数据库连接");
         assert_eq!(db_meta.category, "database");
     }
@@ -208,7 +222,13 @@ mod tests {
         }));
 
         assert_eq!(registry.len(), 1);
-        assert_eq!(registry.get("http").unwrap().display_name(), "旧 HTTP");
+        assert_eq!(
+            registry
+                .get("http")
+                .unwrap_or_else(|| panic!("expected Some"))
+                .display_name(),
+            "旧 HTTP"
+        );
 
         // 注册同 type_id 的新插件
         registry.register(Arc::new(MockPlugin {
@@ -218,7 +238,13 @@ mod tests {
         }));
 
         assert_eq!(registry.len(), 1);
-        assert_eq!(registry.get("http").unwrap().display_name(), "新 HTTP");
+        assert_eq!(
+            registry
+                .get("http")
+                .unwrap_or_else(|| panic!("expected Some"))
+                .display_name(),
+            "新 HTTP"
+        );
     }
 
     /// 测试：len 和 `is_empty`

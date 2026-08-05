@@ -299,7 +299,7 @@ mod tests {
         assert!(!body.is_none());
         let ct = body.content_type(None);
         assert!(ct.is_some());
-        let (name, value) = ct.unwrap();
+        let (name, value) = ct.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(name, "Content-Type");
         assert_eq!(value, "application/x-www-form-urlencoded");
     }
@@ -318,7 +318,7 @@ mod tests {
 
         let ct = body.content_type(Some("test-boundary"));
         assert!(ct.is_some());
-        let (name, value) = ct.unwrap();
+        let (name, value) = ct.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(name, "Content-Type");
         assert!(value.starts_with("multipart/form-data; boundary="));
     }
@@ -332,7 +332,7 @@ mod tests {
         let boundary = "----WebKitFormBoundary12345678";
         let encoded = multipart.encode(boundary);
 
-        let encoded_str = String::from_utf8(encoded).unwrap();
+        let encoded_str = String::from_utf8(encoded).unwrap_or_else(|e| panic!("{e}"));
         assert!(encoded_str.contains("name=\"name\""));
         assert!(encoded_str.contains("test"));
         assert!(encoded_str.contains("name=\"email\""));
@@ -348,7 +348,7 @@ mod tests {
         let boundary = "----WebKitFormBoundary12345678";
         let encoded = multipart.encode(boundary);
 
-        let encoded_str = String::from_utf8(encoded).unwrap();
+        let encoded_str = String::from_utf8(encoded).unwrap_or_else(|e| panic!("{e}"));
         assert!(encoded_str.contains("filename=\"test.txt\""));
         assert!(encoded_str.contains("Content-Type: text/plain"));
         assert!(encoded_str.contains("file content"));

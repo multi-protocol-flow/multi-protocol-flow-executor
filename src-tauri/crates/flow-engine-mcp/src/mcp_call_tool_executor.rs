@@ -337,10 +337,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["is_error"], true);
         assert!(data["error"].is_string());
@@ -368,10 +368,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 验证变量替换生效
         assert_eq!(data["tool_name"], "get_weather");
     }
@@ -398,7 +398,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("McpCallToolConfig"));
+        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).message.contains("McpCallToolConfig"));
     }
 
     // ===== 调试事件测试 =====
@@ -530,6 +530,10 @@ mod tests {
 
     /// 测试：调用Success时发射 `McpToolCalled` 调试事件
     #[tokio::test]
+    // allow: duration_ms 是 u64，`>= 0` 恒真（原始 `> 0 || == 0` 同样恒真）。断言保留
+    // 以显式表达字段类型契约；clippy 的 absurd_extreme_comparisons 与 rustc 的
+    // unused_comparisons 均会误报。
+    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
     async fn test_debug_event_mcp_tool_called() {
         let mcp_manager = Arc::new(MockMcpProvider);
         let executor = McpCallToolExecutor::new(mcp_manager);
@@ -543,7 +547,7 @@ mod tests {
         assert!(result.is_ok());
 
         // 验证收到 McpToolCalled 调试事件
-        let event = event_receiver.try_recv().expect("应收到调试事件");
+        let event = event_receiver.try_recv().unwrap_or_else(|e| panic!("应收到调试事件: {e}"));
         match &event {
             DebugEvent::McpToolCalled {
                 node_uuid,
@@ -554,7 +558,7 @@ mod tests {
                 assert_eq!(node_uuid, "test-ok");
                 assert_eq!(connection_id, "mock-conn-1");
                 assert_eq!(tool_name, "get_weather");
-                assert!(*duration_ms > 0 || *duration_ms == 0, "duration_ms 应为 u64");
+                assert!(*duration_ms >= 0, "duration_ms 应为 u64");
             }
             _ => panic!("期望 McpToolCalled 事件，收到: {:?}", event),
         }

@@ -322,14 +322,14 @@ mod tests {
 
     /// 获取或创建测试密钥（使用内存缓存，避免 keyring 不一致）
     fn get_test_key() -> [u8; KEY_SIZE] {
-        let mut key_guard = TEST_KEY.lock().unwrap();
+        let mut key_guard = TEST_KEY.lock().unwrap_or_else(|e| panic!("{e}"));
 
         if let Some(key) = *key_guard {
             return key;
         }
 
         // 初始化新密钥
-        let key = get_or_create_key().expect("获取密钥Failed");
+        let key = get_or_create_key().unwrap_or_else(|e| panic!("获取密钥Failed: {e}"));
         *key_guard = Some(key);
         key
     }
@@ -432,13 +432,15 @@ mod tests {
         let plaintext = "my_secret_password_123";
 
         // 加密
-        let encrypted = encrypt_with_test_key(plaintext).expect("加密Failed");
+        let encrypted =
+            encrypt_with_test_key(plaintext).unwrap_or_else(|e| panic!("加密Failed: {e}"));
 
         // 验证格式
         assert!(encrypted.contains(':'), "密文格式应包含冒号分隔符");
 
         // 解密
-        let decrypted = decrypt_with_test_key(&encrypted).expect("解密Failed");
+        let decrypted =
+            decrypt_with_test_key(&encrypted).unwrap_or_else(|e| panic!("解密Failed: {e}"));
 
         // 验证结果
         assert_eq!(decrypted, plaintext, "解密后的明文应与原文相同");
@@ -450,8 +452,10 @@ mod tests {
         let plaintext = "same_password";
 
         // 多次加密相同明文
-        let encrypted1 = encrypt_with_test_key(plaintext).expect("第一次加密Failed");
-        let encrypted2 = encrypt_with_test_key(plaintext).expect("第二次加密Failed");
+        let encrypted1 =
+            encrypt_with_test_key(plaintext).unwrap_or_else(|e| panic!("第一次加密Failed: {e}"));
+        let encrypted2 =
+            encrypt_with_test_key(plaintext).unwrap_or_else(|e| panic!("第二次加密Failed: {e}"));
 
         // 由于随机 nonce，密文应该不同
         assert_ne!(
@@ -460,8 +464,10 @@ mod tests {
         );
 
         // 但两者都应能正确解密
-        let decrypted1 = decrypt_with_test_key(&encrypted1).expect("第一次解密Failed");
-        let decrypted2 = decrypt_with_test_key(&encrypted2).expect("第二次解密Failed");
+        let decrypted1 =
+            decrypt_with_test_key(&encrypted1).unwrap_or_else(|e| panic!("第一次解密Failed: {e}"));
+        let decrypted2 =
+            decrypt_with_test_key(&encrypted2).unwrap_or_else(|e| panic!("第二次解密Failed: {e}"));
 
         assert_eq!(decrypted1, plaintext);
         assert_eq!(decrypted2, plaintext);
@@ -474,14 +480,18 @@ mod tests {
         let plaintext2 = "password_two";
 
         // 使用密钥 A 加密 plaintext1
-        let encrypted1 = encrypt_with_test_key(plaintext1).expect("第一次加密Failed");
+        let encrypted1 =
+            encrypt_with_test_key(plaintext1).unwrap_or_else(|e| panic!("第一次加密Failed: {e}"));
 
         // 使用相同密钥加密 plaintext2
-        let encrypted2 = encrypt_with_test_key(plaintext2).expect("第二次加密Failed");
+        let encrypted2 =
+            encrypt_with_test_key(plaintext2).unwrap_or_else(|e| panic!("第二次加密Failed: {e}"));
 
         // 解密应Success（证明密钥一致）
-        let decrypted1 = decrypt_with_test_key(&encrypted1).expect("第一次解密Failed");
-        let decrypted2 = decrypt_with_test_key(&encrypted2).expect("第二次解密Failed");
+        let decrypted1 =
+            decrypt_with_test_key(&encrypted1).unwrap_or_else(|e| panic!("第一次解密Failed: {e}"));
+        let decrypted2 =
+            decrypt_with_test_key(&encrypted2).unwrap_or_else(|e| panic!("第二次解密Failed: {e}"));
 
         assert_eq!(decrypted1, plaintext1);
         assert_eq!(decrypted2, plaintext2);
@@ -492,8 +502,10 @@ mod tests {
     fn test_encrypt_empty_string() {
         let plaintext = "";
 
-        let encrypted = encrypt_with_test_key(plaintext).expect("空字符串加密Failed");
-        let decrypted = decrypt_with_test_key(&encrypted).expect("空字符串解密Failed");
+        let encrypted =
+            encrypt_with_test_key(plaintext).unwrap_or_else(|e| panic!("空字符串加密Failed: {e}"));
+        let decrypted =
+            decrypt_with_test_key(&encrypted).unwrap_or_else(|e| panic!("空字符串解密Failed: {e}"));
 
         assert_eq!(decrypted, plaintext);
     }
@@ -504,8 +516,10 @@ mod tests {
         // 1KB 随机数据
         let plaintext: String = (0..1024).map(|_| 'X').collect();
 
-        let encrypted = encrypt_with_test_key(&plaintext).expect("长字符串加密Failed");
-        let decrypted = decrypt_with_test_key(&encrypted).expect("长字符串解密Failed");
+        let encrypted =
+            encrypt_with_test_key(&plaintext).unwrap_or_else(|e| panic!("长字符串加密Failed: {e}"));
+        let decrypted =
+            decrypt_with_test_key(&encrypted).unwrap_or_else(|e| panic!("长字符串解密Failed: {e}"));
 
         assert_eq!(decrypted, plaintext);
     }
@@ -515,8 +529,10 @@ mod tests {
     fn test_encrypt_special_characters() {
         let plaintext = "密码测试!@#$%^&*()_+-={}[]|:;<>?,./~`";
 
-        let encrypted = encrypt_with_test_key(plaintext).expect("特殊字符加密Failed");
-        let decrypted = decrypt_with_test_key(&encrypted).expect("特殊字符解密Failed");
+        let encrypted =
+            encrypt_with_test_key(plaintext).unwrap_or_else(|e| panic!("特殊字符加密Failed: {e}"));
+        let decrypted =
+            decrypt_with_test_key(&encrypted).unwrap_or_else(|e| panic!("特殊字符解密Failed: {e}"));
 
         assert_eq!(decrypted, plaintext);
     }
@@ -537,10 +553,13 @@ mod tests {
     #[test]
     fn test_tampered_ciphertext() {
         let plaintext = "original_password";
-        let mut encrypted = encrypt(plaintext).expect("加密Failed");
+        let mut encrypted = encrypt(plaintext).unwrap_or_else(|e| panic!("加密Failed: {e}"));
 
         // 篡改密文（修改最后一个字符）
-        let last_char = encrypted.chars().last().unwrap();
+        let last_char = encrypted
+            .chars()
+            .last()
+            .unwrap_or_else(|| panic!("expected Some"));
         let tampered_char = if last_char == 'A' { 'B' } else { 'A' };
         encrypted.pop();
         encrypted.push(tampered_char);

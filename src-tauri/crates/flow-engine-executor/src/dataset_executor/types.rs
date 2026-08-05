@@ -56,8 +56,9 @@ mod tests {
     fn test_failure_strategy_serde_roundtrip() {
         let strategies = vec![FailureStrategy::Continue, FailureStrategy::StopOnFirst];
         for s in strategies {
-            let json = serde_json::to_string(&s).expect("序列化Failed");
-            let de: FailureStrategy = serde_json::from_str(&json).expect("反序列化Failed");
+            let json = serde_json::to_string(&s).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+            let de: FailureStrategy =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
             assert_eq!(s, de);
         }
     }
@@ -65,7 +66,8 @@ mod tests {
     #[test]
     fn test_failure_strategy_snake_case() {
         let json = r#""stop_on_first""#;
-        let s: FailureStrategy = serde_json::from_str(json).expect("反序列化Failed");
+        let s: FailureStrategy =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(s, FailureStrategy::StopOnFirst);
     }
 

@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn test_load_config_returns_defaults_when_no_file() {
-        let _lock = ENV_TEST_MUTEX.lock().unwrap();
+        let _lock = ENV_TEST_MUTEX.lock().unwrap_or_else(|e| panic!("{e}"));
         // Clear any existing env vars for test isolation
         std::env::remove_var("MPE_CONFIG");
         std::env::remove_var("MPE_FLOWS_DIR");
@@ -185,14 +185,14 @@ mod tests {
             "should use defaults when no config file, no error expected"
         );
 
-        let config = config.expect("confirmed is_ok, should not fail");
+        let config = config.unwrap_or_else(|e| panic!("confirmed is_ok, should not fail: {e}"));
         assert!(config.flows_dir.to_string_lossy().contains("flows"));
         assert!(config.reports_dir.to_string_lossy().contains("reports"));
     }
 
     #[test]
     fn test_env_var_overrides_default() {
-        let _lock = ENV_TEST_MUTEX.lock().unwrap();
+        let _lock = ENV_TEST_MUTEX.lock().unwrap_or_else(|e| panic!("{e}"));
 
         // Clear all related env vars for test isolation
         std::env::remove_var("MPE_CONFIG");
@@ -204,7 +204,7 @@ mod tests {
         std::env::set_var("MPE_FLOWS_DIR", temp.to_string_lossy().as_ref());
         std::env::set_var("MPE_REPORTS_DIR", temp.to_string_lossy().as_ref());
 
-        let config = AppConfig::load().expect("should load successfully");
+        let config = AppConfig::load().unwrap_or_else(|e| panic!("should load successfully: {e}"));
 
         assert_eq!(config.flows_dir, temp);
         assert_eq!(config.reports_dir, temp);
@@ -216,7 +216,7 @@ mod tests {
 
     #[test]
     fn test_relative_path_in_env_var_fails() {
-        let _lock = ENV_TEST_MUTEX.lock().unwrap();
+        let _lock = ENV_TEST_MUTEX.lock().unwrap_or_else(|e| panic!("{e}"));
 
         // Clear all related env vars to avoid parallel test race
         std::env::remove_var("MPE_CONFIG");
@@ -227,38 +227,44 @@ mod tests {
 
         let result = AppConfig::load();
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("absolute path"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("absolute path"));
 
         std::env::remove_var("MPE_FLOWS_DIR");
     }
 
     #[test]
     fn test_config_file_with_storage_section() {
-        let _lock = ENV_TEST_MUTEX.lock().unwrap();
+        let _lock = ENV_TEST_MUTEX.lock().unwrap_or_else(|e| panic!("{e}"));
 
-        let temp_dir = tempfile::tempdir().expect("failed to create temp dir");
+        let temp_dir =
+            tempfile::tempdir().unwrap_or_else(|e| panic!("failed to create temp dir: {e}"));
         let config_path = temp_dir.path().join("config.toml");
 
         let flows = temp_dir.path().join("my_flows");
         let reports = temp_dir.path().join("my_reports");
 
         // Create directories to use absolute paths
-        std::fs::create_dir_all(&flows).expect("failed to create dir");
-        std::fs::create_dir_all(&reports).expect("failed to create dir");
+        std::fs::create_dir_all(&flows).unwrap_or_else(|e| panic!("failed to create dir: {e}"));
+        std::fs::create_dir_all(&reports).unwrap_or_else(|e| panic!("failed to create dir: {e}"));
 
         let toml_content = format!(
             "[storage]\nflows_dir = \"{}\"\nreports_dir = \"{}\"\n",
             flows.to_string_lossy().replace('\\', "\\\\"),
             reports.to_string_lossy().replace('\\', "\\\\")
         );
-        std::fs::write(&config_path, toml_content).expect("failed to write config file");
+        std::fs::write(&config_path, toml_content)
+            .unwrap_or_else(|e| panic!("failed to write config file: {e}"));
 
         // Clear env vars, use config file
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
         std::env::set_var("MPE_CONFIG", config_path.to_string_lossy().as_ref());
 
-        let config = AppConfig::load().expect("should load config file successfully");
+        let config = AppConfig::load()
+            .unwrap_or_else(|e| panic!("should load config file successfully: {e}"));
         assert_eq!(config.flows_dir, flows);
         assert_eq!(config.reports_dir, reports);
 

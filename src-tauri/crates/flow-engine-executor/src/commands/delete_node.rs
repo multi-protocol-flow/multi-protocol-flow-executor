@@ -111,7 +111,10 @@ mod tests {
 
         assert!(!result.success);
         assert!(result.error.is_some());
-        assert!(result.error.unwrap().contains("不存在"));
+        assert!(result
+            .error
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("不存在"));
     }
 
     #[test]
@@ -127,7 +130,7 @@ mod tests {
 
         assert!(!result.success);
         assert!(result.error.is_some());
-        let error_msg = result.error.unwrap();
+        let error_msg = result.error.unwrap_or_else(|| panic!("expected Some"));
         assert!(error_msg.contains("开始节点"));
     }
 
@@ -145,7 +148,7 @@ mod tests {
         // 桩实现：返回持久化未实现的Error
         assert!(!result.success);
         assert!(result.error.is_some());
-        let error_msg = result.error.unwrap();
+        let error_msg = result.error.unwrap_or_else(|| panic!("expected Some"));
         assert!(error_msg.contains("暂未实现持久化"));
     }
 }

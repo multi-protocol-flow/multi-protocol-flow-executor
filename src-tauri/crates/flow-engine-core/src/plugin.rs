@@ -221,13 +221,13 @@ mod tests {
             position: "right".to_string(),
         };
 
-        let json = serde_json::to_string(&port).unwrap();
+        let json = serde_json::to_string(&port).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"id\""));
         assert!(json.contains("\"true\""));
         assert!(json.contains("\"label\""));
         assert!(json.contains("\"Success\""));
 
-        let deserialized: PortDef = serde_json::from_str(&json).unwrap();
+        let deserialized: PortDef = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.id, "true");
         assert_eq!(deserialized.label, "Success");
         assert_eq!(deserialized.position, "right");
@@ -241,8 +241,9 @@ mod tests {
             message: "URL is required".to_string(),
         };
 
-        let json = serde_json::to_string(&error).unwrap();
-        let deserialized: ValidationError = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ValidationError =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.field, "url");
         assert_eq!(deserialized.message, "URL is required");
     }
@@ -271,8 +272,9 @@ mod tests {
             default_config: serde_json::json!({"method": "get", "url": ""}),
         };
 
-        let json = serde_json::to_string(&metadata).unwrap();
-        let deserialized: NodeMetadata = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&metadata).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: NodeMetadata =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.type_id, "http");
         assert_eq!(deserialized.display_name, "HTTP 请求");
         assert_eq!(deserialized.ports.len(), 2);

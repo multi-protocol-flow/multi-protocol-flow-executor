@@ -856,8 +856,10 @@ mod tests {
         // 创建一个明文 TCP 服务器（不说话 TLS）
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
-            .expect("绑定端口应Success");
-        let server_addr = listener.local_addr().expect("获取地址应Success");
+            .unwrap_or_else(|e| panic!("绑定端口应Success: {e}"));
+        let server_addr = listener
+            .local_addr()
+            .unwrap_or_else(|e| panic!("获取地址应Success: {e}"));
         let server_port = server_addr.port();
 
         // 接受连接但不进行 TLS 握手
@@ -883,7 +885,9 @@ mod tests {
             .await;
 
         assert!(result.is_err(), "TLS 握手应Failed");
-        let err = result.expect_err("应返回 TLS 握手FailedError");
+        let err = result
+            .err()
+            .unwrap_or_else(|| panic!("应返回 TLS 握手FailedError"));
         assert!(err.contains("TLS"), "Error应包含 TLS 相关信息: {}", err);
 
         // 验证连接池中有Error状态的连接
@@ -897,8 +901,10 @@ mod tests {
         // 创建一个明文 TCP 服务器（不说话 TLS）
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
-            .expect("绑定端口应Success");
-        let server_addr = listener.local_addr().expect("获取地址应Success");
+            .unwrap_or_else(|e| panic!("绑定端口应Success: {e}"));
+        let server_addr = listener
+            .local_addr()
+            .unwrap_or_else(|e| panic!("获取地址应Success: {e}"));
         let server_port = server_addr.port();
 
         tokio::spawn(async move {
@@ -922,7 +928,9 @@ mod tests {
             .await;
 
         assert!(result.is_err(), "TLS 握手应Failed");
-        let err = result.expect_err("应返回 TLS 握手FailedError");
+        let err = result
+            .err()
+            .unwrap_or_else(|| panic!("应返回 TLS 握手FailedError"));
         assert!(err.contains("TLS"), "Error应包含 TLS 相关信息: {}", err);
     }
 
@@ -933,7 +941,9 @@ mod tests {
         let result = manager.send("non-existent", vec![1, 2, 3], 5000).await;
 
         assert!(result.is_err());
-        let err = result.expect_err("应返回连接不存在Error");
+        let err = result
+            .err()
+            .unwrap_or_else(|| panic!("应返回连接不存在Error"));
         assert!(err.contains("not found"));
     }
 
@@ -944,7 +954,9 @@ mod tests {
         let result = manager.receive("non-existent", 5000).await;
 
         assert!(result.is_err());
-        let err = result.expect_err("应返回连接不存在Error");
+        let err = result
+            .err()
+            .unwrap_or_else(|| panic!("应返回连接不存在Error"));
         assert!(err.contains("not found"));
     }
 
@@ -955,7 +967,9 @@ mod tests {
         let result = manager.close("non-existent", 5000).await;
 
         assert!(result.is_err());
-        let err = result.expect_err("应返回连接不存在Error");
+        let err = result
+            .err()
+            .unwrap_or_else(|| panic!("应返回连接不存在Error"));
         assert!(err.contains("not found"));
     }
 
@@ -967,8 +981,10 @@ mod tests {
         // 1. 创建本地 echo 服务器
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
-            .expect("绑定端口应Success");
-        let server_addr = listener.local_addr().expect("获取地址应Success");
+            .unwrap_or_else(|e| panic!("绑定端口应Success: {e}"));
+        let server_addr = listener
+            .local_addr()
+            .unwrap_or_else(|e| panic!("获取地址应Success: {e}"));
         let server_port = server_addr.port();
 
         // 启动 echo 服务器任务
@@ -1027,9 +1043,9 @@ mod tests {
         // 5. 接收 echo 回来的数据
         let recv_result = manager.receive("lifecycle-1", 5000).await;
         assert!(recv_result.is_ok(), "接收应Success");
-        let received = recv_result.expect("接收应Success");
+        let received = recv_result.unwrap_or_else(|e| panic!("接收应Success: {e}"));
         assert!(received.is_some(), "应接收到数据");
-        let received_data = received.expect("应接收到数据");
+        let received_data = received.unwrap_or_else(|| panic!("应接收到数据"));
         assert_eq!(received_data, test_data);
 
         // 6. 关闭连接
@@ -1061,7 +1077,7 @@ mod tests {
             .await;
 
         assert!(result.is_err(), "连接应Failed");
-        let err = result.expect_err("连接应Failed");
+        let err = result.err().unwrap_or_else(|| panic!("连接应Failed"));
         assert!(err.contains("connection failed"));
 
         // 验证连接池中有Error状态的连接
@@ -1079,8 +1095,11 @@ mod tests {
         for _ in 0..3 {
             let listener = TcpListener::bind("127.0.0.1:0")
                 .await
-                .expect("绑定端口应Success");
-            let port = listener.local_addr().expect("获取地址应Success").port();
+                .unwrap_or_else(|e| panic!("绑定端口应Success: {e}"));
+            let port = listener
+                .local_addr()
+                .unwrap_or_else(|e| panic!("获取地址应Success: {e}"))
+                .port();
             ports.push(port);
             listeners.push(listener);
         }
@@ -1132,7 +1151,7 @@ mod tests {
         // 等待所有连接完成
         let mut connected_uuids = Vec::new();
         for handle in handles {
-            let result = handle.await.expect("任务应完成");
+            let result = handle.await.unwrap_or_else(|e| panic!("任务应完成: {e}"));
             if let Ok(uuid) = result {
                 connected_uuids.push(uuid);
             }
@@ -1160,7 +1179,7 @@ mod tests {
         }
 
         for handle in send_handles {
-            let result = handle.await.expect("任务应完成");
+            let result = handle.await.unwrap_or_else(|e| panic!("任务应完成: {e}"));
             assert!(result.is_ok(), "发送应Success");
         }
 
@@ -1173,7 +1192,7 @@ mod tests {
         }
 
         for handle in recv_handles {
-            let result = handle.await.expect("任务应完成");
+            let result = handle.await.unwrap_or_else(|e| panic!("任务应完成: {e}"));
             assert!(result.is_ok(), "接收应Success");
         }
 
@@ -1185,7 +1204,7 @@ mod tests {
         }
 
         for handle in close_handles {
-            let result = handle.await.expect("任务应完成");
+            let result = handle.await.unwrap_or_else(|e| panic!("任务应完成: {e}"));
             assert!(result.is_ok(), "关闭应Success");
         }
 
@@ -1198,13 +1217,19 @@ mod tests {
         // 创建两个本地服务器
         let listener1 = TcpListener::bind("127.0.0.1:0")
             .await
-            .expect("绑定端口应Success");
-        let port1 = listener1.local_addr().expect("获取地址应Success").port();
+            .unwrap_or_else(|e| panic!("绑定端口应Success: {e}"));
+        let port1 = listener1
+            .local_addr()
+            .unwrap_or_else(|e| panic!("获取地址应Success: {e}"))
+            .port();
 
         let listener2 = TcpListener::bind("127.0.0.1:0")
             .await
-            .expect("绑定端口应Success");
-        let port2 = listener2.local_addr().expect("获取地址应Success").port();
+            .unwrap_or_else(|e| panic!("绑定端口应Success: {e}"));
+        let port2 = listener2
+            .local_addr()
+            .unwrap_or_else(|e| panic!("获取地址应Success: {e}"))
+            .port();
 
         // 启动两个 echo 服务器
         for listener in [listener1, listener2] {
@@ -1272,8 +1297,10 @@ mod tests {
         // 创建一个不发送数据的服务器
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
-            .expect("绑定端口应Success");
-        let server_addr = listener.local_addr().expect("获取地址应Success");
+            .unwrap_or_else(|e| panic!("绑定端口应Success: {e}"));
+        let server_addr = listener
+            .local_addr()
+            .unwrap_or_else(|e| panic!("获取地址应Success: {e}"));
         let server_port = server_addr.port();
 
         // 启动一个接受连接但什么都不发的服务器
@@ -1305,7 +1332,9 @@ mod tests {
         let recv_result = manager.receive("timeout-1", 500).await;
         assert!(recv_result.is_ok(), "接收应Success");
         assert!(
-            recv_result.expect("接收应Success").is_none(),
+            recv_result
+                .unwrap_or_else(|e| panic!("接收应Success: {e}"))
+                .is_none(),
             "超时应返回 None"
         );
     }

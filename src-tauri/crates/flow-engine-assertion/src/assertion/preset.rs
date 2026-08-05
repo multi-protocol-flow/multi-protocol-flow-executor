@@ -155,7 +155,7 @@ mod tests {
     fn test_get_preset_http_success() {
         let assertions = get_preset("http_success");
         assert!(assertions.is_some());
-        let assertions = assertions.unwrap();
+        let assertions = assertions.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(assertions.len(), 1);
         assert_eq!(assertions[0].operator, AssertionOperator::Between);
         assert_eq!(assertions[0].expected, json!([200, 299]));
@@ -166,7 +166,7 @@ mod tests {
     fn test_get_preset_http_client_error() {
         let assertions = get_preset("http_client_error");
         assert!(assertions.is_some());
-        let assertions = assertions.unwrap();
+        let assertions = assertions.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(assertions.len(), 1);
         assert_eq!(assertions[0].operator, AssertionOperator::Between);
         assert_eq!(assertions[0].expected, json!([400, 499]));
@@ -177,7 +177,7 @@ mod tests {
     fn test_get_preset_http_server_error() {
         let assertions = get_preset("http_server_error");
         assert!(assertions.is_some());
-        let assertions = assertions.unwrap();
+        let assertions = assertions.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(assertions.len(), 1);
         assert_eq!(assertions[0].operator, AssertionOperator::Between);
         assert_eq!(assertions[0].expected, json!([500, 599]));
@@ -188,7 +188,7 @@ mod tests {
     fn test_get_preset_json_response() {
         let assertions = get_preset("json_response");
         assert!(assertions.is_some());
-        let assertions = assertions.unwrap();
+        let assertions = assertions.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(assertions.len(), 1);
         assert_eq!(assertions[0].operator, AssertionOperator::Contains);
         assert_eq!(assertions[0].expected, json!("application/json"));
@@ -200,7 +200,7 @@ mod tests {
     fn test_get_preset_response_fast() {
         let assertions = get_preset("response_fast");
         assert!(assertions.is_some());
-        let assertions = assertions.unwrap();
+        let assertions = assertions.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(assertions.len(), 1);
         assert_eq!(assertions[0].operator, AssertionOperator::Lt);
         assert_eq!(assertions[0].expected, json!(500));
@@ -251,7 +251,7 @@ mod tests {
     fn test_assertion_preset_get_http_success() {
         let assertions = AssertionPreset::get("http_success");
         assert!(assertions.is_some());
-        let assertions = assertions.unwrap();
+        let assertions = assertions.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(assertions[0].id, "preset_http_success_status");
         assert_eq!(assertions[0].target, "$.status");
     }
@@ -287,7 +287,7 @@ mod tests {
         use crate::assertion::evaluator::AssertionEvaluator;
         use flow_engine_core::node_config::AssertionConfig;
 
-        let assertions = get_preset("http_success").unwrap();
+        let assertions = get_preset("http_success").unwrap_or_else(|| panic!("expected Some"));
         let config = AssertionConfig {
             preset: Some("http_success".to_string()),
             mode: Default::default(),
@@ -328,7 +328,7 @@ mod tests {
         use crate::assertion::evaluator::AssertionEvaluator;
         use flow_engine_core::node_config::AssertionConfig;
 
-        let assertions = get_preset("json_response").unwrap();
+        let assertions = get_preset("json_response").unwrap_or_else(|| panic!("expected Some"));
         let config = AssertionConfig {
             preset: Some("json_response".to_string()),
             mode: Default::default(),
@@ -359,7 +359,7 @@ mod tests {
         use crate::assertion::evaluator::AssertionEvaluator;
         use flow_engine_core::node_config::AssertionConfig;
 
-        let assertions = get_preset("response_fast").unwrap();
+        let assertions = get_preset("response_fast").unwrap_or_else(|| panic!("expected Some"));
         let config = AssertionConfig {
             preset: Some("response_fast".to_string()),
             mode: Default::default(),

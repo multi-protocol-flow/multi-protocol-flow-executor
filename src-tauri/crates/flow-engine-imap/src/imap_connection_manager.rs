@@ -906,7 +906,10 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.close("nonexistent").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -924,7 +927,10 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.select("conn1", "INBOX", false).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -932,7 +938,10 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.search("conn1", None, "ALL", None).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -942,7 +951,10 @@ mod tests {
             .fetch("conn1", "1:*", "RFC822", 100, 1024 * 1024)
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -952,7 +964,10 @@ mod tests {
             .store_flags("conn1", "1", "+FLAGS", &["\\Seen".to_string()])
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -960,7 +975,10 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.copy("conn1", "1", "Archive").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -968,7 +986,10 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.r#move("conn1", "1", "Trash").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -976,7 +997,10 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.expunge("conn1").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -984,7 +1008,10 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.list("conn1", "", "*").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -992,7 +1019,10 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.create_folder("conn1", "NewFolder").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -1000,7 +1030,10 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.delete_folder("conn1", "OldFolder").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -1008,6 +1041,9 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.idle("conn1", Some("INBOX"), 30).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("does not exist"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("does not exist"));
     }
 }

@@ -288,10 +288,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "nonexistent-conn");
         assert_eq!(data["topic"], "test/topic");
         assert_eq!(data["success"], false);
@@ -322,7 +322,8 @@ mod tests {
 
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .message
             .contains("MqttUnsubscribeConfig"));
     }
@@ -355,10 +356,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口（连接不存在）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 验证变量替换生效
         assert_eq!(data["connection_id"], "mqtt-conn-789");
         assert_eq!(data["topic"], "sensor/temperature");
@@ -378,8 +379,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         // 验证输出 JSON 包含所有必要字段
         assert!(data.get("success").is_some(), "缺少 success 字段");

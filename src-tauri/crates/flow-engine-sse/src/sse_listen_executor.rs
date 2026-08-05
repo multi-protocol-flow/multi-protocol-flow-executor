@@ -513,16 +513,18 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["event_count"], 2);
 
         // 验证事件内容
-        let events = data["events"].as_array().expect("events 应为数组");
+        let events = data["events"]
+            .as_array()
+            .unwrap_or_else(|| panic!("events 应为数组"));
         assert_eq!(events.len(), 2);
         assert_eq!(events[0]["event"], "message");
         assert_eq!(events[0]["id"], "1");
@@ -548,10 +550,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 超时时 success=true（provider 本身没出错），但 event_count=0
         assert_eq!(data["success"], true);
         assert_eq!(data["event_count"], 0);
@@ -571,10 +573,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "连接 'conn-missing' 不存在");
         assert_eq!(data["event_count"], 0);
@@ -603,7 +605,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("SseListenConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("SseListenConfig"));
     }
 
     /// 测试：Config 提取自 `NodeData::SseListen`
@@ -636,8 +642,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证 request 字段包含正确配置
         assert_eq!(data["request"]["connection_id"], "my-conn");
@@ -667,10 +673,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["event_count"], 1);
         assert_eq!(data["request"]["event_filter"], "ping");
     }
@@ -723,8 +729,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["request"]["connection_id"], "my-connection");
         assert_eq!(data["request"]["event_filter"], "notification");
     }
@@ -758,7 +764,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 
@@ -783,7 +789,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["error-handler"]);
     }
 
@@ -818,10 +824,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["event_count"], 0);
         assert_eq!(data["request"]["max_events"], 0);
     }
@@ -847,8 +853,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证顶层字段
         assert!(data.get("success").is_some());
@@ -866,7 +872,9 @@ mod tests {
         assert!(request.get("timeout_ms").is_some());
 
         // 验证事件字段（event 和 id 为 None 时不出现）
-        let events = data["events"].as_array().unwrap();
+        let events = data["events"]
+            .as_array()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(events.len(), 1);
         assert_eq!(events[0]["data"], "plain data");
         assert_eq!(events[0]["received_at"], 1700000000000_u64);

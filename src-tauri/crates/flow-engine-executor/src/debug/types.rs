@@ -23,10 +23,11 @@ mod tests {
     #[test]
     fn test_debug_status_serialization() {
         let status = DebugStatus::Paused;
-        let json = serde_json::to_string(&status).unwrap();
+        let json = serde_json::to_string(&status).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "\"paused\"");
 
-        let deserialized: DebugStatus = serde_json::from_str(&json).unwrap();
+        let deserialized: DebugStatus =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, DebugStatus::Paused);
     }
 
@@ -35,21 +36,22 @@ mod tests {
         let reason = PauseReason::Breakpoint {
             node_uuid: "node-123".to_string(),
         };
-        let json = serde_json::to_string(&reason).unwrap();
+        let json = serde_json::to_string(&reason).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("breakpoint"));
         assert!(json.contains("node-123"));
 
-        let deserialized: PauseReason = serde_json::from_str(&json).unwrap();
+        let deserialized: PauseReason =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, reason);
     }
 
     #[test]
     fn test_end_reason_serialization() {
         let reason = EndReason::Completed;
-        let json = serde_json::to_string(&reason).unwrap();
+        let json = serde_json::to_string(&reason).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "{\"type\":\"completed\"}");
 
-        let deserialized: EndReason = serde_json::from_str(&json).unwrap();
+        let deserialized: EndReason = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, EndReason::Completed);
     }
 
@@ -58,7 +60,7 @@ mod tests {
         let cmd = DebugCommand::StartDebug {
             flow_uuid: "flow-123".to_string(),
         };
-        let json = serde_json::to_string(&cmd).unwrap();
+        let json = serde_json::to_string(&cmd).unwrap_or_else(|e| panic!("{e}"));
         println!("DebugCommand JSON: {}", json);
         assert!(
             json.contains("startDebug")
@@ -67,7 +69,8 @@ mod tests {
         );
         assert!(json.contains("flow-123"));
 
-        let deserialized: DebugCommand = serde_json::from_str(&json).unwrap();
+        let deserialized: DebugCommand =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, cmd);
     }
 
@@ -76,7 +79,7 @@ mod tests {
         let event = DebugEvent::SessionStarted {
             flow_uuid: "flow-456".to_string(),
         };
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("{e}"));
         println!("DebugEvent JSON: {}", json);
         assert!(
             json.contains("sessionStarted")
@@ -85,7 +88,8 @@ mod tests {
         );
         assert!(json.contains("flow-456"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized, event);
     }
 
@@ -107,11 +111,12 @@ mod tests {
             skip_reason: None,
         };
 
-        let json = serde_json::to_string(&entry).unwrap();
+        let json = serde_json::to_string(&entry).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("node-001"));
         assert!(json.contains("HTTP Request"));
 
-        let deserialized: ExecutionStackEntry = serde_json::from_str(&json).unwrap();
+        let deserialized: ExecutionStackEntry =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.node_uuid, "node-001");
         assert!(deserialized.success);
     }
@@ -201,8 +206,9 @@ mod tests {
         ];
 
         for status in statuses {
-            let json = serde_json::to_string(&status).unwrap();
-            let deserialized: DebugStatus = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&status).unwrap_or_else(|e| panic!("{e}"));
+            let deserialized: DebugStatus =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(status, deserialized);
         }
     }
@@ -222,8 +228,9 @@ mod tests {
         ];
 
         for reason in reasons {
-            let json = serde_json::to_string(&reason).unwrap();
-            let deserialized: PauseReason = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&reason).unwrap_or_else(|e| panic!("{e}"));
+            let deserialized: PauseReason =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(reason, deserialized);
         }
     }
@@ -239,8 +246,9 @@ mod tests {
         ];
 
         for reason in reasons {
-            let json = serde_json::to_string(&reason).unwrap();
-            let deserialized: EndReason = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&reason).unwrap_or_else(|e| panic!("{e}"));
+            let deserialized: EndReason =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(reason, deserialized);
         }
     }
@@ -274,8 +282,9 @@ mod tests {
         ];
 
         for cmd in commands {
-            let json = serde_json::to_string(&cmd).unwrap();
-            let deserialized: DebugCommand = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&cmd).unwrap_or_else(|e| panic!("{e}"));
+            let deserialized: DebugCommand =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(cmd, deserialized);
         }
     }
@@ -339,8 +348,9 @@ mod tests {
         ];
 
         for event in events {
-            let json = serde_json::to_string(&event).unwrap();
-            let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("{e}"));
+            let deserialized: DebugEvent =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(event, deserialized);
         }
     }
@@ -390,7 +400,7 @@ mod tests {
             owner_node_name: "WS Connect".to_string(),
         };
 
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("{e}"));
         println!("WsStreamCreated JSON: {}", json);
         assert!(
             json.contains("ws_stream_created")
@@ -400,7 +410,8 @@ mod tests {
         assert!(json.contains("conn-001"));
         assert!(json.contains("wss://example.com/ws"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(event, deserialized);
     }
 
@@ -422,7 +433,7 @@ mod tests {
             message: msg.clone(),
         };
 
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("{e}"));
         assert!(
             json.contains("ws_message_received")
                 || json.contains("WsMessageReceived")
@@ -431,7 +442,8 @@ mod tests {
         assert!(json.contains("conn-001"));
         assert!(json.contains("hello"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(event, deserialized);
     }
 
@@ -453,7 +465,7 @@ mod tests {
             message: msg.clone(),
         };
 
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("{e}"));
         assert!(
             json.contains("ws_message_sent")
                 || json.contains("WsMessageSent")
@@ -462,7 +474,8 @@ mod tests {
         assert!(json.contains("conn-001"));
         assert!(json.contains("ping"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(event, deserialized);
     }
 
@@ -474,7 +487,7 @@ mod tests {
             to_node_uuid: "node-002".to_string(),
         };
 
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("{e}"));
         assert!(
             json.contains("ws_stream_owner_changed")
                 || json.contains("WsStreamOwnerChanged")
@@ -484,7 +497,8 @@ mod tests {
         assert!(json.contains("node-001"));
         assert!(json.contains("node-002"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(event, deserialized);
     }
 
@@ -495,7 +509,7 @@ mod tests {
             last_owner_node_uuid: "node-003".to_string(),
         };
 
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("{e}"));
         assert!(
             json.contains("ws_stream_closed")
                 || json.contains("WsStreamClosed")
@@ -504,7 +518,8 @@ mod tests {
         assert!(json.contains("conn-001"));
         assert!(json.contains("node-003"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(event, deserialized);
     }
 
@@ -553,8 +568,9 @@ mod tests {
         ];
 
         for event in events {
-            let json = serde_json::to_string(&event).unwrap();
-            let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("{e}"));
+            let deserialized: DebugEvent =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(event, deserialized);
         }
     }
@@ -568,7 +584,7 @@ mod tests {
             mode: "all".to_string(),
         };
 
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("{e}"));
         assert!(
             json.contains("assertion_started")
                 || json.contains("AssertionStarted")
@@ -579,7 +595,8 @@ mod tests {
         assert!(json.contains("3"));
         assert!(json.contains("all"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(event, deserialized);
     }
 
@@ -608,7 +625,7 @@ mod tests {
             failed_assertions,
         };
 
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("{e}"));
         assert!(
             json.contains("assertion_completed")
                 || json.contains("AssertionCompleted")
@@ -621,7 +638,8 @@ mod tests {
         assert!(json.contains("1"));
         assert!(json.contains("3"));
 
-        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(event, deserialized);
     }
 
@@ -646,11 +664,13 @@ mod tests {
         };
 
         // 序列化和反序列化
-        let started_json = serde_json::to_string(&started).unwrap();
-        let completed_json = serde_json::to_string(&completed).unwrap();
+        let started_json = serde_json::to_string(&started).unwrap_or_else(|e| panic!("{e}"));
+        let completed_json = serde_json::to_string(&completed).unwrap_or_else(|e| panic!("{e}"));
 
-        let started_de: DebugEvent = serde_json::from_str(&started_json).unwrap();
-        let completed_de: DebugEvent = serde_json::from_str(&completed_json).unwrap();
+        let started_de: DebugEvent =
+            serde_json::from_str(&started_json).unwrap_or_else(|e| panic!("{e}"));
+        let completed_de: DebugEvent =
+            serde_json::from_str(&completed_json).unwrap_or_else(|e| panic!("{e}"));
 
         assert_eq!(started, started_de);
         assert_eq!(completed, completed_de);
@@ -701,8 +721,9 @@ mod tests {
             failed_assertions,
         };
 
-        let json = serde_json::to_string(&completed).unwrap();
-        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&completed).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
 
         if let DebugEvent::AssertionCompleted {
             passed,

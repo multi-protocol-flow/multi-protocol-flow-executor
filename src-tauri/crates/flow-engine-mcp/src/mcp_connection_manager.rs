@@ -386,7 +386,10 @@ mod tests {
         let manager = McpConnectionManager::new();
         let result = manager.close("non-existent").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -402,7 +405,10 @@ mod tests {
         let manager = McpConnectionManager::new();
         let result = manager.call_tool("non-existent", "tool", None).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -412,7 +418,10 @@ mod tests {
             .read_resource("non-existent", "resource://test")
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -420,7 +429,10 @@ mod tests {
         let manager = McpConnectionManager::new();
         let result = manager.list_prompts("non-existent").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -434,6 +446,9 @@ mod tests {
             )
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 }

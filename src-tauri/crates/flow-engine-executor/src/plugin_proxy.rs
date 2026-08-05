@@ -200,35 +200,39 @@ mod tests {
 
     #[test]
     fn test_parse_proxy_url_with_scheme() {
-        let (host, port) = parse_proxy_url("http://127.0.0.1:8080").unwrap();
+        let (host, port) =
+            parse_proxy_url("http://127.0.0.1:8080").unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(host, "127.0.0.1");
         assert_eq!(port, 8080);
     }
 
     #[test]
     fn test_parse_proxy_url_socks5() {
-        let (host, port) = parse_proxy_url("socks5://192.168.1.1:1080").unwrap();
+        let (host, port) =
+            parse_proxy_url("socks5://192.168.1.1:1080").unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(host, "192.168.1.1");
         assert_eq!(port, 1080);
     }
 
     #[test]
     fn test_parse_proxy_url_with_auth() {
-        let (host, port) = parse_proxy_url("http://user:pass@proxy.example.com:3128").unwrap();
+        let (host, port) = parse_proxy_url("http://user:pass@proxy.example.com:3128")
+            .unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(host, "proxy.example.com");
         assert_eq!(port, 3128);
     }
 
     #[test]
     fn test_parse_proxy_url_no_scheme() {
-        let (host, port) = parse_proxy_url("proxy.example.com:9090").unwrap();
+        let (host, port) =
+            parse_proxy_url("proxy.example.com:9090").unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(host, "proxy.example.com");
         assert_eq!(port, 9090);
     }
 
     #[test]
     fn test_parse_proxy_url_no_port() {
-        let (host, port) = parse_proxy_url("proxy.example.com").unwrap();
+        let (host, port) = parse_proxy_url("proxy.example.com").unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(host, "proxy.example.com");
         assert_eq!(port, 1080); // 默认端口
     }

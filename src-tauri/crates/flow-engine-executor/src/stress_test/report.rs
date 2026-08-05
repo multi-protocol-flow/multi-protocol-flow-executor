@@ -150,7 +150,7 @@ mod tests {
         let report = generate_report(&flow, &config, &metrics, start_time, None);
 
         assert!(report.is_ok());
-        let report = report.unwrap();
+        let report = report.unwrap_or_else(|e| panic!("{e}"));
 
         // 验证基本信息
         assert!(!report.uuid.is_empty());
@@ -193,7 +193,8 @@ mod tests {
         let start_time = Instant::now();
         std::thread::sleep(std::time::Duration::from_millis(10));
 
-        let report = generate_report(&flow, &config, &metrics, start_time, None).unwrap();
+        let report = generate_report(&flow, &config, &metrics, start_time, None)
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 验证统计信息
         assert_eq!(report.statistics.total_iterations, 3);
@@ -238,7 +239,8 @@ mod tests {
         let start_time = Instant::now();
         std::thread::sleep(std::time::Duration::from_millis(10));
 
-        let report = generate_report(&flow, &config, &metrics, start_time, None).unwrap();
+        let report = generate_report(&flow, &config, &metrics, start_time, None)
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 验证统计信息
         assert_eq!(report.statistics.total_iterations, 3);
@@ -293,7 +295,8 @@ mod tests {
         let start_time = Instant::now();
         std::thread::sleep(std::time::Duration::from_millis(10));
 
-        let report = generate_report(&flow, &config, &metrics, start_time, None).unwrap();
+        let report = generate_report(&flow, &config, &metrics, start_time, None)
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 验证Error统计
         assert_eq!(report.error_statistics.len(), 2);
@@ -303,14 +306,22 @@ mod tests {
             .iter()
             .find(|s| s.error_kind == "Timeout");
         assert!(timeout_stat.is_some());
-        assert_eq!(timeout_stat.unwrap().count, 3);
+        assert_eq!(
+            timeout_stat
+                .unwrap_or_else(|| panic!("expected Some"))
+                .count,
+            3
+        );
 
         let conn_stat = report
             .error_statistics
             .iter()
             .find(|s| s.error_kind == "ConnectionRefused");
         assert!(conn_stat.is_some());
-        assert_eq!(conn_stat.unwrap().count, 2);
+        assert_eq!(
+            conn_stat.unwrap_or_else(|| panic!("expected Some")).count,
+            2
+        );
     }
 
     /// 测试报告包含配置快照
@@ -329,7 +340,8 @@ mod tests {
         let start_time = Instant::now();
         std::thread::sleep(std::time::Duration::from_millis(10));
 
-        let report = generate_report(&flow, &config, &metrics, start_time, None).unwrap();
+        let report = generate_report(&flow, &config, &metrics, start_time, None)
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 验证配置快照
         assert_eq!(report.config.concurrent_users, 20);
@@ -357,7 +369,8 @@ mod tests {
         let start_time = Instant::now();
         std::thread::sleep(std::time::Duration::from_millis(10));
 
-        let report = generate_report(&flow, &config, &metrics, start_time, None).unwrap();
+        let report = generate_report(&flow, &config, &metrics, start_time, None)
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 验证响应时间分布
         assert_eq!(report.response_time_distribution.min_ms, 1);
@@ -399,7 +412,7 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(10));
 
         // 创建临时目录
-        let temp_dir = TempDir::new().expect("创建临时目录Failed");
+        let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
         let reports_dir = temp_dir.path();
 
         let report = generate_report(&flow, &config, &metrics, start_time, Some(reports_dir));
@@ -408,7 +421,7 @@ mod tests {
 
         // 验证文件已创建
         let files: Vec<_> = std::fs::read_dir(reports_dir)
-            .expect("读取目录Failed")
+            .unwrap_or_else(|e| panic!("读取目录Failed: {e}"))
             .filter_map(|e| e.ok())
             .collect();
 
@@ -451,8 +464,10 @@ mod tests {
         let start_time = Instant::now();
         std::thread::sleep(std::time::Duration::from_millis(10));
 
-        let report1 = generate_report(&flow, &config, &metrics, start_time, None).unwrap();
-        let report2 = generate_report(&flow, &config, &metrics, start_time, None).unwrap();
+        let report1 = generate_report(&flow, &config, &metrics, start_time, None)
+            .unwrap_or_else(|e| panic!("{e}"));
+        let report2 = generate_report(&flow, &config, &metrics, start_time, None)
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 每次生成的报告 UUID 应该不同
         assert_ne!(report1.uuid, report2.uuid);
@@ -468,7 +483,8 @@ mod tests {
         let start_time = Instant::now();
         std::thread::sleep(std::time::Duration::from_millis(100));
 
-        let report = generate_report(&flow, &config, &metrics, start_time, None).unwrap();
+        let report = generate_report(&flow, &config, &metrics, start_time, None)
+            .unwrap_or_else(|e| panic!("{e}"));
 
         // 验证持续时间
         assert!(

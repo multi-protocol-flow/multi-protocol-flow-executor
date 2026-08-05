@@ -1573,7 +1573,7 @@ mod tests {
         assert!(result.error.is_none());
         assert!(result.data.is_some());
 
-        let data = result.data.unwrap();
+        let data = result.data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["flow_id"], flow_id);
         assert_eq!(data["executed_count"], 2);
         assert_eq!(result.executed_count, 2);
@@ -1612,7 +1612,7 @@ mod tests {
         // 验证执行Failed
         assert!(!result.success);
         assert!(result.error.is_some());
-        assert!(result.error.unwrap().contains("Flow validation failed"));
+        assert!(result.error.unwrap_or_else(|| panic!("expected Some")).contains("Flow validation failed"));
         assert_eq!(result.executed_count, 0);
     }
 
@@ -1979,7 +1979,7 @@ mod tests {
         // 验证Error消息包含 node.uuid
         assert!(!result.success);
         assert!(result.error.is_some());
-        let error_msg = result.error.unwrap();
+        let error_msg = result.error.unwrap_or_else(|| panic!("expected Some"));
         assert!(error_msg.contains("Flow contains a cycle"));
         assert!(error_msg.contains("开始")); // Error消息包含 node name
     }
@@ -2036,7 +2036,7 @@ mod tests {
         // 验证执行结果数据包含 flow.uuid
         assert!(result.success);
         assert!(result.data.is_some());
-        let data = result.data.unwrap();
+        let data = result.data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["flow_id"], "result-flow-uuid-999"); // 验证使用了 flow.uuid
     }
 
@@ -2139,7 +2139,7 @@ mod tests {
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "Bearer test-key");
+        assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), "Bearer test-key");
     }
 
     #[test]
@@ -2175,7 +2175,7 @@ mod tests {
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "Hello Alice");
+        assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), "Hello Alice");
     }
 
     #[test]
@@ -2202,7 +2202,7 @@ mod tests {
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Variable not found"));
+        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Variable not found"));
     }
 
     #[test]
@@ -2230,7 +2230,7 @@ mod tests {
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Index access not supported"));
+        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Index access not supported"));
     }
 
     // ============================================================================
@@ -2245,7 +2245,7 @@ mod tests {
         ) {
             // 合法路径应该: 字母开头，仅包含字母数字下划线和点
             assert!(!path.is_empty());
-            assert!(path.chars().next().unwrap().is_ascii_lowercase());
+            assert!(path.chars().next().unwrap_or_else(|| panic!("expected Some")).is_ascii_lowercase());
         }
 
         /// 测试索引访问被拒绝
@@ -2276,7 +2276,7 @@ mod tests {
         };
         let result = replace_variables(&template, &context);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Index access not supported"));
+        assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Index access not supported"));
     }
 
     /// 测试简单字符串变量替换
@@ -2307,7 +2307,7 @@ mod tests {
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
-            assert_eq!(result.unwrap(), value);
+            assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), value);
         }
 
     /// 测试整数变量替换
@@ -2338,7 +2338,7 @@ mod tests {
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
-            assert_eq!(result.unwrap(), num.to_string());
+            assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), num.to_string());
         }
 
     /// 测试布尔变量替换
@@ -2369,7 +2369,7 @@ mod tests {
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
-            assert_eq!(result.unwrap(), val.to_string());
+            assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), val.to_string());
         }
     }
 
@@ -2433,10 +2433,10 @@ mod tests {
         // 验证取消结果
         assert!(!result.success, "取消后不应该Success");
         assert!(result.error.is_some());
-        assert!(result.error.unwrap().contains("cancelled"));
+        assert!(result.error.unwrap_or_else(|| panic!("expected Some")).contains("cancelled"));
 
         // 验证报告状态为 Cancelled
-        let report = result.flow_report.expect("取消时应有报告");
+        let report = result.flow_report.unwrap_or_else(|| panic!("取消时应有报告"));
         assert_eq!(
             report.status,
             flow_engine_core::report::ExecutionStatus::Cancelled
@@ -2520,8 +2520,8 @@ mod tests {
         let result = executor.execute_flow(&flow, None, None, None).await;
 
         assert!(!result.success);
-        let report = result.flow_report.expect("应有报告");
-        let error = report.flow_error.expect("取消时应有 flow_error");
+        let report = result.flow_report.unwrap_or_else(|| panic!("应有报告"));
+        let error = report.flow_error.unwrap_or_else(|| panic!("取消时应有 flow_error"));
         assert_eq!(error.error_kind, ErrorKind::Cancelled);
         assert!(!error.is_fatal(), "Cancelled 不应是致命Error");
     }
@@ -2572,8 +2572,8 @@ mod tests {
             .await;
 
         assert!(result.success);
-        let report = result.flow_report.expect("应有报告");
-        let final_vars = report.final_variables.expect("应有 final_variables");
+        let report = result.flow_report.unwrap_or_else(|| panic!("应有报告"));
+        let final_vars = report.final_variables.unwrap_or_else(|| panic!("应有 final_variables"));
 
         // runtime_variables 应覆盖流程级默认变量
         assert_eq!(
@@ -2628,8 +2628,8 @@ mod tests {
         let result = executor.execute_flow(&flow, None, None, None).await;
 
         assert!(result.success);
-        let report = result.flow_report.expect("应有报告");
-        let final_vars = report.final_variables.expect("应有 final_variables");
+        let report = result.flow_report.unwrap_or_else(|| panic!("应有报告"));
+        let final_vars = report.final_variables.unwrap_or_else(|| panic!("应有 final_variables"));
 
         // 不传 runtime_variables 时，流程级默认变量保持不变
         assert_eq!(
@@ -2702,7 +2702,7 @@ mod tests {
 
         assert!(!result.success, "Timeout should fail");
         assert!(result.error.is_some());
-        let err = result.error.expect("error should be present");
+        let err = result.error.unwrap_or_else(|| panic!("error should be present"));
         assert!(
             err.contains("超时") || err.contains("timeout"),
             "Error should mention timeout: {}",
@@ -2729,7 +2729,7 @@ mod tests {
 
         assert!(!result.success);
         assert!(result.error.is_some());
-        let err = result.error.expect("error should be present");
+        let err = result.error.unwrap_or_else(|| panic!("error should be present"));
         assert!(
             err.contains("entry"),
             "Error should mention 'entry': {}",
@@ -2777,7 +2777,7 @@ mod tests {
         let output = Some(serde_json::json!({"error": "connection refused"}));
         let err = extract_error_from_output(&output);
         assert!(err.is_some());
-        assert_eq!(err.unwrap().message, "connection refused");
+        assert_eq!(err.unwrap_or_else(|| panic!("expected Some")).message, "connection refused");
     }
 
     #[test]
@@ -2785,7 +2785,7 @@ mod tests {
         let output = Some(serde_json::json!({"error": {"code": 500, "detail": "timeout"}}));
         let err = extract_error_from_output(&output);
         assert!(err.is_some());
-        assert!(err.unwrap().message.contains("500"));
+        assert!(err.unwrap_or_else(|| panic!("expected Some")).message.contains("500"));
     }
 
     #[test]
@@ -2821,7 +2821,7 @@ mod tests {
         let output = Some(serde_json::json!({"error": "HTTP request timeout (30000ms)"}));
         let err = extract_error_from_output(&output);
         assert!(err.is_some());
-        assert_eq!(err.unwrap().error_kind, ErrorKind::Timeout);
+        assert_eq!(err.unwrap_or_else(|| panic!("expected Some")).error_kind, ErrorKind::Timeout);
     }
 
     #[test]
@@ -2829,7 +2829,7 @@ mod tests {
         let output = Some(serde_json::json!({"error": "tcp connection refused: 10.0.0.1:8080"}));
         let err = extract_error_from_output(&output);
         assert!(err.is_some());
-        assert_eq!(err.unwrap().error_kind, ErrorKind::Connection);
+        assert_eq!(err.unwrap_or_else(|| panic!("expected Some")).error_kind, ErrorKind::Connection);
     }
 
     #[test]
@@ -2837,7 +2837,7 @@ mod tests {
         let output = Some(serde_json::json!({"error": "dns resolution failed for example.com"}));
         let err = extract_error_from_output(&output);
         assert!(err.is_some());
-        assert_eq!(err.unwrap().error_kind, ErrorKind::Connection);
+        assert_eq!(err.unwrap_or_else(|| panic!("expected Some")).error_kind, ErrorKind::Connection);
     }
 
     #[test]
@@ -2845,7 +2845,7 @@ mod tests {
         let output = Some(serde_json::json!({"error": "unknown protocol error occurred"}));
         let err = extract_error_from_output(&output);
         assert!(err.is_some());
-        assert_eq!(err.unwrap().error_kind, ErrorKind::Execution);
+        assert_eq!(err.unwrap_or_else(|| panic!("expected Some")).error_kind, ErrorKind::Execution);
     }
 
     #[test]
@@ -2853,6 +2853,6 @@ mod tests {
         let output = Some(serde_json::json!({"error": "parse error: unexpected token at line 3"}));
         let err = extract_error_from_output(&output);
         assert!(err.is_some());
-        assert_eq!(err.unwrap().error_kind, ErrorKind::Parse);
+        assert_eq!(err.unwrap_or_else(|| panic!("expected Some")).error_kind, ErrorKind::Parse);
     }
 }

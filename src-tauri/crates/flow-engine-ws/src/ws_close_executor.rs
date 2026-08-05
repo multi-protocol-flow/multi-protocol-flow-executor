@@ -281,10 +281,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口（因为没有连接，所以是空数组）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec![] as Vec<String>);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "nonexistent-conn");
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
@@ -315,10 +315,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口（因为没有连接，所以是空数组）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec![] as Vec<String>);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "ws-connection-123");
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
@@ -355,10 +355,10 @@ mod tests {
 
         // 应该返回 Ok，走 false 端口（因为没有连接，所以是空数组）
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec![] as Vec<String>);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["connection_id"], "test-conn");
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
@@ -411,7 +411,7 @@ mod tests {
                 Ok((next_nodes, output_data)) => {
                     assert_eq!(next_nodes, vec![] as Vec<String>);
                     assert!(output_data.is_some());
-                    let data = output_data.unwrap();
+                    let data = output_data.unwrap_or_else(|| panic!("expected Some"));
                     assert_eq!(data["connection_id"], "echo-close-conn");
                     assert_eq!(data["close_code"], 1000);
                     assert_eq!(data["success"], true);
@@ -487,7 +487,7 @@ mod tests {
                 Ok((next_nodes, output_data)) => {
                     assert_eq!(next_nodes, vec![] as Vec<String>);
                     assert!(output_data.is_some());
-                    let data = output_data.unwrap();
+                    let data = output_data.unwrap_or_else(|| panic!("expected Some"));
                     assert_eq!(data["connection_id"], "close-reason-conn");
                     assert_eq!(data["close_reason"], "test complete");
                     assert_eq!(data["url"], "ws://localhost:19091");

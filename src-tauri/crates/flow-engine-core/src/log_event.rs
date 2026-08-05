@@ -55,11 +55,11 @@ mod tests {
     #[test]
     fn test_log_level_serialization() {
         let info = LogLevel::Info;
-        let json = serde_json::to_string(&info).unwrap();
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "\"INFO\"");
 
         let debug = LogLevel::Debug;
-        let json = serde_json::to_string(&debug).unwrap();
+        let json = serde_json::to_string(&debug).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(json, "\"DEBUG\"");
     }
 
@@ -74,7 +74,7 @@ mod tests {
             flow_uuid: "flow-456".to_string(),
         };
 
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"level\":\"INFO\""));
         assert!(json.contains("\"message\":\"Test message\""));
         assert!(json.contains("\"timestamp\":1234567890"));
@@ -93,7 +93,7 @@ mod tests {
             "flowUuid": "flow-101"
         }"#;
 
-        let event: LogEvent = serde_json::from_str(json).unwrap();
+        let event: LogEvent = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert!(matches!(event.level, LogLevel::Error));
         assert_eq!(event.message, "Connection failed");
         assert_eq!(event.timestamp, 9876543210);

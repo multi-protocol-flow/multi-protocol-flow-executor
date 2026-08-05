@@ -346,7 +346,7 @@ mod tests {
     #[test]
     fn test_get_json_type_number() {
         assert_eq!(get_json_type(&json!(42)), "number");
-        assert_eq!(get_json_type(&json!(3.14)), "number");
+        assert_eq!(get_json_type(&json!(2.5)), "number");
     }
 
     #[test]
@@ -376,39 +376,59 @@ mod tests {
 
     #[test]
     fn test_eq_pass() {
-        assert!(evaluate_operator(&AssertionOperator::Eq, &json!(200), &json!(200)).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Eq, &json!(200), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_eq_fail() {
-        assert!(!evaluate_operator(&AssertionOperator::Eq, &json!(200), &json!(404)).unwrap());
+        assert!(
+            !evaluate_operator(&AssertionOperator::Eq, &json!(200), &json!(404))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_eq_strict_no_type_coercion() {
         // 字符串 "200" 不等于数字 200（严格比较，不做类型转换）
-        assert!(!evaluate_operator(&AssertionOperator::Eq, &json!("200"), &json!(200)).unwrap());
+        assert!(
+            !evaluate_operator(&AssertionOperator::Eq, &json!("200"), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_eq_string() {
         assert!(
-            evaluate_operator(&AssertionOperator::Eq, &json!("hello"), &json!("hello")).unwrap()
+            evaluate_operator(&AssertionOperator::Eq, &json!("hello"), &json!("hello"))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
         assert!(
-            !evaluate_operator(&AssertionOperator::Eq, &json!("hello"), &json!("world")).unwrap()
+            !evaluate_operator(&AssertionOperator::Eq, &json!("hello"), &json!("world"))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
     #[test]
     fn test_eq_null() {
-        assert!(evaluate_operator(&AssertionOperator::Eq, &Value::Null, &Value::Null).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Eq, &Value::Null, &Value::Null)
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_eq_boolean() {
-        assert!(evaluate_operator(&AssertionOperator::Eq, &json!(true), &json!(true)).unwrap());
-        assert!(!evaluate_operator(&AssertionOperator::Eq, &json!(true), &json!(false)).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Eq, &json!(true), &json!(true))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
+        assert!(
+            !evaluate_operator(&AssertionOperator::Eq, &json!(true), &json!(false))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     // ========================================================================
@@ -417,18 +437,27 @@ mod tests {
 
     #[test]
     fn test_ne_pass() {
-        assert!(evaluate_operator(&AssertionOperator::Ne, &json!(200), &json!(404)).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Ne, &json!(200), &json!(404))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_ne_fail() {
-        assert!(!evaluate_operator(&AssertionOperator::Ne, &json!(200), &json!(200)).unwrap());
+        assert!(
+            !evaluate_operator(&AssertionOperator::Ne, &json!(200), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_ne_strict_no_type_coercion() {
         // 字符串 "200" 不等于数字 200，所以 Ne 返回 true
-        assert!(evaluate_operator(&AssertionOperator::Ne, &json!("200"), &json!(200)).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Ne, &json!("200"), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     // ========================================================================
@@ -437,24 +466,36 @@ mod tests {
 
     #[test]
     fn test_gt_pass() {
-        assert!(evaluate_operator(&AssertionOperator::Gt, &json!(200), &json!(100)).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Gt, &json!(200), &json!(100))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_gt_fail() {
-        assert!(!evaluate_operator(&AssertionOperator::Gt, &json!(100), &json!(200)).unwrap());
+        assert!(
+            !evaluate_operator(&AssertionOperator::Gt, &json!(100), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_gt_equal() {
-        assert!(!evaluate_operator(&AssertionOperator::Gt, &json!(200), &json!(200)).unwrap());
+        assert!(
+            !evaluate_operator(&AssertionOperator::Gt, &json!(200), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_gt_type_mismatch() {
         let result = evaluate_operator(&AssertionOperator::Gt, &json!("200"), &json!(100));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("is not a numeric type"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("is not a numeric type"));
     }
 
     // ========================================================================
@@ -463,17 +504,26 @@ mod tests {
 
     #[test]
     fn test_gte_pass_greater() {
-        assert!(evaluate_operator(&AssertionOperator::Gte, &json!(200), &json!(100)).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Gte, &json!(200), &json!(100))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_gte_pass_equal() {
-        assert!(evaluate_operator(&AssertionOperator::Gte, &json!(200), &json!(200)).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Gte, &json!(200), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_gte_fail() {
-        assert!(!evaluate_operator(&AssertionOperator::Gte, &json!(100), &json!(200)).unwrap());
+        assert!(
+            !evaluate_operator(&AssertionOperator::Gte, &json!(100), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     // ========================================================================
@@ -482,17 +532,26 @@ mod tests {
 
     #[test]
     fn test_lt_pass() {
-        assert!(evaluate_operator(&AssertionOperator::Lt, &json!(100), &json!(200)).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Lt, &json!(100), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_lt_fail() {
-        assert!(!evaluate_operator(&AssertionOperator::Lt, &json!(200), &json!(100)).unwrap());
+        assert!(
+            !evaluate_operator(&AssertionOperator::Lt, &json!(200), &json!(100))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_lt_equal() {
-        assert!(!evaluate_operator(&AssertionOperator::Lt, &json!(200), &json!(200)).unwrap());
+        assert!(
+            !evaluate_operator(&AssertionOperator::Lt, &json!(200), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     // ========================================================================
@@ -501,17 +560,26 @@ mod tests {
 
     #[test]
     fn test_lte_pass_less() {
-        assert!(evaluate_operator(&AssertionOperator::Lte, &json!(100), &json!(200)).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Lte, &json!(100), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_lte_pass_equal() {
-        assert!(evaluate_operator(&AssertionOperator::Lte, &json!(200), &json!(200)).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Lte, &json!(200), &json!(200))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_lte_fail() {
-        assert!(!evaluate_operator(&AssertionOperator::Lte, &json!(200), &json!(100)).unwrap());
+        assert!(
+            !evaluate_operator(&AssertionOperator::Lte, &json!(200), &json!(100))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     // ========================================================================
@@ -525,7 +593,7 @@ mod tests {
             &json!("hello world"),
             &json!("world")
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -535,20 +603,22 @@ mod tests {
             &json!("hello world"),
             &json!("foo")
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
     fn test_contains_array_pass() {
         assert!(
-            evaluate_operator(&AssertionOperator::Contains, &json!([1, 2, 3]), &json!(2)).unwrap()
+            evaluate_operator(&AssertionOperator::Contains, &json!([1, 2, 3]), &json!(2))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
     #[test]
     fn test_contains_array_fail() {
         assert!(
-            !evaluate_operator(&AssertionOperator::Contains, &json!([1, 2, 3]), &json!(4)).unwrap()
+            !evaluate_operator(&AssertionOperator::Contains, &json!([1, 2, 3]), &json!(4))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
@@ -557,7 +627,8 @@ mod tests {
         let result = evaluate_operator(&AssertionOperator::Contains, &json!(123), &json!("foo"));
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .contains("is not a string or array type"));
     }
 
@@ -572,7 +643,7 @@ mod tests {
             &json!("hello world"),
             &json!("foo")
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -582,7 +653,7 @@ mod tests {
             &json!("hello world"),
             &json!("world")
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -592,7 +663,7 @@ mod tests {
             &json!([1, 2, 3]),
             &json!(4)
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -602,7 +673,7 @@ mod tests {
             &json!([1, 2, 3]),
             &json!(2)
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     // ========================================================================
@@ -616,7 +687,7 @@ mod tests {
             &json!("hello123"),
             &json!("^[a-z]+[0-9]+$")
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -626,7 +697,7 @@ mod tests {
             &json!("hello"),
             &json!("^[0-9]+$")
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -636,7 +707,7 @@ mod tests {
             &json!("test@example.com"),
             &json!("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -647,7 +718,10 @@ mod tests {
             &json!("^[invalid"),
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Invalid regex pattern"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Invalid regex pattern"));
     }
 
     #[test]
@@ -655,7 +729,10 @@ mod tests {
         let result =
             evaluate_operator(&AssertionOperator::Matches, &json!(123), &json!("^[0-9]+$"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("actual is not a string type"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("actual is not a string type"));
     }
 
     #[test]
@@ -663,7 +740,8 @@ mod tests {
         let result = evaluate_operator(&AssertionOperator::Matches, &json!("test"), &json!(123));
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .contains("must be a string regex pattern"));
     }
 
@@ -674,25 +752,33 @@ mod tests {
     #[test]
     fn test_exists_pass() {
         assert!(
-            evaluate_operator(&AssertionOperator::Exists, &json!("hello"), &Value::Null).unwrap()
+            evaluate_operator(&AssertionOperator::Exists, &json!("hello"), &Value::Null)
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
     #[test]
     fn test_exists_fail() {
         assert!(
-            !evaluate_operator(&AssertionOperator::Exists, &Value::Null, &Value::Null).unwrap()
+            !evaluate_operator(&AssertionOperator::Exists, &Value::Null, &Value::Null)
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
     #[test]
     fn test_exists_number() {
-        assert!(evaluate_operator(&AssertionOperator::Exists, &json!(0), &Value::Null).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Exists, &json!(0), &Value::Null)
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_exists_empty_string() {
-        assert!(evaluate_operator(&AssertionOperator::Exists, &json!(""), &Value::Null).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Exists, &json!(""), &Value::Null)
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     // ========================================================================
@@ -702,7 +788,8 @@ mod tests {
     #[test]
     fn test_not_exists_pass() {
         assert!(
-            evaluate_operator(&AssertionOperator::NotExists, &Value::Null, &Value::Null).unwrap()
+            evaluate_operator(&AssertionOperator::NotExists, &Value::Null, &Value::Null)
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
@@ -710,7 +797,7 @@ mod tests {
     fn test_not_exists_fail() {
         assert!(
             !evaluate_operator(&AssertionOperator::NotExists, &json!("hello"), &Value::Null)
-                .unwrap()
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
@@ -725,7 +812,7 @@ mod tests {
             &json!("apple"),
             &json!(["apple", "banana", "cherry"])
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -735,12 +822,15 @@ mod tests {
             &json!("orange"),
             &json!(["apple", "banana", "cherry"])
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
     fn test_in_number() {
-        assert!(evaluate_operator(&AssertionOperator::In, &json!(2), &json!([1, 2, 3])).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::In, &json!(2), &json!([1, 2, 3]))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
@@ -748,7 +838,8 @@ mod tests {
         let result = evaluate_operator(&AssertionOperator::In, &json!("apple"), &json!("apple"));
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .contains("expected must be an array type"));
     }
 
@@ -763,7 +854,7 @@ mod tests {
             &json!("orange"),
             &json!(["apple", "banana", "cherry"])
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -773,7 +864,7 @@ mod tests {
             &json!("apple"),
             &json!(["apple", "banana", "cherry"])
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     // ========================================================================
@@ -787,20 +878,22 @@ mod tests {
             &json!("hello"),
             &json!("string")
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
     fn test_type_is_number() {
         assert!(
-            evaluate_operator(&AssertionOperator::TypeIs, &json!(42), &json!("number")).unwrap()
+            evaluate_operator(&AssertionOperator::TypeIs, &json!(42), &json!("number"))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
     #[test]
     fn test_type_is_boolean() {
         assert!(
-            evaluate_operator(&AssertionOperator::TypeIs, &json!(true), &json!("boolean")).unwrap()
+            evaluate_operator(&AssertionOperator::TypeIs, &json!(true), &json!("boolean"))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
@@ -811,7 +904,7 @@ mod tests {
             &json!([1, 2, 3]),
             &json!("array")
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -821,13 +914,14 @@ mod tests {
             &json!({"key": "value"}),
             &json!("object")
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
     fn test_type_is_null() {
         assert!(
-            evaluate_operator(&AssertionOperator::TypeIs, &Value::Null, &json!("null")).unwrap()
+            evaluate_operator(&AssertionOperator::TypeIs, &Value::Null, &json!("null"))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
@@ -838,7 +932,7 @@ mod tests {
             &json!("hello"),
             &json!("number")
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -849,7 +943,10 @@ mod tests {
             &json!("invalid"),
         );
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Unsupported type check"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("Unsupported type check"));
     }
 
     #[test]
@@ -857,7 +954,8 @@ mod tests {
         let result = evaluate_operator(&AssertionOperator::TypeIs, &json!("hello"), &json!(123));
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .contains("expected must be a string type"));
     }
 
@@ -868,35 +966,40 @@ mod tests {
     #[test]
     fn test_between_pass() {
         assert!(
-            evaluate_operator(&AssertionOperator::Between, &json!(50), &json!([0, 100])).unwrap()
+            evaluate_operator(&AssertionOperator::Between, &json!(50), &json!([0, 100]))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
     #[test]
     fn test_between_pass_boundary_min() {
         assert!(
-            evaluate_operator(&AssertionOperator::Between, &json!(0), &json!([0, 100])).unwrap()
+            evaluate_operator(&AssertionOperator::Between, &json!(0), &json!([0, 100]))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
     #[test]
     fn test_between_pass_boundary_max() {
         assert!(
-            evaluate_operator(&AssertionOperator::Between, &json!(100), &json!([0, 100])).unwrap()
+            evaluate_operator(&AssertionOperator::Between, &json!(100), &json!([0, 100]))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
     #[test]
     fn test_between_fail_below() {
         assert!(
-            !evaluate_operator(&AssertionOperator::Between, &json!(-1), &json!([0, 100])).unwrap()
+            !evaluate_operator(&AssertionOperator::Between, &json!(-1), &json!([0, 100]))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
     #[test]
     fn test_between_fail_above() {
         assert!(
-            !evaluate_operator(&AssertionOperator::Between, &json!(101), &json!([0, 100])).unwrap()
+            !evaluate_operator(&AssertionOperator::Between, &json!(101), &json!([0, 100]))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
@@ -904,7 +1007,8 @@ mod tests {
     fn test_between_reversed_range() {
         // 反向范围自动交换 min 和 max
         assert!(
-            evaluate_operator(&AssertionOperator::Between, &json!(50), &json!([100, 0])).unwrap()
+            evaluate_operator(&AssertionOperator::Between, &json!(50), &json!([100, 0]))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 
@@ -913,7 +1017,8 @@ mod tests {
         let result = evaluate_operator(&AssertionOperator::Between, &json!(50), &json!(0));
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .contains("expected must be an array type"));
     }
 
@@ -921,14 +1026,20 @@ mod tests {
     fn test_between_array_wrong_length() {
         let result = evaluate_operator(&AssertionOperator::Between, &json!(50), &json!([0]));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("array of 2 elements"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("array of 2 elements"));
     }
 
     #[test]
     fn test_between_actual_not_number() {
         let result = evaluate_operator(&AssertionOperator::Between, &json!("50"), &json!([0, 100]));
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("is not a numeric type"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("is not a numeric type"));
     }
 
     #[test]
@@ -938,7 +1049,7 @@ mod tests {
             &json!(50.5),
             &json!([0.0, 100.0])
         )
-        .unwrap());
+        .unwrap_or_else(|e| panic!("{e}")));
     }
 
     // ========================================================================
@@ -948,12 +1059,18 @@ mod tests {
     #[test]
     fn test_empty_string_contains() {
         // 空字符串包含空字符串
-        assert!(evaluate_operator(&AssertionOperator::Contains, &json!(""), &json!("")).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Contains, &json!(""), &json!(""))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_empty_array_contains() {
-        assert!(!evaluate_operator(&AssertionOperator::Contains, &json!([]), &json!(1)).unwrap());
+        assert!(
+            !evaluate_operator(&AssertionOperator::Contains, &json!([]), &json!(1))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
@@ -962,8 +1079,10 @@ mod tests {
         let obj2 = json!({"name": "test", "value": 123});
         let obj3 = json!({"name": "test", "value": 456});
 
-        assert!(evaluate_operator(&AssertionOperator::Eq, &obj1, &obj2).unwrap());
-        assert!(!evaluate_operator(&AssertionOperator::Eq, &obj1, &obj3).unwrap());
+        assert!(evaluate_operator(&AssertionOperator::Eq, &obj1, &obj2)
+            .unwrap_or_else(|e| panic!("{e}")));
+        assert!(!evaluate_operator(&AssertionOperator::Eq, &obj1, &obj3)
+            .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
@@ -972,20 +1091,29 @@ mod tests {
         let arr2 = json!([1, 2, 3]);
         let arr3 = json!([1, 2, 4]);
 
-        assert!(evaluate_operator(&AssertionOperator::Eq, &arr1, &arr2).unwrap());
-        assert!(!evaluate_operator(&AssertionOperator::Eq, &arr1, &arr3).unwrap());
+        assert!(evaluate_operator(&AssertionOperator::Eq, &arr1, &arr2)
+            .unwrap_or_else(|e| panic!("{e}")));
+        assert!(!evaluate_operator(&AssertionOperator::Eq, &arr1, &arr3)
+            .unwrap_or_else(|e| panic!("{e}")));
     }
 
     #[test]
     fn test_negative_numbers() {
-        assert!(evaluate_operator(&AssertionOperator::Gt, &json!(-5), &json!(-10)).unwrap());
-        assert!(evaluate_operator(&AssertionOperator::Lt, &json!(-10), &json!(-5)).unwrap());
+        assert!(
+            evaluate_operator(&AssertionOperator::Gt, &json!(-5), &json!(-10))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
+        assert!(
+            evaluate_operator(&AssertionOperator::Lt, &json!(-10), &json!(-5))
+                .unwrap_or_else(|e| panic!("{e}"))
+        );
     }
 
     #[test]
     fn test_between_negative_range() {
         assert!(
-            evaluate_operator(&AssertionOperator::Between, &json!(-50), &json!([-100, 0])).unwrap()
+            evaluate_operator(&AssertionOperator::Between, &json!(-50), &json!([-100, 0]))
+                .unwrap_or_else(|e| panic!("{e}"))
         );
     }
 }

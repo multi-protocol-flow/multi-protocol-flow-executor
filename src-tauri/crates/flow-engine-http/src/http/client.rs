@@ -637,7 +637,7 @@ mod tests {
         let result = client.execute(&config).await;
 
         assert!(result.is_ok(), "HTTP GET 应该Success: {:?}", result.err());
-        let http_result = result.unwrap();
+        let http_result = result.unwrap_or_else(|e| panic!("{e}"));
 
         assert_eq!(http_result.response.status, 200);
 
@@ -670,12 +670,15 @@ mod tests {
         let result = client.execute(&config).await;
 
         assert!(result.is_ok(), "POST 应该Success: {:?}", result.err());
-        let http_result = result.unwrap();
+        let http_result = result.unwrap_or_else(|e| panic!("{e}"));
 
         assert_eq!(http_result.response.status, 200);
 
         // 验证响应体包含请求数据（mirror 端点回显 json 字段）
-        let body = http_result.response.body_json().expect("JSON 解析Failed");
+        let body = http_result
+            .response
+            .body_json()
+            .unwrap_or_else(|e| panic!("JSON 解析Failed: {e}"));
         assert!(body["json"]["test"].as_str() == Some("value"));
     }
 
@@ -697,7 +700,7 @@ mod tests {
         let result = client.execute(&config).await;
 
         assert!(result.is_ok(), "请求应该Success（状态码 404 不是Error）");
-        let http_result = result.unwrap();
+        let http_result = result.unwrap_or_else(|e| panic!("{e}"));
 
         assert_eq!(http_result.response.status, 404);
     }
@@ -720,7 +723,9 @@ mod tests {
         let result = client.execute(&config).await;
 
         assert!(result.is_err(), "DNS Failed应该返回Error");
-        let error = result.unwrap_err();
+        let error = result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(matches!(
             error,
             HttpError::DnsFailed(_) | HttpError::DnsTimeout | HttpError::DnsNoAddress
@@ -779,7 +784,7 @@ mod tests {
                 method,
                 result.err()
             );
-            let http_result = result.unwrap();
+            let http_result = result.unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(
                 http_result.response.status, 200,
                 "{} 状态码应为 200",

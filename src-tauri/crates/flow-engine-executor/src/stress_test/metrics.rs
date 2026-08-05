@@ -764,13 +764,21 @@ mod tests {
 
         let timeout_stat = error_stats.iter().find(|s| s.error_kind == "Timeout");
         assert!(timeout_stat.is_some());
-        assert_eq!(timeout_stat.unwrap().count, 2);
+        assert_eq!(
+            timeout_stat
+                .unwrap_or_else(|| panic!("expected Some"))
+                .count,
+            2
+        );
 
         let conn_stat = error_stats
             .iter()
             .find(|s| s.error_kind == "ConnectionError");
         assert!(conn_stat.is_some());
-        assert_eq!(conn_stat.unwrap().count, 1);
+        assert_eq!(
+            conn_stat.unwrap_or_else(|| panic!("expected Some")).count,
+            1
+        );
     }
 
     #[test]
@@ -956,7 +964,7 @@ mod tests {
         }
 
         for handle in handles {
-            handle.join().expect("Thread panicked");
+            handle.join().unwrap_or_else(|_| panic!("Thread panicked"));
         }
 
         let stats = collector.get_statistics();
@@ -985,7 +993,7 @@ mod tests {
         }
 
         for handle in handles {
-            handle.join().expect("Thread panicked");
+            handle.join().unwrap_or_else(|_| panic!("Thread panicked"));
         }
 
         // 验证数据完整性

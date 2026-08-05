@@ -559,10 +559,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok(), "脚本执行应该Success");
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_nodes.is_empty()); // 没有连接时返回空列表
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], true);
     }
 
@@ -670,10 +670,10 @@ mod tests {
 
         // 由于 on_error 是 Recoverable，应该返回 Ok 并走 false 端口
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(next_nodes.is_empty()); // 没有连接
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false);
         assert!(output["error"].is_string());
     }
@@ -691,9 +691,9 @@ mod tests {
 
         // 由于 on_error 是 Recoverable，应该返回 Ok 并走 false 端口
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false);
     }
 
@@ -728,7 +728,11 @@ mod tests {
 
         // 致命Error应该返回 Err
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("Fatal error"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("Fatal error"));
     }
 
     #[tokio::test]
@@ -750,11 +754,14 @@ mod tests {
 
         // 超时应该走 false 端口（Recoverable 策略）
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false);
-        assert!(output["error"].as_str().unwrap().contains("timeout"));
+        assert!(output["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("timeout"));
     }
 
     #[tokio::test]
@@ -777,7 +784,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["next-node-1"]);
     }
 
@@ -802,7 +809,7 @@ mod tests {
 
         // Recoverable Error应该走 false 端口
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["error-handler-node"]);
     }
 
@@ -947,9 +954,9 @@ mod tests {
 
         // 取消应该走 false 端口（Recoverable 策略）
         assert!(result.is_ok());
-        let output_data = result.unwrap().1;
+        let output_data = result.unwrap_or_else(|e| panic!("{e}")).1;
         assert!(output_data.is_some());
-        let output = output_data.unwrap();
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false);
     }
 }

@@ -1125,7 +1125,7 @@ mod tests {
         });
         let report = plugin.build_report_input(&config);
         assert!(report.is_some());
-        let report = report.unwrap();
+        let report = report.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(report["bootstrap_servers"], "broker1:9092,broker2:9092");
         assert_eq!(report["sasl_mechanism"], "PLAIN");
     }
@@ -1138,7 +1138,9 @@ mod tests {
             "topic": "test-topic",
             "compression": "gzip",
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["topic"], "test-topic");
         assert_eq!(report["compression"], "gzip");
@@ -1152,7 +1154,9 @@ mod tests {
             "topic": "test-topic",
             "offset_reset": "earliest",
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["topic"], "test-topic");
         assert_eq!(report["offset_reset"], "earliest");
@@ -1162,7 +1166,9 @@ mod tests {
     fn test_close_build_report_input() {
         let plugin = KafkaClosePlugin;
         let config = serde_json::json!({"connection_id": "conn-123"});
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-123");
     }
 
@@ -1174,7 +1180,9 @@ mod tests {
             "operation": "topic_list",
             "dry_run": false,
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["operation"], "topic_list");
     }
@@ -1187,7 +1195,9 @@ mod tests {
             "operation": "list_subjects",
             "subject": "test-value",
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["operation"], "list_subjects");
     }

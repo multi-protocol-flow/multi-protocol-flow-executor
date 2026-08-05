@@ -749,7 +749,7 @@ mod tests {
         });
         let report = plugin.build_report_input(&config);
         assert!(report.is_some());
-        let report = report.unwrap();
+        let report = report.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(report["url"], "http://localhost:8080/mcp");
         assert_eq!(report["protocol_version"], "2025-11-25");
     }
@@ -762,7 +762,9 @@ mod tests {
             "tool_name": "get_weather",
             "arguments": {"city": "Beijing"},
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["tool_name"], "get_weather");
     }
@@ -774,7 +776,9 @@ mod tests {
             "connection_id": "conn-1",
             "resource_uri": "resource://config",
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["resource_uri"], "resource://config");
     }
@@ -783,7 +787,9 @@ mod tests {
     fn test_close_build_report_input() {
         let plugin = McpClosePlugin;
         let config = serde_json::json!({"connection_id": "conn-123"});
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-123");
     }
 
@@ -825,7 +831,9 @@ mod tests {
             "prompt_name": "greet",
             "arguments": {"name": "Alice"},
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["prompt_name"], "greet");
     }

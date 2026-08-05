@@ -182,7 +182,7 @@ mod tests {
     fn test_parse_set_cookie() {
         let cookie = CookieJar::parse_set_cookie("session=abc123; Path=/; HttpOnly; Secure");
         assert!(cookie.is_some());
-        let c = cookie.unwrap();
+        let c = cookie.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(c.name, "session");
         assert_eq!(c.value, "abc123");
         assert_eq!(c.path.as_deref(), Some("/"));

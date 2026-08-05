@@ -46,7 +46,7 @@ mod tests {
             target_port_id: "in-1".to_string(),
         };
 
-        let json = serde_json::to_string(&connection).unwrap();
+        let json = serde_json::to_string(&connection).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("conn-456"));
         assert!(json.contains("source-abc"));
         assert!(json.contains("target-def"));
@@ -54,7 +54,8 @@ mod tests {
         assert!(json.contains("in-1"));
 
         // 反序列化测试
-        let deserialized: Connection = serde_json::from_str(&json).unwrap();
+        let deserialized: Connection =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.id, "conn-456");
         assert_eq!(deserialized.source_node_uuid, "source-abc");
         assert_eq!(deserialized.target_node_uuid, "target-def");
@@ -110,7 +111,7 @@ mod tests {
             "target_port_id": "in"
         }"#;
 
-        let connection: Connection = serde_json::from_str(json).unwrap();
+        let connection: Connection = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(connection.id, "conn-deser");
         assert_eq!(connection.source_node_uuid, "node-src");
         assert_eq!(connection.target_node_uuid, "node-tgt");

@@ -318,7 +318,7 @@ mod tests {
         assert!(recording.is_some());
         assert!(!manager.is_recording());
 
-        let r = recording.expect("应有录制结果");
+        let r = recording.unwrap_or_else(|| panic!("应有录制结果"));
         assert!(r.id.starts_with("rec_"));
         assert_eq!(r.name, "测试录制");
         assert_eq!(r.entries.len(), 2);
@@ -329,7 +329,8 @@ mod tests {
         assert_eq!(r.entries[0].connection_id, "conn-1");
         assert_eq!(r.entries[0].data_size, 11);
         assert_eq!(
-            TcpRecording::decode_entry_data(&r.entries[0]).expect("解码应Success"),
+            TcpRecording::decode_entry_data(&r.entries[0])
+                .unwrap_or_else(|e| panic!("解码应Success: {e}")),
             b"Hello, TCP!".to_vec()
         );
 
@@ -338,7 +339,8 @@ mod tests {
         assert_eq!(r.entries[1].connection_id, "conn-1");
         assert_eq!(r.entries[1].data_size, 13);
         assert_eq!(
-            TcpRecording::decode_entry_data(&r.entries[1]).expect("解码应Success"),
+            TcpRecording::decode_entry_data(&r.entries[1])
+                .unwrap_or_else(|e| panic!("解码应Success: {e}")),
             b"Response data".to_vec()
         );
     }
@@ -346,7 +348,7 @@ mod tests {
     /// 测试保存到文件 → 加载 → 条目匹配
     #[test]
     fn test_save_and_load() {
-        let dir = tempfile::tempdir().expect("创建临时目录应Success");
+        let dir = tempfile::tempdir().unwrap_or_else(|e| panic!("创建临时目录应Success: {e}"));
 
         let mut manager = RecordingManager::new();
         let _id = manager.start_recording("保存加载测试");
@@ -355,17 +357,22 @@ mod tests {
         manager.record_receive("conn-a", b"recv-data-1");
         manager.record_send("conn-b", b"send-data-2");
 
-        let recording = manager.stop_recording().expect("应返回录制");
+        let recording = manager
+            .stop_recording()
+            .unwrap_or_else(|| panic!("应返回录制"));
 
         // 保存
-        recording.save_to_file(dir.path()).expect("保存应Success");
+        recording
+            .save_to_file(dir.path())
+            .unwrap_or_else(|e| panic!("保存应Success: {e}"));
 
         // 验证文件存在
         let json_path = dir.path().join(format!("{}.json", recording.id));
         assert!(json_path.exists(), "JSON 文件应存在");
 
         // 加载
-        let loaded = TcpRecording::load_from_file(&json_path).expect("加载应Success");
+        let loaded = TcpRecording::load_from_file(&json_path)
+            .unwrap_or_else(|e| panic!("加载应Success: {e}"));
 
         // 验证基本属性
         assert_eq!(loaded.id, recording.id);
@@ -379,8 +386,10 @@ mod tests {
             assert_eq!(orig.data_size, loaded_entry.data_size);
             assert_eq!(orig.timestamp_ms, loaded_entry.timestamp_ms);
 
-            let orig_data = TcpRecording::decode_entry_data(orig).expect("解码应Success");
-            let loaded_data = TcpRecording::decode_entry_data(loaded_entry).expect("解码应Success");
+            let orig_data = TcpRecording::decode_entry_data(orig)
+                .unwrap_or_else(|e| panic!("解码应Success: {e}"));
+            let loaded_data = TcpRecording::decode_entry_data(loaded_entry)
+                .unwrap_or_else(|e| panic!("解码应Success: {e}"));
             assert_eq!(orig_data, loaded_data, "数据应完全一致");
         }
     }
@@ -388,7 +397,7 @@ mod tests {
     /// 测试字节精确保真度：录制二进制数据 → 保存 → 加载 → 比较字节
     #[test]
     fn test_byte_exact_fidelity() {
-        let dir = tempfile::tempdir().expect("创建临时目录应Success");
+        let dir = tempfile::tempdir().unwrap_or_else(|e| panic!("创建临时目录应Success: {e}"));
 
         // 构造包含各种字节的二进制数据
         let binary_data: Vec<u8> = (0u8..=255).collect();
@@ -403,17 +412,22 @@ mod tests {
         manager.record_send("conn-bin", &mixed_data);
         manager.record_receive("conn-bin", &binary_data);
 
-        let recording = manager.stop_recording().expect("应返回录制");
-        recording.save_to_file(dir.path()).expect("保存应Success");
+        let recording = manager
+            .stop_recording()
+            .unwrap_or_else(|| panic!("应返回录制"));
+        recording
+            .save_to_file(dir.path())
+            .unwrap_or_else(|e| panic!("保存应Success: {e}"));
 
         let json_path = dir.path().join(format!("{}.json", recording.id));
-        let loaded = TcpRecording::load_from_file(&json_path).expect("加载应Success");
+        let loaded = TcpRecording::load_from_file(&json_path)
+            .unwrap_or_else(|e| panic!("加载应Success: {e}"));
 
         // 逐字节比较
-        let loaded_send =
-            TcpRecording::decode_entry_data(&loaded.entries[0]).expect("解码应Success");
-        let loaded_recv =
-            TcpRecording::decode_entry_data(&loaded.entries[1]).expect("解码应Success");
+        let loaded_send = TcpRecording::decode_entry_data(&loaded.entries[0])
+            .unwrap_or_else(|e| panic!("解码应Success: {e}"));
+        let loaded_recv = TcpRecording::decode_entry_data(&loaded.entries[1])
+            .unwrap_or_else(|e| panic!("解码应Success: {e}"));
 
         assert_eq!(loaded_send, mixed_data, "发送数据应字节精确匹配");
         assert_eq!(loaded_recv, binary_data, "接收数据应字节精确匹配");
@@ -435,7 +449,9 @@ mod tests {
         manager.record_receive("c2", b"resp-2");
         manager.record_receive("c1", b"resp-1b");
 
-        let recording = manager.stop_recording().expect("应返回录制");
+        let recording = manager
+            .stop_recording()
+            .unwrap_or_else(|| panic!("应返回录制"));
         assert_eq!(recording.entries.len(), 6);
 
         // 验证方向顺序
@@ -469,7 +485,9 @@ mod tests {
         let mut manager = RecordingManager::new();
         let id = manager.start_recording("空录制");
 
-        let recording = manager.stop_recording().expect("应返回录制");
+        let recording = manager
+            .stop_recording()
+            .unwrap_or_else(|| panic!("应返回录制"));
         assert_eq!(recording.id, id);
         assert_eq!(recording.entries.len(), 0);
         assert_eq!(recording.name, "空录制");
@@ -494,7 +512,7 @@ mod tests {
     /// 测试大数据负载（>64KB），验证外部 .bin 文件创建和加载
     #[test]
     fn test_large_payload_external_bin() {
-        let dir = tempfile::tempdir().expect("创建临时目录应Success");
+        let dir = tempfile::tempdir().unwrap_or_else(|e| panic!("创建临时目录应Success: {e}"));
 
         // 创建超过 64KB 的数据
         let large_data: Vec<u8> = (0..100_000).map(|i| (i % 256) as u8).collect();
@@ -505,11 +523,15 @@ mod tests {
         manager.record_send("conn-large", &large_data);
         manager.record_receive("conn-large", b"small-response");
 
-        let recording = manager.stop_recording().expect("应返回录制");
+        let recording = manager
+            .stop_recording()
+            .unwrap_or_else(|| panic!("应返回录制"));
         assert_eq!(recording.entries.len(), 2);
 
         // 保存
-        recording.save_to_file(dir.path()).expect("保存应Success");
+        recording
+            .save_to_file(dir.path())
+            .unwrap_or_else(|e| panic!("保存应Success: {e}"));
 
         // 验证 .bin 文件已创建
         let bin_path = dir.path().join(format!("{}_0.bin", recording.id));
@@ -521,22 +543,23 @@ mod tests {
 
         // 加载并验证数据完整
         let json_path = dir.path().join(format!("{}.json", recording.id));
-        let loaded = TcpRecording::load_from_file(&json_path).expect("加载应Success");
+        let loaded = TcpRecording::load_from_file(&json_path)
+            .unwrap_or_else(|e| panic!("加载应Success: {e}"));
 
-        let loaded_large =
-            TcpRecording::decode_entry_data(&loaded.entries[0]).expect("解码应Success");
+        let loaded_large = TcpRecording::decode_entry_data(&loaded.entries[0])
+            .unwrap_or_else(|e| panic!("解码应Success: {e}"));
         assert_eq!(loaded_large, large_data, "大数据应字节精确匹配");
         assert_eq!(loaded_large.len(), large_data.len());
 
-        let loaded_small =
-            TcpRecording::decode_entry_data(&loaded.entries[1]).expect("解码应Success");
+        let loaded_small = TcpRecording::decode_entry_data(&loaded.entries[1])
+            .unwrap_or_else(|e| panic!("解码应Success: {e}"));
         assert_eq!(loaded_small, b"small-response".to_vec());
     }
 
     /// 测试多个大数据条目
     #[test]
     fn test_multiple_large_payloads() {
-        let dir = tempfile::tempdir().expect("创建临时目录应Success");
+        let dir = tempfile::tempdir().unwrap_or_else(|e| panic!("创建临时目录应Success: {e}"));
 
         let data1: Vec<u8> = (0..70_000).map(|i| (i % 256) as u8).collect();
         let data2: Vec<u8> = (0..80_000).map(|i| ((i + 1) % 256) as u8).collect();
@@ -548,9 +571,13 @@ mod tests {
         manager.record_send("c1", small);
         manager.record_receive("c1", &data2);
 
-        let recording = manager.stop_recording().expect("应返回录制");
+        let recording = manager
+            .stop_recording()
+            .unwrap_or_else(|| panic!("应返回录制"));
 
-        recording.save_to_file(dir.path()).expect("保存应Success");
+        recording
+            .save_to_file(dir.path())
+            .unwrap_or_else(|e| panic!("保存应Success: {e}"));
 
         // 验证两个 .bin 文件
         assert!(
@@ -568,18 +595,22 @@ mod tests {
 
         // 加载验证
         let json_path = dir.path().join(format!("{}.json", recording.id));
-        let loaded = TcpRecording::load_from_file(&json_path).expect("加载应Success");
+        let loaded = TcpRecording::load_from_file(&json_path)
+            .unwrap_or_else(|e| panic!("加载应Success: {e}"));
 
         assert_eq!(
-            TcpRecording::decode_entry_data(&loaded.entries[0]).expect("解码应Success"),
+            TcpRecording::decode_entry_data(&loaded.entries[0])
+                .unwrap_or_else(|e| panic!("解码应Success: {e}")),
             data1
         );
         assert_eq!(
-            TcpRecording::decode_entry_data(&loaded.entries[1]).expect("解码应Success"),
+            TcpRecording::decode_entry_data(&loaded.entries[1])
+                .unwrap_or_else(|e| panic!("解码应Success: {e}")),
             small.to_vec()
         );
         assert_eq!(
-            TcpRecording::decode_entry_data(&loaded.entries[2]).expect("解码应Success"),
+            TcpRecording::decode_entry_data(&loaded.entries[2])
+                .unwrap_or_else(|e| panic!("解码应Success: {e}")),
             data2
         );
     }
@@ -636,16 +667,18 @@ mod tests {
         let send = RecordingDirection::Send;
         let recv = RecordingDirection::Receive;
 
-        let send_json = serde_json::to_string(&send).expect("序列化应Success");
-        let recv_json = serde_json::to_string(&recv).expect("序列化应Success");
+        let send_json =
+            serde_json::to_string(&send).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let recv_json =
+            serde_json::to_string(&recv).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
 
         assert_eq!(send_json, "\"send\"");
         assert_eq!(recv_json, "\"receive\"");
 
         let send_back: RecordingDirection =
-            serde_json::from_str(&send_json).expect("反序列化应Success");
+            serde_json::from_str(&send_json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         let recv_back: RecordingDirection =
-            serde_json::from_str(&recv_json).expect("反序列化应Success");
+            serde_json::from_str(&recv_json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
 
         assert_eq!(send_back, RecordingDirection::Send);
         assert_eq!(recv_back, RecordingDirection::Receive);
@@ -672,7 +705,9 @@ mod tests {
 
         manager.record_send("c2", b"data2");
 
-        let recording = manager.stop_recording().expect("应返回录制");
+        let recording = manager
+            .stop_recording()
+            .unwrap_or_else(|| panic!("应返回录制"));
         assert_eq!(recording.name, "第二次");
         assert_eq!(recording.entries.len(), 1);
         assert_eq!(recording.entries[0].connection_id, "c2");
@@ -681,7 +716,7 @@ mod tests {
     /// 测试保存到不存在的目录会自动创建
     #[test]
     fn test_save_creates_directory() {
-        let dir = tempfile::tempdir().expect("创建临时目录应Success");
+        let dir = tempfile::tempdir().unwrap_or_else(|e| panic!("创建临时目录应Success: {e}"));
         let nested = dir.path().join("a").join("b").join("c");
         assert!(!nested.exists());
 
@@ -695,7 +730,7 @@ mod tests {
 
         recording
             .save_to_file(&nested)
-            .expect("保存应Success，自动创建目录");
+            .unwrap_or_else(|e| panic!("保存应Success，自动创建目录: {e}"));
 
         assert!(nested.join("mkdir-test.json").exists());
     }
@@ -715,7 +750,9 @@ mod tests {
         manager.record_send("c1", b"");
         manager.record_receive("c1", b"");
 
-        let recording = manager.stop_recording().expect("应返回录制");
+        let recording = manager
+            .stop_recording()
+            .unwrap_or_else(|| panic!("应返回录制"));
         assert_eq!(recording.entries.len(), 2);
         assert_eq!(recording.entries[0].data_size, 0);
         assert_eq!(recording.entries[0].data_base64, "");
@@ -735,8 +772,9 @@ mod tests {
             external_bin_path: None,
         };
 
-        let json = serde_json::to_string(&entry).expect("序列化应Success");
-        let back: RecordingEntry = serde_json::from_str(&json).expect("反序列化应Success");
+        let json = serde_json::to_string(&entry).unwrap_or_else(|e| panic!("序列化应Success: {e}"));
+        let back: RecordingEntry =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
 
         assert_eq!(back.metadata["custom"], "value");
         assert_eq!(back.metadata["count"], 42);

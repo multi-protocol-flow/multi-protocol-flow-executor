@@ -602,10 +602,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
     }
@@ -635,11 +635,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().unwrap().contains("Sender"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("Sender"));
     }
 
     /// 测试：空收件人列表 → 走 false 端口
@@ -667,11 +670,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
-        assert!(data["error"].as_str().unwrap().contains("Recipient"));
+        assert!(data["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("expected Some"))
+            .contains("Recipient"));
     }
 
     /// 测试：变量替换
@@ -723,9 +729,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]); // 连接不存在，走 false
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 验证变量替换生效
         assert_eq!(data["request"]["connection_id"], "smtp-conn-123");
         assert_eq!(data["request"]["from"], "alice@test.com");
@@ -758,7 +764,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("SmtpSendConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("SmtpSendConfig"));
     }
 
     // ===== Mock Success场景 =====
@@ -921,9 +931,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["message_id"], "<msg123@smtp.test>");
         assert_eq!(data["response_code"], 250);
@@ -955,9 +965,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "模拟发送Failed");
     }
@@ -987,9 +997,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "连接超时");
     }
@@ -1019,8 +1029,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         // 验证所有预期字段存在
         assert!(data.get("success").is_some(), "应有 success 字段");
@@ -1037,7 +1047,13 @@ mod tests {
         );
         assert!(data["request"]["from"].is_string(), "request 中应有 from");
         assert!(data["request"]["to"].is_array(), "request 中应有 to 数组");
-        assert_eq!(data["request"]["to"].as_array().unwrap().len(), 2);
+        assert_eq!(
+            data["request"]["to"]
+                .as_array()
+                .unwrap_or_else(|| panic!("expected Some"))
+                .len(),
+            2
+        );
         assert!(data["request"]["cc"].is_array(), "request 中应有 cc 数组");
         assert!(data["request"]["bcc"].is_array(), "request 中应有 bcc 数组");
         assert!(
@@ -1075,8 +1091,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
     }
 
@@ -1107,7 +1123,7 @@ mod tests {
 
         let result = route_to_true(&node, &connections, json!({"success": true}));
         assert!(result.is_ok());
-        let (ids, _) = result.unwrap();
+        let (ids, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(ids, vec!["node-2"]);
     }
 
@@ -1126,7 +1142,7 @@ mod tests {
 
         let result = route_to_true(&node, &[], json!({"success": true}));
         assert!(result.is_ok());
-        let (ids, _) = result.unwrap();
+        let (ids, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(ids, vec!["true"]);
     }
 
@@ -1155,7 +1171,7 @@ mod tests {
 
         let result = route_to_false(&node, &connections, json!({"success": false}));
         assert!(result.is_ok());
-        let (ids, _) = result.unwrap();
+        let (ids, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(ids, vec!["node-3"]);
     }
 
@@ -1174,7 +1190,7 @@ mod tests {
 
         let result = route_to_false(&node, &[], json!({"success": false}));
         assert!(result.is_ok());
-        let (ids, _) = result.unwrap();
+        let (ids, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(ids, vec!["false"]);
     }
 }

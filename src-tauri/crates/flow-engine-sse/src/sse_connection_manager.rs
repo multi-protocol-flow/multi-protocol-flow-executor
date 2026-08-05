@@ -452,7 +452,10 @@ mod tests {
         let config = SseDisconnectConfig::default();
         let result = manager.disconnect("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     #[tokio::test]
@@ -482,7 +485,10 @@ mod tests {
         let config = SseListenConfig::default();
         let result = manager.listen("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("不存在"));
     }
 
     // ---- 状态显示测试 ----

@@ -2335,7 +2335,7 @@ mod tests {
         });
         let report = plugin.build_report_input(&config);
         assert!(report.is_some());
-        let report = report.unwrap();
+        let report = report.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(report["url"], "amqp://localhost:5672");
         assert_eq!(report["connection_id"], "conn-1");
     }
@@ -2349,7 +2349,9 @@ mod tests {
             "routing_key": "test.key",
             "body": "hello",
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["exchange"], "test-exchange");
         assert_eq!(report["routing_key"], "test.key");
@@ -2363,7 +2365,9 @@ mod tests {
             "queue_name": "test-queue",
             "max_messages": 5,
         });
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-1");
         assert_eq!(report["queue_name"], "test-queue");
         assert_eq!(report["max_messages"], 5);
@@ -2373,7 +2377,9 @@ mod tests {
     fn test_close_build_report_input() {
         let plugin = AmqpClosePlugin;
         let config = serde_json::json!({"connection_id": "conn-123"});
-        let report = plugin.build_report_input(&config).expect("报告应存在");
+        let report = plugin
+            .build_report_input(&config)
+            .unwrap_or_else(|| panic!("报告应存在"));
         assert_eq!(report["connection_id"], "conn-123");
     }
 

@@ -997,7 +997,7 @@ mod tests {
             .with_error_code_typed(ErrorCode::E_CONN_REFUSED);
 
         // serialize
-        let json = serde_json::to_string(&error).expect("serialization failed");
+        let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("serialization failed: {e}"));
         assert!(json.contains(r#""connection""#));
         assert!(json.contains("connection failed"));
         assert!(json.contains("E_CONN_REFUSED"));
@@ -1019,22 +1019,22 @@ mod tests {
 
         assert_eq!(error.error_kind, ErrorKind::Connection);
         assert_eq!(error.error_code, Some(ErrorCode::E_CONN_REFUSED));
-        let args = error.i18n_args.as_ref().expect("i18n_args should be Some");
-        assert_eq!(args.get("host").unwrap(), "example.com");
-        assert_eq!(args.get("port").unwrap(), "443");
+        let args = error.i18n_args.as_ref().unwrap_or_else(|| panic!("i18n_args should be Some"));
+        assert_eq!(args.get("host").unwrap_or_else(|| panic!("expected Some")), "example.com");
+        assert_eq!(args.get("port").unwrap_or_else(|| panic!("expected Some")), "443");
         assert_eq!(args.len(), 2);
 
         // Serialize and verify roundtrip with i18n_args
-        let json = serde_json::to_string(&error).unwrap();
+        let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("E_CONN_REFUSED"));
         assert!(json.contains("example.com"));
         assert!(json.contains("443"));
 
-        let deserialized: ErrorDetail = serde_json::from_str(&json).unwrap();
+        let deserialized: ErrorDetail = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.error_code, Some(ErrorCode::E_CONN_REFUSED));
-        let deserialized_args = deserialized.i18n_args.as_ref().unwrap();
-        assert_eq!(deserialized_args.get("host").unwrap(), "example.com");
-        assert_eq!(deserialized_args.get("port").unwrap(), "443");
+        let deserialized_args = deserialized.i18n_args.as_ref().unwrap_or_else(|| panic!("expected Some"));
+        assert_eq!(deserialized_args.get("host").unwrap_or_else(|| panic!("expected Some")), "example.com");
+        assert_eq!(deserialized_args.get("port").unwrap_or_else(|| panic!("expected Some")), "443");
     }
 
     #[test]
@@ -1067,11 +1067,11 @@ mod tests {
         assert_eq!(error.error_code, Some(ErrorCode::E_CONN_TIMEOUT));
 
         // Serialize and verify SCREAMING_SNAKE_CASE
-        let json = serde_json::to_string(&error).unwrap();
+        let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("E_CONN_TIMEOUT"));
 
         // Deserialize and verify roundtrip
-        let deserialized: ErrorDetail = serde_json::from_str(&json).unwrap();
+        let deserialized: ErrorDetail = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.error_code, Some(ErrorCode::E_CONN_TIMEOUT));
     }
 
@@ -1186,7 +1186,7 @@ mod tests {
         ];
 
         for kind in kinds {
-            let json = serde_json::to_string(&kind).expect("serialization failed");
+            let json = serde_json::to_string(&kind).unwrap_or_else(|e| panic!("serialization failed: {e}"));
             let deserialized: ErrorKind =
                 serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
             assert_eq!(kind, deserialized);
@@ -1268,7 +1268,7 @@ mod tests {
         for kind in kinds {
             let error = ErrorDetail::new(kind.clone(), format!("{:?} error", kind));
 
-            let json = serde_json::to_string(&error).expect("serialization failed");
+            let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("serialization failed: {e}"));
             let deserialized: ErrorDetail =
                 serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
 
@@ -1301,7 +1301,7 @@ mod tests {
             assert!(!error.is_fatal(), "{:?} should not be fatal", kind);
 
             // verify serialization roundtrip
-            let json = serde_json::to_string(&error).expect("serialization failed");
+            let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("serialization failed: {e}"));
             let deserialized: ErrorDetail =
                 serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
 
@@ -1334,7 +1334,7 @@ mod tests {
             assert!(!error.is_fatal(), "{:?} should not be fatal", kind);
 
             // verify serialization roundtrip
-            let json = serde_json::to_string(&error).expect("serialization failed");
+            let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("serialization failed: {e}"));
             let deserialized: ErrorDetail =
                 serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
 
@@ -1359,7 +1359,7 @@ mod tests {
         let error = ErrorDetail::new(ErrorKind::Cancelled, "execution cancelled".to_string());
         assert!(!error.is_fatal());
 
-        let json = serde_json::to_string(&error).expect("serialization failed");
+        let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("serialization failed: {e}"));
         assert!(
             json.contains("cancelled"),
             "should serialize as 'cancelled'"
@@ -1392,7 +1392,7 @@ mod tests {
             assert!(!error.is_fatal(), "{:?} should not be fatal", kind);
 
             // verify serialization roundtrip
-            let json = serde_json::to_string(&error).expect("serialization failed");
+            let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("serialization failed: {e}"));
             let deserialized: ErrorDetail =
                 serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
 
@@ -1527,7 +1527,7 @@ mod tests {
         );
 
         for code in all_codes {
-            let json = serde_json::to_string(&code).expect("serialization failed");
+            let json = serde_json::to_string(&code).unwrap_or_else(|e| panic!("serialization failed: {e}"));
             let deserialized: ErrorCode =
                 serde_json::from_str(&json).unwrap_or_else(|e| panic!("deserialization failed: {e}"));
             assert_eq!(code, deserialized, "roundtrip failed for {:?}", code);
@@ -1646,7 +1646,7 @@ mod tests {
     fn test_error_code_serialization_screaming_snake() {
         // Verify the JSON serialization is SCREAMING_SNAKE_CASE (different from ErrorKind's lowercase)
         let json =
-            serde_json::to_string(&ErrorCode::E_HTTP_REQUEST_FAILED).expect("serialization failed");
+            serde_json::to_string(&ErrorCode::E_HTTP_REQUEST_FAILED).unwrap_or_else(|e| panic!("serialization failed: {e}"));
         assert_eq!(json, "\"E_HTTP_REQUEST_FAILED\"");
         assert_ne!(json, "\"e_http_request_failed\"");
         assert_ne!(json, "\"http_request_failed\"");
@@ -1720,9 +1720,9 @@ mod tests {
             let error =
                 ErrorDetail::new(kind.clone(), msg.to_string()).with_error_code_typed(code.clone());
 
-            let json = serde_json::to_string(&error).expect("serialization failed");
+            let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("serialization failed: {e}"));
             assert!(
-                json.contains(serde_json::to_string(&code).unwrap().trim_matches('"')),
+                json.contains(serde_json::to_string(&code).unwrap_or_else(|e| panic!("{e}")).trim_matches('"')),
                 "JSON should contain ErrorCode variant name for {:?}",
                 code
             );
@@ -1744,7 +1744,7 @@ mod tests {
             .with_i18n_arg("method", "POST".to_string())
             .with_i18n_arg("status", "500".to_string());
 
-        let json = serde_json::to_string_pretty(&error).unwrap();
+        let json = serde_json::to_string_pretty(&error).unwrap_or_else(|e| panic!("{e}"));
 
         // Verify JSON structure has i18n_args as an object with string values
         assert!(json.contains("\"i18n_args\": {"));
@@ -1754,11 +1754,11 @@ mod tests {
         assert!(json.contains("\"E_HTTP_REQUEST_FAILED\""));
 
         // Roundtrip
-        let deserialized: ErrorDetail = serde_json::from_str(&json).unwrap();
-        let args = deserialized.i18n_args.unwrap();
-        assert_eq!(args.get("url").unwrap(), "https://example.com/api");
-        assert_eq!(args.get("method").unwrap(), "POST");
-        assert_eq!(args.get("status").unwrap(), "500");
+        let deserialized: ErrorDetail = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        let args = deserialized.i18n_args.unwrap_or_else(|| panic!("expected Some"));
+        assert_eq!(args.get("url").unwrap_or_else(|| panic!("expected Some")), "https://example.com/api");
+        assert_eq!(args.get("method").unwrap_or_else(|| panic!("expected Some")), "POST");
+        assert_eq!(args.get("status").unwrap_or_else(|| panic!("expected Some")), "500");
         assert_eq!(args.len(), 3);
     }
 }

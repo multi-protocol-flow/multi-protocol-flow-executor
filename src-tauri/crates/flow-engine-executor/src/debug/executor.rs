@@ -1421,10 +1421,8 @@ mod tests {
         });
 
         // 等待暂停事件
-        if let Some(event) = event_receiver.recv().await {
-            if let DebugEvent::SessionStarted { flow_uuid } = event {
-                assert_eq!(flow_uuid, flow_id);
-            }
+        if let Some(DebugEvent::SessionStarted { flow_uuid }) = event_receiver.recv().await {
+            assert_eq!(flow_uuid, flow_id);
         }
 
         // 发送继续命令
@@ -1673,7 +1671,7 @@ mod tests {
         // 等待调试会话完成并获取最终状态
         let result = handle.await;
         assert!(result.is_ok());
-        let final_state = result.unwrap();
+        let final_state = result.unwrap_or_else(|e| panic!("{e}"));
 
         // 【关键断言】验证堆栈中只有一个 start_node 条目
         let start_node_entries: Vec<_> = final_state
@@ -1797,7 +1795,7 @@ mod tests {
         // 等待调试会话完成并获取最终状态
         let result = handle.await;
         assert!(result.is_ok());
-        let final_state = result.unwrap();
+        let final_state = result.unwrap_or_else(|e| panic!("{e}"));
 
         // 【关键断言1】验证暂停了两次（入口节点和第二个节点）
         assert_eq!(paused_count, 2, "应该暂停两次");
@@ -1933,7 +1931,7 @@ mod tests {
         // 等待调试会话完成并获取最终状态
         let result = handle.await;
         assert!(result.is_ok());
-        let final_state = result.unwrap();
+        let final_state = result.unwrap_or_else(|e| panic!("{e}"));
 
         // 【关键断言1】验证入口节点在暂停时 test_var 已经存在（流程级变量在执行开始时注入）
         if let Some(vars) = paused_variables {
@@ -1959,7 +1957,7 @@ mod tests {
 
         assert!(start_node_entry.is_some(), "堆栈中应该有入口节点条目");
 
-        let entry = start_node_entry.unwrap();
+        let entry = start_node_entry.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(
             entry.error,
             Some("Node skipped".to_string()),
@@ -2045,7 +2043,7 @@ mod tests {
         // 等待调试会话完成并获取最终状态
         let result = handle.await;
         assert!(result.is_ok());
-        let final_state = result.unwrap();
+        let final_state = result.unwrap_or_else(|e| panic!("{e}"));
 
         // 【关键断言1】验证最终状态中没有来自 Entry 的额外变量（flow.initial_variables 为 None）
         // 注意：流程级 initial_variables 不依赖 Entry node执行，但本例中未设置任何 flow.initial_variables

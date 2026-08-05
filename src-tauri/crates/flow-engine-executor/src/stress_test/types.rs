@@ -374,7 +374,7 @@ mod tests {
             error_message: "Connection timeout".to_string(),
         };
 
-        let json = serde_json::to_string(&sample).expect("序列化Failed");
+        let json = serde_json::to_string(&sample).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("iteration"));
         assert!(json.contains("nodeUuid"));
         assert!(json.contains("nodeName"));
@@ -440,7 +440,7 @@ mod tests {
             flow_snapshot: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化Failed");
+        let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("report-001"));
         assert!(json.contains("flow-001"));
         assert!(json.contains("Test Flow"));
@@ -484,7 +484,7 @@ mod tests {
             flow_snapshot: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化Failed");
+        let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("errorStatistics"));
         assert!(json.contains("Timeout"));
         assert!(json.contains("errorKind"));
@@ -494,10 +494,11 @@ mod tests {
     #[test]
     fn test_stress_test_status_serialization() {
         let status = StressTestStatus::Running;
-        let json = serde_json::to_string(&status).expect("序列化Failed");
+        let json = serde_json::to_string(&status).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert_eq!(json, "\"running\"");
 
-        let deserialized: StressTestStatus = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: StressTestStatus =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized, StressTestStatus::Running);
     }
 
@@ -533,13 +534,14 @@ mod tests {
             flow_snapshot: Some(flow.clone()),
         };
 
-        let json = serde_json::to_string(&report).expect("序列化Failed");
+        let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         // rename_all = "camelCase" → flowSnapshot
         assert!(json.contains("flowSnapshot"));
         assert!(json.contains("flow-snap-001"));
 
         // 反序列化往返
-        let deserialized: StressTestReport = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: StressTestReport =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized.flow_snapshot, Some(flow));
     }
 
@@ -577,7 +579,8 @@ mod tests {
             }
         }"#;
 
-        let report: StressTestReport = serde_json::from_str(json).expect("反序列化Failed");
+        let report: StressTestReport =
+            serde_json::from_str(json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(report.uuid, "report-bc-001");
         assert!(report.flow_snapshot.is_none());
     }
@@ -602,7 +605,7 @@ mod tests {
             flow_snapshot: None,
         };
 
-        let json = serde_json::to_string(&report).expect("序列化Failed");
+        let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(
             !json.contains("flowSnapshot"),
             "flow_snapshot 为 None 时不应出现在 JSON 中"

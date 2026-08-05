@@ -563,18 +563,20 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["matched_count"], 1);
         assert_eq!(data["request"]["topic"], "test/response");
         assert_eq!(data["request"]["connection_id"], "conn-1");
 
         // 验证消息内容
-        let msgs = data["messages"].as_array().expect("messages 应为数组");
+        let msgs = data["messages"]
+            .as_array()
+            .unwrap_or_else(|| panic!("messages 应为数组"));
         assert_eq!(msgs.len(), 1);
         assert_eq!(msgs[0]["topic"], "test/response");
         assert_eq!(msgs[0]["payload_text"], "hello");
@@ -598,11 +600,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 超时时 success=true（provider 调用本身没出错），但 matched_count=0
         assert_eq!(data["success"], true);
         assert_eq!(data["matched_count"], 0);
@@ -622,10 +624,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "连接 'conn-missing' 不存在");
         assert_eq!(data["matched_count"], 0);
@@ -655,7 +657,8 @@ mod tests {
 
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .message
             .contains("MqttWaitMessageConfig"));
     }
@@ -709,10 +712,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["request"]["topic"], "sensors/temperature");
         assert_eq!(data["request"]["connection_id"], "my-connection");
     }
@@ -746,8 +749,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         assert_eq!(data["success"], true);
         assert_eq!(data["matched_count"], 1);
@@ -786,7 +789,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 }

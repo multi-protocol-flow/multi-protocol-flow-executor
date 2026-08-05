@@ -317,7 +317,7 @@ mod tests {
         let stats = FlowStatistics::from_reports(&reports, 5);
 
         let expected = 2.0 / 4.0;
-        let actual = stats.error_rate.unwrap();
+        let actual = stats.error_rate.unwrap_or_else(|| panic!("expected Some"));
 
         let diff = (actual - expected).abs();
         assert!(diff < 0.01);
@@ -351,12 +351,13 @@ mod tests {
             completion_rate: Some(0.7142857142857143),
         };
 
-        let json = serde_json::to_string(&stats).expect("序列化Failed");
+        let json = serde_json::to_string(&stats).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("success_count"));
         assert!(json.contains("1"));
         assert!(json.contains("150"));
 
-        let deserialized: FlowStatistics = serde_json::from_str(&json).expect("反序列化Failed");
+        let deserialized: FlowStatistics =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized.success_count, stats.success_count);
     }
 
@@ -368,8 +369,9 @@ mod tests {
             ..FlowStatistics::default()
         };
 
-        let json = serde_json::to_string(&stats).expect("序列化Failed");
-        let deserialized: FlowStatistics = serde_json::from_str(&json).expect("反序列化Failed");
+        let json = serde_json::to_string(&stats).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        let deserialized: FlowStatistics =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert_eq!(deserialized.success_count, 5);
         assert_eq!(deserialized.failed_count, 2);
     }

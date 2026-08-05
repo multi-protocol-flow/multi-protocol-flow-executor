@@ -412,13 +412,13 @@ mod tests {
             on_error: None,
         };
 
-        let json = serde_json::to_string(&node).unwrap();
+        let json = serde_json::to_string(&node).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("node-uuid-456"));
         assert!(json.contains("https://api.example.com"));
         assert!(json.contains("has_breakpoint"));
 
         // 反序列化测试
-        let deserialized: Node = serde_json::from_str(&json).unwrap();
+        let deserialized: Node = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.uuid, "node-uuid-456");
         assert_eq!(deserialized.name, "HTTP Request");
         assert_eq!(deserialized.has_breakpoint, Some(true));
@@ -457,12 +457,12 @@ mod tests {
             label: Some("Test Port".to_string()),
         };
 
-        let json = serde_json::to_string(&port).unwrap();
+        let json = serde_json::to_string(&port).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("port-789"));
         assert!(json.contains("input"));
 
         // 反序列化测试
-        let deserialized: Port = serde_json::from_str(&json).unwrap();
+        let deserialized: Port = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.id, "port-789");
         assert_eq!(deserialized.port_type, PortType::Input);
     }
@@ -495,7 +495,10 @@ mod tests {
 
         assert_eq!(node.uuid, "node-uuid-999");
         assert!(node.ports.is_some());
-        let ports_ref = node.ports.as_ref().unwrap();
+        let ports_ref = node
+            .ports
+            .as_ref()
+            .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(ports_ref.len(), 2);
         assert_eq!(ports_ref[0].id, "port-1");
         assert_eq!(ports_ref[1].id, "port-2");
@@ -504,12 +507,15 @@ mod tests {
     #[test]
     fn test_node_type_enum() {
         assert_eq!(
-            serde_json::to_string(&NodeType::Entry).unwrap(),
+            serde_json::to_string(&NodeType::Entry).unwrap_or_else(|e| panic!("{e}")),
             r#""entry""#
         );
-        assert_eq!(serde_json::to_string(&NodeType::Http).unwrap(), r#""http""#);
         assert_eq!(
-            serde_json::to_string(&NodeType::Conditional).unwrap(),
+            serde_json::to_string(&NodeType::Http).unwrap_or_else(|e| panic!("{e}")),
+            r#""http""#
+        );
+        assert_eq!(
+            serde_json::to_string(&NodeType::Conditional).unwrap_or_else(|e| panic!("{e}")),
             r#""conditional""#
         );
     }

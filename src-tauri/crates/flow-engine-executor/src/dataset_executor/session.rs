@@ -88,7 +88,7 @@ mod tests {
         // 开始会话
         manager
             .start_session("session-001".to_string())
-            .expect("开始会话应Success");
+            .unwrap_or_else(|e| panic!("开始会话应Success: {e}"));
         assert!(manager.is_running());
         assert_eq!(
             manager.current_session_id(),
@@ -96,7 +96,9 @@ mod tests {
         );
 
         // 结束会话
-        manager.end_session().expect("结束会话应Success");
+        manager
+            .end_session()
+            .unwrap_or_else(|e| panic!("结束会话应Success: {e}"));
         assert!(!manager.is_running());
         assert!(manager.current_session_id().is_none());
     }
@@ -106,11 +108,14 @@ mod tests {
         let manager = DatasetSessionManager::new();
         manager
             .start_session("session-001".to_string())
-            .expect("第一次开始应Success");
+            .unwrap_or_else(|e| panic!("第一次开始应Success: {e}"));
 
         let result = manager.start_session("session-002".to_string());
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("已在运行"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("已在运行"));
     }
 
     #[test]
@@ -118,7 +123,10 @@ mod tests {
         let manager = DatasetSessionManager::new();
         let result = manager.end_session();
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("没有运行中"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("没有运行中"));
     }
 
     #[test]
@@ -127,13 +135,15 @@ mod tests {
 
         manager
             .start_session("session-001".to_string())
-            .expect("第一次开始应Success");
-        manager.end_session().expect("结束应Success");
+            .unwrap_or_else(|e| panic!("第一次开始应Success: {e}"));
+        manager
+            .end_session()
+            .unwrap_or_else(|e| panic!("结束应Success: {e}"));
 
         // 结束后可以重新开始
         manager
             .start_session("session-002".to_string())
-            .expect("重新开始应Success");
+            .unwrap_or_else(|e| panic!("重新开始应Success: {e}"));
         assert_eq!(
             manager.current_session_id(),
             Some("session-002".to_string())

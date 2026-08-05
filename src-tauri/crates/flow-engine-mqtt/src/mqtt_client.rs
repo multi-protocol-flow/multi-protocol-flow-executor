@@ -383,7 +383,7 @@ mod tests {
     #[test]
     fn test_parse_mqtt_url_tcp() {
         let (transport, host, port, path) =
-            parse_mqtt_url("mqtt://broker.example.com:1883").unwrap();
+            parse_mqtt_url("mqtt://broker.example.com:1883").unwrap_or_else(|e| panic!("{e}"));
         assert!(matches!(transport, TransportType::Tcp));
         assert_eq!(host, "broker.example.com");
         assert_eq!(port, 1883);
@@ -392,7 +392,8 @@ mod tests {
 
     #[test]
     fn test_parse_mqtt_url_tcp_default_port() {
-        let (transport, host, port, path) = parse_mqtt_url("mqtt://broker.example.com").unwrap();
+        let (transport, host, port, path) =
+            parse_mqtt_url("mqtt://broker.example.com").unwrap_or_else(|e| panic!("{e}"));
         assert!(matches!(transport, TransportType::Tcp));
         assert_eq!(host, "broker.example.com");
         assert_eq!(port, 1883);
@@ -401,7 +402,8 @@ mod tests {
 
     #[test]
     fn test_parse_mqtt_url_tls() {
-        let (transport, host, port, _) = parse_mqtt_url("mqtts://broker.example.com:8883").unwrap();
+        let (transport, host, port, _) =
+            parse_mqtt_url("mqtts://broker.example.com:8883").unwrap_or_else(|e| panic!("{e}"));
         assert!(matches!(transport, TransportType::Tls));
         assert_eq!(host, "broker.example.com");
         assert_eq!(port, 8883);
@@ -409,7 +411,8 @@ mod tests {
 
     #[test]
     fn test_parse_mqtt_url_tls_default_port() {
-        let (transport, _, port, _) = parse_mqtt_url("mqtts://broker.example.com").unwrap();
+        let (transport, _, port, _) =
+            parse_mqtt_url("mqtts://broker.example.com").unwrap_or_else(|e| panic!("{e}"));
         assert!(matches!(transport, TransportType::Tls));
         assert_eq!(port, 8883);
     }
@@ -417,7 +420,7 @@ mod tests {
     #[test]
     fn test_parse_mqtt_url_ws() {
         let (transport, host, port, path) =
-            parse_mqtt_url("ws://broker.example.com:8000/mqtt").unwrap();
+            parse_mqtt_url("ws://broker.example.com:8000/mqtt").unwrap_or_else(|e| panic!("{e}"));
         assert!(matches!(transport, TransportType::Ws));
         assert_eq!(host, "broker.example.com");
         assert_eq!(port, 8000);
@@ -427,7 +430,7 @@ mod tests {
     #[test]
     fn test_parse_mqtt_url_wss() {
         let (transport, host, port, path) =
-            parse_mqtt_url("wss://broker.example.com:8443/ws").unwrap();
+            parse_mqtt_url("wss://broker.example.com:8443/ws").unwrap_or_else(|e| panic!("{e}"));
         assert!(matches!(transport, TransportType::Wss));
         assert_eq!(host, "broker.example.com");
         assert_eq!(port, 8443);
@@ -436,7 +439,8 @@ mod tests {
 
     #[test]
     fn test_parse_mqtt_url_no_scheme() {
-        let (transport, host, port, _) = parse_mqtt_url("broker.example.com:1883").unwrap();
+        let (transport, host, port, _) =
+            parse_mqtt_url("broker.example.com:1883").unwrap_or_else(|e| panic!("{e}"));
         assert!(matches!(transport, TransportType::Tcp));
         assert_eq!(host, "broker.example.com");
         assert_eq!(port, 1883);

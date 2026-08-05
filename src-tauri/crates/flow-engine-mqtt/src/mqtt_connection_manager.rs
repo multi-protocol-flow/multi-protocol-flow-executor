@@ -768,7 +768,10 @@ mod tests {
         let config = MqttDisconnectConfig::default();
         let result = manager.disconnect("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("not found"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("not found"));
     }
 
     #[tokio::test]
@@ -799,7 +802,10 @@ mod tests {
         let config = MqttPublishConfig::default();
         let result = manager.publish("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("not found"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("not found"));
     }
 
     #[tokio::test]
@@ -808,7 +814,10 @@ mod tests {
         let config = MqttSubscribeConfig::default();
         let result = manager.subscribe("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("not found"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("not found"));
     }
 
     #[tokio::test]
@@ -818,7 +827,10 @@ mod tests {
             .unsubscribe("non-existent", "conn-1", "test/topic")
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("not found"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("not found"));
     }
 
     #[tokio::test]
@@ -827,7 +839,10 @@ mod tests {
         let config = MqttWaitMessageConfig::default();
         let result = manager.wait_message("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("not found"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("not found"));
     }
 
     #[tokio::test]
@@ -836,7 +851,10 @@ mod tests {
         let config = MqttRequestConfig::default();
         let result = manager.request("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("not found"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("not found"));
     }
 
     // ---- 状态显示测试 ----

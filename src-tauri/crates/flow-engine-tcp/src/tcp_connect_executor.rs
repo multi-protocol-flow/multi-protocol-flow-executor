@@ -354,10 +354,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_id"], "test-1");
         assert_eq!(data["host"], "127.0.0.1");
@@ -379,16 +379,18 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(data["connection_id"].is_null());
         assert_eq!(data["host"], "192.168.1.1");
         assert_eq!(data["port"], 9999);
         assert!(data.get("error").is_some());
-        let error = data["error"].as_str().expect("error should be a string");
+        let error = data["error"]
+            .as_str()
+            .unwrap_or_else(|| panic!("error should be a string"));
         assert!(error.contains("connection failed"));
     }
 
@@ -414,7 +416,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("TcpConnectConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("TcpConnectConfig"));
     }
 
     #[tokio::test]
@@ -436,9 +442,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_next_nodes, output_data) = result.unwrap();
+        let (_next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 验证变量替换生效
         assert_eq!(data["host"], "example.com");
     }

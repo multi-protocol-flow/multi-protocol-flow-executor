@@ -392,11 +392,12 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("\"success\":true"));
         assert!(json.contains("conn-1"));
 
-        let deserialized: ImapConnectOutput = serde_json::from_str(&json).unwrap();
+        let deserialized: ImapConnectOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert!(deserialized.success);
         assert_eq!(deserialized.capabilities.len(), 2);
     }
@@ -414,8 +415,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapSelectOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapSelectOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert!(deserialized.success);
         assert_eq!(deserialized.exists, 42);
     }
@@ -438,8 +440,9 @@ mod tests {
             internal_date: None,
         };
 
-        let json = serde_json::to_string(&msg).unwrap();
-        let deserialized: ImapMessageInfo = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&msg).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapMessageInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.uid, Some(101));
         assert_eq!(deserialized.subject, Some("Test Subject".to_string()));
     }
@@ -453,8 +456,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapSearchOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapSearchOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert!(deserialized.success);
         assert_eq!(deserialized.uids.len(), 5);
     }
@@ -468,8 +472,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapFetchOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapFetchOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert!(deserialized.success);
     }
 
@@ -482,8 +487,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapStoreFlagsOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapStoreFlagsOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert!(deserialized.success);
         assert_eq!(deserialized.affected_uids.len(), 3);
     }
@@ -498,8 +504,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapCopyOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapCopyOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.copied_count, 3);
     }
 
@@ -513,8 +520,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapMoveOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapMoveOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.moved_count, 2);
     }
 
@@ -526,8 +534,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapExpungeOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapExpungeOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.expunged_seqs.len(), 2);
     }
 
@@ -539,8 +548,9 @@ mod tests {
             attributes: vec!["\\HasNoChildren".to_string()],
         };
 
-        let json = serde_json::to_string(&info).unwrap();
-        let deserialized: ImapMailboxInfo = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapMailboxInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.name, "INBOX");
     }
 
@@ -556,8 +566,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapListOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapListOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert!(deserialized.success);
         assert_eq!(deserialized.mailboxes.len(), 1);
     }
@@ -570,8 +581,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapFolderCreateOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapFolderCreateOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.folder_name, "NewFolder");
     }
 
@@ -583,8 +595,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapFolderDeleteOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapFolderDeleteOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.folder_name, "OldFolder");
     }
 
@@ -597,8 +610,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapIdleOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapIdleOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.events.len(), 2);
         assert_eq!(deserialized.duration_ms, 5000);
     }
@@ -610,8 +624,9 @@ mod tests {
             error: None,
         };
 
-        let json = serde_json::to_string(&output).unwrap();
-        let deserialized: ImapCloseOutput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&output).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapCloseOutput =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert!(deserialized.success);
     }
 
@@ -623,8 +638,9 @@ mod tests {
             port: 993,
         };
 
-        let json = serde_json::to_string(&info).unwrap();
-        let deserialized: ImapConnectionInfo = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&info).unwrap_or_else(|e| panic!("{e}"));
+        let deserialized: ImapConnectionInfo =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(deserialized.host, "imap.gmail.com");
         assert_eq!(deserialized.port, 993);
     }

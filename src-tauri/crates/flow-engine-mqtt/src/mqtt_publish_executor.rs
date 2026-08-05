@@ -556,10 +556,10 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
     }
@@ -596,9 +596,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]); // 连接不存在，走 false
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         // 验证变量替换生效：topic 应包含替换后的值
         assert_eq!(data["topic"], "sensor/sensor-001/data");
     }
@@ -626,65 +626,89 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("MqttPublishConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("MqttPublishConfig"));
     }
 
     // ===== Payload 编码测试 =====
 
     #[test]
     fn test_encode_payload_text() {
-        let result = encode_payload("hello world", None).expect("text 编码应Success");
+        let result = encode_payload("hello world", None)
+            .unwrap_or_else(|e| panic!("text 编码应Success: {e}"));
         assert_eq!(result, b"hello world");
 
-        let result = encode_payload("hello", Some("text")).expect("text 编码应Success");
+        let result = encode_payload("hello", Some("text"))
+            .unwrap_or_else(|e| panic!("text 编码应Success: {e}"));
         assert_eq!(result, b"hello");
     }
 
     #[test]
     fn test_encode_payload_json() {
         let json_str = r#"{"key": "value"}"#;
-        let result = encode_payload(json_str, Some("json")).expect("json 编码应Success");
+        let result = encode_payload(json_str, Some("json"))
+            .unwrap_or_else(|e| panic!("json 编码应Success: {e}"));
         assert_eq!(result, json_str.as_bytes());
 
         // 非法 JSON 应Failed
         let bad_json = "{invalid}";
         let result = encode_payload(bad_json, Some("json"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("JSON 格式无效"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("JSON 格式无效"));
     }
 
     #[test]
     fn test_encode_payload_hex() {
-        let result = encode_payload("48656c6c6f", Some("hex")).expect("hex 编码应Success");
+        let result = encode_payload("48656c6c6f", Some("hex"))
+            .unwrap_or_else(|e| panic!("hex 编码应Success: {e}"));
         assert_eq!(result, b"Hello");
 
         // 带 0x 前缀
-        let result = encode_payload("0x48656c6c6f", Some("hex")).expect("hex 编码应Success");
+        let result = encode_payload("0x48656c6c6f", Some("hex"))
+            .unwrap_or_else(|e| panic!("hex 编码应Success: {e}"));
         assert_eq!(result, b"Hello");
 
         // 带空格
-        let result = encode_payload("48 65 6c 6c 6f", Some("hex")).expect("hex 编码应Success");
+        let result = encode_payload("48 65 6c 6c 6f", Some("hex"))
+            .unwrap_or_else(|e| panic!("hex 编码应Success: {e}"));
         assert_eq!(result, b"Hello");
 
         // 奇数长度应Failed
         let result = encode_payload("ABC", Some("hex"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("偶数"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("偶数"));
 
         // 空字符串
-        let result = encode_payload("", Some("hex")).expect("空 hex 应Success");
+        let result =
+            encode_payload("", Some("hex")).unwrap_or_else(|e| panic!("空 hex 应Success: {e}"));
         assert!(result.is_empty());
     }
 
     #[test]
     fn test_encode_payload_base64() {
-        let result = encode_payload("SGVsbG8=", Some("base64")).expect("base64 编码应Success");
+        let result = encode_payload("SGVsbG8=", Some("base64"))
+            .unwrap_or_else(|e| panic!("base64 编码应Success: {e}"));
         assert_eq!(result, b"Hello");
 
         // 非法 base64 应Failed
         let result = encode_payload("!!!invalid!!!", Some("base64"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("Base64 解码Failed"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("Base64 解码Failed"));
     }
 
     #[test]
@@ -692,7 +716,8 @@ mod tests {
         let result = encode_payload("data", Some("xml"));
         assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .message
             .contains("不支持的 payload_format"));
     }
@@ -794,9 +819,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["topic"], "test/topic");
         assert_eq!(data["qos"], 0);
@@ -826,9 +851,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["payload_size"], 5); // "Hello" = 5 bytes
     }
@@ -853,9 +878,9 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert!(data["error"].is_string());
     }
@@ -880,8 +905,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         // 验证所有预期字段存在
         assert!(data.get("success").is_some(), "应有 success 字段");

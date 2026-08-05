@@ -227,9 +227,12 @@ mod tests {
         let mut c = create_context();
         let r = e.execute(&n, &mut c, &[], &HashMap::new()).await;
         assert!(r.is_ok());
-        let (nn, d) = r.unwrap();
+        let (nn, d) = r.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(nn, vec!["false"]);
-        assert_eq!(d.unwrap()["success"], false);
+        assert_eq!(
+            d.unwrap_or_else(|| panic!("expected Some"))["success"],
+            false
+        );
     }
 
     #[tokio::test]
@@ -249,6 +252,10 @@ mod tests {
         let mut c = create_context();
         let r = e.execute(&n, &mut c, &[], &HashMap::new()).await;
         assert!(r.is_err());
-        assert!(r.unwrap_err().message.contains("ImapSearchConfig"));
+        assert!(r
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("ImapSearchConfig"));
     }
 }

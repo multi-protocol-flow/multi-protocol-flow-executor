@@ -717,19 +717,21 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // Success应路由到 true 端口
         assert_eq!(next_nodes, vec!["true"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], true);
         assert_eq!(data["message_count"], 1);
         assert!(data["error"].is_null());
         assert!(data["timing"]["total_ms"].is_number());
 
         // 验证消息内容
-        let messages = data["messages"].as_array().expect("messages 应为数组");
+        let messages = data["messages"]
+            .as_array()
+            .unwrap_or_else(|| panic!("messages 应为数组"));
         assert_eq!(messages.len(), 1);
         assert_eq!(messages[0]["delivery_tag"], 1);
         assert_eq!(messages[0]["exchange"], "test-exchange");
@@ -780,12 +782,14 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["true"]);
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["message_count"], 3);
-        let messages = data["messages"].as_array().expect("messages 应为数组");
+        let messages = data["messages"]
+            .as_array()
+            .unwrap_or_else(|| panic!("messages 应为数组"));
         assert_eq!(messages.len(), 3);
         assert_eq!(messages[0]["body"], "msg1");
         assert_eq!(messages[1]["body"], "msg2");
@@ -805,12 +809,12 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         // Failed应路由到 false 端口
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "队列不存在");
         assert_eq!(data["message_count"], 0);
@@ -839,7 +843,11 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("AmqpConsumeConfig"));
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .message
+            .contains("AmqpConsumeConfig"));
     }
 
     /// 测试：变量替换在 queue 和 `consumer_tag` 中生效
@@ -878,8 +886,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.unwrap();
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
 
         // 验证变量替换生效
         assert_eq!(data["request"]["queue"], "prod-orders");
@@ -899,11 +907,11 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
+        let (next_nodes, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["false"]);
         assert!(output_data.is_some());
 
-        let data = output_data.unwrap();
+        let data = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(data["success"], false);
         assert_eq!(data["error"], "连接已断开");
         assert_eq!(data["message_count"], 0);
@@ -935,8 +943,8 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (_, output_data) = result.unwrap();
-        let data = output_data.expect("应有输出数据");
+        let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
+        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
 
         // 验证顶层字段
         assert!(data.get("success").is_some());
@@ -985,7 +993,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
+        let (next_nodes, _) = result.unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(next_nodes, vec!["next-node"]);
     }
 }
