@@ -224,7 +224,10 @@ impl PluginManager {
     ) -> Result<PluginRegistration, PluginError> {
         let process = process::spawn_plugin(&plugin.manifest.entry, &plugin.manifest.env)?;
         let connection = PluginConnection::spawn(process, self.connection_config.clone())?;
-        let result: DescribeResult = perform_describe(&connection).await?;
+        // The on-disk manifest is the fallback for array-shape (SDK) describe
+        // responses that do not echo a manifest.
+        let result: DescribeResult =
+            perform_describe(&connection, Some(plugin.manifest.clone())).await?;
         // Dropping the connection kills the child (last-handle Drop reaps).
         drop(connection);
         Ok(PluginRegistration {

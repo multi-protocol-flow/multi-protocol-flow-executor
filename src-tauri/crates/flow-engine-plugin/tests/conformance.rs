@@ -3,6 +3,12 @@
 //! Each test spawns the real echo mock via `process::spawn_plugin` and drives
 //! it through a real `PluginConnection`, so the whole stack (framing, writer
 //! task, reader demux, pending map, spawn hygiene) is exercised end to end.
+//!
+//! M5b adds one conformance test per non-Rust runtime — the Python template,
+//! the Node template, and the compiled Rust SDK demo plugin (helpers in
+//! `common::template_harness`). Those tests skip themselves when their
+//! interpreter or binary is unavailable; the echo-mock tests are the
+//! always-run baseline.
 
 mod common;
 
@@ -55,14 +61,22 @@ async fn conformance_echo_roundtrip() -> Result<(), Box<dyn std::error::Error + 
     let mut connection = connect_echo()?;
     let completed = fire_pipelined(&connection, 200).await?;
     // Every pipelined request round-trips through the mock and back.
-    eprintln!("burst exit: {:?} metrics: {:?}", connection.exit_reason(), connection.metrics());
-    assert_eq!(completed, 200, "expected all pipelined requests to complete");
+    eprintln!(
+        "burst exit: {:?} metrics: {:?}",
+        connection.exit_reason(),
+        connection.metrics()
+    );
+    assert_eq!(
+        completed, 200,
+        "expected all pipelined requests to complete"
+    );
     connection.shutdown(Duration::from_secs(5)).await?;
     Ok(())
 }
 
 #[tokio::test]
-async fn conformance_error_object_mapping() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn conformance_error_object_mapping() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+{
     let mut connection = connect_echo()?;
     let result = connection.request("fail", serde_json::json!({})).await;
     match result {
@@ -73,7 +87,9 @@ async fn conformance_error_object_mapping() -> Result<(), Box<dyn std::error::Er
         other => panic!("expected typed JSON-RPC error, got {other:?}"),
     }
     // The connection survives an error response.
-    let ok = connection.request("echo", serde_json::json!({"alive": true})).await?;
+    let ok = connection
+        .request("echo", serde_json::json!({"alive": true}))
+        .await?;
     assert_eq!(ok, serde_json::json!({"alive": true}));
     connection.shutdown(Duration::from_secs(5)).await?;
     Ok(())
@@ -119,7 +135,9 @@ async fn conformance_crlf_tolerance() -> Result<(), Box<dyn std::error::Error + 
         .await?;
     assert_eq!(result, serde_json::json!({"crlf": true}));
     // The connection still works after a CRLF frame.
-    let again = connection.request("echo", serde_json::json!({"ok": 1})).await?;
+    let again = connection
+        .request("echo", serde_json::json!({"ok": 1}))
+        .await?;
     assert_eq!(again, serde_json::json!({"ok": 1}));
     connection.shutdown(Duration::from_secs(5)).await?;
     Ok(())
