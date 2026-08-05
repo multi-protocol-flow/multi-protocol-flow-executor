@@ -37,6 +37,14 @@ use crate::transport::{ConnectionConfig, PluginConnection};
 /// lifetime.
 pub const MAX_DESCRIBE_FAILURES: u32 = 3;
 
+/// Upper bound for one describe handshake.
+///
+/// Describe is a light request/response exchange; a healthy plugin answers
+/// in milliseconds. Five seconds bounds a hung or malicious interpreter,
+/// which the transport's 30s per-request timeout would otherwise let stall
+/// every scan and validate for half a minute per plugin.
+pub const DESCRIBE_TIMEOUT: Duration = Duration::from_secs(5);
+
 /// A plugin that survived the describe handshake.
 #[derive(Debug, Clone)]
 pub struct PluginRegistration {
@@ -80,6 +88,10 @@ pub struct PluginManager {
     /// (populated by [`PluginManager::add_registration`]; drives
     /// [`PluginManager::connection_for_node`]).
     pub(crate) type_id_to_plugin: HashMap<String, String>,
+    /// Upper bound for one describe handshake; exceeded, the plugin process
+    /// is killed and the failure counts toward the quarantine policy
+    /// (defaults to [`DESCRIBE_TIMEOUT`]).
+    describe_timeout: Duration,
 }
 
 impl PluginManager {
@@ -97,7 +109,20 @@ impl PluginManager {
             claimed_node_ids: HashSet::new(),
             collisions: Vec::new(),
             type_id_to_plugin: HashMap::new(),
+            describe_timeout: DESCRIBE_TIMEOUT,
         }
+    }
+
+    /// Overrides the describe handshake bound for subsequently scanned
+    /// plugins.
+    ///
+    /// A healthy plugin answers `describe` in milliseconds; this cap turns a
+    /// hung or malicious interpreter into a bounded [`PluginError::Timeout`]
+    /// that counts toward the quarantine policy instead of blocking scans
+    /// and validates indefinitely.
+    pub fn with_describe_timeout(mut self, timeout: Duration) -> Self {
+        self.describe_timeout = timeout;
+        self
     }
 
     /// Overrides the lifecycle policy for subsequently registered plugins.
@@ -217,7 +242,13 @@ impl PluginManager {
         self.failures.remove(name);
     }
 
-    /// One full handshake: spawn → connect → describe → normalize.
+    /// One full handshake: spawn → connect → describe (bounded) → normalize.
+    ///
+    /// The describe await is wrapped in [`tokio::time::timeout`]: a plugin
+    /// that accepts the pipes but never answers is killed (dropping the
+    /// connection reaps the child) and reported as
+    /// [`PluginError::Timeout`], which [`PluginManager::scan_and_describe`]
+    /// counts toward the quarantine policy.
     async fn describe_one(
         &self,
         plugin: &DiscoveredPlugin,
@@ -226,8 +257,27 @@ impl PluginManager {
         let connection = PluginConnection::spawn(process, self.connection_config.clone())?;
         // The on-disk manifest is the fallback for array-shape (SDK) describe
         // responses that do not echo a manifest.
-        let result: DescribeResult =
-            perform_describe(&connection, Some(plugin.manifest.clone())).await?;
+        let result: DescribeResult = match tokio::time::timeout(
+            self.describe_timeout,
+            perform_describe(&connection, Some(plugin.manifest.clone())),
+        )
+        .await
+        {
+            Ok(result) => result?,
+            Err(_elapsed) => {
+                log::warn!(
+                    "describe timed out after {:?} for plugin {} v{}; killing",
+                    self.describe_timeout,
+                    plugin.name,
+                    plugin.version
+                );
+                // Dropping the connection kills the child (last-handle Drop
+                // reaps); no clone escaped this function, so the last handle
+                // drops here.
+                drop(connection);
+                return Err(PluginError::Timeout(self.describe_timeout));
+            }
+        };
         // Dropping the connection kills the child (last-handle Drop reaps).
         drop(connection);
         Ok(PluginRegistration {
@@ -269,6 +319,44 @@ mod tests {
                 r#"{{"name": "{name}", "version": "{version}", "entry": {{"command": "{command}"}}}}"#
             ),
         )
+    }
+
+    /// Like [`write_plugin`], with an explicit `entry.args` list.
+    fn write_plugin_with_args(
+        dir: &Path,
+        name: &str,
+        version: &str,
+        command: &str,
+        args: &[String],
+    ) -> io::Result<()> {
+        let args_json =
+            serde_json::to_string(args).unwrap_or_else(|e| panic!("serialize args: {e}"));
+        std::fs::write(
+            dir.join("plugin.json"),
+            format!(
+                r#"{{"name": "{name}", "version": "{version}", "entry": {{"command": "{command}", "args": {args_json}}}}}"#
+            ),
+        )
+    }
+
+    /// A command that accepts its stdio pipes but writes nothing and does
+    /// not exit for a long time (platform-appropriate): the transport sees
+    /// an open, silent pipe, so the describe request is never answered.
+    fn hang_command() -> (String, Vec<String>) {
+        #[cfg(windows)]
+        {
+            (
+                "cmd".to_string(),
+                vec!["/C".to_string(), "ping -n 60 127.0.0.1 > nul".to_string()],
+            )
+        }
+        #[cfg(not(windows))]
+        {
+            (
+                "sh".to_string(),
+                vec!["-c".to_string(), "sleep 60".to_string()],
+            )
+        }
     }
 
     #[test]
@@ -328,6 +416,52 @@ mod tests {
         let registrations = manager.scan_and_describe().await;
         assert!(registrations.is_empty());
         assert_eq!(manager.quarantined(), vec!["crashy"]);
+
+        std::fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    /// Full-path timeout: a plugin that accepts the pipes but never answers
+    /// `describe` must not block the scan — the handshake returns within the
+    /// injected bound (300ms here, far below the 5s default) and counts as a
+    /// describe failure, eventually quarantining the plugin.
+    #[tokio::test]
+    async fn describe_timeout_returns_in_bound_and_quarantines(
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let root = unique_temp_dir("describe-timeout");
+        let plugin_dir = root.join("hangy");
+        std::fs::create_dir_all(&plugin_dir)?;
+        let (command, args) = hang_command();
+        write_plugin_with_args(&plugin_dir, "hangy", "1.0.0", &command, &args)?;
+
+        let mut manager =
+            PluginManager::new(root.clone()).with_describe_timeout(Duration::from_millis(300));
+
+        // The hung plugin must not stall the scan: the first describe
+        // returns within the injected bound (not the 30s transport timeout,
+        // and certainly not forever).
+        let start = std::time::Instant::now();
+        let registrations = manager.scan_and_describe().await;
+        let first_elapsed = start.elapsed();
+        assert!(registrations.is_empty());
+        assert!(
+            first_elapsed < Duration::from_secs(5),
+            "describe of a hung plugin should return within the 300ms bound, \
+             took {first_elapsed:?}"
+        );
+
+        // The timeout counts toward the quarantine counter like any other
+        // describe failure.
+        assert_eq!(manager.failures.get("hangy"), Some(&1));
+
+        // Repeated timeouts accumulate; after MAX_DESCRIBE_FAILURES the
+        // plugin is quarantined and later scans skip it entirely.
+        for _ in 1..MAX_DESCRIBE_FAILURES {
+            assert!(manager.scan_and_describe().await.is_empty());
+        }
+        assert_eq!(manager.quarantined(), vec!["hangy"]);
+        assert!(manager.scan_and_describe().await.is_empty());
+        assert_eq!(manager.quarantined(), vec!["hangy"]);
 
         std::fs::remove_dir_all(&root)?;
         Ok(())
