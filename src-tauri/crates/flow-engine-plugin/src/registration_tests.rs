@@ -6,7 +6,7 @@
 //! first_wins_warn`, `registration_shadowing_regression_test`,
 //! `registration_success_registers_nodes`) plus the M3 seam test.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -17,7 +17,7 @@ use mpe_protocol::describe::NodeDescription;
 use mpe_protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
 
 use crate::manager::{PluginManager, PluginRegistration};
-use crate::registration::{CollisionReason, CollisionReport};
+use crate::registration::{decide_registration, CollisionReason, CollisionReport};
 
 /// Test-double `NodePlugin`; the factory under test wraps every accepted
 /// `NodeDescription` in one of these so tests can identify WHO won a slot.
@@ -261,4 +261,44 @@ fn register_nodes_placeholder_marks_pending_until_m3() {
         Some("Node acme:ping".to_string())
     );
     assert!(manager.collision_reports().is_empty());
+}
+
+/// Direct unit coverage of the shared `decide_registration` decision,
+/// independent of `register_nodes_with` plumbing — pins the 4 policy cases.
+#[test]
+fn decide_registration_rejects_reserved_builtin() {
+    let claimed = HashSet::new();
+    assert_eq!(
+        decide_registration("http", false, &claimed),
+        Err(CollisionReason::Reserved)
+    );
+}
+
+/// Drift-guard: an unclaimed-but-present entry (a built-in the reserved list
+/// missed) is treated as reserved and never overwritten.
+#[test]
+fn decide_registration_rejects_unclaimed_present_entry() {
+    let claimed = HashSet::new();
+    assert_eq!(
+        decide_registration("legacy_node", true, &claimed),
+        Err(CollisionReason::Reserved)
+    );
+}
+
+/// Plugin-vs-plugin: an already-claimed `type_id` is rejected (first wins).
+#[test]
+fn decide_registration_rejects_plugin_collision() {
+    let mut claimed = HashSet::new();
+    claimed.insert("acme:ping".to_string());
+    assert_eq!(
+        decide_registration("acme:ping", false, &claimed),
+        Err(CollisionReason::PluginCollision)
+    );
+}
+
+/// Fresh, unreserved, unclaimed `type_id` registers.
+#[test]
+fn decide_registration_registers_fresh_type_id() {
+    let claimed = HashSet::new();
+    assert_eq!(decide_registration("acme:pong", false, &claimed), Ok(()));
 }

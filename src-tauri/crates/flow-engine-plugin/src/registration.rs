@@ -52,33 +52,31 @@ pub struct CollisionReport {
     pub reason: CollisionReason,
 }
 
-/// The outcome of checking one node against the collision policy.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum CollisionDecision {
-    /// Insert the node into the registry.
-    Register,
-    /// Reject it and record the reason.
-    Reject(CollisionReason),
-}
-
-/// Applies the locked OD2 collision policy to one `type_id`.
+/// Decides whether a plugin node `type_id` may be registered, applying the
+/// locked OD2 collision policy. Shared by
+/// [`PluginManager::register_nodes_with`] and
+/// `flow-engine-executor::default_registry_with_plugins` so the two paths can
+/// never drift.
 ///
-/// Order of checks: (1) reserved built-in → reject with `Reserved`;
-/// (2) present in the registry but not claimed by a plugin (a built-in the
-/// reserved list drifted from) → reject with `Reserved` — a built-in must
-/// never be overwritten; (3) already claimed by a plugin → reject with
-/// `PluginCollision` (first wins); (4) otherwise register.
-fn decide_registration(
+/// `Ok(())` registers; `Err(Reserved)` rejects (a reserved built-in OR an
+/// unclaimed-but-present entry — a built-in the reserved list drifted from);
+/// `Err(PluginCollision)` rejects (first wins).
+///
+/// Order of checks: (1) reserved built-in → `Err(Reserved)`; (2) present in
+/// the registry but not claimed by a plugin → `Err(Reserved)` — a built-in
+/// must never be overwritten; (3) already claimed by a plugin →
+/// `Err(PluginCollision)` (first wins); (4) otherwise `Ok(())`.
+pub fn decide_registration(
     type_id: &str,
     registry_has_entry: bool,
     claimed: &HashSet<String>,
-) -> CollisionDecision {
+) -> Result<(), CollisionReason> {
     if is_reserved_type_id(type_id) || (registry_has_entry && !claimed.contains(type_id)) {
-        CollisionDecision::Reject(CollisionReason::Reserved)
+        Err(CollisionReason::Reserved)
     } else if claimed.contains(type_id) {
-        CollisionDecision::Reject(CollisionReason::PluginCollision)
+        Err(CollisionReason::PluginCollision)
     } else {
-        CollisionDecision::Register
+        Ok(())
     }
 }
 
@@ -216,17 +214,16 @@ impl PluginManager {
         let registrations = std::mem::take(&mut self.registrations);
         for registration in &registrations {
             for node in &registration.nodes {
-                let decision = decide_registration(
+                match decide_registration(
                     &node.type_id,
                     registry.get(&node.type_id).is_some(),
                     &self.claimed_node_ids,
-                );
-                match decision {
-                    CollisionDecision::Register => {
+                ) {
+                    Ok(()) => {
                         registry.register(factory(node));
                         self.claimed_node_ids.insert(node.type_id.clone());
                     }
-                    CollisionDecision::Reject(reason) => {
+                    Err(reason) => {
                         log::warn!(
                             "plugin {} node {} rejected: {:?} (collision policy)",
                             registration.name,
