@@ -372,20 +372,25 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
 /// 每个Error项包含 `code`（Error码，前端用于 i18n 映射）、`message`（详细描述）和可选的 `field`。
 /// 插件节点（`plugin-manager` 特性）额外执行插件的 `validate` RPC。
 #[tauri::command]
-pub fn validate_flow(
+pub async fn validate_flow(
     flow: Flow,
-    node_registry: State<'_, NodeRegistryState>,
+    app: tauri::AppHandle,
 ) -> flow_engine::validator::ValidationResult {
     let validator = flow_engine::validator::FlowValidator::new();
-    // 插件 validate RPC 是异步的；同步命令经全局异步运行时阻塞执行，
-    // 保持 IPC 返回形状（直接返回 ValidationResult）不变。
+    // 插件 validate RPC 是异步的；async 命令直接在 Tauri 运行时内 await，
+    // 不阻塞线程，IPC 返回形状（直接返回 ValidationResult）不变。
+    // 注：本版本 Tauri 的 async 命令要求引用型入参（State）必须返回 Result，
+    // 因此经 AppHandle 取 State，保持非 Result 返回类型不被包装。
+    let node_registry = app.state::<NodeRegistryState>();
     #[cfg(feature = "plugin-manager")]
     {
-        tauri::async_runtime::block_on(validator.validate_with_registry_async(
-            &flow,
-            &node_registry.registry,
-            Some(node_registry.manager.as_ref()),
-        ))
+        validator
+            .validate_with_registry_async(
+                &flow,
+                &node_registry.registry,
+                Some(node_registry.manager.as_ref()),
+            )
+            .await
     }
     #[cfg(not(feature = "plugin-manager"))]
     {
