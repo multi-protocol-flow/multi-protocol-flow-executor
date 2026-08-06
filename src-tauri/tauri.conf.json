@@ -24,7 +24,14 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' tauri:; img-src 'self' data:"
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "connect-src": "'self' tauri:",
+        "img-src": "'self' data:",
+        "frame-src": "mpe-plugin: http://mpe-plugin.localhost http://*.mpe-plugin.localhost"
+      }
     }
   },
   "bundle": {

@@ -62,14 +62,26 @@ pub async fn perform_describe(
 /// Builds the host-side iframe URL for a plugin's `page` under its
 /// per-plugin origin (`<plugin-id>.localhost`, locked D5/F3).
 ///
-/// macOS/Linux use the custom `mpe-plugin://` scheme; Windows/Android use
-/// plain `http://` because custom schemes are not usable in iframe `src`
-/// there. The scheme is decided at runtime with `cfg!(windows)` so the same
-/// binary ships the correct URL on every platform — the frontend needs zero
-/// platform branching.
+/// macOS/Linux use the custom `mpe-plugin://<plugin-id>.localhost/<page>`
+/// scheme directly. Windows/Android have no custom-scheme support in iframe
+/// `src`, so wry re-routes the scheme through an `http://` workaround (see
+/// `wry/src/custom_protocol_workaround.rs`): the iframe must load
+/// `http://mpe-plugin.<plugin-id>.localhost/<page>` — the plugin id as a
+/// subdomain of the scheme host `mpe-plugin.localhost` — and wry reverts it
+/// to `mpe-plugin://<plugin-id>.localhost/<page>` before the protocol handler
+/// runs. Both forms therefore reach the handler with the identical host
+/// `<plugin-id>.localhost`. The scheme is decided at runtime with
+/// `cfg!(windows)` so the same binary ships the correct URL on every
+/// platform — the frontend needs zero platform branching.
 fn plugin_iframe_url(plugin_id: &str, page: &str) -> String {
-    let scheme = if cfg!(windows) { "http" } else { "mpe-plugin" };
-    format!("{scheme}://{plugin_id}.localhost/{page}")
+    if cfg!(windows) {
+        // Windows/Android: WebView2 workaround — plugin id must be a
+        // subdomain of the scheme host so the `http://mpe-plugin.*` filter
+        // matches and the revert yields `mpe-plugin://<id>.localhost/<page>`.
+        format!("http://mpe-plugin.{plugin_id}.localhost/{page}")
+    } else {
+        format!("mpe-plugin://{plugin_id}.localhost/{page}")
+    }
 }
 
 /// Normalizes parsed node descriptions for host consumption (PR-0/PR-2).

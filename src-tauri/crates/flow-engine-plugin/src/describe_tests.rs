@@ -160,10 +160,11 @@ async fn describe_handshake_parses_nodes() -> Result<(), Box<dyn std::error::Err
         "non-inline frontend kinds must pass through, not be dropped"
     );
     // The plugin-provided url is replaced by the host-generated per-plugin
-    // origin URL (D5/F3): `mpe-plugin://` on macOS/Linux, `http://` on
-    // Windows/Android.
+    // origin URL (D5/F3): `mpe-plugin://demo.localhost` on macOS/Linux,
+    // `http://mpe-plugin.demo.localhost` on Windows/Android (plugin id as a
+    // subdomain of the scheme host, per the wry WebView2 workaround).
     let expected_url = if cfg!(windows) {
-        "http://demo.localhost/config-panel"
+        "http://mpe-plugin.demo.localhost/config-panel"
     } else {
         "mpe-plugin://demo.localhost/config-panel"
     };
@@ -311,10 +312,12 @@ fn normalize_passes_all_frontend_kinds_and_generates_url() {
 
 #[test]
 fn plugin_iframe_url_uses_platform_scheme() {
-    // The scheme is a pure function of cfg!(windows) (F3).
+    // The scheme is a pure function of cfg!(windows) (F3). On Windows the
+    // plugin id is a subdomain of the scheme host so the WebView2
+    // `http://mpe-plugin.*` workaround filter matches.
     let url = plugin_iframe_url("acme", "config-panel");
     if cfg!(windows) {
-        assert_eq!(url, "http://acme.localhost/config-panel");
+        assert_eq!(url, "http://mpe-plugin.acme.localhost/config-panel");
     } else {
         assert_eq!(url, "mpe-plugin://acme.localhost/config-panel");
     }

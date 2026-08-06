@@ -13,6 +13,7 @@ use tokio::sync::Mutex;
 pub use mpe_cli::cli;
 
 // Tauri 特有模块
+mod plugin_protocol;
 mod tauri_adapters;
 mod tauri_commands;
 
@@ -209,11 +210,48 @@ pub fn run() {
     // rustls 0.23+ 要求显式选择加密后端
     let _ = rustls::crypto::ring::default_provider().install_default();
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
-        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_process::init());
+
+    // 注册 `mpe-plugin` 自定义协议（PR-1）：为插件配置面板 iframe 提供前端 HTML。
+    // 数据只来自内存 PluginManager 注册表缓存（D6），绝不触碰文件系统；
+    // 每个响应带 D8 self-CSP 头。handler 在请求时经 state 取管理器，
+    // 因此状态由 .setup 中的 `app.manage` 注入即可（setup 早于任何窗口导航）。
+    // 注意：Tauri 2 的异步协议注册方法只在 `Builder` 上（App/AppHandle 没有），
+    // 故在构建链上注册；handler 闭包按请求时态访问 state，无捕获、天然 'static。
+    #[cfg(feature = "plugin-manager")]
+    let builder = builder.register_asynchronous_uri_scheme_protocol(
+        plugin_protocol::SCHEME,
+        |ctx, request, responder| {
+            let state = ctx.app_handle().state::<NodeRegistryState>();
+            let manager = Arc::clone(&state.manager);
+            let host = request.uri().host().unwrap_or_default().to_owned();
+            let page = request.uri().path().trim_start_matches('/').to_owned();
+            let response = plugin_protocol::plugin_iframe_response(
+                |plugin_id| {
+                    manager
+                        .registrations()
+                        .iter()
+                        .find(|registration| registration.name == plugin_id)
+                        .and_then(|registration| {
+                            registration
+                                .nodes
+                                .iter()
+                                .find_map(|node| node.frontend.as_ref())
+                        })
+                        .map(|frontend| (frontend.kind.as_str(), frontend.content.as_deref()))
+                },
+                &host,
+                &page,
+            );
+            responder.respond(response);
+        },
+    );
+
+    builder
         .setup(|app| {
             // 注册共享节点注册表状态（内置节点 + 插件节点，全局构建一次）
             let node_registry_state = build_node_registry_state();
