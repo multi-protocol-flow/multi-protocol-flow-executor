@@ -68,6 +68,13 @@ def describe_result():
                         "b": {"type": "number", "default": 0},
                     },
                 },
+                # PR-5C: inline-content frontend — carried verbatim on the
+                # describe wire; the host passes it through normalization and
+                # generates the iframe url (D5/F3) for the config panel.
+                "frontend": {
+                    "type": "inline",
+                    "content": '<div id="pyecho-panel">PyEcho Add Config</div>',
+                },
             }
         ],
     }
