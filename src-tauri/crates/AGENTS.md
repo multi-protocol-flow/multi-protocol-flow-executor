@@ -1,13 +1,15 @@
 # Workspace Crates
-**Generated:** 2026-06-12 | **Branch:** dev | **Crates:** 20
+**Generated:** 2026-08-05 | **Branch:** feature/plugins | **Crates:** 25
 
 ## OVERVIEW
-21 dirs, 20 Rust crates across 4 layers:
+25 crate dirs across 4 layers + plugin system + CLI:
 - **L0 (Leaves):** `flow-engine-core`, `flow-engine-crypto`
 - **L1 (Protocols):** 16 optional crates (http, ws, db, script, assertion, grpc, mcp, tcp, mqtt, kafka, sse, graphql, amqp, smtp, imap, redis)
 - **L2 (Orchestration):** `flow-engine-executor`
 - **L3 (Facade):** `flow-engine`
+- **CLI:** `mpe-cli` (纯 Rust, 无 Tauri 依赖)
 - **Extra:** `workspace-hack` (cargo-hakari)
+- **插件系统 (独立分层):** `mpe-protocol` (共享 wire 契约) + `flow-engine-plugin` (宿主侧) + `mpe-plugin-sdk` (作者 SDK)
 
 All L1 crates are feature-gated (`protocol-*`). Default `all-protocols` enables all 16.
 
@@ -15,6 +17,9 @@ All L1 crates are feature-gated (`protocol-*`). Default `all-protocols` enables 
 ```
 app/mpe -> flow-engine -> flow-engine-executor -> 16 L1 crates -> flow-engine-core
                      \-> flow-engine-crypto
+mpe-cli -> flow-engine (default-features = false, 按需 feature)
+mpe-protocol (无依赖) <- flow-engine-plugin <- flow-engine-executor
+                        <- mpe-plugin-sdk (仅依赖 mpe-protocol)
 ```
 `smtp` and `imap` also depend on `flow-engine-crypto`.
 
@@ -41,13 +46,18 @@ app/mpe -> flow-engine -> flow-engine-executor -> 16 L1 crates -> flow-engine-co
 | flow-engine-redis | 1 | 6 | 1,328 | Redis commands | redis-rs |
 | flow-engine-executor | 2 | 39 | 18,557 | Execution engine, plugin sys | evalexpr, csv |
 | flow-engine | 3 | 2 | 286 | Facade / re-exports | - |
+| mpe-cli | CLI | 14 | ~2,500 | 纯 CLI 二进制 (run/validate/debug/stress/flow/report) | clap, flow-engine |
+| mpe-protocol | 插件 | 7 | ~900 | 插件 wire 契约 (JSON-RPC 2.0 subset + manifest + framing) | serde |
+| flow-engine-plugin | 插件 | 32 | ~4,200 | 宿主侧插件管理: discovery/lifecycle/transport/registration | mpe-protocol, executor |
+| mpe-plugin-sdk | 插件 | 11 | ~950 | 插件作者 SDK: Plugin trait + mpe_plugin_main! 宏 | mpe-protocol |
 | workspace-hack | X | 1 | 1 | Dep unification | - |
-**Total: ~263 .rs files, ~141,700+ LOC.**
+**Total: ~330 .rs files.**
 
 ## BUILD COMMANDS
 ```bash
 cargo build -p flow-engine-http         # single crate
 cargo test -p flow-engine-executor      # single crate test
+cargo build -p mpe-cli --release        # 纯 CLI 二进制
 cargo build -p flow-engine --no-default-features  # no protocols
 cargo check --workspace                 # full workspace
 ```
@@ -55,12 +65,13 @@ cargo check --workspace                 # full workspace
 ## COMPILE IMPACT
 | Modified | Recompiled |
 |----------|-----------|
-| core | all 20 crates + app |
+| core | all 25 crates + app |
 | crypto | executor, smtp, imap, facade, app |
 | Any L1 | executor, facade, app |
-| executor | facade, app |
-| facade | app only |
+| executor | facade, app, flow-engine-plugin |
+| facade | app, mpe-cli |
+| mpe-protocol | flow-engine-plugin, mpe-plugin-sdk |
 | workspace-hack | full rebuild |
 
 ## SUBDIRECTORY AGENTS.MD
-No per-crate AGENTS.md files exist. Entry point: each crate's `src/lib.rs`.
+每个 crate 的 `src/AGENTS.md` 记录其细节（协议 crate 均已有）。新 crate（flow-engine-plugin / mpe-plugin-sdk / mpe-protocol / mpe-cli）也各有一份。Entry point: each crate's `src/lib.rs`.

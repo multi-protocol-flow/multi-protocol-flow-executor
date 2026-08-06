@@ -1,19 +1,19 @@
 # 项目知识库
 
-**生成时间:** 2026-06-13 | **Branch:** dev
+**生成时间:** 2026-08-05 | **Branch:** feature/plugins
 
 ## 概述
 
 多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 模式（同一二进制 `mpe`）。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + @xyflow/react
-- **后端:** Rust Workspace (23 crates) + Tauri 2.x
+- **后端:** Rust Workspace (25 crates) + Tauri 2.x — 双二进制: `mpe` (GUI+CLI 二合一) + `mpe-cli` (纯 CLI)
 
 ## 结构
 
 ```
 root/
 ├── src/                  # 前端 (React 19 + TypeScript)
-├── src-tauri/            # 后端 (Rust workspace, 23 crates)
+├── src-tauri/            # 后端 (Rust workspace, 25 crates)
 ├── tests/                # CLI 测试夹具 (JSON flow files)
 ├── echo/                 # 全协议 echo 测试服务 (Docker Compose)
 ├── docs/                 # 架构文档
@@ -34,7 +34,8 @@ root/
 | IPC 命令 | `src-tauri/src/tauri_commands.rs` |
 | 执行引擎 | `src-tauri/crates/flow-engine-executor/` |
 | 协议执行器 | `src-tauri/crates/flow-engine-*/` |
-| CLI 入口 | `src-tauri/src/cli/` |
+| CLI 入口 | `src-tauri/crates/mpe-cli/src/` (注意: `src-tauri/src/cli/` 是过期副本) |
+| CLI 测试夹具 | `tests/cli/` + `tests/fixtures/flows/` |
 | 插件管理器 | `src-tauri/crates/flow-engine-plugin/` |
 | 插件 SDK | `src-tauri/crates/mpe-plugin-sdk/` |
 | 插件 wire 协议 | `src-tauri/crates/mpe-protocol/` |
@@ -54,9 +55,12 @@ Layer 1 (协议):     16 个协议 crate (http, ws, db, script, assertion, grpc,
 Layer 2 (编排):     flow-engine-executor (依赖 Layer 0 + 可选 Layer 1)
 Layer 3 (门面):     flow-engine (re-export 全部)
 Layer 4 (应用):     app (src-tauri/) 仅依赖 flow-engine
+CLI 独立:           mpe-cli (纯 Rust 二进制, 无 Tauri/GUI 依赖)
 Extra:              workspace-hack (cargo-hakari 自动管理)
 插件系统:           mpe-protocol (共享 wire 契约) + flow-engine-plugin (宿主侧边进程插件管理) + mpe-plugin-sdk (作者 SDK)
 ```
+
+`src-tauri/src/cli.rs` + `src-tauri/src/cli/` 为过期副本（lib.rs 通过 `pub use mpe_cli::cli;` 从 mpe-cli crate 导入），真实 CLI 在 `crates/mpe-cli/src/`。
 
 **增量编译**: 修改 Layer N → Layer N+1 及以上重编译。修改 core → 全量。插件系统三个 crate 独立于协议分层：`mpe-protocol` 无依赖，`flow-engine-plugin` 依赖 `flow-engine-executor` + `mpe-protocol`，`mpe-plugin-sdk` 仅依赖 `mpe-protocol`。
 
@@ -182,3 +186,8 @@ npm run tauri build             # 构建安装包
 - [src-tauri/crates/flow-engine-kafka/src/AGENTS.md](./src-tauri/crates/flow-engine-kafka/src/AGENTS.md) — Kafka
 - [src-tauri/crates/flow-engine-smtp/src/AGENTS.md](./src-tauri/crates/flow-engine-smtp/src/AGENTS.md) — SMTP
 - [src-tauri/crates/flow-engine-sse/src/AGENTS.md](./src-tauri/crates/flow-engine-sse/src/AGENTS.md) — SSE
+- [src-tauri/crates/flow-engine-plugin/src/AGENTS.md](./src-tauri/crates/flow-engine-plugin/src/AGENTS.md) — 插件宿主
+- [src-tauri/crates/mpe-plugin-sdk/src/AGENTS.md](./src-tauri/crates/mpe-plugin-sdk/src/AGENTS.md) — 插件 SDK
+- [src-tauri/crates/mpe-protocol/src/AGENTS.md](./src-tauri/crates/mpe-protocol/src/AGENTS.md) — 插件 wire 协议
+- [src-tauri/crates/mpe-cli/src/AGENTS.md](./src-tauri/crates/mpe-cli/src/AGENTS.md) — CLI 入口
+- [tests/AGENTS.md](./tests/AGENTS.md) — CLI 测试夹具

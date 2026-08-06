@@ -18,15 +18,7 @@
 | `lib.rs` | 库入口，Tauri Builder 组装、插件注册、77 个 `#[tauri::command]` 注册、re-export |
 | `tauri_commands.rs` | IPC 命令实现（4200+ 行），5 个 State 管理器，`#[tauri::command]` 函数定义 |
 | `tauri_adapters.rs` | Tauri trait 实现：`UnderlyingLogSender` / `ExecutionEventSender` / `DebugEventSender` / `DirectoryOpener` / `AppDirProvider` |
-| `cli.rs` | Clap CLI 定义（Cli/Commands/Subcommands） + `run_cli()` 入口 + 日志初始化 |
-| `cli/run.rs` | `mpe run` 子命令执行 |
-| `cli/validate.rs` | `mpe validate` 子命令执行 |
-| `cli/debug_cmd.rs` | `mpe debug` 子命令执行（NDJSON 双向调试协议） |
-| `cli/stress.rs` | `mpe stress` 子命令执行 |
-| `cli/flow.rs` + `flow_edit.rs` | `mpe flow` 子命令（list/show/create/copy/delete/import/edit） |
-| `cli/report.rs` | `mpe report` 子命令（list/show/delete） |
-| `cli/config.rs` | `mpe config` 子命令（配置读写） |
-| `cli/output.rs` | CLI 输出格式化（JSON / table / error） |
+| `cli.rs` + `cli/*.rs` | **过期副本** — lib.rs 通过 `pub use mpe_cli::cli;` 从 `crates/mpe-cli/src/` 导入。请勿修改此目录；真实 CLI 在 `crates/mpe-cli/src/cli.rs` + `cli/` |
 
 ## WHERE TO LOOK
 
@@ -35,8 +27,8 @@
 | 查找 IPC 命令入口 | `lib.rs` invoke_handler + `tauri_commands.rs` |
 | 添加新 IPC 命令 | `tauri_commands.rs` 实现函数 → `lib.rs` 注册 + re-export |
 | 理解命令委托逻辑 | `tauri_commands.rs` → 按 `flow_engine::commands::*` 追踪 |
-| 修改 CLI 参数 | `cli.rs`（clap derive） |
-| 添加 CLI 子命令 | `cli.rs` + 新建 `cli/xxx.rs` + `cli.rs` pub mod |
+| 修改 CLI 参数 | `crates/mpe-cli/src/cli.rs`（clap derive，非本目录） |
+| 添加 CLI 子命令 | `crates/mpe-cli/src/cli.rs` + `cli/xxx.rs`（非本目录） |
 | 调试 Tauri 适配器 | `tauri_adapters.rs`（日志/事件/目录操作） |
 | Tauri 插件 / 状态管理 | `lib.rs` setup 闭包 |
 | 二进制入口逻辑 | `main.rs`（参数判断 + FreeConsole） |
