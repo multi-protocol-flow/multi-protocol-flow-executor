@@ -7,6 +7,7 @@
 //!
 //! | method        | response                                        |
 //! |---------------|-------------------------------------------------|
+//! | `describe`    | `result` = a `DescribeResult` (inline + iframe) |
 //! | `echo`        | `result` = the request `params`                 |
 //! | `fail`        | error `-32000` "mock failure"                   |
 //! | `log`         | emits a `log` notification, then echoes         |
@@ -105,6 +106,20 @@ fn run_loop() {
 
 fn handle_request(writer: &mut impl Write, request: &Request) {
     match request.method.as_str() {
+        "describe" => {
+            // Object-shape describe (docs/plugin-protocol.md §9): a manifest
+            // echo plus one node type per provided frontend kind. The iframe
+            // node deliberately OMITS `url` so the conformance suite can prove
+            // the host generates it during normalization (PR-0/PR-2).
+            let _ = write_json(
+                writer,
+                &serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": request.id,
+                    "result": describe_result()
+                }),
+            );
+        }
         "echo" => {
             let _ = write_json(
                 writer,
@@ -170,6 +185,40 @@ fn handle_request(writer: &mut impl Write, request: &Request) {
             );
         }
     }
+}
+
+/// The `describe` response payload (object shape): the manifest echo plus two
+/// node types — one `inline` frontend (with content) and one `iframe`
+/// frontend that omits its `url` so the host must generate it during
+/// normalization. Kept as JSON literals, mirroring the other mock responses.
+fn describe_result() -> serde_json::Value {
+    serde_json::json!({
+        "plugin": {
+            "name": "demo",
+            "version": "0.0.0",
+            "entry": {"command": "echo_mock"}
+        },
+        "nodes": [
+            {
+                "type_id": "echo:inline",
+                "display_name": "Echo Inline",
+                "ports": [
+                    {"id": "in", "label": "In", "kind": "in"},
+                    {"id": "out", "label": "Out", "kind": "out"}
+                ],
+                "frontend": {"type": "inline", "content": "<p>echo</p>"}
+            },
+            {
+                "type_id": "echo:iframe",
+                "display_name": "Echo Iframe",
+                "ports": [
+                    {"id": "in", "label": "In", "kind": "in"},
+                    {"id": "out", "label": "Out", "kind": "out"}
+                ],
+                "frontend": {"type": "iframe"}
+            }
+        ]
+    })
 }
 
 fn write_json(writer: &mut impl Write, value: &impl serde::Serialize) -> std::io::Result<()> {

@@ -71,6 +71,7 @@ import { OnErrorSection } from '@/components/panels/shared/OnErrorSection';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import { PluginIframe } from '@/components/plugin/PluginIframe';
 import { useFlowVariables } from '@/hooks/useFlowVariables';
+import { PLUGIN_HOST_API, createPluginRequestHandler } from '@/lib/pluginRequestActions';
 
 interface NodeConfigPanelProps {
   /** 只读模式（调试时查看节点配置） */
@@ -317,9 +318,12 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                       origin={new URL(frontendUrl).origin}
                       config={nodeData}
                       variables={pluginVariables}
-                      hostApi={{}}
+                      // hostApi 能力声明与 requestAction 白名单同源（PR-5A 安全门）：
+                      // 未知动作被 createPluginRequestHandler 立即拒绝 → usePluginIframe
+                      // 经 actionResult 回传错误，插件不会挂起
+                      hostApi={PLUGIN_HOST_API}
                       onConfigChange={(config) => handleSave(config as NodeData)}
-                      // TODO(PR-5): requestAction 白名单 — hostApi 能力声明与 onRequestAction 由 PR-5 填充
+                      onRequestAction={createPluginRequestHandler(nodeData)}
                     />
                   );
                 }
