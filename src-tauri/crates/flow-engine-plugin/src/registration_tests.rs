@@ -302,3 +302,40 @@ fn decide_registration_registers_fresh_type_id() {
     let claimed = HashSet::new();
     assert_eq!(decide_registration("acme:pong", false, &claimed), Ok(()));
 }
+
+/// The `PendingPlugin` placeholder carries the describe-produced frontend
+/// through to the host registry, so `NodeMetadata.frontend` (and therefore
+/// the frontend `meta?.frontend`) is populated even before M3 swaps in the
+/// `SidecarPlugin` factory.
+#[test]
+fn pending_plugin_carries_frontend_to_registry() {
+    let mut manager = PluginManager::new(PathBuf::from("/nonexistent"));
+    let mut node = node_desc("acme:panel");
+    node.frontend = Some(mpe_protocol::describe::FrontendDescription {
+        kind: "iframe".to_string(),
+        content: None,
+        url: Some("mpe-plugin://acme.localhost/config-panel".to_string()),
+    });
+    manager.add_registration(PluginRegistration {
+        name: "acme".to_string(),
+        version: "1.0.0".to_string(),
+        dir: PathBuf::from("/nonexistent"),
+        manifest: manifest("acme"),
+        nodes: vec![node],
+    });
+
+    let mut registry = NodeRegistry::new();
+    manager.register_nodes(&mut registry);
+
+    let plugin = registry
+        .get("acme:panel")
+        .unwrap_or_else(|| panic!("node must be registered"));
+    let frontend = plugin
+        .frontend()
+        .unwrap_or_else(|| panic!("frontend must be carried"));
+    assert_eq!(frontend.kind, "iframe");
+    assert_eq!(
+        frontend.url.as_deref(),
+        Some("mpe-plugin://acme.localhost/config-panel")
+    );
+}

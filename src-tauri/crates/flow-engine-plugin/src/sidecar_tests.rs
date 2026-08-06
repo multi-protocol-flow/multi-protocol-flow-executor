@@ -510,6 +510,30 @@ async fn sidecar_metadata_mirrors_description() {
     assert_eq!(ports[1].id, "out");
 }
 
+/// `SidecarPlugin::frontend()` mirrors the describe-produced frontend
+/// description (converted to the host-side `FrontendMetadata`).
+#[test]
+fn sidecar_frontend_mirrors_description() {
+    let mut node = test_node_description();
+    node.frontend = Some(mpe_protocol::describe::FrontendDescription {
+        kind: "iframe".to_string(),
+        content: None,
+        url: Some("http://demo.localhost/config-panel".to_string()),
+    });
+    let manager = Arc::new(PluginManager::new(PathBuf::from("/nonexistent")));
+    let plugin = SidecarPlugin::new(node, manager);
+
+    let frontend = plugin
+        .frontend()
+        .unwrap_or_else(|| panic!("frontend must be present"));
+    assert_eq!(frontend.kind, "iframe");
+    assert_eq!(frontend.content, None);
+    assert_eq!(
+        frontend.url.as_deref(),
+        Some("http://demo.localhost/config-panel")
+    );
+}
+
 /// `connection_for_node` maps `type_id` → plugin name → lifecycle entry;
 /// unknown type ids are a protocol error.
 #[tokio::test]

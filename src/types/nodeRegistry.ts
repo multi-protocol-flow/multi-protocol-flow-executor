@@ -35,6 +35,11 @@ export interface NodeMetadata {
   default_config: Record<string, unknown>;
   /** 配置 JSON Schema（插件节点动态表单，可选） */
   config_schema?: unknown;
-  /** 前端描述（P0 仅支持 inline；P1 支持 iframe 等） */
-  frontend?: { type: string; content?: string };
+  /**
+   * 前端描述（P0 仅支持 inline；P1 支持 iframe 等）
+   * `url` 由宿主生成（D5/F3）：macOS/Linux 为
+   * `mpe-plugin://<plugin-id>.localhost/config-panel`，Windows/Android 为
+   * `http://<plugin-id>.localhost/config-panel`（P1 iframe 配置面板用）
+   */
+  frontend?: { type: string; content?: string; url?: string };
 }

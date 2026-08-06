@@ -27,18 +27,23 @@ pub struct PortDescription {
 
 /// Frontend description of a node.
 ///
-/// P0 supports only `kind == "inline"`; any other kind is warned about by
-/// the host and treated as no frontend (never fatal). The reserved
-/// `config_panel` / `viewer` / `help` fields are deferred to the P1 schema
-/// and deliberately not modeled yet.
+/// All frontend kinds pass through to the host (PR-0); the host generates
+/// the iframe `url` (per-plugin origin, D5/F3) during normalization when a
+/// frontend is present. The reserved `config_panel` / `viewer` / `help`
+/// fields are deferred to the P1 schema and deliberately not modeled yet.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FrontendDescription {
-    /// Frontend kind; `"inline"` is the only P0-supported value.
+    /// Frontend kind, e.g. `"inline"`, `"iframe"`, `"config-panel-url"`.
     #[serde(rename = "type")]
     pub kind: String,
     /// Inline HTML content for `kind == "inline"` frontends.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
+    /// Host-generated iframe URL (`mpe-plugin://<plugin-id>.localhost/…` on
+    /// macOS/Linux, `http://<plugin-id>.localhost/…` on Windows/Android).
+    /// Plugins may omit it — the host fills it in during normalization.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
 }
 
 /// One node type a plugin provides.
@@ -137,6 +142,7 @@ mod tests {
                 frontend: Some(FrontendDescription {
                     kind: "inline".to_string(),
                     content: Some("<p>ping</p>".to_string()),
+                    url: None,
                 }),
                 capabilities: PluginCapabilities::default(),
             }],
@@ -180,11 +186,17 @@ mod tests {
             a.frontend.as_ref().and_then(|f| f.content.as_deref()),
             Some("<p>a</p>")
         );
-        // A non-inline frontend still parses on the wire; P0 host-side
-        // normalization rejects it later.
+        // The `url` field is absent for inline frontends (host fills it in).
+        assert_eq!(a.frontend.as_ref().and_then(|f| f.url.as_deref()), None);
+        // A non-inline frontend still parses on the wire with its `url`;
+        // host-side normalization passes it through and (re)generates `url`.
         let b = &result.nodes[1];
         assert_eq!(b.frontend.as_ref().map(|f| f.kind.as_str()), Some("iframe"));
         assert_eq!(b.frontend.as_ref().and_then(|f| f.content.as_deref()), None);
+        assert_eq!(
+            b.frontend.as_ref().and_then(|f| f.url.as_deref()),
+            Some("https://x")
+        );
     }
 
     #[test]

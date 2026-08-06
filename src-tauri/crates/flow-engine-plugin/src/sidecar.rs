@@ -27,10 +27,11 @@ use flow_engine_core::error::ErrorDetail;
 use flow_engine_core::executor::resolve_variables_in_json;
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
-use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
+use flow_engine_core::plugin::{FrontendMetadata, NodePlugin, PortDef, ValidationError};
 use mpe_protocol::describe::NodeDescription;
 use serde_json::Value;
 
+use crate::describe::frontend_metadata_from;
 use crate::manager::PluginManager;
 use crate::wrapper::{
     execution_timeout, extract_referenced_variables, map_execute_response, map_plugin_error,
@@ -47,6 +48,7 @@ pub const VALIDATE_METHOD: &str = "validate";
 /// The `NodePlugin` facade for one describe-produced plugin node type.
 pub struct SidecarPlugin {
     node: NodeDescription,
+    frontend: Option<FrontendMetadata>,
     manager: Arc<PluginManager>,
 }
 
@@ -55,9 +57,16 @@ impl SidecarPlugin {
     ///
     /// M3.3's registration factory (`register_nodes_with`) supplies this
     /// constructor; the manager provides the lifecycle connection for the
-    /// node's plugin.
+    /// node's plugin. The wire frontend description is converted to the
+    /// host-side [`FrontendMetadata`] once here so [`NodePlugin::frontend`]
+    /// can hand it back by reference.
     pub fn new(node: NodeDescription, manager: Arc<PluginManager>) -> Arc<Self> {
-        Arc::new(Self { node, manager })
+        let frontend = node.frontend.as_ref().map(frontend_metadata_from);
+        Arc::new(Self {
+            node,
+            frontend,
+            manager,
+        })
     }
 }
 
@@ -117,6 +126,10 @@ impl NodePlugin for SidecarPlugin {
 
     fn config_schema(&self) -> Option<Value> {
         self.node.config_schema.clone()
+    }
+
+    fn frontend(&self) -> Option<&FrontendMetadata> {
+        self.frontend.as_ref()
     }
 
     /// Report status fidelity: a plugin that returned `Ok` succeeded; only an

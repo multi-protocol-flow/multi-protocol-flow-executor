@@ -97,9 +97,14 @@ SDK agree on the field names.
 
 ## 6. P1 frontend loading (CSP foundation)
 
-- Locked: P0 ships NO iframe. P1 default (OD3): `mpe-plugin://` custom Tauri
-  protocol with its own origin — no blob, no CSP intersection. Fallback:
-  blob URL + `frame-src blob:; script-src blob:`.
+- Locked: P0 ships NO iframe **rendering** in the frontend, but the host
+  already generates the iframe `url` into the describe `frontend` metadata
+  (see §9) so the later rendering PR has the URL ready. P1 default (OD3):
+  `mpe-plugin://` custom Tauri protocol with its own origin — no blob, no
+  CSP intersection. Platform split (F3): macOS/Linux use `mpe-plugin://`,
+  Windows/Android use `http://` because custom schemes are not usable in
+  iframe `src` there. Fallback: blob URL + `frame-src blob:; script-src
+  blob:`.
 - CSP staging note (M0.5): `src-tauri/tauri.conf.json` **cannot carry a
   staging comment** — the Tauri config parser rejects unknown keys
   (empirically tested: `$comment` fails with "unknown field"), and strict
@@ -164,11 +169,17 @@ on-disk `plugin.json` during discovery).
 
 - `plugin` is the plugin's authoritative manifest echo; its `capabilities`
   **override** the on-disk manifest (residency decision, M2b).
-- `nodes[].frontend`: P0 supports **only** `type: "inline"` with optional
-  inline `content`. The reserved `config_panel` / `viewer` / `help` frontend
-  fields are P1 and not part of the P0 schema. A plugin declaring any other
-  frontend type is **warned about and treated as having no frontend** —
-  never a crash.
+- `nodes[].frontend` (`{ "type", "content"?, "url"? }`): **all** frontend
+  kinds pass through to the host — nothing is dropped. `content` carries
+  inline HTML for `type: "inline"`. The host **generates the iframe `url`**
+  during normalization (locked D5/F3): per-plugin origin
+  `<plugin-id>.localhost` with the `config-panel` page —
+  `mpe-plugin://<plugin-id>.localhost/config-panel` on macOS/Linux and
+  `http://<plugin-id>.localhost/config-panel` on Windows/Android (selected at
+  runtime with `cfg!(windows)`, so the frontend needs zero platform
+  branching). A plugin-provided `url` is replaced by this host-generated
+  value. The reserved `config_panel` / `viewer` / `help` frontend fields are
+  P1 and not part of the P0 schema.
 - `nodes[].category` / `icon` / `color` / `config_schema` are optional
   (`null`-able); `ports` and `nodes` default to empty; `default_config`
   defaults to `null`.

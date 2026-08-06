@@ -2,13 +2,15 @@
 //!
 //! [`perform_describe`] issues the `describe` RPC over a live
 //! [`PluginConnection`] and parses the response into a
-//! [`DescribeResult`](mpe_protocol::describe::DescribeResult), normalizing
-//! P0-unsupported frontend kinds to no-frontend (warn, never crash). The
-//! function is pure with respect to the transport, so tests drive it with
-//! `PluginConnection::from_io` in-memory fakes; [`crate::manager`] runs it
-//! against real spawned processes.
+//! [`DescribeResult`](mpe_protocol::describe::DescribeResult). Every frontend
+//! kind passes through to the host (PR-0); the host generates the iframe
+//! `url` (per-plugin origin, D5/F3) because only the host knows the
+//! platform-usable scheme. The function is pure with respect to the
+//! transport, so tests drive it with `PluginConnection::from_io` in-memory
+//! fakes; [`crate::manager`] runs it against real spawned processes.
 
-use mpe_protocol::describe::{DescribeResult, NodeDescription};
+use flow_engine_core::plugin::FrontendMetadata;
+use mpe_protocol::describe::{DescribeResult, FrontendDescription, NodeDescription};
 use mpe_protocol::manifest::PluginManifest;
 
 use crate::error::PluginError;
@@ -57,13 +59,28 @@ pub async fn perform_describe(
     ))
 }
 
-/// Normalizes parsed node descriptions for host consumption (P0).
+/// Builds the host-side iframe URL for a plugin's `page` under its
+/// per-plugin origin (`<plugin-id>.localhost`, locked D5/F3).
 ///
-/// P0 accepts only `frontend.kind == "inline"`. A node declaring any other
-/// frontend kind is logged with a warning and treated as having no frontend;
-/// its remaining fields are kept. The reserved P1 frontend fields
-/// (`config_panel` / `viewer` / `help`) are not modeled by the wire type and
-/// are dropped by parsing itself.
+/// macOS/Linux use the custom `mpe-plugin://` scheme; Windows/Android use
+/// plain `http://` because custom schemes are not usable in iframe `src`
+/// there. The scheme is decided at runtime with `cfg!(windows)` so the same
+/// binary ships the correct URL on every platform — the frontend needs zero
+/// platform branching.
+fn plugin_iframe_url(plugin_id: &str, page: &str) -> String {
+    let scheme = if cfg!(windows) { "http" } else { "mpe-plugin" };
+    format!("{scheme}://{plugin_id}.localhost/{page}")
+}
+
+/// Normalizes parsed node descriptions for host consumption (PR-0/PR-2).
+///
+/// Every frontend kind passes through (no more dropping of non-inline
+/// kinds). When a node declares a frontend, the host generates the iframe
+/// URL for the plugin's `config-panel` page into `frontend.url` — the
+/// plugin cannot know the platform-usable scheme, so the host is the
+/// authority (D5/F3). Reserved P1 fields (`config_panel` / `viewer` /
+/// `help`) are not modeled by the wire type and are dropped by parsing
+/// itself.
 pub fn normalize_nodes(nodes: Vec<NodeDescription>, plugin_name: &str) -> Vec<NodeDescription> {
     nodes
         .into_iter()
@@ -71,20 +88,29 @@ pub fn normalize_nodes(nodes: Vec<NodeDescription>, plugin_name: &str) -> Vec<No
         .collect()
 }
 
-/// Normalizes one node's frontend per the P0 inline-only policy.
+/// Normalizes one node's frontend: all kinds pass through and the host
+/// generates the iframe URL into `frontend.url`.
 fn normalize_node(mut node: NodeDescription, plugin_name: &str) -> NodeDescription {
-    if let Some(frontend) = &node.frontend {
-        if frontend.kind != "inline" {
-            log::warn!(
-                "plugin {plugin_name} node {} declares unsupported frontend kind {:?}; \
-                 ignoring frontend (P0 supports inline only)",
-                node.type_id,
-                frontend.kind,
-            );
-            node.frontend = None;
-        }
+    if let Some(frontend) = &mut node.frontend {
+        frontend.url = Some(plugin_iframe_url(plugin_name, "config-panel"));
     }
     node
+}
+
+/// Maps a wire `FrontendDescription` onto the host-side `FrontendMetadata`
+/// (same shape: `kind` / `content` / `url`) so the plugin wrappers
+/// (`SidecarPlugin` / `PendingPlugin`) can hand the host registry the
+/// plugin's frontend metadata.
+///
+/// A free function rather than `From` because both types are defined outside
+/// this crate (orphan rule: `mpe_protocol` cannot depend on
+/// `flow-engine-core`).
+pub fn frontend_metadata_from(frontend: &FrontendDescription) -> FrontendMetadata {
+    FrontendMetadata {
+        kind: frontend.kind.clone(),
+        content: frontend.content.clone(),
+        url: frontend.url.clone(),
+    }
 }
 
 #[cfg(test)]

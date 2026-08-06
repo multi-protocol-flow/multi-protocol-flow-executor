@@ -48,6 +48,7 @@ impl NodeRegistry {
                 color: p.color().to_string(),
                 ports: p.ports(),
                 default_config: p.default_config(),
+                frontend: p.frontend().cloned(),
             })
             .collect()
     }
@@ -84,6 +85,18 @@ mod tests {
         type_id: String,
         display_name: String,
         category: String,
+        frontend: Option<crate::plugin::FrontendMetadata>,
+    }
+
+    impl MockPlugin {
+        fn new(type_id: &str, display_name: &str, category: &str) -> Self {
+            Self {
+                type_id: type_id.to_string(),
+                display_name: display_name.to_string(),
+                category: category.to_string(),
+                frontend: None,
+            }
+        }
     }
 
     #[async_trait]
@@ -120,6 +133,10 @@ mod tests {
             serde_json::json!({})
         }
 
+        fn frontend(&self) -> Option<&crate::plugin::FrontendMetadata> {
+            self.frontend.as_ref()
+        }
+
         async fn execute(
             &self,
             _node: &Node,
@@ -135,11 +152,7 @@ mod tests {
     #[test]
     fn test_register_and_get() {
         let mut registry = NodeRegistry::new();
-        let plugin = Arc::new(MockPlugin {
-            type_id: "http".to_string(),
-            display_name: "HTTP 请求".to_string(),
-            category: "http".to_string(),
-        });
+        let plugin = Arc::new(MockPlugin::new("http", "HTTP 请求", "http"));
 
         registry.register(plugin);
 
@@ -162,17 +175,13 @@ mod tests {
     fn test_all_metadata() {
         let mut registry = NodeRegistry::new();
 
-        registry.register(Arc::new(MockPlugin {
-            type_id: "http".to_string(),
-            display_name: "HTTP 请求".to_string(),
-            category: "http".to_string(),
-        }));
+        registry.register(Arc::new(MockPlugin::new("http", "HTTP 请求", "http")));
 
-        registry.register(Arc::new(MockPlugin {
-            type_id: "db_connect".to_string(),
-            display_name: "数据库连接".to_string(),
-            category: "database".to_string(),
-        }));
+        registry.register(Arc::new(MockPlugin::new(
+            "db_connect",
+            "数据库连接",
+            "database",
+        )));
 
         let metadata = registry.all_metadata();
         assert_eq!(metadata.len(), 2);
@@ -197,15 +206,51 @@ mod tests {
         assert_eq!(db_meta.category, "database");
     }
 
+    /// 测试：`all_metadata` 携带插件节点的 `frontend` 元数据
+    #[test]
+    fn test_all_metadata_carries_frontend() {
+        let mut registry = NodeRegistry::new();
+
+        // 带前端的插件节点
+        let mut plugin = MockPlugin::new("acme:panel", "Panel", "plugin");
+        plugin.frontend = Some(crate::plugin::FrontendMetadata {
+            kind: "iframe".to_string(),
+            content: None,
+            url: Some("mpe-plugin://acme.localhost/config-panel".to_string()),
+        });
+        registry.register(Arc::new(plugin));
+
+        // 无前端的内置节点
+        registry.register(Arc::new(MockPlugin::new("http", "HTTP 请求", "http")));
+
+        let metadata = registry.all_metadata();
+        let plugin_meta = metadata
+            .iter()
+            .find(|m| m.type_id == "acme:panel")
+            .unwrap_or_else(|| panic!("expected Some"));
+        let frontend = plugin_meta
+            .frontend
+            .as_ref()
+            .unwrap_or_else(|| panic!("plugin frontend must be carried"));
+        assert_eq!(frontend.kind, "iframe");
+        assert_eq!(
+            frontend.url.as_deref(),
+            Some("mpe-plugin://acme.localhost/config-panel")
+        );
+
+        // 内置节点无 frontend
+        let http_meta = metadata
+            .iter()
+            .find(|m| m.type_id == "http")
+            .unwrap_or_else(|| panic!("expected Some"));
+        assert!(http_meta.frontend.is_none());
+    }
+
     /// 测试：查找不存在的 `type_id` 返回 None
     #[test]
     fn test_get_unknown_returns_none() {
         let mut registry = NodeRegistry::new();
-        registry.register(Arc::new(MockPlugin {
-            type_id: "http".to_string(),
-            display_name: "HTTP 请求".to_string(),
-            category: "http".to_string(),
-        }));
+        registry.register(Arc::new(MockPlugin::new("http", "HTTP 请求", "http")));
 
         assert!(registry.get("nonexistent").is_none());
     }
@@ -215,11 +260,7 @@ mod tests {
     fn test_register_overwrites() {
         let mut registry = NodeRegistry::new();
 
-        registry.register(Arc::new(MockPlugin {
-            type_id: "http".to_string(),
-            display_name: "旧 HTTP".to_string(),
-            category: "http".to_string(),
-        }));
+        registry.register(Arc::new(MockPlugin::new("http", "旧 HTTP", "http")));
 
         assert_eq!(registry.len(), 1);
         assert_eq!(
@@ -231,11 +272,7 @@ mod tests {
         );
 
         // 注册同 type_id 的新插件
-        registry.register(Arc::new(MockPlugin {
-            type_id: "http".to_string(),
-            display_name: "新 HTTP".to_string(),
-            category: "http".to_string(),
-        }));
+        registry.register(Arc::new(MockPlugin::new("http", "新 HTTP", "http")));
 
         assert_eq!(registry.len(), 1);
         assert_eq!(
@@ -254,11 +291,7 @@ mod tests {
         assert!(registry.is_empty());
         assert_eq!(registry.len(), 0);
 
-        registry.register(Arc::new(MockPlugin {
-            type_id: "http".to_string(),
-            display_name: "HTTP 请求".to_string(),
-            category: "http".to_string(),
-        }));
+        registry.register(Arc::new(MockPlugin::new("http", "HTTP 请求", "http")));
 
         assert!(!registry.is_empty());
         assert_eq!(registry.len(), 1);

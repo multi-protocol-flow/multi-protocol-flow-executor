@@ -26,6 +26,22 @@ pub struct ValidationError {
     pub message: String,
 }
 
+/// 前端元数据（插件节点的自定义配置面板等，给前端 iframe 渲染用）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FrontendMetadata {
+    /// 前端类型，如 `"inline"`、`"iframe"`、`"config-panel-url"`
+    #[serde(rename = "type")]
+    pub kind: String,
+    /// 内联 HTML 内容（`kind == "inline"` 时使用）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
+    /// iframe URL（宿主生成：macOS/Linux 为
+    /// `mpe-plugin://<plugin-id>.localhost/<page>`，Windows/Android 为
+    /// `http://<plugin-id>.localhost/<page>`，见 D5/F3）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+}
+
 /// 节点元数据（给前端展示用）
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NodeMetadata {
@@ -43,6 +59,9 @@ pub struct NodeMetadata {
     pub ports: Vec<PortDef>,
     /// 拖拽创建节点时的默认配置
     pub default_config: serde_json::Value,
+    /// 前端元数据（插件节点的 iframe 配置面板；内置节点为 None）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub frontend: Option<FrontendMetadata>,
 }
 
 /// 节点插件 trait — 所有节点类型的统一接口
@@ -112,6 +131,14 @@ pub trait NodePlugin: Send + Sync {
     /// 返回节点配置的 JSON Schema（用于前端动态表单渲染）
     /// 默认返回 None，表示该节点类型使用前端硬编码的配置面板
     fn config_schema(&self) -> Option<serde_json::Value> {
+        None
+    }
+
+    /// 节点的前端元数据（插件 iframe 配置面板等）
+    ///
+    /// 默认返回 None，内置节点无需任何改动；插件节点（
+    /// `SidecarPlugin` / `PendingPlugin`）返回其 describe 产出的前端描述。
+    fn frontend(&self) -> Option<&FrontendMetadata> {
         None
     }
 
@@ -270,6 +297,11 @@ mod tests {
                 },
             ],
             default_config: serde_json::json!({"method": "get", "url": ""}),
+            frontend: Some(FrontendMetadata {
+                kind: "inline".to_string(),
+                content: Some("<p>hi</p>".to_string()),
+                url: None,
+            }),
         };
 
         let json = serde_json::to_string(&metadata).unwrap_or_else(|e| panic!("{e}"));
@@ -280,5 +312,57 @@ mod tests {
         assert_eq!(deserialized.ports.len(), 2);
         assert_eq!(deserialized.ports[0].id, "true");
         assert_eq!(deserialized.ports[1].id, "false");
+        // `frontend.kind` 在 wire 上序列化为 `"type"`（与 mpe-protocol 对齐）
+        assert!(json.contains("\"frontend\""));
+        let frontend = deserialized
+            .frontend
+            .unwrap_or_else(|| panic!("expected frontend"));
+        assert_eq!(frontend.kind, "inline");
+        assert_eq!(frontend.content.as_deref(), Some("<p>hi</p>"));
+        assert_eq!(frontend.url, None);
+    }
+
+    /// 测试 `NodePlugin::frontend()` 默认实现返回 None（内置节点零改动）
+    #[test]
+    fn test_frontend_default_is_none() {
+        struct MockPlugin;
+
+        #[async_trait::async_trait]
+        impl NodePlugin for MockPlugin {
+            fn type_id(&self) -> &str {
+                "mock"
+            }
+            fn display_name(&self) -> &str {
+                "Mock"
+            }
+            fn category(&self) -> &str {
+                "logic"
+            }
+            fn icon(&self) -> &str {
+                "icon"
+            }
+            fn color(&self) -> &str {
+                "#000000"
+            }
+            fn ports(&self) -> Vec<PortDef> {
+                Vec::new()
+            }
+            fn default_config(&self) -> serde_json::Value {
+                serde_json::json!({})
+            }
+            async fn execute(
+                &self,
+                _node: &crate::node::Node,
+                _context: &mut crate::context::ExecutionContext,
+                _connections: &[crate::connection::Connection],
+                _node_map: &std::collections::HashMap<String, &crate::node::Node>,
+            ) -> Result<(Vec<String>, Option<serde_json::Value>), crate::error::ErrorDetail>
+            {
+                Ok((Vec::new(), None))
+            }
+        }
+
+        let plugin = MockPlugin;
+        assert!(plugin.frontend().is_none());
     }
 }

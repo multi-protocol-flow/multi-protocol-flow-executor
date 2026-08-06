@@ -67,7 +67,8 @@ fn host_and_plugin(cap: usize) -> (PluginConnection, FakePlugin) {
 }
 
 /// The canned describe result the fake plugin answers with: one node with
-/// an inline frontend, one with an iframe frontend (P0-unsupported).
+/// an inline frontend, one with an iframe frontend (both pass through host
+/// normalization; the host generates the iframe URL).
 fn canned_result() -> serde_json::Value {
     serde_json::json!({
         "plugin": {"name": "demo", "version": "1.0.0", "entry": {"command": "demo"}, "capabilities": {"streaming": true}},
@@ -141,8 +142,8 @@ async fn describe_handshake_parses_nodes() -> Result<(), Box<dyn std::error::Err
     assert_eq!(frontend.content.as_deref(), Some("<p>ping</p>"));
     assert!(!ping.capabilities.streaming);
 
-    // The iframe frontend survives wire parsing but P0 normalization
-    // drops it (with a warning) — never a crash.
+    // The iframe frontend survives wire parsing and host normalization —
+    // all kinds pass through (PR-0), and the host generates the iframe URL.
     let legacy = &result.nodes[1];
     assert_eq!(
         legacy.frontend.as_ref().map(|f| f.kind.as_str()),
@@ -153,7 +154,33 @@ async fn describe_handshake_parses_nodes() -> Result<(), Box<dyn std::error::Err
         normalized[0].frontend.as_ref().map(|f| f.kind.as_str()),
         Some("inline")
     );
-    assert_eq!(normalized[1].frontend, None);
+    assert_eq!(
+        normalized[1].frontend.as_ref().map(|f| f.kind.as_str()),
+        Some("iframe"),
+        "non-inline frontend kinds must pass through, not be dropped"
+    );
+    // The plugin-provided url is replaced by the host-generated per-plugin
+    // origin URL (D5/F3): `mpe-plugin://` on macOS/Linux, `http://` on
+    // Windows/Android.
+    let expected_url = if cfg!(windows) {
+        "http://demo.localhost/config-panel"
+    } else {
+        "mpe-plugin://demo.localhost/config-panel"
+    };
+    assert_eq!(
+        normalized[0]
+            .frontend
+            .as_ref()
+            .and_then(|f| f.url.as_deref()),
+        Some(expected_url)
+    );
+    assert_eq!(
+        normalized[1]
+            .frontend
+            .as_ref()
+            .and_then(|f| f.url.as_deref()),
+        Some(expected_url)
+    );
     Ok(())
 }
 
@@ -247,7 +274,7 @@ async fn describe_handshake_accepts_sdk_array_shape(
 }
 
 #[test]
-fn normalize_keeps_inline_drops_other_frontend_kinds() {
+fn normalize_passes_all_frontend_kinds_and_generates_url() {
     let json = r#"[
             {"type_id": "demo:a", "display_name": "A", "frontend": {"type": "inline", "content": "<p>a</p>"}},
             {"type_id": "demo:b", "display_name": "B", "frontend": {"type": "config-panel-url", "url": "https://x"}}
@@ -255,9 +282,40 @@ fn normalize_keeps_inline_drops_other_frontend_kinds() {
     let nodes: Vec<NodeDescription> =
         serde_json::from_str(json).unwrap_or_else(|e| panic!("test nodes should parse: {e}"));
     let normalized = normalize_nodes(nodes, "demo");
+
+    // Inline kind passes through with its content preserved…
+    let a = normalized[0]
+        .frontend
+        .as_ref()
+        .unwrap_or_else(|| panic!("a: frontend missing"));
+    assert_eq!(a.kind, "inline");
+    assert_eq!(a.content.as_deref(), Some("<p>a</p>"));
+    // …and the host generates the config-panel iframe URL into `url`.
     assert_eq!(
-        normalized[0].frontend.as_ref().map(|f| f.kind.as_str()),
-        Some("inline")
+        a.url.as_deref(),
+        Some(plugin_iframe_url("demo", "config-panel").as_str())
     );
-    assert_eq!(normalized[1].frontend, None);
+
+    // Non-inline kinds pass through too (no longer dropped)…
+    let b = normalized[1]
+        .frontend
+        .as_ref()
+        .unwrap_or_else(|| panic!("b: frontend missing"));
+    assert_eq!(b.kind, "config-panel-url");
+    // …and the host-generated URL replaces the plugin-provided one.
+    assert_eq!(
+        b.url.as_deref(),
+        Some(plugin_iframe_url("demo", "config-panel").as_str())
+    );
+}
+
+#[test]
+fn plugin_iframe_url_uses_platform_scheme() {
+    // The scheme is a pure function of cfg!(windows) (F3).
+    let url = plugin_iframe_url("acme", "config-panel");
+    if cfg!(windows) {
+        assert_eq!(url, "http://acme.localhost/config-panel");
+    } else {
+        assert_eq!(url, "mpe-plugin://acme.localhost/config-panel");
+    }
 }

@@ -23,10 +23,11 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::error::{ErrorDetail, ErrorKind};
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{FrontendMetadata, NodePlugin, PortDef};
 use flow_engine_core::registry::NodeRegistry;
 use mpe_protocol::describe::NodeDescription;
 
+use crate::describe::frontend_metadata_from;
 use crate::error::PluginError;
 use crate::manager::{PluginManager, PluginRegistration};
 use crate::reserved::is_reserved_type_id;
@@ -90,12 +91,18 @@ pub fn decide_registration(
 /// factory with `SidecarPlugin::new(node, manager)`.
 pub struct PendingPlugin {
     node: NodeDescription,
+    frontend: Option<FrontendMetadata>,
 }
 
 impl PendingPlugin {
     /// Wraps one describe-produced node description.
+    ///
+    /// The wire frontend description is converted to the host-side
+    /// [`FrontendMetadata`] once here so [`NodePlugin::frontend`] can hand it
+    /// back by reference (same pattern as `SidecarPlugin`).
     pub fn new(node: NodeDescription) -> Self {
-        Self { node }
+        let frontend = node.frontend.as_ref().map(frontend_metadata_from);
+        Self { node, frontend }
     }
 }
 
@@ -135,6 +142,10 @@ impl NodePlugin for PendingPlugin {
 
     fn default_config(&self) -> serde_json::Value {
         self.node.default_config.clone()
+    }
+
+    fn frontend(&self) -> Option<&FrontendMetadata> {
+        self.frontend.as_ref()
     }
 
     async fn execute(

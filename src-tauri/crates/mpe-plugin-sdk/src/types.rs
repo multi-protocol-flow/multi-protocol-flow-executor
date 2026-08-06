@@ -41,10 +41,11 @@ pub struct NodeDescription {
     /// Optional JSON-Schema for the node config (drives host config forms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub config_schema: Option<serde_json::Value>,
-    /// Reserved for P1 frontend metadata; P0 is inline-only and the host
-    /// ignores this field. Never carries a `frontend_port`.
+    /// Optional frontend description (shared wire shape from `mpe-protocol`).
+    /// All kinds pass through to the host; the host generates the iframe
+    /// `url` during normalization when a frontend is present.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub frontend: Option<serde_json::Value>,
+    pub frontend: Option<mpe_protocol::describe::FrontendDescription>,
     /// Optional runtime capabilities (e.g. streaming residency).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capabilities: Option<mpe_protocol::manifest::PluginCapabilities>,
@@ -164,6 +165,29 @@ mod tests {
         let back: NodeDescription = serde_json::from_str(&json)?;
         assert_eq!(back, node);
         assert_eq!(back.type_id, "demo:echo");
+        Ok(())
+    }
+
+    #[test]
+    fn node_description_frontend_round_trip() -> Result<(), Box<dyn std::error::Error>> {
+        let mut node = NodeDescription::new("demo:echo", "Demo Echo");
+        node.frontend = Some(mpe_protocol::describe::FrontendDescription {
+            kind: "iframe".to_string(),
+            content: None,
+            url: Some("http://demo.localhost/config-panel".to_string()),
+        });
+        let json = serde_json::to_string(&node)?;
+        assert!(json.contains("\"frontend\""));
+        let back: NodeDescription = serde_json::from_str(&json)?;
+        let frontend = back
+            .frontend
+            .ok_or_else(|| "frontend missing after round trip".to_string())?;
+        assert_eq!(frontend.kind, "iframe");
+        assert_eq!(frontend.content, None);
+        assert_eq!(
+            frontend.url.as_deref(),
+            Some("http://demo.localhost/config-panel")
+        );
         Ok(())
     }
 }
