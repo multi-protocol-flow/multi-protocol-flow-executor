@@ -12,7 +12,7 @@ Database protocol crate. Provides 6 DB node types via NodePlugin trait + NodeExe
 ```
 plugin.rs          → DbPluginGroup::register_all (6 NodePlugin impls, delegates to executors)
 db_*_executor.rs   → 6 executor files (DbConnect/DbQuery/DbBegin/DbCommit/DbRollback/DbClose)
-db/pool.rs         → DatabaseConnectionManager — global pool registry (ActivePool HashMap)
+db/pool.rs         → DatabaseConnectionManager — per-execution pool registry (ActivePool HashMap, 每次执行新建，无全局长驻)
 db/{postgres,mysql,sqlite}.rs → sqlx pool wrappers per driver
 db/traits.rs       → DatabasePool / IsolationLevel / QueryResult (re-exported from core)
 db/types.rs        → DbConnection / DbDriver / DbConnectionStatus
