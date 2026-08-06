@@ -81,3 +81,6 @@ src/i18n/i18n-react.tsx
 .env.local
 
 dist-release/
+# Python bytecode cache (plugin fixtures, e2e tests)
+__pycache__/
+*.pyc
