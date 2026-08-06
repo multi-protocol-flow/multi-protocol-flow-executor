@@ -551,6 +551,8 @@ const en_US_execution = {
     variable_tree_no_match: 'No matching variables',
     variable_tree_pin: 'Pin to top',
     variable_tree_unpin: 'Unpin',
+    plugin_data: 'Plugin Data',
+    plugin_viewer_placeholder: 'Plugin result panel placeholder — the plugin-provided result UI will render here',
   },
   // ===== General Toast Messages =====
   toast: {

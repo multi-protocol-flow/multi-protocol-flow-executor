@@ -21,6 +21,7 @@ import { SseViewer } from '@/components/execution/viewers/SseViewer';
 import { GraphqlViewer } from '@/components/execution/viewers/GraphqlViewer';
 import { AmqpViewer } from '@/components/execution/viewers/AmqpViewer';
 import { EmailViewer } from '@/components/execution/viewers/EmailViewer';
+import { PluginIframeViewer } from '@/components/execution/viewers/PluginIframeViewer';
 
 interface ViewerProps {
   report: NodeExecutionReport;
@@ -137,8 +138,24 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
 
 /**
  * 根据节点类型获取对应的 Viewer 组件
- * 未注册的类型返回 GenericViewer
+ * - 已注册类型 → 精确 viewer（与 PR-4 之前完全一致，零回归）
+ * - 未注册类型 + 插件执行载荷（report.plugin_data 存在）→ PluginIframeViewer
+ * - 其余未注册类型 → GenericViewer（兜底）
+ *
+ * 插件检测规则：以「未注册类型 + plugin_data 存在」为准（而非类型名含 `:`），
+ * 因为 plugin_data 是插件执行载荷的权威信号；无 plugin_data 的插件节点
+ * （如校验失败未执行）继续走 GenericViewer 展示错误，体验更好。
+ * `report` 可选：旧调用方不传时行为与 PR-4 之前完全一致。
  */
-export function getViewerComponent(nodeType: string): ComponentType<ViewerProps> {
-  return viewerRegistry[nodeType] ?? GenericViewer;
+export function getViewerComponent(
+  nodeType: string,
+  report?: NodeExecutionReport
+): ComponentType<ViewerProps> {
+  const registered = viewerRegistry[nodeType];
+  if (registered) return registered;
+  // 插件分支：仅对未注册类型生效 —— 内置 70+ 类型解析路径不变
+  if (report && report.plugin_data !== undefined) {
+    return PluginIframeViewer;
+  }
+  return GenericViewer;
 }

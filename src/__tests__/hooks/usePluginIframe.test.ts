@@ -1,7 +1,8 @@
 /**
  * usePluginIframe 桥接 hook 测试
- * 覆盖：init 发送、configUpdated 推送、D3 双校验（origin + source）、
- * resize、requestAction → actionResult 往返、error、生命周期
+ * 覆盖：init 发送（目标 '*'）、configUpdated 推送、D3 校验（不透明源 'null'
+ * 接受 + 真实第三方源拒绝 + source 身份权威）、resize、
+ * requestAction → actionResult 往返、error、生命周期
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
@@ -10,6 +11,10 @@ import type { UsePluginIframeOptions } from '@/hooks/usePluginIframe';
 
 const SRC = 'mpe-plugin://demo.localhost/config-panel';
 const ORIGIN = 'mpe-plugin://demo.localhost';
+/** 沙箱 iframe 的真实入站 origin：不透明源恒报 'null'（跨平台，D3 实证） */
+const OPAQUE_ORIGIN = 'null';
+/** postMessage 目标 origin：不透明源只能以 '*' 送达（'null' 抛错、具体 origin 被丢弃） */
+const TARGET_ORIGIN = '*';
 const INITIAL_CONFIG = { url: 'https://example.com', method: 'get' };
 const INITIAL_VARIABLES = { api_base: 'https://api.example.com' };
 const INITIAL_HOST_API = { testConnection: true, openFileDialog: true };
@@ -46,13 +51,13 @@ function renderBridge(overrides: PartialOptions = {}) {
   return { ...utils, fake, onConfigChange, onRequestAction, props };
 }
 
-/** 从伪造 iframe 派发 message 事件 */
+/** 从伪造 iframe 派发 message 事件（默认 origin = 沙箱真实不透明源 'null'） */
 function dispatchMessage(
   fake: ReturnType<typeof makeFakeIframe>,
   data: unknown,
   options: { origin?: string; source?: unknown } = {}
 ) {
-  const { origin = ORIGIN, source = fake.contentWindow } = options;
+  const { origin = OPAQUE_ORIGIN, source = fake.contentWindow } = options;
   window.dispatchEvent(
     new MessageEvent('message', { data, origin, source: source as MessageEventSource })
   );
@@ -86,7 +91,7 @@ describe('usePluginIframe', () => {
 
       expect(fake.postMessage).toHaveBeenCalledTimes(1);
       const [payload, targetOrigin] = fake.postMessage.mock.calls[0] ?? [];
-      expect(targetOrigin).toBe(ORIGIN);
+      expect(targetOrigin).toBe(TARGET_ORIGIN);
       expect(payload).toEqual({
         type: 'init',
         payload: {
@@ -171,7 +176,7 @@ describe('usePluginIframe', () => {
 
       expect(fake.postMessage).toHaveBeenCalledWith(
         { type: 'configUpdated', payload: { config: nextConfig } },
-        ORIGIN
+        TARGET_ORIGIN
       );
     });
 
@@ -186,8 +191,34 @@ describe('usePluginIframe', () => {
     });
   });
 
-  describe('D3 安全校验（origin + source 双校验）', () => {
-    it('伪造消息（错误 origin）被静默丢弃', () => {
+  describe('D3 安全校验（source 权威 + origin 纵深）', () => {
+    it('沙箱不透明源（origin "null"，真实浏览器行为）消息被接受 —— 钉住 Windows 修复', () => {
+      const { fake, onConfigChange } = renderBridge();
+      const newConfig = { url: 'https://sandboxed.example.com' };
+
+      act(() => {
+        dispatchMessage(fake, { type: 'configChanged', payload: { config: newConfig } });
+      });
+
+      expect(onConfigChange).toHaveBeenCalledWith(newConfig);
+    });
+
+    it('origin 等于 origin prop 白名单（非沙箱场景）消息被接受', () => {
+      const { fake, onConfigChange } = renderBridge();
+      const newConfig = { url: 'https://whitelisted.example.com' };
+
+      act(() => {
+        dispatchMessage(
+          fake,
+          { type: 'configChanged', payload: { config: newConfig } },
+          { origin: ORIGIN }
+        );
+      });
+
+      expect(onConfigChange).toHaveBeenCalledWith(newConfig);
+    });
+
+    it('伪造消息（真实第三方 origin）被静默丢弃', () => {
       const { fake, onConfigChange } = renderBridge();
 
       act(() => {
@@ -201,7 +232,7 @@ describe('usePluginIframe', () => {
       expectNoBridgeTraffic(fake, onConfigChange);
     });
 
-    it('伪造消息（错误 event.source）被静默丢弃', () => {
+    it('伪造消息（错误 event.source，即便 origin 为不透明 "null"）被静默丢弃 —— source 是权威闸', () => {
       const { fake, onConfigChange } = renderBridge();
       const otherWindow = { postMessage: vi.fn() } as unknown as Window;
 
@@ -286,7 +317,7 @@ describe('usePluginIframe', () => {
       expect(onRequestAction).toHaveBeenCalledWith('testConnection', { host: 'x' });
       expect(fake.postMessage).toHaveBeenCalledWith(
         { type: 'actionResult', payload: { requestId: 'req-1', result: { ok: true } } },
-        ORIGIN
+        TARGET_ORIGIN
       );
     });
 
@@ -317,7 +348,7 @@ describe('usePluginIframe', () => {
 
       expect(fake.postMessage).toHaveBeenCalledWith(
         { type: 'actionResult', payload: { requestId: 'req-3', result: null, error: 'connection refused' } },
-        ORIGIN
+        TARGET_ORIGIN
       );
     });
 

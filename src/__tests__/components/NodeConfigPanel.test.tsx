@@ -119,9 +119,14 @@ describe('NodeConfigPanel', () => {
 
   describe('Entry 节点', () => {
     it('显示入口节点说明', async () => {
-      (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-        getSelectedNode: () => mockFlow.nodes[0],
-        updateNode: mockUpdateNode,
+      // selector 感知的 mock：NodeConfigPanel 现在会经 useFlowVariables 订阅 state.flow
+      (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
+        const state = {
+          getSelectedNode: () => mockFlow.nodes[0],
+          updateNode: mockUpdateNode,
+          flow: mockFlow,
+        };
+        return selector ? selector(state) : state;
       });
 
       render(<NodeConfigPanel />);
@@ -225,7 +230,21 @@ describe('NodeConfigPanel', () => {
       });
     });
 
-    it('metadata 声明 frontend 时显示 P1 提示（惰性占位）', async () => {
+    it('metadata 声明 frontend 且携带 url 时渲染 PluginIframe 配置面板', async () => {
+      (getCachedNodeMeta as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+        ...pluginMeta,
+        frontend: { type: 'iframe', url: 'http://mpe-plugin.demo.localhost/config-panel' },
+      });
+
+      render(<NodeConfigPanel />);
+
+      // PluginIframe 渲染沙箱 iframe（默认 title）
+      const iframe = (await screen.findByTitle('Plugin config panel')) as HTMLIFrameElement;
+      expect(iframe.getAttribute('src')).toBe('http://mpe-plugin.demo.localhost/config-panel');
+      expect(iframe.getAttribute('sandbox')).toBe('allow-scripts');
+    });
+
+    it('metadata 声明 frontend 但无 url（inline-only）时回落 SchemaConfigPanel', async () => {
       (getCachedNodeMeta as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
         ...pluginMeta,
         frontend: { type: 'inline', content: '<p>ping</p>' },
@@ -233,9 +252,11 @@ describe('NodeConfigPanel', () => {
 
       render(<NodeConfigPanel />);
 
+      // 无 url → 不渲染 iframe，回落动态 JSON-Schema 表单（空 schema → 空白提示）
       await waitFor(() => {
-        expect(screen.getByText('此版本暂不支持插件前端界面（P1）')).toBeDefined();
+        expect(screen.getByText('无可配置字段')).toBeDefined();
       });
+      expect(screen.queryByTitle('Plugin config panel')).toBeNull();
     });
 
     it('无 config_schema 且无 frontend 时保持空白 fallback', async () => {

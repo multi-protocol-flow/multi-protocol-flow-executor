@@ -7,7 +7,8 @@
  *
  * 安全（D3）：所有入站消息必须通过 `isPluginIframeMessage` 守卫
  * （信封形状 + 按 type 的 payload 形状校验），再叠加
- * `event.origin` / `event.source` 双重来源校验（见 usePluginIframe）。
+ * `event.source` 身份校验（权威）+ origin 纵深校验（沙箱不透明源 'null'
+ * 恒接受，见 usePluginIframe）。
  * 未知 type 一律拒绝 —— 新增消息类型必须在此文件显式登记。
  */
 

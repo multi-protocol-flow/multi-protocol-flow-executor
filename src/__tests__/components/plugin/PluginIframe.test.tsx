@@ -133,7 +133,8 @@ describe('PluginIframe', () => {
             host_api: { testConnection: true },
           },
         },
-        ORIGIN
+        // 沙箱 iframe 源不透明 → 目标 origin 只能是 '*'（D3 实证）
+        '*'
       );
       postMessageSpy.mockRestore();
     });

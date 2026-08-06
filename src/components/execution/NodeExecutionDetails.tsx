@@ -39,7 +39,8 @@ function toSnakeCase(str: string): string {
 function NodeViewerSelector({ report }: NodeExecutionDetailsProps) {
   // 后端返回的 node_type 可能是 PascalCase（如 "WsConnect"），转为 snake_case 匹配
   const nodeType = toSnakeCase(report.node_type);
-  const ViewerComponent = getViewerComponent(nodeType);
+  // report 透传：getViewerComponent 插件分支依赖 report.plugin_data 判定
+  const ViewerComponent = getViewerComponent(nodeType, report);
   return <ViewerComponent report={report} />;
 }
 

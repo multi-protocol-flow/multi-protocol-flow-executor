@@ -1076,7 +1076,7 @@ function FlowCanvasInner() {
       // 根据节点类型创建节点配置
       const nodeCount = flow.nodes.length + 1;
       const newNodeUuid = crypto.randomUUID();
-      const defaultData = createDefaultNodeData(nodeType as NodeType);
+      const defaultData = createDefaultNodeData(nodeType);
       const data = { ...defaultData, ...inferred };
       const name = createDefaultNodeName(nodeType as NodeType, nodeCount);
       addNode({
@@ -1121,7 +1121,7 @@ function FlowCanvasInner() {
     // 根据节点类型创建节点
     const nodeCount = flow.nodes.length + 1;
     const newNodeUuid = crypto.randomUUID();
-    const defaultData = createDefaultNodeData(pendingAddNodeType as NodeType);
+    const defaultData = createDefaultNodeData(pendingAddNodeType);
     const data = { ...defaultData, ...inferred };
     const name = createDefaultNodeName(pendingAddNodeType as NodeType, nodeCount);
     addNode({

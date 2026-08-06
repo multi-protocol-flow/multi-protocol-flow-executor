@@ -2,7 +2,7 @@
  * Flow 数据与 React Flow 数据转换工具
  */
 import type { Node, Edge } from '@xyflow/react';
-import type { Flow, Connection, NodeData, NodeType } from '@/types';
+import type { Flow, Connection, NodeData, NodeType, AnyNodeType } from '@/types';
 import { getCachedDefaultConfig } from '@/lib/NodeRegistry';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 
@@ -172,8 +172,9 @@ function hasPath(
 /**
  * 创建节点类型的默认配置数据
  * 优先从后端缓存获取，兜底使用静态默认配置
+ * D9: 签名宽化为 AnyNodeType —— 接受任意插件 type_id（如 "vendor:my-node"）
  */
-export function createDefaultNodeData(type: NodeType): NodeData {
+export function createDefaultNodeData(type: AnyNodeType): NodeData {
   // 优先从后端缓存获取默认配置
   const cachedConfig = getCachedDefaultConfig(type);
   if (cachedConfig) {

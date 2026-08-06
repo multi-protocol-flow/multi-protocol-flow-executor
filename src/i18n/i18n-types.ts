@@ -11795,6 +11795,14 @@ type RootTranslation = {
 			 * 取​消​固​定
 			 */
 			variable_tree_unpin: string
+			/**
+			 * 插​件​数​据
+			 */
+			plugin_data: string
+			/**
+			 * 插​件​结​果​面​板​占​位​ ​—​—​ ​插​件​自​定​义​结​果​界​面​将​在​此​渲​染
+			 */
+			plugin_viewer_placeholder: string
 		}
 		toast: {
 			/**
@@ -31144,6 +31152,14 @@ export type TranslationFunctions = {
 			 * 取消固定
 			 */
 			variable_tree_unpin: () => LocalizedString
+			/**
+			 * 插件数据
+			 */
+			plugin_data: () => LocalizedString
+			/**
+			 * 插件结果面板占位 —— 插件自定义结果界面将在此渲染
+			 */
+			plugin_viewer_placeholder: () => LocalizedString
 		}
 		toast: {
 			/**

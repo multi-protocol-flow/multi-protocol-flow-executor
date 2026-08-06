@@ -552,6 +552,8 @@ const zh_CN_execution: BaseTranslation = {
     variable_tree_no_match: '未找到匹配变量',
     variable_tree_pin: '固定到顶部',
     variable_tree_unpin: '取消固定',
+    plugin_data: '插件数据',
+    plugin_viewer_placeholder: '插件结果面板占位 —— 插件自定义结果界面将在此渲染',
   },
   // ===== 通用 Toast 消息 =====
   toast: {

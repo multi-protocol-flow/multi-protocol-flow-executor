@@ -69,6 +69,8 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { toast } from 'sonner';
 import { OnErrorSection } from '@/components/panels/shared/OnErrorSection';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
+import { PluginIframe } from '@/components/plugin/PluginIframe';
+import { useFlowVariables } from '@/hooks/useFlowVariables';
 
 interface NodeConfigPanelProps {
   /** 只读模式（调试时查看节点配置） */
@@ -121,6 +123,14 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   const modifyNodeConfig = useDebugStore((state) => state.modifyNodeConfig);
   const historyVersion = useFlowStore(selectHistoryVersion);
   const ll = getLL().panels.nodeConfig;
+
+  // 插件 iframe 配置面板的变量快照（与现有面板同源：useFlowVariables）
+  // 注意：必须在所有条件 return 之前调用（hook 规则）
+  const flowVariables = useFlowVariables();
+  const pluginVariables = useMemo(
+    () => Object.fromEntries(flowVariables.variables.map((v) => [v.name, v.value])),
+    [flowVariables.variables]
+  );
 
   // 优先使用外部传入的节点，否则回退到 store 中的选中节点
   const selectedNode = externalNode ?? getSelectedNode();
@@ -298,14 +308,19 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
               const meta = getCachedNodeMeta(nodeType);
               // 无硬编码面板的类型（含插件节点）→ Schema 驱动渲染
               if (isSchemaDriven(nodeType)) {
-                // 插件声明了自定义前端 → P1 提示（P0 仅支持 inline，此处渲染惰性占位）
-                if (meta?.frontend) {
+                // 插件声明了自定义前端 iframe（meta.frontend.url）→ 渲染 PluginIframe 桥
+                const frontendUrl = meta?.frontend?.url;
+                if (frontendUrl) {
                   return (
-                    <div className="w-full rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-                      <p className="text-xs text-muted-foreground">
-                        {ll.pluginFrontendNotSupported()}
-                      </p>
-                    </div>
+                    <PluginIframe
+                      src={frontendUrl}
+                      origin={new URL(frontendUrl).origin}
+                      config={nodeData}
+                      variables={pluginVariables}
+                      hostApi={{}}
+                      onConfigChange={(config) => handleSave(config as NodeData)}
+                      // TODO(PR-5): requestAction 白名单 — hostApi 能力声明与 onRequestAction 由 PR-5 填充
+                    />
                   );
                 }
                 // 插件提供了 config_schema → 动态 JSON-Schema 表单；否则保持空白 fallback

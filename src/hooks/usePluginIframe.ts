@@ -8,14 +8,20 @@
  * 状态机: `loading` →（iframe load + init 发送）→ `ready`（插件发来 ready）
  * → `active`（插件首次 configChanged / requestAction，用户已交互）。
  *
- * 安全（D3 双校验，缺一不可）：
- *   1. `event.origin === origin`（插件 origin 白名单）
- *   2. `event.source === iframeRef.current?.contentWindow`（来源窗口身份）
+ * 安全（D3，真实浏览器实证修正）：
+ * 沙箱 iframe（无 `allow-same-origin`）的源是**不透明的**，浏览器将其序列化
+ * 为字符串 `'null'`（跨平台一致：macOS/Linux 的 `mpe-plugin://` 与 Windows 的
+ * `http://mpe-plugin.<id>.localhost` 在沙箱内都报告 `event.origin === 'null'`）。
+ * 因此：
+ *   1. 发送：目标 origin 必须是 `'*'` —— 对不透明源传 `'null'` 会抛
+ *      `Invalid target origin`，传具体 origin（如 `http://mpe-plugin.*`）会被
+ *      浏览器静默丢弃（target origin 与接收窗口实际 origin 'null' 不匹配）。
+ *      使用 `'*'` 安全：目的地被 `iframeRef.current.contentWindow` 引用钉死
+ *      （永远只发给**我们的** iframe），接收侧身份由 `event.source` 校验。
+ *   2. 接收：`event.source === contentWindow` 是**权威**防伪闸（不变）；
+ *      origin 检查接受不透明源 `'null'` 或 `origin` prop 白名单（纵深防御，
+ *      拒绝任何真实第三方源——如宿主页面 XSS 或其他 frame 的伪造消息）。
  *   叠加 `isPluginIframeMessage` 信封/形状校验；任一失败静默丢弃。
- *
- * postMessage 目标 origin：使用 `origin` prop 原样（调用方从
- * `meta.frontend.url` 解析得到 —— macOS/Linux `mpe-plugin://<id>.localhost`、
- * Windows `http://mpe-plugin.<id>.localhost`）。
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
@@ -40,7 +46,7 @@ export type PluginIframeReadyState = 'loading' | 'ready' | 'active';
 export interface UsePluginIframeOptions {
   /** iframe URL（`meta.frontend.url`，如 `mpe-plugin://<id>.localhost/config-panel`） */
   src: string;
-  /** 插件 origin —— postMessage 目标 + 入站消息校验白名单（从 src 解析） */
+  /** 插件 origin —— 入站消息校验白名单（从 src 解析；沙箱不透明源 'null' 恒被接受） */
   origin: string;
   /** 当前节点配置（快照语义：postMessage 结构化克隆，插件收到的是深拷贝） */
   config: unknown;
@@ -82,11 +88,18 @@ export function usePluginIframe(options: UsePluginIframeOptions): UsePluginIfram
   // 插件是否已就绪（ready 消息）——决定 configUpdated 是否立即推送
   const readyRef = useRef(false);
 
-  /** 向插件 iframe 发消息（目标 origin = origin prop 原样） */
+  /**
+   * 向插件 iframe 发消息。
+   * 目标 origin 固定 `'*'`：沙箱 iframe 源不透明（'null'）——
+   * 传 `'null'` 抛 Invalid target origin，传具体 origin 被静默丢弃，
+   * `'*'` 是唯一能送达的合法目标（D3 实证）。安全性由接收方
+   * `event.source === contentWindow` 身份校验兜底；postMessage 的
+   * `'*'` 只影响送达范围，不影响消息内容。
+   */
   const sendToIframe = useCallback((message: PluginIframeMessage): void => {
     const contentWindow = iframeRef.current?.contentWindow;
     if (!contentWindow) return;
-    contentWindow.postMessage(message, latestRef.current.origin);
+    contentWindow.postMessage(message, '*');
   }, []);
 
   /** iframe load：发送 init（config + 变量快照 + host_api 能力声明） */
@@ -121,15 +134,18 @@ export function usePluginIframe(options: UsePluginIframeOptions): UsePluginIfram
     [sendToIframe]
   );
 
-  /** 入站消息处理：D3 双校验 + 协议守卫，通过后按 type 分派 */
+  /** 入站消息处理：D3 校验（source 权威 + origin 纵深）+ 协议守卫，通过后按 type 分派 */
   const handleMessage = useCallback(
     (event: MessageEvent): void => {
       const contentWindow = iframeRef.current?.contentWindow;
       if (!contentWindow) return;
-      // D3 校验 1：来源 origin 必须等于插件白名单 origin
-      if (event.origin !== latestRef.current.origin) return;
-      // D3 校验 2：来源窗口必须就是本 iframe 的 contentWindow
+      // D3 权威校验：来源窗口必须就是本 iframe 的 contentWindow（防伪主闸）
       if (event.source !== contentWindow) return;
+      // D3 纵深校验：沙箱 iframe 的源不透明，浏览器恒报 event.origin === 'null'；
+      // 接受 'null'（沙箱）或 origin prop 白名单（非沙箱场景），拒绝其他任何
+      // 真实（非不透明）来源 —— 阻止宿主页面内其他 frame / XSS 伪造消息。
+      const isOpaqueSandboxOrigin = event.origin === 'null';
+      if (!isOpaqueSandboxOrigin && event.origin !== latestRef.current.origin) return;
       // 协议守卫：信封形状 + payload 形状（未知 type / 畸形 → 丢弃）
       const message = event.data;
       if (!isPluginIframeMessage(message)) return;
