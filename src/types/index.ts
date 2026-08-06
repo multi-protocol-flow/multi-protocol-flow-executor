@@ -381,3 +381,36 @@ export type {
   HookAction,
   FlowHook,
 } from './hook';
+
+// 插件 iframe 协议类型
+export type {
+  PluginIframeHostMessageType,
+  PluginIframePluginMessageType,
+  PluginIframeMessageType,
+  PluginIframeHostApi,
+  PluginIframeInitPayload,
+  PluginIframeConfigUpdatedPayload,
+  PluginIframeActionResultPayload,
+  PluginIframeReadyPayload,
+  PluginIframeConfigChangedPayload,
+  PluginIframeRequestActionPayload,
+  PluginIframeResizePayload,
+  PluginIframeErrorPayload,
+  PluginIframeInitMessage,
+  PluginIframeConfigUpdatedMessage,
+  PluginIframeActionResultMessage,
+  PluginIframeReadyMessage,
+  PluginIframeConfigChangedMessage,
+  PluginIframeRequestActionMessage,
+  PluginIframeResizeMessage,
+  PluginIframeErrorMessage,
+  PluginIframeHostMessage,
+  PluginIframePluginMessage,
+  PluginIframeMessage,
+} from './plugin-iframe';
+export {
+  isPluginIframeMessage,
+  createInitMessage,
+  createConfigUpdatedMessage,
+  createActionResultMessage,
+} from './plugin-iframe';
