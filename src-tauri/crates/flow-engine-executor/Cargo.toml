@@ -14,13 +14,8 @@ all-protocols = [
     "protocol-grpc",
     "protocol-mcp",
     "protocol-tcp",
-    "protocol-mqtt",
-    "protocol-kafka",
     "protocol-sse",
     "protocol-graphql",
-    "protocol-amqp",
-    "protocol-smtp",
-    "protocol-imap",
     "protocol-redis",
 ]
 protocol-http = ["dep:flow-engine-http"]
