@@ -129,7 +129,7 @@ Request params:
   "config": { "a": 2, "b": 3 },
   "providers": {},
   "referenced_variables": ["initial_variables.host"],
-  "execution_id": "flow-uuid",
+  "execution_id": "exec-2f8a1c9e-9b3d-4e6f-8a1c-5d7e9f0a2b3c",
   "node_instance_id": "node-uuid"
 }
 ```
@@ -140,6 +140,10 @@ Request params:
   providers cannot be encoded; P1).
 - `execution_id` / `node_instance_id` correlate logs and events; every
   `log`-style notification should echo them back.
+- `execution_id` is a **per-execution instance id** — a fresh
+  `Uuid::new_v4()` value unique to each flow run, not the flow's stable
+  uuid. Plugins must treat it as opaque state-keying material (e.g. for
+  resident per-run state) and never assume it equals `flow.uuid`.
 
 Response result:
 
