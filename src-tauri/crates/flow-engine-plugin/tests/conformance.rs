@@ -315,3 +315,52 @@ async fn conformance_scan_and_register_carries_iframe_frontend(
     std::fs::remove_dir_all(&root)?;
     Ok(())
 }
+
+/// `PluginManager::notify_flow_ended` broadcasts a fire-and-forget `flowEnded`
+/// notification (carrying `execution_id`) to every **running** plugin, without
+/// spawning idle on-demand plugins.
+#[tokio::test]
+async fn conformance_notify_flow_ended_reaches_running_plugin_only(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let root = unique_temp_dir("flow-ended");
+    let plugin_dir = root.join("demo");
+    std::fs::create_dir_all(&plugin_dir)?;
+    let manifest = serde_json::json!({
+        "name": "demo",
+        "version": "0.0.0",
+        "entry": {"command": env!("CARGO_BIN_EXE_echo_mock")}
+    });
+    std::fs::write(
+        plugin_dir.join("plugin.json"),
+        serde_json::to_vec_pretty(&manifest)?,
+    )?;
+
+    let mut manager = PluginManager::new(root.clone());
+    let registrations = manager.scan_and_describe().await;
+    assert_eq!(registrations.len(), 1, "echo mock must register");
+
+    // Before any connection is forced, the entry is on-demand and idle:
+    // the broadcast must be a no-op (no spawn, no error).
+    manager.notify_flow_ended("exec-idle").await;
+
+    // Force the process up through the real connection path…
+    let conn = manager.connection_for("demo").await?;
+    assert!(matches!(
+        conn.exit_reason(),
+        flow_engine_plugin::transport::ExitReason::Running
+    ));
+
+    // …then broadcast to a running plugin: must not error.
+    manager.notify_flow_ended("exec-live").await;
+
+    // The plugin connection must still be usable after the broadcast
+    // (fire-and-forget never wedges the transport).
+    let reply = conn
+        .request("echo", serde_json::json!({"message": "still-alive"}))
+        .await?;
+    assert_eq!(reply.get("message"), Some(&serde_json::json!("still-alive")));
+
+    manager.shutdown_all(Duration::from_secs(5)).await;
+    std::fs::remove_dir_all(&root)?;
+    Ok(())
+}

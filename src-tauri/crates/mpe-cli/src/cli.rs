@@ -414,8 +414,9 @@ async fn async_main() -> Result<(), CliError> {
     });
 
     // 构建共享节点注册表（内置节点 + 插件节点，整个进程只构建一次，
-    // 使插件进程在多次执行/压测之间复用）
-    let registry = build_shared_registry().await;
+    // 使插件进程在多次执行/压测之间复用）。同时保留插件管理器，
+    // 用于执行结束后广播 flowEnded（释放插件 per-execution 资源）。
+    let (registry, plugin_manager) = build_shared_registry().await;
 
     match cli.command {
         Commands::Run {
@@ -431,6 +432,7 @@ async fn async_main() -> Result<(), CliError> {
                 stream,
                 no_report,
                 registry,
+                plugin_manager,
                 cancel_rx,
             )
             .await
@@ -467,8 +469,14 @@ fn plugins_dir() -> PathBuf {
 /// 构建 CLI 共享节点注册表
 ///
 /// 启用 `plugin-manager` 特性时扫描插件目录并登记插件节点（describe 拉起
-/// 插件进程）；关闭时仅注册内置节点。扫描失败仅告警，不影响启动。
-async fn build_shared_registry() -> Arc<flow_engine::registry::NodeRegistry> {
+/// 插件进程），同时返回插件管理器（用于 flowEnded 等 fire-and-forget 通知，
+/// 插件进程可跨多次执行复用）；关闭时仅注册内置节点，管理器为 `None`。
+/// 扫描失败仅告警，不影响启动。
+async fn build_shared_registry(
+) -> (
+    Arc<flow_engine::registry::NodeRegistry>,
+    Option<Arc<flow_engine::PluginManager>>,
+) {
     #[cfg(feature = "plugin-manager")]
     {
         use flow_engine::default_registry_with_plugins;
@@ -477,11 +485,15 @@ async fn build_shared_registry() -> Arc<flow_engine::registry::NodeRegistry> {
         let mut manager = PluginManager::new(plugins_dir());
         let _ = manager.scan_and_describe().await;
         let manager = Arc::new(manager);
-        Arc::new(default_registry_with_plugins(&manager))
+        let registry = Arc::new(default_registry_with_plugins(&manager));
+        (registry, Some(manager))
     }
     #[cfg(not(feature = "plugin-manager"))]
     {
-        Arc::new(flow_engine::default_registry::default_registry())
+        (
+            Arc::new(flow_engine::default_registry::default_registry()),
+            None,
+        )
     }
 }
 

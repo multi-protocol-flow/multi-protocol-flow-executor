@@ -42,6 +42,18 @@ pub struct ExecutionContext {
     /// 流程 UUID（前端生成）
     pub flow_uuid: String,
 
+    /// 本次流程执行的唯一实例 ID（每次 `execute_flow` 生成一个 fresh UUID）。
+    ///
+    /// 与 `flow_uuid` 的区别：同一流程（相同 `flow_uuid`）可被多次执行——
+    /// 压测多虚拟用户并发、数据集多行、GUI/CLI 重复运行——每次执行都得到
+    /// 不同的 `execution_id`。插件协议把该值作为 `execute` 的 `execution_id`
+    /// 传给插件，插件可据此按"单次执行"隔离 per-execution 资源（如 Mongo
+    /// 连接池），避免多执行共享同一 key 导致串池。
+    ///
+    /// 运行时字段，不参与序列化（与 `providers` 等同类）。
+    #[serde(skip)]
+    pub execution_id: String,
+
     /// 当前执行节点的 UUID
     pub current_node_uuid: Option<String>,
 
@@ -126,6 +138,7 @@ impl ExecutionContext {
     pub fn new(flow_uuid: String, flow_trigger_time: u64) -> Self {
         Self {
             flow_uuid,
+            execution_id: uuid::Uuid::new_v4().to_string(),
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: Vec::new(),
@@ -654,6 +667,26 @@ mod tests {
         assert_eq!(ctx.flow_trigger_time, 1000);
         assert!(ctx.current_node_uuid.is_none());
         assert_eq!(ctx.node_reports.len(), 0);
+    }
+
+    #[test]
+    fn test_execution_id_is_unique_per_instance() {
+        let a = ExecutionContext::new("same-flow".to_string(), 1000);
+        let b = ExecutionContext::new("same-flow".to_string(), 1000);
+
+        // 同一 flow_uuid 的两次执行必须得到不同 execution_id（per-execution 隔离）
+        assert_eq!(a.flow_uuid, b.flow_uuid);
+        assert!(!a.execution_id.is_empty());
+        assert_ne!(a.execution_id, b.execution_id, "execution_id must be unique per execution");
+    }
+
+    #[test]
+    fn test_execution_id_skipped_in_serialization() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+        let json = serde_json::to_string(&ctx).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+
+        // #[serde(skip)]：execution_id 是运行时字段，不出现在序列化输出中
+        assert!(!json.contains("execution_id"), "execution_id must not serialize");
     }
 
     #[test]

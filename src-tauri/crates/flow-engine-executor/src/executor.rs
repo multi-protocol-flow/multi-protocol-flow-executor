@@ -36,6 +36,9 @@ pub struct ExecutionResult {
     pub node_reports: Vec<flow_engine_core::report::NodeExecutionReport>,
     /// 流程执行报告
     pub flow_report: Option<flow_engine_core::report::FlowExecutionReport>,
+    /// 本次执行的唯一实例 ID（与插件收到的 `execution_id` 一致）。
+    /// 宿主用它向插件广播 `flowEnded`，插件据此释放 per-execution 资源。
+    pub execution_id: String,
 }
 
 /// 计算变量变更列表
@@ -236,6 +239,10 @@ impl FlowExecutor {
         let start_time = tokio::time::Instant::now();
         let mut executed_count = 0u32;
         let mut node_reports = Vec::new();
+        // 每次执行生成独立的 execution_id：同一 flow（相同 flow_uuid）可被多次执行
+        // （压测多虚拟用户、数据集多行、重复运行），execution_id 必须每次唯一，
+        // 插件据此按"单次执行"隔离 per-execution 资源。
+        let execution_id = Uuid::new_v4().to_string();
         // 优先使用调用方传入的变量，否则从流程的激活环境中解析
         let initial_variables = variables
             .or_else(|| flow.get_active_variables().map(|v| json!(v)))
@@ -249,6 +256,7 @@ impl FlowExecutor {
 
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
+            execution_id: execution_id.clone(),
             current_node_uuid: None,
             variables: var_storage,
             node_reports: vec![],
@@ -286,6 +294,7 @@ impl FlowExecutor {
                 executed_count: 0,
                 node_reports: vec![],
                 flow_report: None,
+                execution_id: execution_id.clone(),
             };
         }
         // 过滤 flow_warning：排除已由前端通过 end_node_reached i18n 处理的"无 End 节点"提示
@@ -319,6 +328,7 @@ impl FlowExecutor {
                     executed_count: 0,
                     node_reports: vec![],
                     flow_report: None,
+                    execution_id: execution_id.clone(),
                 };
             }
         };
@@ -371,6 +381,7 @@ impl FlowExecutor {
                     executed_count: 0,
                     node_reports,
                     flow_report: None,
+                    execution_id: execution_id.clone(),
                 };
             }
 
@@ -964,6 +975,7 @@ impl FlowExecutor {
                             executed_count,
                             node_reports,
                             flow_report: Some(flow_report),
+                            execution_id: execution_id.clone(),
                         };
                     } else {
                         // 可恢复Error（Execution, Connection, Timeout 等）：记录Failed，, terminating current branch
@@ -1147,6 +1159,7 @@ impl FlowExecutor {
                 executed_count,
                 node_reports,
                 flow_report: Some(flow_report),
+                execution_id: execution_id.clone(),
             }
         } else {
             ExecutionResult {
@@ -1168,6 +1181,7 @@ impl FlowExecutor {
                 executed_count,
                 node_reports,
                 flow_report: Some(flow_report),
+                execution_id: execution_id.clone(),
             }
         }
     }
@@ -1251,6 +1265,7 @@ impl FlowExecutor {
                 executed_count: 0,
                 node_reports: vec![],
                 flow_report: None,
+                execution_id: Uuid::new_v4().to_string(),
             };
         }
 
@@ -1297,6 +1312,7 @@ impl FlowExecutor {
                         plugin_data: context.current_node_plugin_data.take(),
                     }],
                     flow_report: None,
+                    execution_id: context.execution_id.clone(),
                 };
             }
         };
@@ -1347,6 +1363,7 @@ impl FlowExecutor {
                         plugin_data: context.current_node_plugin_data.take(),
                     }],
                     flow_report: None,
+                    execution_id: context.execution_id.clone(),
                 }
             }
             Ok(Err(err_detail)) => {
@@ -1376,6 +1393,7 @@ impl FlowExecutor {
                         plugin_data: context.current_node_plugin_data.take(),
                     }],
                     flow_report: None,
+                    execution_id: context.execution_id.clone(),
                 }
             }
             Err(_elapsed) => {
@@ -1413,6 +1431,7 @@ impl FlowExecutor {
                         plugin_data: context.current_node_plugin_data.take(),
                     }],
                     flow_report: None,
+                    execution_id: context.execution_id.clone(),
                 }
             }
         }
@@ -2131,6 +2150,7 @@ mod tests {
         variables.set_variable("api_key".to_string(), json!("test-key"), String::new());
         let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
+            execution_id: String::new(),
             current_node_uuid: None,
             variables,
             node_reports: vec![],
@@ -2167,6 +2187,7 @@ mod tests {
         );
         let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
+            execution_id: String::new(),
             current_node_uuid: None,
             variables,
             node_reports: vec![],
@@ -2194,6 +2215,7 @@ mod tests {
         let variables = VariableStorage::new();
         let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
+            execution_id: String::new(),
             current_node_uuid: None,
             variables,
             node_reports: vec![],
@@ -2225,6 +2247,7 @@ mod tests {
         variables.set_variable("items".to_string(), json!(["a", "b", "c"]), String::new());
         let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
+            execution_id: String::new(),
             current_node_uuid: None,
             variables,
             node_reports: vec![],
@@ -2273,6 +2296,7 @@ mod tests {
             variables.set_variable("items".to_string(), json!(["a", "b", "c"]), String::new());
             let context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
+                execution_id: String::new(),
                 current_node_uuid: None,
                 variables,
                 node_reports: vec![],
@@ -2304,6 +2328,7 @@ mod tests {
             variables.set_variable("test_var".to_string(), json!(value.clone()), String::new());
             let context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
+                execution_id: String::new(),
                 current_node_uuid: None,
                 variables,
                 node_reports: vec![],
@@ -2335,6 +2360,7 @@ mod tests {
             variables.set_variable("value".to_string(), json!(num), String::new());
             let context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
+                execution_id: String::new(),
                 current_node_uuid: None,
                 variables,
                 node_reports: vec![],
@@ -2366,6 +2392,7 @@ mod tests {
             variables.set_variable("flag".to_string(), json!(val), String::new());
             let context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
+                execution_id: String::new(),
                 current_node_uuid: None,
                 variables,
                 node_reports: vec![],

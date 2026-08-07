@@ -125,6 +125,57 @@ fn sdk_plugin_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// A `flowEnded` notification (host → plugin, fire-and-forget, no id) must be
+/// tolerated by plugins that don't implement `Plugin::flow_ended` (older
+/// binaries hit the unknown-notification ignore branch): no crash, no error
+/// response, and the plugin stays fully usable afterwards.
+#[test]
+fn sdk_flow_ended_notification_is_tolerated() -> Result<(), Box<dyn std::error::Error>> {
+    let (mut child, mut stdin, mut stdout) = spawn_plugin()?;
+
+    // Phase 1: describe (1 request → 1 response).
+    let responses = exchange(
+        &mut stdin,
+        &mut stdout,
+        &[(
+            r#"{"jsonrpc":"2.0","id":1,"method":"describe","params":{}}"#,
+            false,
+        )],
+    )?;
+    assert_eq!(responses.len(), 1);
+    let nodes: Vec<NodeDescription> =
+        serde_json::from_value(responses[0]["result"].clone())?;
+    assert_eq!(nodes.len(), 1);
+
+    // Phase 2: flowEnded notification (fire-and-forget, no id) + execute
+    // (1 request → 1 response). The notification is written directly (not
+    // through `exchange`, which counts responses by request count); it must be
+    // silently ignored (no response, no crash) and the transport must stay
+    // usable.
+    stdin.write_all(
+        r#"{"jsonrpc":"2.0","method":"flowEnded","params":{"execution_id":"exec-abc"}}"#
+            .as_bytes(),
+    )?;
+    stdin.write_all(b"\n")?;
+    stdin.flush()?;
+    let responses = exchange(
+        &mut stdin,
+        &mut stdout,
+        &[(
+            r#"{"jsonrpc":"2.0","id":2,"method":"execute","params":{"config":{"url":"https://example.com"}}}"#,
+            false,
+        )],
+    )?;
+    assert_eq!(responses.len(), 1, "only execute answers; flowEnded is silent");
+    assert_eq!(responses[0]["id"], 2);
+    assert_eq!(responses[0]["result"]["success"], true);
+
+    drop(stdin);
+    let status = child.wait()?;
+    assert!(status.success(), "plugin exited with {status:?}");
+    Ok(())
+}
+
 /// An unknown method must produce a JSON-RPC `-32601` error response.
 #[test]
 fn sdk_unknown_method_returns_error() -> Result<(), Box<dyn std::error::Error>> {

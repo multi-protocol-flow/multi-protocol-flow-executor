@@ -594,6 +594,7 @@ mod tests {
 
         ExecutionContext {
             flow_uuid: flow_id.to_string(),
+            execution_id: String::new(),
             current_node_uuid: None,
             variables: var_storage,
             node_reports: vec![],

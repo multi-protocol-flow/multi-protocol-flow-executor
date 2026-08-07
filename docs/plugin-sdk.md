@@ -143,7 +143,11 @@ Request params:
 - `execution_id` is a **per-execution instance id** — a fresh
   `Uuid::new_v4()` value unique to each flow run, not the flow's stable
   uuid. Plugins must treat it as opaque state-keying material (e.g. for
-  resident per-run state) and never assume it equals `flow.uuid`.
+  resident per-run state) and never assume it equals `flow.uuid`. The host
+  generates it once per `execute_flow` invocation, so **every node in one run
+  shares the same `execution_id`** (connect/find/close can key a per-run pool
+  on it), while different runs — repeated executions, stress virtual users,
+  dataset rows — each get a distinct value.
 
 Response result:
 
@@ -168,13 +172,19 @@ Response result:
   by the host; the plugin should never rely on it.
 - `provider_updates` are absorbed as JSON values; typed providers are P1.
 
-### 4.3 `validate`, `cancel`, `shutdown`
+### 4.3 `validate`, `cancel`, `flowEnded`, `shutdown`
 
 - `validate` (request): respond `{"valid": true}` or
   `{"valid": false, "message": "..."}` as a **success result** (not a
   JSON-RPC error).
 - `cancel` (notification, `params: {"id": <request_id>}`): best-effort P0
   hook; a no-op is acceptable.
+- `flowEnded` (notification, `params: {"execution_id": <id>}`): host-side
+  per-execution resource release hook (see §2.1). Implement
+  `Plugin::flow_ended(&self, _execution_id: &str)` (SDK default no-op) to
+  drop per-run state like a Mongo connection pool; the value matches the
+  `execution_id` from every `execute` of that run. Older plugins silently
+  ignore it.
 - `shutdown`: the host may send either a request (answer `null`, then
   exit) or a notification (exit). A clean EOF after shutdown is a clean
   exit; EOF with pending requests is a crash.

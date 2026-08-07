@@ -168,6 +168,8 @@ impl DebuggableFlowExecutor {
 
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
+            // 每次执行生成独立 execution_id（插件 per-execution 资源隔离的 key）
+            execution_id: uuid::Uuid::new_v4().to_string(),
             current_node_uuid: None,
             variables: var_storage,
             node_reports: vec![],

@@ -195,6 +195,7 @@ mod tests {
     fn create_ctx() -> ExecutionContext {
         ExecutionContext {
             flow_uuid: "f".to_string(),
+            execution_id: String::new(),
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: vec![],

@@ -173,6 +173,28 @@ impl PluginManager {
         }
     }
 
+    /// Notifies every **running** plugin that the flow execution `execution_id`
+    /// has ended, so the plugin can release per-execution resources (e.g. a
+    /// Mongo connection pool keyed by `execution_id`).
+    ///
+    /// Fire-and-forget: uses [`LifecycleEntry::try_connection`] so idle
+    /// on-demand plugins are **not** spawned just to receive the notice, and
+    /// per-plugin send failures are logged and skipped (never fatal).
+    pub async fn notify_flow_ended(&self, execution_id: &str) {
+        let params = serde_json::json!({ "execution_id": execution_id });
+        for entry in self.entries.values() {
+            let Some(conn) = entry.try_connection().await else {
+                continue;
+            };
+            if let Err(e) = conn
+                .send_notification(mpe_protocol::notification::FLOW_ENDED_METHOD, params.clone())
+                .await
+            {
+                log::debug!("flowEnded notify failed for plugin {}: {e}", entry.name);
+            }
+        }
+    }
+
     /// Scans the plugins directory and runs the describe handshake on every
     /// discovered, non-quarantined plugin.
     ///
@@ -462,6 +484,52 @@ mod tests {
         assert_eq!(manager.quarantined(), vec!["hangy"]);
         assert!(manager.scan_and_describe().await.is_empty());
         assert_eq!(manager.quarantined(), vec!["hangy"]);
+
+        std::fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    /// `notify_flow_ended` must be a safe no-op when no plugin process is
+    /// running (idle on-demand entries are never spawned by the broadcast),
+    /// and must deliver the notification to a plugin that IS running.
+    #[tokio::test]
+    async fn notify_flow_ended_is_fire_and_forget() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // The echo-mock binary only exists when the bin target is built for
+        // tests (CARGO_BIN_EXE_* is set for integration tests, not lib
+        // unit tests). Skip gracefully when unavailable.
+        let Ok(echo_mock) = std::env::var("CARGO_BIN_EXE_echo_mock") else {
+            eprintln!("skipping: CARGO_BIN_EXE_echo_mock not set (lib unit test)");
+            return Ok(());
+        };
+
+        let root = unique_temp_dir("flow-ended");
+        let plugin_dir = root.join("demo");
+        std::fs::create_dir_all(&plugin_dir)?;
+        let manifest = serde_json::json!({
+            "name": "demo",
+            "version": "0.0.0",
+            "entry": {"command": echo_mock}
+        });
+        std::fs::write(
+            plugin_dir.join("plugin.json"),
+            serde_json::to_vec_pretty(&manifest)?,
+        )?;
+
+        let mut manager = PluginManager::new(root.clone());
+        let registrations = manager.scan_and_describe().await;
+        assert_eq!(registrations.len(), 1, "echo mock must register");
+
+        // No connection is live yet (on-demand entry, never spawned by the
+        // scan's describe-only handshake) — the broadcast must be a no-op
+        // that neither spawns the process nor errors.
+        manager.notify_flow_ended("exec-1").await;
+
+        // Now force the plugin process up via an actual connection…
+        let conn = manager.connection_for("demo").await?;
+        assert!(matches!(conn.exit_reason(), crate::transport::ExitReason::Running));
+
+        // …and the broadcast must reach it without error.
+        manager.notify_flow_ended("exec-2").await;
 
         std::fs::remove_dir_all(&root)?;
         Ok(())

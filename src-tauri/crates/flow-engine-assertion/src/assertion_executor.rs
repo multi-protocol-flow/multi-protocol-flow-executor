@@ -549,6 +549,7 @@ mod tests {
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext {
             flow_uuid: flow_id.to_string(),
+            execution_id: String::new(),
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: Vec::new(),
@@ -1042,6 +1043,7 @@ mod tests {
         let (event_sender, event_receiver) = tokio::sync::mpsc::unbounded_channel();
         let context = ExecutionContext {
             flow_uuid: flow_id.to_string(),
+            execution_id: String::new(),
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: Vec::new(),

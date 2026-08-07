@@ -179,6 +179,7 @@ mod tests {
 
         let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
+            execution_id: String::new(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
             node_reports: Vec::new(),
@@ -238,6 +239,7 @@ mod tests {
 
         let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
+            execution_id: String::new(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
             node_reports: Vec::new(),
@@ -324,6 +326,7 @@ mod tests {
 
         let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
+            execution_id: String::new(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
             node_reports: Vec::new(),
@@ -400,6 +403,7 @@ mod tests {
 
         let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
+            execution_id: String::new(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
             node_reports: Vec::new(),
@@ -482,6 +486,7 @@ mod tests {
 
         let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
+            execution_id: String::new(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
             node_reports: Vec::new(),
@@ -548,6 +553,7 @@ mod tests {
 
         let mut context = ExecutionContext {
             flow_uuid: "flow-logic-test".to_string(),
+            execution_id: String::new(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
             node_reports: Vec::new(),
@@ -619,6 +625,7 @@ mod tests {
 
         let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
+            execution_id: String::new(),
             current_node_uuid: Some(source_uuid.to_string()),
             variables: VariableStorage::new(),
             node_reports: Vec::new(),

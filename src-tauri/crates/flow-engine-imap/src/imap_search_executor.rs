@@ -202,6 +202,7 @@ mod tests {
     fn create_context() -> ExecutionContext {
         ExecutionContext {
             flow_uuid: "test-flow".to_string(),
+            execution_id: String::new(),
             current_node_uuid: None,
             variables: VariableStorage::new(),
             node_reports: vec![],

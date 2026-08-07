@@ -169,6 +169,16 @@ pub(crate) fn handle_notification<P: Plugin>(plugin: &Arc<P>, notification: &Not
             Some(request_id) => plugin.cancel(request_id),
             None => eprintln!("mpe-plugin-sdk: cancel notification without numeric `id`; ignored"),
         },
+        "flowEnded" => match notification
+            .params
+            .get("execution_id")
+            .and_then(serde_json::Value::as_str)
+        {
+            Some(execution_id) => plugin.flow_ended(execution_id),
+            None => eprintln!(
+                "mpe-plugin-sdk: flowEnded notification without string `execution_id`; ignored"
+            ),
+        },
         "shutdown" => return true,
         method => eprintln!("mpe-plugin-sdk: ignoring unknown notification `{method}`"),
     }

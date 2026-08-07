@@ -7,6 +7,15 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Wire method name of the `flowEnded` host → plugin notification.
+///
+/// The host emits this fire-and-forget notification when a flow execution
+/// finishes (success, failure, or cancellation), carrying
+/// `params: { "execution_id": "<per-execution id>" }`. Plugins use it to
+/// release per-execution resources (e.g. a connection pool keyed by
+/// `execution_id`). Plugins that do not understand it must ignore it.
+pub const FLOW_ENDED_METHOD: &str = "flowEnded";
+
 /// A JSON-RPC 2.0 notification.
 ///
 /// The absence of an `id` field is the wire contract: serializing a

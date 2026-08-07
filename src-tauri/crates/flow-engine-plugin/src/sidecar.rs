@@ -193,7 +193,9 @@ impl NodePlugin for SidecarPlugin {
             "config": resolved_config,
             "providers": providers,
             "referenced_variables": referenced_variables,
-            "execution_id": context.flow_uuid,
+            // per-execution 唯一实例 ID（每次 execute_flow 生成 fresh uuid），
+            // 供插件按"单次执行"隔离 per-execution 资源（如 Mongo 连接池）。
+            "execution_id": context.execution_id,
             "node_instance_id": node.uuid,
         });
 

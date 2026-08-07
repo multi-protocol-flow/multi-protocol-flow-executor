@@ -56,6 +56,33 @@ construction). Notifications are fire-and-forget in both directions:
 - **Host → plugin.** `send_notification` (e.g. best-effort `cancel`) never
   blocks and never expects a response.
 
+### 2.1 `flowEnded` notification (host → plugin)
+
+When a flow execution finishes — success, failure, or cancellation — the host
+broadcasts a fire-and-forget notification so plugins can release
+**per-execution** resources (e.g. a Mongo connection pool keyed by
+`execution_id`):
+
+```json
+{ "jsonrpc": "2.0", "method": "flowEnded", "params": { "execution_id": "…" } }
+```
+
+Contract:
+
+- `execution_id` is the **per-execution instance id** the plugin received on
+  every `execute` request of that run (`mpe_protocol::notification::
+  FLOW_ENDED_METHOD`), so the plugin can match it against its own per-run
+  state. It is **not** the flow's stable uuid and is unique per execution
+  (stress virtual users / dataset rows / repeated runs each get a fresh one).
+- The broadcast only reaches **running** plugins: idle on-demand processes are
+  never spawned just to receive it (the host peeks the live connection).
+- It is fire-and-forget: no response, no error surface; a plugin that does not
+  implement `flow_ended` (older SDK) silently ignores it via the
+  unknown-notification path (§2 demux), and the transport stays usable.
+- SDK: implement `Plugin::flow_ended(&self, _execution_id: &str)` (default
+  no-op) to consume it. The `close` node remains the explicit, plugin-side
+  release path; `flowEnded` is the host-side safety net for normal runs.
+
 ## 3. Error-object mapping
 
 A JSON-RPC error response (`{"id":N,"error":{...}}`) resolves the pending

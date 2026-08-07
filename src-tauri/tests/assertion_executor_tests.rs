@@ -20,6 +20,7 @@ use std::sync::Arc;
 fn create_context(flow_id: &str) -> ExecutionContext {
     ExecutionContext {
         flow_uuid: flow_id.to_string(),
+        execution_id: String::new(),
         current_node_uuid: None,
         variables: VariableStorage::new(),
         node_reports: Vec::new(),

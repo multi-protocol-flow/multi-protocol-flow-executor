@@ -248,6 +248,23 @@ impl LifecycleEntry {
         self.connection().await
     }
 
+    /// Peeks at the current live connection **without spawning** the plugin
+    /// process.
+    ///
+    /// Unlike [`LifecycleEntry::connection`], this never starts an on-demand
+    /// plugin — it only returns a connection that is already running. Used by
+    /// fire-and-forget broadcasts (e.g. `flowEnded`) that must not pull idle
+    /// plugins out of hibernation.
+    pub async fn try_connection(&self) -> Option<Arc<PluginConnection>> {
+        let guard = self.connection.read().await;
+        match guard.as_ref() {
+            Some(conn) if matches!(conn.exit_reason(), ExitReason::Running) => {
+                Some(Arc::clone(conn))
+            }
+            _ => None,
+        }
+    }
+
     /// Shuts down the current connection (if any) within `grace`.
     ///
     /// Marks the entry as shutting down so later [`LifecycleEntry::connection`]

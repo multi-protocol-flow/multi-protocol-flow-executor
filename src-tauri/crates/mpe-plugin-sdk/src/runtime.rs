@@ -67,6 +67,16 @@ pub trait Plugin: Send + Sync + 'static {
     /// `fire_cancel`). The default does nothing; in-flight work can only be
     /// interrupted cooperatively from the plugin's own state.
     fn cancel(&self, _request_id: u64) {}
+
+    /// Flow-completion hook, fired when the host sends a fire-and-forget
+    /// `flowEnded` notification with the `execution_id` of a finished flow
+    /// execution (success, failure, or cancellation).
+    ///
+    /// Plugins that hold per-execution resources (e.g. a connection pool
+    /// keyed by `execution_id`) should release them here. The default does
+    /// nothing; older plugins that predate this hook simply never receive
+    /// the notification's effect.
+    fn flow_ended(&self, _execution_id: &str) {}
 }
 
 /// Fatal runtime errors. Framing violations are handled by skipping frames

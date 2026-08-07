@@ -251,6 +251,17 @@ pub async fn execute_flow(
     // 清理 gRPC 取消会话
     grpc_state.clear()?;
 
+    // 通知所有活跃插件：本次执行已结束（fire-and-forget）。
+    // 插件据此释放 per-execution 资源（如 Mongo 连接池）。
+    // 幂等：仅通知已在运行的插件，不拉起空闲插件。
+    #[cfg(feature = "plugin-manager")]
+    {
+        node_registry
+            .manager
+            .notify_flow_ended(&result.execution_id)
+            .await;
+    }
+
     Ok(output)
 }
 

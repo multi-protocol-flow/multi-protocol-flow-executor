@@ -57,6 +57,7 @@ pub async fn execute(
     stream: bool,
     no_report: bool,
     registry: Arc<flow_engine::registry::NodeRegistry>,
+    plugin_manager: Option<Arc<flow_engine::PluginManager>>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<(), CliError> {
     let path = PathBuf::from(flow_path);
@@ -91,6 +92,13 @@ pub async fn execute(
     } else {
         execute_simple(path, &flow, variables, registry, cancel_rx).await?
     };
+
+    // 通知所有活跃插件：本次执行已结束（fire-and-forget）。
+    // 插件据此释放 per-execution 资源（如 Mongo 连接池）；
+    // 仅通知已在运行的插件，不拉起空闲插件。
+    if let Some(manager) = plugin_manager {
+        manager.notify_flow_ended(&result.execution_id).await;
+    }
 
     // Build output data
     let total_time_ms: u64 = result
