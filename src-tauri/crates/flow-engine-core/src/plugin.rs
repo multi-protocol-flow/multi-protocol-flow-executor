@@ -59,6 +59,9 @@ pub struct NodeMetadata {
     pub ports: Vec<PortDef>,
     /// 拖拽创建节点时的默认配置
     pub default_config: serde_json::Value,
+    /// 配置 JSON Schema（插件节点动态表单；内置节点通常为 None）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub config_schema: Option<serde_json::Value>,
     /// 前端元数据（插件节点的 iframe 配置面板；内置节点为 None）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontend: Option<FrontendMetadata>,
@@ -297,6 +300,7 @@ mod tests {
                 },
             ],
             default_config: serde_json::json!({"method": "get", "url": ""}),
+            config_schema: None,
             frontend: Some(FrontendMetadata {
                 kind: "inline".to_string(),
                 content: Some("<p>hi</p>".to_string()),

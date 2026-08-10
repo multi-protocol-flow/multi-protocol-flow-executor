@@ -48,6 +48,7 @@ impl NodeRegistry {
                 color: p.color().to_string(),
                 ports: p.ports(),
                 default_config: p.default_config(),
+                config_schema: p.config_schema(),
                 frontend: p.frontend().cloned(),
             })
             .collect()
