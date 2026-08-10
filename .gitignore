@@ -84,3 +84,6 @@ dist-release/
 # Python bytecode cache (plugin fixtures, e2e tests)
 __pycache__/
 *.pyc
+
+# Third-party plugins (simulate independent development, not part of this repo)
+/plugins/
