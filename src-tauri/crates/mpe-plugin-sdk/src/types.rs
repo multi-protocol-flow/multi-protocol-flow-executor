@@ -70,14 +70,42 @@ impl NodeDescription {
     }
 }
 
-/// A single node port: an id plus an optional human-readable label.
+/// Port direction constant: input port (`"in"`).
+pub const PORT_KIND_IN: &str = "in";
+/// Port direction constant: output port (`"out"`).
+pub const PORT_KIND_OUT: &str = "out";
+
+/// A single node port: an id, a display label and a direction.
+///
+/// Mirrors the wire contract (`mpe_protocol::describe::PortDescription`):
+/// `{ id, label, kind }` with all three fields mandatory — the host
+/// `registration.rs` derives the port position from `kind`
+/// (`"in"` → `left`, anything else → `right`), so omitting `kind` would
+/// break host-side describe deserialization.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PortDescription {
-    /// Port identifier, e.g. `"in"` / `"out"`.
+    /// Port identifier, e.g. `"in"` / `"out"` / `"true"` / `"false"`.
     pub id: String,
-    /// Optional display label for the port.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub label: Option<String>,
+    /// Human-readable display label for the port, e.g. `"Success"`.
+    pub label: String,
+    /// Port direction: `"in"` (input) or `"out"` (output).
+    pub kind: String,
+}
+
+impl PortDescription {
+    /// Creates a port with an id, a display label and a direction
+    /// (see [`PORT_KIND_IN`] / [`PORT_KIND_OUT`]).
+    pub fn new(
+        id: impl Into<String>,
+        label: impl Into<String>,
+        kind: impl Into<String>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            label: label.into(),
+            kind: kind.into(),
+        }
+    }
 }
 
 /// The outcome of one `execute` call, serialized as the `execute` response

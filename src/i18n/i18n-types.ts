@@ -2683,14 +2683,30 @@ type RootTranslation = {
 		}
 		schemaConfig: {
 			/**
-			 * 无​可​配​置​字​段
+			 * 无可配置字段
 			 */
 			noFields: string
 			/**
-			 * 选​择​{​f​i​e​l​d​}
+			 * 选择{field}
 			 * @param {unknown} field
 			 */
 			selectField: RequiredParams<'field'>
+			/**
+			 * 请先添加对应节点
+			 */
+			noConnectionNodes: string
+			/**
+			 * 请先添加对应节点
+			 */
+			addNodeFirst: string
+			/**
+			 * JSON 格式无效，请检查
+			 */
+			jsonInvalid: string
+			/**
+			 * 输入 JSON 内容...
+			 */
+			jsonPlaceholder: string
 		}
 		flowNodeList: {
 			/**
@@ -22126,6 +22142,22 @@ export type TranslationFunctions = {
 			 * 选择{field}
 			 */
 			selectField: (arg: { field: unknown }) => LocalizedString
+			/**
+			 * 请先添加对应节点
+			 */
+			noConnectionNodes: () => LocalizedString
+			/**
+			 * 请先添加对应节点
+			 */
+			addNodeFirst: () => LocalizedString
+			/**
+			 * JSON 格式无效，请检查
+			 */
+			jsonInvalid: () => LocalizedString
+			/**
+			 * 输入 JSON 内容...
+			 */
+			jsonPlaceholder: () => LocalizedString
 		}
 		flowNodeList: {
 			/**

@@ -542,6 +542,10 @@
   schemaConfig: {
     noFields: 'No configurable fields',
     selectField: 'Select {field}',
+    noConnectionNodes: 'Please add the corresponding node first',
+    addNodeFirst: 'Please add the corresponding node first',
+    jsonInvalid: 'Invalid JSON format, please check',
+    jsonPlaceholder: 'Enter JSON content...',
   },
 
   flowNodeList: {

@@ -9,5 +9,5 @@ pub use crate::context::ExecuteContext;
 pub use crate::mpe_plugin_main;
 pub use crate::pool::ConnectionPool;
 pub use crate::runtime::Plugin;
-pub use crate::types::{ExecuteResult, NodeDescription, PortDescription};
+pub use crate::types::{ExecuteResult, NodeDescription, PortDescription, PORT_KIND_IN, PORT_KIND_OUT};
 pub use mpe_protocol::manifest::PluginCapabilities;

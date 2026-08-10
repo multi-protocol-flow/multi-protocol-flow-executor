@@ -544,6 +544,10 @@ const zh_CN_panels: BaseTranslation = {
   schemaConfig: {
     noFields: '无可配置字段',
     selectField: '选择{field}',
+    noConnectionNodes: '请先添加对应节点',
+    addNodeFirst: '请先添加对应节点',
+    jsonInvalid: 'JSON 格式无效，请检查',
+    jsonPlaceholder: '输入 JSON 内容...',
   },
 
   flowNodeList: {

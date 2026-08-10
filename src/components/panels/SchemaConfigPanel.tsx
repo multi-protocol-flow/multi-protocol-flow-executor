@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useFlowStore, selectNodes } from '@/stores/flow';
 import { getLL } from '@/i18n/i18n-lazy';
 
 interface SchemaConfigPanelProps {
@@ -27,6 +29,22 @@ interface SchemaProperty {
   default?: unknown;
   minimum?: number;
   maximum?: number;
+  /** 自定义 keyword：声明该字段从当前流程中筛选指定类型的节点生成下拉框 */
+  'x-node-selector'?: { node_type?: string };
+  /** JSON Schema format：值为 'json' 时渲染多行 JSON 输入 */
+  format?: string;
+}
+
+/**
+ * 校验文本是否为合法 JSON（空文本视为合法）
+ */
+function isValidJson(text: string): boolean {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -46,6 +64,9 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
     Array.isArray(schema.required) ? (schema.required as string[]) : []
   );
   const propertyEntries = Object.entries(properties);
+
+  // 获取当前流程中的节点列表（用于 x-node-selector 字段筛选）
+  const nodes = useFlowStore(selectNodes);
 
   // 用受控状态跟踪表单值
   const [formValues, setFormValues] = useState<Record<string, unknown>>(() => {
@@ -160,6 +181,76 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
               ))}
             </SelectContent>
           </Select>
+          {prop.description && (
+            <p className="text-xs text-muted-foreground">{prop.description}</p>
+          )}
+        </div>
+      );
+    }
+
+    // string + x-node-selector → 节点选择下拉框（从当前流程中筛选指定类型的节点）
+    if (prop.type === 'string' && prop['x-node-selector']?.node_type) {
+      const targetType = prop['x-node-selector'].node_type;
+      const matchedNodes = nodes.filter(
+        (n) => (n.data as { type?: string }).type === targetType
+      );
+      return (
+        <div key={key} className="space-y-2">
+          {renderLabel(key, prop)}
+          <Select
+            value={(value as string) ?? ''}
+            onValueChange={(v) => handleFieldChange(key, v)}
+          >
+            <SelectTrigger id={`schema-field-${key}`} className="font-mono">
+              <SelectValue placeholder={ll.selectField({ field: prop.title || key })} />
+            </SelectTrigger>
+            <SelectContent>
+              {matchedNodes.length === 0 ? (
+                <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                  {ll.noConnectionNodes()}
+                </div>
+              ) : (
+                matchedNodes.map((node) => (
+                  <SelectItem key={node.uuid} value={node.uuid}>
+                    {node.name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          {matchedNodes.length === 0 && (
+            <p className="text-xs text-amber-600">{ll.addNodeFirst()}</p>
+          )}
+          {prop.description && (
+            <p className="text-xs text-muted-foreground">{prop.description}</p>
+          )}
+        </div>
+      );
+    }
+
+    // string + format: json → 多行 JSON 输入（非法 JSON 显示错误但不阻止保存）
+    if (prop.type === 'string' && prop.format === 'json') {
+      const rawValue =
+        typeof value === 'string'
+          ? value
+          : value === undefined || value === null
+            ? ''
+            : JSON.stringify(value);
+      const jsonInvalid = rawValue.trim() !== '' && !isValidJson(rawValue);
+      return (
+        <div key={key} className="space-y-2">
+          {renderLabel(key, prop)}
+          <Textarea
+            id={`schema-field-${key}`}
+            value={rawValue}
+            onChange={(e) => handleFieldChange(key, e.target.value)}
+            placeholder={ll.jsonPlaceholder()}
+            className={`min-h-[120px] resize-y font-mono text-xs${jsonInvalid ? ' border-rose-500 focus-visible:border-rose-500' : ''}`}
+            rows={6}
+          />
+          {jsonInvalid && (
+            <p className="text-xs text-rose-500">{ll.jsonInvalid()}</p>
+          )}
           {prop.description && (
             <p className="text-xs text-muted-foreground">{prop.description}</p>
           )}
