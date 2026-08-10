@@ -149,6 +149,34 @@ describe('工具函数', () => {
       expect(edge.sourceHandle).toBe('out');
       expect(edge.targetHandle).toBe('in');
     });
+
+    it('节点名原样透传，不因"空格+数字"结尾而被清空', async () => {
+      const { convertFlowToReactFlow } = await import('@/components/canvas/utils');
+      const { getNodeDisplayName } = await import('@/lib/nodeMeta');
+
+      const flowWithNames: Flow = {
+        ...mockFlow,
+        nodes: [
+          // 形似自动名（"类型显示名 数字"）→ 必须原样保留
+          { ...mockFlow.nodes[1], uuid: 'n-auto', name: `${getNodeDisplayName('http')} 1` },
+          // 用户手动命名，以空格+数字结尾 → 必须保留
+          { ...mockFlow.nodes[1], uuid: 'n-user', name: 'Node 1' },
+          { ...mockFlow.nodes[1], uuid: 'n-user2', name: '测试 2' },
+          // 普通手动命名 → 保留
+          { ...mockFlow.nodes[1], uuid: 'n-plain', name: 'My Node' },
+        ],
+      };
+
+      const result = convertFlowToReactFlow(flowWithNames);
+      const labelById = Object.fromEntries(
+        result.nodes.map((n) => [n.id, (n.data as { label: string }).label])
+      );
+
+      expect(labelById['n-auto']).toBe(`${getNodeDisplayName('http')} 1`);
+      expect(labelById['n-user']).toBe('Node 1');
+      expect(labelById['n-user2']).toBe('测试 2');
+      expect(labelById['n-plain']).toBe('My Node');
+    });
   });
 
   describe('createConnection', () => {

@@ -19,14 +19,16 @@ export function convertFlowToReactFlow(flow: Flow): {
   nodes: Node[];
   edges: Edge[];
 } {
-  // 旧版自动生成的节点名格式为 "中文类型名 数字"，匹配则清除以启用 i18n 动态名称
-  const autoNameRe = /\s+\d+$/;
   const nodes: Node[] = flow.nodes.map((node) => ({
     id: node.uuid,
     type: node.type,
     position: { x: node.position.x, y: node.position.y },
     data: {
-      label: autoNameRe.test(node.name) ? '' : node.name,
+      // 节点名以存储值为权威，原样透传。空名字由画布组件兜底显示
+      // getNodeDisplayName(type)（i18n 动态名）。不得用正则猜测"自动名"
+      // 并清空——自动名与用户手写名格式相同（如 "Mongo Update 4"），
+      // 清空会把用户命名从画布上抹掉。
+      label: node.name,
       config: node.data,
     } as FlowNodeData,
   }));
