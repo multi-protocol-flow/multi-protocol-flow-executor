@@ -8,6 +8,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Box } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ICON_MAP, getNodeDisplayName } from '@/lib/nodeMeta';
+import { resolveBackendIcon } from '@/lib/nodeIcons';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import type { PortDef } from '@/types/nodeRegistry';
 import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, selectIsDebugging, selectIsNodeDebugPaused } from '@/stores';
@@ -67,11 +68,13 @@ function getPortPositionStyle(count: number, index: number): CSSProperties | und
 function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
   const nodeData = data as DynamicNodeData;
   const nodeType = nodeData.config?.type || type || 'unknown';
+  const meta = getCachedNodeMeta(nodeType);
   const iconData = ICON_MAP[nodeType];
   const displayName = nodeData.label || getNodeDisplayName(nodeType);
-  const IconComponent = iconData?.icon || Box;
+  const IconComponent = iconData?.icon || (meta?.icon ? resolveBackendIcon(meta.icon) : undefined) || Box;
   const iconBg = iconData?.iconBg || 'bg-slate-500';
   const labelColor = iconData?.labelColor || 'text-slate-600';
+  const pluginColor = meta?.color;
 
   const metaPorts = getCachedNodeMeta(nodeType)?.ports ?? [];
   const hasMetaPorts = metaPorts.length > 0;
@@ -117,7 +120,7 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
         'border-2 border-border',
         'bg-background',
         'transition-transform duration-200 ease-out',
-        'w-[180px]',
+        'w-fit min-w-[180px] max-w-[400px]',
         'flex items-center',
         selected && 'border-[3px] border-slate-500',
         isDebugPausedAtThisNode && 'debug-breathing-sky'
@@ -165,18 +168,24 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
         </>
       )}
 
-      <div className="flex items-center gap-2.5 w-full min-w-0">
-        <div className={cn(
-          'shrink-0 p-1.5 rounded-lg',
-          `${iconBg} text-white`
-        )}>
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div
+          className={cn(
+            'shrink-0 p-1.5 rounded-lg',
+            pluginColor ? 'text-white' : `${iconBg} text-white`
+          )}
+          style={pluginColor ? { backgroundColor: pluginColor } : undefined}
+        >
           <IconComponent className="w-3.5 h-3.5" />
         </div>
-        <div className="flex flex-col min-w-0 flex-1">
-          <span className={cn('text-xs font-medium uppercase tracking-wide', labelColor)}>
+        <div className="flex flex-col min-w-0">
+          <span
+            className={cn('text-xs font-medium uppercase tracking-wide whitespace-nowrap leading-tight', !pluginColor && labelColor)}
+            style={pluginColor ? { color: pluginColor } : undefined}
+          >
             {nodeType}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
+          <span className="text-sm font-semibold text-foreground break-words max-w-[110px] leading-snug">
             {displayName}
           </span>
         </div>

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * NodePalette - 节点选择器浮动弹窗
  *
  * 由工具栏按钮或右键画布触发，以浮动弹窗形式展示所有可用节点类型。
@@ -18,38 +18,14 @@ import {
   RotateCcw,
   Code,
   Wrench,
-  Play,
   Network,
   Puzzle,
   Cable,
   PhoneOutgoing,
   PhoneOff,
-  FileSearch,
-  Unplug,
   Mail,
   Search,
   X,
-  Download,
-  Eye,
-  EyeOff,
-  Layers,
-  Settings,
-  Ear,
-  RadioTower,
-  Shuffle,
-  Trash2,
-  List,
-  Trash,
-  Link2,
-  Inbox,
-  Braces,
-  XCircle,
-  Timer,
-  Copy,
-  FolderPlus,
-  FileText,
-  MessageSquare,
-  ArrowDownLeft,
 } from 'lucide-react';
 import { useFlowStore, useUIStore } from '@/stores';
 import type { NodeType } from '@/types';
@@ -61,6 +37,7 @@ import {
   getCategoryOrder,
   getNodeTypeOrder,
 } from '@/lib/NodeRegistry';
+import { BACKEND_ICON_MAP as ICON_MAP } from '@/lib/nodeIcons';
 import { ICON_MAP as NODE_TYPE_ICON_MAP, getNodeDisplayName } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -108,56 +85,7 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   udp: Send,
   amqp: Plug,
   email: Mail,
-};
-
-/** 后端 icon 字段到 lucide-react 组件的映射 */
-export const ICON_MAP: Record<string, LucideIcon> = {
-  play: Play,
-  globe: Globe,
-  'git-branch': GitBranch,
-  code: Code,
-  'check-circle': CheckCircle,
-  wifi: Wifi,
-  send: Send,
-  plug: Plug,
-  database: Database,
-  'circle-play': CirclePlay,
-  check: CheckCircle,
-  'rotate-ccw': RotateCcw,
-  wrench: Wrench,
-  network: Network,
-  puzzle: Puzzle,
-  cable: Cable,
-  'phone-outgoing': PhoneOutgoing,
-  'phone-off': PhoneOff,
-  'file-search': FileSearch,
-  'file-text': FileText,
-  'file-code': Code,
-  unplug: Unplug,
-  'x-circle': XCircle,
-  download: Download,
-  search: Search,
-  eye: Eye,
-  'eye-off': EyeOff,
-  mail: Mail,
-  layers: Layers,
-  settings: Settings,
-  ear: Ear,
-  'radio-tower': RadioTower,
-  shuffle: Shuffle,
-  'trash-2': Trash2,
-  list: List,
-  trash: Trash,
-  link: Link2,
-  inbox: Inbox,
-  braces: Braces,
-  timer: Timer,
-  'arrow-down-to-line': ArrowDownLeft,
-  undo: RotateCcw,
-  x: Unplug,
-  'message-square': MessageSquare,
-  copy: Copy,
-  'folder-plus': FolderPlus,
+  MongoDB: Database,
 };
 
 /** 静态回退分组数据 */
@@ -292,7 +220,7 @@ const SUPER_CATEGORIES: SuperCategory[] = [
   },
   {
     key: 'other',
-    categories: ['database', 'email', 'tcp', 'udp'],
+    categories: ['database', 'email', 'tcp', 'udp', 'MongoDB'],
   },
 ];
 

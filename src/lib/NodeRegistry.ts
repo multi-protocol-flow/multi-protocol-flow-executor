@@ -86,6 +86,7 @@ export const CATEGORY_NAMES: Record<string, string> = {
   get udp() { return getLL().nodes.category.udp(); },
   get email() { return getLL().nodes.category.email(); },
   get redis() { return getLL().nodes.category.redis(); },
+  MongoDB: 'MongoDB',
 };
 
 /**
@@ -116,6 +117,7 @@ export const CATEGORY_ORDER: Record<string, number> = {
   tcp: 42,
   udp: 43,
   redis: 23,
+  MongoDB: 44,
 };
 
 /**

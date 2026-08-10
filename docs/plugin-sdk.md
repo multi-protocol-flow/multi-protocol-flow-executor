@@ -191,6 +191,58 @@ Response result:
 - Unknown methods → JSON-RPC error `-32601`. Malformed frames → skip +
   log to stderr, never exit.
 
+### 4.4 Icon and color
+
+Plugin nodes are rendered in the host canvas with an icon badge and an accent
+color. Declare both in `describe()` for a polished UI. They are optional,
+per-node fields on the node description (not the manifest).
+
+```rust
+use mpe_plugin_sdk::prelude::*;
+
+fn mongo_node() -> NodeDescription {
+    let mut node = NodeDescription::new("mongo:connect", "Mongo Connect");
+    node.icon = Some("database".to_string());
+    node.color = Some("#10b981".to_string()); // emerald, matches the DB protocol
+    node
+}
+```
+
+`NodeDescription::new(type_id, display_name)` leaves both fields absent;
+assign them after construction as above. The mongo plugin
+(`plugins/mongo/src/lib.rs`) is the reference implementation.
+
+#### Supported icon strings
+
+`icon` is a kebab-case string identifier, not a raw SVG or image URL. The host
+frontend resolves it against a fixed whitelist. Icons outside the whitelist
+fall back to a generic icon, so pick from this list:
+
+| Group | Icon strings |
+|-------|--------------|
+| General / action | `play`, `circle-play`, `check`, `check-circle`, `x`, `x-circle`, `plus`, `copy`, `undo`, `search`, `eye`, `eye-off`, `download`, `settings`, `timer`, `message-square`, `arrow-down-to-line`, `refresh-cw`, `rotate-ccw` |
+| Network / transport | `globe`, `wifi`, `send`, `plug`, `unplug`, `cable`, `phone-outgoing`, `phone-off`, `radio-tower`, `shuffle`, `network` |
+| Database / storage | `database` |
+| File / code | `git-branch`, `code`, `file-search`, `file-text`, `file-code`, `braces`, `wrench` |
+| UI / misc | `mail`, `layers`, `ear`, `trash`, `trash-2`, `list`, `link`, `inbox`, `folder-plus`, `puzzle`, `plugin` |
+
+Unknown strings render as the same generic icon used when `icon` is omitted,
+without raising an error.
+
+#### Color
+
+`color` accepts any `#rrggbb` hex value, for example `#10b981`. Pick one
+accent color per plugin, ideally matching the protocol's brand (the mongo
+plugin uses emerald green to echo a database protocol), and reuse it across
+every node the plugin provides so the palette stays coherent.
+
+#### Defaults when omitted
+
+| Field | Default | Rendered as |
+|-------|---------|-------------|
+| `icon` | `"plugin"` | generic Puzzle icon |
+| `color` | `"#64748b"` | slate gray |
+
 ## 5. Rust SDK (first-class)
 
 Crate: `mpe-plugin-sdk` (leaf crate — depends only on `mpe-protocol`,

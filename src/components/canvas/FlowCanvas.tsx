@@ -174,6 +174,19 @@ const CANVAS_STYLE_STRING = `
     /* contain: paint 会裁剪溢出内容（包括节点出入口圆圈），所以只保留 layout style */
     contain: layout style;
   }
+  /* 插件节点走 React Flow 的 default fallback，wrapper 会套上库的默认节点样式
+     （白底/边框/150px 宽/padding），与 DynamicPluginNode 自绘外观冲突产生双重边框。
+     清零 wrapper 样式，让节点完全由自定义组件呈现。 */
+  .react-flow__node-default {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    width: auto !important;
+    font-size: inherit !important;
+    text-align: inherit !important;
+  }
 `;
 
 /** 节点类型映射 */

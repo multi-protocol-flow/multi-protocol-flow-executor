@@ -1,10 +1,12 @@
-﻿/**
+/**
  * FlowNodeList - 流程节点列表面板
  * 按加入时间排序，批量删除，点击定位
  */
 import { useState, useMemo, useCallback } from 'react';
 import { useFlowStore, useUIStore, selectNodes } from '@/stores';
-import { NODE_META } from '@/lib/nodeMeta';
+import { NODE_META, getNodeDisplayName } from '@/lib/nodeMeta';
+import { getCachedNodeMeta } from '@/lib/NodeRegistry';
+import { resolveBackendIcon } from '@/lib/nodeIcons';
 import { cn } from '@/lib/utils';
 import type { NodeType } from '@/types';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -67,16 +69,24 @@ function InlineCheckbox({ checked, disabled, onChange }: InlineCheckboxProps) {
 
 function NodeTypeIcon({ type }: { type: NodeType }) {
   const meta = NODE_META[type];
-  if (!meta) {
+  // 插件节点：静态 NODE_META 查不到时，从后端 metadata 兜底解析 icon/color
+  const pluginMeta = getCachedNodeMeta(type);
+  const Icon = meta?.icon ?? (pluginMeta ? resolveBackendIcon(pluginMeta.icon) : undefined);
+
+  if (!Icon) {
     return (
       <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] bg-gray-400">
         <span className="text-[8px] font-bold text-white">?</span>
       </div>
     );
   }
-  const Icon = meta.icon;
+
+  const bgStyle = !meta && pluginMeta?.color ? { backgroundColor: pluginMeta.color } : undefined;
   return (
-    <div className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px]', meta.iconBg)}>
+    <div
+      className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px]', !bgStyle && meta?.iconBg)}
+      style={bgStyle}
+    >
       <Icon className="h-3 w-3 text-white" />
     </div>
   );
@@ -302,6 +312,9 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
             {nodes.map((node) => {
               const isEntry = node.type === 'entry';
               const meta = NODE_META[node.type];
+              // 插件节点 badge：内置节点用 NODE_META，插件用后端 display_name
+              const badgeName = meta?.name ?? getNodeDisplayName(node.type);
+              const hasBadge = Boolean(meta) || Boolean(getCachedNodeMeta(node.type));
 
               return (
                 <div
@@ -333,9 +346,9 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
                   <span className="truncate text-sm text-foreground/90">{node.name}</span>
 
                   {/* 节点类型标签 */}
-                  {meta && (
-                    <span className={cn('ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none', meta.badge)}>
-                      {meta.name}
+                  {hasBadge && (
+                    <span className={cn('ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none', meta?.badge ?? 'bg-muted text-muted-foreground')}>
+                      {badgeName}
                     </span>
                   )}
                 </div>
