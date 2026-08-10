@@ -7,7 +7,6 @@ edition = "2021"
 default = ["all-protocols", "plugin-manager"]
 all-protocols = [
     "protocol-http",
-    "protocol-db",
     "protocol-ws",
     "protocol-script",
     "protocol-assertion",
@@ -16,7 +15,6 @@ all-protocols = [
     "protocol-tcp",
     "protocol-sse",
     "protocol-graphql",
-    "protocol-redis",
 ]
 protocol-http = ["flow-engine-executor/protocol-http"]
 protocol-db = ["flow-engine-executor/protocol-db"]
