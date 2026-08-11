@@ -225,10 +225,6 @@ type RootTranslation = {
 			 * U​D​P
 			 */
 			udp: string
-			/**
-			 * R​e​d​i​s
-			 */
-			redis: string
 		}
 		superCategory: {
 			/**
@@ -608,18 +604,6 @@ type RootTranslation = {
 		 * I​M​A​P​ ​关​闭
 		 */
 		imap_close: string
-		/**
-		 * R​e​d​i​s​ ​连​接
-		 */
-		redis_connect: string
-		/**
-		 * R​e​d​i​s​ ​命​令
-		 */
-		redis_command: string
-		/**
-		 * R​e​d​i​s​ ​关​闭
-		 */
-		redis_close: string
 		/**
 		 * 变​量​提​取
 		 */
@@ -2683,28 +2667,28 @@ type RootTranslation = {
 		}
 		schemaConfig: {
 			/**
-			 * 无可配置字段
+			 * 无​可​配​置​字​段
 			 */
 			noFields: string
 			/**
-			 * 选择{field}
+			 * 选​择​{​f​i​e​l​d​}
 			 * @param {unknown} field
 			 */
 			selectField: RequiredParams<'field'>
 			/**
-			 * 请先添加对应节点
+			 * 请​先​添​加​对​应​节​点
 			 */
 			noConnectionNodes: string
 			/**
-			 * 请先添加对应节点
+			 * 请​先​添​加​对​应​节​点
 			 */
 			addNodeFirst: string
 			/**
-			 * JSON 格式无效，请检查
+			 * J​S​O​N​ ​格​式​无​效​，​请​检​查
 			 */
 			jsonInvalid: string
 			/**
-			 * 输入 JSON 内容...
+			 * 输​入​ ​J​S​O​N​ ​内​容​.​.​.
 			 */
 			jsonPlaceholder: string
 		}
@@ -9458,94 +9442,6 @@ type RootTranslation = {
 			 */
 			closeCodeInfo_1006: string
 		}
-		redisConnect: {
-			/**
-			 * R​e​d​i​s​ ​连​接​节​点
-			 */
-			title: string
-			/**
-			 * 建​立​ ​R​e​d​i​s​ ​服​务​器​连​接​。
-			 */
-			description: string
-			/**
-			 * 服​务​器​地​址
-			 */
-			host: string
-			/**
-			 * 端​口
-			 */
-			port: string
-			/**
-			 * 密​码
-			 */
-			password: string
-			/**
-			 * 数​据​库​索​引
-			 */
-			dbIndex: string
-			/**
-			 * 连​接​超​时​（​毫​秒​）
-			 */
-			connectTimeout: string
-			/**
-			 * 连​接​成​功
-			 */
-			testSuccess_msg: string
-			/**
-			 * 连​接​失​败​，​请​检​查​配​置
-			 */
-			testFailed_msg: string
-		}
-		redisCommand: {
-			/**
-			 * R​e​d​i​s​ ​命​令​节​点
-			 */
-			title: string
-			/**
-			 * 执​行​ ​R​e​d​i​s​ ​命​令​（​G​E​T​,​ ​S​E​T​,​ ​S​M​E​M​B​E​R​S​ ​等​）​。
-			 */
-			description: string
-			/**
-			 * 连​接​ ​I​D
-			 */
-			connectionId: string
-			/**
-			 * 命​令
-			 */
-			command: string
-			/**
-			 * 参​数
-			 */
-			args: string
-			/**
-			 * 未​检​测​到​ ​R​e​d​i​s​ ​C​o​n​n​e​c​t​ ​节​点​，​请​手​动​输​入​连​接​ ​I​D
-			 */
-			noConnectNode: string
-			/**
-			 * 支​持​的​命​令​:​
-		​S​t​r​i​n​g​:​ ​G​E​T​,​ ​S​E​T​,​ ​D​E​L​,​ ​I​N​C​R​,​ ​D​E​C​R​
-		​H​a​s​h​:​ ​H​G​E​T​,​ ​H​S​E​T​,​ ​H​D​E​L​,​ ​H​G​E​T​A​L​L​
-		​L​i​s​t​:​ ​L​P​U​S​H​,​ ​R​P​U​S​H​,​ ​L​R​A​N​G​E​
-		​S​e​t​:​ ​S​A​D​D​,​ ​S​M​E​M​B​E​R​S​,​ ​S​R​E​M​
-		​K​e​y​:​ ​T​T​L​,​ ​E​X​P​I​R​E​,​ ​K​E​Y​S​,​ ​D​B​S​I​Z​E​
-		​U​t​i​l​i​t​y​:​ ​P​I​N​G​,​ ​I​N​F​O
-			 */
-			commandHint: string
-		}
-		redisClose: {
-			/**
-			 * R​e​d​i​s​ ​关​闭​节​点
-			 */
-			title: string
-			/**
-			 * 关​闭​ ​R​e​d​i​s​ ​连​接​。
-			 */
-			description: string
-			/**
-			 * 连​接​ ​I​D
-			 */
-			connectionId: string
-		}
 		/**
 		 * 无​数​据
 		 */
@@ -10000,18 +9896,6 @@ type RootTranslation = {
 			 * I​M​A​P​ ​关​闭
 			 */
 			imap_close: string
-			/**
-			 * R​e​d​i​s​ ​连​接
-			 */
-			redis_connect: string
-			/**
-			 * R​e​d​i​s​ ​命​令
-			 */
-			redis_command: string
-			/**
-			 * R​e​d​i​s​ ​关​闭
-			 */
-			redis_close: string
 			/**
 			 * 变​量​提​取
 			 */
@@ -16432,129 +16316,6 @@ type RootTranslation = {
 			 */
 			response_count: RequiredParams<'count'>
 		}
-		redis: {
-			/**
-			 * 连​接​状​态
-			 */
-			section_connection: string
-			/**
-			 * 命​令​执​行​结​果
-			 */
-			section_command_result: string
-			/**
-			 * 服​务​器​信​息
-			 */
-			section_server_info: string
-			/**
-			 * 命​令​执​行
-			 */
-			section_command_info: string
-			/**
-			 * 返​回​结​果
-			 */
-			section_result_data: string
-			/**
-			 * 关​闭​状​态
-			 */
-			section_close: string
-			/**
-			 * 已​连​接
-			 */
-			status_connected: string
-			/**
-			 * 连​接​失​败
-			 */
-			status_connection_failed: string
-			/**
-			 * 成​功
-			 */
-			status_success: string
-			/**
-			 * 失​败
-			 */
-			status_failed: string
-			/**
-			 * 已​关​闭
-			 */
-			status_closed: string
-			/**
-			 * 关​闭​失​败
-			 */
-			status_close_failed: string
-			/**
-			 * R​e​d​i​s​ ​连​接​建​立​成​功
-			 */
-			connect_success: string
-			/**
-			 * 无​法​建​立​ ​R​e​d​i​s​ ​连​接
-			 */
-			connect_error: string
-			/**
-			 * 命​令​执​行​成​功
-			 */
-			command_success: string
-			/**
-			 * 命​令​执​行​失​败
-			 */
-			command_error: string
-			/**
-			 * R​e​d​i​s​ ​连​接​已​关​闭
-			 */
-			close_success: string
-			/**
-			 * 关​闭​失​败
-			 */
-			close_error: string
-			/**
-			 * 服​务​器
-			 */
-			label_server: string
-			/**
-			 * 命​令
-			 */
-			label_command: string
-			/**
-			 * 结​果
-			 */
-			label_result: string
-			/**
-			 * 耗​时
-			 */
-			label_duration: string
-			/**
-			 * 数​据​库​索​引
-			 */
-			label_db_index: string
-			/**
-			 * 连​接​ ​I​D
-			 */
-			label_connection_id: string
-			/**
-			 * 主​机
-			 */
-			label_host: string
-			/**
-			 * 端​口
-			 */
-			label_port: string
-			/**
-			 * 版​本
-			 */
-			label_version: string
-			/**
-			 * 类​型
-			 */
-			label_type: string
-			/**
-			 * 未​执​行​命​令
-			 */
-			no_command_executed: string
-			/**
-			 * 未​知​ ​R​e​d​i​s​ ​节​点​类​型​:​ ​{​t​y​p​e​}
-			 * @param {unknown} type
-			 */
-			unknown_node_type: RequiredParams<'type'>
-		}
 		kafka: {
 			/**
 			 * 连​接​状​态
@@ -19690,10 +19451,6 @@ export type TranslationFunctions = {
 			 * UDP
 			 */
 			udp: () => LocalizedString
-			/**
-			 * Redis
-			 */
-			redis: () => LocalizedString
 		}
 		superCategory: {
 			/**
@@ -20073,18 +19830,6 @@ export type TranslationFunctions = {
 		 * IMAP 关闭
 		 */
 		imap_close: () => LocalizedString
-		/**
-		 * Redis 连接
-		 */
-		redis_connect: () => LocalizedString
-		/**
-		 * Redis 命令
-		 */
-		redis_command: () => LocalizedString
-		/**
-		 * Redis 关闭
-		 */
-		redis_close: () => LocalizedString
 		/**
 		 * 变量提取
 		 */
@@ -28875,94 +28620,6 @@ export type TranslationFunctions = {
 			 */
 			closeCodeInfo_1006: () => LocalizedString
 		}
-		redisConnect: {
-			/**
-			 * Redis 连接节点
-			 */
-			title: () => LocalizedString
-			/**
-			 * 建立 Redis 服务器连接。
-			 */
-			description: () => LocalizedString
-			/**
-			 * 服务器地址
-			 */
-			host: () => LocalizedString
-			/**
-			 * 端口
-			 */
-			port: () => LocalizedString
-			/**
-			 * 密码
-			 */
-			password: () => LocalizedString
-			/**
-			 * 数据库索引
-			 */
-			dbIndex: () => LocalizedString
-			/**
-			 * 连接超时（毫秒）
-			 */
-			connectTimeout: () => LocalizedString
-			/**
-			 * 连接成功
-			 */
-			testSuccess_msg: () => LocalizedString
-			/**
-			 * 连接失败，请检查配置
-			 */
-			testFailed_msg: () => LocalizedString
-		}
-		redisCommand: {
-			/**
-			 * Redis 命令节点
-			 */
-			title: () => LocalizedString
-			/**
-			 * 执行 Redis 命令（GET, SET, SMEMBERS 等）。
-			 */
-			description: () => LocalizedString
-			/**
-			 * 连接 ID
-			 */
-			connectionId: () => LocalizedString
-			/**
-			 * 命令
-			 */
-			command: () => LocalizedString
-			/**
-			 * 参数
-			 */
-			args: () => LocalizedString
-			/**
-			 * 未检测到 Redis Connect 节点，请手动输入连接 ID
-			 */
-			noConnectNode: () => LocalizedString
-			/**
-			 * 支持的命令:
-		String: GET, SET, DEL, INCR, DECR
-		Hash: HGET, HSET, HDEL, HGETALL
-		List: LPUSH, RPUSH, LRANGE
-		Set: SADD, SMEMBERS, SREM
-		Key: TTL, EXPIRE, KEYS, DBSIZE
-		Utility: PING, INFO
-			 */
-			commandHint: () => LocalizedString
-		}
-		redisClose: {
-			/**
-			 * Redis 关闭节点
-			 */
-			title: () => LocalizedString
-			/**
-			 * 关闭 Redis 连接。
-			 */
-			description: () => LocalizedString
-			/**
-			 * 连接 ID
-			 */
-			connectionId: () => LocalizedString
-		}
 		/**
 		 * 无数据
 		 */
@@ -29410,18 +29067,6 @@ export type TranslationFunctions = {
 			 * IMAP 关闭
 			 */
 			imap_close: () => LocalizedString
-			/**
-			 * Redis 连接
-			 */
-			redis_connect: () => LocalizedString
-			/**
-			 * Redis 命令
-			 */
-			redis_command: () => LocalizedString
-			/**
-			 * Redis 关闭
-			 */
-			redis_close: () => LocalizedString
 			/**
 			 * 变量提取
 			 */
@@ -35726,128 +35371,6 @@ export type TranslationFunctions = {
 			 * {count} 条响应
 			 */
 			response_count: (arg: { count: unknown }) => LocalizedString
-		}
-		redis: {
-			/**
-			 * 连接状态
-			 */
-			section_connection: () => LocalizedString
-			/**
-			 * 命令执行结果
-			 */
-			section_command_result: () => LocalizedString
-			/**
-			 * 服务器信息
-			 */
-			section_server_info: () => LocalizedString
-			/**
-			 * 命令执行
-			 */
-			section_command_info: () => LocalizedString
-			/**
-			 * 返回结果
-			 */
-			section_result_data: () => LocalizedString
-			/**
-			 * 关闭状态
-			 */
-			section_close: () => LocalizedString
-			/**
-			 * 已连接
-			 */
-			status_connected: () => LocalizedString
-			/**
-			 * 连接失败
-			 */
-			status_connection_failed: () => LocalizedString
-			/**
-			 * 成功
-			 */
-			status_success: () => LocalizedString
-			/**
-			 * 失败
-			 */
-			status_failed: () => LocalizedString
-			/**
-			 * 已关闭
-			 */
-			status_closed: () => LocalizedString
-			/**
-			 * 关闭失败
-			 */
-			status_close_failed: () => LocalizedString
-			/**
-			 * Redis 连接建立成功
-			 */
-			connect_success: () => LocalizedString
-			/**
-			 * 无法建立 Redis 连接
-			 */
-			connect_error: () => LocalizedString
-			/**
-			 * 命令执行成功
-			 */
-			command_success: () => LocalizedString
-			/**
-			 * 命令执行失败
-			 */
-			command_error: () => LocalizedString
-			/**
-			 * Redis 连接已关闭
-			 */
-			close_success: () => LocalizedString
-			/**
-			 * 关闭失败
-			 */
-			close_error: () => LocalizedString
-			/**
-			 * 服务器
-			 */
-			label_server: () => LocalizedString
-			/**
-			 * 命令
-			 */
-			label_command: () => LocalizedString
-			/**
-			 * 结果
-			 */
-			label_result: () => LocalizedString
-			/**
-			 * 耗时
-			 */
-			label_duration: () => LocalizedString
-			/**
-			 * 数据库索引
-			 */
-			label_db_index: () => LocalizedString
-			/**
-			 * 连接 ID
-			 */
-			label_connection_id: () => LocalizedString
-			/**
-			 * 主机
-			 */
-			label_host: () => LocalizedString
-			/**
-			 * 端口
-			 */
-			label_port: () => LocalizedString
-			/**
-			 * 版本
-			 */
-			label_version: () => LocalizedString
-			/**
-			 * 类型
-			 */
-			label_type: () => LocalizedString
-			/**
-			 * 未执行命令
-			 */
-			no_command_executed: () => LocalizedString
-			/**
-			 * 未知 Redis 节点类型: {type}
-			 */
-			unknown_node_type: (arg: { type: unknown }) => LocalizedString
 		}
 		kafka: {
 			/**

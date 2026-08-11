@@ -29,7 +29,6 @@ TypeScript 类型定义层，与 Rust 后端结构体严格对齐。核心是 `N
 | `ws_stream.ts` | `flow-engine/src/debug/ws_stream.rs` |
 | `smtp.ts` | `flow-engine-smtp/` crate 结构体 |
 | `imap.ts` | `flow-engine-imap/` crate 结构体 |
-| `redis.ts` | `flow-engine-core/src/node_config.rs` |
 | `settings.ts` | 前端独有（无 Rust 映射） |
 | `updater.ts` | 前端独有（Tauri updater events） |
 | `index.ts` | barrel re-export |
@@ -47,7 +46,7 @@ TypeScript 类型定义层，与 Rust 后端结构体严格对齐。核心是 `N
 | 调试会话 | `debug.ts` | `flow-engine/src/debug/types.rs` |
 | IPC 命令签名 | `ipc.ts` | `flow-engine/src/commands/*` |
 | 注册表元数据 | `nodeRegistry.ts` | `plugin.rs` (NodeMetadata) |
-| 协议特定配置 | `smtp.ts` / `imap.ts` / `redis.ts` | 对应 `flow-engine-*` crate |
+| 协议特定配置 | `smtp.ts` / `imap.ts` | 对应 `flow-engine-*` crate（redis 已插件化，无专用类型文件） |
 | 压力测试 | `stressTest.ts` | `flow-engine/src/stress_test/types.rs` |
 | 数据集执行 | `dataset.ts` | `flow-engine/src/dataset/types.rs` |
 | App 设置 | `settings.ts` | 无（前端唯一定义） |

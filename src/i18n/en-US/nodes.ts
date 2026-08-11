@@ -17,8 +17,7 @@ const en_US_nodes = {
     database: 'DB',
     email: 'Email',
     tcp: 'TCP',
-    udp: 'UDP',
-    redis: 'Redis'
+    udp: 'UDP'
   },
   superCategory: {
     network: 'Network',
@@ -116,9 +115,6 @@ const en_US_nodes = {
   imap_folder_delete: 'IMAP Folder Delete',
   imap_idle: 'IMAP Idle',
   imap_close: 'IMAP Close',
-  redis_connect: 'Redis Connect',
-  redis_command: 'Redis Command',
-  redis_close: 'Redis Close',
   variable_extractor: 'Variable Extractor',
   proxy: 'Proxy Settings',
   /** Assertion node mode labels */

@@ -380,7 +380,6 @@ cargo test -p flow-engine-amqp              # AMQP 全部测试
 cargo test -p flow-engine-smtp              # SMTP 全部测试
 cargo test -p flow-engine-imap              # IMAP 全部测试
 cargo test -p flow-engine-tcp               # TCP/UDP 全部测试
-cargo test -p flow-engine-redis             # Redis 全部测试
 cargo test -p flow-engine-crypto            # 加密模块全部测试
 cargo test -p mpe-cli                       # CLI 全部测试
 

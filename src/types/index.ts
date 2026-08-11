@@ -130,9 +130,6 @@ export type {
   AnyNodeData,
   AnyNode,
   PluginNodeData,
-  RedisConnectConfig,
-  RedisCommandConfig,
-  RedisCloseConfig,
 } from './node';
 export {
   isEntryConfig,
@@ -221,9 +218,6 @@ export {
   isImapFolderDeleteConfig,
   isImapIdleConfig,
   isImapCloseConfig,
-  isRedisConnectConfig,
-  isRedisCommandConfig,
-  isRedisCloseConfig,
 } from './node';
 
 // SMTP 类型

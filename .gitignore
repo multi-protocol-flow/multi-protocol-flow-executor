@@ -86,4 +86,7 @@ __pycache__/
 *.pyc
 
 # Third-party plugins (simulate independent development, not part of this repo)
+# 每个子目录是一个独立插件 crate（mongo/redis/…），只依赖 mpe-plugin-sdk，
+# 不参与宿主编译与 CI。redis 原宿主实现（flow-engine-redis）已按
+# extract-redis-plugin 计划移出 workspace 并重构为本目录 plugins/redis。
 /plugins/

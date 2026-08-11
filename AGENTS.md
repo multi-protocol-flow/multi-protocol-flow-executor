@@ -51,7 +51,7 @@ root/
 
 ```
 Layer 0 (叶子):     flow-engine-core, flow-engine-crypto
-Layer 1 (协议):     16 个协议 crate (http, ws, db, script, assertion, grpc, mcp, tcp, mqtt, amqp, graphql, imap, kafka, smtp, sse, redis)
+Layer 1 (协议):     15 个协议 crate (http, ws, db, script, assertion, grpc, mcp, tcp, mqtt, amqp, graphql, imap, kafka, smtp, sse) — redis 已移出宿主，变为第三方插件 plugins/redis
 Layer 2 (编排):     flow-engine-executor (依赖 Layer 0 + 可选 Layer 1)
 Layer 3 (门面):     flow-engine (re-export 全部)
 Layer 4 (应用):     app (src-tauri/) 仅依赖 flow-engine
@@ -83,7 +83,7 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 
 ### 节点类型 (92 variants)
 
-定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), db(6), script, assertion, grpc(3), mcp(5), tcp(4), udp(4), mqtt(7), kafka(7), sse(3), graphql(5), amqp(18), smtp(3), imap(13), redis(3), variable_extractor, proxy。
+定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), db(6), script, assertion, grpc(3), mcp(5), tcp(4), udp(4), mqtt(7), kafka(7), sse(3), graphql(5), amqp(18), smtp(3), imap(13), variable_extractor, proxy。（redis 三节点已移出宿主，见 plugins/redis）
 
 ### 执行错误策略 (on_error)
 
@@ -176,7 +176,6 @@ npm run tauri build             # 构建安装包
 - [src-tauri/crates/flow-engine-script/src/AGENTS.md](./src-tauri/crates/flow-engine-script/src/AGENTS.md) — 脚本
 - [src-tauri/crates/flow-engine-assertion/src/AGENTS.md](./src-tauri/crates/flow-engine-assertion/src/AGENTS.md) — 断言
 - [src-tauri/crates/flow-engine-grpc/src/AGENTS.md](./src-tauri/crates/flow-engine-grpc/src/AGENTS.md) — gRPC
-- [src-tauri/crates/flow-engine-redis/src/AGENTS.md](./src-tauri/crates/flow-engine-redis/src/AGENTS.md) — Redis
 - [src-tauri/crates/flow-engine-mcp/src/AGENTS.md](./src-tauri/crates/flow-engine-mcp/src/AGENTS.md) — MCP
 - [src-tauri/crates/flow-engine-tcp/src/AGENTS.md](./src-tauri/crates/flow-engine-tcp/src/AGENTS.md) — TCP/UDP
 - [src-tauri/crates/flow-engine-mqtt/src/AGENTS.md](./src-tauri/crates/flow-engine-mqtt/src/AGENTS.md) — MQTT

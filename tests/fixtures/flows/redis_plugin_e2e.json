@@ -1,0 +1,115 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "redis-plugin-e2e-0000-0000-0000-000000000001",
+    "name": "Redis Plugin E2E - connect/command/close",
+    "nodes": [
+      {
+        "uuid": "entry-1",
+        "type": "entry",
+        "name": "Start",
+        "position": { "x": 0, "y": 0 },
+        "data": { "type": "entry" },
+        "ports": null
+      },
+      {
+        "uuid": "redis-connect-1",
+        "type": "redis:connect",
+        "name": "Redis Connect",
+        "position": { "x": 200, "y": 0 },
+        "data": {
+          "type": "redis:connect",
+          "host": "127.0.0.1",
+          "port": 16380,
+          "password": "",
+          "db_index": 0,
+          "connect_timeout_ms": 5000
+        },
+        "ports": null
+      },
+      {
+        "uuid": "redis-command-1",
+        "type": "redis:command",
+        "name": "Redis SET",
+        "position": { "x": 400, "y": 0 },
+        "data": {
+          "type": "redis:command",
+          "connection_uuid": "redis-connect-1",
+          "command": "SET",
+          "args": ["mpe:e2e:key", "hello"]
+        },
+        "ports": null
+      },
+      {
+        "uuid": "redis-command-2",
+        "type": "redis:command",
+        "name": "Redis GET",
+        "position": { "x": 600, "y": 0 },
+        "data": {
+          "type": "redis:command",
+          "connection_uuid": "redis-connect-1",
+          "command": "GET",
+          "args": ["mpe:e2e:key"]
+        },
+        "ports": null
+      },
+      {
+        "uuid": "redis-close-1",
+        "type": "redis:close",
+        "name": "Redis Close",
+        "position": { "x": 800, "y": 0 },
+        "data": {
+          "type": "redis:close",
+          "connection_uuid": ""
+        },
+        "ports": null
+      },
+      {
+        "uuid": "end-1",
+        "type": "end",
+        "name": "End",
+        "position": { "x": 1000, "y": 0 },
+        "data": { "type": "end" },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "c1",
+        "source_node_uuid": "entry-1",
+        "target_node_uuid": "redis-connect-1",
+        "source_port_id": "output",
+        "target_port_id": "in"
+      },
+      {
+        "id": "c2",
+        "source_node_uuid": "redis-connect-1",
+        "target_node_uuid": "redis-command-1",
+        "source_port_id": "true",
+        "target_port_id": "in"
+      },
+      {
+        "id": "c3",
+        "source_node_uuid": "redis-command-1",
+        "target_node_uuid": "redis-command-2",
+        "source_port_id": "true",
+        "target_port_id": "in"
+      },
+      {
+        "id": "c4",
+        "source_node_uuid": "redis-command-2",
+        "target_node_uuid": "redis-close-1",
+        "source_port_id": "true",
+        "target_port_id": "in"
+      },
+      {
+        "id": "c5",
+        "source_node_uuid": "redis-close-1",
+        "target_node_uuid": "end-1",
+        "source_port_id": "out",
+        "target_port_id": "input"
+      }
+    ]
+  },
+  "_meta": null
+}

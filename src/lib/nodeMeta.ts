@@ -53,7 +53,6 @@ import {
   FolderPlus,
   Shield,
   Square,
-  Terminal,
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -158,11 +157,6 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   amqp10_accept: { icon: CheckCircle, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
   amqp10_reject: { icon: XCircle, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
   amqp10_disconnect: { icon: Unplug, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
-
-  // Redis (3个) — red 色
-  redis_connect: { icon: Radio, iconBg: 'bg-red-500', labelColor: 'text-red-600', badge: 'bg-red-100 text-red-700' },
-  redis_command: { icon: Terminal, iconBg: 'bg-red-500', labelColor: 'text-red-600', badge: 'bg-red-100 text-red-700' },
-  redis_close: { icon: Unplug, iconBg: 'bg-red-500', labelColor: 'text-red-600', badge: 'bg-red-100 text-red-700' },
 
   // SMTP (3个) — orange 色
   smtp_connect: { icon: Mail, iconBg: 'bg-orange-500', labelColor: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' },
@@ -277,10 +271,6 @@ function getStaticDisplayNames(): Record<string, string> {
     smtp_disconnect: LL.nodes.smtp_disconnect(),
     // IMAP
     imap_connect: LL.nodes.imap_connect(),
-    // Redis
-    redis_connect: LL.nodes.redis_connect(),
-    redis_command: LL.nodes.redis_command(),
-    redis_close: LL.nodes.redis_close(),
     imap_select: LL.nodes.imap_select(),
     imap_search: LL.nodes.imap_search(),
     imap_fetch: LL.nodes.imap_fetch(),

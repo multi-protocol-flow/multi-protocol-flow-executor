@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 节点配置面板主组件
  * 根据节点类型显示不同的配置表单
  */
@@ -169,7 +169,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
     'entry', 'end', 'db_close', 'ws_close', 'grpc_close', 'mcp_close',
     'tcp_close', 'udp_close', 'kafka_close', 'sse_disconnect',
     'graphql_disconnect', 'amqp_close', 'amqp10_disconnect',
-    'smtp_disconnect', 'imap_close', 'redis_close', 'proxy',
+    'smtp_disconnect', 'imap_close', 'proxy',
     'variable_extractor',
   ]);
 

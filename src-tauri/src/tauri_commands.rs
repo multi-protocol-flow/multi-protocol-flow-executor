@@ -284,8 +284,8 @@ pub fn cancel_flow(state: State<'_, ExecutionSessionManager>) -> Result<(), Stri
 /// 执行单个节点（连接性验证）
 ///
 /// 单独执行一个协议节点，用于前端"测试"功能验证连接性。
-/// 支持的节点类型与后端 `SUPPORTED_SINGLE_NODE_TYPES` 保持一致。
-/// 执行超时时间为 30 秒。
+/// 与后端 executor 共用 `supports_single_node` 能力检查（内置白名单 +
+/// 插件 capabilities.single_node），无独立清单。执行超时时间为 30 秒。
 #[tauri::command]
 pub async fn execute_single_node(
     node: Node,
@@ -293,28 +293,11 @@ pub async fn execute_single_node(
     state: State<'_, ExecutionSessionManager>,
     node_registry: State<'_, NodeRegistryState>,
 ) -> Result<NodeExecutionReport, String> {
-    // 白名单检查（纵深防御）
-    let supported = [
-        "http",
-        "script",
-        "assertion",
-        "redis_connect",
-        "db_connect",
-        "mqtt_connect",
-        "kafka_connect",
-        "amqp_connect",
-        "amqp10_connect",
-        "smtp_connect",
-        "imap_connect",
-        "ws_connect",
-        "sse_connect",
-        "grpc_connect",
-        "mcp_connect",
-        "graphql_connect",
-        "tcp_connect",
-    ];
+    // 能力检查（纵深防御）——与 executor 内部同一函数，杜绝两份白名单漂移：
+    // 内置节点走 SUPPORTED_SINGLE_NODE_TYPES，插件节点走 describe 的
+    // capabilities.single_node 声明。
     let type_id = node.data.type_name();
-    if !supported.contains(&type_id.as_str()) {
+    if !flow_engine::executor::supports_single_node(&node_registry.registry, &type_id) {
         return Err(format!(
             "Unsupported node type for single-node execution: {}",
             type_id
@@ -1743,80 +1726,6 @@ pub async fn amqp_test_connection(url: String) -> Result<bool, String> {
     if !url.starts_with("amqp://") && !url.starts_with("amqps://") {
         return Err("URL must start with amqp:// or amqps://".to_string());
     }
-    Ok(true)
-}
-
-// ============================================================================
-// Redis 连接测试命令
-// ============================================================================
-
-/// 测试 Redis 连接
-///
-/// 设计时调用：创建临时 Redis 连接验证服务器可达性，连接后自动关闭。
-#[tauri::command]
-pub async fn test_redis_connection(
-    host: String,
-    port: String,
-    password: Option<String>,
-    db_index: i64,
-) -> Result<bool, String> {
-    use std::time::Duration;
-
-    if host.is_empty() {
-        return Err("Server address must not be empty".to_string());
-    }
-    let port: u16 = port
-        .parse()
-        .map_err(|_| format!("Invalid port number: {}", port))?;
-    if port == 0 {
-        return Err("Invalid port number".to_string());
-    }
-
-    // 使用 ConnectionInfo 避免 URL 特殊字符解析问题
-    use redis::{ConnectionAddr, ConnectionInfo, RedisConnectionInfo};
-    let connection_info = ConnectionInfo {
-        addr: ConnectionAddr::Tcp(host.clone(), port),
-        redis: RedisConnectionInfo {
-            db: db_index,
-            username: None,
-            password: password.clone(),
-            protocol: redis::ProtocolVersion::RESP2,
-        },
-    };
-    let client = redis::Client::open(connection_info)
-        .map_err(|e| format!("Redis client creation failed: {}", e))?;
-
-    let config = redis::aio::ConnectionManagerConfig::new()
-        .set_connection_timeout(Duration::from_secs(5))
-        .set_number_of_retries(1);
-
-    let mut manager = redis::aio::ConnectionManager::new_with_config(client, config)
-        .await
-        .map_err(|e| format!("Redis connection failed: {}", e))?;
-
-    // 选库
-    if db_index != 0 {
-        redis::cmd("SELECT")
-            .arg(db_index)
-            .query_async::<()>(&mut manager)
-            .await
-            .map_err(|e| format!("Redis SELECT {} failed: {}", db_index, e))?;
-    }
-
-    // PING 验证
-    let pong: String = redis::cmd("PING")
-        .query_async(&mut manager)
-        .await
-        .map_err(|e| format!("Redis PING failed: {}", e))?;
-
-    log::info!(
-        "[Redis] Connection test succeeded: {}:{}, db={}, PING={}",
-        host,
-        port,
-        db_index,
-        pong
-    );
-
     Ok(true)
 }
 

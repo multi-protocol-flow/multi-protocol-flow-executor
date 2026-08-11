@@ -31,7 +31,6 @@ execution/
 | `TcpUdpViewer` | tcp_*/udp_* | `MqttViewer` | mqtt_* |
 | `AmqpViewer` | amqp_* + amqp10_* | `GraphqlViewer` | graphql_* |
 | `KafkaViewer` | kafka_* | `SseViewer` | sse_* |
-| `EmailViewer` | imap_* | `RedisViewer` | redis_* |
 | `AssertionViewer` | assertion | `ConditionalViewer` | conditional |
 | `RecordingViewer` | recording | `GenericViewer` | (兜底) |
 | `RawJsonViewer` / `VariableChangesCard` | 子组件，被所有 viewer 复用 |

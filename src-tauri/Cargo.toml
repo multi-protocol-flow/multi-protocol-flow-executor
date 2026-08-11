@@ -20,7 +20,6 @@ members = [
     "crates/flow-engine-sse",
     "crates/flow-engine-graphql",
     "crates/flow-engine-amqp",
-    "crates/flow-engine-redis",
     "crates/mpe-cli",
     "crates/mpe-protocol",
     "crates/flow-engine-plugin",
@@ -127,9 +126,6 @@ tauri-plugin-updater = "2"
 # HTTP 客户端（GraphQL 内省 IPC 命令）
 reqwest = { version = "0.13", default-features = false, features = ["json", "form"] }
 
-# Redis 连接测试命令
-redis = { version = "0.29", features = ["tokio-comp", "connection-manager"] }
-
 # 通用依赖
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -176,7 +172,6 @@ protocol-graphql = ["flow-engine/protocol-graphql"]
 protocol-amqp = ["flow-engine/protocol-amqp"]
 protocol-smtp = ["flow-engine/protocol-smtp"]
 protocol-imap = ["flow-engine/protocol-imap"]
-protocol-redis = ["flow-engine/protocol-redis"]
 plugin-manager = ["flow-engine/plugin-manager"]
 
 # Windows API（FreeConsole 用于分离控制台）

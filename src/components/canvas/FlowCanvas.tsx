@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpReceiveNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, MqttConnectNode, MqttPublishNode, MqttSubscribeNode, MqttUnsubscribeNode, MqttDisconnectNode, MqttWaitMessageNode, MqttRequestNode, VariableExtractorNode, KafkaConnectNode, KafkaProduceNode, KafkaConsumeNode, KafkaConsumeBatchNode, KafkaAdminNode, KafkaSchemaRegistryNode, KafkaCloseNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode, ImapConnectNode, ImapSelectNode, ImapSearchNode, ImapFetchNode, ImapStoreFlagsNode, ImapCopyNode, ImapMoveNode, ImapExpungeNode, ImapListNode, ImapFolderCreateNode, ImapFolderDeleteNode, ImapIdleNode, ImapCloseNode, SmtpConnectNode, SmtpSendNode, SmtpDisconnectNode, ProxyNode, AmqpConnectNode, AmqpCloseNode, AmqpExchangeDeclareNode, AmqpExchangeDeleteNode, AmqpQueueDeclareNode, AmqpQueueDeleteNode, AmqpQueueBindNode, AmqpPublishNode, AmqpConsumeNode, AmqpGetNode, AmqpAckNode, AmqpManagementNode, Amqp10ConnectNode, Amqp10SendNode, Amqp10ReceiveNode, Amqp10AcceptNode, Amqp10RejectNode, Amqp10DisconnectNode, RedisConnectNode, RedisCommandNode, RedisCloseNode, EndNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpReceiveNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, MqttConnectNode, MqttPublishNode, MqttSubscribeNode, MqttUnsubscribeNode, MqttDisconnectNode, MqttWaitMessageNode, MqttRequestNode, VariableExtractorNode, KafkaConnectNode, KafkaProduceNode, KafkaConsumeNode, KafkaConsumeBatchNode, KafkaAdminNode, KafkaSchemaRegistryNode, KafkaCloseNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode, ImapConnectNode, ImapSelectNode, ImapSearchNode, ImapFetchNode, ImapStoreFlagsNode, ImapCopyNode, ImapMoveNode, ImapExpungeNode, ImapListNode, ImapFolderCreateNode, ImapFolderDeleteNode, ImapIdleNode, ImapCloseNode, SmtpConnectNode, SmtpSendNode, SmtpDisconnectNode, ProxyNode, AmqpConnectNode, AmqpCloseNode, AmqpExchangeDeclareNode, AmqpExchangeDeleteNode, AmqpQueueDeclareNode, AmqpQueueDeleteNode, AmqpQueueBindNode, AmqpPublishNode, AmqpConsumeNode, AmqpGetNode, AmqpAckNode, AmqpManagementNode, Amqp10ConnectNode, Amqp10SendNode, Amqp10ReceiveNode, Amqp10AcceptNode, Amqp10RejectNode, Amqp10DisconnectNode, EndNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { ExecutionOverlay } from './ExecutionOverlay';
 import { CanvasToolbar } from './CanvasToolbar';
@@ -279,9 +279,6 @@ const nodeTypes = {
   amqp10_accept: Amqp10AcceptNode,
   amqp10_reject: Amqp10RejectNode,
   amqp10_disconnect: Amqp10DisconnectNode,
-  redis_connect: RedisConnectNode,
-  redis_command: RedisCommandNode,
-  redis_close: RedisCloseNode,
   end: EndNode,
   default: DynamicPluginNode,
 };
@@ -363,9 +360,6 @@ const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   amqp10_accept: '#a855f7',
   amqp10_reject: '#a855f7',
   amqp10_disconnect: '#a855f7',
-  redis_connect: '#ef4444',
-  redis_command: '#ef4444',
-  redis_close: '#ef4444',
   end: '#8B5CF6',
 };
 

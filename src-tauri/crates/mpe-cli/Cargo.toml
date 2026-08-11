@@ -52,7 +52,6 @@ protocol-graphql = ["flow-engine/protocol-graphql"]
 protocol-amqp = ["flow-engine/protocol-amqp"]
 protocol-smtp = ["flow-engine/protocol-smtp"]
 protocol-imap = ["flow-engine/protocol-imap"]
-protocol-redis = ["flow-engine/protocol-redis"]
 # Proves the CLI gets plugins despite `default-features = false` on its
 # flow-engine dependency: plugin-manager is forwarded explicitly and is
 # independent of protocol-*.

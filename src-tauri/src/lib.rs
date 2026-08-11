@@ -80,7 +80,6 @@ pub use tauri_commands::{
     // 压力测试命令
     start_stress_test,
     stop_stress_test,
-    test_redis_connection,
     update_node,
     // 数据集执行命令
     validate_dataset_csv,
@@ -186,10 +185,15 @@ fn plugins_dir() -> PathBuf {
 /// 插件扫描与 describe 在启动时同步阻塞执行（describe 会拉起插件进程，
 /// 但数量有限、耗时毫秒级，可接受）；扫描失败仅告警，不阻塞启动。
 /// 关闭 `plugin-manager` 特性时仅构建内置节点注册表。
-fn build_node_registry_state() -> NodeRegistryState {
+///
+/// `host_locale` 是宿主当前 UI 语言（BCP-47，如 `en-US`）：插件进程在
+/// spawn 时经 `MPE_LOCALE` 环境变量注入（匹配插件 `locales` 则用宿主语言，
+/// 否则用插件 `default_locale`），语言在插件进程生命周期内固定。
+fn build_node_registry_state(host_locale: Option<String>) -> NodeRegistryState {
     #[cfg(feature = "plugin-manager")]
     {
-        let mut manager = flow_engine::PluginManager::new(plugins_dir());
+        let mut manager = flow_engine::PluginManager::new(plugins_dir())
+            .with_host_locale(host_locale);
         let _ = tauri::async_runtime::block_on(manager.scan_and_describe());
         let manager = Arc::new(manager);
         let registry = Arc::new(flow_engine::default_registry_with_plugins(&manager));
@@ -197,6 +201,7 @@ fn build_node_registry_state() -> NodeRegistryState {
     }
     #[cfg(not(feature = "plugin-manager"))]
     {
+        let _ = host_locale;
         NodeRegistryState {
             registry: Arc::new(flow_engine::default_registry::default_registry()),
         }
@@ -253,8 +258,17 @@ pub fn run() {
 
     builder
         .setup(|app| {
+            // 读取宿主当前 UI 语言（store/settings.bin 的 locale 键），注入插件进程。
+            // 语言在插件 spawn 时固定；宿主切换语言后需重启或重新加载插件才生效。
+            let host_locale = match app.store("store/settings.bin") {
+                Ok(store) => store
+                    .get("locale")
+                    .and_then(|v| v.as_str().map(String::from)),
+                Err(_) => None,
+            };
+
             // 注册共享节点注册表状态（内置节点 + 插件节点，全局构建一次）
-            let node_registry_state = build_node_registry_state();
+            let node_registry_state = build_node_registry_state(host_locale);
             let stress_registry = Arc::clone(&node_registry_state.registry);
             app.manage(node_registry_state);
 
@@ -413,7 +427,6 @@ pub fn run() {
             kafka_discover_schema,
             // 执行会话管理
             cancel_flow,
-            test_redis_connection,
             // 流程验证命令
             validate_flow,
             // 流程文件存储命令

@@ -180,10 +180,6 @@ pub fn default_registry() -> NodeRegistry {
     #[cfg(feature = "protocol-imap")]
     flow_engine_imap::plugin::ImapPluginGroup::register_all(&mut registry);
 
-    // Redis (flow-engine-redis) — 批量注册 3 个插件
-    #[cfg(feature = "protocol-redis")]
-    flow_engine_redis::plugin::RedisPluginGroup::register_all(&mut registry);
-
     // End (flow-engine-executor 内置)
     registry.register(std::sync::Arc::new(crate::plugin_end::EndPlugin));
 
@@ -320,10 +316,6 @@ mod tests {
         #[cfg(feature = "protocol-imap")]
         {
             expected += 13;
-        }
-        #[cfg(feature = "protocol-redis")]
-        {
-            expected += 3;
         }
 
         assert_eq!(

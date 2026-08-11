@@ -4,12 +4,14 @@
 //! collisions are first-wins + warn. [`RESERVED_TYPE_IDS`] is the exact set of
 //! `type_id` strings registered by `flow_engine_executor::default_registry`
 //! — extracted from the literal `type_id()` implementations of every
-//! registered `NodePlugin` (91 ids, matching the registry's own count test).
+//! registered `NodePlugin` (88 ids, matching the registry's own count test).
 //!
 //! Notes on the extraction (the doc table in `default_registry.rs` is NOT the
 //! source of truth):
-//! - The Redis family (`redis_connect`/`redis_command`/`redis_close`) IS
-//!   registered but missing from the doc table — included here.
+//! - The Redis family (`redis_connect`/`redis_command`/`redis_close`) is NOT
+//!   registered anymore — redis moved to the third-party `plugins/redis`
+//!   plugin (`redis:connect` etc., mongo-style namespace), so those ids are
+//!   free for third-party use.
 //! - `amqp_management` is `#[cfg(feature = "management")]`-gated and NOT part
 //!   of the default registry — deliberately excluded (a third-party plugin may
 //!   use it until the feature ships).
@@ -89,9 +91,6 @@ pub const RESERVED_TYPE_IDS: &[&str] = &[
     "mqtt_unsubscribe",
     "mqtt_wait_message",
     "proxy",
-    "redis_close",
-    "redis_command",
-    "redis_connect",
     "script",
     "smtp_connect",
     "smtp_disconnect",
@@ -160,7 +159,6 @@ mod tests {
             "amqp10_reject",
             "smtp_send",
             "imap_folder_create",
-            "redis_command",
         ] {
             assert!(is_reserved_type_id(id), "{id} should be reserved");
         }
@@ -183,11 +181,14 @@ mod tests {
 
     #[test]
     fn reserved_count_matches_default_registry() {
-        // 91 = 5 always-on (entry/conditional/end/variable_extractor/proxy)
+        // 88 = 5 always-on (entry/conditional/end/variable_extractor/proxy)
         // + 1 http + 3 ws + 6 db + 1 script + 1 assertion + 3 grpc + 5 mcp
         // + 8 tcp/udp + 7 mqtt + 7 kafka + 3 sse + 5 graphql + 17 amqp
-        // + 3 smtp + 13 imap + 3 redis. Cross-checked against
-        // `default_registry.rs::test_plugin_count_matches_features` (91).
-        assert_eq!(RESERVED_TYPE_IDS.len(), 91);
+        // + 3 smtp + 13 imap. (redis_connect/redis_command/redis_close 已移出
+        // 宿主 —— redis 变为第三方插件 plugins/redis，type_id 用
+        // `redis:connect` 等 mongo 风格命名，天然不占用保留 id。) Cross-checked
+        // against `default_registry.rs::test_plugin_count_matches_features`
+        // (88).
+        assert_eq!(RESERVED_TYPE_IDS.len(), 88);
     }
 }

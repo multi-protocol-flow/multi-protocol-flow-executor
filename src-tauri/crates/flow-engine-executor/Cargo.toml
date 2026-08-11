@@ -31,7 +31,6 @@ protocol-graphql = ["dep:flow-engine-graphql"]
 protocol-amqp = ["dep:flow-engine-amqp"]
 protocol-smtp = ["dep:flow-engine-smtp"]
 protocol-imap = ["dep:flow-engine-imap"]
-protocol-redis = ["dep:flow-engine-redis"]
 # Plugin manager feature — independent of protocol-*; the sidecar plugin
 # system is not a protocol executor.
 plugin-manager = ["dep:flow-engine-plugin"]
@@ -53,7 +52,6 @@ flow-engine-graphql = { path = "../flow-engine-graphql", optional = true }
 flow-engine-amqp = { path = "../flow-engine-amqp", optional = true }
 flow-engine-smtp = { path = "../flow-engine-smtp", optional = true }
 flow-engine-imap = { path = "../flow-engine-imap", optional = true }
-flow-engine-redis = { path = "../flow-engine-redis", optional = true }
 flow-engine-plugin = { path = "../flow-engine-plugin", optional = true }
 async-trait = { workspace = true }
 serde = { workspace = true }

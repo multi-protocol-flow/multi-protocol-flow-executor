@@ -107,10 +107,6 @@ const panelLoaders: Record<string, PanelLoader> = {
   imap_idle: () => import('@/components/panels/ImapIdlePanel').then(m => m.ImapIdlePanel),
   imap_close: () => import('@/components/panels/ImapClosePanel').then(m => m.ImapClosePanel),
   proxy: () => import('@/components/panels/ProxyConfig').then(m => m.ProxyConfig),
-  // Redis
-  redis_connect: () => import('@/components/panels/RedisConnectConfig').then(m => m.RedisConnectConfig),
-  redis_command: () => import('@/components/panels/RedisCommandConfig').then(m => m.RedisCommandConfig),
-  redis_close: () => import('@/components/panels/RedisCloseConfig').then(m => m.RedisCloseConfig),
 };
 
 /** 根据节点类型获取对应的面板加载器 */

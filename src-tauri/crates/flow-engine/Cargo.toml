@@ -31,7 +31,6 @@ protocol-graphql = ["flow-engine-executor/protocol-graphql"]
 protocol-amqp = ["flow-engine-executor/protocol-amqp"]
 protocol-smtp = ["flow-engine-executor/protocol-smtp"]
 protocol-imap = ["flow-engine-executor/protocol-imap"]
-protocol-redis = ["flow-engine-executor/protocol-redis"]
 # Plugin manager — independent of protocol-*; explicitly re-forwards the
 # executor feature because the facade depends on executor with
 # default-features = false (the executor feature would otherwise never

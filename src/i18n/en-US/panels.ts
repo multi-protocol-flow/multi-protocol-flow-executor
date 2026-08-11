@@ -2371,33 +2371,6 @@
     closeCodeInfo_1006: "Abnormal closure (no close frame)",
     closeCodeInfo_title: "Close Code Info:",
   },
-  // Redis
-  redisConnect: {
-    title: 'Redis Connect Node',
-    description: 'Establish a connection to Redis server.',
-    host: 'Host',
-    port: 'Port',
-    password: 'Password',
-    dbIndex: 'Database Index',
-    connectTimeout: 'Connect Timeout (ms)',
-    testSuccess_msg: 'Connection successful',
-    testFailed_msg: 'Connection failed, please check configuration',
-  },
-  redisCommand: {
-    title: 'Redis Command Node',
-    description: 'Execute a Redis command (GET, SET, SMEMBERS, etc.).',
-    connectionId: 'Connection ID',
-    command: 'Command',
-    args: 'Arguments',
-    noConnectNode: 'No Redis Connect node detected, enter connection ID manually',
-    commandHint: 'Supported commands:\nString: GET, SET, DEL, INCR, DECR\nHash: HGET, HSET, HDEL, HGETALL\nList: LPUSH, RPUSH, LRANGE\nSet: SADD, SMEMBERS, SREM\nKey: TTL, EXPIRE, KEYS, DBSIZE\nUtility: PING, INFO',
-  },
-  redisClose: {
-    title: 'Redis Close Node',
-    description: 'Close a Redis connection.',
-    connectionId: 'Connection ID',
-  },
-
   // Hex Viewer
   hex_empty: 'No data',
   hex_search_placeholder: 'Search hex (e.g. 48 65 6c 6c 6f)',

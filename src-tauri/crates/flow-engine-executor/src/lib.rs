@@ -65,8 +65,6 @@ pub use flow_engine_kafka;
 pub use flow_engine_mcp;
 #[cfg(feature = "protocol-mqtt")]
 pub use flow_engine_mqtt;
-#[cfg(feature = "protocol-redis")]
-pub use flow_engine_redis;
 #[cfg(feature = "protocol-script")]
 pub use flow_engine_script;
 #[cfg(feature = "protocol-smtp")]

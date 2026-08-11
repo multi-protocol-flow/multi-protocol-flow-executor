@@ -232,7 +232,6 @@ dependencies = [
  "mpe-cli",
  "predicates",
  "proptest",
- "redis",
  "reqwest",
  "rustls",
  "serde",
@@ -262,15 +261,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d036a3c4ab069c7b410a2ce876bd74808d2d0888a82667669f8e783a898bf1"
 dependencies = [
  "derive_arbitrary",
-]
-
-[[package]]
-name = "arc-swap"
-version = "1.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c049c0be4daef0b145cb3555416b3b8ef5b7888a38aea1a3a155801fe7b0810b"
-dependencies = [
- "rustversion",
 ]
 
 [[package]]
@@ -1216,11 +1206,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba5a308b75df32fe02788e748662718f03fde005016435c444eea572398219fd"
 dependencies = [
  "bytes",
- "futures-core",
  "memchr",
- "pin-project-lite",
- "tokio",
- "tokio-util",
 ]
 
 [[package]]
@@ -2248,7 +2234,6 @@ dependencies = [
  "flow-engine-mcp",
  "flow-engine-mqtt",
  "flow-engine-plugin",
- "flow-engine-redis",
  "flow-engine-script",
  "flow-engine-smtp",
  "flow-engine-sse",
@@ -2445,23 +2430,6 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "windows 0.58.0",
- "workspace-hack",
-]
-
-[[package]]
-name = "flow-engine-redis"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "flow-engine-core",
- "log",
- "redis",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "tokio",
- "uuid",
  "workspace-hack",
 ]
 
@@ -5598,30 +5566,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "redis"
-version = "0.29.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bc42f3a12fd4408ce64d8efef67048a924e543bd35c6591c0447fda9054695f"
-dependencies = [
- "arc-swap",
- "backon",
- "bytes",
- "combine",
- "futures-channel",
- "futures-util",
- "itoa",
- "num-bigint",
- "percent-encoding",
- "pin-project-lite",
- "ryu",
- "sha1_smol",
- "socket2 0.5.10",
- "tokio",
- "tokio-util",
- "url",
-]
-
-[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6560,12 +6504,6 @@ dependencies = [
  "cpufeatures 0.2.17",
  "digest",
 ]
-
-[[package]]
-name = "sha1_smol"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbfa15b3dddfee50a0fff136974b3e1bde555604ba463834a7eb7deb6417705d"
 
 [[package]]
 name = "sha2"

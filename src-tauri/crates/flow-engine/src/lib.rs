@@ -160,14 +160,6 @@ pub use flow_engine_executor::flow_engine_script;
 #[cfg(feature = "protocol-script")]
 pub use flow_engine_executor::flow_engine_script::{script_api, script_executor};
 
-// Redis (flow-engine-redis)
-#[cfg(feature = "protocol-redis")]
-pub use flow_engine_executor::flow_engine_redis;
-#[cfg(feature = "protocol-redis")]
-pub use flow_engine_executor::flow_engine_redis::{
-    redis_close_executor, redis_command_executor, redis_connect_executor, redis_connection_manager,
-};
-
 // Assertion (flow-engine-assertion)
 #[cfg(feature = "protocol-assertion")]
 pub use flow_engine_executor::flow_engine_assertion;

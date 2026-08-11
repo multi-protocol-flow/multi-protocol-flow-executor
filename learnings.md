@@ -38,7 +38,7 @@ All 12 protocol crates that override `supports_false_port()` have the annotation
 | sse | `flow-engine-sse/src/plugin.rs` | ✅ |
 | graphql | `flow-engine-graphql/src/plugin.rs` | ✅ |
 | smtp | `flow-engine-smtp/src/plugin.rs` | ✅ |
-| redis | `flow-engine-redis/src/plugin.rs` | ✅ |
+| redis | 已移出宿主 → `plugins/redis`（第三方插件，`redis:connect` 等） | ✅（插件） |
 | amqp (amqp091) | `flow-engine-amqp/src/amqp091/plugin.rs` | ✅ |
 | mqtt | `flow-engine-mqtt/src/plugin.rs` | ✅ |
 | imap | `flow-engine-imap/src/plugin.rs` | ✅ |

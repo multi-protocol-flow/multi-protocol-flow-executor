@@ -130,10 +130,6 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   imap_idle: EmailViewer,
   imap_close: EmailViewer,
   proxy: GenericViewer,
-  // Redis
-  redis_connect: GenericViewer,
-  redis_command: GenericViewer,
-  redis_close: GenericViewer,
 };
 
 /**

@@ -154,7 +154,7 @@ src-tauri/src/
 │   ├── grpc.rs                # gRPC 8 个命令（cfg-gated）
 │   ├── email.rs               # SMTP/IMAP/OAuth2（cfg-gated）
 │   ├── mqtt_kafka.rs          # MQTT + Kafka（cfg-gated）
-│   └── misc.rs                # test_redis, graphql_introspect, tcp_templates 等
+│   └── misc.rs                # graphql_introspect, tcp_templates 等（test_redis 已随 redis 插件化移除）
 ```
 
 **收益**: 合并冲突大幅减少，新命令可独立文件添加，Review diff 更聚焦。

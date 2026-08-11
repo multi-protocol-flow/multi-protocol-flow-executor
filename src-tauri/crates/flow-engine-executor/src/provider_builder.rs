@@ -126,12 +126,6 @@ impl ProviderBuilderExt for ExecutionContext {
             self.set_provider("imap", imap);
         }
 
-        #[cfg(feature = "protocol-redis")]
-        {
-            let redis = Arc::new(flow_engine_redis::RedisConnectionManager::new());
-            self.set_provider("redis", redis);
-        }
-
         self
     }
 

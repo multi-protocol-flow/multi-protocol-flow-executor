@@ -13,9 +13,6 @@ import type { FlowHook } from './hook';
 
 import type { SmtpConnectConfig, SmtpSendConfig, SmtpDisconnectConfig } from './smtp';
 
-import type { RedisConnectConfig, RedisCommandConfig, RedisCloseConfig } from './redis';
-export type { RedisConnectConfig, RedisCommandConfig, RedisCloseConfig };
-
 import type {
   ImapConnectConfig,
   ImapSelectConfig,
@@ -127,9 +124,6 @@ export type NodeType =
   | 'imap_folder_delete'
   | 'imap_idle'
   | 'imap_close'
-  | 'redis_connect'
-  | 'redis_command'
-  | 'redis_close'
   | 'variable_extractor'
   | 'proxy';
 
@@ -2451,9 +2445,6 @@ export type NodeData =
   | ImapFolderDeleteConfig
   | ImapIdleConfig
   | ImapCloseConfig
-  | RedisConnectConfig
-  | RedisCommandConfig
-  | RedisCloseConfig
   | VariableExtractorConfig
   | ProxyConfig;
 
@@ -2872,10 +2863,6 @@ export function isImapFolderCreateConfig(data: NodeData): data is ImapFolderCrea
 export function isImapFolderDeleteConfig(data: NodeData): data is ImapFolderDeleteConfig { return data.type === 'imap_folder_delete'; }
 export function isImapIdleConfig(data: NodeData): data is ImapIdleConfig { return data.type === 'imap_idle'; }
 export function isImapCloseConfig(data: NodeData): data is ImapCloseConfig { return data.type === 'imap_close'; }
-
-export function isRedisConnectConfig(data: NodeData): data is RedisConnectConfig { return data.type === 'redis_connect'; }
-export function isRedisCommandConfig(data: NodeData): data is RedisCommandConfig { return data.type === 'redis_command'; }
-export function isRedisCloseConfig(data: NodeData): data is RedisCloseConfig { return data.type === 'redis_close'; }
 
 /**
  * 判断是否为 VariableExtractorConfig
