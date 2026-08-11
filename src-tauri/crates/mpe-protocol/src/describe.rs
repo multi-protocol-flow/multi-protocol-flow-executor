@@ -111,7 +111,12 @@ mod tests {
             },
             env: HashMap::new(),
             permissions: Vec::new(),
-            capabilities: PluginCapabilities { streaming: true },
+            capabilities: PluginCapabilities {
+                streaming: true,
+                ..Default::default()
+            },
+            locales: Vec::new(),
+            default_locale: None,
         }
     }
 

@@ -21,6 +21,7 @@ pub async fn execute(
     _format: &str,
     node_json: &str,
     vars: &[(String, String)],
+    registry: std::sync::Arc<flow_engine::registry::NodeRegistry>,
 ) -> Result<(), CliError> {
     // 1. Parse JSON as NodeData
     let node_data: NodeData = serde_json::from_str(node_json)
@@ -50,8 +51,11 @@ pub async fn execute(
         Some(Value::Object(map))
     };
 
-    // 4. Build executor
-    let executor = FlowExecutor::new().with_hook_executor(Arc::new(DefaultHookExecutor::new()));
+    // 4. Build executor with the shared registry (built-ins + plugins, so
+    // `mpe run node` can drive plugin connect nodes like `redis:connect`).
+    let executor = FlowExecutor::new()
+        .with_registry(registry)
+        .with_hook_executor(Arc::new(DefaultHookExecutor::new()));
 
     // 5. Execute single node
     let result = executor.execute_single_node(&node, variables, None).await;

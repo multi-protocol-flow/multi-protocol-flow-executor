@@ -101,11 +101,18 @@ fn build_input_data_from_node_config(
 }
 
 /// Node types that can be executed standalone via `execute_single_node`
-const SUPPORTED_SINGLE_NODE_TYPES: &[&str] = &[
+/// (built-in gate).
+///
+/// This is the SINGLE source of truth for built-in single-node support;
+/// the Tauri command layer references this constant (via
+/// [`supports_single_node`]) instead of keeping its own copy. Plugin nodes
+/// are gated separately by their describe `capabilities.single_node`
+/// declaration (see [`NodePlugin::supports_single_node`]) — third-party
+/// connect nodes like `redis:connect` need no entry here.
+pub const SUPPORTED_SINGLE_NODE_TYPES: &[&str] = &[
     "http",
     "script",
     "assertion",
-    "redis_connect",
     "db_connect",
     "mqtt_connect",
     "kafka_connect",
@@ -120,6 +127,20 @@ const SUPPORTED_SINGLE_NODE_TYPES: &[&str] = &[
     "graphql_connect",
     "tcp_connect",
 ];
+
+/// Whether a node type may run via the single-node path.
+///
+/// Built-in nodes pass when listed in [`SUPPORTED_SINGLE_NODE_TYPES`];
+/// plugin nodes pass when their registered plugin declares
+/// [`NodePlugin::supports_single_node`] (backed by the describe
+/// `capabilities.single_node` declaration). One function, no duplicated
+/// lists — the Tauri command layer calls this too.
+pub fn supports_single_node(registry: &NodeRegistry, type_id: &str) -> bool {
+    SUPPORTED_SINGLE_NODE_TYPES.contains(&type_id)
+        || registry
+            .get(type_id)
+            .is_some_and(|plugin| plugin.supports_single_node())
+}
 
 /// Fallback timeout (30s) when node has no configured timeout
 const FALLBACK_TIMEOUT_MS: u64 = 30_000;
@@ -1257,7 +1278,7 @@ impl FlowExecutor {
 
         // 1. Get type_id and validate
         let type_id = node.data.type_name();
-        if !SUPPORTED_SINGLE_NODE_TYPES.contains(&type_id.as_str()) {
+        if !supports_single_node(&self.registry, &type_id) {
             return ExecutionResult {
                 success: false,
                 data: None,

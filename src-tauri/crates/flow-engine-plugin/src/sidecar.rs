@@ -132,6 +132,15 @@ impl NodePlugin for SidecarPlugin {
         self.frontend.as_ref()
     }
 
+    /// Single-node execution capability comes from the plugin's describe
+    /// `capabilities.single_node` declaration — the host's gate consults
+    /// this instead of a hardcoded whitelist, so third-party connect nodes
+    /// (e.g. `redis:connect`) are testable via `execute_single_node` /
+    /// `mpe run node` without a host-side list entry.
+    fn supports_single_node(&self) -> bool {
+        self.node.capabilities.single_node
+    }
+
     /// Report status fidelity: a plugin that returned `Ok` succeeded; only an
     /// explicit `success: false` in its output data maps to the `false` port.
     fn resolve_port(&self, output: &Option<Value>) -> String {

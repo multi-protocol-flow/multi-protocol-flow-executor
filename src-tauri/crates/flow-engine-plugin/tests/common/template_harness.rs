@@ -114,6 +114,8 @@ pub fn fallback_manifest(name: &str) -> PluginManifest {
         env: HashMap::new(),
         permissions: Vec::new(),
         capabilities: PluginCapabilities::default(),
+        locales: Vec::new(),
+        default_locale: None,
     }
 }
 

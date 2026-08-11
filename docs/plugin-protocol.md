@@ -180,7 +180,9 @@ on-disk `plugin.json` during discovery).
 {
   "plugin":  { "name": "demo", "version": "1.0.0",
                "entry": {"command": "demo"},
-               "capabilities": {"streaming": true} },
+               "capabilities": {"streaming": true},
+               "locales": ["zh-CN", "en-US"],
+               "default_locale": "en-US" },
   "nodes": [
     { "type_id": "demo:ping", "display_name": "Ping",
       "category": "demo", "icon": "wave", "color": "#ff0000",
@@ -196,6 +198,14 @@ on-disk `plugin.json` during discovery).
 
 - `plugin` is the plugin's authoritative manifest echo; its `capabilities`
   **override** the on-disk manifest (residency decision, M2b).
+- `plugin.locales` (BCP-47 tags) + `plugin.default_locale`: the plugin's UI
+  language declaration. The host resolves the effective language **once at
+  spawn** and injects it into the plugin process as the `MPE_LOCALE`
+  environment variable: the host's current language when listed in
+  `locales`, otherwise `default_locale`. A plugin declaring neither is
+  spawned without `MPE_LOCALE` (unchanged pre-locale behavior). The value is
+  fixed for the process lifetime — a host language change only takes effect
+  after a plugin restart / reload (see `docs/plugin-sdk.md` §5.1).
 - `nodes[].frontend` (`{ "type", "content"?, "url"? }`): **all** frontend
   kinds pass through to the host — nothing is dropped. `content` carries
   inline HTML for `type: "inline"`. The host **generates the iframe `url`**

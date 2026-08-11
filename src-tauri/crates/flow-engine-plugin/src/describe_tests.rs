@@ -260,6 +260,8 @@ async fn describe_handshake_accepts_sdk_array_shape(
         env: std::collections::HashMap::new(),
         permissions: Vec::new(),
         capabilities: mpe_protocol::manifest::PluginCapabilities::default(),
+        locales: Vec::new(),
+        default_locale: None,
     };
     let result = perform_describe(&conn, Some(fallback)).await?;
     plugin_task.await??;

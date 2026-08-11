@@ -40,6 +40,8 @@ fn test_manifest() -> PluginManifest {
         env: std::collections::HashMap::new(),
         permissions: Vec::new(),
         capabilities: PluginCapabilities::default(),
+        locales: Vec::new(),
+        default_locale: None,
     }
 }
 
@@ -129,6 +131,7 @@ async fn registry_threaded_executor_runs_plugin_flow(
             idle_recycle: Duration::from_secs(60),
             restart_min_interval: Duration::from_secs(1),
             shutdown_grace: Duration::from_millis(50),
+            host_locale: None,
             connector: live_connector(),
         });
     manager.register_plugin("demo".to_string(), test_manifest());

@@ -51,6 +51,12 @@ import {
   FolderPlus,
   Plus,
   RefreshCw,
+  Terminal,
+  Server,
+  Key,
+  Hash,
+  Box,
+  Command,
 } from 'lucide-react';
 
 /** 后端 icon 字段到 lucide-react 组件的映射 */
@@ -104,6 +110,14 @@ export const BACKEND_ICON_MAP: Record<string, LucideIcon> = {
   plus: Plus,
   'refresh-cw': RefreshCw,
   plugin: Puzzle,
+  // 第三方插件常用的 lucide 图标名（redis:command → "terminal" 等）。
+  // 未收录的名字会回退到 Wrench（面板）/ Box（画布），新增条目需同步 import。
+  terminal: Terminal,
+  server: Server,
+  key: Key,
+  hash: Hash,
+  box: Box,
+  command: Command,
 };
 
 /**

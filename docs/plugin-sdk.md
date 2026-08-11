@@ -60,7 +60,9 @@ plugins/
   },
   "env": { "MY_PLUGIN_MODE": "prod" },
   "permissions": [],
-  "capabilities": { "streaming": false }
+  "capabilities": { "streaming": false },
+  "locales": ["zh-CN", "en-US"],
+  "default_locale": "en-US"
 }
 ```
 
@@ -73,6 +75,9 @@ plugins/
 | `env` | Extra environment variables injected at spawn (host UTF-8 env is always present on top). |
 | `permissions` | Reserved; P0 ignores. |
 | `capabilities.streaming` | `true` → the process stays resident (never idle-recycled); `false` → on-demand spawn + 60 s idle recycle. |
+| `capabilities.single_node` | Node-level (per `NodeDescription`): `true` → the node can run standalone via the host's single-node path (`execute_single_node` / `mpe run node`), used for connectivity verification. Connect-type nodes (e.g. `redis:connect`) should declare it. The host's gate consults this capability instead of a hardcoded whitelist, so third-party connect nodes need no host code change. |
+| `locales` | **UI languages the plugin supports** (BCP-47 tags, e.g. `["en-US"]`, `["zh-CN", "en-US"]`). Empty/absent = the plugin does not participate in language injection. See [Plugin language](#plugin-language) below. |
+| `default_locale` | **Fallback language** used when the host's current language is not in `locales`. `None` = the plugin falls back to its own hard-coded default. |
 
 ## 4. The wire contract (summary)
 
@@ -220,14 +225,19 @@ fall back to a generic icon, so pick from this list:
 
 | Group | Icon strings |
 |-------|--------------|
-| General / action | `play`, `circle-play`, `check`, `check-circle`, `x`, `x-circle`, `plus`, `copy`, `undo`, `search`, `eye`, `eye-off`, `download`, `settings`, `timer`, `message-square`, `arrow-down-to-line`, `refresh-cw`, `rotate-ccw` |
-| Network / transport | `globe`, `wifi`, `send`, `plug`, `unplug`, `cable`, `phone-outgoing`, `phone-off`, `radio-tower`, `shuffle`, `network` |
-| Database / storage | `database` |
-| File / code | `git-branch`, `code`, `file-search`, `file-text`, `file-code`, `braces`, `wrench` |
+| General / action | `play`, `circle-play`, `check`, `check-circle`, `x`, `x-circle`, `plus`, `copy`, `undo`, `search`, `eye`, `eye-off`, `download`, `settings`, `timer`, `message-square`, `arrow-down-to-line`, `refresh-cw`, `rotate-ccw`, `command` |
+| Network / transport | `globe`, `wifi`, `send`, `plug`, `unplug`, `cable`, `phone-outgoing`, `phone-off`, `radio-tower`, `shuffle`, `network`, `server` |
+| Database / storage | `database`, `hash`, `key`, `box` |
+| File / code | `git-branch`, `code`, `file-search`, `file-text`, `file-code`, `braces`, `wrench`, `terminal` |
 | UI / misc | `mail`, `layers`, `ear`, `trash`, `trash-2`, `list`, `link`, `inbox`, `folder-plus`, `puzzle`, `plugin` |
 
 Unknown strings render as the same generic icon used when `icon` is omitted,
-without raising an error.
+without raising an error — **but the Rust SDK warns on stderr at `describe`
+time** when a node declares an icon outside this list (`CANONICAL_ICON_NAMES`
+in `mpe-plugin-sdk/src/types.rs`, mirrored by the host's
+`src/lib/nodeIcons.ts`), so a misspelled or unsupported icon is caught at
+plugin startup instead of silently showing a fallback in the host UI. Keep
+both lists in sync when adding icons.
 
 #### Color
 
@@ -293,6 +303,43 @@ mpe_plugin_main!(AddPlugin);
   binary and speaks JSON-RPC over stdio; the host's conformance suite
   (`cargo test -p flow-engine-plugin --test conformance`) runs the same
   surface against the built binary.
+
+### 5.1 Plugin language
+
+A plugin's UI language (labels, descriptions, error messages) is **fixed at
+process spawn**: the host injects it once via the `MPE_LOCALE` environment
+variable, and it does not change for the process lifetime.
+
+Resolution (host side, at spawn):
+
+1. Host's current UI language is used when it appears in the plugin's
+   `locales` (e.g. host on `zh-CN`, plugin declares `["zh-CN", "en-US"]` →
+   `MPE_LOCALE=zh-CN`);
+2. otherwise the plugin's `default_locale` is used;
+3. a plugin declaring neither `locales` nor `default_locale` is spawned
+   **without** `MPE_LOCALE` — it keeps its hard-coded default, exactly like
+   pre-locale plugins.
+
+Changing the host language does **not** affect already-loaded plugins; it
+takes effect on the next plugin restart / reload (or app restart). The host
+injects the language only when the plugin declares `locales`; a plugin that
+declares none is completely unaffected.
+
+Rust SDK plugins read the injected language with `locale()` (in the prelude):
+
+```rust
+use mpe_plugin_sdk::prelude::*;
+
+let lang = locale().unwrap_or_else(|| "en-US".to_string());
+let greeting = match lang.as_str() {
+    "zh-CN" => "你好",
+    _ => "Hello",
+};
+```
+
+The Mongo plugin (`plugins/mongo`) is a reference implementation: declare
+`"locales": ["zh-CN", "en-US"], "default_locale": "en-US"` and switch all
+user-visible strings via a small `t(zh, en)` helper.
 
 ## 6. Python and Node templates (light)
 

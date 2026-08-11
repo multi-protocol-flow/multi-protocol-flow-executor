@@ -35,6 +35,17 @@ pub struct PluginManifest {
     /// Runtime capabilities declared by the plugin.
     #[serde(default)]
     pub capabilities: PluginCapabilities,
+    /// UI languages the plugin supports (BCP-47 tags, e.g. `"en-US"`). The
+    /// host injects its own current language via `MPE_LOCALE` at spawn when
+    /// it matches; otherwise `default_locale` is used. Empty = the plugin
+    /// does not participate in language injection (unchanged behavior).
+    #[serde(default)]
+    pub locales: Vec<String>,
+    /// Fallback UI language used when the host's current language is not in
+    /// [`Self::locales`]. `None` = the plugin falls back to its own
+    /// hard-coded default.
+    #[serde(default)]
+    pub default_locale: Option<String>,
 }
 
 /// The process-spawn entry point for a plugin.
@@ -58,6 +69,13 @@ pub struct PluginCapabilities {
     /// process resident instead of idle-recycled).
     #[serde(default)]
     pub streaming: bool,
+    /// Whether the node type can be executed standalone via the host's
+    /// single-node execution path (`execute_single_node` / `mpe run node`).
+    /// Connect-type nodes that verify reachability (e.g. `redis:connect`)
+    /// declare `true` so the host's capability-driven gate (replacing the
+    /// hardcoded whitelist) admits them without a host-side list entry.
+    #[serde(default)]
+    pub single_node: bool,
 }
 
 #[cfg(test)]
@@ -78,7 +96,12 @@ mod tests {
             },
             env: HashMap::from([("FOO".to_string(), "bar".to_string())]),
             permissions: vec!["http.request".to_string()],
-            capabilities: PluginCapabilities { streaming: true },
+            capabilities: PluginCapabilities {
+                streaming: true,
+                ..Default::default()
+            },
+            locales: vec!["en-US".to_string()],
+            default_locale: Some("en-US".to_string()),
         };
         let json = serde_json::to_string(&manifest)?;
         let back: PluginManifest = serde_json::from_str(&json)?;
@@ -103,6 +126,23 @@ mod tests {
         assert!(manifest.env.is_empty());
         assert!(manifest.permissions.is_empty());
         assert_eq!(manifest.capabilities, PluginCapabilities::default());
+        assert!(manifest.locales.is_empty());
+        assert_eq!(manifest.default_locale, None);
+    }
+
+    #[test]
+    fn manifest_parses_locales() {
+        let json = r#"{
+            "name": "demo",
+            "version": "0.1.0",
+            "entry": {"command": "demo"},
+            "locales": ["zh-CN", "en-US"],
+            "default_locale": "zh-CN"
+        }"#;
+        let manifest: PluginManifest = serde_json::from_str(json)
+            .unwrap_or_else(|e| panic!("manifest with locales should parse: {e}"));
+        assert_eq!(manifest.locales, vec!["zh-CN".to_string(), "en-US".to_string()]);
+        assert_eq!(manifest.default_locale.as_deref(), Some("zh-CN"));
     }
 
     #[test]

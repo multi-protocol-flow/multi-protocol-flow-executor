@@ -19,6 +19,7 @@
 //! knows how to build a connection; production uses the real spawn path and
 //! tests inject in-memory duplex fakes through it.
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -56,8 +57,23 @@ pub struct LifecycleConfig {
     pub restart_min_interval: Duration,
     /// Grace period handed to a connection during shutdown/recycle.
     pub shutdown_grace: Duration,
+    /// The host's current UI language (BCP-47, e.g. `en-US`), injected as
+    /// `MPE_LOCALE` into plugin processes at spawn when it matches the
+    /// plugin's declared `locales` (falling back to the plugin's
+    /// `default_locale`). `None` = no injection (plugins keep their own
+    /// hard-coded default). Fixed for a plugin's process lifetime.
+    pub host_locale: Option<String>,
     /// How connections are created (real spawn path or test fake).
     pub connector: Connector,
+}
+
+impl LifecycleConfig {
+    /// Sets the host UI language used for `MPE_LOCALE` injection at spawn.
+    pub fn with_host_locale(mut self, locale: Option<String>) -> Self {
+        self.host_locale = locale;
+        self.connector = build_connector(self.host_locale.clone());
+        self
+    }
 }
 
 impl Default for LifecycleConfig {
@@ -66,11 +82,46 @@ impl Default for LifecycleConfig {
             idle_recycle: Duration::from_secs(60),
             restart_min_interval: Duration::from_secs(1),
             shutdown_grace: Duration::from_secs(5),
-            connector: Arc::new(|manifest: &PluginManifest| {
-                let process = process::spawn_plugin(&manifest.entry, &manifest.env)?;
-                PluginConnection::spawn(process, ConnectionConfig::default())
-            }),
+            host_locale: None,
+            connector: build_connector(None),
         }
+    }
+}
+
+/// Builds the production connector, injecting the host UI language as
+/// `MPE_LOCALE` into the plugin process environment at spawn.
+fn build_connector(host_locale: Option<String>) -> Connector {
+    Arc::new(move |manifest: &PluginManifest| {
+        let mut env = manifest.env.clone();
+        inject_locale(&mut env, manifest, host_locale.as_deref());
+        let process = process::spawn_plugin(&manifest.entry, &env)?;
+        PluginConnection::spawn(process, ConnectionConfig::default())
+    })
+}
+
+/// Merges the plugin's effective UI language into `env` as `MPE_LOCALE`.
+///
+/// Language resolution (fixed at spawn, for the process lifetime):
+/// - when the plugin declares `locales`, the host's current language is used
+///   if listed, otherwise the plugin's `default_locale`;
+/// - a plugin declaring neither is spawned without `MPE_LOCALE` (it keeps
+///   its own hard-coded default).
+fn inject_locale(
+    env: &mut HashMap<String, String>,
+    manifest: &PluginManifest,
+    host_locale: Option<&str>,
+) {
+    let effective = if manifest.locales.is_empty() {
+        // 未声明支持语言 → 不参与匹配，只可能用 default_locale（老插件无此字段则不注入）。
+        manifest.default_locale.clone()
+    } else {
+        host_locale
+            .filter(|l| manifest.locales.iter().any(|declared| declared == l))
+            .map(str::to_string)
+            .or_else(|| manifest.default_locale.clone())
+    };
+    if let Some(locale) = effective {
+        env.insert(mpe_protocol::LOCALE_ENV.to_string(), locale);
     }
 }
 

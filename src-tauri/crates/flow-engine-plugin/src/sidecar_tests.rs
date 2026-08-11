@@ -35,6 +35,8 @@ fn test_manifest() -> PluginManifest {
         env: HashMap::new(),
         permissions: Vec::new(),
         capabilities: PluginCapabilities::default(),
+        locales: Vec::new(),
+        default_locale: None,
     }
 }
 
@@ -145,6 +147,7 @@ fn harness() -> (
             idle_recycle: Duration::from_secs(60),
             restart_min_interval: Duration::from_secs(1),
             shutdown_grace: Duration::from_millis(50),
+            host_locale: None,
             connector,
         });
     manager.register_plugin("demo".to_string(), test_manifest());
@@ -549,4 +552,44 @@ async fn sidecar_connection_for_node_resolves_plugin(
         "unknown node type must be a protocol error, got {err:?}"
     );
     Ok(())
+}
+
+/// `map_execute_response` surfaces the plugin's real error message on
+/// `success: false` — for BOTH the documented `[{"message": ...}]` shape
+/// (post-M5b SDK) and the legacy `["msg"]` string shape (plugins built
+/// against pre-M5b SDK binaries). Empty `errors` falls back to the generic
+/// message.
+#[test]
+fn map_execute_response_failure_surfaces_plugin_message() {
+    let node = plugin_node(serde_json::json!({ "type": "demo:ping" }));
+
+    let check = |response: serde_json::Value, expected: &str| {
+        let mut context = ExecutionContext::new("flow-1".to_string(), 0);
+        let err = crate::wrapper::map_execute_response(
+            "demo:ping",
+            &response,
+            &node,
+            &mut context,
+            &[],
+        )
+        .expect_err("failure response must map to Err");
+        assert_eq!(err.message, expected);
+    };
+
+    check(
+        serde_json::json!({ "success": false, "errors": [{ "message": "connection refused" }] }),
+        "connection refused",
+    );
+    check(
+        serde_json::json!({ "success": false, "errors": ["connection refused"] }),
+        "connection refused",
+    );
+    check(
+        serde_json::json!({ "success": false, "errors": [] }),
+        "plugin reported execution failure",
+    );
+    check(
+        serde_json::json!({ "success": false }),
+        "plugin reported execution failure",
+    );
 }

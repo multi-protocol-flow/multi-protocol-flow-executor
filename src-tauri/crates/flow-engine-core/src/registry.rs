@@ -50,6 +50,7 @@ impl NodeRegistry {
                 default_config: p.default_config(),
                 config_schema: p.config_schema(),
                 frontend: p.frontend().cloned(),
+                supports_single_node: p.supports_single_node(),
             })
             .collect()
     }

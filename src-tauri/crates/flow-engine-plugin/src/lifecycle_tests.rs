@@ -25,7 +25,17 @@ fn test_manifest() -> PluginManifest {
         env: std::collections::HashMap::new(),
         permissions: Vec::new(),
         capabilities: PluginCapabilities::default(),
+        locales: Vec::new(),
+        default_locale: None,
     }
+}
+
+/// A manifest declaring `locales = [zh-CN, en-US]` with an `en-US` default.
+fn localized_manifest() -> PluginManifest {
+    let mut manifest = test_manifest();
+    manifest.locales = vec!["zh-CN".to_string(), "en-US".to_string()];
+    manifest.default_locale = Some("en-US".to_string());
+    manifest
 }
 
 /// A connector that produces a live echo connection: the plugin side reads
@@ -89,6 +99,7 @@ fn test_config(idle: Duration, restart: Duration, connector: Connector) -> Lifec
         idle_recycle: idle,
         restart_min_interval: restart,
         shutdown_grace: Duration::from_millis(50),
+        host_locale: None,
         connector,
     }
 }
@@ -304,4 +315,51 @@ async fn lifecycle_rate_limits_restart() -> Result<(), Box<dyn std::error::Error
     );
     assert_eq!(entry.metrics().epoch, 2);
     Ok(())
+}
+
+fn env_from(
+    manifest: &PluginManifest,
+    host_locale: Option<&str>,
+) -> std::collections::HashMap<String, String> {
+    let mut env = std::collections::HashMap::new();
+    inject_locale(&mut env, manifest, host_locale);
+    env
+}
+
+/// Host language matching the plugin's `locales` → injected as-is.
+#[test]
+fn host_language_matched_is_injected() {
+    let env = env_from(&localized_manifest(), Some("zh-CN"));
+    assert_eq!(
+        env.get(mpe_protocol::LOCALE_ENV).map(String::as_str),
+        Some("zh-CN")
+    );
+}
+
+/// Host language NOT in the plugin's `locales` → plugin `default_locale`.
+#[test]
+fn host_language_unmatched_falls_back_to_default() {
+    let env = env_from(&localized_manifest(), Some("fr-FR"));
+    assert_eq!(
+        env.get(mpe_protocol::LOCALE_ENV).map(String::as_str),
+        Some("en-US")
+    );
+}
+
+/// No host language configured → plugin `default_locale` is used.
+#[test]
+fn no_host_language_uses_plugin_default() {
+    let env = env_from(&localized_manifest(), None);
+    assert_eq!(
+        env.get(mpe_protocol::LOCALE_ENV).map(String::as_str),
+        Some("en-US")
+    );
+}
+
+/// A plugin without `locales` and without `default_locale` (legacy) gets
+/// NO injection — unchanged behavior.
+#[test]
+fn legacy_plugin_gets_no_injection() {
+    let env = env_from(&test_manifest(), Some("zh-CN"));
+    assert!(!env.contains_key(mpe_protocol::LOCALE_ENV));
 }

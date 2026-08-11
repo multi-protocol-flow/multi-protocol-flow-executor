@@ -6,6 +6,7 @@
 //! and the shared capability type.
 
 pub use crate::context::ExecuteContext;
+pub use crate::locale;
 pub use crate::mpe_plugin_main;
 pub use crate::pool::ConnectionPool;
 pub use crate::runtime::Plugin;

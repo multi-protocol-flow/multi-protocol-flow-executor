@@ -92,6 +92,11 @@ pub struct PluginManager {
     /// is killed and the failure counts toward the quarantine policy
     /// (defaults to [`DESCRIBE_TIMEOUT`]).
     describe_timeout: Duration,
+    /// The host's current UI language (BCP-47, e.g. `en-US`), injected as
+    /// `MPE_LOCALE` into plugin processes at spawn when it matches the
+    /// plugin's declared `locales` (falling back to `default_locale`).
+    /// `None` = no injection; plugins keep their hard-coded default.
+    host_locale: Option<String>,
 }
 
 impl PluginManager {
@@ -110,7 +115,21 @@ impl PluginManager {
             collisions: Vec::new(),
             type_id_to_plugin: HashMap::new(),
             describe_timeout: DESCRIBE_TIMEOUT,
+            host_locale: None,
         }
+    }
+
+    /// Sets the host UI language (BCP-47, e.g. `en-US`) injected as
+    /// `MPE_LOCALE` into plugin processes at spawn.
+    ///
+    /// The language is fixed per plugin process for its lifetime: the host
+    /// language is used when it matches the plugin's declared `locales`,
+    /// otherwise the plugin's `default_locale`. Changing the host language
+    /// requires restarting or reloading plugins to take effect.
+    pub fn with_host_locale(mut self, locale: Option<String>) -> Self {
+        self.host_locale = locale.clone();
+        self.lifecycle_config = self.lifecycle_config.with_host_locale(locale);
+        self
     }
 
     /// Overrides the describe handshake bound for subsequently scanned

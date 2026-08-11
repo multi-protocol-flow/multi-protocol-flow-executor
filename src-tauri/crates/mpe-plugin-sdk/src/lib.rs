@@ -38,6 +38,19 @@ pub mod types;
 
 use crate::runtime::Plugin;
 
+/// The plugin's effective UI language as a BCP-47 tag (e.g. `en-US`).
+///
+/// Read from the `MPE_LOCALE` environment variable, which the host injects
+/// at spawn: the host's current language when it matches the plugin manifest's
+/// `locales`, otherwise the manifest's `default_locale`. `None` when the
+/// plugin declared neither (it keeps its hard-coded default).
+///
+/// The value is fixed for the process lifetime — restarting or reloading the
+/// plugin is required for a language change to take effect.
+pub fn locale() -> Option<String> {
+    std::env::var(mpe_protocol::LOCALE_ENV).ok()
+}
+
 /// Builds a multi-threaded tokio runtime and runs the plugin event loop,
 /// returning the process exit code (`0` = clean shutdown). Invoked by
 /// [`mpe_plugin_main!`]; hidden from the public API surface. The plugin

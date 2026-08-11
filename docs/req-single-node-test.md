@@ -27,7 +27,7 @@ AI agent 在编排多协议流程前，需要**快速验证某个服务是否可
 mpe run node <json-string> [--var KEY=VALUE]...
 
 # 示例
-mpe run node '{"type":"redis_connect","host":"127.0.0.1","port":6379}'
+mpe run node '{"type":"redis:connect","host":"127.0.0.1","port":6379}'
 mpe run node '{"type":"http","url":"https://api.example.com/health","method":"get"}'
 mpe run node '{"type":"db_connect","connection_string":"postgres://user:pass@localhost/db"}'
 mpe run node '{"type":"mqtt_connect","broker":"tcp://broker.emqx.io:1883"}'
@@ -35,7 +35,7 @@ mpe run node '{"type":"kafka_connect","bootstrap_servers":"localhost:9092"}'
 mpe run node '{"type":"script","code":"return 1+1;"}'
 
 # 带流程变量
-mpe run node '{"type":"redis_connect","host":"{{HOST}}","port":{{PORT}}}' \
+mpe run node '{"type":"redis:connect","host":"{{HOST}}","port":{{PORT}}}' \
   --var HOST=127.0.0.1 \
   --var PORT=6379
 ```
@@ -46,7 +46,7 @@ mpe run node '{"type":"redis_connect","host":"{{HOST}}","port":{{PORT}}}' \
 {
   "success": true,
   "data": {
-    "node_type": "redis_connect",
+    "node_type": "redis:connect",
     "status": "success",
     "duration_ms": 12,
     "output_data": { "success": true },
@@ -61,7 +61,7 @@ mpe run node '{"type":"redis_connect","host":"{{HOST}}","port":{{PORT}}}' \
 {
   "success": false,
   "data": {
-    "node_type": "redis_connect",
+    "node_type": "redis:connect",
     "status": "failed",
     "duration_ms": 5003,
     "output_data": null,
@@ -90,7 +90,7 @@ mpe run node '{"type":"redis_connect","host":"{{HOST}}","port":{{PORT}}}' \
 
 | 协议 | 节点类型 | 验证内容 |
 |------|---------|---------|
-| Redis | `redis_connect` | Redis 实例连通性 |
+| Redis | `redis:connect`（插件节点） | Redis 实例连通性（需安装 plugins/redis 插件） |
 | DB | `db_connect` | MySQL/PostgreSQL/SQLite 可达性 |
 | HTTP | `http` | HTTP API 可访问性 |
 | MQTT | `mqtt_connect` | Broker 连通性 |
@@ -106,6 +106,14 @@ mpe run node '{"type":"redis_connect","host":"{{HOST}}","port":{{PORT}}}' \
 | TCP | `tcp_connect` | TCP 端口连通性（类似 telnet） |
 | Script | `script` | 运行 JS 脚本验证逻辑 |
 | Assertion | `assertion` | 数据断言验证（通常配合 --var 注入测试数据） |
+
+> **插件节点接入**：第三方插件（如 `plugins/redis`）的 connect 节点通过
+> describe 的 `capabilities.single_node: true` 声明加入单节点路径——宿主
+> `execute_single_node` / `mpe run node` 的能力门（
+> `NodePlugin::supports_single_node()`，内置白名单常量
+> `SUPPORTED_SINGLE_NODE_TYPES` 之外的第二通道）据此放行，无需宿主改代码。
+> 例：安装 plugins/redis 后 `mpe run node '{"type":"redis:connect",...}'`
+> 即完成 Redis 连通性验证。
 
 ### 3.2 暂不支持的类型
 

@@ -75,6 +75,74 @@ pub const PORT_KIND_IN: &str = "in";
 /// Port direction constant: output port (`"out"`).
 pub const PORT_KIND_OUT: &str = "out";
 
+/// The icon vocabulary the host's frontend can render
+/// (`src/lib/nodeIcons.ts` `BACKEND_ICON_MAP` — **keep in sync**).
+///
+/// `NodeDescription.icon` is a free-form string; the host frontend resolves
+/// it against this exact list and silently falls back to a placeholder for
+/// anything unknown. The SDK warns on stderr at `describe` time when a node
+/// declares an icon outside this list, so plugin authors get immediate
+/// feedback instead of a mysteriously "lost" icon in the host UI.
+///
+/// Sorted byte-lexicographically; mirrors the frontend map keys exactly.
+pub const CANONICAL_ICON_NAMES: &[&str] = &[
+    "arrow-down-to-line",
+    "box",
+    "braces",
+    "cable",
+    "check",
+    "check-circle",
+    "circle-play",
+    "code",
+    "command",
+    "copy",
+    "database",
+    "download",
+    "ear",
+    "eye",
+    "eye-off",
+    "file-code",
+    "file-search",
+    "file-text",
+    "folder-plus",
+    "git-branch",
+    "globe",
+    "hash",
+    "inbox",
+    "key",
+    "layers",
+    "link",
+    "list",
+    "mail",
+    "message-square",
+    "network",
+    "phone-off",
+    "phone-outgoing",
+    "play",
+    "plug",
+    "plugin",
+    "plus",
+    "puzzle",
+    "radio-tower",
+    "refresh-cw",
+    "rotate-ccw",
+    "search",
+    "send",
+    "server",
+    "settings",
+    "shuffle",
+    "terminal",
+    "timer",
+    "trash",
+    "trash-2",
+    "undo",
+    "unplug",
+    "wifi",
+    "wrench",
+    "x",
+    "x-circle",
+];
+
 /// A single node port: an id, a display label and a direction.
 ///
 /// Mirrors the wire contract (`mpe_protocol::describe::PortDescription`):
@@ -125,7 +193,18 @@ pub struct ExecuteResult {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_data: Option<serde_json::Value>,
     /// Human-readable error messages (included when `success` is `false`).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    ///
+    /// Wire shape per `docs/plugin-protocol.md`: every entry serializes as a
+    /// `{"message": "..."}` object (the optional `code` member is
+    /// host-visible but the SDK has no code concept). The tolerant
+    /// deserializer also accepts legacy plain-string entries (plugins built
+    /// against pre-M5b SDK binaries).
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        serialize_with = "serialize_errors",
+        deserialize_with = "deserialize_errors"
+    )]
     pub errors: Vec<String>,
     /// Optional ≤ 1 MiB report payload surfaced to the host report as
     /// `plugin_data`.
@@ -164,6 +243,40 @@ impl ExecuteResult {
     }
 }
 
+/// Wire shape of [`ExecuteResult::errors`] per `docs/plugin-protocol.md`:
+/// an array of `{"message": ...}` objects (the `code` member is optional).
+fn serialize_errors<S>(errors: &[String], serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    use serde::ser::SerializeSeq;
+    let mut seq = serializer.serialize_seq(Some(errors.len()))?;
+    for message in errors {
+        seq.serialize_element(&serde_json::json!({ "message": message }))?;
+    }
+    seq.end()
+}
+
+/// Tolerant reader: accepts both the documented `{"message": ...}` objects
+/// and legacy plain-string entries (pre-M5b SDK binaries).
+fn deserialize_errors<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let items: Vec<serde_json::Value> = serde::Deserialize::deserialize(deserializer)?;
+    Ok(items
+        .into_iter()
+        .filter_map(|entry| match entry {
+            serde_json::Value::String(message) => Some(message),
+            serde_json::Value::Object(map) => map
+                .get("message")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string),
+            _ => None,
+        })
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -182,7 +295,7 @@ mod tests {
         let json = serde_json::to_string(&ExecuteResult::default())?;
         assert_eq!(json, r#"{"success":true}"#);
         let json = serde_json::to_string(&ExecuteResult::fail("boom"))?;
-        assert_eq!(json, r#"{"success":false,"errors":["boom"]}"#);
+        assert_eq!(json, r#"{"success":false,"errors":[{"message":"boom"}]}"#);
         Ok(())
     }
 
@@ -217,5 +330,31 @@ mod tests {
             Some("http://demo.localhost/config-panel")
         );
         Ok(())
+    }
+
+    /// The canonical icon list must stay sorted (byte-lexicographic, like the
+    /// host's reserved-id list) and cover every icon the in-repo example
+    /// plugins declare — otherwise a plugin ships an icon the host frontend
+    /// silently renders as a fallback.
+    #[test]
+    fn canonical_icon_names_cover_in_repo_plugins() {
+        assert!(CANONICAL_ICON_NAMES.windows(2).all(|w| w[0] < w[1]));
+        for icon in [
+            // plugins/redis describe() icons
+            "database",
+            "terminal",
+            "plug",
+            // plugins/mongo describe() icons
+            "search",
+            "plus",
+            "refresh-cw",
+            "trash-2",
+            "layers",
+        ] {
+            assert!(
+                CANONICAL_ICON_NAMES.contains(&icon),
+                "icon `{icon}` must be renderable by the host frontend"
+            );
+        }
     }
 }

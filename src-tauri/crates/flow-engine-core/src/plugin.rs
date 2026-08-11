@@ -65,6 +65,11 @@ pub struct NodeMetadata {
     /// 前端元数据（插件节点的 iframe 配置面板；内置节点为 None）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontend: Option<FrontendMetadata>,
+    /// 是否支持单节点独立执行（`execute_single_node` 连接性验证）。
+    /// 插件节点由 describe 的 `capabilities.single_node` 透传而来；
+    /// 内置节点默认 false（由宿主白名单常量另行放行）。
+    #[serde(default)]
+    pub supports_single_node: bool,
 }
 
 /// 节点插件 trait — 所有节点类型的统一接口
@@ -143,6 +148,16 @@ pub trait NodePlugin: Send + Sync {
     /// `SidecarPlugin` / `PendingPlugin`）返回其 describe 产出的前端描述。
     fn frontend(&self) -> Option<&FrontendMetadata> {
         None
+    }
+
+    /// 是否支持单节点独立执行（`execute_single_node` 连接性验证）。
+    ///
+    /// 默认 false。内置节点由执行器的 `SUPPORTED_SINGLE_NODE_TYPES`
+    /// 常量另行放行（不逐个覆写）；插件节点（`SidecarPlugin`）透传
+    /// describe 的 `capabilities.single_node`，从而把单节点路径从
+    /// 宿主硬编码白名单收敛为 capability 驱动。
+    fn supports_single_node(&self) -> bool {
+        false
     }
 
     /// 执行节点
@@ -306,6 +321,7 @@ mod tests {
                 content: Some("<p>hi</p>".to_string()),
                 url: None,
             }),
+            supports_single_node: false,
         };
 
         let json = serde_json::to_string(&metadata).unwrap_or_else(|e| panic!("{e}"));

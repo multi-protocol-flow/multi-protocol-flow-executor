@@ -15,6 +15,7 @@ use tokio::sync::mpsc;
 
 use super::{Plugin, RuntimeError};
 use crate::context::ExecuteContext;
+use crate::types::{CANONICAL_ICON_NAMES, NodeDescription};
 
 /// A decoded inbound message.
 pub(crate) enum Message {
@@ -63,8 +64,9 @@ pub(crate) async fn handle_request<P: Plugin>(
 ) -> Result<Action, RuntimeError> {
     match request.method.as_str() {
         "describe" => {
-            let result =
-                serde_json::to_value(plugin.describe()).map_err(RuntimeError::Serialize)?;
+            let nodes = plugin.describe();
+            warn_unknown_icons(&nodes);
+            let result = serde_json::to_value(nodes).map_err(RuntimeError::Serialize)?;
             send_response(
                 &frame_tx,
                 &Response::Success {
@@ -195,4 +197,71 @@ async fn send_response(
         .send(bytes)
         .await
         .map_err(|_| RuntimeError::StdoutClosed)
+}
+
+/// Collects the node icons that the host frontend cannot render
+/// (not in [`CANONICAL_ICON_NAMES`]).
+///
+/// Advisory: describe still succeeds; the host just falls back to a
+/// placeholder icon. The stderr warning in [`warn_unknown_icons`] gives the
+/// plugin author immediate feedback instead of a silently "lost" icon.
+pub(crate) fn unknown_icons(nodes: &[NodeDescription]) -> Vec<&str> {
+    let mut unknown = Vec::new();
+    for node in nodes {
+        if let Some(icon) = node.icon.as_deref() {
+            if !CANONICAL_ICON_NAMES.contains(&icon) && !unknown.contains(&icon) {
+                unknown.push(icon);
+            }
+        }
+    }
+    unknown
+}
+
+/// Warns on stderr for every icon outside the host's renderable vocabulary.
+pub(crate) fn warn_unknown_icons(nodes: &[NodeDescription]) {
+    for icon in unknown_icons(nodes) {
+        eprintln!(
+            "mpe-plugin-sdk: a node declares icon `{icon}` which the host frontend cannot \
+             render (missing from CANONICAL_ICON_NAMES); the host will show a fallback icon. \
+             Pick a name from CANONICAL_ICON_NAMES or extend src/lib/nodeIcons.ts."
+        );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Node descriptions whose icons are all renderable produce no warnings.
+    #[test]
+    fn unknown_icons_empty_for_known_icons() {
+        let nodes = vec![
+            NodeDescription::new("demo:connect", "Connect"),
+            NodeDescription::new("demo:command", "Command"),
+            NodeDescription::new("demo:close", "Close"),
+        ];
+        let mut nodes = nodes;
+        nodes[0].icon = Some("database".to_string());
+        nodes[1].icon = Some("terminal".to_string());
+        nodes[2].icon = Some("plug".to_string());
+        assert!(unknown_icons(&nodes).is_empty());
+    }
+
+    /// Unknown icons are reported once each, deduplicated.
+    #[test]
+    fn unknown_icons_reported_deduplicated() {
+        let mut node = NodeDescription::new("demo:rocket", "Rocket");
+        node.icon = Some("rocket".to_string());
+        let mut other = NodeDescription::new("demo:zap", "Zap");
+        other.icon = Some("rocket".to_string());
+        let nodes = vec![node, other];
+        assert_eq!(unknown_icons(&nodes), vec!["rocket"]);
+    }
+
+    /// No icon at all is fine (host applies its default).
+    #[test]
+    fn unknown_icons_ignores_nodes_without_icon() {
+        let nodes = vec![NodeDescription::new("demo:plain", "Plain")];
+        assert!(unknown_icons(&nodes).is_empty());
+    }
 }

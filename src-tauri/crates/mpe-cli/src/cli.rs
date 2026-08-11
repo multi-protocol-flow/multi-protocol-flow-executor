@@ -134,7 +134,7 @@ pub enum Commands {
     /// Execute a single protocol node for connectivity verification
     RunNode {
         /// JSON configuration for the node
-        /// (e.g. '{"`type":"redis_connect","host":"127.0.0.1","port":6379`}')
+        /// (e.g. '{"type":"redis:connect","host":"127.0.0.1","port":6379}')
         node_json: String,
 
         /// Flow variables (key=value or key=json)
@@ -449,7 +449,7 @@ async fn async_main() -> Result<(), CliError> {
             node_json,
             var,
             format,
-        } => run_node::execute(&format, &node_json, &var).await,
+        } => run_node::execute(&format, &node_json, &var, registry).await,
         Commands::Report { command } => report::execute(&cli.format, command).await,
     }
 }

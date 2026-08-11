@@ -120,12 +120,20 @@ pub(crate) fn map_execute_response(
         ))
     } else {
         let errors = obj.get("errors").and_then(Value::as_array);
+        // Per docs/plugin-protocol.md each entry is a `{"message": ...}`
+        // object; tolerate legacy plain-string entries from plugins built
+        // against pre-M5b SDK versions.
         let message = errors
             .and_then(|arr| arr.first())
-            .and_then(|e| e.get("message"))
-            .and_then(Value::as_str)
-            .unwrap_or("plugin reported execution failure")
-            .to_string();
+            .and_then(|e| match e {
+                Value::Object(map) => map
+                    .get("message")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
+                Value::String(s) => Some(s.clone()),
+                _ => None,
+            })
+            .unwrap_or_else(|| "plugin reported execution failure".to_string());
         let code = errors
             .and_then(|arr| arr.first())
             .and_then(|e| e.get("code"))
