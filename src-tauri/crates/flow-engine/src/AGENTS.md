@@ -8,7 +8,7 @@ Layer 3 facade crate. Pure re-export layer with zero business logic. The `app` c
 
 ## STRUCTURE
 
-- **`lib.rs`** — Massive re-export file (~150 lines). Re-exports from `flow-engine-core` (18 modules), `flow-engine-crypto` (encryption), `flow-engine-executor` (commands, executor, storage, validator, debug, stress_test, hooks, dataset, default_registry, test_utils), and all 16 protocol crates (feature-gated behind `protocol-*`). Also conditionally re-exports per-protocol types (Db, Ws, etc.) under the same feature gates.
+- **`lib.rs`** — Massive re-export file (~150 lines). Re-exports from `flow-engine-core` (17 modules), `flow-engine-executor` (commands, executor, storage, validator, debug, stress_test, hooks, dataset, default_registry, test_utils), and the 9 protocol crates (feature-gated behind `protocol-*`). Also conditionally re-exports per-protocol types (Db, Ws, etc.) under the same feature gates.
 - **`context.rs`** — Thin re-export of `ExecutionContext` and `VariableStorage` from `flow-engine-core::context` (2 lines, 2 types).
 
 ## CONVENTIONS

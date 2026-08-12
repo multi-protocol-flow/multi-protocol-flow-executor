@@ -28,9 +28,8 @@ execution/
 |--------|------------|---|
 | `HttpNodeViewer` | http | `GrpcViewer` | grpc_* |
 | `McpViewer` | mcp_* | `WsConnectViewer`/`WsSendCollectViewer`/`WsCloseViewer` | ws_* |
-| `TcpUdpViewer` | tcp_*/udp_* | `MqttViewer` | mqtt_* |
-| `AmqpViewer` | amqp_* + amqp10_* | `GraphqlViewer` | graphql_* |
-| `KafkaViewer` | kafka_* | `SseViewer` | sse_* |
+| `TcpUdpViewer` | tcp_*/udp_* | `GraphqlViewer` | graphql_* |
+| `SseViewer` | sse_* | `GenericViewer` | 其余 |
 | `AssertionViewer` | assertion | `ConditionalViewer` | conditional |
 | `RecordingViewer` | recording | `GenericViewer` | (兜底) |
 | `RawJsonViewer` / `VariableChangesCard` | 子组件，被所有 viewer 复用 |

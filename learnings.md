@@ -37,13 +37,8 @@ All 12 protocol crates that override `supports_false_port()` have the annotation
 | grpc | `flow-engine-grpc/src/plugin.rs` | ✅ |
 | sse | `flow-engine-sse/src/plugin.rs` | ✅ |
 | graphql | `flow-engine-graphql/src/plugin.rs` | ✅ |
-| smtp | `flow-engine-smtp/src/plugin.rs` | ✅ |
 | redis | 已移出宿主 → `plugins/redis`（第三方插件，`redis:connect` 等） | ✅（插件） |
-| amqp (amqp091) | `flow-engine-amqp/src/amqp091/plugin.rs` | ✅ |
-| mqtt | `flow-engine-mqtt/src/plugin.rs` | ✅ |
-| imap | `flow-engine-imap/src/plugin.rs` | ✅ |
 | mcp | `flow-engine-mcp/src/plugin.rs` | ✅ |
-| kafka | `flow-engine-kafka/src/plugin.rs` | ✅ |
 
 ### Protocol crates WITHOUT `supports_false_port()` override (4 crates)
 These do NOT need `#[allow(deprecated)]` because they inherit the default `false`:

@@ -18,7 +18,7 @@ services/
 │   ├── events.ts                     # Channel 辅助函数（订阅日志）
 │   ├── mock.ts                       # 全协议 Mock 实现（用于开发/测试）
 │   ├── grpc.ts / mcp.ts / graphql.ts # 协议辅助命令（服务发现、内省、骨架生成）
-│   ├── mqtt.ts / amqp.ts / sse.ts    # 协议连接测试命令
+│   ├── sse.ts    # 协议连接测试命令
 │   ├── stressTest.ts                 # 压力测试命令
 │   ├── tcp.ts                        # TCP/UDP 录制命令
 │   ├── settings.ts / settings.mock.ts# 设置持久化（tauri-plugin-store + 目录对话框）
@@ -42,7 +42,7 @@ services/
 | gRPC 服务发现 / 骨架生成 / Proto 操作 | `tauri/grpc.ts` |
 | MCP 工具发现 | `tauri/mcp.ts` |
 | GraphQL Schema 内省 | `tauri/graphql.ts` |
-| MQTT / AMQP / SSE 连接测试 | `tauri/mqtt.ts` / `amqp.ts` / `sse.ts` |
+| SSE 连接测试 | `tauri/sse.ts` |
 | 压测控制 | `tauri/stressTest.ts` |
 | TCP/UDP 录制读写 | `tauri/tcp.ts` |
 | 流程 .mpf 文件读写 + 文件夹管理 | `storage/flowStorage.ts` |

@@ -6,14 +6,14 @@
 
 多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 模式（同一二进制 `mpe`）。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + @xyflow/react
-- **后端:** Rust Workspace (24 crates) + Tauri 2.x — 双二进制: `mpe` (GUI+CLI 二合一) + `mpe-cli` (纯 CLI)
+- **后端:** Rust Workspace (18 crates) + Tauri 2.x — 双二进制: `mpe` (GUI+CLI 二合一) + `mpe-cli` (纯 CLI)
 
 ## 结构
 
 ```
 root/
 ├── src/                  # 前端 (React 19 + TypeScript)
-├── src-tauri/            # 后端 (Rust workspace, 24 crates)
+├── src-tauri/            # 后端 (Rust workspace, 18 crates)
 ├── tests/                # CLI 测试夹具 (JSON flow files)
 ├── echo/                 # 全协议 echo 测试服务 (Docker Compose)
 ├── docs/                 # 架构文档
@@ -50,8 +50,8 @@ root/
 ### Crate 分层
 
 ```
-Layer 0 (叶子):     flow-engine-core, flow-engine-crypto
-Layer 1 (协议):     14 个协议 crate (http, ws, script, assertion, grpc, mcp, tcp, mqtt, amqp, graphql, imap, kafka, smtp, sse) — redis 与 db 已移出宿主，变为第三方插件 plugins/redis、plugins/db
+Layer 0 (叶子):     flow-engine-core
+Layer 1 (协议):     9 个协议 crate (http, ws, script, assertion, grpc, mcp, tcp, sse, graphql) — redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 已移出宿主，变为第三方插件 plugins/*
 Layer 2 (编排):     flow-engine-executor (依赖 Layer 0 + 可选 Layer 1)
 Layer 3 (门面):     flow-engine (re-export 全部)
 Layer 4 (应用):     app (src-tauri/) 仅依赖 flow-engine
@@ -64,7 +64,7 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 
 **增量编译**: 修改 Layer N → Layer N+1 及以上重编译。修改 core → 全量。插件系统三个 crate 独立于协议分层：`mpe-protocol` 无依赖，`flow-engine-plugin` 依赖 `flow-engine-executor` + `mpe-protocol`，`mpe-plugin-sdk` 仅依赖 `mpe-protocol`。
 
-### IPC 命令 (72 个)
+### IPC 命令 (61 个)
 
 注册在 `lib.rs` 的 `invoke_handler` 中。`tauri_commands.rs` 包装，委托 `flow-engine::commands::*`。
 
@@ -81,9 +81,9 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 | Dataset | 8 | 数据集执行 |
 | 其他 | 16 | MCP/GraphQL/TCP/CSV/Registry 等 |
 
-### 节点类型 (83 variants)
+### 节点类型 (40 variants)
 
-定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), script, assertion, grpc(3), mcp(5), tcp(4), udp(4), mqtt(7), kafka(7), sse(3), graphql(5), amqp(18), smtp(3), imap(13), variable_extractor, proxy。（redis 三节点与 db 六节点已移出宿主，见 plugins/redis、plugins/db——db 插件节点以 `db:connect` 等命名空间提供）
+定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), script, assertion, grpc(3), mcp(5), tcp(4), udp(4), sse(3), graphql(5), variable_extractor, proxy。（redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 已移出宿主，见 plugins/*——插件节点以 `<proto>:*` 命名空间提供）
 
 ### 执行错误策略 (on_error)
 
@@ -169,7 +169,6 @@ npm run tauri build             # 构建安装包
 - [src-tauri/crates/AGENTS.md](./src-tauri/crates/AGENTS.md) — Rust Workspace 总览
 - [src-tauri/crates/flow-engine/src/AGENTS.md](./src-tauri/crates/flow-engine/src/AGENTS.md) — 门面 crate
 - [src-tauri/crates/flow-engine-core/src/AGENTS.md](./src-tauri/crates/flow-engine-core/src/AGENTS.md) — 基础类型
-- [src-tauri/crates/flow-engine-crypto/src/AGENTS.md](./src-tauri/crates/flow-engine-crypto/src/AGENTS.md) — 加密/Keychain
 - [src-tauri/crates/flow-engine-executor/src/AGENTS.md](./src-tauri/crates/flow-engine-executor/src/AGENTS.md) — 执行器
 - [src-tauri/crates/flow-engine-http/src/AGENTS.md](./src-tauri/crates/flow-engine-http/src/AGENTS.md) — HTTP
 - [src-tauri/crates/flow-engine-ws/src/AGENTS.md](./src-tauri/crates/flow-engine-ws/src/AGENTS.md) — WebSocket
@@ -178,12 +177,7 @@ npm run tauri build             # 构建安装包
 - [src-tauri/crates/flow-engine-grpc/src/AGENTS.md](./src-tauri/crates/flow-engine-grpc/src/AGENTS.md) — gRPC
 - [src-tauri/crates/flow-engine-mcp/src/AGENTS.md](./src-tauri/crates/flow-engine-mcp/src/AGENTS.md) — MCP
 - [src-tauri/crates/flow-engine-tcp/src/AGENTS.md](./src-tauri/crates/flow-engine-tcp/src/AGENTS.md) — TCP/UDP
-- [src-tauri/crates/flow-engine-mqtt/src/AGENTS.md](./src-tauri/crates/flow-engine-mqtt/src/AGENTS.md) — MQTT
-- [src-tauri/crates/flow-engine-amqp/src/AGENTS.md](./src-tauri/crates/flow-engine-amqp/src/AGENTS.md) — AMQP
 - [src-tauri/crates/flow-engine-graphql/src/AGENTS.md](./src-tauri/crates/flow-engine-graphql/src/AGENTS.md) — GraphQL
-- [src-tauri/crates/flow-engine-imap/src/AGENTS.md](./src-tauri/crates/flow-engine-imap/src/AGENTS.md) — IMAP
-- [src-tauri/crates/flow-engine-kafka/src/AGENTS.md](./src-tauri/crates/flow-engine-kafka/src/AGENTS.md) — Kafka
-- [src-tauri/crates/flow-engine-smtp/src/AGENTS.md](./src-tauri/crates/flow-engine-smtp/src/AGENTS.md) — SMTP
 - [src-tauri/crates/flow-engine-sse/src/AGENTS.md](./src-tauri/crates/flow-engine-sse/src/AGENTS.md) — SSE
 - [src-tauri/crates/flow-engine-plugin/src/AGENTS.md](./src-tauri/crates/flow-engine-plugin/src/AGENTS.md) — 插件宿主
 - [src-tauri/crates/mpe-plugin-sdk/src/AGENTS.md](./src-tauri/crates/mpe-plugin-sdk/src/AGENTS.md) — 插件 SDK

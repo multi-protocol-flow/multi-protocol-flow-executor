@@ -222,7 +222,7 @@
 
 - **禁止嵌套 `{{}}`**（已定 B2）：`resolve_variables_in_json` 单趟替换；validator 增加规则，防止写入含占位符的变量值。
 - **写回路径一致**（🔧 v2.1 修正）：v2 原文"插件 `variable_updates` 用原始变量路径 key，宿主按 key merge，不存在回填问题"对**点分 key 不成立**——见 §4.4 修正块。**契约：`variable_updates` 必须使用扁平顶层变量名**；宿主按精确名 merge 到 `VariableStorage`；点分 key 告警+跳过。解析回归测试先行。
-- **敏感信息随 config 传递**（已定 B3）：密码/token 经变量替换后直接包含在发给插件的 `config` 中，不做额外过滤。宿主侧沿用 `flow-engine-crypto` 加密存储，插件侧自行负责内存中的凭据保护。宿主对 `referenced_variables` 中已引用的敏感变量不做拦截。
+- **敏感信息随 config 传递**（已定 B3）：密码/token 经变量替换后直接包含在发给插件的 `config` 中，不做额外过滤。宿主已不再内置加密 crate；插件（如 plugins/smtp、plugins/imap）自行携带 `crypto.rs` 副本，负责内存中的凭据保护。宿主对 `referenced_variables` 中已引用的敏感变量不做拦截。
 
 ### 5.5 Provider（连接池）传递
 

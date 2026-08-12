@@ -372,15 +372,9 @@ cargo test -p flow-engine-ws                # WebSocket 全部测试
 cargo test -p flow-engine-script            # 脚本全部测试
 cargo test -p flow-engine-grpc              # gRPC 全部测试
 cargo test -p flow-engine-mcp               # MCP 全部测试
-cargo test -p flow-engine-mqtt              # MQTT 全部测试
-cargo test -p flow-engine-kafka             # Kafka 全部测试
 cargo test -p flow-engine-sse               # SSE 全部测试
 cargo test -p flow-engine-graphql           # GraphQL 全部测试
-cargo test -p flow-engine-amqp              # AMQP 全部测试
-cargo test -p flow-engine-smtp              # SMTP 全部测试
-cargo test -p flow-engine-imap              # IMAP 全部测试
 cargo test -p flow-engine-tcp               # TCP/UDP 全部测试
-cargo test -p flow-engine-crypto            # 加密模块全部测试
 cargo test -p mpe-cli                       # CLI 全部测试
 
 # ── 按测试名称过滤 ────────────────────────────────────────────

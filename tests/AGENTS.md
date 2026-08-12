@@ -25,8 +25,7 @@ tests/
 ├── fixtures/                   集成测试的验证/执行 fixture
 │   ├── flows/                 01_valid_start_with_connection.json →
 │   │                          10_complete_example.json + 协议流
-│   │                          （assertion_flow.json、imap_fetch_unread.json、
-│   │                          smtp_send_email.json、ws_basic_connect.json…）
+│   │                          （assertion_flow.json、ws_basic_connect.json…）
 │   └── test-upload.txt         上传 fixture
 ├── certs/                      TLS 证书 + generate-certs.ps1（再生成脚本）
 ├── https-test-server.mjs       编排器：拉起 TLS 服务，对编译产物
