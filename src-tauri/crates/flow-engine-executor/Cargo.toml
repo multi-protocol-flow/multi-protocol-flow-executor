@@ -17,7 +17,6 @@ all-protocols = [
     "protocol-graphql",
 ]
 protocol-http = ["dep:flow-engine-http"]
-protocol-db = ["dep:flow-engine-db"]
 protocol-ws = ["dep:flow-engine-ws"]
 protocol-script = ["dep:flow-engine-script"]
 protocol-assertion = ["dep:flow-engine-assertion"]
@@ -38,7 +37,6 @@ plugin-manager = ["dep:flow-engine-plugin"]
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }
 flow-engine-http = { path = "../flow-engine-http", optional = true }
-flow-engine-db = { path = "../flow-engine-db", optional = true }
 flow-engine-ws = { path = "../flow-engine-ws", optional = true }
 flow-engine-script = { path = "../flow-engine-script", optional = true }
 flow-engine-assertion = { path = "../flow-engine-assertion", optional = true }

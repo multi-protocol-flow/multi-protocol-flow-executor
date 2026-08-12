@@ -102,7 +102,7 @@ jobs:
             args: --no-default-features
             hakari_check: false
           - label: minimal-set
-            args: --no-default-features --features "protocol-http,protocol-db,protocol-script"
+            args: --no-default-features --features "protocol-http,protocol-script"
             hakari_check: false
 
     runs-on: ubuntu-22.04

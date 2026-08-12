@@ -421,109 +421,6 @@ pub fn delete_flow_report(uuid: String, reports_dir: String) -> Result<(), Strin
 }
 
 // ============================================================================
-// 数据库连接命令
-// ============================================================================
-
-#[cfg(feature = "protocol-db")]
-use flow_engine::db::{
-    DatabasePool, DbConnection, DbDriver, MySqlConnection, PostgresConnection, SqliteConnection,
-    TestDbConnectionResult,
-};
-
-/// 测试数据库连接
-///
-/// 接收前端传来的数据库连接配置，根据驱动类型创建真实连接池并测试连接。
-#[cfg(feature = "protocol-db")]
-#[tauri::command]
-pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionResult {
-    log::info!(
-        "[Database] Test connection: id={}, name={}, driver={}",
-        connection.id,
-        connection.name,
-        connection.driver,
-    );
-
-    // 根据驱动类型创建真实连接池
-    let pool: Arc<dyn DatabasePool> = match connection.driver {
-        DbDriver::Postgres => match PostgresConnection::from_config(&connection).await {
-            Ok(p) => {
-                log::info!(
-                    "[Database] PostgreSQL connection pool created: id={}",
-                    connection.id
-                );
-                Arc::new(p) as Arc<dyn DatabasePool>
-            }
-            Err(e) => {
-                log::error!(
-                    "[Database] PostgreSQL connection pool creation failed: id={}, error={}",
-                    connection.id,
-                    e
-                );
-                return TestDbConnectionResult::failure(format!(
-                    "PostgreSQL connection failed: {}",
-                    e
-                ));
-            }
-        },
-        DbDriver::Mysql => match MySqlConnection::from_config(&connection).await {
-            Ok(p) => {
-                log::info!(
-                    "[Database] MySQL connection pool created: id={}",
-                    connection.id
-                );
-                Arc::new(p) as Arc<dyn DatabasePool>
-            }
-            Err(e) => {
-                log::error!(
-                    "[Database] MySQL connection pool creation failed: id={}, error={}",
-                    connection.id,
-                    e
-                );
-                return TestDbConnectionResult::failure(format!("MySQL connection failed: {}", e));
-            }
-        },
-        DbDriver::Sqlite => match SqliteConnection::from_config(&connection).await {
-            Ok(p) => {
-                log::info!(
-                    "[Database] SQLite connection pool created: id={}",
-                    connection.id
-                );
-                Arc::new(p) as Arc<dyn DatabasePool>
-            }
-            Err(e) => {
-                log::error!(
-                    "[Database] SQLite connection pool creation failed: id={}, error={}",
-                    connection.id,
-                    e
-                );
-                return TestDbConnectionResult::failure(format!("SQLite connection failed: {}", e));
-            }
-        },
-        _ => {
-            return TestDbConnectionResult::failure("Unsupported database driver".to_string());
-        }
-    };
-
-    // 执行连接测试
-    match pool.test_connection().await {
-        Ok(()) => {
-            log::info!("[Database] Connection test succeeded: id={}", connection.id);
-            pool.close().await;
-            TestDbConnectionResult::success()
-        }
-        Err(e) => {
-            log::error!(
-                "[Database] Connection test failed: id={}, error={}",
-                connection.id,
-                e
-            );
-            pool.close().await;
-            TestDbConnectionResult::failure(e)
-        }
-    }
-}
-
-// ============================================================================
 // gRPC 服务发现命令
 // ============================================================================
 
@@ -4253,8 +4150,8 @@ mod tests {
             uuid: flow_id.clone(),
             name: "Test Flow".to_string(),
             description: None,
-            nodes: vec![start_node, end_node],
-            connections: vec![connection],
+            nodes: vec![start_node, http_node],
+            connections: vec![],
             initial_variables: None,
             environments: vec![],
             active_environment: None,

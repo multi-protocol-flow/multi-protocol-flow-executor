@@ -113,7 +113,6 @@ pub const SUPPORTED_SINGLE_NODE_TYPES: &[&str] = &[
     "http",
     "script",
     "assertion",
-    "db_connect",
     "mqtt_connect",
     "kafka_connect",
     "amqp_connect",
@@ -1046,12 +1045,10 @@ impl FlowExecutor {
         // 判断是否被取消
         let is_cancelled = context.is_cancelled();
 
-        // 取消时清理资源：关闭所有 WS 连接和 DB 连接
+        // 取消时清理资源：关闭所有 WS 连接
         if is_cancelled {
             // 关闭所有 WebSocket 连接（drop 管理器触发连接清理）
             context.remove_provider("ws");
-            // 关闭所有数据库连接（drop 连接池即可）
-            context.remove_provider("db");
         }
 
         // End 节点检测

@@ -58,6 +58,7 @@ pub async fn execute(
     flow_path: &str,
     breakpoints: &[String],
     vars: &[String],
+    registry: std::sync::Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<(), super::CliError> {
     // 1. 验证文件存在
@@ -93,7 +94,9 @@ pub async fn execute(
     let bp_list = breakpoints.to_vec();
     let flow_clone = flow.clone();
     let debug_handle = tokio::spawn(async move {
-        let executor = flow_engine::debug::DebuggableFlowExecutor::new().with_flow_file_path(path);
+        let executor = flow_engine::debug::DebuggableFlowExecutor::new()
+            .with_flow_file_path(path)
+            .with_registry(registry);
         executor
             .start_debug(
                 &flow_clone,

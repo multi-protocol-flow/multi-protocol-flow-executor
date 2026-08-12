@@ -53,12 +53,6 @@ impl ProviderBuilderExt for ExecutionContext {
             self.set_provider("ws", ws);
         }
 
-        #[cfg(feature = "protocol-db")]
-        {
-            let db = Arc::new(flow_engine_db::db::DatabaseConnectionManager::new());
-            self.set_provider("db", db);
-        }
-
         #[cfg(feature = "protocol-mcp")]
         {
             let mcp = Arc::new(flow_engine_mcp::McpConnectionManager::new());

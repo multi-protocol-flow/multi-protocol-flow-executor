@@ -180,9 +180,9 @@ mod tests {
         registry.register(Arc::new(MockPlugin::new("http", "HTTP 请求", "http")));
 
         registry.register(Arc::new(MockPlugin::new(
-            "db_connect",
-            "数据库连接",
-            "database",
+            "grpc_call",
+            "gRPC 调用",
+            "grpc",
         )));
 
         let metadata = registry.all_metadata();
@@ -200,12 +200,12 @@ mod tests {
         assert_eq!(http_meta.ports.len(), 1);
         assert_eq!(http_meta.ports[0].id, "output");
 
-        let db_meta = metadata
+        let grpc_meta = metadata
             .iter()
-            .find(|m| m.type_id == "db_connect")
+            .find(|m| m.type_id == "grpc_call")
             .unwrap_or_else(|| panic!("expected Some"));
-        assert_eq!(db_meta.display_name, "数据库连接");
-        assert_eq!(db_meta.category, "database");
+        assert_eq!(grpc_meta.display_name, "gRPC 调用");
+        assert_eq!(grpc_meta.category, "grpc");
     }
 
     /// 测试：`all_metadata` 携带插件节点的 `frontend` 元数据

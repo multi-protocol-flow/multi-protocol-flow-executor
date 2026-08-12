@@ -91,10 +91,6 @@ pub use tauri_commands::{
     GrpcCancelSessionManager,
 };
 
-// 数据库连接命令
-#[cfg(feature = "protocol-db")]
-pub use tauri_commands::test_db_connection;
-
 // gRPC 命令
 #[cfg(feature = "protocol-grpc")]
 pub use tauri_commands::{
@@ -356,9 +352,6 @@ pub fn run() {
             load_stress_test_report,
             list_stress_test_reports,
             delete_stress_test_report,
-            // 数据库连接命令
-            #[cfg(feature = "protocol-db")]
-            test_db_connection,
             // gRPC 服务发现命令
             #[cfg(feature = "protocol-grpc")]
             grpc_discover_services,

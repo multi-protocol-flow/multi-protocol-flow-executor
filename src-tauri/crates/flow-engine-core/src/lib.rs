@@ -10,8 +10,6 @@ pub mod connection;
 pub mod context;
 /// 数据集类型定义，包括 CSV 配置、行取策略和数据驱动执行报告
 pub mod dataset;
-/// 数据库连接类型定义，包括驱动类型、连接配置和状态枚举
-pub mod db_types;
 /// 调试模式相关类型，支持断点、单步执行和执行栈追踪
 pub mod debug_types;
 /// `OAuth2` + SASL 认证工具模块（服务商预设配置、SASL 字符串构建）
@@ -75,9 +73,6 @@ pub use execution_event::ExecutionEvent;
 pub use ws_stream::{
     MessageContent, MessageDirection, WsConnectionStream, WsMessage, WsStreamSegment,
 };
-
-// Re-export db_types
-pub use db_types::{DbConnection, DbConnectionStatus, DbDriver, TestDbConnectionResult};
 
 // Re-export hook types
 pub use hook::{FlowHook, HookAction, HookContext, HookTrigger};

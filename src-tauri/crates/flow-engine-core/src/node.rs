@@ -27,24 +27,6 @@ pub enum NodeType {
     /// 断言节点
     #[serde(rename = "assertion")]
     Assertion,
-    /// 数据库连接节点
-    #[serde(rename = "db_connect")]
-    DbConnect,
-    /// 数据库查询节点
-    #[serde(rename = "db_query")]
-    DbQuery,
-    /// 数据库事务开始节点
-    #[serde(rename = "db_begin")]
-    DbBegin,
-    /// 数据库事务提交节点
-    #[serde(rename = "db_commit")]
-    DbCommit,
-    /// 数据库事务回滚节点
-    #[serde(rename = "db_rollback")]
-    DbRollback,
-    /// 数据库关闭节点
-    #[serde(rename = "db_close")]
-    DbClose,
     /// 脚本节点
     #[serde(rename = "script")]
     Script,

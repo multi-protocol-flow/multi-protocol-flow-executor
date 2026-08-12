@@ -1,10 +1,8 @@
 // 节点配置模块 - 强类型节点配置定义
 
 use crate::traits::{FramingConfig, GraphqlQueryTemplate, GrpcServiceInfo, TcpFramingMode};
-use serde::de::{self, Visitor};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt;
 
 // ============================================================================
 // ============================================================================
@@ -926,133 +924,6 @@ pub struct AssertionOutput {
     pub failed_assertions: Vec<AssertionResult>,
     /// 输入数据
     pub input: serde_json::Value,
-}
-
-// ============================================================================
-// 数据库节点配置
-// ============================================================================
-
-/// 数据库连接节点配置
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct DbConnectConfig {
-    /// 连接 UUID
-    #[serde(default)]
-    pub connection_uuid: String,
-    /// 数据库驱动类型: "postgres" | "mysql" | "sqlite" | "redis"
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub driver: Option<String>,
-    /// 连接字符串（SQLite 使用文件路径或 :memory:）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub connection_string: Option<String>,
-    /// 主机地址（PostgreSQL/MySQL）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub host: Option<String>,
-    /// 端口号（PostgreSQL/MySQL，支持 {{variable}} 引用）
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "deserialize_optional_port_as_string"
-    )]
-    pub port: Option<String>,
-    /// 数据库名
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub database: Option<String>,
-    /// 用户名
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub username: Option<String>,
-    /// 密码
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub password: Option<String>,
-    /// 最小连接数
-    #[serde(default = "default_min_connections")]
-    pub min_connections: u32,
-    /// 最大连接数
-    #[serde(default = "default_max_connections")]
-    pub max_connections: u32,
-    /// 测试查询语句
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub test_query: Option<String>,
-    /// 连接超时（毫秒）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub connect_timeout_ms: Option<u64>,
-}
-
-fn default_min_connections() -> u32 {
-    1
-}
-
-fn default_max_connections() -> u32 {
-    10
-}
-
-/// 数据库查询节点配置
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct DbQueryConfig {
-    /// 连接 UUID
-    #[serde(default)]
-    pub connection_uuid: String,
-    /// SQL 查询语句
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub sql: Option<String>,
-    /// SQL 参数列表
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub params: Option<Vec<String>>,
-    /// Redis 命令
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub redis_command: Option<String>,
-    /// Redis 键
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub redis_key: Option<String>,
-    /// Redis 值
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub redis_value: Option<String>,
-    /// Redis TTL（秒）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub redis_ttl: Option<u64>,
-    /// 结果获取模式: "all" | "one" | "scalar"
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub fetch_mode: Option<String>,
-    /// 结果存储变量名
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub result_to: Option<String>,
-    /// 查询超时（毫秒）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub timeout_ms: Option<u64>,
-}
-
-/// 数据库事务开始节点配置
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct DbBeginConfig {
-    /// 连接 UUID
-    #[serde(default)]
-    pub connection_uuid: String,
-    /// 隔离级别
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub isolation_level: Option<String>,
-}
-
-/// 数据库事务提交节点配置
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct DbCommitConfig {
-    /// 连接 UUID
-    #[serde(default)]
-    pub connection_uuid: String,
-}
-
-/// 数据库事务回滚节点配置
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct DbRollbackConfig {
-    /// 连接 UUID
-    #[serde(default)]
-    pub connection_uuid: String,
-}
-
-/// 数据库关闭节点配置
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct DbCloseConfig {
-    /// 连接 UUID
-    #[serde(default)]
-    pub connection_uuid: String,
 }
 
 // ============================================================================
@@ -3298,48 +3169,6 @@ pub struct ImapCloseConfig {
 }
 
 // ============================================================================
-// 端口字段兼容反序列化（同时支持 number 和 string）
-// ============================================================================
-
-/// 反序列化 optional port（DB），接受 number / string / null
-fn deserialize_optional_port_as_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    struct OptionalPortVisitor;
-
-    impl<'de> Visitor<'de> for OptionalPortVisitor {
-        type Value = Option<String>;
-
-        fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            f.write_str("a port number, string, or null")
-        }
-
-        fn visit_u64<E: de::Error>(self, v: u64) -> Result<Option<String>, E> {
-            Ok(Some(v.to_string()))
-        }
-
-        fn visit_i64<E: de::Error>(self, v: i64) -> Result<Option<String>, E> {
-            Ok(Some(v.to_string()))
-        }
-
-        fn visit_str<E: de::Error>(self, v: &str) -> Result<Option<String>, E> {
-            Ok(Some(v.to_owned()))
-        }
-
-        fn visit_none<E: de::Error>(self) -> Result<Option<String>, E> {
-            Ok(None)
-        }
-
-        fn visit_unit<E: de::Error>(self) -> Result<Option<String>, E> {
-            Ok(None)
-        }
-    }
-
-    deserializer.deserialize_any(OptionalPortVisitor)
-}
-
-// ============================================================================
 // 代理设置节点配置
 // ============================================================================
 
@@ -3452,24 +3281,6 @@ pub enum NodeData {
     WsClose(WsCloseConfig),
     /// 断言节点配置
     Assertion(AssertionConfig),
-    /// 数据库连接节点配置
-    #[serde(rename = "db_connect")]
-    DbConnect(DbConnectConfig),
-    /// 数据库查询节点配置
-    #[serde(rename = "db_query")]
-    DbQuery(DbQueryConfig),
-    /// 数据库事务开始节点配置
-    #[serde(rename = "db_begin")]
-    DbBegin(DbBeginConfig),
-    /// 数据库事务提交节点配置
-    #[serde(rename = "db_commit")]
-    DbCommit(DbCommitConfig),
-    /// 数据库事务回滚节点配置
-    #[serde(rename = "db_rollback")]
-    DbRollback(DbRollbackConfig),
-    /// 数据库关闭节点配置
-    #[serde(rename = "db_close")]
-    DbClose(DbCloseConfig),
     /// 脚本节点配置
     #[serde(rename = "script")]
     Script(ScriptNodeConfig),
@@ -3744,24 +3555,6 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "assertion" => serde_json::from_value::<AssertionConfig>(value.clone())
                 .map(NodeData::Assertion)
                 .map_err(serde::de::Error::custom),
-            "db_connect" => serde_json::from_value::<DbConnectConfig>(value.clone())
-                .map(NodeData::DbConnect)
-                .map_err(serde::de::Error::custom),
-            "db_query" => serde_json::from_value::<DbQueryConfig>(value.clone())
-                .map(NodeData::DbQuery)
-                .map_err(serde::de::Error::custom),
-            "db_begin" => serde_json::from_value::<DbBeginConfig>(value.clone())
-                .map(NodeData::DbBegin)
-                .map_err(serde::de::Error::custom),
-            "db_commit" => serde_json::from_value::<DbCommitConfig>(value.clone())
-                .map(NodeData::DbCommit)
-                .map_err(serde::de::Error::custom),
-            "db_rollback" => serde_json::from_value::<DbRollbackConfig>(value.clone())
-                .map(NodeData::DbRollback)
-                .map_err(serde::de::Error::custom),
-            "db_close" => serde_json::from_value::<DbCloseConfig>(value.clone())
-                .map(NodeData::DbClose)
-                .map_err(serde::de::Error::custom),
             "script" => serde_json::from_value::<ScriptNodeConfig>(value.clone())
                 .map(NodeData::Script)
                 .map_err(serde::de::Error::custom),
@@ -4025,12 +3818,6 @@ impl NodeData {
             NodeData::WsSendCollect(_) => "ws_send_collect".to_string(),
             NodeData::WsClose(_) => "ws_close".to_string(),
             NodeData::Assertion(_) => "assertion".to_string(),
-            NodeData::DbConnect(_) => "db_connect".to_string(),
-            NodeData::DbQuery(_) => "db_query".to_string(),
-            NodeData::DbBegin(_) => "db_begin".to_string(),
-            NodeData::DbCommit(_) => "db_commit".to_string(),
-            NodeData::DbRollback(_) => "db_rollback".to_string(),
-            NodeData::DbClose(_) => "db_close".to_string(),
             NodeData::Script(_) => "script".to_string(),
             NodeData::GrpcConnect(_) => "grpc_connect".to_string(),
             NodeData::GrpcCall(_) => "grpc_call".to_string(),
@@ -4146,10 +3933,6 @@ impl NodeData {
             NodeData::SmtpSend(cfg) => Some(cfg.timeout_ms),
             NodeData::ImapConnect(cfg) => Some(cfg.connect_timeout_ms),
             NodeData::ImapIdle(cfg) => Some(cfg.timeout_seconds * 1000),
-            // DbConnect - connect_timeout_ms: Option<u64>
-            NodeData::DbConnect(cfg) => cfg.connect_timeout_ms,
-            // DbQuery - timeout_ms: Option<u64>
-            NodeData::DbQuery(cfg) => cfg.timeout_ms,
             // MqttConnect - connect_timeout_ms: Option<u64>
             NodeData::MqttConnect(cfg) => cfg.connect_timeout_ms,
             // KafkaConnect - connect_timeout_ms: Option<u64>
@@ -4332,61 +4115,6 @@ impl NodeData {
     /// 创建 Assertion 节点配置
     pub fn assertion() -> Self {
         Self::Assertion(AssertionConfig::default())
-    }
-
-    /// 创建 `DbConnect` 节点配置
-    pub fn db_connect(connection_uuid: impl Into<String>) -> Self {
-        Self::DbConnect(DbConnectConfig {
-            connection_uuid: connection_uuid.into(),
-            driver: None,
-            connection_string: None,
-            host: None,
-            port: None,
-            database: None,
-            username: None,
-            password: None,
-            min_connections: default_min_connections(),
-            max_connections: default_max_connections(),
-            test_query: None,
-            connect_timeout_ms: None,
-        })
-    }
-
-    /// 创建 `DbQuery` 节点配置
-    pub fn db_query(connection_uuid: impl Into<String>) -> Self {
-        Self::DbQuery(DbQueryConfig {
-            connection_uuid: connection_uuid.into(),
-            ..Default::default()
-        })
-    }
-
-    /// 创建 `DbBegin` 节点配置
-    pub fn db_begin(connection_uuid: impl Into<String>) -> Self {
-        Self::DbBegin(DbBeginConfig {
-            connection_uuid: connection_uuid.into(),
-            ..Default::default()
-        })
-    }
-
-    /// 创建 `DbCommit` 节点配置
-    pub fn db_commit(connection_uuid: impl Into<String>) -> Self {
-        Self::DbCommit(DbCommitConfig {
-            connection_uuid: connection_uuid.into(),
-        })
-    }
-
-    /// 创建 `DbRollback` 节点配置
-    pub fn db_rollback(connection_uuid: impl Into<String>) -> Self {
-        Self::DbRollback(DbRollbackConfig {
-            connection_uuid: connection_uuid.into(),
-        })
-    }
-
-    /// 创建 `DbClose` 节点配置
-    pub fn db_close(connection_uuid: impl Into<String>) -> Self {
-        Self::DbClose(DbCloseConfig {
-            connection_uuid: connection_uuid.into(),
-        })
     }
 
     /// 创建 Script 节点配置
@@ -4987,18 +4715,8 @@ mod tests {
             _ => panic!("Expected Script variant"),
         }
 
-        // db_connect 应正常反序列化
-        let json = r#"{"type":"db_connect","driver":"postgres","connection_string":"postgres://localhost/test"}"#;
-        let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
-        match data {
-            NodeData::DbConnect(config) => {
-                assert_eq!(
-                    config.connection_string,
-                    Some("postgres://localhost/test".to_string())
-                );
-            }
-            _ => panic!("Expected DbConnect variant"),
-        }
+        // 内置 db 已移除（plugins/db 插件化）：db_connect 现走 Plugin(Value)
+        // 兜底，不再映射为显式 NodeData 变体。
     }
 
     // ========================================================================

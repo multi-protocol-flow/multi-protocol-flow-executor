@@ -1,7 +1,7 @@
 //! 默认节点注册表 — 注册全部内置节点插件
 //!
 //! 此模块位于 `flow-engine-executor` crate 中，因为它需要依赖所有协议 crate
-//! （http、ws、db、script、assertion、grpc、mcp、tcp、mqtt、kafka、sse），而 `flow-engine-core` 作为叶子 crate
+//! （http、ws、script、assertion、grpc、mcp、tcp、mqtt、kafka、sse），而 `flow-engine-core` 作为叶子 crate
 //! 不能依赖它们。
 
 use flow_engine_core::registry::NodeRegistry;
@@ -21,12 +21,6 @@ use flow_engine_plugin::manager::PluginManager;
 /// | WebSocket | WsConnectPlugin | `ws_connect` |
 /// | WebSocket | WsSendCollectPlugin | `ws_send_collect` |
 /// | WebSocket | WsClosePlugin | `ws_close` |
-/// | Database | DbConnectPlugin | `db_connect` |
-/// | Database | DbQueryPlugin | `db_query` |
-/// | Database | DbBeginPlugin | `db_begin` |
-/// | Database | DbCommitPlugin | `db_commit` |
-/// | Database | DbRollbackPlugin | `db_rollback` |
-/// | Database | DbClosePlugin | `db_close` |
 /// | Script | ScriptPlugin | `script` |
 /// | Assertion | AssertionPlugin | `assertion` |
 /// | gRPC | GrpcConnectPlugin | `grpc_connect` |
@@ -119,10 +113,6 @@ pub fn default_registry() -> NodeRegistry {
     // WebSocket (flow-engine-ws) — 批量注册 3 个插件
     #[cfg(feature = "protocol-ws")]
     flow_engine_ws::plugin::WsPluginGroup::register_all(&mut registry);
-
-    // Database (flow-engine-db) — 批量注册 6 个插件
-    #[cfg(feature = "protocol-db")]
-    flow_engine_db::plugin::DbPluginGroup::register_all(&mut registry);
 
     // Script (flow-engine-script)
     #[cfg(feature = "protocol-script")]
@@ -265,10 +255,6 @@ mod tests {
         {
             expected += 3;
         }
-        #[cfg(feature = "protocol-db")]
-        {
-            expected += 6;
-        }
         #[cfg(feature = "protocol-script")]
         {
             expected += 1;
@@ -355,15 +341,6 @@ mod tests {
         #[cfg(not(feature = "protocol-ws"))]
         {
             assert!(!type_ids.contains(&"ws_connect"));
-        }
-
-        #[cfg(feature = "protocol-db")]
-        {
-            assert!(type_ids.contains(&"db_connect"));
-        }
-        #[cfg(not(feature = "protocol-db"))]
-        {
-            assert!(!type_ids.contains(&"db_connect"));
         }
 
         #[cfg(feature = "protocol-script")]

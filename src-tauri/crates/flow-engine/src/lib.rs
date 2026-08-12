@@ -52,15 +52,6 @@ pub use flow_engine_executor::flow_engine_ws::{
     websocket_manager, ws_close_executor, ws_connect_executor, ws_send_collect_executor,
 };
 
-// DB (flow-engine-db)
-#[cfg(feature = "protocol-db")]
-pub use flow_engine_executor::flow_engine_db;
-#[cfg(feature = "protocol-db")]
-pub use flow_engine_executor::flow_engine_db::{
-    db, db_begin_executor, db_close_executor, db_commit_executor, db_connect_executor,
-    db_query_executor, db_rollback_executor,
-};
-
 // gRPC (flow-engine-grpc)
 #[cfg(feature = "protocol-grpc")]
 pub use flow_engine_executor::flow_engine_grpc;
@@ -203,14 +194,6 @@ pub use execution_event::ExecutionEvent;
 // Re-export ws_stream types
 pub use ws_stream::{
     MessageContent, MessageDirection, WsConnectionStream, WsMessage, WsStreamSegment,
-};
-
-// Re-export db types (conditional on protocol-db feature)
-#[cfg(feature = "protocol-db")]
-pub use db::{
-    DatabaseConnectionManager, DatabasePool, DbConnection, DbConnectionStatus, DbDriver,
-    IsolationLevel, MockPool, PoolMetadata, QueryResult, TestDbConnectionResult, TransactionInfo,
-    TransactionState,
 };
 
 // ============================================================================

@@ -17,7 +17,6 @@ all-protocols = [
     "protocol-graphql",
 ]
 protocol-http = ["flow-engine-executor/protocol-http"]
-protocol-db = ["flow-engine-executor/protocol-db"]
 protocol-ws = ["flow-engine-executor/protocol-ws"]
 protocol-script = ["flow-engine-executor/protocol-script"]
 protocol-assertion = ["flow-engine-executor/protocol-assertion"]

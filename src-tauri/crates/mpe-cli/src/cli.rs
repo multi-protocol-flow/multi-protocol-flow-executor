@@ -437,9 +437,11 @@ async fn async_main() -> Result<(), CliError> {
             )
             .await
         }
-        Commands::Validate { flow } => validate::execute(&cli.format, &flow).await,
+        Commands::Validate { flow } => {
+            validate::execute(&cli.format, &flow, registry).await
+        }
         Commands::Debug { flow, r#break, var } => {
-            debug_cmd::execute(&cli.format, &flow, &r#break, &var, cancel_rx).await
+            debug_cmd::execute(&cli.format, &flow, &r#break, &var, registry, cancel_rx).await
         }
         Commands::Stress { command } => {
             stress::execute(&cli.format, command, registry, cancel_rx).await

@@ -38,7 +38,6 @@ all-protocols = [
     "flow-engine/all-protocols",
 ]
 protocol-http = ["flow-engine/protocol-http"]
-protocol-db = ["flow-engine/protocol-db"]
 protocol-ws = ["flow-engine/protocol-ws"]
 protocol-script = ["flow-engine/protocol-script"]
 protocol-assertion = ["flow-engine/protocol-assertion"]

@@ -95,12 +95,6 @@ fn default_node_data(node_type: &str) -> NodeData {
         node_types::WS_SEND_COLLECT => NodeData::ws_send_collect("", ""),
         node_types::WS_CLOSE => NodeData::ws_close(""),
         node_types::ASSERTION => NodeData::assertion(),
-        node_types::DB_CONNECT => NodeData::db_connect(""),
-        node_types::DB_QUERY => NodeData::db_query(""),
-        node_types::DB_BEGIN => NodeData::db_begin(""),
-        node_types::DB_COMMIT => NodeData::db_commit(""),
-        node_types::DB_ROLLBACK => NodeData::db_rollback(""),
-        node_types::DB_CLOSE => NodeData::db_close(""),
         node_types::SCRIPT => NodeData::script(""),
         _ => NodeData::entry(),
     }
