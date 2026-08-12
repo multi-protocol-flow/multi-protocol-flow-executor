@@ -24,8 +24,6 @@ const zh_CN_welcome: BaseTranslation = {
   template_http_demo_desc: '演示 GET/POST 请求和条件判断',
   template_ws_echo: 'WebSocket Echo 测试',
   template_ws_echo_desc: '连接 WebSocket Echo 服务并收发消息',
-  template_db_query: '数据库查询',
-  template_db_query_desc: '连接数据库并执行 SQL 查询',
   template_grpc_demo: 'gRPC 服务调用',
   template_grpc_demo_desc: '连接 gRPC 服务并调用方法',
   template_mcp_demo: 'MCP 工具调用',

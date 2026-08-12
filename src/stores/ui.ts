@@ -42,9 +42,6 @@ export interface ConfirmDialogConfig {
   onCancel?: () => void;
 }
 
-/** 连接对话框模式 */
-export type ConnectionDialogMode = 'create' | 'edit';
-
 interface UIState {
   // ===== 面板状态 =====
   /** 流程列表面板是否展开 */
@@ -99,14 +96,6 @@ interface UIState {
   showUpdateDialog: boolean;
   /** 是否已执行启动时更新检查 */
   autoChecked: boolean;
-
-  // ===== 连接对话框状态 =====
-  /** 是否显示数据库连接对话框 */
-  showConnectionDialog: boolean;
-  /** 连接对话框模式 */
-  connectionDialogMode: ConnectionDialogMode;
-  /** 正在编辑的连接 ID */
-  editingConnectionId: string | null;
 
   // ===== 通用确认对话框状态 =====
   /** 是否显示通用确认对话框 */
@@ -198,14 +187,6 @@ interface UIState {
   closeUpdateDialog: () => void;
   /** 标记启动时更新检查已完成 */
   setAutoChecked: () => void;
-
-  // ===== 连接对话框 Actions =====
-  /** 打开连接对话框（新建模式） */
-  openConnectionDialog: () => void;
-  /** 打开连接对话框（编辑模式） */
-  openConnectionDialogForEdit: (connectionId: string) => void;
-  /** 关闭连接对话框 */
-  closeConnectionDialog: () => void;
 
   // ===== 通用确认对话框 Actions =====
   /** 显示确认对话框 */
@@ -303,11 +284,6 @@ const initialState = {
   showSearchOverlay: false,
   showUpdateDialog: false,
   autoChecked: false,
-
-  // 连接对话框状态
-  showConnectionDialog: false,
-  connectionDialogMode: 'create' as ConnectionDialogMode,
-  editingConnectionId: null,
 
   // 通用确认对话框状态
   showConfirmDialog: false,
@@ -429,28 +405,6 @@ export const useUIStore = create<UIState>((set) => ({
   openUpdateDialog: () => set({ showUpdateDialog: true }),
   closeUpdateDialog: () => set({ showUpdateDialog: false }),
   setAutoChecked: () => set({ autoChecked: true }),
-
-  // ===== 连接对话框 Actions =====
-  openConnectionDialog: () =>
-    set({
-      showConnectionDialog: true,
-      connectionDialogMode: 'create',
-      editingConnectionId: null,
-    }),
-
-  openConnectionDialogForEdit: (connectionId: string) =>
-    set({
-      showConnectionDialog: true,
-      connectionDialogMode: 'edit',
-      editingConnectionId: connectionId,
-    }),
-
-  closeConnectionDialog: () =>
-    set({
-      showConnectionDialog: false,
-      connectionDialogMode: 'create',
-      editingConnectionId: null,
-    }),
 
   // ===== 左侧栏面板 Actions =====
   toggleFlowListCollapsed: () =>

@@ -20,7 +20,6 @@ const zh_CN_validation: BaseTranslation = {
   connection_id_required: '连接 ID 不能为空',
   ws_message_required: '消息内容不能为空',
   target_field_required: '目标字段不能为空',
-  db_connection_uuid_required: '连接 UUID 不能为空',
   proto_file_path_required: '文件路径不能为空',
   proto_file_content_required: '文件内容不能为空',
   grpc_server_url_required: 'gRPC 服务器地址不能为空',

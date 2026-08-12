@@ -18,7 +18,6 @@ const en_US_validation = {
   connection_id_required: 'Connection ID is required',
   ws_message_required: 'Message content is required',
   target_field_required: 'Target field is required',
-  db_connection_uuid_required: 'Connection UUID is required',
   proto_file_path_required: 'File path is required',
   proto_file_content_required: 'File content is required',
   grpc_server_url_required: 'gRPC server address is required',

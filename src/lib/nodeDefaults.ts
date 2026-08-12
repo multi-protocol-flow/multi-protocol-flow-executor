@@ -66,18 +66,6 @@ export function inferDefaults(
       }
       break;
 
-    // ========== 数据库 ==========
-    case 'db_query':
-    case 'db_begin':
-    case 'db_commit':
-    case 'db_rollback':
-      if (upType === 'db_connect') {
-        return {
-          connection_id: upstreamNode.data.connection_id,
-        };
-      }
-      break;
-
     // ========== gRPC ==========
     case 'grpc_call':
       if (upType === 'grpc_connect') {

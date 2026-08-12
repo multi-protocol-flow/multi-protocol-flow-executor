@@ -58,16 +58,16 @@ const DB_SQLITE_FLOW: Flow = {
   nodes: [
     { uuid: 'entry-db-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'db-connect-001', type: 'db_connect', name: 'Connect Database', position: { x: 250, y: 0 },
-      data: { type: 'db_connect', driver: 'sqlite', connection_string: ':memory:' }
+      uuid: 'db-connect-001', type: 'db:connect', name: 'Connect Database', position: { x: 250, y: 0 },
+      data: { type: 'db:connect', connection_uuid: '', driver: 'sqlite', connection_string: ':memory:' }
     },
     {
-      uuid: 'db-query-001', type: 'db_query', name: 'Execute Query', position: { x: 500, y: 0 },
-      data: { type: 'db_query', connection_uuid: 'db-connect-001', sql: 'SELECT 1 as result;' }
+      uuid: 'db-query-001', type: 'db:query', name: 'Execute Query', position: { x: 500, y: 0 },
+      data: { type: 'db:query', connection_uuid: 'db-connect-001', sql: 'SELECT 1 as result;' }
     },
     {
-      uuid: 'db-close-001', type: 'db_close', name: 'Close Connection', position: { x: 750, y: 0 },
-      data: { type: 'db_close', connection_uuid: 'db-connect-001' }
+      uuid: 'db-close-001', type: 'db:close', name: 'Close Connection', position: { x: 750, y: 0 },
+      data: { type: 'db:close', connection_uuid: 'db-connect-001' }
     },
   ],
   connections: [
@@ -406,16 +406,16 @@ const KAFKA_SCRIPT_DB_FLOW: Flow = {
       data: { type: 'script', script: 'const raw = JSON.parse(fn.variables.get("last_node_output") || "{}");\nconst transformed = { id: raw.id, value: raw.data, processed_at: new Date().toISOString() };\nfn.variables.set("transformed", JSON.stringify(transformed));\nfn.console.log("Transform result:", transformed);' }
     },
     {
-      uuid: 'ksdb-db-001', type: 'db_connect', name: 'Connect Database', position: { x: 1000, y: 0 },
-      data: { type: 'db_connect', driver: 'sqlite', connection_string: ':memory:' }
+      uuid: 'ksdb-db-001', type: 'db:connect', name: 'Connect Database', position: { x: 1000, y: 0 },
+      data: { type: 'db:connect', connection_uuid: '', driver: 'sqlite', connection_string: ':memory:' }
     },
     {
-      uuid: 'ksdb-query-001', type: 'db_query', name: 'Insert Data', position: { x: 1250, y: 0 },
-      data: { type: 'db_query', connection_uuid: 'ksdb-db-001', sql: 'SELECT 1 as inserted;' }
+      uuid: 'ksdb-query-001', type: 'db:query', name: 'Insert Data', position: { x: 1250, y: 0 },
+      data: { type: 'db:query', connection_uuid: 'ksdb-db-001', sql: 'SELECT 1 as inserted;' }
     },
     {
-      uuid: 'ksdb-close-001', type: 'db_close', name: 'Close Connection', position: { x: 1500, y: 0 },
-      data: { type: 'db_close', connection_uuid: 'ksdb-db-001' }
+      uuid: 'ksdb-close-001', type: 'db:close', name: 'Close Connection', position: { x: 1500, y: 0 },
+      data: { type: 'db:close', connection_uuid: 'ksdb-db-001' }
     },
   ],
   connections: [

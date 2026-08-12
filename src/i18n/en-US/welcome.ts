@@ -24,8 +24,6 @@ const en_US_welcome: Partial<Translation['welcome']> = {
   template_http_demo_desc: 'Demonstrate GET/POST requests and conditional branching',
   template_ws_echo: 'WebSocket Echo Test',
   template_ws_echo_desc: 'Connect to WebSocket Echo service and exchange messages',
-  template_db_query: 'Database Query',
-  template_db_query_desc: 'Connect to database and execute SQL query',
   template_grpc_demo: 'gRPC Service Call',
   template_grpc_demo_desc: 'Connect to gRPC service and invoke methods',
   template_mcp_demo: 'MCP Tool Call',

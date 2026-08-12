@@ -1,4 +1,4 @@
-﻿import type { BaseTranslation } from '../i18n-types';
+import type { BaseTranslation } from '../i18n-types';
 
 const zh_CN_flow: BaseTranslation = {
   unsaved: '未保存',
@@ -262,41 +262,6 @@ const zh_CN_flow: BaseTranslation = {
   fn_expect_end_with: '以指定字符串结尾',
   fn_expect_above: '大于 n',
   fn_expect_below: '小于 n',
-
-  // 数据库连接
-  db_conn_edit_title: '编辑数据库连接',
-  db_conn_new_title: '配置数据库连接',
-  db_conn_basic: '基本信息',
-  db_conn_name: '连接名称',
-  db_conn_name_placeholder_name: '例如：生产环境 MySQL',
-  db_conn_driver: '数据库类型',
-  db_conn_driver_placeholder: '选择数据库类型',
-  db_conn_params: '连接参数',
-  db_conn_host: '主机地址',
-  db_conn_host_placeholder: 'localhost',
-  db_conn_port: '端口',
-  db_conn_port_placeholder: '5432',
-  db_conn_database: '数据库名',
-  db_conn_database_placeholder: 'mydb',
-  db_conn_username: '用户名',
-  db_conn_username_placeholder: 'root',
-  db_conn_password: '密码',
-  db_conn_password_placeholder: '••••••••',
-  db_conn_password_env: '密码环境变量名（可选）',
-  db_conn_password_env_placeholder: 'DB_PASSWORD（优先于密码字段）',
-  db_conn_password_env_hint: '填写后将从环境变量读取密码，优先于上方密码字段',
-  db_conn_sqlite_path: '数据库文件路径',
-  db_conn_sqlite_path_placeholder: '/path/to/database.db',
-  db_conn_sqlite_hint: 'SQLite 数据库文件的绝对路径或相对路径',
-  db_conn_pool: '连接池配置',
-  db_conn_min_conn: '最小连接数',
-  db_conn_max_conn: '最大连接数',
-  db_conn_test_success: '连接测试成功',
-  db_conn_test_fail: '连接测试失败',
-  db_conn_test_btn: '测试连接',
-  db_conn_save: '保存',
-  db_conn_connection_string: '连接字符串',
-  db_conn_connection_string_hint: '设置后将直接使用此连接字符串，留空则从下方字段自动构建',
 
   // 压力测试
   stress_config_title: '压力测试配置',

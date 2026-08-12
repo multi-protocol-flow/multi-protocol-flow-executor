@@ -1,4 +1,4 @@
-﻿const en_US_panels = {
+const en_US_panels = {
   name: 'Name',
   type: 'Type',
   url: 'URL',
@@ -176,77 +176,6 @@
     curlCopyButton: 'Copy as cURL',
     curlCopySuccess: 'cURL command copied to clipboard',
     curlCopyFailed: 'Copy failed',
-  },
-
-  dbCommon: {
-    databaseConnection: 'Database Connection',
-    selectConnectionPlaceholder: 'Select a database connection node in the flow',
-    noConnectionNodes: 'No connection nodes available',
-    addConnectionNodeFirst: 'Please add a database connection node to the flow first',
-  },
-  dbConnect: {
-    defaultName: 'Database Connection',
-    modifyConfig: 'Modify Config',
-    connectionPoolRange: 'Connection pool {min} - {max}',
-    notConfigured: 'No database connection configured',
-    configurePrompt: 'Configure database driver, connection parameters, and authentication',
-    configureConnection: 'Configure Database Connection',
-    connectionTimeout: 'Connection Timeout',
-    timeoutHint: 'Milliseconds (ms), range 1000-300000, default 30000',
-    testQueryOptional: 'Test Query (Optional)',
-    testQueryHelp: 'A test query executed after successful connection to verify connectivity',
-  },
-  dbQuery: {
-    title: 'Database Query Node',
-    description: 'Execute SQL queries with parameterized query and result mapping support. Results can be stored in a variable for downstream nodes.',
-    sqlQuery: 'SQL Query',
-    sqlPlaceholderHelp: 'Supports ? placeholders for parameterized queries; configure parameters below',
-    dangerousOpsDetected: 'Modification operations detected',
-    operationType: 'Operation type:',
-    dangerousOpsWarning: 'This operation will modify database data. Proceed with caution. Consider backing up data before execution.',
-    queryParamsOptional: 'Query Parameters (Optional)',
-    addParam: 'Add Parameter',
-    noQueryParams: 'No query parameters',
-    clickAddParamHint: 'Click "Add Parameter" to configure parameterized queries',
-    paramValue: 'Parameter value',
-    paramOrderHelp: 'Parameters map to ? placeholders in SQL in sequential order',
-    fetchMode: 'Fetch Mode',
-    fetchModeHelp: 'all=return all rows, one=return first row, scalar=return single value',
-    fetchModeAll: 'Fetch All Rows (all)',
-    fetchModeOne: 'Fetch Single Row (one)',
-    fetchModeScalar: 'Fetch Single Value (scalar)',
-    queryTimeout: 'Query Timeout',
-    resultVariableOptional: 'Result Variable Name (Optional)',
-    resultVariableHelp: 'Query results will be stored in this variable and can be referenced as {{variableName}} in downstream nodes',
-    usageNotes: 'Usage Notes:',
-    usageStep1: '1. Select an established database connection',
-    usageStep2: '2. Write SQL queries with ? placeholder support',
-    usageStep3: '3. Optionally configure parameterized queries and result mapping',
-    usageStep4: '4. Results can be stored in a variable for downstream nodes',
-  },
-  dbBegin: {
-    title: 'Begin Transaction Node',
-    description: 'Begin a database transaction. An isolation level can be specified; defaults to the database default level.',
-    isolationLevel: 'Isolation Level',
-    selectIsolationLevel: 'Select transaction isolation level',
-    isolationLevelHelp: 'Set the transaction isolation level; defaults to the database default level',
-    defaultLevel: 'Default',
-    isolation_readUncommitted: 'Read Uncommitted',
-    isolation_readCommitted: 'Read Committed',
-    isolation_repeatableRead: 'Repeatable Read',
-    isolation_serializable: 'Serializable',
-  },
-  dbCommit: {
-    title: 'Commit Transaction Node',
-    description: 'Commit the current database transaction, making all changes permanent.',
-  },
-  dbRollback: {
-    title: 'Rollback Transaction Node',
-    description: 'Rollback the current database transaction, undoing all changes in the transaction.',
-  },
-  dbClose: {
-    title: 'Close Connection Node',
-    description: 'Close the specified database connection and release associated resources.',
   },
 
   script: {
@@ -546,6 +475,7 @@
     addNodeFirst: 'Please add the corresponding node first',
     jsonInvalid: 'Invalid JSON format, please check',
     jsonPlaceholder: 'Enter JSON content...',
+    clearSelection: 'Clear selection',
   },
 
   flowNodeList: {
@@ -2381,23 +2311,8 @@
   hex_copied: 'Copied',
   hex_prev_match: 'Previous',
   hex_next_match: 'Next',
-  hex_match_count: '{count} match(es)',
-  hex_truncated_notice: 'Showing first {displayed} bytes (total {total} bytes)',
-
-  // DB Result Preview
-  db_no_results: 'No results yet',
-  db_query_error: 'Query Error',
-  db_copy: 'Copy',
-  db_copied: 'Copied',
-  db_execution_time: 'Execution time: {time}ms',
-  db_row_count: '{count} row(s)',
-  db_rows_affected: 'row(s) affected',
-  db_truncated_warning: 'Results truncated',
-  db_table_view: 'Table',
-  db_json_view: 'JSON',
-  db_timing_ms: '{time}ms',
-  db_query_success_affected: 'Query succeeded, {count} row(s) affected',
-  db_query_empty_result: 'Query returned empty result',
+  hex_match_count: '{count} matches',
+  hex_truncated_notice: 'Showing first {displayed} of {total} bytes',
 };
 
 export default en_US_panels;

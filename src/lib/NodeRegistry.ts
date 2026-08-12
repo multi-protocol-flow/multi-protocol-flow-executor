@@ -227,14 +227,6 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   imap_idle: 11,
   imap_close: 12,
 
-  // 数据库: 连接 → 开启事务 → 查询 → 提交 → 回滚 → 关闭
-  db_connect: 0,
-  db_begin: 1,
-  db_query: 2,
-  db_commit: 3,
-  db_rollback: 4,
-  db_close: 5,
-
   // 工具: 条件判断 → 脚本 → 断言 → 变量提取 → 代理 → 结束
   conditional: 0,
   script: 1,
@@ -263,12 +255,6 @@ export function getBadgeClassForType(typeId: string): string {
     ws_connect: 'bg-amber-100 text-amber-700',
     ws_send_collect: 'bg-teal-100 text-teal-700',
     ws_close: 'bg-rose-100 text-rose-700',
-    db_connect: 'bg-violet-100 text-violet-700',
-    db_query: 'bg-violet-100 text-violet-700',
-    db_begin: 'bg-violet-100 text-violet-700',
-    db_commit: 'bg-violet-100 text-violet-700',
-    db_rollback: 'bg-violet-100 text-violet-700',
-    db_close: 'bg-violet-100 text-violet-700',
     grpc_connect: 'bg-sky-100 text-sky-700',
     grpc_call: 'bg-sky-100 text-sky-700',
     grpc_close: 'bg-sky-100 text-sky-700',

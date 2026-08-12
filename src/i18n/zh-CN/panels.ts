@@ -1,4 +1,4 @@
-﻿import type { BaseTranslation } from '../i18n-types';
+import type { BaseTranslation } from '../i18n-types';
 
 const zh_CN_panels: BaseTranslation = {
   name: '名称',
@@ -178,77 +178,6 @@ const zh_CN_panels: BaseTranslation = {
     curlCopyButton: '复制为 cURL 命令',
     curlCopySuccess: 'cURL 命令已复制到剪贴板',
     curlCopyFailed: '复制失败',
-  },
-
-  dbCommon: {
-    databaseConnection: '数据库连接',
-    selectConnectionPlaceholder: '选择流程中的数据库连接节点',
-    noConnectionNodes: '无可用连接节点',
-    addConnectionNodeFirst: '请先在流程中添加数据库连接节点',
-  },
-  dbConnect: {
-    defaultName: '数据库连接',
-    modifyConfig: '修改配置',
-    connectionPoolRange: '连接池 {min} - {max}',
-    notConfigured: '未配置数据库连接',
-    configurePrompt: '配置数据库驱动、连接参数和认证信息',
-    configureConnection: '配置数据库连接',
-    connectionTimeout: '连接超时',
-    timeoutHint: '毫秒 (ms)，范围 1000-300000，默认 30000',
-    testQueryOptional: '测试查询（可选）',
-    testQueryHelp: '连接成功后执行的测试查询，用于验证连接有效性',
-  },
-  dbQuery: {
-    title: '数据库查询节点',
-    description: '执行 SQL 查询语句，支持参数化查询和结果映射。查询结果可存储到变量供后续节点使用。',
-    sqlQuery: 'SQL 查询语句',
-    sqlPlaceholderHelp: '支持 ? 占位符进行参数化查询，参数在下方配置',
-    dangerousOpsDetected: '检测到修改操作',
-    operationType: '操作类型：',
-    dangerousOpsWarning: '此操作将修改数据库数据，请谨慎执行。建议在执行前备份数据。',
-    queryParamsOptional: '查询参数（可选）',
-    addParam: '添加参数',
-    noQueryParams: '暂无查询参数',
-    clickAddParamHint: '点击「添加参数」配置参数化查询',
-    paramValue: '参数值',
-    paramOrderHelp: '参数按顺序对应 SQL 中的 ? 占位符',
-    fetchMode: '获取模式',
-    fetchModeHelp: 'all=返回所有行，one=返回第一行，scalar=返回单个值',
-    fetchModeAll: '获取所有行 (all)',
-    fetchModeOne: '获取单行 (one)',
-    fetchModeScalar: '获取单个值 (scalar)',
-    queryTimeout: '查询超时',
-    resultVariableOptional: '结果存储变量名（可选）',
-    resultVariableHelp: '查询结果将存储到此变量，可通过 {{变量名}} 在后续节点中引用',
-    usageNotes: '使用说明：',
-    usageStep1: '1. 选择已建立的数据库连接',
-    usageStep2: '2. 编写 SQL 查询语句，支持 ? 占位符',
-    usageStep3: '3. 可选配置参数化查询和结果映射',
-    usageStep4: '4. 查询结果可存储到变量供后续节点使用',
-  },
-  dbBegin: {
-    title: '开始事务节点',
-    description: '开始一个数据库事务。可以指定事务隔离级别，默认使用数据库默认隔离级别。',
-    isolationLevel: '隔离级别',
-    selectIsolationLevel: '选择事务隔离级别',
-    isolationLevelHelp: '设置事务的隔离级别，默认使用数据库默认级别',
-    defaultLevel: '默认',
-    isolation_readUncommitted: '读未提交 (Read Uncommitted)',
-    isolation_readCommitted: '读已提交 (Read Committed)',
-    isolation_repeatableRead: '可重复读 (Repeatable Read)',
-    isolation_serializable: '串行化 (Serializable)',
-  },
-  dbCommit: {
-    title: '提交事务节点',
-    description: '提交当前数据库事务，使事务中的所有更改永久生效。',
-  },
-  dbRollback: {
-    title: '回滚事务节点',
-    description: '回滚当前数据库事务，撤销事务中的所有更改。',
-  },
-  dbClose: {
-    title: '关闭连接节点',
-    description: '关闭指定的数据库连接，释放相关资源。',
   },
 
   script: {
@@ -548,6 +477,7 @@ const zh_CN_panels: BaseTranslation = {
     addNodeFirst: '请先添加对应节点',
     jsonInvalid: 'JSON 格式无效，请检查',
     jsonPlaceholder: '输入 JSON 内容...',
+    clearSelection: '清空选择',
   },
 
   flowNodeList: {
@@ -2368,21 +2298,6 @@ const zh_CN_panels: BaseTranslation = {
   hex_next_match: '下一个',
   hex_match_count: '{count} 处匹配',
   hex_truncated_notice: '显示前 {displayed} 字节（共 {total} 字节）',
-
-  // DB Result Preview
-  db_no_results: '暂无查询结果',
-  db_query_error: '查询错误',
-  db_copy: '复制',
-  db_copied: '已复制',
-  db_execution_time: '执行时间: {time}ms',
-  db_row_count: '{count} 行',
-  db_rows_affected: '行受影响',
-  db_truncated_warning: '结果已截断',
-  db_table_view: '表格',
-  db_json_view: 'JSON',
-  db_timing_ms: '{time}ms',
-  db_query_success_affected: '查询成功，{count} 行受影响',
-  db_query_empty_result: '查询返回空结果',
 };
 
 export default zh_CN_panels;

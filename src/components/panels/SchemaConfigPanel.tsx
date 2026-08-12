@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SchemaConfigPanel 通用配置面板组件
  * 从 JSON Schema 动态渲染表单，支持 string、integer、boolean、enum 字段类型
  */
@@ -31,7 +31,7 @@ interface SchemaProperty {
   maximum?: number;
   /** 自定义 keyword：声明该字段从当前流程中筛选指定类型的节点生成下拉框 */
   'x-node-selector'?: { node_type?: string };
-  /** JSON Schema format：值为 'json' 时渲染多行 JSON 输入 */
+  /** JSON Schema format：'json' 多行 JSON 输入；'sql' 多行 SQL 输入；'password' 掩码输入 */
   format?: string;
 }
 
@@ -205,6 +205,11 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
               <SelectValue placeholder={ll.selectField({ field: prop.title || key })} />
             </SelectTrigger>
             <SelectContent>
+              {!requiredFields.has(key) && (
+                <SelectItem key="__empty__" value="">
+                  {ll.clearSelection()}
+                </SelectItem>
+              )}
               {matchedNodes.length === 0 ? (
                 <div className="px-2 py-4 text-center text-sm text-muted-foreground">
                   {ll.noConnectionNodes()}
@@ -221,6 +226,47 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
           {matchedNodes.length === 0 && (
             <p className="text-xs text-amber-600">{ll.addNodeFirst()}</p>
           )}
+          {prop.description && (
+            <p className="text-xs text-muted-foreground">{prop.description}</p>
+          )}
+        </div>
+      );
+    }
+
+    // string + format: password → 掩码输入（值不落明文 UI）
+    if (prop.type === 'string' && prop.format === 'password') {
+      return (
+        <div key={key} className="space-y-2">
+          {renderLabel(key, prop)}
+          <Input
+            id={`schema-field-${key}`}
+            type="password"
+            value={(value as string) ?? ''}
+            onChange={(e) => handleFieldChange(key, e.target.value)}
+            placeholder={prop.description || ''}
+            className="font-mono"
+            autoComplete="off"
+          />
+          {prop.description && (
+            <p className="text-xs text-muted-foreground">{prop.description}</p>
+          )}
+        </div>
+      );
+    }
+
+    // string + format: sql → 多行 SQL 输入（等宽字体 textarea）
+    if (prop.type === 'string' && prop.format === 'sql') {
+      return (
+        <div key={key} className="space-y-2">
+          {renderLabel(key, prop)}
+          <Textarea
+            id={`schema-field-${key}`}
+            value={(value as string) ?? ''}
+            onChange={(e) => handleFieldChange(key, e.target.value)}
+            placeholder={prop.description || ''}
+            className="min-h-[120px] resize-y font-mono text-xs"
+            rows={6}
+          />
           {prop.description && (
             <p className="text-xs text-muted-foreground">{prop.description}</p>
           )}
@@ -317,6 +363,62 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
               onCheckedChange={(checked) => handleFieldChange(key, checked)}
             />
           </div>
+          {prop.description && (
+            <p className="text-xs text-muted-foreground">{prop.description}</p>
+          )}
+        </div>
+      );
+    }
+
+    // array → JSON 数组编辑（合法 JSON 数组保存为数组；否则保留原文并标记错误）
+    if (prop.type === 'array') {
+      const rawValue = Array.isArray(value)
+        ? JSON.stringify(value)
+        : typeof value === 'string'
+          ? value
+          : value === undefined || value === null
+            ? ''
+            : String(value);
+      const trimmed = rawValue.trim();
+      let invalid = false;
+      if (trimmed !== '') {
+        try {
+          const parsed = JSON.parse(rawValue);
+          if (!Array.isArray(parsed)) invalid = true;
+        } catch {
+          invalid = true;
+        }
+      }
+      return (
+        <div key={key} className="space-y-2">
+          {renderLabel(key, prop)}
+          <Textarea
+            id={`schema-field-${key}`}
+            value={rawValue}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw.trim() === '') {
+                handleFieldChange(key, []);
+                return;
+              }
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                  handleFieldChange(key, parsed);
+                  return;
+                }
+              } catch {
+                // fallthrough: keep raw text until valid
+              }
+              handleFieldChange(key, raw);
+            }}
+            placeholder={ll.jsonPlaceholder()}
+            className={`min-h-[80px] resize-y font-mono text-xs${invalid ? ' border-rose-500 focus-visible:border-rose-500' : ''}`}
+            rows={4}
+          />
+          {invalid && (
+            <p className="text-xs text-rose-500">{ll.jsonInvalid()}</p>
+          )}
           {prop.description && (
             <p className="text-xs text-muted-foreground">{prop.description}</p>
           )}

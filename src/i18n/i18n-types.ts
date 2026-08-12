@@ -293,30 +293,6 @@ type RootTranslation = {
 		 */
 		ws_close: string
 		/**
-		 * D​B​-​连​接
-		 */
-		db_connect: string
-		/**
-		 * D​B​-​查​询
-		 */
-		db_query: string
-		/**
-		 * D​B​-​开​始​事​务
-		 */
-		db_begin: string
-		/**
-		 * D​B​-​提​交
-		 */
-		db_commit: string
-		/**
-		 * D​B​-​回​滚
-		 */
-		db_rollback: string
-		/**
-		 * D​B​-​关​闭
-		 */
-		db_close: string
-		/**
 		 * g​R​P​C​-​连​接
 		 */
 		grpc_connect: string
@@ -1359,246 +1335,6 @@ type RootTranslation = {
 			 * 复​制​失​败
 			 */
 			curlCopyFailed: string
-		}
-		dbCommon: {
-			/**
-			 * 数​据​库​连​接
-			 */
-			databaseConnection: string
-			/**
-			 * 选​择​流​程​中​的​数​据​库​连​接​节​点
-			 */
-			selectConnectionPlaceholder: string
-			/**
-			 * 无​可​用​连​接​节​点
-			 */
-			noConnectionNodes: string
-			/**
-			 * 请​先​在​流​程​中​添​加​数​据​库​连​接​节​点
-			 */
-			addConnectionNodeFirst: string
-		}
-		dbConnect: {
-			/**
-			 * 数​据​库​连​接
-			 */
-			defaultName: string
-			/**
-			 * 修​改​配​置
-			 */
-			modifyConfig: string
-			/**
-			 * 连​接​池​ ​{​m​i​n​}​ ​-​ ​{​m​a​x​}
-			 * @param {unknown} max
-			 * @param {unknown} min
-			 */
-			connectionPoolRange: RequiredParams<'max' | 'min'>
-			/**
-			 * 未​配​置​数​据​库​连​接
-			 */
-			notConfigured: string
-			/**
-			 * 配​置​数​据​库​驱​动​、​连​接​参​数​和​认​证​信​息
-			 */
-			configurePrompt: string
-			/**
-			 * 配​置​数​据​库​连​接
-			 */
-			configureConnection: string
-			/**
-			 * 连​接​超​时
-			 */
-			connectionTimeout: string
-			/**
-			 * 毫​秒​ ​(​m​s​)​，​范​围​ ​1​0​0​0​-​3​0​0​0​0​0​，​默​认​ ​3​0​0​0​0
-			 */
-			timeoutHint: string
-			/**
-			 * 测​试​查​询​（​可​选​）
-			 */
-			testQueryOptional: string
-			/**
-			 * 连​接​成​功​后​执​行​的​测​试​查​询​，​用​于​验​证​连​接​有​效​性
-			 */
-			testQueryHelp: string
-		}
-		dbQuery: {
-			/**
-			 * 数​据​库​查​询​节​点
-			 */
-			title: string
-			/**
-			 * 执​行​ ​S​Q​L​ ​查​询​语​句​，​支​持​参​数​化​查​询​和​结​果​映​射​。​查​询​结​果​可​存​储​到​变​量​供​后​续​节​点​使​用​。
-			 */
-			description: string
-			/**
-			 * S​Q​L​ ​查​询​语​句
-			 */
-			sqlQuery: string
-			/**
-			 * 支​持​ ​?​ ​占​位​符​进​行​参​数​化​查​询​，​参​数​在​下​方​配​置
-			 */
-			sqlPlaceholderHelp: string
-			/**
-			 * 检​测​到​修​改​操​作
-			 */
-			dangerousOpsDetected: string
-			/**
-			 * 操​作​类​型​：
-			 */
-			operationType: string
-			/**
-			 * 此​操​作​将​修​改​数​据​库​数​据​，​请​谨​慎​执​行​。​建​议​在​执​行​前​备​份​数​据​。
-			 */
-			dangerousOpsWarning: string
-			/**
-			 * 查​询​参​数​（​可​选​）
-			 */
-			queryParamsOptional: string
-			/**
-			 * 添​加​参​数
-			 */
-			addParam: string
-			/**
-			 * 暂​无​查​询​参​数
-			 */
-			noQueryParams: string
-			/**
-			 * 点​击​「​添​加​参​数​」​配​置​参​数​化​查​询
-			 */
-			clickAddParamHint: string
-			/**
-			 * 参​数​值
-			 */
-			paramValue: string
-			/**
-			 * 参​数​按​顺​序​对​应​ ​S​Q​L​ ​中​的​ ​?​ ​占​位​符
-			 */
-			paramOrderHelp: string
-			/**
-			 * 获​取​模​式
-			 */
-			fetchMode: string
-			/**
-			 * a​l​l​=​返​回​所​有​行​，​o​n​e​=​返​回​第​一​行​，​s​c​a​l​a​r​=​返​回​单​个​值
-			 */
-			fetchModeHelp: string
-			/**
-			 * 获​取​所​有​行​ ​(​a​l​l​)
-			 */
-			fetchModeAll: string
-			/**
-			 * 获​取​单​行​ ​(​o​n​e​)
-			 */
-			fetchModeOne: string
-			/**
-			 * 获​取​单​个​值​ ​(​s​c​a​l​a​r​)
-			 */
-			fetchModeScalar: string
-			/**
-			 * 查​询​超​时
-			 */
-			queryTimeout: string
-			/**
-			 * 结​果​存​储​变​量​名​（​可​选​）
-			 */
-			resultVariableOptional: string
-			/**
-			 * 查​询​结​果​将​存​储​到​此​变​量​，​可​通​过​ ​{​{​变​量​名​}​}​ ​在​后​续​节​点​中​引​用
-			 */
-			resultVariableHelp: string
-			/**
-			 * 使​用​说​明​：
-			 */
-			usageNotes: string
-			/**
-			 * 1​.​ ​选​择​已​建​立​的​数​据​库​连​接
-			 */
-			usageStep1: string
-			/**
-			 * 2​.​ ​编​写​ ​S​Q​L​ ​查​询​语​句​，​支​持​ ​?​ ​占​位​符
-			 */
-			usageStep2: string
-			/**
-			 * 3​.​ ​可​选​配​置​参​数​化​查​询​和​结​果​映​射
-			 */
-			usageStep3: string
-			/**
-			 * 4​.​ ​查​询​结​果​可​存​储​到​变​量​供​后​续​节​点​使​用
-			 */
-			usageStep4: string
-		}
-		dbBegin: {
-			/**
-			 * 开​始​事​务​节​点
-			 */
-			title: string
-			/**
-			 * 开​始​一​个​数​据​库​事​务​。​可​以​指​定​事​务​隔​离​级​别​，​默​认​使​用​数​据​库​默​认​隔​离​级​别​。
-			 */
-			description: string
-			/**
-			 * 隔​离​级​别
-			 */
-			isolationLevel: string
-			/**
-			 * 选​择​事​务​隔​离​级​别
-			 */
-			selectIsolationLevel: string
-			/**
-			 * 设​置​事​务​的​隔​离​级​别​，​默​认​使​用​数​据​库​默​认​级​别
-			 */
-			isolationLevelHelp: string
-			/**
-			 * 默​认
-			 */
-			defaultLevel: string
-			/**
-			 * 读​未​提​交​ ​(​R​e​a​d​ ​U​n​c​o​m​m​i​t​t​e​d​)
-			 */
-			isolation_readUncommitted: string
-			/**
-			 * 读​已​提​交​ ​(​R​e​a​d​ ​C​o​m​m​i​t​t​e​d​)
-			 */
-			isolation_readCommitted: string
-			/**
-			 * 可​重​复​读​ ​(​R​e​p​e​a​t​a​b​l​e​ ​R​e​a​d​)
-			 */
-			isolation_repeatableRead: string
-			/**
-			 * 串​行​化​ ​(​S​e​r​i​a​l​i​z​a​b​l​e​)
-			 */
-			isolation_serializable: string
-		}
-		dbCommit: {
-			/**
-			 * 提​交​事​务​节​点
-			 */
-			title: string
-			/**
-			 * 提​交​当​前​数​据​库​事​务​，​使​事​务​中​的​所​有​更​改​永​久​生​效​。
-			 */
-			description: string
-		}
-		dbRollback: {
-			/**
-			 * 回​滚​事​务​节​点
-			 */
-			title: string
-			/**
-			 * 回​滚​当​前​数​据​库​事​务​，​撤​销​事​务​中​的​所​有​更​改​。
-			 */
-			description: string
-		}
-		dbClose: {
-			/**
-			 * 关​闭​连​接​节​点
-			 */
-			title: string
-			/**
-			 * 关​闭​指​定​的​数​据​库​连​接​，​释​放​相​关​资​源​。
-			 */
-			description: string
 		}
 		script: {
 			/**
@@ -2691,6 +2427,10 @@ type RootTranslation = {
 			 * 输​入​ ​J​S​O​N​ ​内​容​.​.​.
 			 */
 			jsonPlaceholder: string
+			/**
+			 * 清​空​选​择
+			 */
+			clearSelection: string
 		}
 		flowNodeList: {
 			/**
@@ -9489,62 +9229,6 @@ type RootTranslation = {
 		 * @param {unknown} total
 		 */
 		hex_truncated_notice: RequiredParams<'displayed' | 'total'>
-		/**
-		 * 暂​无​查​询​结​果
-		 */
-		db_no_results: string
-		/**
-		 * 查​询​错​误
-		 */
-		db_query_error: string
-		/**
-		 * 复​制
-		 */
-		db_copy: string
-		/**
-		 * 已​复​制
-		 */
-		db_copied: string
-		/**
-		 * 执​行​时​间​:​ ​{​t​i​m​e​}​m​s
-		 * @param {unknown} time
-		 */
-		db_execution_time: RequiredParams<'time'>
-		/**
-		 * {​c​o​u​n​t​}​ ​行
-		 * @param {unknown} count
-		 */
-		db_row_count: RequiredParams<'count'>
-		/**
-		 * 行​受​影​响
-		 */
-		db_rows_affected: string
-		/**
-		 * 结​果​已​截​断
-		 */
-		db_truncated_warning: string
-		/**
-		 * 表​格
-		 */
-		db_table_view: string
-		/**
-		 * J​S​O​N
-		 */
-		db_json_view: string
-		/**
-		 * {​t​i​m​e​}​m​s
-		 * @param {unknown} time
-		 */
-		db_timing_ms: RequiredParams<'time'>
-		/**
-		 * 查​询​成​功​，​{​c​o​u​n​t​}​ ​行​受​影​响
-		 * @param {unknown} count
-		 */
-		db_query_success_affected: RequiredParams<'count'>
-		/**
-		 * 查​询​返​回​空​结​果
-		 */
-		db_query_empty_result: string
 	}
 	execution: {
 		node_types: {
@@ -9584,30 +9268,6 @@ type RootTranslation = {
 			 * W​S​-​关​闭
 			 */
 			ws_close: string
-			/**
-			 * D​B​-​连​接
-			 */
-			db_connect: string
-			/**
-			 * D​B​-​查​询
-			 */
-			db_query: string
-			/**
-			 * D​B​-​开​始​事​务
-			 */
-			db_begin: string
-			/**
-			 * D​B​-​提​交
-			 */
-			db_commit: string
-			/**
-			 * D​B​-​回​滚
-			 */
-			db_rollback: string
-			/**
-			 * D​B​-​关​闭
-			 */
-			db_close: string
 			/**
 			 * g​R​P​C​-​连​接
 			 */
@@ -10791,24 +10451,6 @@ type RootTranslation = {
 			 * 无​消​息​流​段
 			 */
 			ws_no_segments: string
-			/**
-			 * 数​据​库​连​接
-			 */
-			db_connection: string
-			/**
-			 * 查​询​结​果
-			 */
-			db_query_result: string
-			/**
-			 * 影​响​行​数​:​ ​{​c​o​u​n​t​}
-			 * @param {unknown} count
-			 */
-			db_rows_affected: RequiredParams<'count'>
-			/**
-			 * 返​回​行​数​:​ ​{​c​o​u​n​t​}
-			 * @param {unknown} count
-			 */
-			db_rows_returned: RequiredParams<'count'>
 			/**
 			 * 服​务
 			 */
@@ -13344,138 +12986,6 @@ type RootTranslation = {
 		 */
 		fn_expect_below: string
 		/**
-		 * 编​辑​数​据​库​连​接
-		 */
-		db_conn_edit_title: string
-		/**
-		 * 配​置​数​据​库​连​接
-		 */
-		db_conn_new_title: string
-		/**
-		 * 基​本​信​息
-		 */
-		db_conn_basic: string
-		/**
-		 * 连​接​名​称
-		 */
-		db_conn_name: string
-		/**
-		 * 例​如​：​生​产​环​境​ ​M​y​S​Q​L
-		 */
-		db_conn_name_placeholder_name: string
-		/**
-		 * 数​据​库​类​型
-		 */
-		db_conn_driver: string
-		/**
-		 * 选​择​数​据​库​类​型
-		 */
-		db_conn_driver_placeholder: string
-		/**
-		 * 连​接​参​数
-		 */
-		db_conn_params: string
-		/**
-		 * 主​机​地​址
-		 */
-		db_conn_host: string
-		/**
-		 * l​o​c​a​l​h​o​s​t
-		 */
-		db_conn_host_placeholder: string
-		/**
-		 * 端​口
-		 */
-		db_conn_port: string
-		/**
-		 * 5​4​3​2
-		 */
-		db_conn_port_placeholder: string
-		/**
-		 * 数​据​库​名
-		 */
-		db_conn_database: string
-		/**
-		 * m​y​d​b
-		 */
-		db_conn_database_placeholder: string
-		/**
-		 * 用​户​名
-		 */
-		db_conn_username: string
-		/**
-		 * r​o​o​t
-		 */
-		db_conn_username_placeholder: string
-		/**
-		 * 密​码
-		 */
-		db_conn_password: string
-		/**
-		 * •​•​•​•​•​•​•​•
-		 */
-		db_conn_password_placeholder: string
-		/**
-		 * 密​码​环​境​变​量​名​（​可​选​）
-		 */
-		db_conn_password_env: string
-		/**
-		 * D​B​_​P​A​S​S​W​O​R​D​（​优​先​于​密​码​字​段​）
-		 */
-		db_conn_password_env_placeholder: string
-		/**
-		 * 填​写​后​将​从​环​境​变​量​读​取​密​码​，​优​先​于​上​方​密​码​字​段
-		 */
-		db_conn_password_env_hint: string
-		/**
-		 * 数​据​库​文​件​路​径
-		 */
-		db_conn_sqlite_path: string
-		/**
-		 * /​p​a​t​h​/​t​o​/​d​a​t​a​b​a​s​e​.​d​b
-		 */
-		db_conn_sqlite_path_placeholder: string
-		/**
-		 * S​Q​L​i​t​e​ ​数​据​库​文​件​的​绝​对​路​径​或​相​对​路​径
-		 */
-		db_conn_sqlite_hint: string
-		/**
-		 * 连​接​池​配​置
-		 */
-		db_conn_pool: string
-		/**
-		 * 最​小​连​接​数
-		 */
-		db_conn_min_conn: string
-		/**
-		 * 最​大​连​接​数
-		 */
-		db_conn_max_conn: string
-		/**
-		 * 连​接​测​试​成​功
-		 */
-		db_conn_test_success: string
-		/**
-		 * 连​接​测​试​失​败
-		 */
-		db_conn_test_fail: string
-		/**
-		 * 测​试​连​接
-		 */
-		db_conn_test_btn: string
-		/**
-		 * 保​存
-		 */
-		db_conn_save: string
-		/**
-		 * 连​接​字​符​串
-		 */
-		db_conn_connection_string: string
-		/**
-		 * 设​置​后​将​直​接​使​用​此​连​接​字​符​串​，​留​空​则​从​下​方​字​段​自​动​构​建
-		 */
-		db_conn_connection_string_hint: string
-		/**
 		 * 压​力​测​试​配​置
 		 */
 		stress_config_title: string
@@ -14005,10 +13515,6 @@ type RootTranslation = {
 		 */
 		target_field_required: string
 		/**
-		 * 连​接​ ​U​U​I​D​ ​不​能​为​空
-		 */
-		db_connection_uuid_required: string
-		/**
 		 * 文​件​路​径​不​能​为​空
 		 */
 		proto_file_path_required: string
@@ -14238,14 +13744,6 @@ type RootTranslation = {
 		 * 连​接​ ​W​e​b​S​o​c​k​e​t​ ​E​c​h​o​ ​服​务​并​收​发​消​息
 		 */
 		template_ws_echo_desc: string
-		/**
-		 * 数​据​库​查​询
-		 */
-		template_db_query: string
-		/**
-		 * 连​接​数​据​库​并​执​行​ ​S​Q​L​ ​查​询
-		 */
-		template_db_query_desc: string
 		/**
 		 * g​R​P​C​ ​服​务​调​用
 		 */
@@ -19519,30 +19017,6 @@ export type TranslationFunctions = {
 		 */
 		ws_close: () => LocalizedString
 		/**
-		 * DB-连接
-		 */
-		db_connect: () => LocalizedString
-		/**
-		 * DB-查询
-		 */
-		db_query: () => LocalizedString
-		/**
-		 * DB-开始事务
-		 */
-		db_begin: () => LocalizedString
-		/**
-		 * DB-提交
-		 */
-		db_commit: () => LocalizedString
-		/**
-		 * DB-回滚
-		 */
-		db_rollback: () => LocalizedString
-		/**
-		 * DB-关闭
-		 */
-		db_close: () => LocalizedString
-		/**
 		 * gRPC-连接
 		 */
 		grpc_connect: () => LocalizedString
@@ -20576,244 +20050,6 @@ export type TranslationFunctions = {
 			 * 复制失败
 			 */
 			curlCopyFailed: () => LocalizedString
-		}
-		dbCommon: {
-			/**
-			 * 数据库连接
-			 */
-			databaseConnection: () => LocalizedString
-			/**
-			 * 选择流程中的数据库连接节点
-			 */
-			selectConnectionPlaceholder: () => LocalizedString
-			/**
-			 * 无可用连接节点
-			 */
-			noConnectionNodes: () => LocalizedString
-			/**
-			 * 请先在流程中添加数据库连接节点
-			 */
-			addConnectionNodeFirst: () => LocalizedString
-		}
-		dbConnect: {
-			/**
-			 * 数据库连接
-			 */
-			defaultName: () => LocalizedString
-			/**
-			 * 修改配置
-			 */
-			modifyConfig: () => LocalizedString
-			/**
-			 * 连接池 {min} - {max}
-			 */
-			connectionPoolRange: (arg: { max: unknown, min: unknown }) => LocalizedString
-			/**
-			 * 未配置数据库连接
-			 */
-			notConfigured: () => LocalizedString
-			/**
-			 * 配置数据库驱动、连接参数和认证信息
-			 */
-			configurePrompt: () => LocalizedString
-			/**
-			 * 配置数据库连接
-			 */
-			configureConnection: () => LocalizedString
-			/**
-			 * 连接超时
-			 */
-			connectionTimeout: () => LocalizedString
-			/**
-			 * 毫秒 (ms)，范围 1000-300000，默认 30000
-			 */
-			timeoutHint: () => LocalizedString
-			/**
-			 * 测试查询（可选）
-			 */
-			testQueryOptional: () => LocalizedString
-			/**
-			 * 连接成功后执行的测试查询，用于验证连接有效性
-			 */
-			testQueryHelp: () => LocalizedString
-		}
-		dbQuery: {
-			/**
-			 * 数据库查询节点
-			 */
-			title: () => LocalizedString
-			/**
-			 * 执行 SQL 查询语句，支持参数化查询和结果映射。查询结果可存储到变量供后续节点使用。
-			 */
-			description: () => LocalizedString
-			/**
-			 * SQL 查询语句
-			 */
-			sqlQuery: () => LocalizedString
-			/**
-			 * 支持 ? 占位符进行参数化查询，参数在下方配置
-			 */
-			sqlPlaceholderHelp: () => LocalizedString
-			/**
-			 * 检测到修改操作
-			 */
-			dangerousOpsDetected: () => LocalizedString
-			/**
-			 * 操作类型：
-			 */
-			operationType: () => LocalizedString
-			/**
-			 * 此操作将修改数据库数据，请谨慎执行。建议在执行前备份数据。
-			 */
-			dangerousOpsWarning: () => LocalizedString
-			/**
-			 * 查询参数（可选）
-			 */
-			queryParamsOptional: () => LocalizedString
-			/**
-			 * 添加参数
-			 */
-			addParam: () => LocalizedString
-			/**
-			 * 暂无查询参数
-			 */
-			noQueryParams: () => LocalizedString
-			/**
-			 * 点击「添加参数」配置参数化查询
-			 */
-			clickAddParamHint: () => LocalizedString
-			/**
-			 * 参数值
-			 */
-			paramValue: () => LocalizedString
-			/**
-			 * 参数按顺序对应 SQL 中的 ? 占位符
-			 */
-			paramOrderHelp: () => LocalizedString
-			/**
-			 * 获取模式
-			 */
-			fetchMode: () => LocalizedString
-			/**
-			 * all=返回所有行，one=返回第一行，scalar=返回单个值
-			 */
-			fetchModeHelp: () => LocalizedString
-			/**
-			 * 获取所有行 (all)
-			 */
-			fetchModeAll: () => LocalizedString
-			/**
-			 * 获取单行 (one)
-			 */
-			fetchModeOne: () => LocalizedString
-			/**
-			 * 获取单个值 (scalar)
-			 */
-			fetchModeScalar: () => LocalizedString
-			/**
-			 * 查询超时
-			 */
-			queryTimeout: () => LocalizedString
-			/**
-			 * 结果存储变量名（可选）
-			 */
-			resultVariableOptional: () => LocalizedString
-			/**
-			 * 查询结果将存储到此变量，可通过 {{变量名}} 在后续节点中引用
-			 */
-			resultVariableHelp: (arg0: number | string | boolean) => LocalizedString
-			/**
-			 * 使用说明：
-			 */
-			usageNotes: () => LocalizedString
-			/**
-			 * 1. 选择已建立的数据库连接
-			 */
-			usageStep1: () => LocalizedString
-			/**
-			 * 2. 编写 SQL 查询语句，支持 ? 占位符
-			 */
-			usageStep2: () => LocalizedString
-			/**
-			 * 3. 可选配置参数化查询和结果映射
-			 */
-			usageStep3: () => LocalizedString
-			/**
-			 * 4. 查询结果可存储到变量供后续节点使用
-			 */
-			usageStep4: () => LocalizedString
-		}
-		dbBegin: {
-			/**
-			 * 开始事务节点
-			 */
-			title: () => LocalizedString
-			/**
-			 * 开始一个数据库事务。可以指定事务隔离级别，默认使用数据库默认隔离级别。
-			 */
-			description: () => LocalizedString
-			/**
-			 * 隔离级别
-			 */
-			isolationLevel: () => LocalizedString
-			/**
-			 * 选择事务隔离级别
-			 */
-			selectIsolationLevel: () => LocalizedString
-			/**
-			 * 设置事务的隔离级别，默认使用数据库默认级别
-			 */
-			isolationLevelHelp: () => LocalizedString
-			/**
-			 * 默认
-			 */
-			defaultLevel: () => LocalizedString
-			/**
-			 * 读未提交 (Read Uncommitted)
-			 */
-			isolation_readUncommitted: () => LocalizedString
-			/**
-			 * 读已提交 (Read Committed)
-			 */
-			isolation_readCommitted: () => LocalizedString
-			/**
-			 * 可重复读 (Repeatable Read)
-			 */
-			isolation_repeatableRead: () => LocalizedString
-			/**
-			 * 串行化 (Serializable)
-			 */
-			isolation_serializable: () => LocalizedString
-		}
-		dbCommit: {
-			/**
-			 * 提交事务节点
-			 */
-			title: () => LocalizedString
-			/**
-			 * 提交当前数据库事务，使事务中的所有更改永久生效。
-			 */
-			description: () => LocalizedString
-		}
-		dbRollback: {
-			/**
-			 * 回滚事务节点
-			 */
-			title: () => LocalizedString
-			/**
-			 * 回滚当前数据库事务，撤销事务中的所有更改。
-			 */
-			description: () => LocalizedString
-		}
-		dbClose: {
-			/**
-			 * 关闭连接节点
-			 */
-			title: () => LocalizedString
-			/**
-			 * 关闭指定的数据库连接，释放相关资源。
-			 */
-			description: () => LocalizedString
 		}
 		script: {
 			/**
@@ -21903,6 +21139,10 @@ export type TranslationFunctions = {
 			 * 输入 JSON 内容...
 			 */
 			jsonPlaceholder: () => LocalizedString
+			/**
+			 * 清空选择
+			 */
+			clearSelection: () => LocalizedString
 		}
 		flowNodeList: {
 			/**
@@ -28664,58 +27904,6 @@ export type TranslationFunctions = {
 		 * 显示前 {displayed} 字节（共 {total} 字节）
 		 */
 		hex_truncated_notice: (arg: { displayed: unknown, total: unknown }) => LocalizedString
-		/**
-		 * 暂无查询结果
-		 */
-		db_no_results: () => LocalizedString
-		/**
-		 * 查询错误
-		 */
-		db_query_error: () => LocalizedString
-		/**
-		 * 复制
-		 */
-		db_copy: () => LocalizedString
-		/**
-		 * 已复制
-		 */
-		db_copied: () => LocalizedString
-		/**
-		 * 执行时间: {time}ms
-		 */
-		db_execution_time: (arg: { time: unknown }) => LocalizedString
-		/**
-		 * {count} 行
-		 */
-		db_row_count: (arg: { count: unknown }) => LocalizedString
-		/**
-		 * 行受影响
-		 */
-		db_rows_affected: () => LocalizedString
-		/**
-		 * 结果已截断
-		 */
-		db_truncated_warning: () => LocalizedString
-		/**
-		 * 表格
-		 */
-		db_table_view: () => LocalizedString
-		/**
-		 * JSON
-		 */
-		db_json_view: () => LocalizedString
-		/**
-		 * {time}ms
-		 */
-		db_timing_ms: (arg: { time: unknown }) => LocalizedString
-		/**
-		 * 查询成功，{count} 行受影响
-		 */
-		db_query_success_affected: (arg: { count: unknown }) => LocalizedString
-		/**
-		 * 查询返回空结果
-		 */
-		db_query_empty_result: () => LocalizedString
 	}
 	execution: {
 		node_types: {
@@ -28755,30 +27943,6 @@ export type TranslationFunctions = {
 			 * WS-关闭
 			 */
 			ws_close: () => LocalizedString
-			/**
-			 * DB-连接
-			 */
-			db_connect: () => LocalizedString
-			/**
-			 * DB-查询
-			 */
-			db_query: () => LocalizedString
-			/**
-			 * DB-开始事务
-			 */
-			db_begin: () => LocalizedString
-			/**
-			 * DB-提交
-			 */
-			db_commit: () => LocalizedString
-			/**
-			 * DB-回滚
-			 */
-			db_rollback: () => LocalizedString
-			/**
-			 * DB-关闭
-			 */
-			db_close: () => LocalizedString
 			/**
 			 * gRPC-连接
 			 */
@@ -29937,22 +29101,6 @@ export type TranslationFunctions = {
 			 * 无消息流段
 			 */
 			ws_no_segments: () => LocalizedString
-			/**
-			 * 数据库连接
-			 */
-			db_connection: () => LocalizedString
-			/**
-			 * 查询结果
-			 */
-			db_query_result: () => LocalizedString
-			/**
-			 * 影响行数: {count}
-			 */
-			db_rows_affected: (arg: { count: unknown }) => LocalizedString
-			/**
-			 * 返回行数: {count}
-			 */
-			db_rows_returned: (arg: { count: unknown }) => LocalizedString
 			/**
 			 * 服务
 			 */
@@ -32457,138 +31605,6 @@ export type TranslationFunctions = {
 		 */
 		fn_expect_below: () => LocalizedString
 		/**
-		 * 编辑数据库连接
-		 */
-		db_conn_edit_title: () => LocalizedString
-		/**
-		 * 配置数据库连接
-		 */
-		db_conn_new_title: () => LocalizedString
-		/**
-		 * 基本信息
-		 */
-		db_conn_basic: () => LocalizedString
-		/**
-		 * 连接名称
-		 */
-		db_conn_name: () => LocalizedString
-		/**
-		 * 例如：生产环境 MySQL
-		 */
-		db_conn_name_placeholder_name: () => LocalizedString
-		/**
-		 * 数据库类型
-		 */
-		db_conn_driver: () => LocalizedString
-		/**
-		 * 选择数据库类型
-		 */
-		db_conn_driver_placeholder: () => LocalizedString
-		/**
-		 * 连接参数
-		 */
-		db_conn_params: () => LocalizedString
-		/**
-		 * 主机地址
-		 */
-		db_conn_host: () => LocalizedString
-		/**
-		 * localhost
-		 */
-		db_conn_host_placeholder: () => LocalizedString
-		/**
-		 * 端口
-		 */
-		db_conn_port: () => LocalizedString
-		/**
-		 * 5432
-		 */
-		db_conn_port_placeholder: () => LocalizedString
-		/**
-		 * 数据库名
-		 */
-		db_conn_database: () => LocalizedString
-		/**
-		 * mydb
-		 */
-		db_conn_database_placeholder: () => LocalizedString
-		/**
-		 * 用户名
-		 */
-		db_conn_username: () => LocalizedString
-		/**
-		 * root
-		 */
-		db_conn_username_placeholder: () => LocalizedString
-		/**
-		 * 密码
-		 */
-		db_conn_password: () => LocalizedString
-		/**
-		 * ••••••••
-		 */
-		db_conn_password_placeholder: () => LocalizedString
-		/**
-		 * 密码环境变量名（可选）
-		 */
-		db_conn_password_env: () => LocalizedString
-		/**
-		 * DB_PASSWORD（优先于密码字段）
-		 */
-		db_conn_password_env_placeholder: () => LocalizedString
-		/**
-		 * 填写后将从环境变量读取密码，优先于上方密码字段
-		 */
-		db_conn_password_env_hint: () => LocalizedString
-		/**
-		 * 数据库文件路径
-		 */
-		db_conn_sqlite_path: () => LocalizedString
-		/**
-		 * /path/to/database.db
-		 */
-		db_conn_sqlite_path_placeholder: () => LocalizedString
-		/**
-		 * SQLite 数据库文件的绝对路径或相对路径
-		 */
-		db_conn_sqlite_hint: () => LocalizedString
-		/**
-		 * 连接池配置
-		 */
-		db_conn_pool: () => LocalizedString
-		/**
-		 * 最小连接数
-		 */
-		db_conn_min_conn: () => LocalizedString
-		/**
-		 * 最大连接数
-		 */
-		db_conn_max_conn: () => LocalizedString
-		/**
-		 * 连接测试成功
-		 */
-		db_conn_test_success: () => LocalizedString
-		/**
-		 * 连接测试失败
-		 */
-		db_conn_test_fail: () => LocalizedString
-		/**
-		 * 测试连接
-		 */
-		db_conn_test_btn: () => LocalizedString
-		/**
-		 * 保存
-		 */
-		db_conn_save: () => LocalizedString
-		/**
-		 * 连接字符串
-		 */
-		db_conn_connection_string: () => LocalizedString
-		/**
-		 * 设置后将直接使用此连接字符串，留空则从下方字段自动构建
-		 */
-		db_conn_connection_string_hint: () => LocalizedString
-		/**
 		 * 压力测试配置
 		 */
 		stress_config_title: () => LocalizedString
@@ -33103,10 +32119,6 @@ export type TranslationFunctions = {
 		 */
 		target_field_required: () => LocalizedString
 		/**
-		 * 连接 UUID 不能为空
-		 */
-		db_connection_uuid_required: () => LocalizedString
-		/**
 		 * 文件路径不能为空
 		 */
 		proto_file_path_required: () => LocalizedString
@@ -33336,14 +32348,6 @@ export type TranslationFunctions = {
 		 * 连接 WebSocket Echo 服务并收发消息
 		 */
 		template_ws_echo_desc: () => LocalizedString
-		/**
-		 * 数据库查询
-		 */
-		template_db_query: () => LocalizedString
-		/**
-		 * 连接数据库并执行 SQL 查询
-		 */
-		template_db_query_desc: () => LocalizedString
 		/**
 		 * gRPC 服务调用
 		 */

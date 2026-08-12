@@ -208,18 +208,6 @@ export function createDefaultNodeData(type: AnyNodeType): NodeData {
         on_failure: 'route_false',
         continue_on_failure: false,
       };
-    case 'db_connect':
-      return { type: 'db_connect' };
-    case 'db_query':
-      return { type: 'db_query', connection_uuid: '', sql: '', params: [], result_to: '' };
-    case 'db_begin':
-      return { type: 'db_begin', connection_uuid: '' };
-    case 'db_commit':
-      return { type: 'db_commit', connection_uuid: '' };
-    case 'db_rollback':
-      return { type: 'db_rollback', connection_uuid: '' };
-    case 'db_close':
-      return { type: 'db_close', connection_uuid: '' };
     case 'script':
       return { type: 'script', script: '' };
     case 'grpc_connect':

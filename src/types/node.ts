@@ -7,8 +7,6 @@ import type { OutputMapping } from './variable';
 
 import type { Port } from './port';
 
-import type { DbFetchMode, DbIsolationLevel } from './database';
-
 import type { FlowHook } from './hook';
 
 import type { SmtpConnectConfig, SmtpSendConfig, SmtpDisconnectConfig } from './smtp';
@@ -45,12 +43,6 @@ export type NodeType =
   | 'ws_send_collect'
   | 'ws_close'
   | 'assertion'
-  | 'db_connect'
-  | 'db_query'
-  | 'db_begin'
-  | 'db_commit'
-  | 'db_rollback'
-  | 'db_close'
   | 'script'
   | 'grpc_connect'
   | 'grpc_call'
@@ -2159,104 +2151,6 @@ export interface TcpUdpRecording {
 }
 
 // ============================================================================
-// 数据库节点类型定义
-// ============================================================================
-
-/**
- * DB Connect 节点配置
- */
-export interface DbConnectConfig {
-  type: 'db_connect';
-  /** 数据库驱动类型: "postgres" | "mysql" | "sqlite" | "redis" */
-  driver?: string;
-  /** 连接字符串（SQLite 使用文件路径或 :memory:） */
-  connection_string?: string;
-  /** 主机地址（PostgreSQL/MySQL） */
-  host?: string;
-  /** 端口号（PostgreSQL/MySQL，支持 {{variable}} 引用） */
-  port?: string;
-  /** 数据库名 */
-  database?: string;
-  /** 用户名 */
-  username?: string;
-  /** 密码 */
-  password?: string;
-  /** 最小连接数 */
-  min_connections?: number;
-  /** 最大连接数 */
-  max_connections?: number;
-  /** 测试查询语句 */
-  test_query?: string;
-  /** 连接超时（毫秒） */
-  connect_timeout_ms?: number;
-}
-
-/**
- * DB Query 节点配置
- */
-export interface DbQueryConfig {
-  type: 'db_query';
-  /** 连接 UUID */
-  connection_uuid: string;
-  /** SQL 查询语句 */
-  sql?: string;
-  /** SQL 参数 */
-  params?: string[];
-  /** Redis 命令 */
-  redis_command?: string;
-  /** Redis 键名 */
-  redis_key?: string;
-  /** Redis 值 */
-  redis_value?: string;
-  /** Redis TTL（秒） */
-  redis_ttl?: number;
-  /** 获取模式 */
-  fetch_mode?: DbFetchMode;
-  /** 结果存储变量名 */
-  result_to?: string;
-  /** 查询超时（毫秒） */
-  timeout_ms?: number;
-}
-
-/**
- * DB Begin 节点配置
- */
-export interface DbBeginConfig {
-  type: 'db_begin';
-  /** 连接 UUID */
-  connection_uuid: string;
-  /** 事务隔离级别 */
-  isolation_level?: DbIsolationLevel;
-}
-
-/**
- * DB Commit 节点配置
- */
-export interface DbCommitConfig {
-  type: 'db_commit';
-  /** 连接 UUID */
-  connection_uuid: string;
-}
-
-/**
- * DB Rollback 节点配置
- */
-export interface DbRollbackConfig {
-  type: 'db_rollback';
-  /** 连接 UUID */
-  connection_uuid: string;
-}
-
-/**
- * DB Close 节点配置
- */
-export interface DbCloseConfig {
-  type: 'db_close';
-  /** 连接 UUID */
-  connection_uuid: string;
-}
-
-// ============================================================================
 // 脚本节点类型定义
 // ============================================================================
 
@@ -2396,12 +2290,6 @@ export type NodeData =
   | KafkaAdminConfig
   | KafkaSchemaRegistryConfig
   | KafkaCloseConfig
-  | DbConnectConfig
-  | DbQueryConfig
-  | DbBeginConfig
-  | DbCommitConfig
-  | DbRollbackConfig
-  | DbCloseConfig
   | ScriptNodeConfig
   | SseConnectConfig
   | SseListenConfig
@@ -2618,48 +2506,6 @@ export function isMcpGetPromptConfig(data: NodeData): data is McpGetPromptConfig
  */
 export function isAssertionConfig(data: NodeData): data is AssertionNodeConfig {
   return data.type === 'assertion';
-}
-
-/**
- * 判断是否为 DbConnectConfig
- */
-export function isDbConnectConfig(data: NodeData): data is DbConnectConfig {
-  return data.type === 'db_connect';
-}
-
-/**
- * 判断是否为 DbQueryConfig
- */
-export function isDbQueryConfig(data: NodeData): data is DbQueryConfig {
-  return data.type === 'db_query';
-}
-
-/**
- * 判断是否为 DbBeginConfig
- */
-export function isDbBeginConfig(data: NodeData): data is DbBeginConfig {
-  return data.type === 'db_begin';
-}
-
-/**
- * 判断是否为 DbCommitConfig
- */
-export function isDbCommitConfig(data: NodeData): data is DbCommitConfig {
-  return data.type === 'db_commit';
-}
-
-/**
- * 判断是否为 DbRollbackConfig
- */
-export function isDbRollbackConfig(data: NodeData): data is DbRollbackConfig {
-  return data.type === 'db_rollback';
-}
-
-/**
- * 判断是否为 DbCloseConfig
- */
-export function isDbCloseConfig(data: NodeData): data is DbCloseConfig {
-  return data.type === 'db_close';
 }
 
 /**

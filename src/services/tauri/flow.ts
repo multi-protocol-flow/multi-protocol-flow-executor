@@ -188,7 +188,7 @@ export async function validateFlow(flow: Flow): Promise<ValidationResult> {
  * 执行单个节点（连接性验证）
  * 调用后端 execute_single_node IPC 命令
  *
- * 支持的节点类型: http, script, assertion, db_connect,
+ * 支持的节点类型: http, script, assertion,
  * mqtt_connect, kafka_connect, amqp_connect, amqp10_connect,
  * smtp_connect, imap_connect, ws_connect, sse_connect, grpc_connect,
  * mcp_connect, graphql_connect, tcp_connect, 以及声明了

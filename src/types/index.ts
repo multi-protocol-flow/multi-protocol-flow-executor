@@ -117,12 +117,6 @@ export type {
   AssertionNodeConfig,
   AssertionResult,
   AssertionOutput,
-  DbConnectConfig,
-  DbQueryConfig,
-  DbBeginConfig,
-  DbCommitConfig,
-  DbRollbackConfig,
-  DbCloseConfig,
   ScriptNodeConfig,
   NodeData,
   Node,
@@ -162,12 +156,6 @@ export {
   isMqttWaitMessageConfig,
   isMqttRequestConfig,
   isAssertionConfig,
-  isDbConnectConfig,
-  isDbQueryConfig,
-  isDbBeginConfig,
-  isDbCommitConfig,
-  isDbRollbackConfig,
-  isDbCloseConfig,
   isScriptConfig,
   isVariableExtractorConfig,
   isKafkaConnectConfig,
@@ -311,9 +299,6 @@ export type {
 
 // 变量类型
 export type { Variable, VariablePool, OutputMapping } from './variable';
-
-// 数据库类型
-export type { DbDriver, DbFetchMode, DbIsolationLevel } from './database';
 
 // 调试类型
 export type {

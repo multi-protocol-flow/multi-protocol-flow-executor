@@ -14,8 +14,6 @@ import {
   Plug,
   CheckCircle,
   Database,
-  CirclePlay,
-  RotateCcw,
   Code,
   Wrench,
   Network,
@@ -116,19 +114,6 @@ export const FALLBACK_NODE_GROUPS: NodeGroup[] = [
       { type: 'grpc_connect', name: LL.nodes.grpc_connect(), icon: Cable },
       { type: 'grpc_call', name: LL.nodes.grpc_call(), icon: PhoneOutgoing },
       { type: 'grpc_close', name: LL.nodes.grpc_close(), icon: PhoneOff },
-    ],
-  },
-  {
-    key: 'database',
-    label: 'DB',
-    icon: Database,
-    items: [
-      { type: 'db_connect', name: LL.nodes.db_connect(), icon: Database },
-      { type: 'db_begin', name: LL.nodes.db_begin(), icon: CirclePlay },
-      { type: 'db_query', name: LL.nodes.db_query(), icon: Database },
-      { type: 'db_commit', name: LL.nodes.db_commit(), icon: CheckCircle },
-      { type: 'db_rollback', name: LL.nodes.db_rollback(), icon: RotateCcw },
-      { type: 'db_close', name: LL.nodes.db_close(), icon: Plug },
     ],
   },
   {
@@ -293,14 +278,12 @@ const SEARCH_ALIASES: Record<string, string[]> = {
   stream: ['kafka_consume', 'kafka_produce', 'sse_listen'],
   queue: ['mqtt_subscribe', 'amqp_consume'],
   trigger: ['mqtt_subscribe', 'sse_listen'],
-  sql: ['db_query'],
-  nosql: ['db_query'],
   rpc: ['grpc_call'],
   tool: ['mcp_call_tool'],
   email: ['smtp_send', 'imap_fetch'],
   realtime: ['ws_connect', 'sse_listen', 'mqtt_subscribe'],
   schedule: ['mqtt_subscribe', 'kafka_consume'],
-  crud: ['http', 'db_query'],
+  crud: ['http'],
 };
 
 /** 别名 → 所有展开的节点类型 */

@@ -166,7 +166,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
 
   // 单端口节点类型（无 false 输出端口）— 必须在所有条件 return 之前声明（hook 规则）
   const SINGLE_PORT_TYPES = new Set<NodeType>([
-    'entry', 'end', 'db_close', 'ws_close', 'grpc_close', 'mcp_close',
+    'entry', 'end', 'ws_close', 'grpc_close', 'mcp_close',
     'tcp_close', 'udp_close', 'kafka_close', 'sse_disconnect',
     'graphql_disconnect', 'amqp_close', 'amqp10_disconnect',
     'smtp_disconnect', 'imap_close', 'proxy',

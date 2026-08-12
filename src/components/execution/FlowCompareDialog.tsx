@@ -51,12 +51,7 @@ import {
   WsConnectNode,
   WsSendCollectNode,
   WsCloseNode,
-  DbConnectNode,
-  DbQueryNode,
-  DbBeginNode,
-  DbCommitNode,
-  DbRollbackNode,
-  DbCloseNode,
+  DynamicPluginNode,
 } from '@/components/canvas/nodes';
 
 interface FlowCompareDialogProps {
@@ -362,12 +357,7 @@ const diffNodeTypes = {
   ws_connect: WsConnectNode,
   ws_send_collect: WsSendCollectNode,
   ws_close: WsCloseNode,
-  db_connect: DbConnectNode,
-  db_query: DbQueryNode,
-  db_begin: DbBeginNode,
-  db_commit: DbCommitNode,
-  db_rollback: DbRollbackNode,
-  db_close: DbCloseNode,
+  default: DynamicPluginNode,
 };
 
 /** 选中节点的配置 Diff 面板 */
