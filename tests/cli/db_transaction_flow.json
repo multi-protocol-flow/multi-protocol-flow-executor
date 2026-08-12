@@ -19,14 +19,14 @@
       },
       {
         "uuid": "db-connect-001",
-        "type": "db_connect",
+        "type": "db:connect",
         "name": "Connect Database",
         "position": {
           "x": 100,
           "y": 0
         },
         "data": {
-          "type": "db_connect",
+          "type": "db:connect",
           "connection_uuid": "tx-conn-001",
           "driver": "sqlite",
           "connection_string": ":memory:",
@@ -38,14 +38,14 @@
       },
       {
         "uuid": "db-query-init",
-        "type": "db_query",
+        "type": "db:query",
         "name": "Initialize Schema",
         "position": {
           "x": 200,
           "y": 0
         },
         "data": {
-          "type": "db_query",
+          "type": "db:query",
           "connection_uuid": "tx-conn-001",
           "sql": "CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY, name TEXT, balance INTEGER)",
           "fetch_mode": "scalar",
@@ -55,14 +55,14 @@
       },
       {
         "uuid": "db-begin-001",
-        "type": "db_begin",
+        "type": "db:begin",
         "name": "Begin Transaction",
         "position": {
           "x": 300,
           "y": 0
         },
         "data": {
-          "type": "db_begin",
+          "type": "db:begin",
           "connection_uuid": "tx-conn-001",
           "isolation_level": "read_committed"
         },
@@ -70,14 +70,14 @@
       },
       {
         "uuid": "db-query-insert",
-        "type": "db_query",
+        "type": "db:query",
         "name": "Insert Account A",
         "position": {
           "x": 400,
           "y": 0
         },
         "data": {
-          "type": "db_query",
+          "type": "db:query",
           "connection_uuid": "tx-conn-001",
           "sql": "INSERT INTO accounts (name, balance) VALUES (?, ?)",
           "params": [
@@ -91,14 +91,14 @@
       },
       {
         "uuid": "db-query-update",
-        "type": "db_query",
+        "type": "db:query",
         "name": "Update Account B",
         "position": {
           "x": 500,
           "y": 0
         },
         "data": {
-          "type": "db_query",
+          "type": "db:query",
           "connection_uuid": "tx-conn-001",
           "sql": "INSERT INTO accounts (name, balance) VALUES (?, ?)",
           "params": [
@@ -112,28 +112,28 @@
       },
       {
         "uuid": "db-commit-001",
-        "type": "db_commit",
+        "type": "db:commit",
         "name": "Commit Transaction",
         "position": {
           "x": 600,
           "y": 0
         },
         "data": {
-          "type": "db_commit",
+          "type": "db:commit",
           "connection_uuid": "tx-conn-001"
         },
         "ports": null
       },
       {
         "uuid": "db-query-verify",
-        "type": "db_query",
+        "type": "db:query",
         "name": "Verify Results",
         "position": {
           "x": 700,
           "y": 0
         },
         "data": {
-          "type": "db_query",
+          "type": "db:query",
           "connection_uuid": "tx-conn-001",
           "sql": "SELECT * FROM accounts",
           "fetch_mode": "all",
@@ -144,14 +144,14 @@
       },
       {
         "uuid": "db-close-001",
-        "type": "db_close",
+        "type": "db:close",
         "name": "Close Connection",
         "position": {
           "x": 800,
           "y": 0
         },
         "data": {
-          "type": "db_close",
+          "type": "db:close",
           "connection_uuid": "tx-conn-001"
         },
         "ports": null
@@ -162,57 +162,57 @@
         "id": "conn-001",
         "source_node_uuid": "entry-001",
         "target_node_uuid": "db-connect-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "out",
+        "target_port_id": "in"
       },
       {
         "id": "conn-002",
         "source_node_uuid": "db-connect-001",
         "target_node_uuid": "db-query-init",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
         "id": "conn-003",
         "source_node_uuid": "db-query-init",
         "target_node_uuid": "db-begin-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
         "id": "conn-004",
         "source_node_uuid": "db-begin-001",
         "target_node_uuid": "db-query-insert",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
         "id": "conn-005",
         "source_node_uuid": "db-query-insert",
         "target_node_uuid": "db-query-update",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
         "id": "conn-006",
         "source_node_uuid": "db-query-update",
         "target_node_uuid": "db-commit-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
         "id": "conn-007",
         "source_node_uuid": "db-commit-001",
         "target_node_uuid": "db-query-verify",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
         "id": "conn-008",
         "source_node_uuid": "db-query-verify",
         "target_node_uuid": "db-close-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       }
     ]
   },
