@@ -53,11 +53,10 @@ pub mod ws_stream;
 
 // Re-export key trait types
 pub use traits::{
-    AppDirProvider, ConsoleLogSender, DatabasePool, DbProvider, DebugEventSender,
-    DefaultAppDirProvider, DirectoryOpener, ExecutionEventSender, LogSender, LogWorker,
-    McpConnectionInfo, McpProvider, McpResourceInfo, McpResourceReadResult, McpServerInfo,
-    McpToolCallResult, McpToolInfo, NoopDirectoryOpener, NoopExecutionEventSender, NoopLogSender,
-    QueuedLogSender, UnderlyingLogSender,
+    AppDirProvider, ConsoleLogSender, DebugEventSender, DefaultAppDirProvider, DirectoryOpener,
+    ExecutionEventSender, LogSender, LogWorker, McpConnectionInfo, McpProvider, McpResourceInfo,
+    McpResourceReadResult, McpServerInfo, McpToolCallResult, McpToolInfo, NoopDirectoryOpener,
+    NoopExecutionEventSender, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
 };
 
 // Re-export debug types

@@ -4,7 +4,6 @@
 
 mod amqp_provider;
 mod app_dir;
-mod db_provider;
 mod debug_event_sender;
 mod directory_opener;
 mod execution_event_sender;
@@ -17,7 +16,6 @@ mod log_sender;
 mod mcp_provider;
 mod mqtt_provider;
 mod provider_key;
-mod redis_provider;
 mod smtp_provider;
 mod sse_provider;
 mod tcp_provider;
@@ -31,7 +29,6 @@ pub use amqp_provider::{
     AmqpProvider, AmqpPublishOutput, AmqpQueueDeclareOutput, AmqpQueueDeleteOutput,
 };
 pub use app_dir::{AppDirProvider, DefaultAppDirProvider};
-pub use db_provider::{DatabasePool, DbProvider, IsolationLevel, QueryResult, TransactionState};
 pub use debug_event_sender::DebugEventSender;
 pub use directory_opener::{DirectoryOpener, NoopDirectoryOpener};
 pub use execution_event_sender::{ExecutionEventSender, NoopExecutionEventSender};
@@ -70,10 +67,7 @@ pub use mqtt_provider::{
     MqttPublishOutput, MqttReceivedMessage, MqttSubscribeOutput, MqttTimingInfo,
 };
 pub use provider_key::{
-    Amqp, Db, Graphql, Grpc, Imap, Kafka, Mcp, Mqtt, ProviderKey, Redis, Smtp, Sse, Tcp, Udp, Ws,
-};
-pub use redis_provider::{
-    RedisCloseOutput, RedisCommandOutput, RedisConnectOutput, RedisConnectionInfo, RedisProvider,
+    Amqp, Graphql, Grpc, Imap, Kafka, Mcp, Mqtt, ProviderKey, Smtp, Sse, Tcp, Udp, Ws,
 };
 pub use smtp_provider::{
     SmtpConnectOutput, SmtpConnectionInfo, SmtpDisconnectOutput, SmtpProvider, SmtpSendOutput,

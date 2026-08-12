@@ -23,8 +23,6 @@ pub trait ProviderKey {
 
 /// WebSocket provider key
 pub struct Ws;
-/// Database provider key
-pub struct Db;
 /// gRPC provider key
 pub struct Grpc;
 /// MCP provider key
@@ -47,17 +45,10 @@ pub struct Amqp;
 pub struct Smtp;
 /// IMAP provider key
 pub struct Imap;
-/// Redis provider key
-pub struct Redis;
 
 impl ProviderKey for Ws {
     fn key() -> &'static str {
         "ws"
-    }
-}
-impl ProviderKey for Db {
-    fn key() -> &'static str {
-        "db"
     }
 }
 impl ProviderKey for Grpc {
@@ -115,11 +106,6 @@ impl ProviderKey for Imap {
         "imap"
     }
 }
-impl ProviderKey for Redis {
-    fn key() -> &'static str {
-        "redis"
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -128,11 +114,6 @@ mod tests {
     #[test]
     fn test_ws_key() {
         assert_eq!(Ws::key(), "ws");
-    }
-
-    #[test]
-    fn test_db_key() {
-        assert_eq!(Db::key(), "db");
     }
 
     #[test]
@@ -188,10 +169,5 @@ mod tests {
     #[test]
     fn test_imap_key() {
         assert_eq!(Imap::key(), "imap");
-    }
-
-    #[test]
-    fn test_redis_key() {
-        assert_eq!(Redis::key(), "redis");
     }
 }

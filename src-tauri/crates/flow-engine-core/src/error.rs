@@ -398,14 +398,6 @@ pub enum ErrorCode {
     /// WebSocket protocol error.
     E_WS_PROTOCOL,
 
-    // ===== Database errors =====
-    /// Database connection failed.
-    E_DB_CONNECTION,
-    /// Database query error.
-    E_DB_QUERY,
-    /// Database operation timed out.
-    E_DB_TIMEOUT,
-
     // ===== Script errors =====
     /// Script syntax error.
     E_SCRIPT_SYNTAX,
@@ -500,16 +492,6 @@ pub enum ErrorCode {
     /// AMQP protocol error.
     E_AMQP_PROTOCOL,
 
-    // ===== Redis errors =====
-    /// Redis connection failed.
-    E_REDIS_CONNECTION,
-    /// Redis command error.
-    E_REDIS_COMMAND,
-    /// Redis operation timed out.
-    E_REDIS_TIMEOUT,
-    /// Redis authentication failed.
-    E_REDIS_AUTH,
-
     // ===== SMTP errors =====
     /// SMTP connection failed.
     E_SMTP_CONNECTION,
@@ -593,10 +575,6 @@ impl ErrorCode {
             Self::E_WS_MESSAGE => &["url", "message"],
             Self::E_WS_CLOSE => &["url", "code", "reason"],
             Self::E_WS_PROTOCOL => &["url", "message"],
-            // Database
-            Self::E_DB_CONNECTION => &["driver", "message"],
-            Self::E_DB_QUERY => &["driver", "query", "message"],
-            Self::E_DB_TIMEOUT => &["driver", "duration"],
             // Script
             Self::E_SCRIPT_SYNTAX => &["message"],
             Self::E_SCRIPT_RUNTIME => &["message"],
@@ -644,11 +622,6 @@ impl ErrorCode {
             Self::E_AMQP_ACK => &["queue", "message"],
             Self::E_AMQP_MANAGEMENT => &["message"],
             Self::E_AMQP_PROTOCOL => &["message"],
-            // Redis
-            Self::E_REDIS_CONNECTION => &["host", "port", "message"],
-            Self::E_REDIS_COMMAND => &["command", "message"],
-            Self::E_REDIS_TIMEOUT => &["host", "duration"],
-            Self::E_REDIS_AUTH => &["host", "message"],
             // SMTP
             Self::E_SMTP_CONNECTION => &["host", "port", "message"],
             Self::E_SMTP_SEND => &["host", "message"],
@@ -704,9 +677,6 @@ impl ErrorCode {
             Self::E_WS_MESSAGE => "E_WS_MESSAGE",
             Self::E_WS_CLOSE => "E_WS_CLOSE",
             Self::E_WS_PROTOCOL => "E_WS_PROTOCOL",
-            Self::E_DB_CONNECTION => "E_DB_CONNECTION",
-            Self::E_DB_QUERY => "E_DB_QUERY",
-            Self::E_DB_TIMEOUT => "E_DB_TIMEOUT",
             Self::E_SCRIPT_SYNTAX => "E_SCRIPT_SYNTAX",
             Self::E_SCRIPT_RUNTIME => "E_SCRIPT_RUNTIME",
             Self::E_SCRIPT_TIMEOUT => "E_SCRIPT_TIMEOUT",
@@ -746,10 +716,6 @@ impl ErrorCode {
             Self::E_AMQP_ACK => "E_AMQP_ACK",
             Self::E_AMQP_MANAGEMENT => "E_AMQP_MANAGEMENT",
             Self::E_AMQP_PROTOCOL => "E_AMQP_PROTOCOL",
-            Self::E_REDIS_CONNECTION => "E_REDIS_CONNECTION",
-            Self::E_REDIS_COMMAND => "E_REDIS_COMMAND",
-            Self::E_REDIS_TIMEOUT => "E_REDIS_TIMEOUT",
-            Self::E_REDIS_AUTH => "E_REDIS_AUTH",
             Self::E_SMTP_CONNECTION => "E_SMTP_CONNECTION",
             Self::E_SMTP_SEND => "E_SMTP_SEND",
             Self::E_SMTP_AUTH => "E_SMTP_AUTH",
@@ -801,9 +767,6 @@ impl ErrorCode {
             Self::E_WS_MESSAGE => ErrorKind::WebSocketMessage,
             Self::E_WS_CLOSE => ErrorKind::WebSocketClose,
             Self::E_WS_PROTOCOL => ErrorKind::WebSocketProtocol,
-            Self::E_DB_CONNECTION => ErrorKind::Connection,
-            Self::E_DB_QUERY => ErrorKind::Execution,
-            Self::E_DB_TIMEOUT => ErrorKind::Timeout,
             Self::E_SCRIPT_SYNTAX => ErrorKind::ScriptSyntax,
             Self::E_SCRIPT_RUNTIME => ErrorKind::ScriptRuntime,
             Self::E_SCRIPT_TIMEOUT => ErrorKind::ScriptTimeout,
@@ -843,10 +806,6 @@ impl ErrorCode {
             Self::E_AMQP_ACK => ErrorKind::AmqpAck,
             Self::E_AMQP_MANAGEMENT => ErrorKind::AmqpManagement,
             Self::E_AMQP_PROTOCOL => ErrorKind::AmqpProtocol,
-            Self::E_REDIS_CONNECTION => ErrorKind::Connection,
-            Self::E_REDIS_COMMAND => ErrorKind::Execution,
-            Self::E_REDIS_TIMEOUT => ErrorKind::Timeout,
-            Self::E_REDIS_AUTH => ErrorKind::Execution,
             Self::E_SMTP_CONNECTION => ErrorKind::Connection,
             Self::E_SMTP_SEND => ErrorKind::Execution,
             Self::E_SMTP_AUTH => ErrorKind::Execution,
@@ -899,9 +858,6 @@ impl std::fmt::Display for ErrorCode {
             Self::E_WS_MESSAGE => write!(f, "WebSocket message error"),
             Self::E_WS_CLOSE => write!(f, "WebSocket close error"),
             Self::E_WS_PROTOCOL => write!(f, "WebSocket protocol error"),
-            Self::E_DB_CONNECTION => write!(f, "Database connection failed"),
-            Self::E_DB_QUERY => write!(f, "Database query error"),
-            Self::E_DB_TIMEOUT => write!(f, "Database operation timed out"),
             Self::E_SCRIPT_SYNTAX => write!(f, "Script syntax error"),
             Self::E_SCRIPT_RUNTIME => write!(f, "Script runtime error"),
             Self::E_SCRIPT_TIMEOUT => write!(f, "Script execution timed out"),
@@ -941,10 +897,6 @@ impl std::fmt::Display for ErrorCode {
             Self::E_AMQP_ACK => write!(f, "AMQP ack error"),
             Self::E_AMQP_MANAGEMENT => write!(f, "AMQP management error"),
             Self::E_AMQP_PROTOCOL => write!(f, "AMQP protocol error"),
-            Self::E_REDIS_CONNECTION => write!(f, "Redis connection failed"),
-            Self::E_REDIS_COMMAND => write!(f, "Redis command error"),
-            Self::E_REDIS_TIMEOUT => write!(f, "Redis operation timed out"),
-            Self::E_REDIS_AUTH => write!(f, "Redis authentication failed"),
             Self::E_SMTP_CONNECTION => write!(f, "SMTP connection failed"),
             Self::E_SMTP_SEND => write!(f, "SMTP send error"),
             Self::E_SMTP_AUTH => write!(f, "SMTP authentication failed"),
@@ -1472,10 +1424,6 @@ mod tests {
             ErrorCode::E_WS_MESSAGE,
             ErrorCode::E_WS_CLOSE,
             ErrorCode::E_WS_PROTOCOL,
-            // Database
-            ErrorCode::E_DB_CONNECTION,
-            ErrorCode::E_DB_QUERY,
-            ErrorCode::E_DB_TIMEOUT,
             // Script
             ErrorCode::E_SCRIPT_SYNTAX,
             ErrorCode::E_SCRIPT_RUNTIME,
@@ -1523,11 +1471,6 @@ mod tests {
             ErrorCode::E_AMQP_ACK,
             ErrorCode::E_AMQP_MANAGEMENT,
             ErrorCode::E_AMQP_PROTOCOL,
-            // Redis
-            ErrorCode::E_REDIS_CONNECTION,
-            ErrorCode::E_REDIS_COMMAND,
-            ErrorCode::E_REDIS_TIMEOUT,
-            ErrorCode::E_REDIS_AUTH,
             // SMTP
             ErrorCode::E_SMTP_CONNECTION,
             ErrorCode::E_SMTP_SEND,
@@ -1553,8 +1496,8 @@ mod tests {
         let all_codes = all_error_codes();
         assert_eq!(
             all_codes.len(),
-            83,
-            "ErrorCode should have exactly 83 variants"
+            76,
+            "ErrorCode should have exactly 76 variants"
         );
 
         for code in all_codes {
@@ -1638,7 +1581,6 @@ mod tests {
         assert_eq!(ErrorCode::E_SSE_EVENT.error_kind_hint(), SseEvent);
         assert_eq!(ErrorCode::E_GRAPHQL_QUERY.error_kind_hint(), GraphqlQuery);
         assert_eq!(ErrorCode::E_AMQP_PUBLISH.error_kind_hint(), AmqpPublish);
-        assert_eq!(ErrorCode::E_REDIS_CONNECTION.error_kind_hint(), Connection);
         assert_eq!(ErrorCode::E_SMTP_AUTH.error_kind_hint(), Execution);
         assert_eq!(ErrorCode::E_IMAP_FETCH.error_kind_hint(), Execution);
         assert_eq!(
