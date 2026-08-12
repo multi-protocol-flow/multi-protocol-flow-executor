@@ -33,10 +33,6 @@ declare module './i18n-types' {
 			E_WS_MESSAGE: RequiredParams<'url'>
 			E_WS_CLOSE: RequiredParams<'url'>
 			E_WS_PROTOCOL: RequiredParams<'url'>
-			// DB
-			E_DB_CONNECTION: RequiredParams<'host'>
-			E_DB_QUERY: RequiredParams<'query'>
-			E_DB_TIMEOUT: RequiredParams<'host'>
 			// Script
 			E_SCRIPT_SYNTAX: RequiredParams<'detail'>
 			E_SCRIPT_RUNTIME: RequiredParams<'detail'>
@@ -84,11 +80,6 @@ declare module './i18n-types' {
 			E_AMQP_ACK: RequiredParams<'addr'>
 			E_AMQP_MANAGEMENT: RequiredParams<'addr'>
 			E_AMQP_PROTOCOL: RequiredParams<'addr'>
-			// Redis
-			E_REDIS_CONNECTION: RequiredParams<'host'>
-			E_REDIS_COMMAND: RequiredParams<'cmd'>
-			E_REDIS_TIMEOUT: RequiredParams<'host'>
-			E_REDIS_AUTH: RequiredParams<'host'>
 			// SMTP
 			E_SMTP_CONNECTION: RequiredParams<'host'>
 			E_SMTP_SEND: RequiredParams<'host'>

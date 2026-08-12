@@ -33,11 +33,6 @@ const en_US_errors = {
   E_WS_CLOSE: 'WebSocket closed: {url}',
   E_WS_PROTOCOL: 'WebSocket protocol error: {url}',
 
-  // Database
-  E_DB_CONNECTION: 'Database connection failed: {host}',
-  E_DB_QUERY: 'Database query error: {query}',
-  E_DB_TIMEOUT: 'Database timeout: {host}',
-
   // Script
   E_SCRIPT_SYNTAX: 'Script syntax error: {detail}',
   E_SCRIPT_RUNTIME: 'Script runtime error: {detail}',
@@ -92,12 +87,6 @@ const en_US_errors = {
   E_AMQP_ACK: 'AMQP ack error: {addr}',
   E_AMQP_MANAGEMENT: 'AMQP management error: {addr}',
   E_AMQP_PROTOCOL: 'AMQP protocol error: {addr}',
-
-  // Redis
-  E_REDIS_CONNECTION: 'Redis connection failed: {host}',
-  E_REDIS_COMMAND: 'Redis command error: {cmd}',
-  E_REDIS_TIMEOUT: 'Redis timeout: {host}',
-  E_REDIS_AUTH: 'Redis authentication failed: {host}',
 
   // SMTP
   E_SMTP_CONNECTION: 'SMTP connection failed: {host}',

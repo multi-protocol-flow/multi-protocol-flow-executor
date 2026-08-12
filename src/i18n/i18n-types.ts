@@ -18437,21 +18437,6 @@ type RootTranslation = {
 		 */
 		E_WS_PROTOCOL: RequiredParams<'url'>
 		/**
-		 * 数​据​库​连​接​失​败​:​ ​{​h​o​s​t​}
-		 * @param {unknown} host
-		 */
-		E_DB_CONNECTION: RequiredParams<'host'>
-		/**
-		 * 数​据​库​查​询​错​误​:​ ​{​q​u​e​r​y​}
-		 * @param {unknown} query
-		 */
-		E_DB_QUERY: RequiredParams<'query'>
-		/**
-		 * 数​据​库​超​时​:​ ​{​h​o​s​t​}
-		 * @param {unknown} host
-		 */
-		E_DB_TIMEOUT: RequiredParams<'host'>
-		/**
 		 * 脚​本​语​法​错​误​:​ ​{​d​e​t​a​i​l​}
 		 * @param {unknown} detail
 		 */
@@ -18647,26 +18632,6 @@ type RootTranslation = {
 		 * @param {unknown} addr
 		 */
 		E_AMQP_PROTOCOL: RequiredParams<'addr'>
-		/**
-		 * R​e​d​i​s​ ​连​接​失​败​:​ ​{​h​o​s​t​}
-		 * @param {unknown} host
-		 */
-		E_REDIS_CONNECTION: RequiredParams<'host'>
-		/**
-		 * R​e​d​i​s​ ​命​令​错​误​:​ ​{​c​m​d​}
-		 * @param {unknown} cmd
-		 */
-		E_REDIS_COMMAND: RequiredParams<'cmd'>
-		/**
-		 * R​e​d​i​s​ ​超​时​:​ ​{​h​o​s​t​}
-		 * @param {unknown} host
-		 */
-		E_REDIS_TIMEOUT: RequiredParams<'host'>
-		/**
-		 * R​e​d​i​s​ ​认​证​失​败​:​ ​{​h​o​s​t​}
-		 * @param {unknown} host
-		 */
-		E_REDIS_AUTH: RequiredParams<'host'>
 		/**
 		 * S​M​T​P​ ​连​接​失​败​:​ ​{​h​o​s​t​}
 		 * @param {unknown} host
@@ -36925,18 +36890,6 @@ export type TranslationFunctions = {
 		 */
 		E_WS_PROTOCOL: (arg: { url: unknown }) => LocalizedString
 		/**
-		 * 数据库连接失败: {host}
-		 */
-		E_DB_CONNECTION: (arg: { host: unknown }) => LocalizedString
-		/**
-		 * 数据库查询错误: {query}
-		 */
-		E_DB_QUERY: (arg: { query: unknown }) => LocalizedString
-		/**
-		 * 数据库超时: {host}
-		 */
-		E_DB_TIMEOUT: (arg: { host: unknown }) => LocalizedString
-		/**
 		 * 脚本语法错误: {detail}
 		 */
 		E_SCRIPT_SYNTAX: (arg: { detail: unknown }) => LocalizedString
@@ -37092,22 +37045,6 @@ export type TranslationFunctions = {
 		 * AMQP 协议错误: {addr}
 		 */
 		E_AMQP_PROTOCOL: (arg: { addr: unknown }) => LocalizedString
-		/**
-		 * Redis 连接失败: {host}
-		 */
-		E_REDIS_CONNECTION: (arg: { host: unknown }) => LocalizedString
-		/**
-		 * Redis 命令错误: {cmd}
-		 */
-		E_REDIS_COMMAND: (arg: { cmd: unknown }) => LocalizedString
-		/**
-		 * Redis 超时: {host}
-		 */
-		E_REDIS_TIMEOUT: (arg: { host: unknown }) => LocalizedString
-		/**
-		 * Redis 认证失败: {host}
-		 */
-		E_REDIS_AUTH: (arg: { host: unknown }) => LocalizedString
 		/**
 		 * SMTP 连接失败: {host}
 		 */

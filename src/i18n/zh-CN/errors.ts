@@ -35,11 +35,6 @@ const zh_CN_errors: BaseTranslation = {
   E_WS_CLOSE: 'WebSocket 连接已关闭: {url}',
   E_WS_PROTOCOL: 'WebSocket 协议错误: {url}',
 
-  // Database
-  E_DB_CONNECTION: '数据库连接失败: {host}',
-  E_DB_QUERY: '数据库查询错误: {query}',
-  E_DB_TIMEOUT: '数据库超时: {host}',
-
   // Script
   E_SCRIPT_SYNTAX: '脚本语法错误: {detail}',
   E_SCRIPT_RUNTIME: '脚本运行时错误: {detail}',
@@ -94,12 +89,6 @@ const zh_CN_errors: BaseTranslation = {
   E_AMQP_ACK: 'AMQP 确认错误: {addr}',
   E_AMQP_MANAGEMENT: 'AMQP 管理错误: {addr}',
   E_AMQP_PROTOCOL: 'AMQP 协议错误: {addr}',
-
-  // Redis
-  E_REDIS_CONNECTION: 'Redis 连接失败: {host}',
-  E_REDIS_COMMAND: 'Redis 命令错误: {cmd}',
-  E_REDIS_TIMEOUT: 'Redis 超时: {host}',
-  E_REDIS_AUTH: 'Redis 认证失败: {host}',
 
   // SMTP
   E_SMTP_CONNECTION: 'SMTP 连接失败: {host}',
