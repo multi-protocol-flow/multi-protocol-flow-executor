@@ -48,6 +48,13 @@ function isValidJson(text: string): boolean {
 }
 
 /**
+ * 「清除选择」项的 Select value。Radix Select 禁止空字符串作为
+ * SelectItem 的 value（空串是清除选择、显示 placeholder 的保留值），
+ * 因此用哨兵值承载「清除」动作，选中时再映射回空字符串。
+ */
+const CLEAR_SELECTION_VALUE = '__clear_selection__';
+
+/**
  * 获取字段的当前值，优先使用 data 中的值，其次使用 schema 中的 default
  */
 function getFieldValue(key: string, data: Record<string, unknown>, prop: SchemaProperty): unknown {
@@ -168,13 +175,18 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
           {renderLabel(key, prop)}
           <Select
             value={(value as string) ?? ''}
-            onValueChange={(v) => handleFieldChange(key, v)}
+            onValueChange={(v) => handleFieldChange(key, v === CLEAR_SELECTION_VALUE ? '' : v)}
           >
             <SelectTrigger id={`schema-field-${key}`}>
               <SelectValue placeholder={ll.selectField({ field: prop.title || key })} />
             </SelectTrigger>
             <SelectContent>
-              {prop.enum!.map((opt) => (
+              {!requiredFields.has(key) && (
+                <SelectItem key="__clear__" value={CLEAR_SELECTION_VALUE}>
+                  {ll.clearSelection()}
+                </SelectItem>
+              )}
+              {prop.enum!.filter((opt) => opt !== '').map((opt) => (
                 <SelectItem key={opt} value={opt}>
                   {opt}
                 </SelectItem>
@@ -199,14 +211,14 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
           {renderLabel(key, prop)}
           <Select
             value={(value as string) ?? ''}
-            onValueChange={(v) => handleFieldChange(key, v)}
+            onValueChange={(v) => handleFieldChange(key, v === CLEAR_SELECTION_VALUE ? '' : v)}
           >
             <SelectTrigger id={`schema-field-${key}`} className="font-mono">
               <SelectValue placeholder={ll.selectField({ field: prop.title || key })} />
             </SelectTrigger>
             <SelectContent>
               {!requiredFields.has(key) && (
-                <SelectItem key="__empty__" value="">
+                <SelectItem key="__clear__" value={CLEAR_SELECTION_VALUE}>
                   {ll.clearSelection()}
                 </SelectItem>
               )}
