@@ -60,10 +60,6 @@ const en_US_flow = {
   http_example: 'HTTP Example Flow',
   ws_example: 'WebSocket Example Flow',
   grpc_example: 'gRPC Example Flow',
-  mqtt_basic: 'MQTT Basic Connection Test',
-  mqtt_request_response: 'MQTT Request/Response Pattern',
-  mqtt_basic_desc: 'Demonstrates the basic workflow of MQTT connect, subscribe, publish, and disconnect',
-  mqtt_request_response_desc: 'Demonstrates the MQTT 5.0 request/response pattern using correlation_data auto-matching',
 
   // Canvas empty state
   no_flow_title: 'No Flow',

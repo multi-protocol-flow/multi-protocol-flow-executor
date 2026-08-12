@@ -43,29 +43,6 @@ export function inferDefaults(
       // 如果上游是 entry 且有 base_url 变量引用，则使用默认 URL
       return {};
 
-    // ========== Kafka ==========
-    case 'kafka_produce':
-    case 'kafka_consume':
-    case 'kafka_consume_batch':
-      if (upType === 'kafka_connect') {
-        return {
-          brokers: upstreamNode.data.brokers,
-        };
-      }
-      break;
-
-    // ========== MQTT ==========
-    case 'mqtt_publish':
-    case 'mqtt_subscribe':
-    case 'mqtt_unsubscribe':
-      if (upType === 'mqtt_connect') {
-        return {
-          host: upstreamNode.data.host,
-          port: upstreamNode.data.port,
-        };
-      }
-      break;
-
     // ========== gRPC ==========
     case 'grpc_call':
       if (upType === 'grpc_connect') {
@@ -88,43 +65,9 @@ export function inferDefaults(
       }
       break;
 
-    // ========== AMQP ==========
-    case 'amqp_publish':
-    case 'amqp_consume':
-      if (upType === 'amqp_connect') {
-        return {
-          connection_id: upstreamNode.data.connection_id,
-        };
-      }
-      break;
-
     // ========== TCP ==========
     case 'tcp_send':
       if (upType === 'tcp_connect') {
-        return {
-          host: upstreamNode.data.host,
-          port: upstreamNode.data.port,
-        };
-      }
-      break;
-
-    // ========== SMTP ==========
-    case 'smtp_send':
-      if (upType === 'smtp_connect') {
-        return {
-          host: upstreamNode.data.host,
-          port: upstreamNode.data.port,
-        };
-      }
-      break;
-
-    // ========== IMAP ==========
-    case 'imap_fetch':
-    case 'imap_search':
-    case 'imap_folder_create':
-    case 'imap_folder_delete':
-    case 'imap_idle':
-      if (upType === 'imap_connect') {
         return {
           host: upstreamNode.data.host,
           port: upstreamNode.data.port,

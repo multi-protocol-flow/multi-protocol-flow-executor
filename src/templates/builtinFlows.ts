@@ -2,7 +2,6 @@
  * 内置流程模板
  */
 import type { Flow } from '@/types/flow';
-import { getLL } from '@/i18n/i18n-lazy';
 
 // ============================================================================
 // 模板系统类型定义
@@ -10,8 +9,8 @@ import { getLL } from '@/i18n/i18n-lazy';
 
 /** 模板分类 */
 export type TemplateCategory =
-  | 'http' | 'websocket' | 'database' | 'grpc' | 'mqtt'
-  | 'kafka' | 'amqp' | 'graphql' | 'imap' | 'smtp'
+  | 'http' | 'websocket' | 'database' | 'grpc'
+  | 'graphql'
   | 'sse' | 'tcp' | 'udp' | 'mcp' | 'script' | 'assertion' | 'combination';
 
 /** 模板难度等级 */
@@ -131,70 +130,6 @@ const UDP_SEND_FLOW: Flow = {
   ],
 } as Flow & { _meta?: { version: number; isBuiltin: boolean } };
 
-/** Kafka Produce Message */
-const KAFKA_PRODUCE_FLOW: Flow = {
-  uuid: 'template-kafka-produce',
-  name: 'Kafka Produce Message',
-  initial_variables: {},
-  nodes: [
-    { uuid: 'entry-kafka-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
-    {
-      uuid: 'kafka-connect-001', type: 'kafka_connect', name: 'Connect Kafka', position: { x: 250, y: 0 },
-      data: { type: 'kafka_connect', bootstrap_servers: 'localhost:9092', client_id: 'mpe-client' }
-    },
-    {
-      uuid: 'kafka-produce-001', type: 'kafka_produce', name: 'Send Message', position: { x: 500, y: 0 },
-      data: { type: 'kafka_produce', connection_id: 'kafka-connect-001', topic: 'test-topic', key: 'key-1', value: '{"message":"Hello Kafka"}' }
-    },
-    {
-      uuid: 'kafka-close-001', type: 'kafka_close', name: 'Close Connection', position: { x: 750, y: 0 },
-      data: { type: 'kafka_close', connection_id: 'kafka-connect-001' }
-    },
-  ],
-  connections: [
-    { id: 'conn-kafka-1', source_node_uuid: 'entry-kafka-001', target_node_uuid: 'kafka-connect-001', source_port_id: 'out', target_port_id: 'in' },
-    { id: 'conn-kafka-2', source_node_uuid: 'kafka-connect-001', target_node_uuid: 'kafka-produce-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-kafka-3', source_node_uuid: 'kafka-produce-001', target_node_uuid: 'kafka-close-001', source_port_id: 'true', target_port_id: 'in' },
-  ],
-} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
-
-/** AMQP Publish/Consume */
-const AMQP_FLOW: Flow = {
-  uuid: 'template-amqp',
-  name: 'AMQP Publish/Consume',
-  initial_variables: {},
-  nodes: [
-    { uuid: 'entry-amqp-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
-    {
-      uuid: 'amqp-connect-001', type: 'amqp_connect', name: 'Connect Broker', position: { x: 250, y: 0 },
-      data: { type: 'amqp_connect', url: 'amqp://guest:guest@localhost:5672/%2f' }
-    },
-    {
-      uuid: 'amqp-declare-001', type: 'amqp_exchange_declare', name: 'Declare Exchange', position: { x: 500, y: 0 },
-      data: { type: 'amqp_exchange_declare', connection_id: 'amqp-connect-001', exchange: 'test.exchange', exchange_type: 'direct', durable: false, auto_delete: true }
-    },
-    {
-      uuid: 'amqp-publish-001', type: 'amqp_publish', name: 'Publish Message', position: { x: 750, y: 0 },
-      data: { type: 'amqp_publish', connection_id: 'amqp-connect-001', exchange: 'test.exchange', routing_key: 'test.key', body: '{"msg":"Hello AMQP"}', body_type: 'json' }
-    },
-    {
-      uuid: 'amqp-consume-001', type: 'amqp_consume', name: 'Consume Message', position: { x: 1000, y: 0 },
-      data: { type: 'amqp_consume', connection_id: 'amqp-connect-001', queue: 'test.queue', ack_mode: 'auto', max_messages: 1, timeout_ms: 5000 }
-    },
-    {
-      uuid: 'amqp-close-001', type: 'amqp_close', name: 'Close Connection', position: { x: 1250, y: 0 },
-      data: { type: 'amqp_close', connection_id: 'amqp-connect-001' }
-    },
-  ],
-  connections: [
-    { id: 'conn-amqp-1', source_node_uuid: 'entry-amqp-001', target_node_uuid: 'amqp-connect-001', source_port_id: 'out', target_port_id: 'in' },
-    { id: 'conn-amqp-2', source_node_uuid: 'amqp-connect-001', target_node_uuid: 'amqp-declare-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-amqp-3', source_node_uuid: 'amqp-declare-001', target_node_uuid: 'amqp-publish-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-amqp-4', source_node_uuid: 'amqp-publish-001', target_node_uuid: 'amqp-consume-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-amqp-5', source_node_uuid: 'amqp-consume-001', target_node_uuid: 'amqp-close-001', source_port_id: 'true', target_port_id: 'in' },
-  ],
-} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
-
 /** GraphQL Query */
 const GRAPHQL_QUERY_FLOW: Flow = {
   uuid: 'template-graphql',
@@ -219,33 +154,6 @@ const GRAPHQL_QUERY_FLOW: Flow = {
     { id: 'conn-gql-1', source_node_uuid: 'entry-gql-001', target_node_uuid: 'gql-connect-001', source_port_id: 'out', target_port_id: 'in' },
     { id: 'conn-gql-2', source_node_uuid: 'gql-connect-001', target_node_uuid: 'gql-query-001', source_port_id: 'true', target_port_id: 'in' },
     { id: 'conn-gql-3', source_node_uuid: 'gql-query-001', target_node_uuid: 'gql-disconnect-001', source_port_id: 'true', target_port_id: 'in' },
-  ],
-} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
-
-/** SMTP Send Email */
-const SMTP_SEND_FLOW: Flow = {
-  uuid: 'template-smtp',
-  name: 'SMTP Send Email',
-  initial_variables: {},
-  nodes: [
-    { uuid: 'entry-smtp-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
-    {
-      uuid: 'smtp-connect-001', type: 'smtp_connect', name: 'Connect SMTP', position: { x: 250, y: 0 },
-      data: { type: 'smtp_connect', host: 'smtp.example.com', port: 587, tls_mode: 'starttls', auth: { auth_type: 'plain', username: 'user@example.com', password: '' } }
-    },
-    {
-      uuid: 'smtp-send-001', type: 'smtp_send', name: 'Send Email', position: { x: 500, y: 0 },
-      data: { type: 'smtp_send', connection_id: 'smtp-connect-001', from: 'user@example.com', to: ['recipient@example.com'], subject: 'Test Email', body: 'Hello from MPE!', body_type: 'text' }
-    },
-    {
-      uuid: 'smtp-close-001', type: 'smtp_disconnect', name: 'Disconnect', position: { x: 750, y: 0 },
-      data: { type: 'smtp_disconnect', connection_id: 'smtp-connect-001' }
-    },
-  ],
-  connections: [
-    { id: 'conn-smtp-1', source_node_uuid: 'entry-smtp-001', target_node_uuid: 'smtp-connect-001', source_port_id: 'out', target_port_id: 'in' },
-    { id: 'conn-smtp-2', source_node_uuid: 'smtp-connect-001', target_node_uuid: 'smtp-send-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-smtp-3', source_node_uuid: 'smtp-send-001', target_node_uuid: 'smtp-close-001', source_port_id: 'true', target_port_id: 'in' },
   ],
 } as Flow & { _meta?: { version: number; isBuiltin: boolean } };
 
@@ -322,143 +230,6 @@ const MCP_FLOW: Flow = {
   ],
 } as Flow & { _meta?: { version: number; isBuiltin: boolean } };
 
-/** IMAP Read Email */
-const IMAP_READ_FLOW: Flow = {
-  uuid: 'template-imap',
-  name: 'IMAP Read Email',
-  initial_variables: {},
-  nodes: [
-    { uuid: 'entry-imap-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
-    {
-      uuid: 'imap-connect-001', type: 'imap_connect', name: 'Connect IMAP', position: { x: 250, y: 0 },
-      data: { type: 'imap_connect', host: 'imap.example.com', port: 993, tls: true, auth: { auth_type: 'plain', username: 'user@example.com', password: '' } }
-    },
-    {
-      uuid: 'imap-fetch-001', type: 'imap_fetch', name: 'Fetch Emails', position: { x: 500, y: 0 },
-      data: { type: 'imap_fetch', connection_id: 'imap-connect-001', mailbox: 'INBOX', message_count: 5, fetch_attachments: false }
-    },
-    {
-      uuid: 'imap-close-001', type: 'imap_close', name: 'Close Connection', position: { x: 750, y: 0 },
-      data: { type: 'imap_close', connection_id: 'imap-connect-001' }
-    },
-  ],
-  connections: [
-    { id: 'conn-imap-1', source_node_uuid: 'entry-imap-001', target_node_uuid: 'imap-connect-001', source_port_id: 'out', target_port_id: 'in' },
-    { id: 'conn-imap-2', source_node_uuid: 'imap-connect-001', target_node_uuid: 'imap-fetch-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-imap-3', source_node_uuid: 'imap-fetch-001', target_node_uuid: 'imap-close-001', source_port_id: 'true', target_port_id: 'in' },
-  ],
-} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
-
-/** Combination: HTTP → Conditional → SMTP Email */
-const HTTP_CONDITIONAL_EMAIL_FLOW: Flow = {
-  uuid: 'template-http-conditional-email',
-  name: 'HTTP → Conditional → Email',
-  initial_variables: {},
-  nodes: [
-    { uuid: 'entry-hce-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
-    {
-      uuid: 'hce-http-001', type: 'http', name: 'Check Service Status', position: { x: 250, y: 0 },
-      data: { type: 'http', url: 'https://httpbin.org/status/200', method: 'get' }
-    },
-    {
-      uuid: 'hce-cond-001', type: 'conditional', name: 'Status = 200?', position: { x: 500, y: 0 },
-      data: { type: 'conditional', condition_type: 'simple', field_path: 'status', operator: 'equal', expected_value: 200 }
-    },
-    {
-      uuid: 'hce-smtp-001', type: 'smtp_connect', name: 'Connect SMTP', position: { x: 750, y: 0 },
-      data: { type: 'smtp_connect', host: 'smtp.example.com', port: 587, tls_mode: 'starttls', auth: { auth_type: 'plain', username: 'alert@example.com', password: '' } }
-    },
-    {
-      uuid: 'hce-send-001', type: 'smtp_send', name: 'Send Alert', position: { x: 1000, y: 0 },
-      data: { type: 'smtp_send', connection_id: 'hce-smtp-001', from: 'alert@example.com', to: ['admin@example.com'], subject: 'Service Status Notification', body: 'Service check complete, status code: {{status}}', body_type: 'text' }
-    },
-    {
-      uuid: 'hce-close-001', type: 'smtp_disconnect', name: 'Disconnect SMTP', position: { x: 1250, y: 0 },
-      data: { type: 'smtp_disconnect', connection_id: 'hce-smtp-001' }
-    },
-  ],
-  connections: [
-    { id: 'conn-hce-1', source_node_uuid: 'entry-hce-001', target_node_uuid: 'hce-http-001', source_port_id: 'out', target_port_id: 'in' },
-    { id: 'conn-hce-2', source_node_uuid: 'hce-http-001', target_node_uuid: 'hce-cond-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-hce-3', source_node_uuid: 'hce-cond-001', target_node_uuid: 'hce-smtp-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-hce-4', source_node_uuid: 'hce-smtp-001', target_node_uuid: 'hce-send-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-hce-5', source_node_uuid: 'hce-send-001', target_node_uuid: 'hce-close-001', source_port_id: 'true', target_port_id: 'in' },
-  ],
-} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
-
-/** Combination: Kafka → Script → DB */
-const KAFKA_SCRIPT_DB_FLOW: Flow = {
-  uuid: 'template-kafka-script-db',
-  name: 'Kafka → Script → Database',
-  initial_variables: {},
-  nodes: [
-    { uuid: 'entry-ksdb-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
-    {
-      uuid: 'ksdb-kafka-001', type: 'kafka_connect', name: 'Connect Kafka', position: { x: 250, y: 0 },
-      data: { type: 'kafka_connect', bootstrap_servers: 'localhost:9092', client_id: 'mpe-consumer' }
-    },
-    {
-      uuid: 'ksdb-consume-001', type: 'kafka_consume', name: 'Consume Message', position: { x: 500, y: 0 },
-      data: { type: 'kafka_consume', connection_id: 'ksdb-kafka-001', topic: 'input-topic', consumer_group: 'mpe-group', max_messages: 1, timeout_ms: 10000 }
-    },
-    {
-      uuid: 'ksdb-script-001', type: 'script', name: 'Transform Data', position: { x: 750, y: 0 },
-      data: { type: 'script', script: 'const raw = JSON.parse(fn.variables.get("last_node_output") || "{}");\nconst transformed = { id: raw.id, value: raw.data, processed_at: new Date().toISOString() };\nfn.variables.set("transformed", JSON.stringify(transformed));\nfn.console.log("Transform result:", transformed);' }
-    },
-    {
-      uuid: 'ksdb-db-001', type: 'db:connect', name: 'Connect Database', position: { x: 1000, y: 0 },
-      data: { type: 'db:connect', connection_uuid: '', driver: 'sqlite', connection_string: ':memory:' }
-    },
-    {
-      uuid: 'ksdb-query-001', type: 'db:query', name: 'Insert Data', position: { x: 1250, y: 0 },
-      data: { type: 'db:query', connection_uuid: 'ksdb-db-001', sql: 'SELECT 1 as inserted;' }
-    },
-    {
-      uuid: 'ksdb-close-001', type: 'db:close', name: 'Close Connection', position: { x: 1500, y: 0 },
-      data: { type: 'db:close', connection_uuid: 'ksdb-db-001' }
-    },
-  ],
-  connections: [
-    { id: 'conn-ksdb-1', source_node_uuid: 'entry-ksdb-001', target_node_uuid: 'ksdb-kafka-001', source_port_id: 'out', target_port_id: 'in' },
-    { id: 'conn-ksdb-2', source_node_uuid: 'ksdb-kafka-001', target_node_uuid: 'ksdb-consume-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-ksdb-3', source_node_uuid: 'ksdb-consume-001', target_node_uuid: 'ksdb-script-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-ksdb-4', source_node_uuid: 'ksdb-script-001', target_node_uuid: 'ksdb-db-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-ksdb-5', source_node_uuid: 'ksdb-db-001', target_node_uuid: 'ksdb-query-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-ksdb-6', source_node_uuid: 'ksdb-query-001', target_node_uuid: 'ksdb-close-001', source_port_id: 'true', target_port_id: 'in' },
-  ],
-} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
-
-/** Combination: MQTT → HTTP Webhook */
-const MQTT_HTTP_WEBHOOK_FLOW: Flow = {
-  uuid: 'template-mqtt-http-webhook',
-  name: 'MQTT → HTTP Webhook',
-  initial_variables: {},
-  nodes: [
-    { uuid: 'entry-mh-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
-    {
-      uuid: 'mh-mqtt-001', type: 'mqtt_connect', name: 'Connect MQTT', position: { x: 250, y: 0 },
-      data: { type: 'mqtt_connect', url: 'mqtt://broker.emqx.io:1883', mqtt_version: '5.0', clean_session: true, keep_alive_secs: 60 }
-    },
-    {
-      uuid: 'mh-sub-001', type: 'mqtt_subscribe', name: 'Subscribe Topic', position: { x: 500, y: 0 },
-      data: { type: 'mqtt_subscribe', connection_id: 'mh-mqtt-001', topic: 'test/webhook/#', qos: 0, max_messages: 1, collect_timeout_ms: 10000, output_mode: 'first' }
-    },
-    {
-      uuid: 'mh-http-001', type: 'http', name: 'Forward Webhook', position: { x: 750, y: 0 },
-      data: { type: 'http', url: 'https://httpbin.org/post', method: 'post', body_type: 'body', content_type: 'json', body: '{"source":"mqtt","payload":{{body}}}' }
-    },
-    {
-      uuid: 'mh-close-001', type: 'mqtt_disconnect', name: 'Disconnect MQTT', position: { x: 1000, y: 0 },
-      data: { type: 'mqtt_disconnect', connection_id: 'mh-mqtt-001' }
-    },
-  ],
-  connections: [
-    { id: 'conn-mh-1', source_node_uuid: 'entry-mh-001', target_node_uuid: 'mh-mqtt-001', source_port_id: 'out', target_port_id: 'in' },
-    { id: 'conn-mh-2', source_node_uuid: 'mh-mqtt-001', target_node_uuid: 'mh-sub-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-mh-3', source_node_uuid: 'mh-sub-001', target_node_uuid: 'mh-http-001', source_port_id: 'true', target_port_id: 'in' },
-    { id: 'conn-mh-4', source_node_uuid: 'mh-http-001', target_node_uuid: 'mh-close-001', source_port_id: 'true', target_port_id: 'in' },
-  ],
-} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
 
 /**
  * HTTP 节点示例流程
@@ -746,211 +517,6 @@ export const GRPC_DEMO_FLOW: Flow = {
   },
 } as Flow & { _meta?: { version: number; isBuiltin: boolean } };
 
-/**
- * MQTT 基础连接测试流程
- * 演示 MQTT 连接、订阅、发布和断开的基本工作流
- */
-export const MQTT_BASIC_FLOW: Flow = {
-  uuid: 'demo-mqtt-basic',
-  name: 'MQTT Basic Connection Test',
-  description: getLL().flow.mqtt_basic_desc(),
-  initial_variables: { "timestamp": "" },
-  nodes: [
-    // 节点 1: Entry 节点
-    {
-      uuid: 'entry-mqtt-basic-001',
-      type: 'entry',
-      name: 'Entry',
-      position: { x: 0, y: 0 },
-      data: { type: 'entry' }
-    },
-    // 节点 2: MQTT Connect 节点
-    {
-      uuid: 'mqtt-connect-basic-001',
-      type: 'mqtt_connect',
-      name: 'Connect Broker',
-      position: { x: 250, y: 0 },
-      data: {
-        type: 'mqtt_connect',
-        url: 'mqtt://broker.emqx.io:1883',
-        mqtt_version: '5.0',
-        clean_session: true,
-        keep_alive_secs: 60
-      }
-    },
-    // 节点 3: MQTT Subscribe 节点
-    {
-      uuid: 'mqtt-subscribe-basic-001',
-      type: 'mqtt_subscribe',
-      name: 'Subscribe to Topic',
-      position: { x: 500, y: 0 },
-      data: {
-        type: 'mqtt_subscribe',
-        connection_id: 'mqtt-connect-basic-001',
-        topic: 'test/multi-protocolflow/#',
-        qos: 0,
-        max_messages: 1,
-        collect_timeout_ms: 5000,
-        output_mode: 'first'
-      }
-    },
-    // 节点 4: MQTT Publish 节点
-    {
-      uuid: 'mqtt-publish-basic-001',
-      type: 'mqtt_publish',
-      name: 'Publish Test Message',
-      position: { x: 750, y: 0 },
-      data: {
-        type: 'mqtt_publish',
-        connection_id: 'mqtt-connect-basic-001',
-        topic: 'test/multi-protocolflow/hello',
-        payload: '{"message":"Hello from Multi-Protocol Flow Executor","timestamp":"{{initial_variables.timestamp}}"}',
-        qos: 0,
-        payload_format: 'json'
-      }
-    },
-    // 节点 5: MQTT Disconnect 节点
-    {
-      uuid: 'mqtt-disconnect-basic-001',
-      type: 'mqtt_disconnect',
-      name: 'Disconnect',
-      position: { x: 1000, y: 0 },
-      data: {
-        type: 'mqtt_disconnect',
-        connection_id: 'mqtt-connect-basic-001'
-      }
-    }
-  ],
-  connections: [
-    // Entry → MQTT Connect
-    {
-      id: 'conn-mqtt-basic-1',
-      source_node_uuid: 'entry-mqtt-basic-001',
-      target_node_uuid: 'mqtt-connect-basic-001',
-      source_port_id: 'out',
-      target_port_id: 'in'
-    },
-    // MQTT Connect → MQTT Subscribe
-    {
-      id: 'conn-mqtt-basic-2',
-      source_node_uuid: 'mqtt-connect-basic-001',
-      target_node_uuid: 'mqtt-subscribe-basic-001',
-      source_port_id: 'true',
-      target_port_id: 'in'
-    },
-    // MQTT Subscribe → MQTT Publish
-    {
-      id: 'conn-mqtt-basic-3',
-      source_node_uuid: 'mqtt-subscribe-basic-001',
-      target_node_uuid: 'mqtt-publish-basic-001',
-      source_port_id: 'true',
-      target_port_id: 'in'
-    },
-    // MQTT Publish → MQTT Disconnect
-    {
-      id: 'conn-mqtt-basic-4',
-      source_node_uuid: 'mqtt-publish-basic-001',
-      target_node_uuid: 'mqtt-disconnect-basic-001',
-      source_port_id: 'true',
-      target_port_id: 'in'
-    }
-  ],
-  _meta: {
-    version: BUILTIN_FLOW_VERSION,
-    isBuiltin: true,
-  },
-} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
-
-/**
- * MQTT 请求/响应模式流程
- * 演示 MQTT 5.0 请求/响应模式，使用 correlation_data 自动匹配
- */
-export const MQTT_REQUEST_RESPONSE_FLOW: Flow = {
-  uuid: 'demo-mqtt-request-response',
-  name: 'MQTT Request/Response Pattern',
-  description: getLL().flow.mqtt_request_response_desc(),
-  initial_variables: {},
-  nodes: [
-    // 节点 1: Entry 节点
-    {
-      uuid: 'entry-mqtt-rpc-001',
-      type: 'entry',
-      name: 'Entry',
-      position: { x: 0, y: 0 },
-      data: { type: 'entry' }
-    },
-    // 节点 2: MQTT Connect 节点
-    {
-      uuid: 'mqtt-connect-rpc-001',
-      type: 'mqtt_connect',
-      name: 'Connect Broker',
-      position: { x: 250, y: 0 },
-      data: {
-        type: 'mqtt_connect',
-        url: 'mqtt://broker.emqx.io:1883',
-        mqtt_version: '5.0'
-      }
-    },
-    // 节点 3: MQTT Request 节点
-    {
-      uuid: 'mqtt-request-rpc-001',
-      type: 'mqtt_request',
-      name: 'Send Request',
-      position: { x: 500, y: 0 },
-      data: {
-        type: 'mqtt_request',
-        connection_id: 'mqtt-connect-rpc-001',
-        request_topic: 'test/rpc/request',
-        response_topic: 'test/rpc/response',
-        payload: '{"action":"ping","id":"1"}',
-        qos: 1,
-        timeout_ms: 10000
-      }
-    },
-    // 节点 4: MQTT Disconnect 节点
-    {
-      uuid: 'mqtt-disconnect-rpc-001',
-      type: 'mqtt_disconnect',
-      name: 'Disconnect',
-      position: { x: 750, y: 0 },
-      data: {
-        type: 'mqtt_disconnect',
-        connection_id: 'mqtt-connect-rpc-001'
-      }
-    }
-  ],
-  connections: [
-    // Entry → MQTT Connect
-    {
-      id: 'conn-mqtt-rpc-1',
-      source_node_uuid: 'entry-mqtt-rpc-001',
-      target_node_uuid: 'mqtt-connect-rpc-001',
-      source_port_id: 'out',
-      target_port_id: 'in'
-    },
-    // MQTT Connect → MQTT Request
-    {
-      id: 'conn-mqtt-rpc-2',
-      source_node_uuid: 'mqtt-connect-rpc-001',
-      target_node_uuid: 'mqtt-request-rpc-001',
-      source_port_id: 'true',
-      target_port_id: 'in'
-    },
-    // MQTT Request → MQTT Disconnect
-    {
-      id: 'conn-mqtt-rpc-3',
-      source_node_uuid: 'mqtt-request-rpc-001',
-      target_node_uuid: 'mqtt-disconnect-rpc-001',
-      source_port_id: 'true',
-      target_port_id: 'in'
-    }
-  ],
-  _meta: {
-    version: BUILTIN_FLOW_VERSION,
-    isBuiltin: true,
-  },
-} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
-
 // ============================================================================
 // 模板注册表
 // ============================================================================
@@ -1010,49 +576,6 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     difficulty: 'intermediate',
     flow: GRPC_DEMO_FLOW,
   },
-  // ── MQTT 模板 ──
-  {
-    id: 'template-mqtt-basic',
-    name: 'MQTT Publish/Subscribe',
-    description: 'Connect to MQTT broker, subscribe to topic, and publish test message',
-    category: 'mqtt',
-    icon: 'Zap',
-    tags: ['MQTT', 'IoT', 'Getting Started'],
-    difficulty: 'beginner',
-    flow: MQTT_BASIC_FLOW,
-  },
-  {
-    id: 'template-mqtt-rpc',
-    name: 'MQTT Request/Response',
-    description: 'Use MQTT 5.0 request/response pattern for RPC communication',
-    category: 'mqtt',
-    icon: 'MessageSquare',
-    tags: ['MQTT', 'RPC', 'Advanced'],
-    difficulty: 'advanced',
-    flow: MQTT_REQUEST_RESPONSE_FLOW,
-  },
-  // ── Kafka 模板 ──
-  {
-    id: 'template-kafka-produce',
-    name: 'Kafka Produce Message',
-    description: 'Connect to Kafka server and send messages to a topic',
-    category: 'kafka',
-    icon: 'GitBranch',
-    tags: ['Kafka', 'Message Queue'],
-    difficulty: 'intermediate',
-    flow: KAFKA_PRODUCE_FLOW,
-  },
-  // ── AMQP 模板 ──
-  {
-    id: 'template-amqp',
-  name: 'AMQP Publish/Consume',
-    description: 'Connect to AMQP broker, declare exchange, publish and consume messages',
-    category: 'amqp',
-    icon: 'Server',
-    tags: ['AMQP', 'RabbitMQ'],
-    difficulty: 'intermediate',
-    flow: AMQP_FLOW,
-  },
   // ── GraphQL 模板 ──
   {
     id: 'template-graphql',
@@ -1064,28 +587,7 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     difficulty: 'intermediate',
     flow: GRAPHQL_QUERY_FLOW,
   },
-  // ── IMAP 模板 ──
-  {
-    id: 'template-imap',
-    name: 'IMAP Read Email',
-    description: 'Connect to IMAP server and read emails from inbox',
-    category: 'imap',
-    icon: 'Mail',
-    tags: ['IMAP', 'Email'],
-    difficulty: 'intermediate',
-    flow: IMAP_READ_FLOW,
-  },
   // ── SMTP 模板 ──
-  {
-    id: 'template-smtp',
-    name: 'SMTP Send Email',
-    description: 'Send emails via SMTP server',
-    category: 'smtp',
-    icon: 'Send',
-    tags: ['SMTP', 'Email'],
-    difficulty: 'intermediate',
-    flow: SMTP_SEND_FLOW,
-  },
   // ── SSE 模板 ──
   {
     id: 'template-sse',
@@ -1142,36 +644,6 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     flow: SCRIPT_TRANSFORM_FLOW,
   },
   // ── 组合模板 ──
-  {
-    id: 'template-http-conditional-email',
-    name: 'HTTP → Condition → Email',
-    description: 'Comprehensive demo: Check HTTP service status, send email notification based on result',
-    category: 'combination',
-    icon: 'GitMerge',
-    tags: ['HTTP', 'Condition', 'Email', 'Combination'],
-    difficulty: 'advanced',
-    flow: HTTP_CONDITIONAL_EMAIL_FLOW,
-  },
-  {
-    id: 'template-kafka-script-db',
-    name: 'Kafka → Script → Database',
-    description: 'Comprehensive demo: Consume Kafka messages, transform with script, store in DB',
-    category: 'combination',
-    icon: 'GitMerge',
-    tags: ['Kafka', 'Script', 'Database', 'ETL'],
-    difficulty: 'advanced',
-    flow: KAFKA_SCRIPT_DB_FLOW,
-  },
-  {
-    id: 'template-mqtt-http-webhook',
-    name: 'MQTT → HTTP Webhook',
-    description: 'Comprehensive demo: Subscribe to MQTT topic, forward messages via HTTP webhook',
-    category: 'combination',
-    icon: 'GitMerge',
-    tags: ['MQTT', 'HTTP', 'Webhook', 'Combination'],
-    difficulty: 'advanced',
-    flow: MQTT_HTTP_WEBHOOK_FLOW,
-  },
 ];
 
 /** 热门模板（前 4 个） */

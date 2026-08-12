@@ -433,35 +433,6 @@ export async function discoverMcpTools(
 }
 
 // ============================================================================
-// MQTT 命令
-// ============================================================================
-
-export type {
-  MqttTestConnectionInput,
-  MqttBrokerInfo,
-  MqttTestConnectionOutput,
-} from './mqtt';
-
-/**
- * 测试 MQTT Broker 连接
- * 根据运行环境自动选择真实 IPC 或 Mock 服务
- *
- * @param input - 测试连接请求参数
- * @returns 测试连接结果
- */
-export async function testMqttConnection(
-  input: import('./mqtt').MqttTestConnectionInput
-): Promise<import('./mqtt').MqttTestConnectionOutput> {
-  if (isTauriEnv()) {
-    const { testMqttConnection: testMqttConnectionImpl } = await import('./mqtt');
-    return testMqttConnectionImpl(input);
-  } else {
-    const { testMqttConnection: testMqttConnectionImpl } = await import('./mock');
-    return testMqttConnectionImpl(input);
-  }
-}
-
-// ============================================================================
 // SSE 命令
 // ============================================================================
 
@@ -483,31 +454,6 @@ export async function testSseConnection(
   } else {
     const { testSseConnection: testSseConnectionImpl } = await import('./mock');
     return testSseConnectionImpl(input);
-  }
-}
-
-// ============================================================================
-// AMQP 命令
-// ============================================================================
-
-export type { AmqpTestConnectionInput } from './amqp';
-
-/**
- * 测试 AMQP Broker 连接
- * 根据运行环境自动选择真实 IPC 或 Mock 服务
- *
- * @param input - 测试连接请求参数
- * @returns true 如果 URL 格式有效
- */
-export async function testAmqpConnection(
-  input: import('./amqp').AmqpTestConnectionInput
-): Promise<boolean> {
-  if (isTauriEnv()) {
-    const { testAmqpConnection: testAmqpConnectionImpl } = await import('./amqp');
-    return testAmqpConnectionImpl(input);
-  } else {
-    const { testAmqpConnection: testAmqpConnectionImpl } = await import('./mock');
-    return testAmqpConnectionImpl(input);
   }
 }
 

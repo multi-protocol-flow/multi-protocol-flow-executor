@@ -77,30 +77,7 @@ const en_US_errors = {
   E_GRAPHQL_INTROSPECTION: 'GraphQL introspection failed: {url}',
   E_GRAPHQL_CLOSE: 'GraphQL connection closed: {url}',
 
-  // AMQP
-  E_AMQP_CONNECTION: 'AMQP connection failed: {addr}',
-  E_AMQP_CHANNEL: 'AMQP channel error: {addr}',
-  E_AMQP_PUBLISH: 'AMQP publish error: {addr}',
-  E_AMQP_CONSUME: 'AMQP consume error: {addr}',
-  E_AMQP_QUEUE: 'AMQP queue error: {addr}',
-  E_AMQP_EXCHANGE: 'AMQP exchange error: {addr}',
-  E_AMQP_ACK: 'AMQP ack error: {addr}',
-  E_AMQP_MANAGEMENT: 'AMQP management error: {addr}',
-  E_AMQP_PROTOCOL: 'AMQP protocol error: {addr}',
 
-  // SMTP
-  E_SMTP_CONNECTION: 'SMTP connection failed: {host}',
-  E_SMTP_SEND: 'SMTP send error: {host}',
-  E_SMTP_AUTH: 'SMTP authentication failed: {host}',
-  E_SMTP_TIMEOUT: 'SMTP timeout: {host}',
-
-  // IMAP
-  E_IMAP_CONNECTION: 'IMAP connection failed: {host}',
-  E_IMAP_FETCH: 'IMAP fetch error: {host}',
-  E_IMAP_SEARCH: 'IMAP search error: {host}',
-  E_IMAP_AUTH: 'IMAP authentication failed: {host}',
-  E_IMAP_STORE: 'IMAP store error: {host}',
-  E_IMAP_TIMEOUT: 'IMAP timeout: {host}',
 
   // Non-protocol
   E_VARIABLE_EXTRACTOR_FAILED: 'Variable extraction failed: {path}',

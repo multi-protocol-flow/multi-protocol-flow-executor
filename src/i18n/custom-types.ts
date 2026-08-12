@@ -70,28 +70,6 @@ declare module './i18n-types' {
 			E_GRAPHQL_SUBSCRIPTION: RequiredParams<'url'>
 			E_GRAPHQL_INTROSPECTION: RequiredParams<'url'>
 			E_GRAPHQL_CLOSE: RequiredParams<'url'>
-			// AMQP
-			E_AMQP_CONNECTION: RequiredParams<'addr'>
-			E_AMQP_CHANNEL: RequiredParams<'addr'>
-			E_AMQP_PUBLISH: RequiredParams<'addr'>
-			E_AMQP_CONSUME: RequiredParams<'addr'>
-			E_AMQP_QUEUE: RequiredParams<'addr'>
-			E_AMQP_EXCHANGE: RequiredParams<'addr'>
-			E_AMQP_ACK: RequiredParams<'addr'>
-			E_AMQP_MANAGEMENT: RequiredParams<'addr'>
-			E_AMQP_PROTOCOL: RequiredParams<'addr'>
-			// SMTP
-			E_SMTP_CONNECTION: RequiredParams<'host'>
-			E_SMTP_SEND: RequiredParams<'host'>
-			E_SMTP_AUTH: RequiredParams<'host'>
-			E_SMTP_TIMEOUT: RequiredParams<'host'>
-			// IMAP
-			E_IMAP_CONNECTION: RequiredParams<'host'>
-			E_IMAP_FETCH: RequiredParams<'host'>
-			E_IMAP_SEARCH: RequiredParams<'host'>
-			E_IMAP_AUTH: RequiredParams<'host'>
-			E_IMAP_STORE: RequiredParams<'host'>
-			E_IMAP_TIMEOUT: RequiredParams<'host'>
 			// Non-protocol
 			E_VARIABLE_EXTRACTOR_FAILED: RequiredParams<'path'>
 			E_PROXY_FAILED: RequiredParams<'host'>

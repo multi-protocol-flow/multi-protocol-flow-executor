@@ -79,34 +79,6 @@ function createNodeData(type: NodeData['type']): NodeData {
       return { type: 'udp_recv_from', connection_id: 'udp-conn-1' };
     case 'udp_close':
       return { type: 'udp_close', connection_id: 'udp-conn-1' };
-    case 'mqtt_connect':
-      return { type: 'mqtt_connect', url: 'mqtt://localhost:1883' };
-    case 'mqtt_publish':
-      return { type: 'mqtt_publish', connection_id: 'mqtt-conn-1', topic: 'test/topic' };
-    case 'mqtt_subscribe':
-      return { type: 'mqtt_subscribe', connection_id: 'mqtt-conn-1', topic: 'test/topic' };
-    case 'mqtt_unsubscribe':
-      return { type: 'mqtt_unsubscribe', connection_id: 'mqtt-conn-1', topic: 'test/topic' };
-    case 'mqtt_disconnect':
-      return { type: 'mqtt_disconnect', connection_id: 'mqtt-conn-1' };
-    case 'mqtt_wait_message':
-      return { type: 'mqtt_wait_message', connection_id: 'mqtt-conn-1', topic: 'test/topic' };
-    case 'mqtt_request':
-      return { type: 'mqtt_request', connection_id: 'mqtt-conn-1', request_topic: 'test/req', response_topic: 'test/resp' };
-    case 'kafka_connect':
-      return { type: 'kafka_connect', bootstrap_servers: 'localhost:9092' };
-    case 'kafka_produce':
-      return { type: 'kafka_produce', connection_id: '', topic: '' };
-    case 'kafka_consume':
-      return { type: 'kafka_consume', connection_id: '', topic: '' };
-    case 'kafka_consume_batch':
-      return { type: 'kafka_consume_batch', connection_id: '', topic: '' };
-    case 'kafka_admin':
-      return { type: 'kafka_admin', connection_id: '', operation: 'topic_list' };
-    case 'kafka_schema_registry':
-      return { type: 'kafka_schema_registry', connection_id: '', operation: 'list_subjects' };
-    case 'kafka_close':
-      return { type: 'kafka_close', connection_id: '' };
     case 'sse_connect':
       return { type: 'sse_connect', url: 'https://example.com/sse' };
     case 'sse_listen':
@@ -123,42 +95,7 @@ function createNodeData(type: NodeData['type']): NodeData {
       return { type: 'graphql_introspect', connection_id: 'gql-conn-1' };
     case 'graphql_disconnect':
       return { type: 'graphql_disconnect', connection_id: 'gql-conn-1' };
-    case 'amqp_connect':
-      return { type: 'amqp_connect', url: 'amqp://localhost:5672' };
-    case 'amqp_close':
-      return { type: 'amqp_close', connection_id: 'amqp-conn-1' };
-    case 'amqp_exchange_declare':
-      return { type: 'amqp_exchange_declare', connection_id: 'amqp-conn-1', exchange: 'test-exchange', exchange_type: 'direct' };
-    case 'amqp_exchange_delete':
-      return { type: 'amqp_exchange_delete', connection_id: 'amqp-conn-1', exchange: 'test-exchange' };
-    case 'amqp_queue_declare':
-      return { type: 'amqp_queue_declare', connection_id: 'amqp-conn-1', queue: '' };
-    case 'amqp_queue_delete':
-      return { type: 'amqp_queue_delete', connection_id: 'amqp-conn-1', queue: 'test-queue' };
-    case 'amqp_queue_bind':
-      return { type: 'amqp_queue_bind', connection_id: 'amqp-conn-1', queue: 'test-queue', exchange: 'test-exchange' };
-    case 'amqp_publish':
-      return { type: 'amqp_publish', connection_id: 'amqp-conn-1', routing_key: 'test.routing' };
-    case 'amqp_consume':
-      return { type: 'amqp_consume', connection_id: 'amqp-conn-1', queue: 'test-queue' };
-    case 'amqp_get':
-      return { type: 'amqp_get', connection_id: 'amqp-conn-1', queue: 'test-queue' };
-    case 'amqp_ack':
-      return { type: 'amqp_ack', connection_id: 'amqp-conn-1', action: 'ack', delivery_tag: 1 };
-    case 'amqp_management':
-      return { type: 'amqp_management', management_url: 'http://localhost:15672', action: 'overview', connection_id: 'amqp-conn-1' };
-    case 'amqp10_connect':
-      return { type: 'amqp10_connect', url: 'amqp://localhost:5672' };
-    case 'amqp10_send':
-      return { type: 'amqp10_send', connection_id: 'amqp10-conn-1', address: 'test-address' };
-    case 'amqp10_receive':
-      return { type: 'amqp10_receive', connection_id: 'amqp10-conn-1', address: 'test-address' };
-    case 'amqp10_accept':
-      return { type: 'amqp10_accept', connection_id: 'amqp10-conn-1', delivery_id: 1 };
-    case 'amqp10_reject':
-      return { type: 'amqp10_reject', connection_id: 'amqp10-conn-1', delivery_id: 1 };
-    case 'amqp10_disconnect':
-      return { type: 'amqp10_disconnect', connection_id: 'amqp10-conn-1' };
+
     case 'variable_extractor':
       return { type: 'variable_extractor' };
     default:

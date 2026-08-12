@@ -62,10 +62,6 @@ const zh_CN_flow: BaseTranslation = {
   http_example: 'HTTP节点示例流程',
   ws_example: 'WebSocket节点示例流程',
   grpc_example: 'gRPC节点示例流程',
-  mqtt_basic: 'MQTT 基础连接测试',
-  mqtt_request_response: 'MQTT 请求/响应模式',
-  mqtt_basic_desc: '演示 MQTT 连接、订阅、发布和断开的基本工作流',
-  mqtt_request_response_desc: '演示 MQTT 5.0 请求/响应模式，使用 correlation_data 自动匹配',
 
   // 画布空状态
   no_flow_title: '暂无流程',

@@ -240,34 +240,6 @@ export function createDefaultNodeData(type: AnyNodeType): NodeData {
       return { type: 'udp_recv_from', connection_id: '' };
     case 'udp_close':
       return { type: 'udp_close', connection_id: '' };
-    case 'mqtt_connect':
-      return { type: 'mqtt_connect', url: 'mqtt://localhost:1883' };
-    case 'mqtt_publish':
-      return { type: 'mqtt_publish', connection_id: '', topic: '' };
-    case 'mqtt_subscribe':
-      return { type: 'mqtt_subscribe', connection_id: '', topic: '' };
-    case 'mqtt_unsubscribe':
-      return { type: 'mqtt_unsubscribe', connection_id: '', topic: '' };
-    case 'mqtt_disconnect':
-      return { type: 'mqtt_disconnect', connection_id: '' };
-    case 'mqtt_wait_message':
-      return { type: 'mqtt_wait_message', connection_id: '', topic: '' };
-    case 'mqtt_request':
-      return { type: 'mqtt_request', connection_id: '', request_topic: '', response_topic: '' };
-    case 'kafka_connect':
-      return { type: 'kafka_connect', bootstrap_servers: 'localhost:9092' };
-    case 'kafka_produce':
-      return { type: 'kafka_produce', connection_id: '', topic: '' };
-    case 'kafka_consume':
-      return { type: 'kafka_consume', connection_id: '', topic: '' };
-    case 'kafka_consume_batch':
-      return { type: 'kafka_consume_batch', connection_id: '', topic: '' };
-    case 'kafka_admin':
-      return { type: 'kafka_admin', connection_id: '', operation: 'topic_list' };
-    case 'kafka_schema_registry':
-      return { type: 'kafka_schema_registry', connection_id: '', operation: 'list_subjects' };
-    case 'kafka_close':
-      return { type: 'kafka_close', connection_id: '' };
     case 'sse_connect':
       return { type: 'sse_connect', url: '' };
     case 'sse_listen':
@@ -284,74 +256,7 @@ export function createDefaultNodeData(type: AnyNodeType): NodeData {
       return { type: 'graphql_introspect', connection_id: '' };
     case 'graphql_disconnect':
       return { type: 'graphql_disconnect', connection_id: '' };
-    case 'amqp_connect':
-      return { type: 'amqp_connect', url: '' };
-    case 'amqp_close':
-      return { type: 'amqp_close', connection_id: '' };
-    case 'amqp_exchange_declare':
-      return { type: 'amqp_exchange_declare', connection_id: '', exchange: '', exchange_type: 'direct' };
-    case 'amqp_exchange_delete':
-      return { type: 'amqp_exchange_delete', connection_id: '', exchange: '' };
-    case 'amqp_queue_declare':
-      return { type: 'amqp_queue_declare', connection_id: '', queue: '' };
-    case 'amqp_queue_delete':
-      return { type: 'amqp_queue_delete', connection_id: '', queue: '' };
-    case 'amqp_queue_bind':
-      return { type: 'amqp_queue_bind', connection_id: '', queue: '', exchange: '' };
-    case 'amqp_publish':
-      return { type: 'amqp_publish', connection_id: '', routing_key: '' };
-    case 'amqp_consume':
-      return { type: 'amqp_consume', connection_id: '', queue: '' };
-    case 'amqp_get':
-      return { type: 'amqp_get', connection_id: '', queue: '' };
-    case 'amqp_ack':
-      return { type: 'amqp_ack', connection_id: '', action: 'ack', delivery_tag: 0 };
-    case 'amqp_management':
-      return { type: 'amqp_management', management_url: '', action: 'overview', connection_id: '' };
-    case 'amqp10_connect':
-      return { type: 'amqp10_connect', url: '' };
-    case 'amqp10_send':
-      return { type: 'amqp10_send', connection_id: '', address: '' };
-    case 'amqp10_receive':
-      return { type: 'amqp10_receive', connection_id: '', address: '' };
-    case 'amqp10_accept':
-      return { type: 'amqp10_accept', connection_id: '', delivery_id: 0 };
-    case 'amqp10_reject':
-      return { type: 'amqp10_reject', connection_id: '', delivery_id: 0 };
-    case 'amqp10_disconnect':
-      return { type: 'amqp10_disconnect', connection_id: '' };
-    case 'smtp_connect':
-      return { type: 'smtp_connect', host: '', port: 25, tls_mode: 'none' };
-    case 'smtp_send':
-      return { type: 'smtp_send', connection_id: '', from: '', to: [], subject: '', body: '', body_type: 'text' };
-    case 'smtp_disconnect':
-      return { type: 'smtp_disconnect', connection_id: '' };
-    case 'imap_connect':
-      return { type: 'imap_connect', host: '', port: 143, tls_mode: 'none' };
-    case 'imap_select':
-      return { type: 'imap_select', connection_id: '', mailbox: 'INBOX' };
-    case 'imap_search':
-      return { type: 'imap_search', connection_id: '', criteria: 'ALL' };
-    case 'imap_fetch':
-      return { type: 'imap_fetch', connection_id: '', uid_set: '', items: '(ENVELOPE)' };
-    case 'imap_store_flags':
-      return { type: 'imap_store_flags', connection_id: '', uid_set: '', operation: 'add', flags: [] };
-    case 'imap_copy':
-      return { type: 'imap_copy', connection_id: '', uid_set: '', destination_mailbox: '' };
-    case 'imap_move':
-      return { type: 'imap_move', connection_id: '', uid_set: '', destination_mailbox: '' };
-    case 'imap_expunge':
-      return { type: 'imap_expunge', connection_id: '' };
-    case 'imap_list':
-      return { type: 'imap_list', connection_id: '' };
-    case 'imap_folder_create':
-      return { type: 'imap_folder_create', connection_id: '', folder_name: '' };
-    case 'imap_folder_delete':
-      return { type: 'imap_folder_delete', connection_id: '', folder_name: '' };
-    case 'imap_idle':
-      return { type: 'imap_idle', connection_id: '', mailbox: 'INBOX' };
-    case 'imap_close':
-      return { type: 'imap_close', connection_id: '' };
+
     case 'variable_extractor':
       return { type: 'variable_extractor', output_mappings: [], source_node_id: undefined };
     case 'proxy':

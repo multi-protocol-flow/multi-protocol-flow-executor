@@ -15,12 +15,8 @@ import { GenericViewer } from '@/components/execution/viewers/GenericViewer';
 import { GrpcViewer } from '@/components/execution/viewers/GrpcViewer';
 import { TcpUdpViewer } from '@/components/execution/viewers/TcpUdpViewer';
 import { McpViewer } from '@/components/execution/viewers/McpViewer';
-import { MqttViewer } from '@/components/execution/viewers/MqttViewer';
-import { KafkaViewer } from '@/components/execution/viewers/KafkaViewer';
 import { SseViewer } from '@/components/execution/viewers/SseViewer';
 import { GraphqlViewer } from '@/components/execution/viewers/GraphqlViewer';
-import { AmqpViewer } from '@/components/execution/viewers/AmqpViewer';
-import { EmailViewer } from '@/components/execution/viewers/EmailViewer';
 import { PluginIframeViewer } from '@/components/execution/viewers/PluginIframeViewer';
 
 interface ViewerProps {
@@ -70,20 +66,6 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   udp_send_to: TcpUdpViewer,
   udp_recv_from: TcpUdpViewer,
   udp_close: TcpUdpViewer,
-  mqtt_connect: MqttViewer,
-  mqtt_publish: MqttViewer,
-  mqtt_subscribe: MqttViewer,
-  mqtt_unsubscribe: MqttViewer,
-  mqtt_disconnect: MqttViewer,
-  mqtt_wait_message: MqttViewer,
-  mqtt_request: MqttViewer,
-  kafka_connect: KafkaViewer,
-  kafka_produce: KafkaViewer,
-  kafka_consume: KafkaViewer,
-  kafka_consume_batch: KafkaViewer,
-  kafka_admin: KafkaViewer,
-  kafka_schema_registry: KafkaViewer,
-  kafka_close: KafkaViewer,
   sse_connect: SseViewer,
   sse_listen: SseViewer,
   sse_disconnect: SseViewer,
@@ -92,43 +74,7 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   graphql_subscribe: GraphqlViewer,
   graphql_introspect: GraphqlViewer,
   graphql_disconnect: GraphqlViewer,
-  amqp_connect: AmqpViewer,
-  amqp_close: AmqpViewer,
-  amqp_exchange_declare: AmqpViewer,
-  amqp_exchange_delete: AmqpViewer,
-  amqp_queue_declare: AmqpViewer,
-  amqp_queue_delete: AmqpViewer,
-  amqp_queue_bind: AmqpViewer,
-  amqp_publish: AmqpViewer,
-  amqp_consume: AmqpViewer,
-  amqp_get: AmqpViewer,
-  amqp_ack: AmqpViewer,
-  amqp_management: AmqpViewer,
-  amqp10_connect: AmqpViewer,
-  amqp10_send: AmqpViewer,
-  amqp10_receive: AmqpViewer,
-  amqp10_accept: AmqpViewer,
-  amqp10_reject: AmqpViewer,
-  amqp10_disconnect: AmqpViewer,
   variable_extractor: GenericViewer,
-  // SMTP 节点
-  smtp_connect: GenericViewer,
-  smtp_send: GenericViewer,
-  smtp_disconnect: GenericViewer,
-  // IMAP 节点
-  imap_connect: EmailViewer,
-  imap_select: EmailViewer,
-  imap_search: EmailViewer,
-  imap_fetch: EmailViewer,
-  imap_store_flags: EmailViewer,
-  imap_copy: EmailViewer,
-  imap_move: EmailViewer,
-  imap_expunge: EmailViewer,
-  imap_list: EmailViewer,
-  imap_folder_create: EmailViewer,
-  imap_folder_delete: EmailViewer,
-  imap_idle: EmailViewer,
-  imap_close: EmailViewer,
   proxy: GenericViewer,
 };
 

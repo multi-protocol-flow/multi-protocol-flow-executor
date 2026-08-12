@@ -14,13 +14,6 @@ describe('viewer i18n module', () => {
     expect(typeof success).toBe('string');
   });
 
-  it('provides amqp translation keys', () => {
-    const LL = getLL();
-    const connected = LL.viewer.amqp.status_connected();
-    const failed = LL.viewer.amqp.status_connection_failed();
-    expect(typeof connected).toBe('string');
-    expect(typeof failed).toBe('string');
-  });
 
   it('provides http translation keys', () => {
     const LL = getLL();

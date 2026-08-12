@@ -79,30 +79,7 @@ const zh_CN_errors: BaseTranslation = {
   E_GRAPHQL_INTROSPECTION: 'GraphQL 内省失败: {url}',
   E_GRAPHQL_CLOSE: 'GraphQL 连接已关闭: {url}',
 
-  // AMQP
-  E_AMQP_CONNECTION: 'AMQP 连接失败: {addr}',
-  E_AMQP_CHANNEL: 'AMQP 通道错误: {addr}',
-  E_AMQP_PUBLISH: 'AMQP 发布错误: {addr}',
-  E_AMQP_CONSUME: 'AMQP 消费错误: {addr}',
-  E_AMQP_QUEUE: 'AMQP 队列错误: {addr}',
-  E_AMQP_EXCHANGE: 'AMQP 交换机错误: {addr}',
-  E_AMQP_ACK: 'AMQP 确认错误: {addr}',
-  E_AMQP_MANAGEMENT: 'AMQP 管理错误: {addr}',
-  E_AMQP_PROTOCOL: 'AMQP 协议错误: {addr}',
 
-  // SMTP
-  E_SMTP_CONNECTION: 'SMTP 连接失败: {host}',
-  E_SMTP_SEND: 'SMTP 发送错误: {host}',
-  E_SMTP_AUTH: 'SMTP 认证失败: {host}',
-  E_SMTP_TIMEOUT: 'SMTP 超时: {host}',
-
-  // IMAP
-  E_IMAP_CONNECTION: 'IMAP 连接失败: {host}',
-  E_IMAP_FETCH: 'IMAP 获取错误: {host}',
-  E_IMAP_SEARCH: 'IMAP 搜索错误: {host}',
-  E_IMAP_AUTH: 'IMAP 认证失败: {host}',
-  E_IMAP_STORE: 'IMAP 存储错误: {host}',
-  E_IMAP_TIMEOUT: 'IMAP 超时: {host}',
 
   // Non-protocol
   E_VARIABLE_EXTRACTOR_FAILED: '变量提取失败: {path}',

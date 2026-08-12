@@ -21,7 +21,6 @@ import {
   Cable,
   PhoneOutgoing,
   PhoneOff,
-  Mail,
   Search,
   X,
 } from 'lucide-react';
@@ -75,14 +74,10 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   assertion: CheckCircle,
   grpc: Network,
   mcp: Puzzle,
-  mqtt: Wifi,
-  kafka: Send,
   sse: Globe,
   graphql: Globe,
   tcp: Cable,
   udp: Send,
-  amqp: Plug,
-  email: Mail,
   MongoDB: Database,
 };
 
@@ -196,16 +191,12 @@ const SUPER_CATEGORIES: SuperCategory[] = [
     categories: ['grpc', 'mcp'],
   },
   {
-    key: 'messaging',
-    categories: ['mqtt', 'kafka', 'amqp'],
-  },
-  {
     key: 'tools',
     categories: ['tools', 'script', 'assertion'],
   },
   {
     key: 'other',
-    categories: ['database', 'email', 'tcp', 'udp', 'MongoDB'],
+    categories: ['database', 'tcp', 'udp', 'MongoDB'],
   },
 ];
 
@@ -274,15 +265,11 @@ const PALETTE_MAX_HEIGHT = 420;
 /** 关键词别名映射 */
 const SEARCH_ALIASES: Record<string, string[]> = {
   rest: ['http'],
-  pubsub: ['mqtt', 'kafka'],
-  stream: ['kafka_consume', 'kafka_produce', 'sse_listen'],
-  queue: ['mqtt_subscribe', 'amqp_consume'],
-  trigger: ['mqtt_subscribe', 'sse_listen'],
+  stream: ['sse_listen'],
+  trigger: ['sse_listen'],
   rpc: ['grpc_call'],
   tool: ['mcp_call_tool'],
-  email: ['smtp_send', 'imap_fetch'],
-  realtime: ['ws_connect', 'sse_listen', 'mqtt_subscribe'],
-  schedule: ['mqtt_subscribe', 'kafka_consume'],
+  realtime: ['ws_connect', 'sse_listen'],
   crud: ['http'],
 };
 

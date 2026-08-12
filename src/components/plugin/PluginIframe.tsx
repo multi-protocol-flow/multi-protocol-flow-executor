@@ -4,7 +4,7 @@
  * 渲染插件作者的 HTML 配置面板并桥接宿主：
  * - sandbox 仅 `allow-scripts`（D2，禁止 allow-same-origin → 不透明源，
  *   阻断插件 HTML 访问父 DOM / `window.__TAURI__`，RCE 防御核心。
- *   注意：不要模仿 EmailViewer 的 `srcDoc + allow-same-origin` 模式）
+ *   注意：不要模仿 `srcDoc + allow-same-origin` 模式）
  * - src 来自 `meta.frontend.url`（macOS/Linux `mpe-plugin://<id>.localhost/...`、
  *   Windows `http://mpe-plugin.<id>.localhost/...`）
  * - 双向 postMessage 桥由 usePluginIframe 管理（D3 origin + source 双校验）

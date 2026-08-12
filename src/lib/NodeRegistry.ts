@@ -77,14 +77,10 @@ export const CATEGORY_NAMES: Record<string, string> = {
   get assertion() { return getLL().nodes.category.assertion(); },
   get grpc() { return getLL().nodes.category.grpc(); },
   get mcp() { return getLL().nodes.category.mcp(); },
-  get mqtt() { return getLL().nodes.category.mqtt(); },
-  get kafka() { return getLL().nodes.category.kafka(); },
   get sse() { return getLL().nodes.category.sse(); },
   get graphql() { return getLL().nodes.category.graphql(); },
-  get amqp() { return getLL().nodes.category.amqp(); },
   get tcp() { return getLL().nodes.category.tcp(); },
   get udp() { return getLL().nodes.category.udp(); },
-  get email() { return getLL().nodes.category.email(); },
   MongoDB: 'MongoDB',
 };
 
@@ -94,9 +90,8 @@ export const CATEGORY_NAMES: Record<string, string> = {
  *
  * 网络: http(0), websocket(1), sse(2), graphql(3)
  * 服务: grpc(10), mcp(11)
- * 消息: mqtt(20), kafka(21), amqp(22)
  * 工具: tools(30), script(31), assertion(32)
- * 其他: database(40), email(41), tcp(42), udp(43)
+ * 其他: database(40), tcp(42), udp(43)
  */
 export const CATEGORY_ORDER: Record<string, number> = {
   http: 0,
@@ -105,14 +100,10 @@ export const CATEGORY_ORDER: Record<string, number> = {
   graphql: 3,
   grpc: 10,
   mcp: 11,
-  mqtt: 20,
-  kafka: 21,
-  amqp: 22,
   tools: 30,
   script: 31,
   assertion: 32,
   database: 40,
-  email: 41,
   tcp: 42,
   udp: 43,
   MongoDB: 44,
@@ -145,23 +136,6 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   mcp_get_prompt: 3,
   mcp_close: 4,
 
-  // MQTT: 连接 → 发布 → 订阅 → 取消订阅 → 断开 → 等待消息 → 请求
-  mqtt_connect: 0,
-  mqtt_publish: 1,
-  mqtt_subscribe: 2,
-  mqtt_unsubscribe: 3,
-  mqtt_disconnect: 4,
-  mqtt_wait_message: 5,
-  mqtt_request: 6,
-
-  // Kafka: 连接 → 生产 → 消费 → 批量消费 → 管理 → Schema Registry → 关闭
-  kafka_connect: 0,
-  kafka_produce: 1,
-  kafka_consume: 2,
-  kafka_consume_batch: 3,
-  kafka_admin: 4,
-  kafka_schema_registry: 5,
-  kafka_close: 6,
 
   // SSE: 连接 → 监听 → 断开
   sse_connect: 0,
@@ -175,25 +149,6 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   graphql_introspect: 3,
   graphql_disconnect: 4,
 
-  // AMQP: 连接 → 交换器声明 → 交换器删除 → 队列声明 → 队列删除 → 队列绑定 → 发布 → 消费 → 获取 → 确认 → 管理 → 关闭 → AMQP1.0连接 → 发送 → 接收 → 确认 → 拒绝 → 断开
-  amqp_connect: 0,
-  amqp_exchange_declare: 1,
-  amqp_exchange_delete: 2,
-  amqp_queue_declare: 3,
-  amqp_queue_delete: 4,
-  amqp_queue_bind: 5,
-  amqp_publish: 6,
-  amqp_consume: 7,
-  amqp_get: 8,
-  amqp_ack: 9,
-  amqp_management: 10,
-  amqp_close: 11,
-  amqp10_connect: 12,
-  amqp10_send: 13,
-  amqp10_receive: 14,
-  amqp10_accept: 15,
-  amqp10_reject: 16,
-  amqp10_disconnect: 17,
 
   // TCP: 连接 → 发送 → 接收 → 关闭
   tcp_connect: 0,
@@ -207,25 +162,6 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   udp_recv_from: 2,
   udp_close: 3,
 
-  // Email - SMTP: 连接 → 发送 → 断开
-  smtp_connect: 0,
-  smtp_send: 1,
-  smtp_disconnect: 2,
-
-  // Email - IMAP: 连接 → 选择 → 搜索 → 获取 → 标记 → 复制 → 移动 → 清理 → 列表 → 创建文件夹 → 删除文件夹 → 等待 → 关闭
-  imap_connect: 0,
-  imap_select: 1,
-  imap_search: 2,
-  imap_fetch: 3,
-  imap_store_flags: 4,
-  imap_copy: 5,
-  imap_move: 6,
-  imap_expunge: 7,
-  imap_list: 8,
-  imap_folder_create: 9,
-  imap_folder_delete: 10,
-  imap_idle: 11,
-  imap_close: 12,
 
   // 工具: 条件判断 → 脚本 → 断言 → 变量提取 → 代理 → 结束
   conditional: 0,
@@ -263,20 +199,6 @@ export function getBadgeClassForType(typeId: string): string {
     mcp_read_resource: 'bg-amber-100 text-amber-700',
     mcp_get_prompt: 'bg-amber-100 text-amber-700',
     mcp_close: 'bg-amber-100 text-amber-700',
-    mqtt_connect: 'bg-cyan-100 text-cyan-700',
-    mqtt_publish: 'bg-cyan-100 text-cyan-700',
-    mqtt_subscribe: 'bg-cyan-100 text-cyan-700',
-    mqtt_unsubscribe: 'bg-cyan-100 text-cyan-700',
-    mqtt_disconnect: 'bg-cyan-100 text-cyan-700',
-    mqtt_wait_message: 'bg-cyan-100 text-cyan-700',
-    mqtt_request: 'bg-cyan-100 text-cyan-700',
-    kafka_connect: 'bg-rose-100 text-rose-700',
-    kafka_produce: 'bg-rose-100 text-rose-700',
-    kafka_consume: 'bg-rose-100 text-rose-700',
-    kafka_consume_batch: 'bg-rose-100 text-rose-700',
-    kafka_admin: 'bg-rose-100 text-rose-700',
-    kafka_schema_registry: 'bg-rose-100 text-rose-700',
-    kafka_close: 'bg-rose-100 text-rose-700',
     variable_extractor: 'bg-amber-100 text-amber-700',
     proxy: 'bg-lime-100 text-lime-700',
     end: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
@@ -296,42 +218,6 @@ export function getBadgeClassForType(typeId: string): string {
     graphql_subscribe: 'bg-indigo-100 text-indigo-700',
     graphql_introspect: 'bg-indigo-100 text-indigo-700',
     graphql_disconnect: 'bg-indigo-100 text-indigo-700',
-    amqp_connect: 'bg-violet-100 text-violet-700',
-    amqp_close: 'bg-violet-100 text-violet-700',
-    amqp_exchange_declare: 'bg-violet-100 text-violet-700',
-    amqp_exchange_delete: 'bg-violet-100 text-violet-700',
-    amqp_queue_declare: 'bg-violet-100 text-violet-700',
-    amqp_queue_delete: 'bg-violet-100 text-violet-700',
-    amqp_queue_bind: 'bg-violet-100 text-violet-700',
-    amqp_publish: 'bg-violet-100 text-violet-700',
-    amqp_consume: 'bg-violet-100 text-violet-700',
-    amqp_get: 'bg-violet-100 text-violet-700',
-    amqp_ack: 'bg-violet-100 text-violet-700',
-    amqp_management: 'bg-violet-100 text-violet-700',
-    amqp10_connect: 'bg-purple-100 text-purple-700',
-    amqp10_send: 'bg-purple-100 text-purple-700',
-    amqp10_receive: 'bg-purple-100 text-purple-700',
-    amqp10_accept: 'bg-purple-100 text-purple-700',
-    amqp10_reject: 'bg-purple-100 text-purple-700',
-    amqp10_disconnect: 'bg-purple-100 text-purple-700',
-    // Email - SMTP (橙色)
-    smtp_connect: 'bg-orange-100 text-orange-700',
-    smtp_send: 'bg-orange-100 text-orange-700',
-    smtp_disconnect: 'bg-orange-100 text-orange-700',
-    // Email - IMAP (蓝色)
-    imap_connect: 'bg-blue-100 text-blue-700',
-    imap_select: 'bg-blue-100 text-blue-700',
-    imap_search: 'bg-blue-100 text-blue-700',
-    imap_fetch: 'bg-blue-100 text-blue-700',
-    imap_store_flags: 'bg-blue-100 text-blue-700',
-    imap_copy: 'bg-blue-100 text-blue-700',
-    imap_move: 'bg-blue-100 text-blue-700',
-    imap_expunge: 'bg-blue-100 text-blue-700',
-    imap_list: 'bg-blue-100 text-blue-700',
-    imap_folder_create: 'bg-blue-100 text-blue-700',
-    imap_folder_delete: 'bg-blue-100 text-blue-700',
-    imap_idle: 'bg-blue-100 text-blue-700',
-    imap_close: 'bg-blue-100 text-blue-700',
   };
   return badgeMap[typeId] ?? 'bg-slate-100 text-slate-700';
 }

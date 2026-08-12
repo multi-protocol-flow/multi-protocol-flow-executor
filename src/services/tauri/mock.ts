@@ -502,37 +502,6 @@ export async function discoverMcpTools(
 }
 
 // ============================================================================
-// MQTT Mock
-// ============================================================================
-
-/**
- * Mock 测试 MQTT Broker 连接
- * 模拟后端 mqtt_test_connection 命令行为
- *
- * @param _input - MQTT 测试连接请求参数（Mock 中未使用）
- * @returns 模拟的连接测试结果
- */
-export async function testMqttConnection(
-  _input: import('./mqtt').MqttTestConnectionInput
-): Promise<import('./mqtt').MqttTestConnectionOutput> {
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
-  return {
-    success: true,
-    broker_info: {
-      version: 'MQTT 5.0',
-      session_present: false,
-      assigned_client_id: 'mock-client-001',
-      server_keep_alive: 60,
-      topic_alias_max: 10,
-      receive_max: 20,
-      shared_subscription_available: true,
-      wildcard_sub_available: true,
-    },
-  };
-}
-
-// ============================================================================
 // SSE Mock
 // ============================================================================
 
@@ -545,24 +514,6 @@ export async function testMqttConnection(
  */
 export async function testSseConnection(
   _input: import('./sse').SseTestConnectionInput
-): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 200));
-  return true;
-}
-
-// ============================================================================
-// AMQP Mock
-// ============================================================================
-
-/**
- * Mock 测试 AMQP 连接
- * 模拟后端 amqp_test_connection 命令行为
- *
- * @param _input - AMQP 测试连接请求参数（Mock 中未使用）
- * @returns 模拟的连接测试结果
- */
-export async function testAmqpConnection(
-  _input: import('./amqp').AmqpTestConnectionInput
 ): Promise<boolean> {
   await new Promise((resolve) => setTimeout(resolve, 200));
   return true;
