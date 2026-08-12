@@ -31,10 +31,10 @@ components/
 │   ├── VariableTreeView / VariableDependencyGraph
 │   └── viewers/ (20)     各协议查看器
 ├── sidebar/ (3)          LeftSidebarPanel + FlowListPanel
-├── dialogs/ (10)         NewFlow/Confirm/Debug/ScriptHelp/Shortcuts/Search/
+├── dialogs/ (9)         NewFlow/Confirm/Debug/ScriptHelp/Shortcuts/Search/
 │                         ValidationError/SkipNode/Update/Connection
-├── ui/ (26)              shadcn/ui 基座 + VariableInput/VariableSelector/
-│                         ConfigSection/DbResultPreview/SearchableSelect
+├── ui/ (25)              shadcn/ui 基座 + VariableInput/VariableSelector/
+│                         ConfigSection/SearchableSelect
 ├── stress-test/ (4)      ConfigDialog/Monitor/Charts/Result
 ├── reports/ (5)          DatasetReportList/Detail/Dialog/RowDetail
 ├── welcome/ (2)          WelcomeWizard + GuideHighlighter

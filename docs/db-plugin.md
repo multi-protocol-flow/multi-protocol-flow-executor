@@ -1,9 +1,27 @@
 # db 节点插件化实施技术文档（第三方视角试点）
 
-> **Status:** 实施设计（Approved 2026-08-06）
+> **Status:** 已实施（2026-08-11，含实施后修订）
 > **范围:** 内置 db 节点（`flow-engine-db`）从宿主剥离，以第三方 sidecar 插件形式重新提供 6 个 db 节点
 > **关联文档:** `docs/plugin-architecture.md`（方案）、`docs/plugin-protocol.md`（wire 规范）、`docs/plugin-sdk.md`（作者指南）
-> **仓库位置:** `plugins/db/`（独立工程；注意当前**未被 `.gitignore` 忽略**，如需不随仓库跟踪须显式添加 ignore 规则，见 §11）
+> **仓库位置:** `plugins/db/`（独立工程；**已被 `.gitignore` 的 `/plugins/` 规则忽略**，不随宿主仓库跟踪）
+
+---
+
+## 0. 实施后修订（2026-08-11，相对本设计的三处决策变更）
+
+本文档其余部分为 2026-08-06 批准的设计；实际实施按以下决策执行，**以下列为准**：
+
+1. **type_id 用命名空间 `db:connect` 等（非本文档 §1.3/§3.3 的裸 `db_connect`）**。连锁简化：
+   - **§4.1 reserved 移出 → 不需要**：`db:connect` 不在 `RESERVED_TYPE_IDS`，插件注册天然无冲突、无冒充问题（reserved 中裸 db id 随内置移除清理）。
+   - **§4.2 sidecar config 提取通用化 → 不需要**：`NodeData` 自定义反序列化对未知 type 兜底 `Plugin(Value)`，`db:connect` 直接走现有 `NodeData::Plugin` 提取路径。
+   - **存量流程文件失效**：`type: "db_connect"` 不再映射显式变体；已迁移 `tests/cli/` 4 个夹具 + `builtinFlows.ts` 2 处模板为命名空间。
+2. **NodeData/NodeType 的 db 变体彻底删除**（非 §1.3 路线 Y 死类型保留）：`node_config.rs`/`node.rs`/`node_types.rs` 的 db 6 变体、config 结构、构造器、反序列化分支全部删除。
+3. **SchemaConfigPanel 增强**（非 §3.3 收敛最小字段集）：新增 `format:'password'`（掩码）与 `format:'sql'`（多行），db 插件 config_schema 承载完整字段集；`x-node-selector` 连接选择器（mongo 先例）解决 connection_uuid 手输问题。
+4. **§4.8 宿主默认路由已实现**（wrapper `default_success_port` + sidecar 从 describe ports 推导）——插件无需显式 `next_ports`，端到端验证通过。
+5. **CLI 三通道已接入插件 registry**（validate/run-node/debug），§9 风险 10 已解决。
+6. **分发按 §11 的"独立工程不入仓库"路径**：无 CI 构建、无 installer seed；本地 `cargo build --manifest-path plugins/db/Cargo.toml` + 手工拷入 `MPE_PLUGIN_DIR`（与 redis/mongo 一致）。
+
+**实施验证（全部通过）**：`cargo tree -i sqlx -p app` 0 命中（sqlx 完全退出宿主编译图，含 workspace-hack 再生成）；`get_registered_node_types` 无内置 db_*；`mpe run` 跑迁移后夹具端到端成功（含事务 begin→insert→count→commit→verify）；`mpe validate` 对 db:connect 流程 valid；前端 `npm run typecheck`/`vite build` 通过、测试无 db 回归。
 
 ---
 
@@ -64,9 +82,9 @@
 ```
 
 **关键事实**（已验证）：
-- `map_execute_response`（`wrapper.rs:65`）在插件 `success:false` 时返回 `Err(ErrorDetail)` → **on_error 三策略（RouteToFalse/Ignore/AbortFlow）对插件节点天然生效**（executor.rs:765-914 外层统一处理），无需补丁
+- `map_execute_response`（`wrapper.rs:92`）在插件 `success:false` 时返回 `Err(ErrorDetail)` → **on_error 三策略（RouteToFalse/Ignore/AbortFlow）对插件节点天然生效**（executor.rs:765-914 外层统一处理），无需补丁
 - `NodeData` 序列化为 `#[serde(tag = "type")]`（`node_config.rs:3519`），config 字段平铺同层，`to_value` 后剥 `type` 即得前端 config 形状
-- **`next_ports` 契约断裂（需 §4.8 修复）**：SDK（`mpe-plugin-sdk/src/types.rs:91-92`）声明 `next_ports` 为空时"宿主应用默认路由"，但宿主 `wrapper.rs:106-115` 对空数组直接 `unwrap_or_default()`，`executor.rs:663-684` 对"空 next + 端口路由节点"判 `None` → **break 静默断链**——最小插件（`ExecuteResult::ok(...)`）会让流程在第一个成功节点中途终止
+- **`next_ports` 契约（§4.8 已落地）**：SDK（`mpe-plugin-sdk/src/types.rs:91-92`）声明 `next_ports` 为空时"宿主应用默认路由"；宿主 `wrapper.rs` `map_execute_response`（`wrapper.rs:92`）对空 `next_ports` 注入 describe 推导的 `default_success_port`（`wrapper.rs:33`：含 `"true"` → `"true"`，否则唯一非 `in` 端口如 `db:close` 的 `"out"`；显式 `next_ports` 仍优先）——最小插件（`ExecuteResult::ok(...)`）即可正确路由
 
 ---
 
@@ -133,10 +151,9 @@ describe 每个节点提供：
 - `default_config`：对齐内置 config 字段形状（如 `db_connect`：`connection_uuid/driver/connection_string/host/port/database/username/password/min_connections/max_connections/test_query/connect_timeout_ms`）
 - `config_schema`：JSON Schema，经 §4.7 宿主前端管道下发后驱动前端 `SchemaConfigPanel` 动态表单（前端移除 db 面板后的配置入口；管道未落地前该字段不达前端、不驱动表单）
 
-**config_schema 能力底线（硬约束）**：`SchemaConfigPanel.tsx` 仅支持 string+enum→Select、string→单行 Input、integer/number、boolean→Switch、未知→text；**不支持** oneOf/anyOf/conditional/dependencies，**无** `format:password` 掩码，**无** textarea（多行 SQL → 只能单行），必填仅表现为星号。故 `db_connect` 的 `config_schema` **收敛到最小可用字段集**（超出面板底线的不进动态表单）：
-- 必选：`connection_uuid`（string，可留空触发 §3.4 兜底）、`driver`（enum: sqlite/mysql/postgres）、`connection_string`（string）
-- 可选：`test_query`（string 单行）、`connect_timeout_ms`（integer）、`min_connections`（integer）、`max_connections`（integer）
-- 不收录：`host/port/database/username/password` 等（面板无法承载 → 不进 schema，避免渲染出错误的裸输入框）
+**config_schema 能力底线（已实施增强，§0.3 修订）**：`SchemaConfigPanel.tsx` 支持 string+enum→Select、string→Input（含 `format:'password'` 掩码、`format:'sql'` 多行 textarea、`format:'json'` 多行 JSON、`x-node-selector` 跨节点选择器）、array→JSON 数组编辑、integer/number、boolean→Switch、未知→text；**仍不支持** oneOf/anyOf/conditional/dependencies，必填仅表现为星号。故 db 插件 `config_schema` **承载完整字段集**（不收敛最小集）：
+- `db:connect`：`connection_uuid`（留空触发 §3.4 兜底）、`driver`（enum: sqlite/mysql/postgres）、`connection_string` + `host/port/database/username/password`（connection_string 为空时拼 URL）、`min_connections`/`max_connections`/`test_query`/`connect_timeout_ms`
+- `db:query`：`connection_uuid`（x-node-selector 选 db:connect 节点）、`sql`（format:'sql' 多行）、`params`（array JSON 编辑）、`fetch_mode`（enum）、`result_to`、`timeout_ms`
 
 **output_data / variable_updates / 路由契约（宿主默认路由）**：
 - **`next_ports` 无需插件返回**：6 个 db 节点均为二态或单端口节点，路由由**宿主默认推导**——success → `"true"`（db_connect/query/begin/commit/rollback）或 `"out"`（db_close），failure → 宿主 `on_error` 三策略处理（RouteToFalse → false 端口 / Ignore → true 继续 / AbortFlow → 终止，见 §2）。插件只需返回 `success` + `output_data` + `variable_updates`，用 SDK 惯用法 `ExecuteResult::ok(output)` 即可正确路由（依赖 §4.8 宿主默认路由落地）。
@@ -178,7 +195,7 @@ struct DbPluginState {
 
 | 操作 | 语义（复刻内置 `pool.rs`） |
 |---|---|
-| `create_pool(key, entry)` | **原子插入**（`HashMap::entry`/CAS，**非 check-then-set**）：已存在 → `Err("连接池已存在")`——绝不覆盖。**注**：内置 `pool.rs:155-162` 实为"写锁内 contains_key→insert"（锁内无 TOCTOU，语义等价原子）——此处的"非 check-then-set"是**对插件的实现要求**（单写锁也可，效果相同），非断言内置用了 CAS |
+| `create_pool(key, entry)` | **幂等复用（已实施语义，§0 修订）**：同 `(execution_id, connection_uuid)` 且目标相同 → 复用既有池（`replaced=false`）；目标不同 → 告警替换旧池（`replaced=true`）；**无错误路径**（原设计"已存在 → `Err("连接池已存在")` 绝不覆盖"未采纳，§8.8(a) 断言已相应更新）。隔离由 execution_id 保证 |
 | `get_pool(key)` | 取池 + 刷新 `last_used_at`（喂回收，§3.6） |
 | `close_pool(key)` | 原子移除 + `pool.close()` + 清事务状态 |
 | `begin/commit/rollback(key)` | 事务状态机（见 §3.5） |
@@ -306,8 +323,8 @@ let message = errors
 **验证**：`cargo tree -p app` 无 `flow-engine-db`；`cargo tree -i sqlx -p app` **0 命中**（hakari 再生成后 sqlx 完全退出宿主编译图，见 §8.1）；`get_registered_node_types` 无内置 `db_*` type_id（见 §8.1）。
 
 **移除清单连锁（测试/夹具，M5 同步项）**：
-- `reserved.rs:191` 断言 `len()==91`（移出 db 6 → 85，必须同步更新）
-- `default_registry.rs:259-274` `test_plugin_count_matches_features` 的 `expected += 6`（protocol-db 分支）
+- `reserved.rs:185` 断言 `len()==88`（redis 移出时 91→88；本次移出 db 6 → 82，已同步更新）
+- `default_registry.rs:245` 起 `test_plugin_count_matches_features` 的 protocol-db 分支（原 `expected += 6`）已随 feature 移除删除
 - `tests/cli/` 下 db_mysql / db_sqlite / db_postgres / db_transaction 4 个 db 流程夹具——M0 后 cargo test 会失败，需处置策略（保留作 M1 兼容门，测试注入 `MPE_PLUGIN_DIR` 指向插件二进制；或标注 `#[ignore]` 直到插件可用）
 
 ### 4.6 可选小修
@@ -316,13 +333,11 @@ let message = errors
 
 ### 4.7 宿主前端 `config_schema` 管道
 
-**现状问题**：§3.3 与 §5 依赖"`config_schema` 驱动 `SchemaConfigPanel` 动态表单"，但该字段**从未到达前端**：
-- 后端 `NodeMetadata`（`flow-engine-core/src/plugin.rs:31-46`）**没有 `config_schema` 字段**
-- `all_metadata()`（`registry.rs:40-43`）构造 metadata 时丢弃 schema
-- `get_registered_node_types`（`tauri_commands.rs:3697`）返回的即该 metadata
-- 前端 `cachedMetadata` **仅**由该 IPC 填充（`NodeRegistry.ts:34`）
-- `get_node_config_schema` IPC 存在（`tauri_commands.rs:3706-3713`），但 `src/` 内**无人调用**（仅 `mock.ts:342/347` 模拟）
-- 结果：`meta?.config_schema`（`NodeConfigPanel.tsx:312`）恒为 `undefined` → `SchemaConfigPanel` 渲染空白 "no fields" 占位
+**现状（已实施，§0.3 修订）**：§3.3 依赖的"`config_schema` 驱动 `SchemaConfigPanel` 动态表单"管道已落地：
+- 后端 `NodeMetadata`（`flow-engine-core/src/plugin.rs:64`）**已含 `config_schema` 字段**
+- `all_metadata()`（`registry.rs:51`）透传 schema
+- `get_registered_node_types`（`tauri_commands.rs:3514`）返回含 schema 的 metadata；`get_node_config_schema` IPC（`tauri_commands.rs:3523`）亦存在
+- 前端 `cachedMetadata` 由该 IPC 填充（`NodeRegistry.ts:34`），`NodeConfigPanel.tsx:331` 经 `meta?.config_schema` 驱动 `SchemaConfigPanel` 动态表单（db 插件节点即经此渲染）
 
 **必选管道（本文档选定方案 i）**：
 
@@ -330,15 +345,15 @@ let message = errors
 >
 > 备选方案 ii：前端在 `meta.config_schema` 缺失时按 type_id 懒调用 `get_node_config_schema`——需新增 loading 态与缓存，mock 层需同步；本次**不采用**。
 
-**验证**：`get_registered_node_types` 返回的 db 节点 metadata 带 `config_schema`；前端选中 db 节点后 `SchemaConfigPanel` 渲染非空动态表单。此管道未落地前，db 配置面板**不得移除**（见 §5、§9 风险 3、M3 决策门）。
+**验证（通过）**：`get_registered_node_types` 返回的 db 节点 metadata 带 `config_schema`；前端选中 db 节点后 `SchemaConfigPanel` 渲染非空动态表单（driver 下拉 + connection_string + SQL 多行 + params 数组）。
 
-### 4.8 `wrapper.rs` 宿主默认路由（兑现 SDK 空 next_ports 契约）
+### 4.8 `wrapper.rs` 宿主默认路由（兑现 SDK 空 next_ports 契约）— 已实施
 
-- **位置**：`flow-engine-plugin/src/wrapper.rs:106-115`（`map_execute_response` success 分支）+ `sidecar.rs`（`SidecarPlugin::execute` 调用处）
-- **现状问题**：SDK（`mpe-plugin-sdk/src/types.rs:91-92`）声明 `next_ports` 为 "Explicitly chosen next ports; **empty lets the host apply its default routing**"——空数组 = 宿主应用默认路由。但宿主 `wrapper.rs:106-115` 对空 `next_ports` 用 `unwrap_or_default()` 得空数组，`executor.rs:663-684` 对"空 next + 端口路由节点（`is_port_routing` 默认 true，`core/plugin.rs:93-95`）"判 `None` → **break 静默终止**。SDK 承诺的默认路由宿主从未实现，契约断裂——按最小形态编写的插件（`ExecuteResult::ok(output)`）会让流程在第一个成功节点静默断链。
-- **改造**：`map_execute_response` 增加 `default_success_port: Option<String>` 参数（由 `SidecarPlugin` 从 describe 得到的 `NodeDescription.ports` 推导：ports 含 `"true"` → `"true"`；否则 ports 中唯一的非 `"in"` 端口 → 该端口；否则 `None`）。success 且 `next_ports` 缺失/为空时，用默认端口替换空数组后再 `resolve_next_node_ids`。
-- **语义**：插件仍可显式返回 `next_ports` 覆盖默认路由（多分支节点）；二态/单端口节点（success/failure 或 out）零负担——`success` 标志 + 端口布局即可推导路由，下一跳归属宿主（`resolve_next_node_ids` 按 `connections` 解析，插件永不接触流程拓扑）。
-- **验证**：`ExecuteResult::ok(...)` 最小插件 → db_connect 成功后流程继续（不 break）；插件显式 `next_ports:["out"]` 仍生效。
+- **位置**：`flow-engine-plugin/src/wrapper.rs:33`（`default_success_port`）+ `wrapper.rs:92`（`map_execute_response`，含 `default_success_port` 参数）+ `sidecar.rs:225`（`SidecarPlugin::execute` 从 describe ports 推导传入）。
+- **契约**：SDK（`mpe-plugin-sdk/src/types.rs:91-92`）声明 `next_ports` 为 "Explicitly chosen next ports; **empty lets the host apply its default routing**"——空数组 = 宿主应用默认路由。此前宿主对空 `next_ports` 得空数组 → `executor.rs` 对"空 next + 端口路由节点"判 `None` → **break 静默终止**（最小插件让流程在第一个成功节点断链）。
+- **实现**：`default_success_port(ports)` 从 describe ports 推导：ports 含 `"true"` → `"true"`；否则 ports 中唯一的非 `"in"` 端口 → 该端口（如 `db:close` 的 `"out"`）；否则 `None`。success 且 `next_ports` 缺失/为空时，用默认端口替换空数组后再 `resolve_next_node_ids`。
+- **语义**：插件显式返回 `next_ports` 仍覆盖默认路由（多分支节点）；二态/单端口节点零负担——下一跳归属宿主（`resolve_next_node_ids` 按 `connections` 解析，插件永不接触流程拓扑）。
+- **验证（通过）**：`ExecuteResult::ok(...)` 最小插件 → db_connect 成功后流程继续（不 break）；插件显式 `next_ports` 仍生效；sidecar_tests 覆盖默认端口注入与显式覆盖。
 
 ---
 
@@ -356,7 +371,7 @@ let message = errors
 
 **连锁**：
 - `NodeType` union 不含 db 后清理所有引用，`npm run typecheck` 必须通过
-- 后端 core 保留 DbConnect 变体（路线 Y）而前端删除 db 类型 → **类型同步有意偏差**，在相关文件注释说明
+- 后端 core 的 db 变体已随 §0.2 **彻底删除**（非路线 Y），前后端一致无 db 类型残留
 - `SchemaConfigPanel` 动态表单**依赖 §4.7 config_schema 管道先行落地**（否则 `meta.config_schema` 恒为 `undefined`，面板渲染空白 "no fields" 占位）；管道未达标准前 db 面板**不得移除**（见 M3 决策门、§9 风险 3）
 - **刻意验证点**：db 级复杂配置（driver 下拉/connection_string/SQL 多行）能否被 `SchemaConfigPanel` 承载
 
@@ -381,7 +396,7 @@ db_connect execute:
   executor → registry.get("db_connect") → SidecarPlugin::execute
   → config 提取（通用化，剥 type）→ resolve_variables（{{var}} → 最终值）
   → params {config, execution_id=execution_instance_id, ...}
-  → 插件：create_pool((conn_id, run_id)) → contains_key 检查 → 建 sqlx 池 → test_query
+  → 插件：create_pool((conn_id, run_id)) → 幂等建池（同目标复用 / 异目标告警替换）→ test_query
     conn_id = config.connection_uuid 非空则用它，空则兜底连接节点 uuid（§3.4）
   → ExecuteResult::ok(output) → map_execute_response → Ok → true 端口
 
@@ -416,14 +431,14 @@ db_query execute（同 run_id）:
 3. **扫描**并注册：宿主启动扫描 → 6 个 db 节点注册、`collision_reports()` 为空；GUI 打开 db 节点 → `SchemaConfigPanel` 渲染**非空**动态表单（driver 下拉 + connection_string + test_query）——验证 §4.7 config_schema 管道；另**执行**多插件遮蔽测试：同目录放置真 db 插件 + 声明相同 type_id 的冒充/冲突插件 → 真插件**确定性**获得全部 6 个 type_id、冒充者被拒绝、`collision_reports()` 给出明确冲突原因（§4.1 所有权机制）
 4. **构建**前端：db 移除后 `npm run typecheck` + `npm run build` 通过
 5. **核对**失败报告：SQL 错误 → 报告显示**真实错误消息**（对象错误形状 + §4.4 兼容垫片）
-6. **校验**策略与字段：on_error 三策略（RouteToFalse/Ignore/AbortFlow）与内置行为一致；字段级校验——缺失 `connection_uuid` / 空 `sql` / 缺失 `driver` 在 **validate 时报错**（插件 async `validate` RPC 路径，见 plugin-protocol.md，非执行期兜底）。**空 `connection_uuid` 运行期语义（§3.4 修订）**：`db_connect` 空 uuid 兜底建池；其余 5 节点空 uuid → `fail("connection_uuid is required")` → 默认 RouteToFalse 走 false 端口、Ignore 走 true 继续、AbortFlow 终止——并在报告中给出**显式错误消息**（与内置 commit/rollback/close 的静默 skip、query/begin 的 Ok+false 输出均为**有意差异**）
+6. **校验**策略与字段：on_error 三策略（RouteToFalse/Ignore/AbortFlow）与内置行为一致；`mpe validate` 对插件节点做**同步结构校验**（config 为对象/空值）；插件字段级 async `validate` RPC 尚未接线——缺失 `connection_uuid` / 空 `sql` / 缺失 `driver` 目前在执行期报错而非 validate 期（已知缺口）。**空 `connection_uuid` 运行期语义（§3.4 修订）**：`db_connect` 空 uuid 兜底建池；其余 5 节点空 uuid → `fail("connection_uuid is required")` → 默认 RouteToFalse 走 false 端口、Ignore 走 true 继续、AbortFlow 终止——并在报告中给出**显式错误消息**（与内置 commit/rollback/close 的静默 skip、query/begin 的 Ok+false 输出均为**有意差异**）
 7. **验证**生命周期：
    (a) `db_connect → 模拟 >30s 慢步骤 → db_query` 成功（池**未被中途回收**，§3.6 方案 (b) `flow_end` 通知 + Active 事务豁免生效）
    (b) 流程结束后，池在 `idle_timeout` 窗口内被回收（最坏 ≤ idle_timeout + reaper 周期，如 30s + 10s tick = 40s）
    (c) 同流程连续运行 N 次 → **无 contains_key 错误**，N 个池最终全部回收（execution_id 隔离 + §3.6 全局池总数上限）
    (d) `begin → 慢步骤 → commit` 长事务**不被中途销毁**（服务端无隐式回滚，§3.6 方案 (b) + Active 事务豁免）
 8. **验证**并发：
-   (a) 同执行内两个 connect 节点显式填**相同** `connection_uuid` → 第 2 个 `contains_key` 返回 Err → RouteToFalse 路由。**注**：这是**插件新语义**（内置按 node uuid 建池、两 connect 永无碰撞，`db_connect_executor.rs:64`），非"对齐内置"——存量流程两 connect 必为不同 node uuid，不触发
+   (a) 同执行内两个 connect 节点显式填**相同** `connection_uuid` → 第 2 个**幂等复用**（相同目标不替换、不同目标告警替换；无 Err 路径，§3.4 修订），后续查询共用同一池。**注**：原设计断言"第 2 个返回 Err"未采纳；存量流程两 connect 必为不同 node uuid，不触发
    (b) 两个不同 `execution_id` 流程并发执行 → **独立池、无数据串扰**
    (c) 压测 100 用户 × 迭代 → 连接数**有界**，不耗尽服务端 `max_connections`（**§3.6 全局池总数上限生效**，峰值连接 ≤ 服务端 `max_connections` 的 50%）
 9. **验证**分发：全新 NSIS/DMG 安装 → `plugins` 目录含 `mpe-plugin-db`，Windows 上 6 节点可用（验证 `.exe` 启动路径，§3.2 / §11）；**seed 首启重写 `plugin.json` 绝对路径生效**（§11 第 3 步）。`plugins/` 是否入 git 跟踪属**仓库卫生说明**，与发布验收无关
@@ -439,14 +454,14 @@ db_query execute（同 run_id）:
 |---|---|---|
 | 1 | `entry.command` 启动（CWD + Windows `.exe`） | `process.rs` 不设 `current_dir()`，相对路径按**宿主 CWD** 解析（plugin-sdk.md:262）；Windows `CreateProcessW` 仅对**无路径分隔符**的模块名自动补 `.exe`——含路径且无扩展名（如 `<二进制路径>/mpe-plugin-db`）必然 `ERROR_FILE_NOT_FOUND`。对策：`entry.command` **一律绝对路径（Windows 带 `.exe`）** 或裸命令名（见 §3.2） |
 | 2 | Resident 崩溃丢池 | 连接可靠性绑定插件进程；崩溃重启后 `db_query` 报"连接不存在"（宿主 restart-once 限流 1s） |
-| 3 | SchemaConfigPanel 能力底线 | 面板仅支持 Select/单行 Input/整数/布尔，**无** oneOf/anyOf/conditional、**无** `format:password` 掩码、**无** textarea（多行 SQL）、**无** 跨节点连接选择器。派生限制：driver 切换**不改变字段可见性**（sqlite 用户也看到 host/port/username/password）、密码**明文显示**、多行 SQL 只能单行、query/begin 节点需**手输** connection_uuid（无选择器）。对策：config_schema 收敛到 §3.3 最小字段集；仍不达标 → 前端补 db 专用插件面板（P1） |
+| 3 | SchemaConfigPanel 能力底线 | **已实施增强（§0.3/§3.3 修订）**：面板现支持 `format:'password'` 掩码、`format:'sql'` 多行、`format:'json'`、`x-node-selector` 节点选择器、array JSON 编辑；仍无 oneOf/anyOf/conditional/dependencies。遗留：driver 切换**不改变字段可见性**（sqlite 用户也看到 host/port/username/password） |
 | 4 | 前端/后端类型同步偏差 | 后端 core 保留 db 变体、前端删除——有意为之，注释说明 |
 | 5 | 空闲回收延迟窗口 | 流程结束后池残留 ≤ idle_timeout（30s）；**方案 (a) 执行边界刷新已证伪**（对抗评审：插件进程只收到自身节点 execute RPC，`db_connect → 宿主慢节点(>30s) → db_query` 窗口内零刷新，reaper 在 T30 必杀池/活跃事务 → §8.7(a)(d) 自证失败）→ **必须落地方案 (b) `flow_end` 通知**（wire 侧 trivial：`mpe-protocol` 的 `Notification{method, params}` 机制已存在，加 method 名即可；真成本在宿主按 run 追踪），或 reaper 跳过含 Active 事务的 key + 可配置大默认 idle_timeout + 全局池上限 |
 | 6 | 无界池积累 | 池只限 age 不限 count，每次 run 新 execution_id → 新池 key → 快速重复执行/压测可在分钟级耗尽 MySQL `max_connections=151` / PG `max_connections=100`。**§3.6 三选项无一解决全局耗尽**（≤8 池限单执行内、per-execution TTL 仍是 idle 判定、跨执行复用违反隔离目标且破坏 `:memory:` 语义）→ **强制全局池总数上限**（如 ≤64，LRU 淘汰空闲池），对"有 Active 事务/正在执行"的池豁免 |
 | 7 | 执行中回收杀长事务 | 慢步骤（>30s）横亘 connect→query 或 begin→commit 时，纯 idle 回收误杀池/活跃事务（服务端隐式回滚）→ 同风险 5，须方案 (b) 或 Active 事务豁免 |
 | 8 | 插件 id 遮蔽/冒充 | db 6 个 type_id 移出 reserved 后任意插件可注册/冒充 db，`fs::read_dir` 无序先到先得 → manifest 声明所有权 + 确定性冲突裁决（§4.1） |
 | 9 | 秘密落盘现状 | 密码明文 + `resolved_config`/`flow_snapshot` 脱敏前落盘——存量全局问题，非本次引入，独立工作项（§3.8） |
-| 10 | CLI 三通道（validate/debug/run-node）未接插件 | `build_shared_registry` 结果只传给 `mpe run`/`stress`（cli.rs:418/427/433/443）；`mpe validate` 用裸 `default_registry()`（validate.rs:23）→ §4.5 后 db 流程结构性失败 "Unregistered node type"；`run-node` 白名单（executor.rs:101-119）仅含 `db_connect`；`debug` 无 registry 注入。§7 M1 完成标志"CLI/run-node 端到端"选错通道 → 验收改走 `mpe run`（已接插件）或补 run-node 白名单 + registry 注入 |
+| 10 | CLI 三通道（validate/debug/run-node）未接插件 | **已解决（§0.5）**：validate 用 `build_shared_registry`（validate.rs:26-27），debug 注入 registry（debug_cmd.rs），run-node 走插件 `single_node` capability——db:connect 流程 `mpe validate` 在插件可发现时 valid。遗留：validate 仅同步结构校验（插件字段级 async `validate` RPC 未接线，见 §8.6），且插件未安装时未知类型错误缺少发现提示（本次已补 hint） |
 | 11 | 空 `connection_uuid` 语义有意变更 | 内置 commit/rollback/close 空 uuid 静默 skip 走成功端口（掩盖"事务未提交却成功"）；插件统一空 uuid → 显式报错（§3.4 修订）。存量流程 commit/rollback/close 均带 uuid，不受影响；仅"新建节点未配置即运行"由静默通过变显式报错。Ignore 下流级行为与内置分叉（内置 abort、插件继续走 true）需在 §8.6 断言 |
 
 ---
@@ -467,7 +482,7 @@ db_query execute（同 run_id）:
 - `src-tauri/tauri.conf.json` 的 bundle 仅配置 nsis/dmg targets，**无** `bundle.resources` / `externalBin` / plugins 相关项
 - CI 构建/上传仅发布宿主安装包，**不构建、不随包上传**插件二进制
 - `plugins_dir()`（`src-tauri/src/lib.rs:171-181`）返回 `PathBuf`，发现逻辑把**缺失目录当空目录**（非错误）——安装包不带插件时表现为"无 db 节点"
-- `plugins/db` 源工程**当前未被 `.gitignore` 忽略**（根 `.gitignore` 无 plugins 条目，已核实）——如需"独立工程不随仓库跟踪"，应显式添加 ignore 规则（§1 头注 / §8.9 的"忽略"表述同步修正）；但注意：CI 构建插件依赖源码在仓库内，.gitignore 与 CI 计划需一致（见 §3.1"第三方视角"限定）
+- `plugins/db` 源工程**已被 `.gitignore` 忽略**（根 `.gitignore:92` 的 `/plugins/` 规则，已核实；§1 头注同步）——独立工程不随仓库跟踪；CI 若需构建插件，应在 CI 侧单独 checkout/构建（见 §3.1"第三方视角"限定）
 
 **本次分发方案**：
 

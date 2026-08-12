@@ -6,14 +6,14 @@
 
 多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 模式（同一二进制 `mpe`）。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + @xyflow/react
-- **后端:** Rust Workspace (25 crates) + Tauri 2.x — 双二进制: `mpe` (GUI+CLI 二合一) + `mpe-cli` (纯 CLI)
+- **后端:** Rust Workspace (24 crates) + Tauri 2.x — 双二进制: `mpe` (GUI+CLI 二合一) + `mpe-cli` (纯 CLI)
 
 ## 结构
 
 ```
 root/
 ├── src/                  # 前端 (React 19 + TypeScript)
-├── src-tauri/            # 后端 (Rust workspace, 25 crates)
+├── src-tauri/            # 后端 (Rust workspace, 24 crates)
 ├── tests/                # CLI 测试夹具 (JSON flow files)
 ├── echo/                 # 全协议 echo 测试服务 (Docker Compose)
 ├── docs/                 # 架构文档
@@ -51,7 +51,7 @@ root/
 
 ```
 Layer 0 (叶子):     flow-engine-core, flow-engine-crypto
-Layer 1 (协议):     15 个协议 crate (http, ws, db, script, assertion, grpc, mcp, tcp, mqtt, amqp, graphql, imap, kafka, smtp, sse) — redis 已移出宿主，变为第三方插件 plugins/redis
+Layer 1 (协议):     14 个协议 crate (http, ws, script, assertion, grpc, mcp, tcp, mqtt, amqp, graphql, imap, kafka, smtp, sse) — redis 与 db 已移出宿主，变为第三方插件 plugins/redis、plugins/db
 Layer 2 (编排):     flow-engine-executor (依赖 Layer 0 + 可选 Layer 1)
 Layer 3 (门面):     flow-engine (re-export 全部)
 Layer 4 (应用):     app (src-tauri/) 仅依赖 flow-engine
@@ -81,9 +81,9 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 | Dataset | 8 | 数据集执行 |
 | 其他 | 16 | MCP/GraphQL/TCP/CSV/Registry 等 |
 
-### 节点类型 (92 variants)
+### 节点类型 (83 variants)
 
-定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), db(6), script, assertion, grpc(3), mcp(5), tcp(4), udp(4), mqtt(7), kafka(7), sse(3), graphql(5), amqp(18), smtp(3), imap(13), variable_extractor, proxy。（redis 三节点已移出宿主，见 plugins/redis）
+定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), script, assertion, grpc(3), mcp(5), tcp(4), udp(4), mqtt(7), kafka(7), sse(3), graphql(5), amqp(18), smtp(3), imap(13), variable_extractor, proxy。（redis 三节点与 db 六节点已移出宿主，见 plugins/redis、plugins/db——db 插件节点以 `db:connect` 等命名空间提供）
 
 ### 执行错误策略 (on_error)
 
@@ -145,7 +145,8 @@ npm run build                   # typecheck + vite build
 cargo build                     # 调试构建
 cargo build --release --bin mpe # 生产构建
 cargo build -p flow-engine-http # 单 crate 增量编译
-cargo test                      # 全量测试
+cargo nextest run                # 全量测试 (nextest: process-per-test 并行, 按测试捕获输出/重试)
+cargo test --doc                 # doctest 补充 (nextest 不支持 doctest, 见 nexte.st)
 cargo clippy                    # Lint
 
 # Tauri
@@ -172,7 +173,6 @@ npm run tauri build             # 构建安装包
 - [src-tauri/crates/flow-engine-executor/src/AGENTS.md](./src-tauri/crates/flow-engine-executor/src/AGENTS.md) — 执行器
 - [src-tauri/crates/flow-engine-http/src/AGENTS.md](./src-tauri/crates/flow-engine-http/src/AGENTS.md) — HTTP
 - [src-tauri/crates/flow-engine-ws/src/AGENTS.md](./src-tauri/crates/flow-engine-ws/src/AGENTS.md) — WebSocket
-- [src-tauri/crates/flow-engine-db/src/AGENTS.md](./src-tauri/crates/flow-engine-db/src/AGENTS.md) — 数据库
 - [src-tauri/crates/flow-engine-script/src/AGENTS.md](./src-tauri/crates/flow-engine-script/src/AGENTS.md) — 脚本
 - [src-tauri/crates/flow-engine-assertion/src/AGENTS.md](./src-tauri/crates/flow-engine-assertion/src/AGENTS.md) — 断言
 - [src-tauri/crates/flow-engine-grpc/src/AGENTS.md](./src-tauri/crates/flow-engine-grpc/src/AGENTS.md) — gRPC

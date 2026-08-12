@@ -30,7 +30,6 @@ mpe-protocol (无依赖) <- flow-engine-plugin <- flow-engine-executor
 | flow-engine-crypto | 0 | 2 | 461 | Encryption, keychain | aes-gcm, keyring |
 | flow-engine-http | 1 | 13 | 5,571 | HTTP request nodes | hyper, rustls |
 | flow-engine-ws | 1 | 6 | 5,461 | WebSocket client nodes | tokio-tungstenite |
-| flow-engine-db | 1 | 15 | 8,224 | DB (SQLite/MySQL/PG) nodes | sqlx |
 | flow-engine-script | 1 | 5 | 3,710 | JS script execution | rquickjs |
 | flow-engine-assertion | 1 | 7 | 3,105 | Assertion/validation | regex, jsonpath |
 | flow-engine-grpc | 1 | 12 | 7,141 | gRPC client + reflection | tonic, prost |
@@ -55,7 +54,7 @@ mpe-protocol (无依赖) <- flow-engine-plugin <- flow-engine-executor
 ## BUILD COMMANDS
 ```bash
 cargo build -p flow-engine-http         # single crate
-cargo test -p flow-engine-executor      # single crate test
+cargo nextest run -p flow-engine-executor # single crate test
 cargo build -p mpe-cli --release        # 纯 CLI 二进制
 cargo build -p flow-engine --no-default-features  # no protocols
 cargo check --workspace                 # full workspace

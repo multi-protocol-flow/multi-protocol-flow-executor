@@ -29,7 +29,7 @@ mpe run node <json-string> [--var KEY=VALUE]...
 # 示例
 mpe run node '{"type":"redis:connect","host":"127.0.0.1","port":6379}'
 mpe run node '{"type":"http","url":"https://api.example.com/health","method":"get"}'
-mpe run node '{"type":"db_connect","connection_string":"postgres://user:pass@localhost/db"}'
+mpe run node '{"type":"db:connect","driver":"postgres","connection_string":"postgres://user:pass@localhost/db"}'
 mpe run node '{"type":"mqtt_connect","broker":"tcp://broker.emqx.io:1883"}'
 mpe run node '{"type":"kafka_connect","bootstrap_servers":"localhost:9092"}'
 mpe run node '{"type":"script","code":"return 1+1;"}'
@@ -91,7 +91,7 @@ mpe run node '{"type":"redis:connect","host":"{{HOST}}","port":{{PORT}}}' \
 | 协议 | 节点类型 | 验证内容 |
 |------|---------|---------|
 | Redis | `redis:connect`（插件节点） | Redis 实例连通性（需安装 plugins/redis 插件） |
-| DB | `db_connect` | MySQL/PostgreSQL/SQLite 可达性 |
+| DB | `db:connect`（插件节点） | MySQL/PostgreSQL/SQLite 可达性（需安装 plugins/db 插件） |
 | HTTP | `http` | HTTP API 可访问性 |
 | MQTT | `mqtt_connect` | Broker 连通性 |
 | Kafka | `kafka_connect` | Kafka 集群可达性 |

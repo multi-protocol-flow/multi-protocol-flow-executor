@@ -48,7 +48,7 @@ tests/
 
 ## CONVENTIONS
 
-- **FlowFile 包装格式**: 顶层 `_version` / `flow` / `_meta`；节点用 `entry` 类型，非旧版 `start`/`end`。
+- **FlowFile 包装格式**: 顶层 `_version` / `flow`（`_meta` 可选，serde 默认补全；现有夹具均只带 `_version` + `flow`）；节点用 `entry` 类型，非旧版 `start`/`end`。
 - **编号前缀**: 两位数前缀（`01-…`）决定执行/展示顺序；`edge_cases/` = 错误触发专用。
 - **tls_* 配对**: `tls_*` 文件与 `certs/` 证书配对，通过 `tests/run-tls-tests.mjs` 对已编译的 debug 二进制运行。
 - **网络依赖**: 依赖网络的流程用 httpbin.org 或 `echo/` Docker 服务。

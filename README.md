@@ -368,7 +368,7 @@ cargo test -p flow-engine-executor          # executor 全部测试
 cargo test -p flow-engine-http              # HTTP 协议全部测试
 cargo test -p flow-engine-assertion         # 断言全部测试
 cargo test -p flow-engine-ws                # WebSocket 全部测试
-cargo test -p flow-engine-db                # 数据库全部测试
+# db 节点测试在独立插件工程: cargo test --manifest-path plugins/db/Cargo.toml
 cargo test -p flow-engine-script            # 脚本全部测试
 cargo test -p flow-engine-grpc              # gRPC 全部测试
 cargo test -p flow-engine-mcp               # MCP 全部测试
