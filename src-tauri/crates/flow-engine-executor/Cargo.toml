@@ -23,13 +23,8 @@ protocol-assertion = ["dep:flow-engine-assertion"]
 protocol-grpc = ["dep:flow-engine-grpc"]
 protocol-mcp = ["dep:flow-engine-mcp"]
 protocol-tcp = ["dep:flow-engine-tcp"]
-protocol-mqtt = ["dep:flow-engine-mqtt"]
-protocol-kafka = ["dep:flow-engine-kafka"]
 protocol-sse = ["dep:flow-engine-sse"]
 protocol-graphql = ["dep:flow-engine-graphql"]
-protocol-amqp = ["dep:flow-engine-amqp"]
-protocol-smtp = ["dep:flow-engine-smtp"]
-protocol-imap = ["dep:flow-engine-imap"]
 # Plugin manager feature — independent of protocol-*; the sidecar plugin
 # system is not a protocol executor.
 plugin-manager = ["dep:flow-engine-plugin"]
@@ -43,13 +38,8 @@ flow-engine-assertion = { path = "../flow-engine-assertion", optional = true }
 flow-engine-grpc = { path = "../flow-engine-grpc", optional = true }
 flow-engine-mcp = { path = "../flow-engine-mcp", optional = true }
 flow-engine-tcp = { path = "../flow-engine-tcp", optional = true }
-flow-engine-mqtt = { path = "../flow-engine-mqtt", optional = true }
-flow-engine-kafka = { path = "../flow-engine-kafka", optional = true }
 flow-engine-sse = { path = "../flow-engine-sse", optional = true }
 flow-engine-graphql = { path = "../flow-engine-graphql", optional = true }
-flow-engine-amqp = { path = "../flow-engine-amqp", optional = true }
-flow-engine-smtp = { path = "../flow-engine-smtp", optional = true }
-flow-engine-imap = { path = "../flow-engine-imap", optional = true }
 flow-engine-plugin = { path = "../flow-engine-plugin", optional = true }
 async-trait = { workspace = true }
 serde = { workspace = true }

@@ -72,21 +72,6 @@ impl ProviderBuilderExt for ExecutionContext {
             self.set_provider("udp", udp);
         }
 
-        #[cfg(feature = "protocol-mqtt")]
-        {
-            let mqtt =
-                Arc::new(flow_engine_mqtt::mqtt_connection_manager::MqttConnectionManager::new());
-            self.set_provider("mqtt", mqtt);
-        }
-
-        #[cfg(feature = "protocol-kafka")]
-        {
-            let kafka = Arc::new(
-                flow_engine_kafka::kafka_connection_manager::KafkaConnectionManager::new(),
-            );
-            self.set_provider("kafka", kafka);
-        }
-
         #[cfg(feature = "protocol-sse")]
         {
             let sse =
@@ -100,24 +85,6 @@ impl ProviderBuilderExt for ExecutionContext {
                 flow_engine_graphql::graphql_connection_manager::GraphqlConnectionManager::new(),
             );
             self.set_provider("graphql", graphql);
-        }
-
-        #[cfg(feature = "protocol-amqp")]
-        {
-            let amqp = Arc::new(flow_engine_amqp::AmqpConnectionManager::new());
-            self.set_provider("amqp", amqp);
-        }
-
-        #[cfg(feature = "protocol-smtp")]
-        {
-            let smtp = Arc::new(flow_engine_smtp::SmtpConnectionManager::new());
-            self.set_provider("smtp", smtp);
-        }
-
-        #[cfg(feature = "protocol-imap")]
-        {
-            let imap = Arc::new(flow_engine_imap::ImapConnectionManager::new());
-            self.set_provider("imap", imap);
         }
 
         self

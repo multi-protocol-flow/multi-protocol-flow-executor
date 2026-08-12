@@ -45,8 +45,6 @@ pub mod variable_extractor_executor;
 // ============================================================================
 // 协议 crate 公共 re-export（供 facade 层条件转发）
 // ============================================================================
-#[cfg(feature = "protocol-amqp")]
-pub use flow_engine_amqp;
 #[cfg(feature = "protocol-assertion")]
 pub use flow_engine_assertion;
 #[cfg(feature = "protocol-graphql")]
@@ -55,18 +53,10 @@ pub use flow_engine_graphql;
 pub use flow_engine_grpc;
 #[cfg(feature = "protocol-http")]
 pub use flow_engine_http;
-#[cfg(feature = "protocol-imap")]
-pub use flow_engine_imap;
-#[cfg(feature = "protocol-kafka")]
-pub use flow_engine_kafka;
 #[cfg(feature = "protocol-mcp")]
 pub use flow_engine_mcp;
-#[cfg(feature = "protocol-mqtt")]
-pub use flow_engine_mqtt;
 #[cfg(feature = "protocol-script")]
 pub use flow_engine_script;
-#[cfg(feature = "protocol-smtp")]
-pub use flow_engine_smtp;
 #[cfg(feature = "protocol-sse")]
 pub use flow_engine_sse;
 #[cfg(feature = "protocol-tcp")]
