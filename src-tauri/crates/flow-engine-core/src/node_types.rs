@@ -51,20 +51,6 @@ pub const UDP_SEND_TO: &str = "udp_send_to";
 pub const UDP_RECV_FROM: &str = "udp_recv_from";
 /// UDP 关闭节点
 pub const UDP_CLOSE: &str = "udp_close";
-/// MQTT 连接节点
-pub const MQTT_CONNECT: &str = "mqtt_connect";
-/// MQTT 发布节点
-pub const MQTT_PUBLISH: &str = "mqtt_publish";
-/// MQTT 订阅节点
-pub const MQTT_SUBSCRIBE: &str = "mqtt_subscribe";
-/// MQTT 取消订阅节点
-pub const MQTT_UNSUBSCRIBE: &str = "mqtt_unsubscribe";
-/// MQTT 断开连接节点
-pub const MQTT_DISCONNECT: &str = "mqtt_disconnect";
-/// MQTT 等待消息节点
-pub const MQTT_WAIT_MESSAGE: &str = "mqtt_wait_message";
-/// MQTT 请求-响应节点
-pub const MQTT_REQUEST: &str = "mqtt_request";
 // SSE 节点类型
 /// SSE 连接节点
 pub const SSE_CONNECT: &str = "sse_connect";
@@ -83,45 +69,3 @@ pub const GRAPHQL_SUBSCRIBE: &str = "graphql_subscribe";
 pub const GRAPHQL_INTROSPECT: &str = "graphql_introspect";
 /// GraphQL 断开连接节点
 pub const GRAPHQL_DISCONNECT: &str = "graphql_disconnect";
-// AMQP 0-9-1 节点类型
-/// AMQP 连接节点
-pub const AMQP_CONNECT: &str = "amqp_connect";
-/// AMQP 关闭连接节点
-pub const AMQP_CLOSE: &str = "amqp_close";
-/// AMQP 声明交换器节点
-pub const AMQP_EXCHANGE_DECLARE: &str = "amqp_exchange_declare";
-/// AMQP 删除交换器节点
-pub const AMQP_EXCHANGE_DELETE: &str = "amqp_exchange_delete";
-/// AMQP 声明队列节点
-pub const AMQP_QUEUE_DECLARE: &str = "amqp_queue_declare";
-/// AMQP 删除队列节点
-pub const AMQP_QUEUE_DELETE: &str = "amqp_queue_delete";
-/// AMQP 绑定队列节点
-pub const AMQP_QUEUE_BIND: &str = "amqp_queue_bind";
-/// AMQP 发布消息节点
-pub const AMQP_PUBLISH: &str = "amqp_publish";
-/// AMQP 消费消息节点
-pub const AMQP_CONSUME: &str = "amqp_consume";
-/// AMQP 获取消息节点
-pub const AMQP_GET: &str = "amqp_get";
-/// AMQP 确认消息节点
-pub const AMQP_ACK: &str = "amqp_ack";
-/// AMQP 管理节点
-pub const AMQP_MANAGEMENT: &str = "amqp_management";
-// AMQP 1.0 节点类型
-/// AMQP 1.0 连接节点
-pub const AMQP10_CONNECT: &str = "amqp10_connect";
-/// AMQP 1.0 发送消息节点
-pub const AMQP10_SEND: &str = "amqp10_send";
-/// AMQP 1.0 接收消息节点
-pub const AMQP10_RECEIVE: &str = "amqp10_receive";
-/// AMQP 1.0 确认消息节点
-pub const AMQP10_ACCEPT: &str = "amqp10_accept";
-/// AMQP 1.0 拒绝消息节点
-pub const AMQP10_REJECT: &str = "amqp10_reject";
-/// AMQP 1.0 断开连接节点
-pub const AMQP10_DISCONNECT: &str = "amqp10_disconnect";
-/// 变量提取节点
-pub const VARIABLE_EXTRACTOR: &str = "variable_extractor";
-/// 代理设置节点
-pub const PROXY: &str = "proxy";

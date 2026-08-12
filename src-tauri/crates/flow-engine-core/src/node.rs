@@ -78,48 +78,6 @@ pub enum NodeType {
     /// UDP 关闭节点
     #[serde(rename = "udp_close")]
     UdpClose,
-    /// MQTT 连接节点
-    #[serde(rename = "mqtt_connect")]
-    MqttConnect,
-    /// MQTT 发布节点
-    #[serde(rename = "mqtt_publish")]
-    MqttPublish,
-    /// MQTT 订阅节点
-    #[serde(rename = "mqtt_subscribe")]
-    MqttSubscribe,
-    /// MQTT 取消订阅节点
-    #[serde(rename = "mqtt_unsubscribe")]
-    MqttUnsubscribe,
-    /// MQTT 断开连接节点
-    #[serde(rename = "mqtt_disconnect")]
-    MqttDisconnect,
-    /// MQTT 等待消息节点
-    #[serde(rename = "mqtt_wait_message")]
-    MqttWaitMessage,
-    /// MQTT 请求-响应节点
-    #[serde(rename = "mqtt_request")]
-    MqttRequest,
-    /// Kafka 连接节点
-    #[serde(rename = "kafka_connect")]
-    KafkaConnect,
-    /// Kafka 生产消息节点
-    #[serde(rename = "kafka_produce")]
-    KafkaProduce,
-    /// Kafka 消费消息节点
-    #[serde(rename = "kafka_consume")]
-    KafkaConsume,
-    /// Kafka 批量消费消息节点
-    #[serde(rename = "kafka_consume_batch")]
-    KafkaConsumeBatch,
-    /// Kafka 管理操作节点
-    #[serde(rename = "kafka_admin")]
-    KafkaAdmin,
-    /// Kafka Schema Registry 节点
-    #[serde(rename = "kafka_schema_registry")]
-    KafkaSchemaRegistry,
-    /// Kafka 关闭连接节点
-    #[serde(rename = "kafka_close")]
-    KafkaClose,
     /// SSE 连接节点
     #[serde(rename = "sse_connect")]
     SseConnect,
@@ -144,116 +102,12 @@ pub enum NodeType {
     /// GraphQL 断开连接节点
     #[serde(rename = "graphql_disconnect")]
     GraphqlDisconnect,
-    /// AMQP 连接节点
-    #[serde(rename = "amqp_connect")]
-    AmqpConnect,
-    /// AMQP 关闭连接节点
-    #[serde(rename = "amqp_close")]
-    AmqpClose,
-    /// AMQP 声明交换器节点
-    #[serde(rename = "amqp_exchange_declare")]
-    AmqpExchangeDeclare,
-    /// AMQP 删除交换器节点
-    #[serde(rename = "amqp_exchange_delete")]
-    AmqpExchangeDelete,
-    /// AMQP 声明队列节点
-    #[serde(rename = "amqp_queue_declare")]
-    AmqpQueueDeclare,
-    /// AMQP 删除队列节点
-    #[serde(rename = "amqp_queue_delete")]
-    AmqpQueueDelete,
-    /// AMQP 绑定队列节点
-    #[serde(rename = "amqp_queue_bind")]
-    AmqpQueueBind,
-    /// AMQP 发布消息节点
-    #[serde(rename = "amqp_publish")]
-    AmqpPublish,
-    /// AMQP 消费消息节点
-    #[serde(rename = "amqp_consume")]
-    AmqpConsume,
-    /// AMQP 获取消息节点
-    #[serde(rename = "amqp_get")]
-    AmqpGet,
-    /// AMQP 确认消息节点
-    #[serde(rename = "amqp_ack")]
-    AmqpAck,
-    /// AMQP 管理节点 (可选 feature)
-    #[serde(rename = "amqp_management")]
-    AmqpManagement,
-    /// AMQP 1.0 连接节点
-    #[serde(rename = "amqp10_connect")]
-    Amqp10Connect,
-    /// AMQP 1.0 发送消息节点
-    #[serde(rename = "amqp10_send")]
-    Amqp10Send,
-    /// AMQP 1.0 接收消息节点
-    #[serde(rename = "amqp10_receive")]
-    Amqp10Receive,
-    /// AMQP 1.0 确认消息节点
-    #[serde(rename = "amqp10_accept")]
-    Amqp10Accept,
-    /// AMQP 1.0 拒绝消息节点
-    #[serde(rename = "amqp10_reject")]
-    Amqp10Reject,
-    /// AMQP 1.0 断开连接节点
-    #[serde(rename = "amqp10_disconnect")]
-    Amqp10Disconnect,
     /// 变量提取节点
     #[serde(rename = "variable_extractor")]
     VariableExtractor,
     /// 代理设置节点
     #[serde(rename = "proxy")]
     Proxy,
-    // SMTP 节点
-    /// SMTP 连接节点
-    #[serde(rename = "smtp_connect")]
-    SmtpConnect,
-    /// SMTP 发送邮件节点
-    #[serde(rename = "smtp_send")]
-    SmtpSend,
-    /// SMTP 断开连接节点
-    #[serde(rename = "smtp_disconnect")]
-    SmtpDisconnect,
-    // IMAP 节点
-    /// IMAP 连接节点
-    #[serde(rename = "imap_connect")]
-    ImapConnect,
-    /// IMAP 选择邮箱节点
-    #[serde(rename = "imap_select")]
-    ImapSelect,
-    /// IMAP 搜索邮件节点
-    #[serde(rename = "imap_search")]
-    ImapSearch,
-    /// IMAP 获取邮件节点
-    #[serde(rename = "imap_fetch")]
-    ImapFetch,
-    /// IMAP 设置标志节点
-    #[serde(rename = "imap_store_flags")]
-    ImapStoreFlags,
-    /// IMAP 复制邮件节点
-    #[serde(rename = "imap_copy")]
-    ImapCopy,
-    /// IMAP 移动邮件节点
-    #[serde(rename = "imap_move")]
-    ImapMove,
-    /// IMAP 永久删除节点
-    #[serde(rename = "imap_expunge")]
-    ImapExpunge,
-    /// IMAP 列出邮箱节点
-    #[serde(rename = "imap_list")]
-    ImapList,
-    /// IMAP 创建文件夹节点
-    #[serde(rename = "imap_folder_create")]
-    ImapFolderCreate,
-    /// IMAP 删除文件夹节点
-    #[serde(rename = "imap_folder_delete")]
-    ImapFolderDelete,
-    /// IMAP IDLE 监听节点
-    #[serde(rename = "imap_idle")]
-    ImapIdle,
-    /// IMAP 关闭连接节点
-    #[serde(rename = "imap_close")]
-    ImapClose,
 }
 
 /// 节点位置结构体

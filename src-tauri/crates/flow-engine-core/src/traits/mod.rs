@@ -2,7 +2,6 @@
 //!
 //! 提供与 Tauri 解耦的 trait 定义，使得业务逻辑可以在无 Tauri 依赖的环境下运行。
 
-mod amqp_provider;
 mod app_dir;
 mod debug_event_sender;
 mod directory_opener;
@@ -10,24 +9,14 @@ mod execution_event_sender;
 mod graphql_provider;
 mod grpc_provider;
 mod hook_executor;
-mod imap_provider;
-mod kafka_provider;
 mod log_sender;
 mod mcp_provider;
-mod mqtt_provider;
 mod provider_key;
-mod smtp_provider;
 mod sse_provider;
 mod tcp_provider;
 mod udp_provider;
 mod ws_provider;
 
-pub use amqp_provider::{
-    Amqp10AcceptOutput, Amqp10ConnectOutput, Amqp10Message, Amqp10ReceiveOutput,
-    Amqp10RejectOutput, Amqp10SendOutput, AmqpAckOutput, AmqpConnectOutput, AmqpConnectionInfo,
-    AmqpConsumeOutput, AmqpExchangeOutput, AmqpGetOutput, AmqpManagementOutput, AmqpMessage,
-    AmqpProvider, AmqpPublishOutput, AmqpQueueDeclareOutput, AmqpQueueDeleteOutput,
-};
 pub use app_dir::{AppDirProvider, DefaultAppDirProvider};
 pub use debug_event_sender::DebugEventSender;
 pub use directory_opener::{DirectoryOpener, NoopDirectoryOpener};
@@ -43,18 +32,6 @@ pub use grpc_provider::{
     GrpcStreamingResult, GrpcTimingInfo, HealthCheckResponse,
 };
 pub use hook_executor::{HookExecutor, NoopHookExecutor};
-pub use imap_provider::{
-    ImapCloseOutput, ImapConnectOutput, ImapConnectionInfo, ImapCopyOutput, ImapExpungeOutput,
-    ImapFetchOutput, ImapFolderCreateOutput, ImapFolderDeleteOutput, ImapIdleOutput,
-    ImapListOutput, ImapMailboxInfo, ImapMessageInfo, ImapMoveOutput, ImapProvider,
-    ImapSearchOutput, ImapSelectOutput, ImapStoreFlagsOutput,
-};
-pub use kafka_provider::{
-    KafkaAdminOutput, KafkaBrokerInfo, KafkaCloseOutput, KafkaConnectOutput, KafkaConnectionInfo,
-    KafkaConsumeBatchOutput, KafkaConsumeOutput, KafkaConsumerGroupInfo, KafkaMessageOutput,
-    KafkaPartitionInfo, KafkaProduceOutput, KafkaProvider, KafkaSchemaInfo,
-    KafkaSchemaRegistryOutput, KafkaTimingInfo, KafkaTopicInfo,
-};
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
 };
@@ -62,15 +39,8 @@ pub use mcp_provider::{
     McpConnectionInfo, McpPromptArgumentInfo, McpPromptInfo, McpPromptResult, McpProvider,
     McpResourceInfo, McpResourceReadResult, McpServerInfo, McpToolCallResult, McpToolInfo,
 };
-pub use mqtt_provider::{
-    MqttBrokerInfo, MqttConnectOutput, MqttConnectionInfo, MqttMessageOutput, MqttProvider,
-    MqttPublishOutput, MqttReceivedMessage, MqttSubscribeOutput, MqttTimingInfo,
-};
 pub use provider_key::{
-    Amqp, Graphql, Grpc, Imap, Kafka, Mcp, Mqtt, ProviderKey, Smtp, Sse, Tcp, Udp, Ws,
-};
-pub use smtp_provider::{
-    SmtpConnectOutput, SmtpConnectionInfo, SmtpDisconnectOutput, SmtpProvider, SmtpSendOutput,
+    Graphql, Grpc, Mcp, ProviderKey, Sse, Tcp, Udp, Ws,
 };
 pub use sse_provider::{
     SseConnectOutput, SseConnectionInfo, SseEventItem, SseListenOutput, SseProvider,

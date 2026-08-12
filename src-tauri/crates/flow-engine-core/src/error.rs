@@ -271,26 +271,6 @@ pub enum ErrorKind {
     /// GraphQL 关闭Error
     GraphqlClose,
 
-    // ===== AMQP Error（容错模式，继续执行） =====
-    /// AMQP connection failed
-    AmqpConnection,
-    /// AMQP 通道Error
-    AmqpChannel,
-    /// AMQP 发布Error
-    AmqpPublish,
-    /// AMQP 消费Error
-    AmqpConsume,
-    /// AMQP 队列操作Error
-    AmqpQueue,
-    /// AMQP 交换器操作Error
-    AmqpExchange,
-    /// AMQP 确认Error
-    AmqpAck,
-    /// AMQP 管理操作Error
-    AmqpManagement,
-    /// AMQP 协议Error
-    AmqpProtocol,
-
     // ===== 取消Error（容错模式，继续执行） =====
     /// 执行被取消
     Cancelled,
@@ -472,50 +452,6 @@ pub enum ErrorCode {
     /// GraphQL close error.
     E_GRAPHQL_CLOSE,
 
-    // ===== AMQP errors =====
-    /// AMQP connection failed.
-    E_AMQP_CONNECTION,
-    /// AMQP channel error.
-    E_AMQP_CHANNEL,
-    /// AMQP publish error.
-    E_AMQP_PUBLISH,
-    /// AMQP consume error.
-    E_AMQP_CONSUME,
-    /// AMQP queue operation error.
-    E_AMQP_QUEUE,
-    /// AMQP exchange operation error.
-    E_AMQP_EXCHANGE,
-    /// AMQP ack error.
-    E_AMQP_ACK,
-    /// AMQP management operation error.
-    E_AMQP_MANAGEMENT,
-    /// AMQP protocol error.
-    E_AMQP_PROTOCOL,
-
-    // ===== SMTP errors =====
-    /// SMTP connection failed.
-    E_SMTP_CONNECTION,
-    /// SMTP send error.
-    E_SMTP_SEND,
-    /// SMTP authentication failed.
-    E_SMTP_AUTH,
-    /// SMTP operation timed out.
-    E_SMTP_TIMEOUT,
-
-    // ===== IMAP errors =====
-    /// IMAP connection failed.
-    E_IMAP_CONNECTION,
-    /// IMAP fetch error.
-    E_IMAP_FETCH,
-    /// IMAP search error.
-    E_IMAP_SEARCH,
-    /// IMAP authentication failed.
-    E_IMAP_AUTH,
-    /// IMAP store operation error.
-    E_IMAP_STORE,
-    /// IMAP operation timed out.
-    E_IMAP_TIMEOUT,
-
     // ===== Non-protocol node errors =====
     /// Variable extractor execution failed.
     E_VARIABLE_EXTRACTOR_FAILED,
@@ -612,28 +548,6 @@ impl ErrorCode {
             Self::E_GRAPHQL_SUBSCRIPTION => &["url", "message"],
             Self::E_GRAPHQL_INTROSPECTION => &["url", "message"],
             Self::E_GRAPHQL_CLOSE => &["url", "message"],
-            // AMQP
-            Self::E_AMQP_CONNECTION => &["host", "vhost", "message"],
-            Self::E_AMQP_CHANNEL => &["host", "channel_id", "message"],
-            Self::E_AMQP_PUBLISH => &["exchange", "routing_key", "message"],
-            Self::E_AMQP_CONSUME => &["queue", "message"],
-            Self::E_AMQP_QUEUE => &["queue", "message"],
-            Self::E_AMQP_EXCHANGE => &["exchange", "message"],
-            Self::E_AMQP_ACK => &["queue", "message"],
-            Self::E_AMQP_MANAGEMENT => &["message"],
-            Self::E_AMQP_PROTOCOL => &["message"],
-            // SMTP
-            Self::E_SMTP_CONNECTION => &["host", "port", "message"],
-            Self::E_SMTP_SEND => &["host", "message"],
-            Self::E_SMTP_AUTH => &["host", "message"],
-            Self::E_SMTP_TIMEOUT => &["host", "duration"],
-            // IMAP
-            Self::E_IMAP_CONNECTION => &["host", "port", "message"],
-            Self::E_IMAP_FETCH => &["host", "message"],
-            Self::E_IMAP_SEARCH => &["host", "message"],
-            Self::E_IMAP_AUTH => &["host", "message"],
-            Self::E_IMAP_STORE => &["host", "message"],
-            Self::E_IMAP_TIMEOUT => &["host", "duration"],
             // Non-protocol nodes
             Self::E_VARIABLE_EXTRACTOR_FAILED => &["expression", "message"],
             Self::E_PROXY_FAILED => &["message"],
@@ -707,25 +621,6 @@ impl ErrorCode {
             Self::E_GRAPHQL_SUBSCRIPTION => "E_GRAPHQL_SUBSCRIPTION",
             Self::E_GRAPHQL_INTROSPECTION => "E_GRAPHQL_INTROSPECTION",
             Self::E_GRAPHQL_CLOSE => "E_GRAPHQL_CLOSE",
-            Self::E_AMQP_CONNECTION => "E_AMQP_CONNECTION",
-            Self::E_AMQP_CHANNEL => "E_AMQP_CHANNEL",
-            Self::E_AMQP_PUBLISH => "E_AMQP_PUBLISH",
-            Self::E_AMQP_CONSUME => "E_AMQP_CONSUME",
-            Self::E_AMQP_QUEUE => "E_AMQP_QUEUE",
-            Self::E_AMQP_EXCHANGE => "E_AMQP_EXCHANGE",
-            Self::E_AMQP_ACK => "E_AMQP_ACK",
-            Self::E_AMQP_MANAGEMENT => "E_AMQP_MANAGEMENT",
-            Self::E_AMQP_PROTOCOL => "E_AMQP_PROTOCOL",
-            Self::E_SMTP_CONNECTION => "E_SMTP_CONNECTION",
-            Self::E_SMTP_SEND => "E_SMTP_SEND",
-            Self::E_SMTP_AUTH => "E_SMTP_AUTH",
-            Self::E_SMTP_TIMEOUT => "E_SMTP_TIMEOUT",
-            Self::E_IMAP_CONNECTION => "E_IMAP_CONNECTION",
-            Self::E_IMAP_FETCH => "E_IMAP_FETCH",
-            Self::E_IMAP_SEARCH => "E_IMAP_SEARCH",
-            Self::E_IMAP_AUTH => "E_IMAP_AUTH",
-            Self::E_IMAP_STORE => "E_IMAP_STORE",
-            Self::E_IMAP_TIMEOUT => "E_IMAP_TIMEOUT",
             Self::E_VARIABLE_EXTRACTOR_FAILED => "E_VARIABLE_EXTRACTOR_FAILED",
             Self::E_PROXY_FAILED => "E_PROXY_FAILED",
             Self::PluginCrashed => "E_PLUGIN_CRASHED",
@@ -797,25 +692,6 @@ impl ErrorCode {
             Self::E_GRAPHQL_SUBSCRIPTION => ErrorKind::GraphqlSubscription,
             Self::E_GRAPHQL_INTROSPECTION => ErrorKind::GraphqlIntrospection,
             Self::E_GRAPHQL_CLOSE => ErrorKind::GraphqlClose,
-            Self::E_AMQP_CONNECTION => ErrorKind::AmqpConnection,
-            Self::E_AMQP_CHANNEL => ErrorKind::AmqpChannel,
-            Self::E_AMQP_PUBLISH => ErrorKind::AmqpPublish,
-            Self::E_AMQP_CONSUME => ErrorKind::AmqpConsume,
-            Self::E_AMQP_QUEUE => ErrorKind::AmqpQueue,
-            Self::E_AMQP_EXCHANGE => ErrorKind::AmqpExchange,
-            Self::E_AMQP_ACK => ErrorKind::AmqpAck,
-            Self::E_AMQP_MANAGEMENT => ErrorKind::AmqpManagement,
-            Self::E_AMQP_PROTOCOL => ErrorKind::AmqpProtocol,
-            Self::E_SMTP_CONNECTION => ErrorKind::Connection,
-            Self::E_SMTP_SEND => ErrorKind::Execution,
-            Self::E_SMTP_AUTH => ErrorKind::Execution,
-            Self::E_SMTP_TIMEOUT => ErrorKind::Timeout,
-            Self::E_IMAP_CONNECTION => ErrorKind::Connection,
-            Self::E_IMAP_FETCH => ErrorKind::Execution,
-            Self::E_IMAP_SEARCH => ErrorKind::Execution,
-            Self::E_IMAP_AUTH => ErrorKind::Execution,
-            Self::E_IMAP_STORE => ErrorKind::Execution,
-            Self::E_IMAP_TIMEOUT => ErrorKind::Timeout,
             Self::E_VARIABLE_EXTRACTOR_FAILED => ErrorKind::Execution,
             Self::E_PROXY_FAILED => ErrorKind::Execution,
             Self::PluginCrashed => ErrorKind::Execution,
@@ -888,25 +764,6 @@ impl std::fmt::Display for ErrorCode {
             Self::E_GRAPHQL_SUBSCRIPTION => write!(f, "GraphQL subscription error"),
             Self::E_GRAPHQL_INTROSPECTION => write!(f, "GraphQL introspection error"),
             Self::E_GRAPHQL_CLOSE => write!(f, "GraphQL close error"),
-            Self::E_AMQP_CONNECTION => write!(f, "AMQP connection failed"),
-            Self::E_AMQP_CHANNEL => write!(f, "AMQP channel error"),
-            Self::E_AMQP_PUBLISH => write!(f, "AMQP publish error"),
-            Self::E_AMQP_CONSUME => write!(f, "AMQP consume error"),
-            Self::E_AMQP_QUEUE => write!(f, "AMQP queue error"),
-            Self::E_AMQP_EXCHANGE => write!(f, "AMQP exchange error"),
-            Self::E_AMQP_ACK => write!(f, "AMQP ack error"),
-            Self::E_AMQP_MANAGEMENT => write!(f, "AMQP management error"),
-            Self::E_AMQP_PROTOCOL => write!(f, "AMQP protocol error"),
-            Self::E_SMTP_CONNECTION => write!(f, "SMTP connection failed"),
-            Self::E_SMTP_SEND => write!(f, "SMTP send error"),
-            Self::E_SMTP_AUTH => write!(f, "SMTP authentication failed"),
-            Self::E_SMTP_TIMEOUT => write!(f, "SMTP operation timed out"),
-            Self::E_IMAP_CONNECTION => write!(f, "IMAP connection failed"),
-            Self::E_IMAP_FETCH => write!(f, "IMAP fetch error"),
-            Self::E_IMAP_SEARCH => write!(f, "IMAP search error"),
-            Self::E_IMAP_AUTH => write!(f, "IMAP authentication failed"),
-            Self::E_IMAP_STORE => write!(f, "IMAP store error"),
-            Self::E_IMAP_TIMEOUT => write!(f, "IMAP operation timed out"),
             Self::E_VARIABLE_EXTRACTOR_FAILED => write!(f, "Variable extractor failed"),
             Self::E_PROXY_FAILED => write!(f, "Proxy node execution failed"),
             Self::PluginCrashed => write!(f, "Plugin process crashed"),
@@ -1095,16 +952,6 @@ mod tests {
         assert!(!ErrorKind::GraphqlSubscription.is_fatal());
         assert!(!ErrorKind::GraphqlIntrospection.is_fatal());
         assert!(!ErrorKind::GraphqlClose.is_fatal());
-        // AMQP errors are non-fatal
-        assert!(!ErrorKind::AmqpConnection.is_fatal());
-        assert!(!ErrorKind::AmqpChannel.is_fatal());
-        assert!(!ErrorKind::AmqpPublish.is_fatal());
-        assert!(!ErrorKind::AmqpConsume.is_fatal());
-        assert!(!ErrorKind::AmqpQueue.is_fatal());
-        assert!(!ErrorKind::AmqpExchange.is_fatal());
-        assert!(!ErrorKind::AmqpAck.is_fatal());
-        assert!(!ErrorKind::AmqpManagement.is_fatal());
-        assert!(!ErrorKind::AmqpProtocol.is_fatal());
     }
 
     #[test]
@@ -1150,16 +997,6 @@ mod tests {
             ErrorKind::GraphqlSubscription,
             ErrorKind::GraphqlIntrospection,
             ErrorKind::GraphqlClose,
-            // AMQP Error类型
-            ErrorKind::AmqpConnection,
-            ErrorKind::AmqpChannel,
-            ErrorKind::AmqpPublish,
-            ErrorKind::AmqpConsume,
-            ErrorKind::AmqpQueue,
-            ErrorKind::AmqpExchange,
-            ErrorKind::AmqpAck,
-            ErrorKind::AmqpManagement,
-            ErrorKind::AmqpProtocol,
         ];
 
         for kind in kinds {
@@ -1229,16 +1066,6 @@ mod tests {
             ErrorKind::GraphqlSubscription,
             ErrorKind::GraphqlIntrospection,
             ErrorKind::GraphqlClose,
-            // AMQP Error类型
-            ErrorKind::AmqpConnection,
-            ErrorKind::AmqpChannel,
-            ErrorKind::AmqpPublish,
-            ErrorKind::AmqpConsume,
-            ErrorKind::AmqpQueue,
-            ErrorKind::AmqpExchange,
-            ErrorKind::AmqpAck,
-            ErrorKind::AmqpManagement,
-            ErrorKind::AmqpProtocol,
             // 取消
             ErrorKind::Cancelled,
         ];
@@ -1461,28 +1288,6 @@ mod tests {
             ErrorCode::E_GRAPHQL_SUBSCRIPTION,
             ErrorCode::E_GRAPHQL_INTROSPECTION,
             ErrorCode::E_GRAPHQL_CLOSE,
-            // AMQP
-            ErrorCode::E_AMQP_CONNECTION,
-            ErrorCode::E_AMQP_CHANNEL,
-            ErrorCode::E_AMQP_PUBLISH,
-            ErrorCode::E_AMQP_CONSUME,
-            ErrorCode::E_AMQP_QUEUE,
-            ErrorCode::E_AMQP_EXCHANGE,
-            ErrorCode::E_AMQP_ACK,
-            ErrorCode::E_AMQP_MANAGEMENT,
-            ErrorCode::E_AMQP_PROTOCOL,
-            // SMTP
-            ErrorCode::E_SMTP_CONNECTION,
-            ErrorCode::E_SMTP_SEND,
-            ErrorCode::E_SMTP_AUTH,
-            ErrorCode::E_SMTP_TIMEOUT,
-            // IMAP
-            ErrorCode::E_IMAP_CONNECTION,
-            ErrorCode::E_IMAP_FETCH,
-            ErrorCode::E_IMAP_SEARCH,
-            ErrorCode::E_IMAP_AUTH,
-            ErrorCode::E_IMAP_STORE,
-            ErrorCode::E_IMAP_TIMEOUT,
             // Non-protocol nodes
             ErrorCode::E_VARIABLE_EXTRACTOR_FAILED,
             ErrorCode::E_PROXY_FAILED,
@@ -1496,8 +1301,8 @@ mod tests {
         let all_codes = all_error_codes();
         assert_eq!(
             all_codes.len(),
-            76,
-            "ErrorCode should have exactly 76 variants"
+            57,
+            "ErrorCode should have exactly 57 variants"
         );
 
         for code in all_codes {
@@ -1580,9 +1385,6 @@ mod tests {
         assert_eq!(ErrorCode::E_UDP_BIND.error_kind_hint(), UdpBind);
         assert_eq!(ErrorCode::E_SSE_EVENT.error_kind_hint(), SseEvent);
         assert_eq!(ErrorCode::E_GRAPHQL_QUERY.error_kind_hint(), GraphqlQuery);
-        assert_eq!(ErrorCode::E_AMQP_PUBLISH.error_kind_hint(), AmqpPublish);
-        assert_eq!(ErrorCode::E_SMTP_AUTH.error_kind_hint(), Execution);
-        assert_eq!(ErrorCode::E_IMAP_FETCH.error_kind_hint(), Execution);
         assert_eq!(
             ErrorCode::E_VARIABLE_EXTRACTOR_FAILED.error_kind_hint(),
             Execution

@@ -31,20 +31,10 @@ pub struct Mcp;
 pub struct Tcp;
 /// UDP provider key
 pub struct Udp;
-/// MQTT provider key
-pub struct Mqtt;
-/// Kafka provider key
-pub struct Kafka;
 /// SSE provider key
 pub struct Sse;
 /// GraphQL provider key
 pub struct Graphql;
-/// AMQP provider key
-pub struct Amqp;
-/// SMTP provider key
-pub struct Smtp;
-/// IMAP provider key
-pub struct Imap;
 
 impl ProviderKey for Ws {
     fn key() -> &'static str {
@@ -71,16 +61,6 @@ impl ProviderKey for Udp {
         "udp"
     }
 }
-impl ProviderKey for Mqtt {
-    fn key() -> &'static str {
-        "mqtt"
-    }
-}
-impl ProviderKey for Kafka {
-    fn key() -> &'static str {
-        "kafka"
-    }
-}
 impl ProviderKey for Sse {
     fn key() -> &'static str {
         "sse"
@@ -89,21 +69,6 @@ impl ProviderKey for Sse {
 impl ProviderKey for Graphql {
     fn key() -> &'static str {
         "graphql"
-    }
-}
-impl ProviderKey for Amqp {
-    fn key() -> &'static str {
-        "amqp"
-    }
-}
-impl ProviderKey for Smtp {
-    fn key() -> &'static str {
-        "smtp"
-    }
-}
-impl ProviderKey for Imap {
-    fn key() -> &'static str {
-        "imap"
     }
 }
 
@@ -136,15 +101,6 @@ mod tests {
         assert_eq!(Udp::key(), "udp");
     }
 
-    #[test]
-    fn test_mqtt_key() {
-        assert_eq!(Mqtt::key(), "mqtt");
-    }
-
-    #[test]
-    fn test_kafka_key() {
-        assert_eq!(Kafka::key(), "kafka");
-    }
 
     #[test]
     fn test_sse_key() {
@@ -156,18 +112,5 @@ mod tests {
         assert_eq!(Graphql::key(), "graphql");
     }
 
-    #[test]
-    fn test_amqp_key() {
-        assert_eq!(Amqp::key(), "amqp");
-    }
 
-    #[test]
-    fn test_smtp_key() {
-        assert_eq!(Smtp::key(), "smtp");
-    }
-
-    #[test]
-    fn test_imap_key() {
-        assert_eq!(Imap::key(), "imap");
-    }
 }
