@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-CLI 测试夹具 + 集成测试支撑数据。83 个文件、66 个 JSON 流程文件，覆盖 CLI e2e 场景、验证/执行 fixture、TLS 证书与本地测试服务。消费方：`src-tauri/tests/integration.rs`（通过 `fixtures_dir()` 加载）与 `mpe-cli`。
+CLI 测试夹具 + 集成测试支撑数据。75 个文件、58 个 JSON 流程文件，覆盖 CLI e2e 场景、验证/执行 fixture、TLS 证书与本地测试服务。消费方：`src-tauri/tests/integration.rs`（通过 `fixtures_dir()` 加载）与 `mpe-cli`。
 
 ## STRUCTURE
 
@@ -14,8 +14,7 @@ tests/
 │   ├── 01_simple_entry_http.json → 09_full_workflow.json
 │   │                           渐进式场景：HTTP 方法/头/体、条件操作符、
 │   │                           变量引用、多 HTTP 链、带分支全流程
-│   ├── db_mysql_flow.json / db_postgres_flow.json / db_sqlite_flow.json
-│   ├── db_transaction_flow.json, http-upload.json, script_node_example.json
+│   ├── http-upload.json, script_node_example.json
 │   ├── tls_01_basic_ca_verify.json → tls_05_wrong_ca.json
 │   ├── edge_cases/            12 个编号文件，刻意触发错误（空流程、无 entry、
 │   │                          JSON 语法错误、孤立节点、缺 URL…）
@@ -43,7 +42,7 @@ tests/
 | 错误路径验证 | `cli/edge_cases/` |
 | 集成测试 fixture | `fixtures/flows/`（`integration.rs` 经 `load_flow_fixture()` 解包 `flow` 键） |
 | TLS 校验场景 | `cli/tls_*.json` + `certs/`，经 `run-tls-tests.mjs` 跑编译后的 debug 二进制 |
-| 上传/脚本/DB 场景 | `cli/http-upload.json`、`cli/script_node_example.json`、`cli/db_*_flow.json` |
+| 上传/脚本场景 | `cli/http-upload.json`、`cli/script_node_example.json` |
 | 协议消费端参考 | `src-tauri/tests/integration.rs` 的 `fixtures_dir()`（CARGO_MANIFEST_DIR 上跳一级 → `tests/fixtures/flows/`） |
 
 ## CONVENTIONS

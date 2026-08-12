@@ -26,7 +26,6 @@ src/
 ├── statistics.rs       # FlowStatistics (timing, node count, etc.)
 ├── execution_event.rs  # ExecutionEvent enum (real-time frontend push events)
 ├── ws_stream.rs        # WsConnectionStream, WsMessage, WsStreamSegment
-├── db_types.rs         # DbDriver, DbConnection, DbConnectionStatus
 ├── debug_types.rs      # DebugSessionState, DebugCommand, DebugEvent, PauseReason
 ├── dataset.rs          # DatasetConfig, DataPickStrategy, DatasetExecutionReport
 ├── hook.rs             # FlowHook, HookAction, HookTrigger, HookContext
@@ -34,11 +33,11 @@ src/
 ├── email_types.rs      # SmtpConfig, ImapConfig, EmailAuthConfig, EmailProvider
 ├── email_auth.rs       # EmailProviderPreset, OAuth2/SASL builders
 ├── utils.rs            # Shared utility functions
-└── traits/             # 22 provider trait files (db, ws, tcp, udp, mqtt, kafka, ...)
+└── traits/             # 20 provider trait files (ws, tcp, udp, mqtt, kafka, ...)
     ├── mod.rs          # Re-exports all traits + ProviderKey pattern
-    ├── provider_key.rs # ProviderKey trait + marker types (Ws, Db, Grpc, ...)
+    ├── provider_key.rs # ProviderKey trait + marker types (Ws, Grpc, ...)
     ├── log_sender.rs   # LogSender, QueuedLogSender, ConsoleLogSender
-    ├── *provider.rs    # One file per protocol: DbProvider, WsProvider, GrpcProvider, etc.
+    ├── *provider.rs    # One file per protocol: WsProvider, GrpcProvider, etc.
     └── app_dir.rs / debug_event_sender.rs / execution_event_sender.rs / directory_opener.rs / hook_executor.rs
 ```
 

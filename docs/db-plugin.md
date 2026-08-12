@@ -157,7 +157,7 @@ describe 每个节点提供：
 
 **output_data / variable_updates / 路由契约（宿主默认路由）**：
 - **`next_ports` 无需插件返回**：6 个 db 节点均为二态或单端口节点，路由由**宿主默认推导**——success → `"true"`（db_connect/query/begin/commit/rollback）或 `"out"`（db_close），failure → 宿主 `on_error` 三策略处理（RouteToFalse → false 端口 / Ignore → true 继续 / AbortFlow → 终止，见 §2）。插件只需返回 `success` + `output_data` + `variable_updates`，用 SDK 惯用法 `ExecuteResult::ok(output)` 即可正确路由（依赖 §4.8 宿主默认路由落地）。
-- 端口 id 统一为内置语义：`"true"` / `"false"` / `"out"`（与 `flow-engine-db/src/plugin.rs:55-68` 对齐）。注意 `tests/cli/db_sqlite_flow.json:121-123` 夹具曾用 `"output"` 端口 id，与内置/前端约定（`builtinFlows.ts:75` 的 `"true"`）不一致——插件侧一律以 `"true"/"false"/"out"` 为准。
+- 端口 id 统一为内置语义：`"true"` / `"false"` / `"out"`（与 `flow-engine-db/src/plugin.rs:55-68` 对齐）。注意 `plugins/db/tests/fixtures/db_sqlite_flow.json:121-123` 夹具曾用 `"output"` 端口 id，与内置/前端约定（`builtinFlows.ts:75` 的 `"true"`）不一致——插件侧一律以 `"true"/"false"/"out"` 为准。
 - `db_query` 成功输出与内置一致（`db_query_executor.rs:413-419`）：fetch 模式 `output_data` 含 **rows + truncated 标记 + row_count**；失败路径 **`variable_changes = None`**（`executor.rs:822`，错误时不变更变量），成功路径按内置规则写入变量。
 
 ### 3.4 连接池注册表（核心设计）
