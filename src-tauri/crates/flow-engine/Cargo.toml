@@ -23,13 +23,8 @@ protocol-assertion = ["flow-engine-executor/protocol-assertion"]
 protocol-grpc = ["flow-engine-executor/protocol-grpc"]
 protocol-mcp = ["flow-engine-executor/protocol-mcp"]
 protocol-tcp = ["flow-engine-executor/protocol-tcp"]
-protocol-mqtt = ["flow-engine-executor/protocol-mqtt"]
-protocol-kafka = ["flow-engine-executor/protocol-kafka"]
 protocol-sse = ["flow-engine-executor/protocol-sse"]
 protocol-graphql = ["flow-engine-executor/protocol-graphql"]
-protocol-amqp = ["flow-engine-executor/protocol-amqp"]
-protocol-smtp = ["flow-engine-executor/protocol-smtp"]
-protocol-imap = ["flow-engine-executor/protocol-imap"]
 # Plugin manager — independent of protocol-*; explicitly re-forwards the
 # executor feature because the facade depends on executor with
 # default-features = false (the executor feature would otherwise never
@@ -39,7 +34,6 @@ plugin-manager = ["dep:flow-engine-plugin", "flow-engine-executor/plugin-manager
 [dependencies]
 # 子 crate 依赖（facade 只做 re-export）
 flow-engine-core = { path = "../flow-engine-core" }
-flow-engine-crypto = { path = "../flow-engine-crypto" }
 flow-engine-executor = { path = "../flow-engine-executor", default-features = false }
 flow-engine-plugin = { path = "../flow-engine-plugin", optional = true }
 

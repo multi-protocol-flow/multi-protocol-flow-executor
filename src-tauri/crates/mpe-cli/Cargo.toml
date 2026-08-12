@@ -44,13 +44,8 @@ protocol-assertion = ["flow-engine/protocol-assertion"]
 protocol-grpc = ["flow-engine/protocol-grpc"]
 protocol-mcp = ["flow-engine/protocol-mcp"]
 protocol-tcp = ["flow-engine/protocol-tcp"]
-protocol-mqtt = ["flow-engine/protocol-mqtt"]
-protocol-kafka = ["flow-engine/protocol-kafka"]
 protocol-sse = ["flow-engine/protocol-sse"]
 protocol-graphql = ["flow-engine/protocol-graphql"]
-protocol-amqp = ["flow-engine/protocol-amqp"]
-protocol-smtp = ["flow-engine/protocol-smtp"]
-protocol-imap = ["flow-engine/protocol-imap"]
 # Proves the CLI gets plugins despite `default-features = false` on its
 # flow-engine dependency: plugin-manager is forwarded explicitly and is
 # independent of protocol-*.

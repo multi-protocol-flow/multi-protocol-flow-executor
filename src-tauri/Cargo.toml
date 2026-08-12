@@ -7,18 +7,12 @@ members = [
     "crates/flow-engine-ws",
     "crates/flow-engine-script",
     "crates/flow-engine-assertion",
-    "crates/flow-engine-crypto",
     "crates/flow-engine-executor",
     "crates/flow-engine-grpc",
-    "crates/flow-engine-imap",
     "crates/flow-engine-mcp",
-    "crates/flow-engine-mqtt",
     "crates/flow-engine-tcp",
-    "crates/flow-engine-kafka",
-    "crates/flow-engine-smtp",
     "crates/flow-engine-sse",
     "crates/flow-engine-graphql",
-    "crates/flow-engine-amqp",
     "crates/mpe-cli",
     "crates/mpe-protocol",
     "crates/flow-engine-plugin",
@@ -47,9 +41,6 @@ futures-util = "0.3"
 http = "1"
 rustls-pemfile = "2"
 jsonpath-rust = "1.0.4"
-lettre = { version = "0.11", default-features = false, features = ["tokio1", "tokio1-rustls", "ring", "webpki-roots", "smtp-transport", "builder", "pool", "hostname"] }
-async-imap = { version = "0.11", default-features = false, features = ["runtime-tokio"] }
-mail-parser = "0.11"
 
 # Workspace Lint 配置
 [workspace.lints.rust]
@@ -163,13 +154,8 @@ protocol-assertion = ["flow-engine/protocol-assertion"]
 protocol-grpc = ["flow-engine/protocol-grpc"]
 protocol-mcp = ["flow-engine/protocol-mcp"]
 protocol-tcp = ["flow-engine/protocol-tcp"]
-protocol-mqtt = ["flow-engine/protocol-mqtt"]
-protocol-kafka = ["flow-engine/protocol-kafka"]
 protocol-sse = ["flow-engine/protocol-sse"]
 protocol-graphql = ["flow-engine/protocol-graphql"]
-protocol-amqp = ["flow-engine/protocol-amqp"]
-protocol-smtp = ["flow-engine/protocol-smtp"]
-protocol-imap = ["flow-engine/protocol-imap"]
 plugin-manager = ["flow-engine/plugin-manager"]
 
 # Windows API（FreeConsole 用于分离控制台）
@@ -200,12 +186,6 @@ opt-level = "z"       # 体积优先优化
 [profile.dev.package.tonic]
 opt-level = 3
 [profile.dev.package.prost]
-opt-level = 3
-[profile.dev.package."fe2o3-amqp"]
-opt-level = 3
-[profile.dev.package.rdkafka]
-opt-level = 3
-[profile.dev.package.lapin]
 opt-level = 3
 [profile.dev.package.rmcp]
 opt-level = 3

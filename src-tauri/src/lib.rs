@@ -103,27 +103,9 @@ pub use tauri_commands::{
 #[cfg(feature = "protocol-mcp")]
 pub use tauri_commands::mcp_discover_tools;
 
-// MQTT 连接测试命令
-#[cfg(feature = "protocol-mqtt")]
-pub use tauri_commands::mqtt_test_connection;
-
 // SSE 连接测试命令
 #[cfg(feature = "protocol-sse")]
 pub use tauri_commands::sse_test_connection;
-
-// AMQP 连接测试命令
-#[cfg(feature = "protocol-amqp")]
-pub use tauri_commands::amqp_test_connection;
-
-// SMTP 连接测试 + Email OAuth2 命令
-#[cfg(feature = "protocol-smtp")]
-pub use tauri_commands::{
-    email_oauth2_authorize, email_oauth2_refresh, email_oauth2_revoke, test_smtp_connection,
-};
-
-// IMAP 连接测试命令
-#[cfg(feature = "protocol-imap")]
-pub use tauri_commands::test_imap_connection;
 
 // TCP 协议模板命令
 #[cfg(feature = "protocol-tcp")]
@@ -132,12 +114,6 @@ pub use tauri_commands::{tcp_get_template, tcp_list_templates};
 // GraphQL 内省命令
 #[cfg(feature = "protocol-graphql")]
 pub use tauri_commands::graphql_introspect_schema;
-
-// Kafka 命令
-#[cfg(feature = "protocol-kafka")]
-pub use tauri_commands::{
-    kafka_discover_schema, kafka_list_consumer_groups, kafka_list_topics, kafka_test_connection,
-};
 
 // 导出适配器（供测试使用）
 pub use tauri_adapters::{
@@ -379,28 +355,9 @@ pub fn run() {
             // MCP 工具发现命令
             #[cfg(feature = "protocol-mcp")]
             mcp_discover_tools,
-            // MQTT 连接测试命令
-            #[cfg(feature = "protocol-mqtt")]
-            mqtt_test_connection,
             // SSE 连接测试命令
             #[cfg(feature = "protocol-sse")]
             sse_test_connection,
-            // AMQP 连接测试命令
-            #[cfg(feature = "protocol-amqp")]
-            amqp_test_connection,
-            // SMTP 连接测试命令
-            #[cfg(feature = "protocol-smtp")]
-            test_smtp_connection,
-            // IMAP 连接测试命令
-            #[cfg(feature = "protocol-imap")]
-            test_imap_connection,
-            // Email OAuth2 命令
-            #[cfg(feature = "protocol-smtp")]
-            email_oauth2_authorize,
-            #[cfg(feature = "protocol-smtp")]
-            email_oauth2_refresh,
-            #[cfg(feature = "protocol-smtp")]
-            email_oauth2_revoke,
             // TCP 协议模板命令
             #[cfg(feature = "protocol-tcp")]
             tcp_list_templates,
@@ -409,15 +366,6 @@ pub fn run() {
             // GraphQL 内省命令
             #[cfg(feature = "protocol-graphql")]
             graphql_introspect_schema,
-            // Kafka 命令
-            #[cfg(feature = "protocol-kafka")]
-            kafka_test_connection,
-            #[cfg(feature = "protocol-kafka")]
-            kafka_list_topics,
-            #[cfg(feature = "protocol-kafka")]
-            kafka_list_consumer_groups,
-            #[cfg(feature = "protocol-kafka")]
-            kafka_discover_schema,
             // 执行会话管理
             cancel_flow,
             // 流程验证命令

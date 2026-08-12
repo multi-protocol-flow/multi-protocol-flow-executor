@@ -7,8 +7,6 @@ pub use flow_engine_executor::commands;
 // Re-exports from flow-engine-core
 pub use flow_engine_core::connection;
 pub use flow_engine_core::dataset;
-pub use flow_engine_core::email_auth;
-pub use flow_engine_core::email_types;
 pub use flow_engine_core::error;
 pub use flow_engine_core::execution_event;
 pub use flow_engine_core::flow;
@@ -26,7 +24,6 @@ pub use flow_engine_core::variable;
 pub use flow_engine_core::ws_stream;
 
 // Wave 2: 无依赖的基础模块
-pub use flow_engine_crypto::encryption;
 pub use flow_engine_executor::command;
 pub use flow_engine_executor::storage;
 
@@ -75,26 +72,6 @@ pub use flow_engine_executor::flow_engine_tcp::{
 #[cfg(feature = "protocol-mcp")]
 pub use flow_engine_executor::flow_engine_mcp;
 
-// MQTT (flow-engine-mqtt)
-#[cfg(feature = "protocol-mqtt")]
-pub use flow_engine_executor::flow_engine_mqtt;
-#[cfg(feature = "protocol-mqtt")]
-pub use flow_engine_executor::flow_engine_mqtt::{
-    mqtt_connect_executor, mqtt_connection_manager, mqtt_disconnect_executor,
-    mqtt_publish_executor, mqtt_request_executor, mqtt_subscribe_executor,
-    mqtt_unsubscribe_executor, mqtt_wait_message_executor,
-};
-
-// Kafka (flow-engine-kafka)
-#[cfg(feature = "protocol-kafka")]
-pub use flow_engine_executor::flow_engine_kafka;
-#[cfg(feature = "protocol-kafka")]
-pub use flow_engine_executor::flow_engine_kafka::{
-    kafka_admin_executor, kafka_close_executor, kafka_connect_executor, kafka_connection_manager,
-    kafka_consume_batch_executor, kafka_consume_executor, kafka_produce_executor,
-    kafka_schema_registry_executor,
-};
-
 // SSE (flow-engine-sse)
 #[cfg(feature = "protocol-sse")]
 pub use flow_engine_executor::flow_engine_sse;
@@ -110,39 +87,6 @@ pub use flow_engine_executor::flow_engine_graphql;
 pub use flow_engine_executor::flow_engine_graphql::{
     graphql_connect_executor, graphql_connection_manager, graphql_disconnect_executor,
     graphql_introspect_executor, graphql_query_executor, graphql_subscribe_executor,
-};
-
-// AMQP (flow-engine-amqp)
-#[cfg(feature = "protocol-amqp")]
-pub use flow_engine_executor::flow_engine_amqp;
-#[cfg(feature = "protocol-amqp")]
-pub use flow_engine_executor::flow_engine_amqp::amqp091::{
-    amqp_ack_executor, amqp_close_executor, amqp_connect_executor, amqp_consume_executor,
-    amqp_exchange_declare_executor, amqp_exchange_delete_executor, amqp_get_executor,
-    amqp_publish_executor, amqp_queue_bind_executor, amqp_queue_declare_executor,
-    amqp_queue_delete_executor,
-};
-#[cfg(feature = "protocol-amqp")]
-pub use flow_engine_executor::flow_engine_amqp::AmqpConnectionManager;
-
-// SMTP (flow-engine-smtp)
-#[cfg(feature = "protocol-smtp")]
-pub use flow_engine_executor::flow_engine_smtp;
-#[cfg(feature = "protocol-smtp")]
-pub use flow_engine_executor::flow_engine_smtp::{
-    oauth2, plugin as smtp_plugin, smtp_connect_executor, smtp_connection_manager,
-    smtp_disconnect_executor, smtp_send_executor,
-};
-
-// IMAP (flow-engine-imap)
-#[cfg(feature = "protocol-imap")]
-pub use flow_engine_executor::flow_engine_imap;
-#[cfg(feature = "protocol-imap")]
-pub use flow_engine_executor::flow_engine_imap::{
-    imap_close_executor, imap_connect_executor, imap_connection_manager, imap_copy_executor,
-    imap_expunge_executor, imap_fetch_executor, imap_folder_create_executor,
-    imap_folder_delete_executor, imap_idle_executor, imap_list_executor, imap_move_executor,
-    imap_search_executor, imap_select_executor, imap_store_flags_executor, plugin as imap_plugin,
 };
 
 // Script (flow-engine-script)
