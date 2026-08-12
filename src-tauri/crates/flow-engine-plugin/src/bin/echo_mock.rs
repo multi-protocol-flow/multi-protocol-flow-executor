@@ -192,11 +192,17 @@ fn handle_request(writer: &mut impl Write, request: &Request) {
 /// frontend that omits its `url` so the host must generate it during
 /// normalization. Kept as JSON literals, mirroring the other mock responses.
 fn describe_result() -> serde_json::Value {
+    // Echo the mock's OWN binary path (not a bare name) so the host's
+    // lifecycle can re-spawn it via the authoritative echoed manifest —
+    // `connection_for` in the conformance suite spawns this entry command.
+    let exe = std::env::current_exe()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| "echo_mock".to_string());
     serde_json::json!({
         "plugin": {
             "name": "demo",
             "version": "0.0.0",
-            "entry": {"command": "echo_mock"}
+            "entry": {"command": exe}
         },
         "nodes": [
             {

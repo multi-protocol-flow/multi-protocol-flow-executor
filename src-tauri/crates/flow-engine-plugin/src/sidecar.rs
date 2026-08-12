@@ -222,7 +222,18 @@ impl NodePlugin for SidecarPlugin {
         };
 
         // 8. Map the response into the NodePlugin return contract.
-        map_execute_response(&self.node.type_id, &response, node, context, connections)
+        // Default success port (SDK empty-`next_ports` contract) derived from
+        // the describe ports: "true" when declared, else the sole non-"in"
+        // port (single-output nodes like `db:close`), else None.
+        let default_success_port = crate::wrapper::default_success_port(&self.ports());
+        map_execute_response(
+            &self.node.type_id,
+            &response,
+            node,
+            context,
+            connections,
+            default_success_port,
+        )
     }
 }
 

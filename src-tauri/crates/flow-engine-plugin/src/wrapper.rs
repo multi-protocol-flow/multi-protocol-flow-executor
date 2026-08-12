@@ -14,6 +14,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::error::{ErrorCode, ErrorDetail, ErrorKind};
 use flow_engine_core::node::Node;
+use flow_engine_core::plugin::PortDef;
 use serde_json::Value;
 
 use crate::error::PluginError;
@@ -23,6 +24,27 @@ use crate::error::PluginError;
 /// Mirrors the executor's `FALLBACK_TIMEOUT_MS` (30 s): plugin nodes have no
 /// `execution_timeout_ms()` so this wrapper is the only timeout safety net.
 pub const DEFAULT_EXECUTION_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Derives the host default success port from a plugin's describe ports.
+///
+/// Fulfils the SDK's empty-`next_ports` contract: "true" when the describe
+/// declares it (two-state nodes), else the sole non-"in" port (single-output
+/// nodes like `db:close`), else `None` (no derivable default).
+pub(crate) fn default_success_port(ports: &[PortDef]) -> Option<String> {
+    if ports.iter().any(|p| p.id == "true") {
+        Some("true".to_string())
+    } else {
+        let outs: Vec<&str> = ports
+            .iter()
+            .filter(|p| p.id != "in")
+            .map(|p| p.id.as_str())
+            .collect();
+        match outs.as_slice() {
+            [only] => Some((*only).to_string()),
+            _ => None,
+        }
+    }
+}
 
 /// Maps the plugin's `next_ports` (port ids) to next node UUIDs.
 ///
@@ -59,6 +81,11 @@ pub(crate) fn resolve_next_node_ids(
 /// the first `errors[]` entry (or a generic message) becomes the
 /// `Err(ErrorDetail)`.
 ///
+/// `default_success_port` fulfils the SDK's empty-`next_ports` contract: when
+/// the plugin returns no explicit ports on success, the host routes via the
+/// describe-derived default port (see [`crate::sidecar`]) instead of silently
+/// terminating the branch.
+///
 /// `ErrorDetail` is 136 bytes by design (the read-only core type used
 /// everywhere); this sync fn would otherwise trip `result_large_err`.
 #[allow(clippy::result_large_err)]
@@ -68,6 +95,7 @@ pub(crate) fn map_execute_response(
     node: &Node,
     context: &mut ExecutionContext,
     connections: &[Connection],
+    default_success_port: Option<String>,
 ) -> Result<(Vec<String>, Option<Value>), ErrorDetail> {
     let obj = response.as_object().ok_or_else(|| {
         ErrorDetail::execution_error(format!(
@@ -103,7 +131,7 @@ pub(crate) fn map_execute_response(
                 );
             }
         }
-        let next_ports: Vec<String> = obj
+        let mut next_ports: Vec<String> = obj
             .get("next_ports")
             .and_then(Value::as_array)
             .map(|arr| {
@@ -113,6 +141,16 @@ pub(crate) fn map_execute_response(
                     .collect()
             })
             .unwrap_or_default();
+        // SDK contract (mpe-plugin-sdk types.rs): an empty `next_ports` lets
+        // the HOST apply its default routing. Fulfil it: for two-state /
+        // single-output nodes the describe ports derive the success port
+        // ("true" if present, else the sole non-"in" port). Explicit plugin
+        // `next_ports` still override the default.
+        if next_ports.is_empty() {
+            if let Some(port) = default_success_port {
+                next_ports.push(port);
+            }
+        }
         let output_data = obj.get("output_data").cloned().filter(|v| !v.is_null());
         Ok((
             resolve_next_node_ids(&next_ports, node, connections),

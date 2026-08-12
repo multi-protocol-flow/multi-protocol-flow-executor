@@ -571,6 +571,7 @@ fn map_execute_response_failure_surfaces_plugin_message() {
             &node,
             &mut context,
             &[],
+            None,
         )
         .expect_err("failure response must map to Err");
         assert_eq!(err.message, expected);
@@ -592,4 +593,105 @@ fn map_execute_response_failure_surfaces_plugin_message() {
         serde_json::json!({ "success": false }),
         "plugin reported execution failure",
     );
+}
+
+/// SDK empty-`next_ports` contract: on `success: true` with no explicit
+/// ports, the host routes via the describe-derived `default_success_port`
+/// instead of terminating the branch. An explicit `next_ports` still
+/// overrides the default.
+#[test]
+fn map_execute_response_applies_default_success_port() {
+    use flow_engine_core::connection::Connection;
+    let node = plugin_node(serde_json::json!({ "type": "demo:ping" }));
+    let out_conn = Connection {
+        id: "c1".to_string(),
+        source_node_uuid: node.uuid.clone(),
+        target_node_uuid: "node-2".to_string(),
+        source_port_id: "out".to_string(),
+        target_port_id: "in".to_string(),
+    };
+    let custom_conn = Connection {
+        id: "c2".to_string(),
+        source_node_uuid: node.uuid.clone(),
+        target_node_uuid: "node-3".to_string(),
+        source_port_id: "custom".to_string(),
+        target_port_id: "in".to_string(),
+    };
+
+    // No next_ports + default "out" → resolves through the out port to the
+    // connected downstream node.
+    let mut context = ExecutionContext::new("flow-1".to_string(), 0);
+    let ok = crate::wrapper::map_execute_response(
+        "demo:ping",
+        &serde_json::json!({ "success": true, "output_data": { "ok": true } }),
+        &node,
+        &mut context,
+        &[out_conn.clone()],
+        Some("out".to_string()),
+    )
+    .expect("success must map to Ok");
+    assert_eq!(
+        ok.0,
+        vec!["node-2".to_string()],
+        "default port must route to the connected downstream node"
+    );
+
+    // Explicit next_ports wins over the default: only the "custom" edge is
+    // followed even though the default "out" edge also exists.
+    let mut context = ExecutionContext::new("flow-1".to_string(), 0);
+    let ok = crate::wrapper::map_execute_response(
+        "demo:ping",
+        &serde_json::json!({ "success": true, "next_ports": ["custom"], "output_data": {} }),
+        &node,
+        &mut context,
+        &[out_conn.clone(), custom_conn.clone()],
+        Some("out".to_string()),
+    )
+    .expect("success must map to Ok");
+    assert_eq!(
+        ok.0,
+        vec!["node-3".to_string()],
+        "explicit next_ports must override the default"
+    );
+
+    // No default (None) + no next_ports → empty routing (legacy behavior).
+    let mut context = ExecutionContext::new("flow-1".to_string(), 0);
+    let ok = crate::wrapper::map_execute_response(
+        "demo:ping",
+        &serde_json::json!({ "success": true, "output_data": {} }),
+        &node,
+        &mut context,
+        &[out_conn],
+        None,
+    )
+    .expect("success must map to Ok");
+    assert_eq!(ok.0, Vec::<String>::new(), "no default → legacy empty routing");
+}
+
+/// `default_success_port` derivation rules from describe ports.
+#[test]
+fn default_success_port_derivation() {
+    use flow_engine_core::plugin::PortDef;
+    let port = |id: &str| PortDef {
+        id: id.to_string(),
+        label: String::new(),
+        position: String::new(),
+    };
+    // Two-state node (in/true/false) → "true".
+    assert_eq!(
+        crate::wrapper::default_success_port(&[port("in"), port("true"), port("false")]),
+        Some("true".to_string())
+    );
+    // Single-output node (in/out) → "out".
+    assert_eq!(
+        crate::wrapper::default_success_port(&[port("in"), port("out")]),
+        Some("out".to_string())
+    );
+    // 2+ outputs → no derivable default.
+    assert_eq!(
+        crate::wrapper::default_success_port(&[port("in"), port("a"), port("b")]),
+        None
+    );
+    // No ports → None.
+    assert_eq!(crate::wrapper::default_success_port(&[]), None);
 }
