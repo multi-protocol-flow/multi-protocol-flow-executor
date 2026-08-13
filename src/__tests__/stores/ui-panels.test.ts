@@ -477,11 +477,11 @@ describe('UIStore - resetPanels 完整测试', () => {
     useUIStore.getState().resetPanels();
 
     const state = useUIStore.getState();
-    // 主面板状态
-    expect(state.isFlowListPanelOpen).toBe(true);
+    // 主面板状态（启动默认：流程列表 / 节点列表抽屉收起）
+    expect(state.isFlowListPanelOpen).toBe(false);
     expect(state.isHistoryPanelOpen).toBe(false);
     expect(state.isBottomPanelExpanded).toBe(false);
-    expect(state.isConfigPanelOpen).toBe(true);
+    expect(state.isConfigPanelOpen).toBe(false);
     expect(state.isExecutionPanelOpen).toBe(false);
     expect(state.bottomPanelTab).toBe('');
 

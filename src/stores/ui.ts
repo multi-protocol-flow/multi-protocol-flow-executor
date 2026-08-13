@@ -254,11 +254,11 @@ const MIN_LEFT_PANEL_HEIGHT = 100;
 const MAX_LEFT_PANEL_HEIGHT = 400;
 
 const initialState = {
-  // 面板状态
-  isFlowListPanelOpen: true,
+  // 面板状态（启动时流程列表 / 节点列表两个抽屉默认收起）
+  isFlowListPanelOpen: false,
   isHistoryPanelOpen: false,
   isBottomPanelExpanded: false,
-  isConfigPanelOpen: true,
+  isConfigPanelOpen: false,
   isExecutionPanelOpen: false,
   // 底部面板 Tab
       bottomPanelTab: '' as BottomPanelTab,
@@ -499,10 +499,10 @@ export const useUIStore = create<UIState>((set) => ({
   // ===== 工具方法 =====
   resetPanels: () =>
     set({
-      isFlowListPanelOpen: true,
+      isFlowListPanelOpen: false,
       isHistoryPanelOpen: false,
       isBottomPanelExpanded: false,
-      isConfigPanelOpen: true,
+      isConfigPanelOpen: false,
       isExecutionPanelOpen: false,
   bottomPanelTab: '' as BottomPanelTab,
       isFlowListCollapsed: false,
