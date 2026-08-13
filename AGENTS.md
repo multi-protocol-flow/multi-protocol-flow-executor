@@ -51,7 +51,7 @@ root/
 
 ```
 Layer 0 (叶子):     flow-engine-core
-Layer 1 (协议):     9 个协议 crate (http, ws, script, assertion, grpc, mcp, tcp, sse, graphql) — redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 已移出宿主，变为第三方插件 plugins/*
+Layer 1 (协议):     8 个协议 crate (http, ws, script, assertion, grpc, tcp, sse, graphql) — redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 及 mcp 已移出宿主，变为第三方插件 plugins/*
 Layer 2 (编排):     flow-engine-executor (依赖 Layer 0 + 可选 Layer 1)
 Layer 3 (门面):     flow-engine (re-export 全部)
 Layer 4 (应用):     app (src-tauri/) 仅依赖 flow-engine
@@ -83,7 +83,7 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 
 ### 节点类型 (40 variants)
 
-定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), script, assertion, grpc(3), mcp(5), tcp(4), udp(4), sse(3), graphql(5), variable_extractor, proxy。（redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 已移出宿主，见 plugins/*——插件节点以 `<proto>:*` 命名空间提供）
+定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), script, assertion, grpc(3), tcp(4), udp(4), sse(3), graphql(5), variable_extractor, proxy。（redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 及 mcp 已移出宿主，见 plugins/*——插件节点以 `<proto>:*` 命名空间提供）
 
 ### 执行错误策略 (on_error)
 
@@ -175,7 +175,6 @@ npm run tauri build             # 构建安装包
 - [src-tauri/crates/flow-engine-script/src/AGENTS.md](./src-tauri/crates/flow-engine-script/src/AGENTS.md) — 脚本
 - [src-tauri/crates/flow-engine-assertion/src/AGENTS.md](./src-tauri/crates/flow-engine-assertion/src/AGENTS.md) — 断言
 - [src-tauri/crates/flow-engine-grpc/src/AGENTS.md](./src-tauri/crates/flow-engine-grpc/src/AGENTS.md) — gRPC
-- [src-tauri/crates/flow-engine-mcp/src/AGENTS.md](./src-tauri/crates/flow-engine-mcp/src/AGENTS.md) — MCP
 - [src-tauri/crates/flow-engine-tcp/src/AGENTS.md](./src-tauri/crates/flow-engine-tcp/src/AGENTS.md) — TCP/UDP
 - [src-tauri/crates/flow-engine-graphql/src/AGENTS.md](./src-tauri/crates/flow-engine-graphql/src/AGENTS.md) — GraphQL
 - [src-tauri/crates/flow-engine-sse/src/AGENTS.md](./src-tauri/crates/flow-engine-sse/src/AGENTS.md) — SSE
