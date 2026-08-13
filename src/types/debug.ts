@@ -219,47 +219,7 @@ export type DebugEvent =
         message: string;
       };
     }
-  // ===== MCP 调试事件 =====
-  | {
-      McpConnectionCreated: {
-        node_uuid: string;
-        connection_id: string;
-        url: string;
-        server_name: string;
-      };
-    }
-  | {
-      McpToolCalled: {
-        node_uuid: string;
-        connection_id: string;
-        tool_name: string;
-        duration_ms: number;
-      };
-    }
-  | {
-      McpResourceRead: {
-        node_uuid: string;
-        connection_id: string;
-        uri: string;
-        duration_ms: number;
-      };
-    }
-  | {
-      McpPromptGet: {
-        node_uuid: string;
-        connection_id: string;
-        prompt_name: string;
-        duration_ms: number;
-      };
-    }
-  | {
-      McpConnectionClosed: {
-        node_uuid: string;
-        connection_id: string;
-        url: string;
-      };
-    };
-
+;
 // ============================================================================
 // gRPC 调试数据结构
 // ============================================================================
@@ -297,26 +257,6 @@ export interface GrpcRealtimeStreamError {
   connection_id: string;
   call_id: string;
   message: string;
-}
-
-// ============================================================================
-// MCP 调试数据结构
-// ============================================================================
-
-/** MCP 连接信息 */
-export interface McpConnectionInfo {
-  url: string;
-  server_name: string;
-}
-
-/** MCP 操作记录 (工具调用 / 资源读取 / 提示词获取) */
-export interface McpOperationRecord {
-  node_uuid: string;
-  operation_type: 'tool_call' | 'resource_read' | 'prompt_get';
-  name: string;
-  /** 资源读取时为 uri，其余为对应名称 */
-  detail?: string;
-  duration_ms: number;
 }
 
 // ============================================================================

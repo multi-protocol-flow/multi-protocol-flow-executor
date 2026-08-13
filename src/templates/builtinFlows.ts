@@ -203,7 +203,7 @@ const SCRIPT_TRANSFORM_FLOW: Flow = {
   ],
 } as Flow & { _meta?: { version: number; isBuiltin: boolean } };
 
-/** MCP Connect/CallTool */
+/** MCP Connect/CallTool（插件节点：`mcp:*` 命名空间，由 plugins/mcp 提供） */
 const MCP_FLOW: Flow = {
   uuid: 'template-mcp',
   name: 'MCP Call Tool',
@@ -211,16 +211,16 @@ const MCP_FLOW: Flow = {
   nodes: [
     { uuid: 'entry-mcp-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'mcp-connect-001', type: 'mcp_connect', name: 'Connect MCP', position: { x: 250, y: 0 },
-      data: { type: 'mcp_connect', server_command: 'npx', server_args: ['-y', '@modelcontextprotocol/server-everything'], transport_type: 'stdio' }
+      uuid: 'mcp-connect-001', type: 'mcp:connect', name: 'Connect MCP', position: { x: 250, y: 0 },
+      data: { type: 'mcp:connect', transport: 'stdio', command: 'npx', args: ['-y', '@modelcontextprotocol/server-everything'], env: {}, protocol_version: '2025-11-25' }
     },
     {
-      uuid: 'mcp-call-001', type: 'mcp_call_tool', name: 'Call Tool', position: { x: 500, y: 0 },
-      data: { type: 'mcp_call_tool', connection_id: 'mcp-connect-001', tool_name: 'echo', arguments: { message: 'Hello MCP' } }
+      uuid: 'mcp-call-001', type: 'mcp:call_tool', name: 'Call Tool', position: { x: 500, y: 0 },
+      data: { type: 'mcp:call_tool', connection_id: 'mcp-connect-001', tool_name: 'echo', arguments: { message: 'Hello MCP' } }
     },
     {
-      uuid: 'mcp-close-001', type: 'mcp_close', name: 'Close Connection', position: { x: 750, y: 0 },
-      data: { type: 'mcp_close', connection_id: 'mcp-connect-001' }
+      uuid: 'mcp-close-001', type: 'mcp:close', name: 'Close Connection', position: { x: 750, y: 0 },
+      data: { type: 'mcp:close', connection_id: 'mcp-connect-001' }
     },
   ],
   connections: [

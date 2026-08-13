@@ -359,13 +359,6 @@ export async function listRegisteredPlugins(): Promise<[]> {
 }
 
 /**
- * Mock 发现 MCP 工具
- * 模拟后端 mcp_discover_tools 命令行为
- *
- * @param _input - MCP 发现工具输入（Mock 中未使用）
- * @returns 模拟的 MCP 工具和资源列表
- */
-/**
  * Mock 发现 gRPC 服务
  * 模拟后端 grpc_discover_services 命令行为
  *
@@ -468,36 +461,6 @@ export async function generateGrpcRequestSkeletonFromReflection(
     success: true,
     skeleton: JSON.stringify({ field: '' }, null, 2),
     error: null,
-  };
-}
-
-export async function discoverMcpTools(
-  _input: import('./mcp').McpDiscoverToolsInput
-): Promise<import('./mcp').McpDiscoverToolsOutput> {
-  return {
-    success: true,
-    tools: [
-      {
-        name: 'mock_tool',
-        description: 'Mock MCP tool for testing',
-        input_schema: { type: 'object', properties: {} },
-      },
-    ],
-    resources: [
-      {
-        uri: 'mock://resource',
-        name: 'Mock Resource',
-        description: 'Mock MCP resource for testing',
-        mime_type: 'text/plain',
-      },
-    ],
-    prompts: [
-      { name: 'example_prompt', description: 'Example prompt template', arguments: [{ name: 'topic', description: 'Topic', required: true }] }
-    ],
-    server_info: {
-      name: 'Mock MCP Server',
-      version: '1.0.0',
-    },
   };
 }
 

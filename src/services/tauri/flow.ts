@@ -190,8 +190,8 @@ export async function validateFlow(flow: Flow): Promise<ValidationResult> {
  *
  * 支持的节点类型: http, script, assertion,
  * ws_connect, sse_connect, grpc_connect,
- * mcp_connect, graphql_connect, tcp_connect, 以及声明了
- * capabilities.single_node 的插件节点（如 redis:connect）
+ * graphql_connect, tcp_connect, 以及声明了
+ * capabilities.single_node 的插件节点（如 redis:connect / mcp:connect）
  *
  * @param node - 要执行的节点
  * @param variables - 可选的变量

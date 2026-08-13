@@ -17,7 +17,6 @@ import {
   Code,
   Wrench,
   Network,
-  Puzzle,
   Cable,
   PhoneOutgoing,
   PhoneOff,
@@ -73,7 +72,6 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   script: Code,
   assertion: CheckCircle,
   grpc: Network,
-  mcp: Puzzle,
   sse: Globe,
   graphql: Globe,
   tcp: Cable,
@@ -188,7 +186,7 @@ const SUPER_CATEGORIES: SuperCategory[] = [
   },
   {
     key: 'services',
-    categories: ['grpc', 'mcp'],
+    categories: ['grpc'],
   },
   {
     key: 'tools',
@@ -268,7 +266,6 @@ const SEARCH_ALIASES: Record<string, string[]> = {
   stream: ['sse_listen'],
   trigger: ['sse_listen'],
   rpc: ['grpc_call'],
-  tool: ['mcp_call_tool'],
   realtime: ['ws_connect', 'sse_listen'],
   crud: ['http'],
 };

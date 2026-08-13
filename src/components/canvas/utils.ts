@@ -216,16 +216,6 @@ export function createDefaultNodeData(type: AnyNodeType): NodeData {
       return { type: 'grpc_call', connection_id: '', service_name: '', method_name: '', request_json: '' };
     case 'grpc_close':
       return { type: 'grpc_close', connection_id: '' };
-    case 'mcp_connect':
-      return { type: 'mcp_connect', url: '' };
-    case 'mcp_call_tool':
-      return { type: 'mcp_call_tool', connection_id: '', tool_name: '' };
-    case 'mcp_read_resource':
-      return { type: 'mcp_read_resource', connection_id: '', resource_uri: '' };
-    case 'mcp_get_prompt':
-      return { type: 'mcp_get_prompt', connection_id: '', prompt_name: '', arguments: {} };
-    case 'mcp_close':
-      return { type: 'mcp_close', connection_id: '' };
     case 'tcp_connect':
       return { type: 'tcp_connect', host: '', port: 0 };
     case 'tcp_send':

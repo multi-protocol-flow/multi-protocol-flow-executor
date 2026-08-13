@@ -76,7 +76,6 @@ export const CATEGORY_NAMES: Record<string, string> = {
   get script() { return getLL().nodes.category.script(); },
   get assertion() { return getLL().nodes.category.assertion(); },
   get grpc() { return getLL().nodes.category.grpc(); },
-  get mcp() { return getLL().nodes.category.mcp(); },
   get sse() { return getLL().nodes.category.sse(); },
   get graphql() { return getLL().nodes.category.graphql(); },
   get tcp() { return getLL().nodes.category.tcp(); },
@@ -89,7 +88,7 @@ export const CATEGORY_NAMES: Record<string, string> = {
  * 按一级分类分组，组内间隔 10 方便后续插入
  *
  * 网络: http(0), websocket(1), sse(2), graphql(3)
- * 服务: grpc(10), mcp(11)
+ * 服务: grpc(10)
  * 工具: tools(30), script(31), assertion(32)
  * 其他: database(40), tcp(42), udp(43)
  */
@@ -99,7 +98,6 @@ export const CATEGORY_ORDER: Record<string, number> = {
   sse: 2,
   graphql: 3,
   grpc: 10,
-  mcp: 11,
   tools: 30,
   script: 31,
   assertion: 32,
@@ -128,13 +126,6 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   grpc_connect: 0,
   grpc_call: 1,
   grpc_close: 2,
-
-  // MCP: 连接 → 调用工具 → 读取资源 → 获取提示 → 关闭
-  mcp_connect: 0,
-  mcp_call_tool: 1,
-  mcp_read_resource: 2,
-  mcp_get_prompt: 3,
-  mcp_close: 4,
 
 
   // SSE: 连接 → 监听 → 断开
@@ -194,11 +185,6 @@ export function getBadgeClassForType(typeId: string): string {
     grpc_connect: 'bg-sky-100 text-sky-700',
     grpc_call: 'bg-sky-100 text-sky-700',
     grpc_close: 'bg-sky-100 text-sky-700',
-    mcp_connect: 'bg-amber-100 text-amber-700',
-    mcp_call_tool: 'bg-amber-100 text-amber-700',
-    mcp_read_resource: 'bg-amber-100 text-amber-700',
-    mcp_get_prompt: 'bg-amber-100 text-amber-700',
-    mcp_close: 'bg-amber-100 text-amber-700',
     variable_extractor: 'bg-amber-100 text-amber-700',
     proxy: 'bg-lime-100 text-lime-700',
     end: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',

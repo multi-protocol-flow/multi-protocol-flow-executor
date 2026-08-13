@@ -29,11 +29,6 @@ export type NodeType =
   | 'grpc_connect'
   | 'grpc_call'
   | 'grpc_close'
-  | 'mcp_connect'
-  | 'mcp_call_tool'
-  | 'mcp_read_resource'
-  | 'mcp_get_prompt'
-  | 'mcp_close'
   | 'tcp_connect'
   | 'tcp_send'
   | 'tcp_receive'
@@ -761,135 +756,6 @@ export interface GrpcCloseConfig {
 }
 
 // ============================================================================
-// MCP 节点类型定义
-// ============================================================================
-
-/**
- * MCP 工具信息（从 MCP 服务器发现）
- */
-export interface McpToolInfo {
-  /** 工具名称 */
-  name: string;
-  /** 工具描述 */
-  description?: string;
-  /** 工具参数 JSON Schema */
-  input_schema?: Record<string, unknown>;
-}
-
-/**
- * MCP 资源信息（从 MCP 服务器发现）
- */
-export interface McpResourceInfo {
-  /** 资源 URI */
-  uri: string;
-  /** 资源名称 */
-  name: string;
-  /** 资源描述 */
-  description?: string;
-  /** MIME 类型 */
-  mime_type?: string;
-}
-
-/**
- * MCP 提示词参数信息
- */
-export interface McpPromptArgumentInfo {
-  /** 参数名称 */
-  name: string;
-  /** 参数描述 */
-  description?: string;
-  /** 是否必填 */
-  required?: boolean;
-}
-
-/**
- * MCP 提示词信息（从 MCP 服务器发现）
- */
-export interface McpPromptInfo {
-  /** 提示词名称 */
-  name: string;
-  /** 提示词描述 */
-  description?: string;
-  /** 提示词参数 */
-  arguments?: McpPromptArgumentInfo[];
-}
-
-/**
- * MCP Connect 节点配置
- */
-export interface McpConnectConfig {
-  type: 'mcp_connect';
-  /** 传输模式：streamable_http (默认) | stdio */
-  transport?: 'streamable_http' | 'stdio';
-  /** MCP 服务器 URL（Streamable HTTP 模式） */
-  url: string;
-  /** 请求头（Streamable HTTP 模式） */
-  headers?: Record<string, string>;
-  /** 协议版本（默认 "2025-11-25"） */
-  protocol_version?: string;
-  /** 自定义请求头（Streamable HTTP 模式） */
-  custom_headers?: Record<string, string>;
-  /** Stdio 模式：可执行文件路径（如 npx, uvx, node） */
-  command?: string;
-  /** Stdio 模式：命令参数 */
-  args?: string[];
-  /** Stdio 模式：环境变量 */
-  env?: Record<string, string>;
-  /** 设计时发现缓存 - 工具列表 */
-  discovered_tools?: McpToolInfo[];
-  /** 设计时发现缓存 - 资源列表 */
-  discovered_resources?: McpResourceInfo[];
-  /** 设计时发现缓存 - 提示词列表 */
-  discovered_prompts?: McpPromptInfo[];
-}
-
-/**
- * MCP Call Tool 节点配置
- */
-export interface McpCallToolConfig {
-  type: 'mcp_call_tool';
-  /** 连接 ID（引用 mcp_connect 节点的 UUID） */
-  connection_id: string;
-  /** 工具名称 */
-  tool_name: string;
-  /** 工具参数（JSON） */
-  arguments?: Record<string, unknown>;
-}
-
-/**
- * MCP Read Resource 节点配置
- */
-export interface McpReadResourceConfig {
-  type: 'mcp_read_resource';
-  /** 连接 ID（引用 mcp_connect 节点的 UUID） */
-  connection_id: string;
-  /** 资源 URI */
-  resource_uri: string;
-}
-
-/**
- * MCP Close 节点配置
- */
-export interface McpCloseConfig {
-  type: 'mcp_close';
-  /** 连接 ID（引用 mcp_connect 节点的 UUID） */
-  connection_id: string;
-}
-
-/**
- * MCP Get Prompt 节点配置
- */
-export interface McpGetPromptConfig {
-  type: 'mcp_get_prompt';
-  /** 连接 ID（引用 mcp_connect 节点的 UUID） */
-  connection_id: string;
-  /** 提示词名称 */
-  prompt_name: string;
-  /** 提示词参数 */
-  arguments?: Record<string, string>;
-}
-
-// ============================================================================
 // TCP/UDP 节点类型定义
 // ============================================================================
 
@@ -1363,11 +1229,6 @@ export type NodeData =
   | GrpcConnectConfig
   | GrpcCallConfig
   | GrpcCloseConfig
-  | McpConnectConfig
-  | McpCallToolConfig
-  | McpReadResourceConfig
-  | McpGetPromptConfig
-  | McpCloseConfig
   | TcpConnectConfig
   | TcpSendConfig
   | TcpReceiveConfig
@@ -1516,41 +1377,6 @@ export function isGrpcCallConfig(data: NodeData): data is GrpcCallConfig {
  */
 export function isGrpcCloseConfig(data: NodeData): data is GrpcCloseConfig {
   return data.type === 'grpc_close';
-}
-
-/**
- * 判断是否为 McpConnectConfig
- */
-export function isMcpConnectConfig(data: NodeData): data is McpConnectConfig {
-  return data.type === 'mcp_connect';
-}
-
-/**
- * 判断是否为 McpCallToolConfig
- */
-export function isMcpCallToolConfig(data: NodeData): data is McpCallToolConfig {
-  return data.type === 'mcp_call_tool';
-}
-
-/**
- * 判断是否为 McpReadResourceConfig
- */
-export function isMcpReadResourceConfig(data: NodeData): data is McpReadResourceConfig {
-  return data.type === 'mcp_read_resource';
-}
-
-/**
- * 判断是否为 McpCloseConfig
- */
-export function isMcpCloseConfig(data: NodeData): data is McpCloseConfig {
-  return data.type === 'mcp_close';
-}
-
-/**
- * 判断是否为 McpGetPromptConfig
- */
-export function isMcpGetPromptConfig(data: NodeData): data is McpGetPromptConfig {
-  return data.type === 'mcp_get_prompt';
 }
 
 /**

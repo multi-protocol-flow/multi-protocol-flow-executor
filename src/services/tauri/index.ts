@@ -428,31 +428,6 @@ export async function validateGrpcRequest(
 }
 
 // ============================================================================
-// MCP 命令
-// ============================================================================
-
-export type { McpToolInfo, McpResourceInfo, McpServerInfo, McpDiscoverToolsOutput, McpDiscoverToolsInput } from './mcp';
-
-/**
- * 发现 MCP 服务器的工具和资源
- * 根据运行环境自动选择真实 IPC 或 Mock 服务
- *
- * @param input - MCP 发现工具输入
- * @returns MCP 工具和资源列表
- */
-export async function discoverMcpTools(
-  input: import('./mcp').McpDiscoverToolsInput
-): Promise<import('./mcp').McpDiscoverToolsOutput> {
-  if (isTauriEnv()) {
-    const { discoverMcpTools: discoverMcpToolsImpl } = await import('./mcp');
-    return discoverMcpToolsImpl(input);
-  } else {
-    const { discoverMcpTools: discoverMcpToolsImpl } = await import('./mock');
-    return discoverMcpToolsImpl(input);
-  }
-}
-
-// ============================================================================
 // SSE 命令
 // ============================================================================
 

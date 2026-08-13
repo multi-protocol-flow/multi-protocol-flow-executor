@@ -54,17 +54,6 @@ export function inferDefaults(
       }
       break;
 
-    // ========== MCP ==========
-    case 'mcp_call_tool':
-    case 'mcp_read_resource':
-    case 'mcp_get_prompt':
-      if (upType === 'mcp_connect') {
-        return {
-          server_url: upstreamNode.data.server_url,
-        };
-      }
-      break;
-
     // ========== TCP ==========
     case 'tcp_send':
       if (upType === 'tcp_connect') {

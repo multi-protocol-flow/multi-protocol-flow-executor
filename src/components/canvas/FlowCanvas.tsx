@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpReceiveNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, VariableExtractorNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode, ProxyNode, EndNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpReceiveNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, VariableExtractorNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode, ProxyNode, EndNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { ExecutionOverlay } from './ExecutionOverlay';
 import { CanvasToolbar } from './CanvasToolbar';
@@ -210,11 +210,6 @@ const nodeTypes = {
   udp_send_to: UdpSendToNode,
   udp_recv_from: UdpRecvFromNode,
   udp_close: UdpCloseNode,
-  mcp_connect: McpConnectNode,
-  mcp_call_tool: McpCallToolNode,
-  mcp_read_resource: McpReadResourceNode,
-  mcp_get_prompt: McpGetPromptNode,
-  mcp_close: McpCloseNode,
   variable_extractor: VariableExtractorNode,
   sse_connect: SseConnectNode,
   sse_listen: SseListenNode,
@@ -255,10 +250,6 @@ const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   udp_send_to: '#f97316',
   udp_recv_from: '#f97316',
   udp_close: '#f97316',
-  mcp_connect: '#f59e0b',
-  mcp_call_tool: '#f59e0b',
-  mcp_read_resource: '#f59e0b',
-  mcp_close: '#f59e0b',
   sse_connect: '#f43f5e',
   sse_listen: '#f43f5e',
   sse_disconnect: '#f43f5e',

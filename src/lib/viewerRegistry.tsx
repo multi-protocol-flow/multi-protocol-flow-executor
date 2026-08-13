@@ -14,7 +14,6 @@ import { AssertionViewer } from '@/components/execution/viewers/AssertionViewer'
 import { GenericViewer } from '@/components/execution/viewers/GenericViewer';
 import { GrpcViewer } from '@/components/execution/viewers/GrpcViewer';
 import { TcpUdpViewer } from '@/components/execution/viewers/TcpUdpViewer';
-import { McpViewer } from '@/components/execution/viewers/McpViewer';
 import { SseViewer } from '@/components/execution/viewers/SseViewer';
 import { GraphqlViewer } from '@/components/execution/viewers/GraphqlViewer';
 import { PluginIframeViewer } from '@/components/execution/viewers/PluginIframeViewer';
@@ -53,11 +52,6 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   grpc_connect: GrpcViewer,
   grpc_call: GrpcViewer,
   grpc_close: GrpcViewer,
-  mcp_connect: McpViewer,
-  mcp_call_tool: McpViewer,
-  mcp_read_resource: McpViewer,
-  mcp_get_prompt: McpViewer,
-  mcp_close: McpViewer,
   tcp_connect: TcpUdpViewer,
   tcp_send: TcpUdpViewer,
   tcp_receive: TcpUdpViewer,
