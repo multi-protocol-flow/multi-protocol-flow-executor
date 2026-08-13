@@ -305,3 +305,44 @@ Host mapping (normative):
   host's wrapper owns the execute timeout (config `timeout_ms` /
   `execution_timeout_ms`, default 30 s) because plugin nodes have no executor
   timeout; the manager's restart-once policy handles the process.
+
+## 12. `uiCall` RPC (config-panel discovery queries)
+
+Config panels rendered inside a plugin iframe (`mpe-plugin://` frames) need
+runtime discovery data that static `config_schema` cannot express: which
+tools/resources/prompts a server exposes, a tool's `input_schema`, and so on.
+The panel cannot talk to the plugin process directly, so the host relays the
+query: frontend `plugin_ui_call` command → host `PluginManager::ui_call` →
+`uiCall` RPC over the node type's plugin connection → plugin answer → back to
+the panel.
+
+**Request.** `method: "uiCall"`, `params`:
+
+```json
+{
+  "method": "mcp.discover",
+  "params": { "transport": "stdio", "command": "npx" }
+}
+```
+
+- `method` is a plugin-defined sub-method (e.g. `"mcp.discover"`).
+- `params` is an opaque payload whose shape is owned by the sub-method;
+  `null` when the caller has no payload.
+
+**Response.** `result` is any JSON value (the plugin's answer). Errors use the
+standard JSON-RPC error object.
+
+Host mapping (normative):
+
+- The request has **no execution context**: it is a UI-time query unrelated to
+  any flow run. Plugins must not mutate execution state (pools keyed by
+  `execution_id`) from `uiCall`.
+- The node type resolves to exactly one plugin (unknown types are a host
+  protocol error before any request is sent), so a panel can never reach
+  another plugin's process.
+- Timeout uses the connection's per-request timeout (default 30 s, identical
+  to execute RPCs); no separate timeout mechanism exists.
+- A JSON-RPC error response surfaces as `PluginError::JsonRpc{..}` verbatim.
+- Unknown sub-methods are the plugin's decision; the convention is to answer
+  `-32601` with an explanatory message. A plugin that predates `uiCall`
+  (SDK default) answers `-32601` "uiCall not supported".
