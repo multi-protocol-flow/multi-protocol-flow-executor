@@ -68,9 +68,6 @@ pub use flow_engine_executor::flow_engine_tcp::{
     udp_send_to_executor, udp_socket_manager,
 };
 
-// MCP (flow-engine-mcp)
-#[cfg(feature = "protocol-mcp")]
-pub use flow_engine_executor::flow_engine_mcp;
 
 // SSE (flow-engine-sse)
 #[cfg(feature = "protocol-sse")]

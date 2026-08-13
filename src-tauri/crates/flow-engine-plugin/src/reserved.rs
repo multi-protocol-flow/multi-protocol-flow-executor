@@ -35,11 +35,6 @@ pub const RESERVED_TYPE_IDS: &[&str] = &[
     "grpc_close",
     "grpc_connect",
     "http",
-    "mcp_call_tool",
-    "mcp_close",
-    "mcp_connect",
-    "mcp_get_prompt",
-    "mcp_read_resource",
     "proxy",
     "script",
     "sse_connect",
@@ -93,7 +88,6 @@ mod tests {
             "script",
             "assertion",
             "grpc_call",
-            "mcp_get_prompt",
             "tcp_send",
             "udp_bind",
                     "sse_listen",
@@ -120,15 +114,14 @@ mod tests {
 
     #[test]
     fn reserved_count_matches_default_registry() {
-        // 52 = 5 always-on (entry/conditional/end/variable_extractor/proxy)
-        // + 1 http + 3 ws + 1 script + 1 assertion + 3 grpc + 5 mcp
+        // 30 = 5 always-on (entry/conditional/end/variable_extractor/proxy)
+        // + 1 http + 3 ws + 1 script + 1 assertion + 3 grpc
         // + 8 tcp/udp + 3 sse + 5 graphql.
-        // (smtp/mqtt/kafka/imap 已移出宿主 → plugins/{smtp,mqtt,kafka,imap}
-        // 第三方插件；redis 已移出宿主 —— redis 变为第三方插件 plugins/redis，
-        // type_id 用 `redis:connect` 等 mongo 风格命名，天然不占用保留 id；
-        // db 6 个 type_id 同理移出 —— 内置 db 移除后由 plugins/db 以 `db:connect`
-        // 命名空间提供，不再占用裸 id。) Cross-checked against
-        // `default_registry.rs::test_plugin_count_matches_features` (35).
-        assert_eq!(RESERVED_TYPE_IDS.len(), 35);
+        // (smtp/mqtt/kafka/imap/redis/db 已移出宿主 → 第三方插件，以命名空间
+        // type_id 提供，不占用保留 id；mcp 5 个 type_id 同理移出宿主 →
+        // plugins/mcp 以 `mcp:*` 命名空间提供，裸 id 全部释放。)
+        // Cross-checked against
+        // `default_registry.rs::test_plugin_count_matches_features` (30).
+        assert_eq!(RESERVED_TYPE_IDS.len(), 30);
     }
 }

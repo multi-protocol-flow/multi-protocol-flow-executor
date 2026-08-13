@@ -116,7 +116,6 @@ pub const SUPPORTED_SINGLE_NODE_TYPES: &[&str] = &[
     "ws_connect",
     "sse_connect",
     "grpc_connect",
-    "mcp_connect",
     "graphql_connect",
     "tcp_connect",
 ];

@@ -25,16 +25,6 @@ pub const GRPC_CONNECT: &str = "grpc_connect";
 pub const GRPC_CALL: &str = "grpc_call";
 /// gRPC 关闭节点
 pub const GRPC_CLOSE: &str = "grpc_close";
-/// MCP 连接节点
-pub const MCP_CONNECT: &str = "mcp_connect";
-/// MCP 调用工具节点
-pub const MCP_CALL_TOOL: &str = "mcp_call_tool";
-/// MCP 读取资源节点
-pub const MCP_READ_RESOURCE: &str = "mcp_read_resource";
-/// MCP 关闭连接节点
-pub const MCP_CLOSE: &str = "mcp_close";
-/// MCP 获取提示词节点
-pub const MCP_GET_PROMPT: &str = "mcp_get_prompt";
 /// TCP 连接节点
 pub const TCP_CONNECT: &str = "tcp_connect";
 /// TCP 发送节点

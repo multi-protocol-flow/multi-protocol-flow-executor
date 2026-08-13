@@ -10,7 +10,6 @@ mod graphql_provider;
 mod grpc_provider;
 mod hook_executor;
 mod log_sender;
-mod mcp_provider;
 mod provider_key;
 mod sse_provider;
 mod tcp_provider;
@@ -35,12 +34,8 @@ pub use hook_executor::{HookExecutor, NoopHookExecutor};
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
 };
-pub use mcp_provider::{
-    McpConnectionInfo, McpPromptArgumentInfo, McpPromptInfo, McpPromptResult, McpProvider,
-    McpResourceInfo, McpResourceReadResult, McpServerInfo, McpToolCallResult, McpToolInfo,
-};
 pub use provider_key::{
-    Graphql, Grpc, Mcp, ProviderKey, Sse, Tcp, Udp, Ws,
+    Graphql, Grpc, ProviderKey, Sse, Tcp, Udp, Ws,
 };
 pub use sse_provider::{
     SseConnectOutput, SseConnectionInfo, SseEventItem, SseListenOutput, SseProvider,

@@ -1,7 +1,7 @@
 //! 默认节点注册表 — 注册全部内置节点插件
 //!
 //! 此模块位于 `flow-engine-executor` crate 中，因为它需要依赖所有协议 crate
-//! （http、ws、script、assertion、grpc、mcp、tcp、sse），而 `flow-engine-core` 作为叶子 crate
+//! （http、ws、script、assertion、grpc、tcp、sse），而 `flow-engine-core` 作为叶子 crate
 //! 不能依赖它们。
 
 use flow_engine_core::registry::NodeRegistry;
@@ -26,11 +26,6 @@ use flow_engine_plugin::manager::PluginManager;
 /// | gRPC | GrpcConnectPlugin | `grpc_connect` |
 /// | gRPC | GrpcCallPlugin | `grpc_call` |
 /// | gRPC | GrpcClosePlugin | `grpc_close` |
-/// | MCP | McpConnectPlugin | `mcp_connect` |
-/// | MCP | McpCallToolPlugin | `mcp_call_tool` |
-/// | MCP | McpReadResourcePlugin | `mcp_read_resource` |
-/// | MCP | McpGetPromptPlugin | `mcp_get_prompt` |
-/// | MCP | McpClosePlugin | `mcp_close` |
 /// | TCP | TcpConnectPlugin | `tcp_connect` |
 /// | TCP | TcpSendPlugin | `tcp_send` |
 /// | TCP | TcpReceivePlugin | `tcp_receive` |
@@ -91,9 +86,6 @@ pub fn default_registry() -> NodeRegistry {
     #[cfg(feature = "protocol-tcp")]
     flow_engine_tcp::plugin::UdpPluginGroup::register_all(&mut registry);
 
-    // MCP (flow-engine-mcp) — 批量注册 5 个插件
-    #[cfg(feature = "protocol-mcp")]
-    flow_engine_mcp::plugin::McpPluginGroup::register_all(&mut registry);
 
     // SSE (flow-engine-sse) — 批量注册 3 个插件
     #[cfg(feature = "protocol-sse")]
@@ -199,10 +191,6 @@ mod tests {
         #[cfg(feature = "protocol-grpc")]
         {
             expected += 3;
-        }
-        #[cfg(feature = "protocol-mcp")]
-        {
-            expected += 5;
         }
         #[cfg(feature = "protocol-tcp")]
         {

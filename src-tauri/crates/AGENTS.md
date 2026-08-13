@@ -30,7 +30,6 @@ mpe-protocol (无依赖) <- flow-engine-plugin <- flow-engine-executor
 | flow-engine-script | 1 | 5 | 3,710 | JS script execution | rquickjs |
 | flow-engine-assertion | 1 | 7 | 3,105 | Assertion/validation | regex, jsonpath |
 | flow-engine-grpc | 1 | 12 | 7,141 | gRPC client + reflection | tonic, prost |
-| flow-engine-mcp | 1 | 9 | 3,963 | MCP client nodes | rmcp |
 | flow-engine-tcp | 1 | 18 | 10,702 | TCP/UDP socket nodes | tokio, rustls |
 | flow-engine-sse | 1 | 7 | 3,003 | Server-Sent Events | reqwest |
 | flow-engine-graphql | 1 | 9 | 6,111 | GraphQL query/sub | reqwest, tungstenite |

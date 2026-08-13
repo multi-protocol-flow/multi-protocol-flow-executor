@@ -9,7 +9,6 @@ members = [
     "crates/flow-engine-assertion",
     "crates/flow-engine-executor",
     "crates/flow-engine-grpc",
-    "crates/flow-engine-mcp",
     "crates/flow-engine-tcp",
     "crates/flow-engine-sse",
     "crates/flow-engine-graphql",
@@ -142,7 +141,6 @@ all-protocols = [
     "protocol-script",
     "protocol-assertion",
     "protocol-grpc",
-    "protocol-mcp",
     "protocol-tcp",
     "protocol-sse",
     "protocol-graphql",
@@ -152,7 +150,6 @@ protocol-ws = ["flow-engine/protocol-ws"]
 protocol-script = ["flow-engine/protocol-script"]
 protocol-assertion = ["flow-engine/protocol-assertion"]
 protocol-grpc = ["flow-engine/protocol-grpc"]
-protocol-mcp = ["flow-engine/protocol-mcp"]
 protocol-tcp = ["flow-engine/protocol-tcp"]
 protocol-sse = ["flow-engine/protocol-sse"]
 protocol-graphql = ["flow-engine/protocol-graphql"]
@@ -186,8 +183,6 @@ opt-level = "z"       # 体积优先优化
 [profile.dev.package.tonic]
 opt-level = 3
 [profile.dev.package.prost]
-opt-level = 3
-[profile.dev.package.rmcp]
 opt-level = 3
 [profile.dev.package.rquickjs]
 opt-level = 3

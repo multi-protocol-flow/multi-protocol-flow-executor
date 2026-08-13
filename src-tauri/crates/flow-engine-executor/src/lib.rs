@@ -53,8 +53,6 @@ pub use flow_engine_graphql;
 pub use flow_engine_grpc;
 #[cfg(feature = "protocol-http")]
 pub use flow_engine_http;
-#[cfg(feature = "protocol-mcp")]
-pub use flow_engine_mcp;
 #[cfg(feature = "protocol-script")]
 pub use flow_engine_script;
 #[cfg(feature = "protocol-sse")]

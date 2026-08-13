@@ -39,21 +39,6 @@ pub enum NodeType {
     /// gRPC 关闭节点
     #[serde(rename = "grpc_close")]
     GrpcClose,
-    /// MCP 连接节点
-    #[serde(rename = "mcp_connect")]
-    McpConnect,
-    /// MCP 调用工具节点
-    #[serde(rename = "mcp_call_tool")]
-    McpCallTool,
-    /// MCP 读取资源节点
-    #[serde(rename = "mcp_read_resource")]
-    McpReadResource,
-    /// MCP 关闭连接节点
-    #[serde(rename = "mcp_close")]
-    McpClose,
-    /// MCP 获取提示词节点
-    #[serde(rename = "mcp_get_prompt")]
-    McpGetPrompt,
     /// TCP 连接节点
     #[serde(rename = "tcp_connect")]
     TcpConnect,

@@ -203,16 +203,6 @@ pub enum ErrorKind {
     /// gRPC 关闭Error
     GrpcClose,
 
-    // ===== MCP Error（容错模式，继续执行） =====
-    /// MCP connection failed
-    McpConnection,
-    /// MCP 工具调用Failed
-    McpToolCall,
-    /// MCP 资源读取Failed
-    McpResourceRead,
-    /// MCP 连接未找到
-    McpNotConnected,
-
     // ===== 断言Error（容错模式，继续执行） =====
     /// 断言Failed
     Assertion,
@@ -400,16 +390,6 @@ pub enum ErrorCode {
     /// gRPC close error.
     E_GRPC_CLOSE,
 
-    // ===== MCP errors =====
-    /// MCP connection failed.
-    E_MCP_CONNECTION,
-    /// MCP tool call failed.
-    E_MCP_TOOL_CALL,
-    /// MCP resource read failed.
-    E_MCP_RESOURCE_READ,
-    /// MCP not connected.
-    E_MCP_NOT_CONNECTED,
-
     // ===== TCP errors =====
     /// TCP connection failed.
     E_TCP_CONNECTION,
@@ -522,11 +502,6 @@ impl ErrorCode {
             Self::E_GRPC_MESSAGE => &["host", "message"],
             Self::E_GRPC_STATUS => &["host", "status", "message"],
             Self::E_GRPC_CLOSE => &["host", "message"],
-            // MCP
-            Self::E_MCP_CONNECTION => &["server", "message"],
-            Self::E_MCP_TOOL_CALL => &["tool", "message"],
-            Self::E_MCP_RESOURCE_READ => &["resource", "message"],
-            Self::E_MCP_NOT_CONNECTED => &["server"],
             // TCP
             Self::E_TCP_CONNECTION => &["host", "port", "message"],
             Self::E_TCP_TIMEOUT => &["host", "port", "duration"],
@@ -600,10 +575,6 @@ impl ErrorCode {
             Self::E_GRPC_MESSAGE => "E_GRPC_MESSAGE",
             Self::E_GRPC_STATUS => "E_GRPC_STATUS",
             Self::E_GRPC_CLOSE => "E_GRPC_CLOSE",
-            Self::E_MCP_CONNECTION => "E_MCP_CONNECTION",
-            Self::E_MCP_TOOL_CALL => "E_MCP_TOOL_CALL",
-            Self::E_MCP_RESOURCE_READ => "E_MCP_RESOURCE_READ",
-            Self::E_MCP_NOT_CONNECTED => "E_MCP_NOT_CONNECTED",
             Self::E_TCP_CONNECTION => "E_TCP_CONNECTION",
             Self::E_TCP_TIMEOUT => "E_TCP_TIMEOUT",
             Self::E_TCP_SEND => "E_TCP_SEND",
@@ -671,10 +642,6 @@ impl ErrorCode {
             Self::E_GRPC_MESSAGE => ErrorKind::GrpcMessage,
             Self::E_GRPC_STATUS => ErrorKind::GrpcStatus,
             Self::E_GRPC_CLOSE => ErrorKind::GrpcClose,
-            Self::E_MCP_CONNECTION => ErrorKind::McpConnection,
-            Self::E_MCP_TOOL_CALL => ErrorKind::McpToolCall,
-            Self::E_MCP_RESOURCE_READ => ErrorKind::McpResourceRead,
-            Self::E_MCP_NOT_CONNECTED => ErrorKind::McpNotConnected,
             Self::E_TCP_CONNECTION => ErrorKind::TcpConnection,
             Self::E_TCP_TIMEOUT => ErrorKind::TcpTimeout,
             Self::E_TCP_SEND => ErrorKind::TcpSend,
@@ -743,10 +710,6 @@ impl std::fmt::Display for ErrorCode {
             Self::E_GRPC_MESSAGE => write!(f, "gRPC message error"),
             Self::E_GRPC_STATUS => write!(f, "gRPC status error"),
             Self::E_GRPC_CLOSE => write!(f, "gRPC close error"),
-            Self::E_MCP_CONNECTION => write!(f, "MCP connection failed"),
-            Self::E_MCP_TOOL_CALL => write!(f, "MCP tool call failed"),
-            Self::E_MCP_RESOURCE_READ => write!(f, "MCP resource read failed"),
-            Self::E_MCP_NOT_CONNECTED => write!(f, "MCP not connected"),
             Self::E_TCP_CONNECTION => write!(f, "TCP connection failed"),
             Self::E_TCP_TIMEOUT => write!(f, "TCP operation timed out"),
             Self::E_TCP_SEND => write!(f, "TCP send error"),
@@ -1262,11 +1225,6 @@ mod tests {
             ErrorCode::E_GRPC_MESSAGE,
             ErrorCode::E_GRPC_STATUS,
             ErrorCode::E_GRPC_CLOSE,
-            // MCP
-            ErrorCode::E_MCP_CONNECTION,
-            ErrorCode::E_MCP_TOOL_CALL,
-            ErrorCode::E_MCP_RESOURCE_READ,
-            ErrorCode::E_MCP_NOT_CONNECTED,
             // TCP
             ErrorCode::E_TCP_CONNECTION,
             ErrorCode::E_TCP_TIMEOUT,
@@ -1301,8 +1259,8 @@ mod tests {
         let all_codes = all_error_codes();
         assert_eq!(
             all_codes.len(),
-            57,
-            "ErrorCode should have exactly 57 variants"
+            53,
+            "ErrorCode should have exactly 53 variants"
         );
 
         for code in all_codes {
@@ -1380,7 +1338,6 @@ mod tests {
             WebSocketConnection
         );
         assert_eq!(ErrorCode::E_GRPC_TIMEOUT.error_kind_hint(), GrpcTimeout);
-        assert_eq!(ErrorCode::E_MCP_TOOL_CALL.error_kind_hint(), McpToolCall);
         assert_eq!(ErrorCode::E_TCP_SEND.error_kind_hint(), TcpSend);
         assert_eq!(ErrorCode::E_UDP_BIND.error_kind_hint(), UdpBind);
         assert_eq!(ErrorCode::E_SSE_EVENT.error_kind_hint(), SseEvent);

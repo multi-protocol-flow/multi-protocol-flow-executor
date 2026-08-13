@@ -1006,121 +1006,6 @@ impl Default for ScriptNodeConfig {
 }
 
 // ============================================================================
-// MCP 节点配置
-// ============================================================================
-
-/// MCP 传输模式
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub enum McpTransportMode {
-    /// Streamable HTTP 传输（默认）
-    #[serde(rename = "streamable_http")]
-    #[default]
-    StreamableHttp,
-    /// Stdio 子进程传输
-    #[serde(rename = "stdio")]
-    Stdio,
-}
-
-/// MCP Connect 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct McpConnectConfig {
-    /// MCP 服务器 URL（Streamable HTTP 模式使用；Stdio 模式下为空字符串）
-    pub url: String,
-    /// 请求头
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub headers: Option<std::collections::HashMap<String, String>>,
-    /// 协议版本（默认 "2025-11-25"）
-    #[serde(default = "default_mcp_protocol_version")]
-    pub protocol_version: String,
-    /// 自定义请求头
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub custom_headers: Option<std::collections::HashMap<String, String>>,
-    /// 发现的工具列表（缓存）
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub discovered_tools: Vec<crate::traits::McpToolInfo>,
-    /// 发现的资源列表（缓存）
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub discovered_resources: Vec<crate::traits::McpResourceInfo>,
-    /// 发现的提示词列表（缓存）
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub discovered_prompts: Vec<crate::traits::McpPromptInfo>,
-    /// 传输模式（默认 `streamable_http`）
-    #[serde(default)]
-    pub transport: McpTransportMode,
-    /// Stdio 模式：可执行文件路径
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub command: Option<String>,
-    /// Stdio 模式：命令参数
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub args: Option<Vec<String>>,
-    /// Stdio 模式：环境变量
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub env: Option<std::collections::HashMap<String, String>>,
-}
-
-impl Default for McpConnectConfig {
-    fn default() -> Self {
-        Self {
-            url: String::new(),
-            headers: None,
-            protocol_version: default_mcp_protocol_version(),
-            custom_headers: None,
-            discovered_tools: Vec::new(),
-            discovered_resources: Vec::new(),
-            discovered_prompts: Vec::new(),
-            transport: McpTransportMode::default(),
-            command: None,
-            args: None,
-            env: None,
-        }
-    }
-}
-
-fn default_mcp_protocol_version() -> String {
-    "2025-11-25".to_string()
-}
-
-/// MCP Call Tool 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct McpCallToolConfig {
-    /// 连接 ID（引用 `mcp_connect` 节点的 UUID）
-    pub connection_id: String,
-    /// 工具名称
-    pub tool_name: String,
-    /// 工具参数（JSON）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub arguments: Option<serde_json::Value>,
-}
-
-/// MCP Read Resource 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct McpReadResourceConfig {
-    /// 连接 ID（引用 `mcp_connect` 节点的 UUID）
-    pub connection_id: String,
-    /// 资源 URI
-    pub resource_uri: String,
-}
-
-/// MCP Close 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct McpCloseConfig {
-    /// 连接 ID（引用 `mcp_connect` 节点的 UUID）
-    pub connection_id: String,
-}
-
-/// MCP Get Prompt 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct McpGetPromptConfig {
-    /// 连接 ID（引用 `mcp_connect` 节点的 UUID）
-    pub connection_id: String,
-    /// 提示词名称
-    pub prompt_name: String,
-    /// 提示词参数
-    #[serde(default)]
-    pub arguments: std::collections::HashMap<String, String>,
-}
-
-// ============================================================================
 // TCP 节点配置
 // ============================================================================
 
@@ -1695,21 +1580,6 @@ pub enum NodeData {
     /// gRPC 关闭节点配置
     #[serde(rename = "grpc_close")]
     GrpcClose(GrpcCloseConfig),
-    /// MCP 连接节点配置
-    #[serde(rename = "mcp_connect")]
-    McpConnect(McpConnectConfig),
-    /// MCP 调用工具节点配置
-    #[serde(rename = "mcp_call_tool")]
-    McpCallTool(McpCallToolConfig),
-    /// MCP 读取资源节点配置
-    #[serde(rename = "mcp_read_resource")]
-    McpReadResource(McpReadResourceConfig),
-    /// MCP 关闭连接节点配置
-    #[serde(rename = "mcp_close")]
-    McpClose(McpCloseConfig),
-    /// MCP 获取提示词节点配置
-    #[serde(rename = "mcp_get_prompt")]
-    McpGetPrompt(McpGetPromptConfig),
     /// TCP 连接节点配置
     #[serde(rename = "tcp_connect")]
     TcpConnect(TcpConnectConfig),
@@ -1820,21 +1690,6 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "grpc_close" => serde_json::from_value::<GrpcCloseConfig>(value.clone())
                 .map(NodeData::GrpcClose)
                 .map_err(serde::de::Error::custom),
-            "mcp_connect" => serde_json::from_value::<McpConnectConfig>(value.clone())
-                .map(NodeData::McpConnect)
-                .map_err(serde::de::Error::custom),
-            "mcp_call_tool" => serde_json::from_value::<McpCallToolConfig>(value.clone())
-                .map(NodeData::McpCallTool)
-                .map_err(serde::de::Error::custom),
-            "mcp_read_resource" => serde_json::from_value::<McpReadResourceConfig>(value.clone())
-                .map(NodeData::McpReadResource)
-                .map_err(serde::de::Error::custom),
-            "mcp_close" => serde_json::from_value::<McpCloseConfig>(value.clone())
-                .map(NodeData::McpClose)
-                .map_err(serde::de::Error::custom),
-            "mcp_get_prompt" => serde_json::from_value::<McpGetPromptConfig>(value.clone())
-                .map(NodeData::McpGetPrompt)
-                .map_err(serde::de::Error::custom),
             "tcp_connect" => serde_json::from_value::<TcpConnectConfig>(value.clone())
                 .map(NodeData::TcpConnect)
                 .map_err(serde::de::Error::custom),
@@ -1918,11 +1773,6 @@ impl NodeData {
             NodeData::GrpcConnect(_) => "grpc_connect".to_string(),
             NodeData::GrpcCall(_) => "grpc_call".to_string(),
             NodeData::GrpcClose(_) => "grpc_close".to_string(),
-            NodeData::McpConnect(_) => "mcp_connect".to_string(),
-            NodeData::McpCallTool(_) => "mcp_call_tool".to_string(),
-            NodeData::McpReadResource(_) => "mcp_read_resource".to_string(),
-            NodeData::McpClose(_) => "mcp_close".to_string(),
-            NodeData::McpGetPrompt(_) => "mcp_get_prompt".to_string(),
             NodeData::TcpConnect(_) => "tcp_connect".to_string(),
             NodeData::TcpSend(_) => "tcp_send".to_string(),
             NodeData::TcpReceive(_) => "tcp_receive".to_string(),
@@ -2082,53 +1932,6 @@ impl NodeData {
     pub fn grpc_close(connection_id: impl Into<String>) -> Self {
         Self::GrpcClose(GrpcCloseConfig {
             connection_id: connection_id.into(),
-        })
-    }
-
-    /// 创建 MCP Connect 节点配置
-    pub fn mcp_connect(url: impl Into<String>) -> Self {
-        Self::McpConnect(McpConnectConfig {
-            url: url.into(),
-            ..Default::default()
-        })
-    }
-
-    /// 创建 MCP Call Tool 节点配置
-    pub fn mcp_call_tool(connection_id: impl Into<String>, tool_name: impl Into<String>) -> Self {
-        Self::McpCallTool(McpCallToolConfig {
-            connection_id: connection_id.into(),
-            tool_name: tool_name.into(),
-            ..Default::default()
-        })
-    }
-
-    /// 创建 MCP Read Resource 节点配置
-    pub fn mcp_read_resource(
-        connection_id: impl Into<String>,
-        resource_uri: impl Into<String>,
-    ) -> Self {
-        Self::McpReadResource(McpReadResourceConfig {
-            connection_id: connection_id.into(),
-            resource_uri: resource_uri.into(),
-        })
-    }
-
-    /// 创建 MCP Close 节点配置
-    pub fn mcp_close(connection_id: impl Into<String>) -> Self {
-        Self::McpClose(McpCloseConfig {
-            connection_id: connection_id.into(),
-        })
-    }
-
-    /// 创建 MCP Get Prompt 节点配置
-    pub fn mcp_get_prompt(
-        connection_id: impl Into<String>,
-        prompt_name: impl Into<String>,
-    ) -> Self {
-        Self::McpGetPrompt(McpGetPromptConfig {
-            connection_id: connection_id.into(),
-            prompt_name: prompt_name.into(),
-            arguments: std::collections::HashMap::new(),
         })
     }
 

@@ -25,8 +25,6 @@ pub trait ProviderKey {
 pub struct Ws;
 /// gRPC provider key
 pub struct Grpc;
-/// MCP provider key
-pub struct Mcp;
 /// TCP provider key
 pub struct Tcp;
 /// UDP provider key
@@ -44,11 +42,6 @@ impl ProviderKey for Ws {
 impl ProviderKey for Grpc {
     fn key() -> &'static str {
         "grpc"
-    }
-}
-impl ProviderKey for Mcp {
-    fn key() -> &'static str {
-        "mcp"
     }
 }
 impl ProviderKey for Tcp {
@@ -84,11 +77,6 @@ mod tests {
     #[test]
     fn test_grpc_key() {
         assert_eq!(Grpc::key(), "grpc");
-    }
-
-    #[test]
-    fn test_mcp_key() {
-        assert_eq!(Mcp::key(), "mcp");
     }
 
     #[test]
