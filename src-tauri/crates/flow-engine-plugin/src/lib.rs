@@ -35,6 +35,8 @@ pub mod reserved;
 pub mod semver;
 /// `SidecarPlugin`: the `NodePlugin` wrapper around a plugin connection.
 pub mod sidecar;
+/// `uiCall` RPC relay for config-panel discovery queries.
+pub mod ui_call;
 /// Pipelined JSON-RPC transport over a child process's stdin/stdout.
 pub mod transport;
 /// Execute RPC mapping helpers for `SidecarPlugin` (kept out of `sidecar.rs`

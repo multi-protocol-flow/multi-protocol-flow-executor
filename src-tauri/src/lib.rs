@@ -99,9 +99,9 @@ pub use tauri_commands::{
     grpc_read_proto_files, grpc_scan_proto_directory, grpc_validate_request,
 };
 
-// MCP 工具发现命令
-#[cfg(feature = "protocol-mcp")]
-pub use tauri_commands::mcp_discover_tools;
+// 插件配置面板 uiCall 转发命令
+#[cfg(feature = "plugin-manager")]
+pub use tauri_commands::plugin_ui_call;
 
 // SSE 连接测试命令
 #[cfg(feature = "protocol-sse")]
@@ -352,9 +352,6 @@ pub fn run() {
             // gRPC Channelz 内省命令（EXPERIMENTAL）
             #[cfg(feature = "protocol-grpc")]
             grpc_channelz_info,
-            // MCP 工具发现命令
-            #[cfg(feature = "protocol-mcp")]
-            mcp_discover_tools,
             // SSE 连接测试命令
             #[cfg(feature = "protocol-sse")]
             sse_test_connection,
@@ -387,6 +384,9 @@ pub fn run() {
             get_registered_node_types,
             get_node_config_schema,
             list_registered_plugins,
+            // 插件配置面板 uiCall 转发命令
+            #[cfg(feature = "plugin-manager")]
+            plugin_ui_call,
             // CSV 模板命令
             save_csv_template,
             // 数据集执行命令

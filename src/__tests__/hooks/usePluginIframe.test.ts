@@ -38,6 +38,8 @@ function renderBridge(overrides: PartialOptions = {}) {
     config: INITIAL_CONFIG,
     variables: INITIAL_VARIABLES,
     hostApi: INITIAL_HOST_API,
+    nodeType: 'demo:ping',
+    locale: 'en-US',
     onConfigChange,
     onRequestAction,
     ...overrides,
@@ -98,6 +100,8 @@ describe('usePluginIframe', () => {
           config: INITIAL_CONFIG,
           variables: INITIAL_VARIABLES,
           host_api: INITIAL_HOST_API,
+          nodeType: 'demo:ping',
+          locale: 'en-US',
         },
       });
     });

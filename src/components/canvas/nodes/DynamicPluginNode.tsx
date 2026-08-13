@@ -5,7 +5,7 @@
  */
 import { memo, type CSSProperties } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Box } from 'lucide-react';
+import { Box, Wrench, FileText, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ICON_MAP, getNodeDisplayName } from '@/lib/nodeMeta';
 import { resolveBackendIcon } from '@/lib/nodeIcons';
@@ -22,6 +22,31 @@ interface DynamicNodeData {
     [key: string]: unknown;
   };
   [key: string]: unknown;
+}
+
+/** mcp:connect 发现快照数量（tools/resources/prompts）。插件节点 config 平铺在
+ *  data 顶层，旧格式可能嵌套在 data.config 下，两者都兼容。 */
+interface McpDiscoveryCounts {
+  tools: number;
+  resources: number;
+  prompts: number;
+}
+
+function getMcpDiscoveryCounts(data: DynamicNodeData): McpDiscoveryCounts | null {
+  const cfg =
+    data.config && typeof data.config === 'object' && !Array.isArray(data.config)
+      ? data.config
+      : (data as unknown as Record<string, unknown>);
+  const hasAny =
+    'discovered_tools' in cfg || 'discovered_resources' in cfg || 'discovered_prompts' in cfg;
+  if (!hasAny) return null;
+  const count = (v: unknown): number => (Array.isArray(v) ? v.length : 0);
+  const counts = {
+    tools: count(cfg.discovered_tools),
+    resources: count(cfg.discovered_resources),
+    prompts: count(cfg.discovered_prompts),
+  };
+  return counts.tools + counts.resources + counts.prompts > 0 ? counts : null;
 }
 
 /** 端口配色：true → emerald，false → rose，其余 → slate */
@@ -188,6 +213,42 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
           <span className="text-sm font-semibold text-foreground break-words max-w-[110px] leading-snug">
             {displayName}
           </span>
+          {nodeType === 'mcp:connect' &&
+            (() => {
+              const counts = getMcpDiscoveryCounts(nodeData);
+              if (!counts) return null;
+              return (
+                <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                  {counts.tools > 0 && (
+                    <span
+                      data-testid="mcp-tools-count"
+                      className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0 text-[9px] font-medium text-amber-700"
+                    >
+                      <Wrench className="h-2.5 w-2.5" />
+                      {counts.tools}
+                    </span>
+                  )}
+                  {counts.resources > 0 && (
+                    <span
+                      data-testid="mcp-resources-count"
+                      className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-1.5 py-0 text-[9px] font-medium text-blue-700"
+                    >
+                      <FileText className="h-2.5 w-2.5" />
+                      {counts.resources}
+                    </span>
+                  )}
+                  {counts.prompts > 0 && (
+                    <span
+                      data-testid="mcp-prompts-count"
+                      className="inline-flex items-center gap-0.5 rounded-full bg-purple-100 px-1.5 py-0 text-[9px] font-medium text-purple-700"
+                    >
+                      <MessageSquare className="h-2.5 w-2.5" />
+                      {counts.prompts}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
         </div>
       </div>
     </div>

@@ -6,6 +6,15 @@
 //! self-CSP as a header (D8) so the host does not need to whitelist plugin
 //! content.
 //!
+//! CSP revision (D8 修订): **inline** frontends (plugin binary embeds the
+//! full panel HTML) get `INLINE_SELF_CSP`, which relaxes `script-src` with
+//! `'unsafe-inline'`. Rationale: inline content lives in the same trust
+//! domain as the plugin binary (both ship from the same on-disk artifact),
+//! and the panel runs in a sandboxed opaque-origin iframe (`allow-scripts`
+//! only, D2) whose content cannot reach the host DOM or `window.__TAURI__`.
+//! The content-less wrapper page keeps the strict `SELF_CSP` — it carries no
+//! scripts at all, so nothing is relaxed.
+//!
 //! URL contract (PR-0 + PR-1.1): the iframe src is
 //! `mpe-plugin://<plugin-id>.localhost/config-panel` on macOS/Linux and
 //! `http://mpe-plugin.<plugin-id>.localhost/config-panel` on Windows/Android
@@ -29,9 +38,13 @@ pub(crate) const SCHEME: &str = "mpe-plugin";
 pub(crate) const CONFIG_PANEL_PAGE: &str = "config-panel";
 /// Every plugin origin ends with this suffix: `<plugin-id>.localhost`.
 const LOCALHOST_SUFFIX: &str = ".localhost";
-/// D8: plugin content self-CSP sent as a response header (the host does not
-/// inject its own CSP into custom-protocol responses).
+/// D8: strict plugin content self-CSP (content-less wrapper page).
 const SELF_CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'";
+/// D8 修订: inline panel CSP — `'unsafe-inline'` for `script-src` because the
+/// panel HTML (including its inline JS) is served verbatim from the plugin
+/// binary (same trust domain) into a sandboxed opaque-origin iframe.
+const INLINE_SELF_CSP: &str =
+    "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'";
 /// MIME type for served HTML pages.
 const HTML_MIME: &str = "text/html; charset=utf-8";
 /// MIME type for error responses.
@@ -89,30 +102,42 @@ where
         return not_found();
     };
     match content {
-        Some(html) => ok_response(html),
-        None => ok_response(&minimal_wrapper(plugin_id)),
+        // Inline panel: serve verbatim with the relaxed inline CSP.
+        Some(html) => ok_response(html, INLINE_SELF_CSP),
+        // Content-less frontend: minimal wrapper keeps the strict CSP.
+        None => ok_response(&minimal_wrapper(plugin_id), SELF_CSP),
     }
 }
 
 /// 200 HTML response carrying the D8 headers.
-fn ok_response(body: &str) -> Response<Vec<u8>> {
-    response(StatusCode::OK, HTML_MIME, body.as_bytes().to_vec())
+fn ok_response(body: &str, csp: &str) -> Response<Vec<u8>> {
+    response(StatusCode::OK, HTML_MIME, body.as_bytes().to_vec(), csp)
 }
 
 /// 404 plain-text response.
 fn not_found() -> Response<Vec<u8>> {
-    response(StatusCode::NOT_FOUND, TEXT_MIME, NOT_FOUND_BODY.to_vec())
+    response(
+        StatusCode::NOT_FOUND,
+        TEXT_MIME,
+        NOT_FOUND_BODY.to_vec(),
+        SELF_CSP,
+    )
 }
 
 /// Shared response builder. Headers/status are static constants, so the
 /// builder cannot actually fail; the fallback keeps production code free of
 /// `unwrap`.
-fn response(status: StatusCode, content_type: &str, body: Vec<u8>) -> Response<Vec<u8>> {
+fn response(
+    status: StatusCode,
+    content_type: &str,
+    body: Vec<u8>,
+    csp: &str,
+) -> Response<Vec<u8>> {
     Response::builder()
         .status(status)
         .header(header::CONTENT_TYPE, content_type)
         .header(header::X_CONTENT_TYPE_OPTIONS, "nosniff")
-        .header(header::CONTENT_SECURITY_POLICY, SELF_CSP)
+        .header(header::CONTENT_SECURITY_POLICY, csp)
         .body(body)
         .unwrap_or_else(|_| Response::new(Vec::new()))
 }
@@ -176,7 +201,7 @@ mod tests {
                 .unwrap()
                 .to_str()
                 .unwrap(),
-            "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+            "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
         );
         assert_eq!(response.body(), b"<p>hello from demo</p>");
     }
@@ -205,6 +230,16 @@ mod tests {
     fn iframe_kind_serves_minimal_wrapper() {
         let response = plugin_iframe_response(fake_frontend, "widget.localhost", "config-panel");
         assert_eq!(response.status(), StatusCode::OK);
+        // Content-less wrapper keeps the strict CSP — no `unsafe-inline` script.
+        assert_eq!(
+            response
+                .headers()
+                .get(header::CONTENT_SECURITY_POLICY)
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+        );
         let body = String::from_utf8(response.body().clone()).unwrap();
         assert!(body.contains("mpe-plugin-root"));
         assert!(body.contains("widget"));

@@ -101,6 +101,10 @@ pub(crate) async fn handle_request<P: Plugin>(
             tokio::spawn(execute_task(Arc::clone(plugin), request, frame_tx));
             Ok(Action::Continue)
         }
+        mpe_protocol::ui::UI_CALL_METHOD => {
+            tokio::spawn(ui_call_task(Arc::clone(plugin), request, frame_tx));
+            Ok(Action::Continue)
+        }
         "shutdown" => {
             // M2b owns the exact shutdown shape (request vs notification);
             // answer politely either way, then exit.
@@ -157,6 +161,43 @@ async fn execute_task<P: Plugin>(
     };
     if let Err(err) = send_response(&frame_tx, &response).await {
         eprintln!("mpe-plugin-sdk: failed to send execute response: {err}");
+    }
+}
+
+/// Handles one `uiCall` request in its own task: parse `UiCallParams`,
+/// run the plugin's `ui_call` hook, and reply with the result or a JSON-RPC
+/// error. Bad params are rejected with `-32602`; a plugin-side `Err(String)`
+/// becomes a `-32601` error with the plugin's message.
+async fn ui_call_task<P: Plugin>(
+    plugin: Arc<P>,
+    request: Request,
+    frame_tx: mpsc::Sender<Vec<u8>>,
+) {
+    let response = match serde_json::from_value::<mpe_protocol::ui::UiCallParams>(request.params) {
+        Err(err) => {
+            eprintln!("mpe-plugin-sdk: uiCall params parse failed: {err}");
+            Response::Error {
+                id: request.id,
+                error: JsonRpcError::invalid_params(),
+            }
+        }
+        Ok(params) => match plugin.ui_call(&params.method, params.params).await {
+            Ok(value) => Response::Success {
+                id: request.id,
+                result: value,
+            },
+            Err(message) => Response::Error {
+                id: request.id,
+                error: JsonRpcError {
+                    code: -32601,
+                    message,
+                    data: None,
+                },
+            },
+        },
+    };
+    if let Err(err) = send_response(&frame_tx, &response).await {
+        eprintln!("mpe-plugin-sdk: failed to send uiCall response: {err}");
     }
 }
 

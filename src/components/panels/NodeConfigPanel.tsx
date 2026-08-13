@@ -53,7 +53,27 @@ function mergeNodeData<T extends Record<string, unknown>>(original: T, updates: 
   }
   return merged;
 }
-import { useFlowStore, useDebugStore, selectHistoryVersion } from '@/stores';
+
+/**
+ * 插件 iframe 面板专用合并：与 mergeNodeData 相同（保留面板未发送的顶层字段、
+ * 显式 undefined 删除），但嵌套普通对象**整体替换**而非深合并。
+ *
+ * 插件面板以 init 的完整 config 为种子且全量回传，`{}` 就是"清空"语义；
+ * 深合并会让删除对象字段（headers/env）永远失效。参见 handlePluginSave。
+ */
+function mergeNodeDataReplace<T extends Record<string, unknown>>(original: T, updates: Partial<T>): T {
+  const merged = { ...original } as T;
+  for (const key of Object.keys(updates) as Array<keyof T>) {
+    const val = updates[key];
+    if (val === undefined) {
+      delete merged[key];
+    } else {
+      merged[key] = val as T[keyof T];
+    }
+  }
+  return merged;
+}
+import { useFlowStore, useDebugStore, selectHistoryVersion, selectNodes } from '@/stores';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import { FlowNodeList } from './FlowNodeList';
 import { getPanelLoader, isSchemaDriven } from '@/lib/configPanelRegistry';
@@ -66,6 +86,7 @@ import { MousePointerClick, PencilLine, CircleHelp } from 'lucide-react';
 import { HelpDrawer } from './HelpDrawer';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
+import { useSettingsStore } from '@/stores/settings';
 import { toast } from 'sonner';
 import { OnErrorSection } from '@/components/panels/shared/OnErrorSection';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
@@ -133,6 +154,14 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
     [flowVariables.variables]
   );
 
+  // 同插件节点快照的数据源（iframe 面板 connection 下拉等跨节点引用用）
+  // 必须在所有条件 return 之前调用（hook 规则）
+  const allFlowNodes = useFlowStore(selectNodes);
+
+  // 宿主当前 UI 语言（BCP-47，透传 iframe init 载荷；设置 store 是唯一事实源）
+  // 必须在所有条件 return 之前调用（hook 规则）
+  const locale = useSettingsStore((s) => s.locale ?? 'en-US');
+
   // 优先使用外部传入的节点，否则回退到 store 中的选中节点
   const selectedNode = externalNode ?? getSelectedNode();
 
@@ -166,7 +195,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
 
   // 单端口节点类型（无 false 输出端口）— 必须在所有条件 return 之前声明（hook 规则）
   const SINGLE_PORT_TYPES = new Set<NodeType>([
-    'entry', 'end', 'ws_close', 'grpc_close', 'mcp_close',
+    'entry', 'end', 'ws_close', 'grpc_close',
     'tcp_close', 'udp_close', 'sse_disconnect',
     'graphql_disconnect',
     'proxy',
@@ -234,19 +263,28 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
    * 合并策略：面板输出的 data 只包含该面板已知的字段，
    * 通过 mergeNodeData 与原始节点数据合并，确保未知字段不被丢弃。
    */
-  const handleSave = (data: NodeData) => {
+  const saveWith = (data: NodeData, merge: (o: NodeData & Record<string, unknown>, u: NodeData & Record<string, unknown>) => NodeData & Record<string, unknown>) => {
     if (!renderNodeUuid) return;
     // 使用 getState() 获取调用时刻的最新 store 状态，避免闭包捕获过期 flow
     const { flow: latestFlow, updateNode: doUpdate } = useFlowStore.getState();
     if (!latestFlow) return;
     const node = latestFlow.nodes.find((n) => n.uuid === renderNodeUuid);
     // 合并：面板输出覆盖原始值，但面板不认识的字段从原始值保留
-    const merged = node ? mergeNodeData(node.data as NodeData & Record<string, unknown>, data as NodeData & Record<string, unknown>) : data;
+    const merged = node ? merge(node.data as NodeData & Record<string, unknown>, data as NodeData & Record<string, unknown>) : data;
     if (node && deepEqual(node.data, merged as NodeData)) {
       return;
     }
     doUpdate(renderNodeUuid, { data: merged as NodeData });
   };
+  const handleSave = (data: NodeData) => saveWith(data, mergeNodeData);
+  /**
+   * 插件 iframe 面板的保存：面板以 init 携带的完整 config 为种子，configChanged
+   * 总是回传完整配置（postMessage 结构化克隆会丢弃 undefined 值，面板无法用
+   * undefined 表达"删除"）。因此嵌套对象字段（headers/env 等）必须**整体替换**
+   * 而非深合并 —— 深合并会把面板发出的 `{}`（清空）与原始键合并回去，导致
+   * 删除 header/env 永远不生效，且 deepEqual 判等使 store 完全不更新。
+   */
+  const handlePluginSave = (data: NodeData) => saveWith(data, mergeNodeDataReplace);
 
   return (
     <Card ref={panelRef} className="flex h-full flex-col overflow-hidden border-0 shadow-none w-full min-w-0">
@@ -312,8 +350,29 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                 // 插件声明了自定义前端 iframe（meta.frontend.url）→ 渲染 PluginIframe 桥
                 const frontendUrl = meta?.frontend?.url;
                 if (frontendUrl) {
+                  // 同插件节点快照（connection 下拉等跨节点引用）：
+                  // 按类型前缀过滤（如 `mcp:` 下全部节点），config 携带完整 data
+                  const pluginPrefix = nodeType.includes(':')
+                    ? nodeType.slice(0, nodeType.indexOf(':'))
+                    : null;
+                  const nodes = pluginPrefix
+                    ? allFlowNodes
+                        .filter((n) => n.type.startsWith(`${pluginPrefix}:`))
+                        .map((n) => ({
+                          uuid: n.uuid,
+                          label: n.name,
+                          type: n.type,
+                          config: n.data as unknown as Record<string, unknown>,
+                        }))
+                    : undefined;
                   return (
                     <PluginIframe
+                      // 按节点 uuid 键控：同一插件下所有节点共享同一 iframe URL
+                      // （mpe-plugin://<id>.localhost/config-panel），src 不变不会
+                      // 触发 iframe 重载；不加 key 切换节点时 usePluginIframe 只发
+                      // configUpdated（不含 nodeType），面板停留在旧节点的表单。
+                      // 键控重挂载 → 重新 load → init 携带新节点完整上下文。
+                      key={selectedNode.uuid}
                       src={frontendUrl}
                       origin={new URL(frontendUrl).origin}
                       config={nodeData}
@@ -322,8 +381,13 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                       // 未知动作被 createPluginRequestHandler 立即拒绝 → usePluginIframe
                       // 经 actionResult 回传错误，插件不会挂起
                       hostApi={PLUGIN_HOST_API}
-                      onConfigChange={(config) => handleSave(config as NodeData)}
-                      onRequestAction={createPluginRequestHandler(nodeData)}
+                      // 节点上下文：nodeType 供面板按类型渲染表单；locale 供面板取内联文案；
+                      // nodes 快照供 connection 下拉等跨节点引用
+                      nodeType={nodeType}
+                      locale={locale}
+                      nodes={nodes}
+                      onConfigChange={(config) => handlePluginSave(config as NodeData)}
+                      onRequestAction={createPluginRequestHandler(nodeData, nodeType)}
                     />
                   );
                 }

@@ -77,6 +77,22 @@ pub trait Plugin: Send + Sync + 'static {
     /// nothing; older plugins that predate this hook simply never receive
     /// the notification's effect.
     fn flow_ended(&self, _execution_id: &str) {}
+
+    /// UI query hook, answering `uiCall` requests relayed by the host from
+    /// the plugin's config panel iframe.
+    ///
+    /// Panels cannot talk to the plugin process directly, so runtime
+    /// discovery queries (e.g. "list the MCP tools this server exposes")
+    /// travel host → plugin over this method. The result is any JSON value;
+    /// `Err(message)` becomes a JSON-RPC error with code `-32601` and the
+    /// given message. The default rejects every call; older plugins that
+    /// predate this hook get a clean "uiCall not supported" error instead of
+    /// a protocol surprise.
+    fn ui_call(&self, _method: &str, _params: serde_json::Value)
+        -> impl Future<Output = Result<serde_json::Value, String>> + Send
+    {
+        async move { Err("uiCall not supported".to_string()) }
+    }
 }
 
 /// Fatal runtime errors. Framing violations are handled by skipping frames
@@ -197,6 +213,35 @@ mod tests {
         }
     }
 
+    /// A plugin that answers `mcp.discover` uiCall queries.
+    #[derive(Default)]
+    struct UiCallPlugin;
+
+    impl Plugin for UiCallPlugin {
+        fn describe(&self) -> Vec<NodeDescription> {
+            vec![NodeDescription::new("test:discover", "Test Discover")]
+        }
+
+        #[allow(clippy::manual_async_fn)]
+        fn execute(&self, ctx: &mut ExecuteContext) -> impl Future<Output = ExecuteResult> + Send {
+            async move { ExecuteResult::ok(ctx.config().clone()) }
+        }
+
+        #[allow(clippy::manual_async_fn)]
+        fn ui_call(&self, method: &str, _params: serde_json::Value)
+            -> impl Future<Output = Result<serde_json::Value, String>> + Send
+        {
+            let owned = method.to_string();
+            async move {
+                if owned == "mcp.discover" {
+                    Ok(serde_json::json!({ "tools": [{ "name": "echo" }] }))
+                } else {
+                    Err(format!("unknown uiCall sub-method `{owned}`"))
+                }
+            }
+        }
+    }
+
     /// Spawns the event loop over in-memory duplex pairs; returns the host's
     /// write half, read half, and the loop task.
     async fn spawn_in_memory() -> (
@@ -204,9 +249,20 @@ mod tests {
         tokio::io::DuplexStream,
         tokio::task::JoinHandle<Result<(), RuntimeError>>,
     ) {
+        spawn_in_memory_with(EchoPlugin).await
+    }
+
+    /// `spawn_in_memory` with a caller-supplied plugin.
+    async fn spawn_in_memory_with<P: Plugin>(
+        plugin: P,
+    ) -> (
+        tokio::io::DuplexStream,
+        tokio::io::DuplexStream,
+        tokio::task::JoinHandle<Result<(), RuntimeError>>,
+    ) {
         let (host_tx, plugin_rx) = tokio::io::duplex(64 * 1024);
         let (plugin_tx, host_rx) = tokio::io::duplex(64 * 1024);
-        let task = tokio::spawn(run_with_streams(EchoPlugin, plugin_rx, plugin_tx));
+        let task = tokio::spawn(run_with_streams(plugin, plugin_rx, plugin_tx));
         (host_tx, host_rx, task)
     }
 
@@ -281,6 +337,82 @@ mod tests {
         let response: serde_json::Value = serde_json::from_slice(&frame)?;
         assert_eq!(response["id"], 5);
         assert_eq!(response["error"]["code"], -32601);
+        host_tx.shutdown().await?;
+        task.await??;
+        Ok(())
+    }
+
+    /// A plugin that does not override `ui_call` answers with the default
+    /// `-32601` "uiCall not supported" error.
+    #[tokio::test]
+    async fn run_ui_call_unsupported_returns_error() -> Result<(), Box<dyn std::error::Error>> {
+        let (mut host_tx, mut host_rx, task) = spawn_in_memory().await;
+        host_tx
+            .write_all(
+                b"{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"uiCall\",\"params\":{\"method\":\"mcp.discover\",\"params\":{}}}\n",
+            )
+            .await?;
+        let frame = read_response(&mut host_rx).await?;
+        let response: serde_json::Value = serde_json::from_slice(&frame)?;
+        assert_eq!(response["id"], 7);
+        assert_eq!(response["error"]["code"], -32601);
+        assert_eq!(response["error"]["message"], "uiCall not supported");
+        host_tx.shutdown().await?;
+        task.await??;
+        Ok(())
+    }
+
+    /// A plugin implementing `ui_call` answers with its result payload.
+    #[tokio::test]
+    async fn run_ui_call_supported_returns_result() -> Result<(), Box<dyn std::error::Error>> {
+        let (mut host_tx, mut host_rx, task) = spawn_in_memory_with(UiCallPlugin).await;
+        host_tx
+            .write_all(
+                b"{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"uiCall\",\"params\":{\"method\":\"mcp.discover\",\"params\":{\"url\":\"https://example.com/mcp\"}}}\n",
+            )
+            .await?;
+        let frame = read_response(&mut host_rx).await?;
+        let response: serde_json::Value = serde_json::from_slice(&frame)?;
+        assert_eq!(response["id"], 9);
+        assert_eq!(response["result"]["tools"][0]["name"], "echo");
+        host_tx.shutdown().await?;
+        task.await??;
+        Ok(())
+    }
+
+    /// A plugin-side `Err(String)` becomes a `-32601` error carrying the
+    /// plugin's message.
+    #[tokio::test]
+    async fn run_ui_call_plugin_error_is_relayed() -> Result<(), Box<dyn std::error::Error>> {
+        let (mut host_tx, mut host_rx, task) = spawn_in_memory_with(UiCallPlugin).await;
+        host_tx
+            .write_all(
+                b"{\"jsonrpc\":\"2.0\",\"id\":10,\"method\":\"uiCall\",\"params\":{\"method\":\"mcp.unknown\",\"params\":{}}}\n",
+            )
+            .await?;
+        let frame = read_response(&mut host_rx).await?;
+        let response: serde_json::Value = serde_json::from_slice(&frame)?;
+        assert_eq!(response["id"], 10);
+        assert_eq!(response["error"]["code"], -32601);
+        assert_eq!(response["error"]["message"], "unknown uiCall sub-method `mcp.unknown`");
+        host_tx.shutdown().await?;
+        task.await??;
+        Ok(())
+    }
+
+    /// A `uiCall` request whose params are not a `UiCallParams` object is
+    /// rejected with `-32602`.
+    #[tokio::test]
+    async fn run_ui_call_bad_params_returns_invalid_params() -> Result<(), Box<dyn std::error::Error>>
+    {
+        let (mut host_tx, mut host_rx, task) = spawn_in_memory_with(UiCallPlugin).await;
+        host_tx
+            .write_all(b"{\"jsonrpc\":\"2.0\",\"id\":11,\"method\":\"uiCall\",\"params\":\"not-an-object\"}\n")
+            .await?;
+        let frame = read_response(&mut host_rx).await?;
+        let response: serde_json::Value = serde_json::from_slice(&frame)?;
+        assert_eq!(response["id"], 11);
+        assert_eq!(response["error"]["code"], -32602);
         host_tx.shutdown().await?;
         task.await??;
         Ok(())

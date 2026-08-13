@@ -31,10 +31,11 @@
  *    不返回文件内容、不做目录枚举。对话框选项固定 `{ multiple: false }`，
  *    插件 params 无法影响对话框行为（不能诱导打开特定目录/过滤器）。
  */
+import { invoke } from '@tauri-apps/api/core';
 import type { PluginIframeHostApi } from '@/types/plugin-iframe';
 
 /** 白名单动作（新增动作 = 显式安全审查；与 HANDLERS 的 Record 完整性互锁） */
-export const PLUGIN_REQUEST_ACTIONS = ['testConnection', 'openFileDialog'] as const;
+export const PLUGIN_REQUEST_ACTIONS = ['testConnection', 'openFileDialog', 'uiCall'] as const;
 export type PluginRequestAction = (typeof PLUGIN_REQUEST_ACTIONS)[number];
 
 /** testConnection 硬超时（ms）—— 插件不能挂起宿主 */
@@ -44,6 +45,8 @@ export const TEST_CONNECTION_TIMEOUT_MS = 5000;
 export interface PluginActionContext {
   /** 用户输入并审阅过的节点 config（testConnection 目标的唯一合法来源） */
   config: unknown;
+  /** 当前编辑节点的类型 id（uiCall 路由到对应插件进程；如 `mcp:connect`） */
+  nodeType: string;
 }
 
 export type PluginActionHandler = (
@@ -169,6 +172,38 @@ async function handleOpenFileDialog(): Promise<string | null> {
   return null;
 }
 
+/**
+ * uiCall —— 配置面板运行时发现查询的宿主转发通道（见 docs/plugin-protocol.md §12）。
+ *
+ * 面板无法直接与插件进程通信；发现类查询（MCP 工具/资源/提示词列表、工具
+ * input_schema 等）经宿主 `plugin_ui_call` Tauri 命令转发到 nodeType 对应
+ * 插件的 `uiCall` RPC。约束：
+ *   - `params` 必须是对象且含非空字符串 `method`（缺 method 一律拒绝，
+ *     文案沿用 `Action not allowed` 风格，防止面板把任意键当方法名注入）；
+ *   - 目标插件由 `context.nodeType` 决定（宿主侧未知类型即报错，天然防串插件）；
+ *   - `payload`（可选）透传给插件；缺省传 `null`（Rust `Option` 侧为 None）。
+ * 超时由宿主连接自带 request_timeout（默认 30s）兜底，这里不新造机制。
+ */
+async function handleUiCall(params: unknown, context?: PluginActionContext): Promise<unknown> {
+  if (
+    !isPlainObject(params) ||
+    typeof params['method'] !== 'string' ||
+    params['method'].trim() === ''
+  ) {
+    throw new Error('Action not allowed: uiCall requires a string `method`');
+  }
+  const nodeType = context?.nodeType;
+  if (!nodeType) {
+    throw new Error('Action not allowed: uiCall requires nodeType');
+  }
+  const payload = (params as { payload?: unknown }).payload;
+  return invoke<unknown>('plugin_ui_call', {
+    nodeType,
+    method: params['method'],
+    payload: payload === undefined ? null : payload,
+  });
+}
+
 /* ============================================================================
  * 白名单 + 解析器
  * ========================================================================== */
@@ -177,6 +212,7 @@ async function handleOpenFileDialog(): Promise<string | null> {
 const HANDLERS: Readonly<Record<PluginRequestAction, PluginActionHandler>> = {
   testConnection: handleTestConnection,
   openFileDialog: handleOpenFileDialog,
+  uiCall: handleUiCall,
 };
 
 /**
@@ -198,6 +234,7 @@ export function resolvePluginAction(action: string): PluginActionHandler | undef
   switch (action) {
     case 'testConnection':
     case 'openFileDialog':
+    case 'uiCall':
       return HANDLERS[action];
     default:
       return undefined;
@@ -211,15 +248,17 @@ export function resolvePluginAction(action: string): PluginActionHandler | undef
  * actionResult 回传 —— 插件永不挂起。
  *
  * @param config 当前节点 config（用户输入并审阅过的数据）—— testConnection 的目标来源
+ * @param nodeType 当前节点类型 id（如 `mcp:connect`）—— uiCall 的路由目标
  */
 export function createPluginRequestHandler(
-  config: unknown
+  config: unknown,
+  nodeType: string
 ): (action: string, params?: unknown) => Promise<unknown> {
   return (action, params) => {
     const handler = resolvePluginAction(action);
     if (!handler) {
       return Promise.reject(new Error(`Action not allowed: ${action}`));
     }
-    return handler(params, { config });
+    return handler(params, { config, nodeType });
   };
 }

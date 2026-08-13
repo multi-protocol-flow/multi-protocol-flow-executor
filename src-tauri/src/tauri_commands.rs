@@ -1251,226 +1251,6 @@ message GetUserResponse {
 }
 
 // ============================================================================
-// MCP 工具发现命令
-// ============================================================================
-
-#[cfg(feature = "protocol-mcp")]
-use flow_engine::traits::McpProvider;
-
-/// MCP 工具发现请求参数
-#[cfg(feature = "protocol-mcp")]
-#[derive(Debug, serde::Deserialize)]
-pub struct McpDiscoverToolsInput {
-    /// MCP 服务器地址
-    pub url: String,
-    /// 额外请求头
-    pub headers: Option<std::collections::HashMap<String, String>>,
-    /// MCP 协议版本
-    pub protocol_version: Option<String>,
-    /// 传输模式: "`streamable_http`" | "stdio"
-    pub transport: Option<String>,
-    /// Stdio 模式：可执行文件路径
-    pub command: Option<String>,
-    /// Stdio 模式：命令参数
-    pub args: Option<Vec<String>>,
-    /// Stdio 模式：环境变量
-    pub env: Option<std::collections::HashMap<String, String>>,
-}
-
-/// MCP 工具发现响应
-#[cfg(feature = "protocol-mcp")]
-#[derive(Debug, serde::Serialize)]
-pub struct McpDiscoverToolsOutput {
-    /// 是否Success
-    pub success: bool,
-    /// 发现的工具列表
-    pub tools: Vec<McpToolInfoOutput>,
-    /// 发现的资源列表
-    pub resources: Vec<McpResourceInfoOutput>,
-    /// 发现的提示词列表
-    pub prompts: Vec<McpPromptInfoOutput>,
-    /// 服务器信息
-    pub server_info: Option<McpServerInfoOutput>,
-    /// Error信息（Failed时）
-    pub error: Option<String>,
-}
-
-/// MCP 工具信息（IPC 输出）
-#[cfg(feature = "protocol-mcp")]
-#[derive(Debug, serde::Serialize)]
-pub struct McpToolInfoOutput {
-    /// 工具名称
-    pub name: String,
-    /// 工具描述
-    pub description: Option<String>,
-    /// 工具输入 schema
-    pub input_schema: Option<serde_json::Value>,
-}
-
-/// MCP 资源信息（IPC 输出）
-#[cfg(feature = "protocol-mcp")]
-#[derive(Debug, serde::Serialize)]
-pub struct McpResourceInfoOutput {
-    /// 资源 URI
-    pub uri: String,
-    /// 资源名称
-    pub name: String,
-    /// 资源描述
-    pub description: Option<String>,
-    /// MIME 类型
-    pub mime_type: Option<String>,
-}
-
-/// MCP 服务器信息（IPC 输出）
-#[cfg(feature = "protocol-mcp")]
-#[derive(Debug, serde::Serialize)]
-pub struct McpServerInfoOutput {
-    /// 服务器名称
-    pub name: String,
-    /// 服务器版本
-    pub version: Option<String>,
-}
-
-/// MCP 提示词参数信息（IPC 输出）
-#[cfg(feature = "protocol-mcp")]
-#[derive(Debug, serde::Serialize)]
-pub struct McpPromptArgumentOutput {
-    /// 参数名称
-    pub name: String,
-    /// 参数描述
-    pub description: Option<String>,
-    /// 是否必填
-    pub required: Option<bool>,
-}
-
-/// MCP 提示词信息（IPC 输出）
-#[cfg(feature = "protocol-mcp")]
-#[derive(Debug, serde::Serialize)]
-pub struct McpPromptInfoOutput {
-    /// 提示词名称
-    pub name: String,
-    /// 提示词描述
-    pub description: Option<String>,
-    /// 提示词参数
-    pub arguments: Vec<McpPromptArgumentOutput>,
-}
-
-/// 发现 MCP 工具
-///
-/// 设计时调用：连接 MCP 服务器，获取可用工具和资源列表。
-/// 不创建持久连接，仅返回信息供前端缓存。
-/// 支持 Streamable HTTP 和 Stdio 两种传输模式。
-#[cfg(feature = "protocol-mcp")]
-#[tauri::command]
-pub async fn mcp_discover_tools(input: McpDiscoverToolsInput) -> McpDiscoverToolsOutput {
-    use flow_engine::node_config::{McpConnectConfig, McpTransportMode};
-
-    let transport = match input.transport.as_deref() {
-        Some("stdio") => McpTransportMode::Stdio,
-        _ => McpTransportMode::StreamableHttp,
-    };
-
-    log::info!(
-        "[MCP] Discover tools: url={}, protocol_version={}, transport={}",
-        input.url,
-        input.protocol_version.as_deref().unwrap_or("default"),
-        match transport {
-            McpTransportMode::StreamableHttp => "streamable_http",
-            McpTransportMode::Stdio => "stdio",
-        }
-    );
-
-    // 创建临时连接管理器
-    let manager = flow_engine::flow_engine_mcp::McpConnectionManager::new();
-
-    let config = McpConnectConfig {
-        url: input.url,
-        headers: input.headers,
-        protocol_version: input
-            .protocol_version
-            .unwrap_or_else(|| "2025-11-25".to_string()),
-        custom_headers: None,
-        discovered_tools: Vec::new(),
-        discovered_resources: Vec::new(),
-        discovered_prompts: Vec::new(),
-        transport,
-        command: input.command,
-        args: input.args,
-        env: input.env,
-    };
-
-    match manager.connect("temp-discover".to_string(), config).await {
-        Ok(conn_info) => {
-            // 关闭临时连接
-            let _ = manager.close(&conn_info.connection_id).await;
-
-            log::info!(
-                "[MCP] Tool discovery succeeded: found {} tools, {} resources, {} prompts",
-                conn_info.tools.len(),
-                conn_info.resources.len(),
-                conn_info.prompts.len()
-            );
-
-            McpDiscoverToolsOutput {
-                success: true,
-                tools: conn_info
-                    .tools
-                    .into_iter()
-                    .map(|t| McpToolInfoOutput {
-                        name: t.name,
-                        description: t.description,
-                        input_schema: t.input_schema,
-                    })
-                    .collect(),
-                resources: conn_info
-                    .resources
-                    .into_iter()
-                    .map(|r| McpResourceInfoOutput {
-                        uri: r.uri,
-                        name: r.name,
-                        description: r.description,
-                        mime_type: r.mime_type,
-                    })
-                    .collect(),
-                prompts: conn_info
-                    .prompts
-                    .into_iter()
-                    .map(|p| McpPromptInfoOutput {
-                        name: p.name,
-                        description: p.description,
-                        arguments: p
-                            .arguments
-                            .into_iter()
-                            .map(|a| McpPromptArgumentOutput {
-                                name: a.name,
-                                description: a.description,
-                                required: a.required,
-                            })
-                            .collect(),
-                    })
-                    .collect(),
-                server_info: Some(McpServerInfoOutput {
-                    name: conn_info.server_info.name,
-                    version: conn_info.server_info.version,
-                }),
-                error: None,
-            }
-        }
-        Err(e) => {
-            log::error!("[MCP] Tool discovery failed: {}", e);
-            McpDiscoverToolsOutput {
-                success: false,
-                tools: vec![],
-                resources: vec![],
-                prompts: vec![],
-                server_info: None,
-                error: Some(e),
-            }
-        }
-    }
-}
-
-// ============================================================================
 // SSE 连接测试命令
 // ============================================================================
 
@@ -2407,6 +2187,31 @@ pub fn get_node_config_schema(
 #[tauri::command]
 pub fn list_registered_plugins(node_registry: State<'_, NodeRegistryState>) -> Vec<NodeMetadata> {
     node_registry.registry.all_metadata()
+}
+
+/// 转发插件配置面板的 `uiCall` 发现查询到插件进程
+///
+/// 配置面板 iframe 无法直接与插件进程通信；运行时发现类查询（如 MCP 工具/
+/// 资源/提示词列表）经宿主转发：按 `node_type` 解析插件连接（未知类型即报错，
+/// 天然防止一个插件的面板触达另一插件的进程），发起 `uiCall` JSON-RPC 请求并
+/// 返回结果。超时用连接自带 request_timeout（默认 30s，与 execute 一致）。
+#[cfg(feature = "plugin-manager")]
+#[tauri::command]
+pub async fn plugin_ui_call(
+    node_registry: State<'_, NodeRegistryState>,
+    node_type: String,
+    method: String,
+    payload: Option<serde_json::Value>,
+) -> Result<serde_json::Value, String> {
+    node_registry
+        .manager
+        .ui_call(
+            &node_type,
+            &method,
+            payload.unwrap_or(serde_json::Value::Null),
+        )
+        .await
+        .map_err(|e| e.to_string())
 }
 
 // ============================================================================

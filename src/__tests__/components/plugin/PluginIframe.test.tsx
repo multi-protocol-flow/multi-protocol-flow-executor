@@ -17,6 +17,8 @@ function makeProps(overrides: Partial<PluginIframeProps> = {}): PluginIframeProp
     config: { url: 'https://example.com' },
     variables: { api_base: 'https://api.example.com' },
     hostApi: { testConnection: true },
+    nodeType: 'demo:ping',
+    locale: 'en-US',
     onConfigChange: vi.fn(),
     ...overrides,
   };
@@ -131,6 +133,8 @@ describe('PluginIframe', () => {
             config: { url: 'https://example.com' },
             variables: { api_base: 'https://api.example.com' },
             host_api: { testConnection: true },
+            nodeType: 'demo:ping',
+            locale: 'en-US',
           },
         },
         // 沙箱 iframe 源不透明 → 目标 origin 只能是 '*'（D3 实证）

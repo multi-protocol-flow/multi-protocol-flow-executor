@@ -28,6 +28,13 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
   open: vi.fn(),
 }));
 
+// uiCall 走 @tauri-apps/api/core 的 invoke —— 测试内整体替换为 mock
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(),
+}));
+
+import { invoke } from '@tauri-apps/api/core';
+
 const SRC = 'mpe-plugin://demo.localhost/config-panel';
 const ORIGIN = 'mpe-plugin://demo.localhost';
 
@@ -68,8 +75,10 @@ function renderWiredHook(config: unknown) {
     config,
     variables: {},
     hostApi: PLUGIN_HOST_API,
+    nodeType: 'demo:ping',
+    locale: 'en-US',
     onConfigChange: vi.fn(),
-    onRequestAction: createPluginRequestHandler(config),
+    onRequestAction: createPluginRequestHandler(config, 'demo:ping'),
   };
   const utils = renderHook((p?: UsePluginIframeOptions) => usePluginIframe(p ?? props));
   const fake = makeFakeIframe();
@@ -144,6 +153,7 @@ describe('testConnection（SSRF 原语审计）', () => {
 
     const result = await handlerFor('testConnection')(undefined, {
       config: { url: 'http://127.0.0.1:6379' },
+      nodeType: 'demo:ping',
     });
 
     expect(result).toEqual({ ok: true, latency_ms: expect.any(Number) });
@@ -159,7 +169,7 @@ describe('testConnection（SSRF 原语审计）', () => {
 
     await handlerFor('testConnection')(
       { url: 'https://evil.example.com', target: 'http://evil2.example.com' },
-      { config: { url: 'https://user-typed.example.com/ping' } }
+      { config: { url: 'https://user-typed.example.com/ping' }, nodeType: 'demo:ping' }
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -173,7 +183,7 @@ describe('testConnection（SSRF 原语审计）', () => {
 
     await handlerFor('testConnection')(
       { field: 'endpoint' },
-      { config: { endpoint: 'https://svc.local/health' } }
+      { config: { endpoint: 'https://svc.local/health' }, nodeType: 'demo:ping' }
     );
 
     const [targetUrl] = fetchMock.mock.calls[0] ?? [];
@@ -184,7 +194,7 @@ describe('testConnection（SSRF 原语审计）', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    const result = await handlerFor('testConnection')(undefined, { config: {} });
+    const result = await handlerFor('testConnection')(undefined, { config: {}, nodeType: 'demo:ping' });
 
     expect(result).toEqual({ ok: false, error: 'invalid_target' });
     expect(fetchMock).not.toHaveBeenCalled();
@@ -206,14 +216,14 @@ describe('testConnection（SSRF 原语审计）', () => {
       { url: 'ftp://internal.example.com' },
     ];
     for (const cfg of configs) {
-      const result = await handlerFor('testConnection')(undefined, { config: cfg });
+      const result = await handlerFor('testConnection')(undefined, { config: cfg, nodeType: 'demo:ping' });
       expect(result).toEqual({ ok: false, error: 'invalid_target' });
     }
     // 非法字段名（路径穿越 / 原型键等形态）→ invalid_target
     for (const field of ['a/b', 'a.b', '__proto__', 'constructor', '-x', 'x y']) {
       const result = await handlerFor('testConnection')(
         { field },
-        { config: { url: 'https://example.com' } }
+        { config: { url: 'https://example.com' }, nodeType: 'demo:ping' }
       );
       expect(result).toEqual({ ok: false, error: 'invalid_target' });
     }
@@ -228,6 +238,7 @@ describe('testConnection（SSRF 原语审计）', () => {
 
     const result = await handlerFor('testConnection')(undefined, {
       config: { url: 'https://internal.example.com/health' },
+      nodeType: 'demo:ping',
     });
 
     expect(result).toEqual({
@@ -257,6 +268,7 @@ describe('testConnection（SSRF 原语审计）', () => {
 
       const pending = handlerFor('testConnection')(undefined, {
         config: { url: 'https://internal.example.com/health' },
+        nodeType: 'demo:ping',
       });
       await vi.advanceTimersByTimeAsync(TEST_CONNECTION_TIMEOUT_MS);
       const result = await pending;
@@ -314,6 +326,80 @@ describe('openFileDialog（只返回路径）', () => {
     });
 
     expect(open).toHaveBeenCalledWith({ multiple: false });
+  });
+});
+
+describe('uiCall（宿主转发发现查询）', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(invoke).mockResolvedValue({ tools: [{ name: 'echo' }] });
+  });
+
+  it('合法透传：method + payload → invoke(plugin_ui_call)，nodeType 绑定到上下文', async () => {
+    const result = await handlerFor('uiCall')(
+      { method: 'mcp.discover', payload: { transport: 'stdio', command: 'npx' } },
+      { config: {}, nodeType: 'mcp:connect' }
+    );
+
+    expect(result).toEqual({ tools: [{ name: 'echo' }] });
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke).toHaveBeenCalledWith('plugin_ui_call', {
+      nodeType: 'mcp:connect',
+      method: 'mcp.discover',
+      payload: { transport: 'stdio', command: 'npx' },
+    });
+  });
+
+  it('payload 缺省 → 传 null（Rust Option 侧 None）', async () => {
+    await handlerFor('uiCall')(
+      { method: 'mcp.discover' },
+      { config: {}, nodeType: 'mcp:connect' }
+    );
+
+    expect(invoke).toHaveBeenCalledWith('plugin_ui_call', {
+      nodeType: 'mcp:connect',
+      method: 'mcp.discover',
+      payload: null,
+    });
+  });
+
+  it('params 非对象 / 缺 method / method 非字符串 → 拒绝（Action not allowed 风格）', async () => {
+    const cases: unknown[] = [
+      undefined,
+      null,
+      'mcp.discover',
+      { method: '' },
+      { method: '   ' },
+      { method: 42 },
+      {},
+    ];
+    for (const params of cases) {
+      await expect(
+        handlerFor('uiCall')(params, { config: {}, nodeType: 'mcp:connect' })
+      ).rejects.toThrow(/Action not allowed/);
+    }
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('缺 context.nodeType → 拒绝，不发 invoke', async () => {
+    await expect(handlerFor('uiCall')({ method: 'mcp.discover' })).rejects.toThrow(
+      /Action not allowed/
+    );
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('未知动作仍拒绝（uiCall 不放开其他白名单外动作）', () => {
+    expect(resolvePluginAction('uiCall.evil')).toBeUndefined();
+    expect(resolvePluginAction('uicall')).toBeUndefined();
+    expect(resolvePluginAction('plugin_ui_call')).toBeUndefined();
+  });
+
+  it('invoke 失败 → 错误原样上抛（usePluginIframe 经 actionResult 回传）', async () => {
+    vi.mocked(invoke).mockRejectedValue(new Error('unknown plugin node type mcp:nope'));
+
+    await expect(
+      handlerFor('uiCall')({ method: 'mcp.discover' }, { config: {}, nodeType: 'mcp:nope' })
+    ).rejects.toThrow('unknown plugin node type mcp:nope');
   });
 });
 

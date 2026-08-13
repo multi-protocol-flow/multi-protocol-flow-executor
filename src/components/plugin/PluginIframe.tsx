@@ -15,7 +15,7 @@
  */
 import { Loader2 } from 'lucide-react';
 import { usePluginIframe } from '@/hooks/usePluginIframe';
-import type { PluginIframeHostApi } from '@/types/plugin-iframe';
+import type { PluginIframeHostApi, PluginIframeNodeSnapshot } from '@/types/plugin-iframe';
 
 /** 插件未上报 resize 前的兜底高度（px） */
 const DEFAULT_IFRAME_HEIGHT = 300;
@@ -31,6 +31,12 @@ export interface PluginIframeProps {
   variables: Record<string, unknown>;
   /** host_api 能力声明（PR-5 白名单） */
   hostApi: PluginIframeHostApi;
+  /** 当前编辑节点的类型 id（透传 init 载荷，如 `mcp:connect`） */
+  nodeType: string;
+  /** 宿主当前 UI 语言（BCP-47，透传 init 载荷） */
+  locale: string;
+  /** 同插件节点快照（可选；connection 下拉等跨节点引用用） */
+  nodes?: PluginIframeNodeSnapshot[];
   /** 插件表单变更 → 宿主保存 */
   onConfigChange: (config: unknown) => void;
   /** 插件请求宿主能力（testConnection 等，PR-5 白名单） */
@@ -47,13 +53,27 @@ export function PluginIframe({
   config,
   variables,
   hostApi,
+  nodeType,
+  locale,
+  nodes,
   onConfigChange,
   onRequestAction,
   title,
   className,
 }: PluginIframeProps) {
   const { iframeRef, readyState, error, height, handleIframeLoad, handleIframeError } =
-    usePluginIframe({ src, origin, config, variables, hostApi, onConfigChange, onRequestAction });
+    usePluginIframe({
+      src,
+      origin,
+      config,
+      variables,
+      hostApi,
+      nodeType,
+      locale,
+      nodes,
+      onConfigChange,
+      onRequestAction,
+    });
 
   // 错误态：显示错误 + 回退链接（不渲染 iframe，沙箱内不再加载内容）
   if (error) {

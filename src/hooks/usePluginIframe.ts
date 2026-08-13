@@ -34,6 +34,7 @@ import {
 import type {
   PluginIframeHostApi,
   PluginIframeMessage,
+  PluginIframeNodeSnapshot,
   PluginIframeRequestActionPayload,
 } from '@/types/plugin-iframe';
 
@@ -54,6 +55,12 @@ export interface UsePluginIframeOptions {
   variables: Record<string, unknown>;
   /** host_api 能力声明（PR-5 白名单生成） */
   hostApi: PluginIframeHostApi;
+  /** 当前编辑节点的类型 id（透传给 init 载荷，如 `mcp:connect`） */
+  nodeType: string;
+  /** 宿主当前 UI 语言（BCP-47，透传给 init 载荷） */
+  locale: string;
+  /** 同插件节点快照（可选；connection 下拉等跨节点引用用） */
+  nodes?: PluginIframeNodeSnapshot[];
   /** iframe configChanged → 宿主保存 */
   onConfigChange: (config: unknown) => void;
   /** iframe requestAction → 宿主执行，返回结果经 actionResult 回传（PR-5 白名单） */
@@ -102,10 +109,17 @@ export function usePluginIframe(options: UsePluginIframeOptions): UsePluginIfram
     contentWindow.postMessage(message, '*');
   }, []);
 
-  /** iframe load：发送 init（config + 变量快照 + host_api 能力声明） */
+  /** iframe load：发送 init（config + 变量快照 + host_api 能力声明 + 节点上下文） */
   const handleIframeLoad = useCallback((): void => {
-    const { config: cfg, variables: vars, hostApi: api } = latestRef.current;
-    sendToIframe(createInitMessage(cfg, vars, api));
+    const {
+      config: cfg,
+      variables: vars,
+      hostApi: api,
+      nodeType,
+      locale,
+      nodes,
+    } = latestRef.current;
+    sendToIframe(createInitMessage(cfg, vars, api, nodeType, locale, nodes));
   }, [sendToIframe]);
 
   /** iframe onError：加载失败 */

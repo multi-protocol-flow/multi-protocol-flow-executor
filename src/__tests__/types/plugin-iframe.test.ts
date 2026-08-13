@@ -17,7 +17,24 @@ const HOST_API = { testConnection: true, openFileDialog: true };
 describe('isPluginIframeMessage', () => {
   describe('合法消息通过', () => {
     it('init 完整 payload', () => {
-      const msg = { type: 'init', payload: { config: CONFIG, variables: VARIABLES, host_api: HOST_API } };
+      const msg = { type: 'init', payload: { config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 'demo:ping', locale: 'en-US' } };
+      expect(isPluginIframeMessage(msg)).toBe(true);
+    });
+
+    it('init 带 nodes 快照', () => {
+      const msg = {
+        type: 'init',
+        payload: {
+          config: CONFIG,
+          variables: VARIABLES,
+          host_api: HOST_API,
+          nodeType: 'mcp:connect',
+          locale: 'zh-CN',
+          nodes: [
+            { uuid: 'node-1', label: 'Conn', type: 'mcp:connect', config: { transport: 'stdio' } },
+          ],
+        },
+      };
       expect(isPluginIframeMessage(msg)).toBe(true);
     });
 
@@ -118,6 +135,19 @@ describe('isPluginIframeMessage', () => {
       expect(isPluginIframeMessage({ type: 'init', payload: { config: CONFIG } })).toBe(false);
       expect(isPluginIframeMessage({ type: 'init', payload: { variables: VARIABLES, host_api: HOST_API } })).toBe(false);
       expect(isPluginIframeMessage({ type: 'init', payload: { config: CONFIG, variables: 'x', host_api: HOST_API } })).toBe(false);
+      // nodeType/locale 必需且非空字符串
+      expect(isPluginIframeMessage({ type: 'init', payload: { config: CONFIG, variables: VARIABLES, host_api: HOST_API } })).toBe(false);
+      expect(isPluginIframeMessage({ type: 'init', payload: { config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: '', locale: 'en-US' } })).toBe(false);
+      expect(isPluginIframeMessage({ type: 'init', payload: { config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 'demo:ping', locale: '' } })).toBe(false);
+      expect(isPluginIframeMessage({ type: 'init', payload: { config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 42, locale: 'en-US' } })).toBe(false);
+    });
+
+    it('init nodes 快照形状错误被拒绝', () => {
+      const base = { config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 'mcp:connect', locale: 'en-US' };
+      expect(isPluginIframeMessage({ type: 'init', payload: { ...base, nodes: 'not-array' } })).toBe(false);
+      expect(isPluginIframeMessage({ type: 'init', payload: { ...base, nodes: [null] } })).toBe(false);
+      expect(isPluginIframeMessage({ type: 'init', payload: { ...base, nodes: [{ label: 'x', type: 'y' }] } })).toBe(false);
+      expect(isPluginIframeMessage({ type: 'init', payload: { ...base, nodes: [{ uuid: 'u', label: 'x', type: 'y', config: 'bad' }] } })).toBe(false);
     });
 
     it('configChanged payload 缺 config', () => {
@@ -128,10 +158,17 @@ describe('isPluginIframeMessage', () => {
 
 describe('消息构造器', () => {
   it('createInitMessage 组装 init 信封', () => {
-    const msg = createInitMessage(CONFIG, VARIABLES, HOST_API);
+    const msg = createInitMessage(CONFIG, VARIABLES, HOST_API, 'demo:ping', 'en-US');
     expect(msg.type).toBe('init');
-    expect(msg.payload).toEqual({ config: CONFIG, variables: VARIABLES, host_api: HOST_API });
+    expect(msg.payload).toEqual({ config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 'demo:ping', locale: 'en-US' });
     // 构造器产物必须通过守卫（反向一致性）
+    expect(isPluginIframeMessage(msg)).toBe(true);
+  });
+
+  it('createInitMessage 携带 nodes 快照', () => {
+    const nodes = [{ uuid: 'node-1', label: 'Conn', type: 'mcp:connect', config: { transport: 'stdio' } }];
+    const msg = createInitMessage(CONFIG, VARIABLES, HOST_API, 'mcp:connect', 'zh-CN', nodes);
+    expect(msg.payload).toEqual({ config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 'mcp:connect', locale: 'zh-CN', nodes });
     expect(isPluginIframeMessage(msg)).toBe(true);
   });
 

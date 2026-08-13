@@ -36,11 +36,29 @@ export type PluginIframeHostApi = Record<string, unknown>;
 
 /* ---------- 宿主 → iframe payload ---------- */
 
-/** `init`：初始 config + 变量快照 + host_api 能力声明 */
+/** 同插件节点快照（connection 下拉等跨节点引用用） */
+export interface PluginIframeNodeSnapshot {
+  /** 画布节点 uuid（即插件 execute 的 node_instance_id） */
+  uuid: string;
+  /** 节点 label */
+  label: string;
+  /** 节点类型 id（如 `mcp:connect`） */
+  type: string;
+  /** 节点 config（含 type 字段） */
+  config: Record<string, unknown>;
+}
+
+/** `init`：初始 config + 变量快照 + host_api 能力声明 + 节点上下文 */
 export interface PluginIframeInitPayload {
   config: unknown;
   variables: Record<string, unknown>;
   host_api: PluginIframeHostApi;
+  /** 当前编辑节点的类型 id（如 `mcp:connect`） */
+  nodeType: string;
+  /** 宿主当前 UI 语言（BCP-47，如 `zh-CN` / `en-US`） */
+  locale: string;
+  /** 同插件节点快照（按前缀过滤；可选，旧宿主不携带） */
+  nodes?: PluginIframeNodeSnapshot[];
 }
 
 /** `configUpdated`：宿主侧配置变更推送 */
@@ -167,11 +185,26 @@ function isValidPayload(
     case 'init': {
       // config 为任意 JSON 值（unknown），但键必须存在且非 undefined
       // （structured clone 会丢弃 undefined，传输后键不存在）
+      const nodes = payload['nodes'];
       return (
         'config' in payload &&
         payload['config'] !== undefined &&
         isPlainObject(payload['variables']) &&
-        isPlainObject(payload['host_api'])
+        isPlainObject(payload['host_api']) &&
+        isString(payload['nodeType']) &&
+        payload['nodeType'].length > 0 &&
+        isString(payload['locale']) &&
+        payload['locale'].length > 0 &&
+        (nodes === undefined ||
+          (Array.isArray(nodes) &&
+            nodes.every(
+              (node) =>
+                isPlainObject(node) &&
+                isString(node['uuid']) &&
+                isString(node['label']) &&
+                isString(node['type']) &&
+                isPlainObject(node['config'])
+            )))
       );
     }
     case 'configUpdated':
@@ -221,13 +254,26 @@ export function isPluginIframeMessage(data: unknown): data is PluginIframeMessag
 
 /* ---------- 宿主 → iframe 消息构造器 ---------- */
 
-/** 构造 `init` 消息（config + 变量快照 + host_api 能力声明） */
+/** 构造 `init` 消息（config + 变量快照 + host_api 能力声明 + 节点上下文） */
 export function createInitMessage(
   config: unknown,
   variables: Record<string, unknown>,
-  hostApi: PluginIframeHostApi
+  hostApi: PluginIframeHostApi,
+  nodeType: string,
+  locale: string,
+  nodes?: PluginIframeNodeSnapshot[]
 ): PluginIframeInitMessage {
-  return { type: 'init', payload: { config, variables, host_api: hostApi } };
+  const payload: PluginIframeInitPayload = {
+    config,
+    variables,
+    host_api: hostApi,
+    nodeType,
+    locale,
+  };
+  if (nodes !== undefined) {
+    payload.nodes = nodes;
+  }
+  return { type: 'init', payload };
 }
 
 /** 构造 `configUpdated` 消息（宿主侧配置变更推送） */

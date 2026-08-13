@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { NodeConfigPanel, HttpConfig, ConditionalConfig, EntryConfig } from '@/components/panels';
-import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
+import { useFlowStore, useUIStore, useDebugStore, selectNodes } from '@/stores';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import { isSchemaDriven } from '@/lib/configPanelRegistry';
 import type { NodeMetadata } from '@/types/nodeRegistry';
@@ -230,11 +230,12 @@ describe('NodeConfigPanel', () => {
       });
     });
 
-    it('metadata 声明 frontend 且携带 url 时渲染 PluginIframe 配置面板', async () => {
+    it('metadata 声明 frontend 且携带 url 时渲染 PluginIframe 配置面板，init 携带节点上下文', async () => {
       (getCachedNodeMeta as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
         ...pluginMeta,
         frontend: { type: 'iframe', url: 'http://mpe-plugin.demo.localhost/config-panel' },
       });
+      (selectNodes as unknown as ReturnType<typeof vi.fn>).mockReturnValue([pluginNode]);
 
       render(<NodeConfigPanel />);
 
@@ -242,6 +243,138 @@ describe('NodeConfigPanel', () => {
       const iframe = (await screen.findByTitle('Plugin config panel')) as HTMLIFrameElement;
       expect(iframe.getAttribute('src')).toBe('http://mpe-plugin.demo.localhost/config-panel');
       expect(iframe.getAttribute('sandbox')).toBe('allow-scripts');
+
+      // iframe load → init 消息：nodeType/locale + 同插件节点快照（按前缀过滤）
+      const postMessage = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+      fireEvent.load(iframe);
+      expect(postMessage).toHaveBeenCalledTimes(1);
+      const [message] = postMessage.mock.calls[0] ?? [];
+      const payload = (message as { payload?: Record<string, unknown> }).payload ?? {};
+      expect(payload['nodeType']).toBe('demo:ping');
+      expect(typeof payload['locale']).toBe('string');
+      expect((payload['locale'] as string).length).toBeGreaterThan(0);
+      expect(payload['nodes']).toEqual([
+        {
+          uuid: 'plugin-001',
+          label: 'Demo Ping',
+          type: 'demo:ping',
+          config: { type: 'demo:ping', target: 'localhost' },
+        },
+      ]);
+    });
+
+    it('切换同插件节点时重新挂载 iframe，init 携带新节点上下文', async () => {
+      const otherNode: AnyNode = {
+        uuid: 'plugin-002',
+        type: 'demo:echo',
+        name: 'Demo Echo',
+        position: { x: 0, y: 0 },
+        data: { type: 'demo:echo', echo: 'hi' },
+      };
+      (getCachedNodeMeta as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+        ...pluginMeta,
+        frontend: { type: 'iframe', url: 'http://mpe-plugin.demo.localhost/config-panel' },
+      });
+      (selectNodes as unknown as ReturnType<typeof vi.fn>).mockReturnValue([pluginNode, otherNode]);
+      let current: AnyNode = pluginNode;
+      (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
+        const state = {
+          getSelectedNode: () => current,
+          updateNode: mockUpdateNode,
+          flow: { nodes: [pluginNode, otherNode] },
+        };
+        return selector ? selector(state) : state;
+      });
+
+      const { rerender } = render(<NodeConfigPanel />);
+
+      // 第一个节点：init 携带 demo:ping 上下文
+      const iframe1 = (await screen.findByTitle('Plugin config panel')) as HTMLIFrameElement;
+      const post1 = vi.spyOn(iframe1.contentWindow as Window, 'postMessage');
+      fireEvent.load(iframe1);
+      const init1 = (post1.mock.calls[0]?.[0] as { payload?: Record<string, unknown> })?.payload ?? {};
+      expect(init1['nodeType']).toBe('demo:ping');
+
+      // 切换到同插件不同节点（uuid 变化 → key 变化 → iframe 重挂载）
+      current = otherNode;
+      rerender(<NodeConfigPanel />);
+
+      // 旧 iframe 已卸载，新 iframe 挂载
+      expect(iframe1.isConnected).toBe(false);
+      const iframe2 = (await screen.findByTitle('Plugin config panel')) as HTMLIFrameElement;
+      expect(iframe2).not.toBe(iframe1);
+
+      // 新 iframe 的 init 携带新节点的完整上下文（nodeType/config/nodes 快照）
+      const post2 = vi.spyOn(iframe2.contentWindow as Window, 'postMessage');
+      fireEvent.load(iframe2);
+      const init2 = (post2.mock.calls[0]?.[0] as { payload?: Record<string, unknown> })?.payload ?? {};
+      expect(init2['nodeType']).toBe('demo:echo');
+      expect(init2['config']).toEqual({ type: 'demo:echo', echo: 'hi' });
+      expect(init2['nodes']).toEqual([
+        {
+          uuid: 'plugin-001',
+          label: 'Demo Ping',
+          type: 'demo:ping',
+          config: { type: 'demo:ping', target: 'localhost' },
+        },
+        {
+          uuid: 'plugin-002',
+          label: 'Demo Echo',
+          type: 'demo:echo',
+          config: { type: 'demo:echo', echo: 'hi' },
+        },
+      ]);
+    });
+
+    it('插件面板清空 headers 时保存为整体替换，深合并不会把删掉的键并回', async () => {
+      const nodeWithHeaders: AnyNode = {
+        uuid: 'plugin-003',
+        type: 'demo:ping',
+        name: 'Demo Ping',
+        position: { x: 0, y: 0 },
+        data: { type: 'demo:ping', target: 'localhost', headers: { a: '1', b: '2' } },
+      };
+      (getCachedNodeMeta as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+        ...pluginMeta,
+        frontend: { type: 'iframe', url: 'http://mpe-plugin.demo.localhost/config-panel' },
+      });
+      (selectNodes as unknown as ReturnType<typeof vi.fn>).mockReturnValue([nodeWithHeaders]);
+      (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
+        const state = {
+          getSelectedNode: () => nodeWithHeaders,
+          updateNode: mockUpdateNode,
+          flow: { nodes: [nodeWithHeaders] },
+        };
+        return selector ? selector(state) : state;
+      });
+      // handleSave 走 useFlowStore.getState() 取最新 flow —— mock 是纯函数，需挂方法
+      (useFlowStore as unknown as { getState: () => unknown }).getState = () => ({
+        flow: { nodes: [nodeWithHeaders] },
+        updateNode: mockUpdateNode,
+      });
+
+      render(<NodeConfigPanel />);
+
+      const iframe = (await screen.findByTitle('Plugin config panel')) as HTMLIFrameElement;
+      fireEvent.load(iframe); // init 携带节点上下文
+
+      // 面板回传完整 config，headers 已清空为 {} —— 宿主必须整体替换。
+      // 旧实现 mergeNodeData 对嵌套对象深合并：{...{a,b}, ...{}} = {a,b}，
+      // 且 deepEqual 判等使 store 完全不更新（删除永远不生效）。
+      fireEvent(
+        window,
+        new MessageEvent('message', {
+          data: { type: 'configChanged', payload: { config: { type: 'demo:ping', target: 'localhost', headers: {} } } },
+          origin: 'null',
+          source: iframe.contentWindow as unknown as MessageEventSource,
+        })
+      );
+
+      await waitFor(() => {
+        expect(mockUpdateNode).toHaveBeenCalledWith('plugin-003', {
+          data: expect.objectContaining({ headers: {} }),
+        });
+      });
     });
 
     it('metadata 声明 frontend 但无 url（inline-only）时回落 SchemaConfigPanel', async () => {
