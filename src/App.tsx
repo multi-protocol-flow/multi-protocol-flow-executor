@@ -46,16 +46,20 @@ function App() {
   const loadSettings = useSettingsStore((state) => state.loadSettings);
   useEffect(() => {
     const initApp = async () => {
-      await loadSettings();
-
-      // 在 Tauri 环境中，设置加载完成后显示窗口
+      // 在 Tauri 环境中先显示窗口——窗口展示不依赖设置加载成功
       if (isTauriEnv()) {
         try {
           const { getCurrentWindow } = await import('@tauri-apps/api/window');
           await getCurrentWindow().show();
         } catch (error) {
-          console.debug('[启动] 显示窗口失败:', error);
+          console.warn('[startup] Failed to show window:', error);
         }
+      }
+
+      try {
+        await loadSettings();
+      } catch (error) {
+        console.warn('[startup] Failed to load settings:', error);
       }
 
       // 检查并清理可能残留的调试会话（刷新页面时后端状态未清理）
@@ -63,13 +67,13 @@ function App() {
         const hasActiveSession = await get_debug_status();
 
         if (hasActiveSession) {
-          console.warn('[调试] 检测到残留的调试会话，自动清理');
+          console.warn('[debug] Detected leftover debug session, cleaning up');
           await force_end_debug();
           useDebugStore.getState().reset();
         }
       } catch (error) {
         // 非 Tauri 环境或 API 不存在，忽略
-        console.debug('[调试] 跳过调试状态检查:', error);
+        console.debug('[debug] Skipping debug status check:', error);
       }
 
       // 恢复上次保存的缩放级别
