@@ -10,6 +10,7 @@ import type { FlowExecutionReport } from '@/types/report';
 import type { ReportMetadata } from '@/types/ipc';
 
 import { isTauriEnv } from '@/lib/platform';
+import { getLL } from '@/i18n/i18n-lazy';
 
 // 检测是否在 Tauri 环境中运行
 
@@ -54,12 +55,31 @@ async function getCachedService() {
  * 创建流程
  * 根据运行环境自动选择真实 IPC 或 Mock 服务
  *
+ * 创建后按当前界面语言本地化入口/结束节点的默认名称
+ * （后端默认名称为 "开始"/"End"，不随界面语言变化）
+ *
  * @param name - 流程名称
  * @returns 创建的流程对象
  */
 export async function createFlow(name: string): Promise<Flow> {
   const { createFlow: createFlowImpl } = await getCachedService();
-  return createFlowImpl(name);
+  const flow = await createFlowImpl(name);
+  return localizeDefaultNodeNames(flow);
+}
+
+/**
+ * 按当前界面语言本地化入口/结束节点的默认名称
+ */
+function localizeDefaultNodeNames(flow: Flow): Flow {
+  const ll = getLL();
+  return {
+    ...flow,
+    nodes: flow.nodes.map((node) => {
+      if (node.type === 'entry') return { ...node, name: ll.nodes.entry() };
+      if (node.type === 'end') return { ...node, name: ll.nodes.end() };
+      return node;
+    }),
+  };
 }
 
 /**
