@@ -12,6 +12,8 @@ interface FlowWithMeta {
   _meta?: FlowMeta;
   /** 所属文件夹路径（模拟） */
   folderPath: string;
+  /** 最后保存时间（保存时固化，模拟文件 mtime） */
+  updatedAt: number;
 }
 
 // 内存存储
@@ -27,7 +29,7 @@ const folderStore = new Set<string>();
  */
 export async function saveFlow(flow: Flow & { _meta?: FlowMeta }, _flowsDir?: string): Promise<void> {
   const { _meta, ...flowData } = flow as Flow & { _meta?: FlowMeta };
-  flowStore.set(flow.uuid, { flow: flowData, _meta, folderPath: '' });
+  flowStore.set(flow.uuid, { flow: flowData, _meta, folderPath: '', updatedAt: Date.now() });
 }
 
 /**
@@ -59,7 +61,7 @@ export async function listFlows(_flowsDir?: string): Promise<FlowMetadata[]> {
     uuid: entry.flow.uuid,
     name: entry.flow.name,
     filePath: `mock://flows/${entry.flow.uuid}.json`,
-    updatedAt: Date.now(),
+    updatedAt: entry.updatedAt,
     folderPath: entry.folderPath,
   }));
 }
@@ -95,7 +97,7 @@ export async function copyFlow(uuid: string, _flowsDir?: string): Promise<Flow> 
     nodes: [...source.flow.nodes],
     connections: [...source.flow.connections],
   };
-  flowStore.set(newUuid, { flow: copy, _meta: source._meta, folderPath: source.folderPath });
+  flowStore.set(newUuid, { flow: copy, _meta: source._meta, folderPath: source.folderPath, updatedAt: Date.now() });
   return copy;
 }
 
