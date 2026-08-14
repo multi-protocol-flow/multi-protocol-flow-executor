@@ -42,7 +42,7 @@ pub async fn execute_flow(
         let _ = sender
             .send(LogEvent {
                 level: LogLevel::Info,
-                message: format!("流程 '{}' start execution", flow_name),
+                message: format!("Flow '{}' start execution", flow_name),
                 timestamp: start_timestamp,
                 node_uuid: None,
                 node_name: None,
@@ -87,8 +87,8 @@ pub async fn execute_flow(
                     LogLevel::Error
                 },
                 message: format!(
-                    "流程执行{}",
-                    if result.success { "Success" } else { "Failed" }
+                    "flow execution {}",
+                    if result.success { "succeeded" } else { "failed" }
                 ),
                 timestamp: end_timestamp,
                 node_uuid: None,

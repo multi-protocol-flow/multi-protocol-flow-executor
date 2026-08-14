@@ -55,17 +55,17 @@ impl HookExecutor for DefaultHookExecutor {
                     .as_ref()
                     .map(|t| Self::render_template(t, context));
                 log::info!(
-                    "[Hook] Webhook 调用: {} {} (headers: {} 个, body: {}, timeout: {}ms)",
+                    "[Hook] Webhook call: {} {} (headers: {}, body: {}, timeout: {}ms)",
                     method,
                     rendered_url,
                     headers.len(),
-                    rendered_body.as_deref().unwrap_or("<无>"),
+                    rendered_body.as_deref().unwrap_or("<none>"),
                     timeout_ms.unwrap_or(30000),
                 );
             }
             HookAction::Script { code, timeout_ms } => {
                 log::info!(
-                    "[Hook] 脚本执行: {} 字符, timeout: {}ms",
+                    "[Hook] script execution: {} chars, timeout: {}ms",
                     code.len(),
                     timeout_ms.unwrap_or(30000),
                 );
@@ -76,7 +76,7 @@ impl HookExecutor for DefaultHookExecutor {
             } => {
                 let title = Self::render_template(title_template, context);
                 let message = Self::render_template(message_template, context);
-                log::info!("[Hook] 通知: {} - {}", title, message);
+                log::info!("[Hook] Notification: {} - {}", title, message);
             }
         }
     }

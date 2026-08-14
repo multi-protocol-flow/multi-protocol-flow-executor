@@ -160,7 +160,7 @@ impl StressTestExecutor {
         {
             let state = self.state.read().await;
             if state.status != StressTestStatus::Idle {
-                return Err("压力测试已在运行中".to_string());
+                return Err("stress test already running".to_string());
             }
         }
 
@@ -214,7 +214,7 @@ impl StressTestExecutor {
         });
 
         log::info!(
-            "[压测] 启动压力测试: flow={}, concurrent={}, ramp_up={}s, duration={}s",
+            "[StressTest] starting stress test: flow={}, concurrent={}, ramp_up={}s, duration={}s",
             self.flow.uuid,
             self.config.concurrent_users,
             self.config.ramp_up_seconds,
@@ -233,13 +233,13 @@ impl StressTestExecutor {
         let state = self.state.read().await;
 
         if state.status == StressTestStatus::Idle {
-            return Err("压力测试未在运行".to_string());
+            return Err("stress test is not running".to_string());
         }
 
         // 设置停止标志
         state.stop_flag.store(true, Ordering::SeqCst);
 
-        log::info!("[压测] 停止压力测试: flow={}", self.flow.uuid);
+        log::info!("[StressTest] stopping stress test: flow={}", self.flow.uuid);
 
         Ok(())
     }
@@ -304,16 +304,16 @@ impl StressTestExecutor {
             match csv_parser::parse_csv(path, config.dataset_encoding.as_deref(), None) {
                 Ok(reader) => match reader.collect_all() {
                     Ok(rows) => {
-                        log::info!("[压测] 加载 CSV 数据源: path={}, rows={}", path, rows.len());
+                        log::info!("[StressTest] loading CSV dataset: path={}, rows={}", path, rows.len());
                         Arc::new(rows)
                     }
                     Err(e) => {
-                        log::error!("[压测] 解析 CSV 数据Failed: {}", e);
+                        log::error!("[StressTest] failed to parse CSV dataset: {}", e);
                         Arc::new(Vec::new())
                     }
                 },
                 Err(e) => {
-                    log::error!("[压测] 打开 CSV 文件Failed: {}", e);
+                    log::error!("[StressTest] failed to open CSV file: {}", e);
                     Arc::new(Vec::new())
                 }
             }
@@ -441,7 +441,7 @@ impl StressTestExecutor {
             while !state_guard.active_tasks.is_empty() {
                 tokio::select! {
                     _ = &mut timeout => {
-                        log::warn!("[压测] 等待虚拟用户超时，强制终止");
+                        log::warn!("[StressTest] timed out waiting for virtual user, force terminating");
                         break;
                     }
                     _ = tokio::time::sleep(Duration::from_millis(100)) => {
@@ -467,7 +467,7 @@ impl StressTestExecutor {
             report: Box::new(report),
         });
 
-        log::info!("[压测] 压力测试完成: flow={}", flow.uuid);
+        log::info!("[StressTest] stress test completed: flow={}", flow.uuid);
     }
 
     /// 运行单个虚拟用户
@@ -531,7 +531,7 @@ impl StressTestExecutor {
                 let error_msg = execution_result
                     .error
                     .clone()
-                    .unwrap_or_else(|| "未知Error".to_string());
+                    .unwrap_or_else(|| "unknown error".to_string());
                 let sample = ErrorSample {
                     iteration: metrics.get_statistics().total_iterations,
                     node_uuid: String::new(),
@@ -558,7 +558,7 @@ impl StressTestExecutor {
                         .error
                         .as_ref()
                         .map(|e| format!("{:?}", e))
-                        .unwrap_or_else(|| "未知节点Error".to_string());
+                        .unwrap_or_else(|| "unknown node error".to_string());
                     let node_sample = ErrorSample {
                         iteration: metrics.get_statistics().total_iterations,
                         node_uuid: node_report.node_uuid.clone(),
@@ -844,7 +844,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("已在运行"));
+            .contains("already running"));
 
         // 清理：停止压测
         let _ = executor.stop().await;
@@ -877,7 +877,7 @@ mod tests {
         let error = result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"));
-        assert!(error.contains("并发用户数"));
+        assert!(error.contains("concurrent users"));
     }
 
     /// 测试停止未运行的压测Failed
@@ -900,7 +900,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("未在运行"));
+            .contains("not running"));
     }
 
     /// 测试进度报告

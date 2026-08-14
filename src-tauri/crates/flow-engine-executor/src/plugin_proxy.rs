@@ -22,7 +22,7 @@ impl NodePlugin for ProxyPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "代理设置"
+        "Proxy Settings"
     }
 
     fn category(&self) -> &str {
@@ -41,12 +41,12 @@ impl NodePlugin for ProxyPlugin {
         vec![
             PortDef {
                 id: "in".into(),
-                label: "输入".into(),
+                label: "Input".into(),
                 position: "left".into(),
             },
             PortDef {
                 id: "out".into(),
-                label: "输出".into(),
+                label: "Output".into(),
                 position: "right".into(),
             },
         ]
@@ -94,7 +94,7 @@ impl NodePlugin for ProxyPlugin {
             NodeData::Proxy(c) => c,
             _ => {
                 return Err(ErrorDetail::execution_error(
-                    "代理节点配置类型不匹配".to_string(),
+                    "proxy node configuration type mismatch".to_string(),
                 ))
             }
         };
@@ -106,7 +106,7 @@ impl NodePlugin for ProxyPlugin {
                     vec!["out".to_string()],
                     Some(serde_json::json!({
                         "action": "clear",
-                        "message": "已清除代理设置"
+                        "message": "proxy settings cleared"
                     })),
                 ))
             }
@@ -139,7 +139,7 @@ impl NodePlugin for ProxyPlugin {
                         "action": "set",
                         "mode": mode_str.to_lowercase(),
                         "proxy_url": proxy_url,
-                        "message": format!("已设置{}代理: {}", mode_str, proxy_url)
+                        "message": format!("proxy set to {}: {}", mode_str, proxy_url)
                     })),
                 ))
             }
@@ -180,15 +180,15 @@ fn parse_proxy_url(url: &str) -> Result<(String, u16), String> {
         let port_str = &host_port[colon_pos + 1..];
         let port: u16 = port_str
             .parse()
-            .map_err(|_| format!("代理端口格式Error: {}", port_str))?;
+            .map_err(|_| format!("invalid proxy port format: {}", port_str))?;
         if host.is_empty() {
-            return Err("代理地址缺少主机名".to_string());
+            return Err("proxy address missing hostname".to_string());
         }
         Ok((host, port))
     } else {
         // 无端口时使用默认端口
         if host_port.is_empty() {
-            return Err("代理地址缺少主机名".to_string());
+            return Err("proxy address missing hostname".to_string());
         }
         Ok((host_port.to_string(), 1080))
     }

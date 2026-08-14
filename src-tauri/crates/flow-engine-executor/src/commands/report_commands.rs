@@ -190,7 +190,7 @@ mod tests {
         let error_msg = result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"));
-        assert!(error_msg.contains("不存在"), "Error消息应包含'不存在'");
+        assert!(error_msg.contains("not found"), "error should contain 'not found', got: {}", error_msg);
     }
 
     /// 测试列出报告元数据
@@ -267,7 +267,7 @@ mod tests {
         let error_msg = result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"));
-        assert!(error_msg.contains("不存在"), "Error消息应包含'不存在'");
+        assert!(error_msg.contains("not found"), "error should contain 'not found', got: {}", error_msg);
     }
 
     /// 测试报告保存和加载的完整周期

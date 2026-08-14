@@ -15,14 +15,17 @@ use flow_engine_core::flow::Flow;
 /// - `UpdateNodeCommandOutput`: 包含更新结果
 ///
 /// # 桩实现说明
-/// - 返回Error信息 "暂未实现持久化"
+/// - 返回Error信息 "persistence not yet implemented"
 /// - `说明原因：update_node` 需要先加载流程、更新节点、再保存流程
 /// - 这将在任务 2.5（保存流程）中完整实现
 pub fn update_node(_input: UpdateNodeCommandInput, _flow: Flow) -> UpdateNodeCommandOutput {
     // 桩实现：返回持久化未实现的Error
     UpdateNodeCommandOutput {
         success: false,
-        error: Some("暂未实现持久化：update_node 需要先加载流程、更新节点、再保存流程".to_string()),
+        error: Some(
+            "persistence not yet implemented: update_node needs to load flow, update node, then save flow"
+                .to_string(),
+        ),
     }
 }
 
@@ -93,7 +96,7 @@ mod tests {
         assert!(!output.success);
         assert!(output.error.is_some());
         let error_msg = output.error.unwrap_or_else(|| panic!("expected Some"));
-        assert!(error_msg.contains("暂未实现持久化"));
+        assert!(error_msg.contains("persistence not yet implemented"));
     }
 
     /// 测试：节点不存在 - 桩实现仍返回相同Error
@@ -115,7 +118,7 @@ mod tests {
         assert!(!output.success);
         assert!(output.error.is_some());
         let error_msg = output.error.unwrap_or_else(|| panic!("expected Some"));
-        assert!(error_msg.contains("暂未实现持久化"));
+        assert!(error_msg.contains("persistence not yet implemented"));
     }
 
     /// 测试：部分更新 - 桩实现返回Error
@@ -137,7 +140,7 @@ mod tests {
         assert!(!output.success);
         assert!(output.error.is_some());
         let error_msg = output.error.unwrap_or_else(|| panic!("expected Some"));
-        assert!(error_msg.contains("暂未实现持久化"));
+        assert!(error_msg.contains("persistence not yet implemented"));
     }
 
     /// 测试：空数据更新 - 桩实现返回Error

@@ -52,7 +52,7 @@ impl CsvReader {
             }
             Err(e) => {
                 self.finished = true;
-                Some(Err(format!("读取 CSV 行Failed: {}", e)))
+                Some(Err(format!("failed to read CSV row: {}", e)))
             }
         }
     }
@@ -129,12 +129,12 @@ fn decode_bytes(raw: &[u8], encoding: &str) -> String {
 
 /// 从文件路径读取全部字节，并处理 BOM
 fn read_file_bytes(path: &str) -> Result<Vec<u8>, String> {
-    let file = File::open(path).map_err(|e| format!("无法打开文件 '{}': {}", path, e))?;
+    let file = File::open(path).map_err(|e| format!("cannot open file '{}': {}", path, e))?;
     let mut buf_reader = BufReader::new(file);
     let mut bytes = Vec::new();
     buf_reader
         .read_to_end(&mut bytes)
-        .map_err(|e| format!("读取文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to read file: {}", e))?;
     Ok(bytes)
 }
 
@@ -190,7 +190,7 @@ pub fn parse_csv(
 
     let headers = reader
         .headers()
-        .map_err(|e| format!("读取 CSV 表头Failed: {}", e))?
+        .map_err(|e| format!("failed to read CSV headers: {}", e))?
         .clone();
 
     Ok(CsvReader {
@@ -256,7 +256,7 @@ pub fn validate(
 
     let headers = reader
         .headers()
-        .map_err(|e| format!("读取 CSV 表头Failed: {}", e))?;
+        .map_err(|e| format!("failed to read CSV headers: {}", e))?;
     let column_names: Vec<String> = headers.iter().map(|s| s.to_string()).collect();
 
     let mut row_count: u32 = 0;
@@ -265,7 +265,7 @@ pub fn validate(
         match reader.read_record(&mut record) {
             Ok(false) => break,
             Ok(true) => row_count += 1,
-            Err(e) => return Err(format!("读取 CSV 行Failed: {}", e)),
+            Err(e) => return Err(format!("failed to read CSV row: {}", e)),
         }
     }
 
@@ -529,8 +529,8 @@ mod tests {
         assert!(result.is_err(), "文件不存在应返回Error");
         let err = result.err().unwrap_or_else(|| panic!("expected Some"));
         assert!(
-            err.contains("无法打开文件"),
-            "Error信息应包含'无法打开文件'，实际: {}",
+            err.contains("cannot open file"),
+            "error should contain 'cannot open file', got: {}",
             err
         );
     }

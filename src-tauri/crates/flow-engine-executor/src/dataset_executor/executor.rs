@@ -371,7 +371,7 @@ impl DatasetExecutor {
                 .clone()
                 .acquire_owned()
                 .await
-                .map_err(|e| format!("获取信号量Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire semaphore: {}", e))?;
 
             let tx = tx.clone();
             let flow = Arc::clone(&flow);
@@ -795,7 +795,7 @@ mod tests {
             result
                 .err()
                 .unwrap_or_else(|| panic!("expected Err, got Ok"))
-                .contains("无法打开文件"),
+                .contains("cannot open file"),
             "Error信息应包含文件相关提示"
         );
     }

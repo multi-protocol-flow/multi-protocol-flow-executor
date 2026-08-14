@@ -30,9 +30,9 @@ impl DatasetSessionManager {
         let mut guard = self
             .active_session
             .lock()
-            .map_err(|e| format!("获取会话锁Failed: {}", e))?;
+            .map_err(|e| format!("failed to acquire session lock: {}", e))?;
         if guard.is_some() {
-            return Err("数据驱动执行已在运行中".to_string());
+            return Err("data-driven execution already running".to_string());
         }
         *guard = Some(session_id);
         Ok(())
@@ -47,9 +47,9 @@ impl DatasetSessionManager {
         let mut guard = self
             .active_session
             .lock()
-            .map_err(|e| format!("获取会话锁Failed: {}", e))?;
+            .map_err(|e| format!("failed to acquire session lock: {}", e))?;
         if guard.is_none() {
-            return Err("没有运行中的数据驱动执行会话".to_string());
+            return Err("no running data-driven execution session".to_string());
         }
         *guard = None;
         Ok(())
@@ -115,7 +115,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("已在运行"));
+            .contains("already running"));
     }
 
     #[test]
@@ -126,7 +126,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("没有运行中"));
+            .contains("no running"));
     }
 
     #[test]

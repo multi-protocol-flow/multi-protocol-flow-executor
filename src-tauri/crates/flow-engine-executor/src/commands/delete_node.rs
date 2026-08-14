@@ -16,8 +16,8 @@ use flow_engine_core::node_types;
 /// - `DeleteNodeCommandOutput`: 包含删除结果
 ///
 /// # 桩实现说明
-/// - 如果节点是开始节点，返回Error "不能删除开始节点"
-/// - 否则返回Error信息 "暂未实现持久化"
+/// - 如果节点是开始节点，返回Error "cannot delete start node"
+/// - 否则返回Error信息 "persistence not yet implemented"
 /// - `说明原因：delete_node` 需要先加载流程、删除节点和相关连接、再保存流程
 /// - 这将在任务 2.5（保存流程）中完整实现
 pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeCommandOutput {
@@ -30,7 +30,7 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
         None => {
             return DeleteNodeCommandOutput {
                 success: false,
-                error: Some(format!("节点 {} 不存在", input.node_id)),
+                error: Some(format!("node {} not found", input.node_id)),
             };
         }
     };
@@ -39,7 +39,7 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
     if node.node_type == node_types::ENTRY {
         return DeleteNodeCommandOutput {
             success: false,
-            error: Some("不能删除开始节点".to_string()),
+            error: Some("cannot delete start node".to_string()),
         };
     }
 
@@ -47,7 +47,7 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
     DeleteNodeCommandOutput {
         success: false,
         error: Some(
-            "暂未实现持久化：delete_node 需要先加载流程、删除节点和相关连接、再保存流程"
+            "persistence not yet implemented: delete_node needs to load flow, delete node and connections, then save flow"
                 .to_string(),
         ),
     }
@@ -114,7 +114,7 @@ mod tests {
         assert!(result
             .error
             .unwrap_or_else(|| panic!("expected Some"))
-            .contains("不存在"));
+            .contains("not found"));
     }
 
     #[test]
@@ -131,7 +131,7 @@ mod tests {
         assert!(!result.success);
         assert!(result.error.is_some());
         let error_msg = result.error.unwrap_or_else(|| panic!("expected Some"));
-        assert!(error_msg.contains("开始节点"));
+        assert!(error_msg.contains("start node"));
     }
 
     #[test]
@@ -149,6 +149,6 @@ mod tests {
         assert!(!result.success);
         assert!(result.error.is_some());
         let error_msg = result.error.unwrap_or_else(|| panic!("expected Some"));
-        assert!(error_msg.contains("暂未实现持久化"));
+        assert!(error_msg.contains("persistence not yet implemented"));
     }
 }

@@ -71,11 +71,11 @@ pub fn get_data_dir() -> Result<PathBuf, String> {
 
     let base_dir = if cfg!(target_os = "windows") {
         std::env::var("APPDATA")
-            .map_err(|e| format!("获取 APPDATA 环境变量Failed: {}", e))?
+            .map_err(|e| format!("failed to get APPDATA environment variable: {}", e))?
             .into()
     } else if cfg!(target_os = "macos") {
         std::env::var("HOME")
-            .map_err(|e| format!("获取 HOME 环境变量Failed: {}", e))
+            .map_err(|e| format!("failed to get HOME environment variable: {}", e))
             .map(|h| PathBuf::from(h).join("Library").join("Application Support"))?
     } else {
         // Linux 和其他类 Unix 系统
@@ -83,7 +83,7 @@ pub fn get_data_dir() -> Result<PathBuf, String> {
             .map(PathBuf::from)
             .or_else(|_| {
                 std::env::var("HOME")
-                    .map_err(|e| format!("获取 HOME 环境变量Failed: {}", e))
+                    .map_err(|e| format!("failed to get HOME environment variable: {}", e))
                     .map(|h| PathBuf::from(h).join(".local").join("share"))
             })?
     };
@@ -139,10 +139,10 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
     if let Some(parent) = file_path.parent() {
         if !parent
             .try_exists()
-            .map_err(|e| format!("检查父目录Failed: {}", e))?
+            .map_err(|e| format!("failed to check parent directory: {}", e))?
         {
             fs::create_dir_all(parent)
-                .map_err(|e| format!("创建父目录 {:?} Failed: {}", parent, e))?;
+                .map_err(|e| format!("failed to create parent directory {:?}: {}", parent, e))?;
         }
     }
 
@@ -153,14 +153,14 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
         _meta: None,
     };
     let json_string = serde_json::to_string_pretty(&flow_file)
-        .map_err(|e| format!("序列化 Flow Failed: {}", e))?;
+        .map_err(|e| format!("failed to serialize flow: {}", e))?;
 
     // 创建并写入文件
     let mut file =
-        File::create(&file_path).map_err(|e| format!("创建文件 {:?} Failed: {}", file_path, e))?;
+        File::create(&file_path).map_err(|e| format!("failed to create file {:?}: {}", file_path, e))?;
 
     file.write_all(json_string.as_bytes())
-        .map_err(|e| format!("写入文件 {:?} Failed: {}", file_path, e))?;
+        .map_err(|e| format!("failed to write file {:?}: {}", file_path, e))?;
 
     Ok(())
 }
@@ -211,8 +211,8 @@ fn collect_mpf_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String>
         return Ok(());
     }
 
-    for entry in fs::read_dir(dir).map_err(|e| format!("读取目录Failed: {}", e))? {
-        let entry = entry.map_err(|e| format!("读取目录项Failed: {}", e))?;
+    for entry in fs::read_dir(dir).map_err(|e| format!("failed to read directory: {}", e))? {
+        let entry = entry.map_err(|e| format!("failed to read directory entry: {}", e))?;
         let path = entry.path();
         if path.is_dir() {
             collect_mpf_files(&path, files)?;
@@ -302,7 +302,7 @@ pub fn save_flow_file_with_meta(
         if is_old_path
             || !candidate_path
                 .try_exists()
-                .map_err(|e| format!("检查文件Failed: {}", e))?
+                .map_err(|e| format!("failed to check file: {}", e))?
         {
             break;
         }
@@ -314,15 +314,15 @@ pub fn save_flow_file_with_meta(
 
     // 原子写入：先写临时文件，再重命名
     let mut temp_file =
-        NamedTempFile::new_in(flows_dir).map_err(|e| format!("创建临时文件Failed: {}", e))?;
+        NamedTempFile::new_in(flows_dir).map_err(|e| format!("failed to create temporary file: {}", e))?;
 
     temp_file
         .write_all(json_string.as_bytes())
-        .map_err(|e| format!("写入临时文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to write temporary file: {}", e))?;
 
     temp_file
         .persist(&target_path)
-        .map_err(|e| format!("保存流程文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to save flow file: {}", e))?;
 
     // 如果文件名/位置变更，删除旧文件
     if let Some(ref old_path) = existing_path {
@@ -421,7 +421,7 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
         let flow_meta: FlowFileMeta = match serde_json::from_str(&content) {
             Ok(m) => m,
             Err(e) => {
-                log::warn!("跳过损坏的流程文件: {} - {}", path.display(), e);
+                log::warn!("skipping corrupted flow file: {} - {}", path.display(), e);
                 continue;
             }
         };
@@ -565,7 +565,7 @@ pub fn get_reports_dir() -> Result<PathBuf, String> {
 /// - `reports_dir`: 存储目录路径（由调用方决定）
 pub fn save_report(report: &FlowExecutionReport, reports_dir: &Path) -> Result<(), String> {
     // 确保目录存在
-    fs::create_dir_all(reports_dir).map_err(|e| format!("创建报告目录Failed: {}", e))?;
+    fs::create_dir_all(reports_dir).map_err(|e| format!("failed to create report directory: {}", e))?;
 
     // 根据执行模式决定文件名前缀
     let filename = match report.execution_mode {
@@ -578,21 +578,21 @@ pub fn save_report(report: &FlowExecutionReport, reports_dir: &Path) -> Result<(
 
     // 序列化为 JSON
     let json_string =
-        serde_json::to_string_pretty(report).map_err(|e| format!("序列化报告Failed: {}", e))?;
+        serde_json::to_string_pretty(report).map_err(|e| format!("failed to serialize report: {}", e))?;
 
     // 使用原子写入：先写临时文件，再重命名
     let mut temp_file =
-        NamedTempFile::new_in(reports_dir).map_err(|e| format!("创建临时文件Failed: {}", e))?;
+        NamedTempFile::new_in(reports_dir).map_err(|e| format!("failed to create temporary file: {}", e))?;
 
     // 写入内容到临时文件
     temp_file
         .write_all(json_string.as_bytes())
-        .map_err(|e| format!("写入临时文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to write temporary file: {}", e))?;
 
     // 原子重命名到最终路径
     temp_file
         .persist(&file_path)
-        .map_err(|e| format!("保存报告文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to save report file: {}", e))?;
 
     Ok(())
 }
@@ -610,16 +610,16 @@ pub fn load_report(uuid: &str, reports_dir: &Path) -> Result<FlowExecutionReport
     // 确定使用哪个文件路径
     let file_path = if normal_path
         .try_exists()
-        .map_err(|e| format!("检查报告文件Failed: {}", e))?
+        .map_err(|e| format!("failed to check report file: {}", e))?
     {
         normal_path
     } else if debug_path
         .try_exists()
-        .map_err(|e| format!("检查报告文件Failed: {}", e))?
+        .map_err(|e| format!("failed to check report file: {}", e))?
     {
         debug_path
     } else {
-        return Err(format!("报告文件不存在: {}", uuid));
+        return Err(format!("report file not found: {}", uuid));
     };
 
     // 读取文件内容
@@ -628,11 +628,11 @@ pub fn load_report(uuid: &str, reports_dir: &Path) -> Result<FlowExecutionReport
 
     let mut content = String::new();
     file.read_to_string(&mut content)
-        .map_err(|e| format!("读取报告文件 {:?} Failed: {}", file_path, e))?;
+        .map_err(|e| format!("failed to read report file {:?}: {}", file_path, e))?;
 
     // 反序列化
     let report: FlowExecutionReport =
-        serde_json::from_str(&content).map_err(|e| format!("解析报告文件Failed: {}", e))?;
+        serde_json::from_str(&content).map_err(|e| format!("failed to parse report file: {}", e))?;
 
     Ok(report)
 }
@@ -664,7 +664,7 @@ pub fn list_reports(reports_dir: &Path) -> Result<Vec<ReportMetadata>, String> {
     // 确保目录存在
     if !reports_dir
         .try_exists()
-        .map_err(|e| format!("检查报告目录Failed: {}", e))?
+        .map_err(|e| format!("failed to check report directory: {}", e))?
     {
         return Ok(Vec::new());
     }
@@ -672,9 +672,9 @@ pub fn list_reports(reports_dir: &Path) -> Result<Vec<ReportMetadata>, String> {
     let mut reports = Vec::new();
 
     // 读取目录中的所有 JSON 文件
-    for entry in fs::read_dir(reports_dir).map_err(|e| format!("读取报告目录Failed: {}", e))?
+    for entry in fs::read_dir(reports_dir).map_err(|e| format!("failed to read report directory: {}", e))?
     {
-        let entry = entry.map_err(|e| format!("读取目录项Failed: {}", e))?;
+        let entry = entry.map_err(|e| format!("failed to read directory entry: {}", e))?;
         let path = entry.path();
 
         // 跳过非 JSON 文件（如元数据文件）
@@ -725,13 +725,13 @@ pub fn list_reports(reports_dir: &Path) -> Result<Vec<ReportMetadata>, String> {
 /// 对于 50 个平均 200KB 的报告文件，完整解析需要分配 ~10MB+ 的 Rust 结构体，
 /// 而轻量解析仅分配 ~50KB，**内存分配减少 200 倍**，GC/释放压力也随之大幅降低。
 fn read_report_entry(path: &Path) -> Result<ReportListEntry, String> {
-    let mut file = File::open(path).map_err(|e| format!("打开报告文件Failed: {}", e))?;
+    let mut file = File::open(path).map_err(|e| format!("failed to open report file: {}", e))?;
     let mut content = String::new();
     file.read_to_string(&mut content)
-        .map_err(|e| format!("读取报告文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to read report file: {}", e))?;
 
     serde_json::from_str::<ReportListEntry>(&content)
-        .map_err(|e| format!("解析报告元数据Failed: {}", e))
+        .map_err(|e| format!("failed to parse report metadata: {}", e))
 }
 
 /// 删除报告
@@ -747,21 +747,21 @@ pub fn delete_report(uuid: &str, reports_dir: &Path) -> Result<(), String> {
     // 确定使用哪个文件路径
     let file_path = if normal_path
         .try_exists()
-        .map_err(|e| format!("检查报告文件Failed: {}", e))?
+        .map_err(|e| format!("failed to check report file: {}", e))?
     {
         normal_path
     } else if debug_path
         .try_exists()
-        .map_err(|e| format!("检查报告文件Failed: {}", e))?
+        .map_err(|e| format!("failed to check report file: {}", e))?
     {
         debug_path
     } else {
-        return Err(format!("报告文件不存在: {}", uuid));
+        return Err(format!("report file not found: {}", uuid));
     };
 
     // 删除文件
     fs::remove_file(&file_path)
-        .map_err(|e| format!("删除报告文件 {:?} Failed: {}", file_path, e))?;
+        .map_err(|e| format!("failed to delete report file {:?}: {}", file_path, e))?;
 
     Ok(())
 }
@@ -803,7 +803,7 @@ pub fn save_stress_report(
     reports_dir: &Path,
 ) -> Result<PathBuf, String> {
     // 确保目录存在
-    fs::create_dir_all(reports_dir).map_err(|e| format!("创建压测报告目录Failed: {}", e))?;
+    fs::create_dir_all(reports_dir).map_err(|e| format!("failed to create stress test report directory: {}", e))?;
 
     // 生成时间戳：YYYYMMDD_HHMMSS
     let timestamp = format_timestamp(report.start_time);
@@ -819,21 +819,21 @@ pub fn save_stress_report(
 
     // 序列化为 JSON
     let json_string =
-        serde_json::to_string_pretty(report).map_err(|e| format!("序列化压测报告Failed: {}", e))?;
+        serde_json::to_string_pretty(report).map_err(|e| format!("failed to serialize stress test report: {}", e))?;
 
     // 使用原子写入：先写临时文件，再重命名
     let mut temp_file =
-        NamedTempFile::new_in(reports_dir).map_err(|e| format!("创建临时文件Failed: {}", e))?;
+        NamedTempFile::new_in(reports_dir).map_err(|e| format!("failed to create temporary file: {}", e))?;
 
     // 写入内容到临时文件
     temp_file
         .write_all(json_string.as_bytes())
-        .map_err(|e| format!("写入临时文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to write temporary file: {}", e))?;
 
     // 原子重命名到最终路径
     temp_file
         .persist(&file_path)
-        .map_err(|e| format!("保存压测报告文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to save stress test report file: {}", e))?;
 
     Ok(file_path)
 }
@@ -850,22 +850,22 @@ pub fn load_stress_report(file_path: &Path) -> Result<StressTestReport, String> 
     // 检查文件是否存在
     if !file_path
         .try_exists()
-        .map_err(|e| format!("检查压测报告文件Failed: {}", e))?
+        .map_err(|e| format!("failed to check stress test report file: {}", e))?
     {
-        return Err(format!("压测报告文件不存在: {:?}", file_path));
+        return Err(format!("stress test report file not found: {:?}", file_path));
     }
 
     // 读取文件内容
     let mut file = File::open(file_path)
-        .map_err(|e| format!("打开压测报告文件 {:?} Failed: {}", file_path, e))?;
+        .map_err(|e| format!("failed to open stress test report file {:?}: {}", file_path, e))?;
 
     let mut content = String::new();
     file.read_to_string(&mut content)
-        .map_err(|e| format!("读取压测报告文件 {:?} Failed: {}", file_path, e))?;
+        .map_err(|e| format!("failed to read stress test report file {:?}: {}", file_path, e))?;
 
     // 反序列化
     let report: StressTestReport =
-        serde_json::from_str(&content).map_err(|e| format!("解析压测报告文件Failed: {}", e))?;
+        serde_json::from_str(&content).map_err(|e| format!("failed to parse stress test report file: {}", e))?;
 
     Ok(report)
 }
@@ -881,12 +881,12 @@ pub fn load_stress_report(file_path: &Path) -> Result<StressTestReport, String> 
 pub fn delete_stress_report(file_path: &Path) -> Result<(), String> {
     if !file_path
         .try_exists()
-        .map_err(|e| format!("检查压测报告文件Failed: {}", e))?
+        .map_err(|e| format!("failed to check stress test report file: {}", e))?
     {
-        return Err(format!("压测报告文件不存在: {:?}", file_path));
+        return Err(format!("stress test report file not found: {:?}", file_path));
     }
     fs::remove_file(file_path)
-        .map_err(|e| format!("删除压测报告文件 {:?} Failed: {}", file_path, e))
+        .map_err(|e| format!("failed to delete stress test report file {:?}: {}", file_path, e))
 }
 
 /// 列出压测报告摘要
@@ -901,7 +901,7 @@ pub fn list_stress_reports(reports_dir: &Path) -> Result<Vec<StressTestReportSum
     // 确保目录存在
     if !reports_dir
         .try_exists()
-        .map_err(|e| format!("检查压测报告目录Failed: {}", e))?
+        .map_err(|e| format!("failed to check stress test report directory: {}", e))?
     {
         return Ok(Vec::new());
     }
@@ -909,9 +909,9 @@ pub fn list_stress_reports(reports_dir: &Path) -> Result<Vec<StressTestReportSum
     let mut reports = Vec::new();
 
     // 读取目录中的所有 performance_*.json 文件
-    for entry in fs::read_dir(reports_dir).map_err(|e| format!("读取压测报告目录Failed: {}", e))?
+    for entry in fs::read_dir(reports_dir).map_err(|e| format!("failed to read stress test report directory: {}", e))?
     {
-        let entry = entry.map_err(|e| format!("读取目录项Failed: {}", e))?;
+        let entry = entry.map_err(|e| format!("failed to read directory entry: {}", e))?;
         let path = entry.path();
 
         // 获取文件名
@@ -1015,8 +1015,8 @@ fn collect_folders(
         return Ok(());
     }
 
-    for entry in fs::read_dir(base_dir).map_err(|e| format!("读取目录Failed: {}", e))? {
-        let entry = entry.map_err(|e| format!("读取目录项Failed: {}", e))?;
+    for entry in fs::read_dir(base_dir).map_err(|e| format!("failed to read directory: {}", e))? {
+        let entry = entry.map_err(|e| format!("failed to read directory entry: {}", e))?;
         let path = entry.path();
         if path.is_dir() {
             let rel_path = path
@@ -1048,8 +1048,8 @@ fn has_mpf_files_recursive(dir: &Path) -> Result<bool, String> {
         return Ok(false);
     }
 
-    for entry in fs::read_dir(dir).map_err(|e| format!("读取目录Failed: {}", e))? {
-        let entry = entry.map_err(|e| format!("读取目录项Failed: {}", e))?;
+    for entry in fs::read_dir(dir).map_err(|e| format!("failed to read directory: {}", e))? {
+        let entry = entry.map_err(|e| format!("failed to read directory entry: {}", e))?;
         let path = entry.path();
         if path.is_dir() {
             if has_mpf_files_recursive(&path)? {
@@ -1092,11 +1092,11 @@ pub fn create_folder(flows_dir: &Path, folder_path: &str) -> Result<FolderInfo, 
         .try_exists()
         .map_err(|e| format!("Failed to check directory: {}", e))?
     {
-        return Err(format!("文件夹已存在: {}", clean_path));
+        return Err(format!("folder already exists: {}", clean_path));
     }
 
     // 创建目录（包括所有必要的父目录）
-    fs::create_dir_all(&full_path).map_err(|e| format!("创建文件夹Failed: {}", e))?;
+    fs::create_dir_all(&full_path).map_err(|e| format!("failed to create folder: {}", e))?;
 
     let name = clean_parts
         .last()
@@ -1123,22 +1123,22 @@ pub fn delete_folder(flows_dir: &Path, folder_path: &str) -> Result<(), String> 
     // 安全检查：确保路径在 flows_dir 内
     let canonical_flows_dir = flows_dir
         .canonicalize()
-        .map_err(|e| format!("规范化流程目录Failed: {}", e))?;
+        .map_err(|e| format!("failed to canonicalize flows directory: {}", e))?;
     let canonical_full_path = full_path
         .canonicalize()
-        .map_err(|_| format!("文件夹不存在: {}", folder_path))?;
+        .map_err(|_| format!("folder does not exist: {}", folder_path))?;
 
     if !canonical_full_path.starts_with(&canonical_flows_dir) {
-        return Err("不允许删除流程目录之外的文件夹".to_string());
+        return Err("cannot delete folder outside the flows directory".to_string());
     }
 
     // 检查是否为空（无 .mpf 文件且无子目录）
     if has_mpf_files_recursive(&full_path)? {
-        return Err("文件夹不为空，无法删除（请先移走其中的流程）".to_string());
+        return Err("folder is not empty, cannot delete (move flows out first)".to_string());
     }
 
     // 删除空目录树
-    fs::remove_dir_all(&full_path).map_err(|e| format!("删除文件夹Failed: {}", e))?;
+    fs::remove_dir_all(&full_path).map_err(|e| format!("failed to delete folder: {}", e))?;
 
     Ok(())
 }
@@ -1167,24 +1167,24 @@ pub fn rename_folder(
         .try_exists()
         .map_err(|e| format!("Failed to check directory: {}", e))?
     {
-        return Err(format!("文件夹不存在: {}", folder_path));
+        return Err(format!("folder does not exist: {}", folder_path));
     }
 
     // 计算新路径
     let parent = full_path
         .parent()
-        .ok_or_else(|| "无法获取父目录".to_string())?;
+        .ok_or_else(|| "cannot get parent directory".to_string())?;
     let new_full_path = parent.join(&clean_name);
 
     if new_full_path
         .try_exists()
         .map_err(|e| format!("Failed to check directory: {}", e))?
     {
-        return Err(format!("文件夹名称已存在: {}", clean_name));
+        return Err(format!("folder name already exists: {}", clean_name));
     }
 
     // 重命名
-    fs::rename(&full_path, &new_full_path).map_err(|e| format!("重命名文件夹Failed: {}", e))?;
+    fs::rename(&full_path, &new_full_path).map_err(|e| format!("failed to rename folder: {}", e))?;
 
     // 计算新的相对路径
     let new_rel = parent
@@ -1244,7 +1244,7 @@ pub fn move_flow_to_folder(
     // 确保目标目录存在
     if !target_dir
         .try_exists()
-        .map_err(|e| format!("检查目标目录Failed: {}", e))?
+        .map_err(|e| format!("failed to check target directory: {}", e))?
     {
         fs::create_dir_all(&target_dir)
             .map_err(|e| format!("Failed to create target directory: {}", e))?;
@@ -1252,7 +1252,7 @@ pub fn move_flow_to_folder(
 
     let file_name = source_path
         .file_name()
-        .ok_or_else(|| "无法获取文件名".to_string())?;
+        .ok_or_else(|| "cannot get file name".to_string())?;
     let target_path = target_dir.join(file_name);
 
     // 检查是否已在目标位置
@@ -1263,16 +1263,16 @@ pub fn move_flow_to_folder(
     // 检查目标位置是否有同名文件
     if target_path
         .try_exists()
-        .map_err(|e| format!("检查目标文件Failed: {}", e))?
+        .map_err(|e| format!("failed to check target file: {}", e))?
     {
         return Err(format!(
-            "目标文件夹中已存在同名文件: {}",
+            "a file with the same name already exists in the target folder: {}",
             file_name.to_string_lossy()
         ));
     }
 
     // 移动文件
-    fs::rename(&source_path, &target_path).map_err(|e| format!("移动流程文件Failed: {}", e))?;
+    fs::rename(&source_path, &target_path).map_err(|e| format!("failed to move flow file: {}", e))?;
 
     Ok(())
 }
@@ -1296,21 +1296,21 @@ pub fn move_folder(
     // 验证源文件夹存在
     if !source_full
         .try_exists()
-        .map_err(|e| format!("检查源目录Failed: {}", e))?
+        .map_err(|e| format!("failed to check source directory: {}", e))?
     {
-        return Err(format!("源文件夹不存在: {}", source_folder_path));
+        return Err(format!("source folder does not exist: {}", source_folder_path));
     }
 
     // 安全检查：规范化路径，防止路径遍历
     let canonical_flows_dir = flows_dir
         .canonicalize()
-        .map_err(|e| format!("规范化流程目录Failed: {}", e))?;
+        .map_err(|e| format!("failed to canonicalize flows directory: {}", e))?;
     let canonical_source = source_full
         .canonicalize()
-        .map_err(|_| format!("源文件夹不存在: {}", source_folder_path))?;
+        .map_err(|_| format!("source folder does not exist: {}", source_folder_path))?;
 
     if !canonical_source.starts_with(&canonical_flows_dir) {
-        return Err("不允许操作流程目录之外的文件夹".to_string());
+        return Err("cannot operate on folders outside the flows directory".to_string());
     }
 
     // 防止移动到自身或自身的子目录
@@ -1318,22 +1318,22 @@ pub fn move_folder(
         let target_full = flows_dir.join(target_folder_path);
         let canonical_target = target_full
             .canonicalize()
-            .map_err(|_| format!("目标文件夹不存在: {}", target_folder_path))?;
+            .map_err(|_| format!("target folder does not exist: {}", target_folder_path))?;
 
         if canonical_source == canonical_target {
-            return Err("不能将文件夹移动到自身".to_string());
+            return Err("cannot move a folder into itself".to_string());
         }
 
         // 检查目标是否是源的子目录
         if canonical_target.starts_with(&canonical_source) {
-            return Err("不能将文件夹移动到自身的子目录中".to_string());
+            return Err("cannot move a folder into its own subdirectory".to_string());
         }
     }
 
     // 计算目标路径
     let folder_name = source_full
         .file_name()
-        .ok_or_else(|| "无法获取文件夹名称".to_string())?;
+        .ok_or_else(|| "cannot get folder name".to_string())?;
 
     let target_dir = if target_folder_path.is_empty() {
         flows_dir.to_path_buf()
@@ -1342,9 +1342,9 @@ pub fn move_folder(
         // 验证目标文件夹存在
         if !target_parent
             .try_exists()
-            .map_err(|e| format!("检查目标目录Failed: {}", e))?
+            .map_err(|e| format!("failed to check target directory: {}", e))?
         {
-            return Err(format!("目标文件夹不存在: {}", target_folder_path));
+            return Err(format!("target folder does not exist: {}", target_folder_path));
         }
         target_parent
     };
@@ -1359,16 +1359,16 @@ pub fn move_folder(
     // 检查目标位置是否有同名文件夹
     if new_path
         .try_exists()
-        .map_err(|e| format!("检查目标路径Failed: {}", e))?
+        .map_err(|e| format!("failed to check target path: {}", e))?
     {
         return Err(format!(
-            "目标位置已存在同名文件夹: {}",
+            "a folder with the same name already exists at the target location: {}",
             folder_name.to_string_lossy()
         ));
     }
 
     // 移动文件夹
-    fs::rename(&source_full, &new_path).map_err(|e| format!("移动文件夹Failed: {}", e))?;
+    fs::rename(&source_full, &new_path).map_err(|e| format!("failed to move folder: {}", e))?;
 
     Ok(())
 }
@@ -1795,7 +1795,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("不存在"));
+            .contains("not found"));
     }
 
     /// 测试 `FlowFile` 序列化/反序列化往返

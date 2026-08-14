@@ -36,7 +36,7 @@ impl NodePlugin for EntryPlugin {
     fn ports(&self) -> Vec<PortDef> {
         vec![PortDef {
             id: "out".into(),
-            label: "输出".into(),
+            label: "Output".into(),
             position: "right".into(),
         }]
     }

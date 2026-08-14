@@ -28,7 +28,7 @@ impl NodeExecutor for VariableExtractorExecutor {
             NodeData::VariableExtractor(c) => c,
             _ => {
                 return Err(ErrorDetail::execution_error(
-                    "节点配置不是 VariableExtractorConfig".to_string(),
+                    "node configuration is not VariableExtractorConfig".to_string(),
                 ))
             }
         };
@@ -43,7 +43,7 @@ impl NodeExecutor for VariableExtractorExecutor {
                 .and_then(|r| r.output_data.clone())
                 .ok_or_else(|| {
                     ErrorDetail::execution_error(format!(
-                        "未找到节点 {} 的执行结果",
+                        "execution result not found for node {}",
                         source_node_id
                     ))
                 })?
@@ -52,7 +52,7 @@ impl NodeExecutor for VariableExtractorExecutor {
             context
                 .last_node_output
                 .clone()
-                .ok_or_else(|| ErrorDetail::execution_error("没有上游节点输出可提取".to_string()))?
+                .ok_or_else(|| ErrorDetail::execution_error("no upstream node output to extract".to_string()))?
         };
 
         // 3. 应用输出映射，将提取的值写入上下文变量
@@ -189,7 +189,7 @@ mod tests {
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(
-            err.message.contains("没有上游节点输出可提取"),
+            err.message.contains("no upstream node output to extract"),
             "Error信息应提示无上游输出: {}",
             err
         );
@@ -219,7 +219,7 @@ mod tests {
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(
-            err.message.contains("未找到节点 nonexistent 的执行结果"),
+            err.message.contains("execution result not found for node nonexistent"),
             "Error信息应提示节点未找到: {}",
             err
         );

@@ -17,7 +17,7 @@ impl StressTestConfig {
         // 验证并发用户数 >= 1
         if self.concurrent_users < 1 {
             return Err(format!(
-                "并发用户数必须大于等于 1，当前值: {}",
+                "concurrent users must be >= 1, current value: {}",
                 self.concurrent_users
             ));
         }
@@ -28,7 +28,7 @@ impl StressTestConfig {
         // 验证预热时长不超过总时长
         if self.ramp_up_seconds > self.duration_seconds {
             return Err(format!(
-                "预热时长({}秒)不能超过总时长({}秒)",
+                "ramp-up duration ({}s) cannot exceed total duration ({}s)",
                 self.ramp_up_seconds, self.duration_seconds
             ));
         }
@@ -86,8 +86,8 @@ mod tests {
         let error = result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"));
-        assert!(error.contains("并发用户数必须大于等于 1"));
-        assert!(error.contains("当前值: 0"));
+        assert!(error.contains("concurrent users must be >= 1"));
+        assert!(error.contains("current value: 0"));
     }
 
     #[test]
@@ -104,7 +104,7 @@ mod tests {
         let error = result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"));
-        assert!(error.contains("预热时长(120秒)不能超过总时长(60秒)"));
+        assert!(error.contains("ramp-up duration (120s) cannot exceed total duration (60s)"));
     }
 
     #[test]
@@ -161,7 +161,7 @@ mod tests {
         let error = result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"));
-        assert!(error.contains("预热时长(10秒)不能超过总时长(0秒)"));
+        assert!(error.contains("ramp-up duration (10s) cannot exceed total duration (0s)"));
     }
 
     #[test]

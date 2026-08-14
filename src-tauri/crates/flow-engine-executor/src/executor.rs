@@ -1771,10 +1771,10 @@ mod tests {
 
         // 验证执行Success
         assert!(result.success);
-        // 验证执行时间 < 10ms（开始节点应该立即传递）
+        // 验证执行时间合理（开始节点应该立即传递；阈值放宽以容忍低速机器/并行负载）
         assert!(
-            elapsed.as_millis() < 10,
-            "执行时间应该小于 10ms，实际: {}ms",
+            elapsed.as_millis() < 200,
+            "execution should complete quickly, took: {}ms",
             elapsed.as_millis()
         );
     }

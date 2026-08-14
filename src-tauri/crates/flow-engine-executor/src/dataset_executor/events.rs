@@ -213,40 +213,40 @@ pub fn save_report(
     let report_dir = app_data_dir
         .join("reports")
         .join(format!("dataset_{}", report.uuid));
-    std::fs::create_dir_all(&report_dir).map_err(|e| format!("创建报告目录Failed: {}", e))?;
+    std::fs::create_dir_all(&report_dir).map_err(|e| format!("failed to create report directory: {}", e))?;
 
     // 保存 summary.json（原子写入）
     let summary_path = report_dir.join("summary.json");
     let json =
-        serde_json::to_string_pretty(report).map_err(|e| format!("序列化报告Failed: {}", e))?;
+        serde_json::to_string_pretty(report).map_err(|e| format!("failed to serialize report: {}", e))?;
 
     let mut temp_file = tempfile::NamedTempFile::new_in(&report_dir)
-        .map_err(|e| format!("创建临时文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to create temporary file: {}", e))?;
     temp_file
         .write_all(json.as_bytes())
-        .map_err(|e| format!("写入临时文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to write temporary file: {}", e))?;
     temp_file
         .persist(&summary_path)
-        .map_err(|e| format!("保存报告文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to save report file: {}", e))?;
 
     // 保存行详情
     if !row_details.is_empty() {
         let rows_dir = report_dir.join("rows");
-        std::fs::create_dir_all(&rows_dir).map_err(|e| format!("创建行详情目录Failed: {}", e))?;
+        std::fs::create_dir_all(&rows_dir).map_err(|e| format!("failed to create row details directory: {}", e))?;
 
         for (row_index, flow_report) in row_details {
             let row_path = rows_dir.join(format!("row_{}.json", row_index));
             let row_json = serde_json::to_string_pretty(flow_report)
-                .map_err(|e| format!("序列化行报告Failed: {}", e))?;
+                .map_err(|e| format!("failed to serialize row report: {}", e))?;
 
             let mut row_temp = tempfile::NamedTempFile::new_in(&rows_dir)
-                .map_err(|e| format!("创建行临时文件Failed: {}", e))?;
+                .map_err(|e| format!("failed to create row temporary file: {}", e))?;
             row_temp
                 .write_all(row_json.as_bytes())
-                .map_err(|e| format!("写入行临时文件Failed: {}", e))?;
+                .map_err(|e| format!("failed to write row temporary file: {}", e))?;
             row_temp
                 .persist(&row_path)
-                .map_err(|e| format!("保存行报告Failed: {}", e))?;
+                .map_err(|e| format!("failed to save row report: {}", e))?;
         }
     }
 

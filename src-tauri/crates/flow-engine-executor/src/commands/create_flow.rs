@@ -23,7 +23,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
     let start_node = Node {
         uuid: format!("start-{}", flow_id),
         node_type: "entry".to_string(),
-        name: "开始".to_string(),
+        name: "Start".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::entry(),
         ports: None,
@@ -90,7 +90,7 @@ mod tests {
 
         let start_node = &output.flow.nodes[0];
         assert_eq!(start_node.node_type, "entry");
-        assert_eq!(start_node.name, "开始");
+        assert_eq!(start_node.name, "Start");
         assert_eq!(start_node.position.x, 0.0);
         assert_eq!(start_node.position.y, 0.0);
         assert!(start_node.ports.is_none());

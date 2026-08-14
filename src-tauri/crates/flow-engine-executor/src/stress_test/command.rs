@@ -658,7 +658,7 @@ mod tests {
         let error = result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"));
-        assert!(error.contains("并发用户数"));
+        assert!(error.contains("concurrent users"));
 
         assert!(!manager.is_running().await);
     }

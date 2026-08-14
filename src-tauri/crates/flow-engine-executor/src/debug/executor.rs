@@ -797,7 +797,7 @@ impl DebuggableFlowExecutor {
 
                         if let Some(next_uuid) = next_node_id {
                             log::info!(
-                                "[调试 {}] Node {} execution failed, on_error=Ignore, continuing to node {}",
+                                "[Debug {}] Node {} execution failed, on_error=Ignore, continuing to node {}",
                                 context.flow_uuid,
                                 node.name,
                                 next_uuid
@@ -1124,7 +1124,7 @@ impl DebuggableFlowExecutor {
         match self.registry.get(&type_id) {
             Some(plugin) => {
                 log::info!(
-                    "[调试 {}] Executing {} node: {} ({})",
+                    "[Debug {}] Executing {} node: {} ({})",
                     context.flow_uuid,
                     plugin.display_name(),
                     node.name,

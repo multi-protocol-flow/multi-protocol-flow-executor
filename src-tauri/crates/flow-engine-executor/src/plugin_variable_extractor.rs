@@ -38,12 +38,12 @@ impl NodePlugin for VariableExtractorPlugin {
         vec![
             PortDef {
                 id: "in".into(),
-                label: "输入".into(),
+                label: "Input".into(),
                 position: "left".into(),
             },
             PortDef {
                 id: "out".into(),
-                label: "输出".into(),
+                label: "Output".into(),
                 position: "right".into(),
             },
         ]
