@@ -24,9 +24,9 @@
 
 use std::io::{BufRead, BufReader, Write};
 
-use mpe_protocol::error::JsonRpcError;
-use mpe_protocol::notification::Notification;
-use mpe_protocol::request::Request;
+use mpe_plugin_sdk::protocol::error::JsonRpcError;
+use mpe_plugin_sdk::protocol::notification::Notification;
+use mpe_plugin_sdk::protocol::request::Request;
 
 /// Bytes written to stderr when `MPE_ECHO_MOCK_FLOOD_STDERR` is set.
 const STDERR_FLOOD_BYTES: usize = 128 * 1024;

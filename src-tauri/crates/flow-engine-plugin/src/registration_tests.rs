@@ -13,8 +13,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use flow_engine_core::plugin::{NodePlugin, PortDef};
 use flow_engine_core::registry::NodeRegistry;
-use mpe_protocol::describe::NodeDescription;
-use mpe_protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
+use mpe_plugin_sdk::protocol::describe::NodeDescription;
+use mpe_plugin_sdk::protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
 
 use crate::manager::{PluginManager, PluginRegistration};
 use crate::registration::{decide_registration, CollisionReason, CollisionReport};
@@ -313,7 +313,7 @@ fn decide_registration_registers_fresh_type_id() {
 fn pending_plugin_carries_frontend_to_registry() {
     let mut manager = PluginManager::new(PathBuf::from("/nonexistent"));
     let mut node = node_desc("acme:panel");
-    node.frontend = Some(mpe_protocol::describe::FrontendDescription {
+    node.frontend = Some(mpe_plugin_sdk::protocol::describe::FrontendDescription {
         kind: "iframe".to_string(),
         content: None,
         url: Some("mpe-plugin://acme.localhost/config-panel".to_string()),

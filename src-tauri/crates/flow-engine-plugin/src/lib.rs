@@ -5,7 +5,7 @@
 //! transport over stdio, and the `NodePlugin` wrapper (`SidecarPlugin`).
 //!
 //! L1-style crate: depends on `flow-engine-core` for host types and on
-//! `mpe-protocol` for the shared wire contract. Transport, lifecycle, and
+//! `mpe-plugin-sdk::protocol` for the shared wire contract. Transport, lifecycle, and
 //! manager logic land in M1+; this file declares the module skeleton only.
 
 /// Describe RPC handshake and P0 frontend normalization.
@@ -24,7 +24,7 @@ pub mod manager;
 pub mod manifest;
 /// Child process spawning hygiene (stderr drain, Job Object, CLOEXEC).
 pub mod process;
-/// JSON-RPC wire types shared with plugins (via `mpe-protocol`).
+/// JSON-RPC wire types shared with plugins (via `mpe-plugin-sdk`).
 pub mod protocol;
 /// Registration of describe-produced nodes into the host registry (collision
 /// policy, M2c).

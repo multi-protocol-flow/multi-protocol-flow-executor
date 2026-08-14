@@ -21,7 +21,7 @@ use flow_engine_plugin::describe::perform_describe;
 use flow_engine_plugin::error::PluginError;
 use flow_engine_plugin::manager::PluginManager;
 use flow_engine_plugin::transport::{ConnectionConfig, CorrelationFilter, PluginConnection};
-use mpe_protocol::notification::Notification;
+use mpe_plugin_sdk::protocol::notification::Notification;
 
 /// Config tuned for conformance (short timeout so failures surface fast).
 fn conformance_config() -> ConnectionConfig {

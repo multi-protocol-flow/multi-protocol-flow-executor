@@ -2,7 +2,7 @@
 //!
 //! [`perform_describe`] issues the `describe` RPC over a live
 //! [`PluginConnection`] and parses the response into a
-//! [`DescribeResult`](mpe_protocol::describe::DescribeResult). Every frontend
+//! [`DescribeResult`](mpe_plugin_sdk::protocol::describe::DescribeResult). Every frontend
 //! kind passes through to the host (PR-0); the host generates the iframe
 //! `url` (per-plugin origin, D5/F3) because only the host knows the
 //! platform-usable scheme. The function is pure with respect to the
@@ -10,14 +10,14 @@
 //! fakes; [`crate::manager`] runs it against real spawned processes.
 
 use flow_engine_core::plugin::FrontendMetadata;
-use mpe_protocol::describe::{DescribeResult, FrontendDescription, NodeDescription};
-use mpe_protocol::manifest::PluginManifest;
+use mpe_plugin_sdk::protocol::describe::{DescribeResult, FrontendDescription, NodeDescription};
+use mpe_plugin_sdk::protocol::manifest::PluginManifest;
 
 use crate::error::PluginError;
 use crate::transport::PluginConnection;
 
 /// Wire method name of the describe RPC (re-exported for host callers).
-pub use mpe_protocol::describe::DESCRIBE_METHOD;
+pub use mpe_plugin_sdk::protocol::describe::DESCRIBE_METHOD;
 
 /// Issues `describe` over `conn` and parses the plugin's response.
 ///
@@ -115,7 +115,7 @@ fn normalize_node(mut node: NodeDescription, plugin_name: &str) -> NodeDescripti
 /// plugin's frontend metadata.
 ///
 /// A free function rather than `From` because both types are defined outside
-/// this crate (orphan rule: `mpe_protocol` cannot depend on
+/// this crate (orphan rule: `mpe_plugin_sdk::protocol` cannot depend on
 /// `flow-engine-core`).
 pub fn frontend_metadata_from(frontend: &FrontendDescription) -> FrontendMetadata {
     FrontendMetadata {

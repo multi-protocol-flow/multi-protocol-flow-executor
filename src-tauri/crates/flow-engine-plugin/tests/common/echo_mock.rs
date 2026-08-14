@@ -12,7 +12,7 @@
 use std::collections::HashMap;
 
 use flow_engine_plugin::process::{spawn_plugin, PluginProcess};
-use mpe_protocol::manifest::PluginEntry;
+use mpe_plugin_sdk::protocol::manifest::PluginEntry;
 
 /// Env var that makes the echo mock flood its stderr before the loop
 /// (proves the host drains stderr so the 64 KB pipe never stalls).

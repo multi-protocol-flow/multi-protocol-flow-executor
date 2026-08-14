@@ -4,8 +4,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use mpe_protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
-use mpe_protocol::request::Request;
+use mpe_plugin_sdk::protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
+use mpe_plugin_sdk::protocol::request::Request;
 
 use super::*;
 use crate::framing::{FrameReader, FrameWriter};
@@ -331,7 +331,7 @@ fn env_from(
 fn host_language_matched_is_injected() {
     let env = env_from(&localized_manifest(), Some("zh-CN"));
     assert_eq!(
-        env.get(mpe_protocol::LOCALE_ENV).map(String::as_str),
+        env.get(mpe_plugin_sdk::protocol::LOCALE_ENV).map(String::as_str),
         Some("zh-CN")
     );
 }
@@ -341,7 +341,7 @@ fn host_language_matched_is_injected() {
 fn host_language_unmatched_falls_back_to_default() {
     let env = env_from(&localized_manifest(), Some("fr-FR"));
     assert_eq!(
-        env.get(mpe_protocol::LOCALE_ENV).map(String::as_str),
+        env.get(mpe_plugin_sdk::protocol::LOCALE_ENV).map(String::as_str),
         Some("en-US")
     );
 }
@@ -351,7 +351,7 @@ fn host_language_unmatched_falls_back_to_default() {
 fn no_host_language_uses_plugin_default() {
     let env = env_from(&localized_manifest(), None);
     assert_eq!(
-        env.get(mpe_protocol::LOCALE_ENV).map(String::as_str),
+        env.get(mpe_plugin_sdk::protocol::LOCALE_ENV).map(String::as_str),
         Some("en-US")
     );
 }
@@ -361,5 +361,5 @@ fn no_host_language_uses_plugin_default() {
 #[test]
 fn legacy_plugin_gets_no_injection() {
     let env = env_from(&test_manifest(), Some("zh-CN"));
-    assert!(!env.contains_key(mpe_protocol::LOCALE_ENV));
+    assert!(!env.contains_key(mpe_plugin_sdk::protocol::LOCALE_ENV));
 }

@@ -6,7 +6,7 @@
 //!   serializes full-frame `write_all` + `flush`, so whole frames are written
 //!   atomically and a frame is never truncated by cancellation.
 //! - **Reader task** (`reader`) owns the child's stdout. It parses the
-//!   `mpe_protocol` discriminated union; notifications are demuxed to
+//!   `mpe_plugin_sdk::protocol` discriminated union; notifications are demuxed to
 //!   registered handlers before any pending-request lookup, malformed lines
 //!   are skipped (kill after N consecutive), and error responses map to the
 //!   pending oneshot as a typed [`PluginError`](crate::error::PluginError).

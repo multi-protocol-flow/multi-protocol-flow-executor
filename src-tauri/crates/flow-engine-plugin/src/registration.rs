@@ -25,7 +25,7 @@ use flow_engine_core::error::{ErrorDetail, ErrorKind};
 use flow_engine_core::node::Node;
 use flow_engine_core::plugin::{FrontendMetadata, NodePlugin, PortDef};
 use flow_engine_core::registry::NodeRegistry;
-use mpe_protocol::describe::NodeDescription;
+use mpe_plugin_sdk::protocol::describe::NodeDescription;
 
 use crate::describe::frontend_metadata_from;
 use crate::error::PluginError;

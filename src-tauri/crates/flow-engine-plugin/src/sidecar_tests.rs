@@ -9,9 +9,9 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::error::{ErrorCode, ErrorKind};
 use flow_engine_core::node::{Node, NodePosition};
 use flow_engine_core::node_config::NodeData;
-use mpe_protocol::describe::{NodeDescription, PortDescription};
-use mpe_protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
-use mpe_protocol::request::Request;
+use mpe_plugin_sdk::protocol::describe::{NodeDescription, PortDescription};
+use mpe_plugin_sdk::protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
+use mpe_plugin_sdk::protocol::request::Request;
 
 use super::*;
 use crate::error::PluginError;
@@ -518,7 +518,7 @@ async fn sidecar_metadata_mirrors_description() {
 #[test]
 fn sidecar_frontend_mirrors_description() {
     let mut node = test_node_description();
-    node.frontend = Some(mpe_protocol::describe::FrontendDescription {
+    node.frontend = Some(mpe_plugin_sdk::protocol::describe::FrontendDescription {
         kind: "iframe".to_string(),
         content: None,
         url: Some("http://demo.localhost/config-panel".to_string()),

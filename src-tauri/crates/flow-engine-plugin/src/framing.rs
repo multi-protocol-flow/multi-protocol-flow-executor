@@ -1,17 +1,17 @@
 //! Line framing over child stdio.
 //!
-//! One JSON value per line, `LF`-delimited (see `mpe_protocol::LINE_DELIMITER`).
+//! One JSON value per line, `LF`-delimited (see `mpe_plugin_sdk::protocol::LINE_DELIMITER`).
 //! The reader tolerates a trailing `CR` (`CRLF`, as emitted by Python's
 //! `print()`), validates byte-exact UTF-8, tolerates a leading BOM on the
 //! first frame, and enforces the `2 MiB` line cap
-//! (`mpe_protocol::MAX_LINE_BYTES`) — it never buffers without bound.
+//! (`mpe_plugin_sdk::protocol::MAX_LINE_BYTES`) — it never buffers without bound.
 //! The writer emits whole frames atomically (full payload + delimiter in a
 //! single `write_all` + `flush`) and is only ever used by the single writer
 //! task, so a frame can never be interleaved with another.
 
 use std::io;
 
-use mpe_protocol::{LINE_DELIMITER, MAX_LINE_BYTES};
+use mpe_plugin_sdk::protocol::{LINE_DELIMITER, MAX_LINE_BYTES};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 /// Size of the chunk the reader pulls from the underlying stream at a time.
@@ -25,7 +25,7 @@ pub enum FrameError {
     /// Underlying stream I/O failed.
     #[error("frame io error: {0}")]
     Io(#[from] io::Error),
-    /// A line exceeded [`MAX_LINE_BYTES`](mpe_protocol::MAX_LINE_BYTES).
+    /// A line exceeded [`MAX_LINE_BYTES`](mpe_plugin_sdk::protocol::MAX_LINE_BYTES).
     #[error("line exceeds maximum length of {MAX_LINE_BYTES} bytes")]
     LineTooLong,
     /// A line is not byte-exact UTF-8.

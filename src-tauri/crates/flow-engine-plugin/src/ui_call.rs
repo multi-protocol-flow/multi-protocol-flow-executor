@@ -13,7 +13,7 @@
 //! `PluginConnection::from_io` in-memory fakes; [`PluginManager::ui_call`]
 //! adds the node-type → plugin resolution.
 
-use mpe_protocol::ui::{UiCallParams, UI_CALL_METHOD};
+use mpe_plugin_sdk::protocol::ui::{UiCallParams, UI_CALL_METHOD};
 use serde_json::Value;
 
 use crate::error::PluginError;
@@ -68,10 +68,10 @@ mod tests {
     use crate::framing::{FrameReader, FrameWriter};
     use crate::lifecycle::LifecycleConfig;
     use crate::manager::PluginRegistration;
-    use mpe_protocol::describe::{NodeDescription, PortDescription};
-    use mpe_protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
-    use mpe_protocol::request::Request;
-    use mpe_protocol::response::Response;
+    use mpe_plugin_sdk::protocol::describe::{NodeDescription, PortDescription};
+    use mpe_plugin_sdk::protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
+    use mpe_plugin_sdk::protocol::request::Request;
+    use mpe_plugin_sdk::protocol::response::Response;
 
     /// A minimal valid manifest for the fake "demo" plugin.
     fn test_manifest() -> PluginManifest {
@@ -155,7 +155,7 @@ mod tests {
         ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let response = Response::Error {
                 id,
-                error: mpe_protocol::error::JsonRpcError {
+                error: mpe_plugin_sdk::protocol::error::JsonRpcError {
                     code: -32601,
                     message: "unknown uiCall sub-method".to_string(),
                     data: None,
@@ -201,7 +201,7 @@ mod tests {
             .await
         });
         let request = fake.read_request().await?;
-        assert_eq!(request.method, mpe_protocol::ui::UI_CALL_METHOD);
+        assert_eq!(request.method, mpe_plugin_sdk::protocol::ui::UI_CALL_METHOD);
         let params: UiCallParams = serde_json::from_value(request.params)?;
         assert_eq!(params.method, "mcp.discover");
         assert_eq!(params.params["command"], "npx");
@@ -306,7 +306,7 @@ mod tests {
             .await
             .ok_or_else(|| "fake plugin never connected".to_string())?;
         let request = fake.read_request().await?;
-        assert_eq!(request.method, mpe_protocol::ui::UI_CALL_METHOD);
+        assert_eq!(request.method, mpe_plugin_sdk::protocol::ui::UI_CALL_METHOD);
         let params: UiCallParams = serde_json::from_value(request.params)?;
         assert_eq!(params.method, "mcp.discover");
         assert_eq!(params.params["url"], "u");

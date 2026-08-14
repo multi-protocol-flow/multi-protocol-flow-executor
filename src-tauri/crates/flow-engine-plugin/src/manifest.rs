@@ -1,12 +1,12 @@
 //! Plugin manifest (`plugin.json`) parsing and validation.
 //!
-//! Wraps `mpe-protocol::manifest::PluginManifest` with host-side validation
+//! Wraps `mpe_plugin_sdk::protocol::manifest::PluginManifest` with host-side validation
 //! rules: `name` / `version` / `entry` must be present (serde-enforced), the
 //! `entry.command` must be non-empty, and an optional `min_host_version` must
 //! parse as semver. Version gating itself lives in [`crate::semver`].
 //!
 //! The parse helpers live on an extension trait ([`ManifestParse`]) rather
-//! than inherent methods: `PluginManifest` is defined in `mpe-protocol`, and
+//! than inherent methods: `PluginManifest` is defined in `mpe-plugin-sdk::protocol`, and
 //! Rust forbids inherent impls on foreign types (E0116). The trait keeps the
 //! intended `PluginManifest::from_str(...)` / `PluginManifest::from_path(...)`
 //! call syntax with only a trait import.
@@ -14,7 +14,7 @@
 use std::fs;
 use std::path::Path;
 
-use mpe_protocol::manifest::PluginManifest;
+use mpe_plugin_sdk::protocol::manifest::PluginManifest;
 
 use crate::semver;
 

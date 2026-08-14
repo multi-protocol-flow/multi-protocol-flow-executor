@@ -12,8 +12,8 @@ use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use mpe_protocol::notification::Notification;
-use mpe_protocol::request::Request;
+use mpe_plugin_sdk::protocol::notification::Notification;
+use mpe_plugin_sdk::protocol::request::Request;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::sync::{mpsc, oneshot, watch};
@@ -66,7 +66,7 @@ pub enum ExitReason {
 ///
 /// A `None` field matches anything; an `Some` field matches only
 /// notifications whose `params` carry the same `execution_id` /
-/// `node_instance_id` (see `mpe_protocol::Notification::correlation`).
+/// `node_instance_id` (see `mpe_plugin_sdk::protocol::Notification::correlation`).
 #[derive(Debug, Clone, Default)]
 pub struct CorrelationFilter {
     /// Restrict to notifications from this execution.
@@ -640,8 +640,8 @@ mod tests {
     use super::*;
     use crate::framing::FrameReader;
     use crate::framing::FrameWriter;
-    use mpe_protocol::notification::Notification;
-    use mpe_protocol::request::Request;
+    use mpe_plugin_sdk::protocol::notification::Notification;
+    use mpe_plugin_sdk::protocol::request::Request;
 
     /// The plugin side of an in-memory stdio pair: reads host requests from
     /// `reader`, writes responses to `tx`.

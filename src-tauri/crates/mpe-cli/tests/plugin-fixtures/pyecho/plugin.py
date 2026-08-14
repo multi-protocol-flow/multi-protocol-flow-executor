@@ -35,7 +35,7 @@ import os
 import sys
 import threading
 
-# Line cap mirrored from the host framing (mpe_protocol::MAX_LINE_BYTES).
+# Line cap mirrored from the host framing (mpe_plugin_sdk::protocol::MAX_LINE_BYTES).
 MAX_LINE_BYTES = 2 * 1024 * 1024
 
 PLUGIN_NAME = "pyecho"

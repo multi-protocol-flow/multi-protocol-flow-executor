@@ -29,7 +29,7 @@
 
 'use strict';
 
-const MAX_LINE_BYTES = 2 * 1024 * 1024; // mirrors mpe_protocol::MAX_LINE_BYTES
+const MAX_LINE_BYTES = 2 * 1024 * 1024; // mirrors mpe_plugin_sdk::protocol::MAX_LINE_BYTES
 const PLUGIN_NAME = 'nodedemo';
 const PLUGIN_VERSION = '0.1.0';
 

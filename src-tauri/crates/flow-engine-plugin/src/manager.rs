@@ -22,8 +22,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use mpe_protocol::describe::{DescribeResult, NodeDescription};
-use mpe_protocol::manifest::PluginManifest;
+use mpe_plugin_sdk::protocol::describe::{DescribeResult, NodeDescription};
+use mpe_plugin_sdk::protocol::manifest::PluginManifest;
 
 use crate::describe::{normalize_nodes, perform_describe};
 use crate::discovery::{DiscoveredPlugin, PluginScan};
@@ -206,7 +206,7 @@ impl PluginManager {
                 continue;
             };
             if let Err(e) = conn
-                .send_notification(mpe_protocol::notification::FLOW_ENDED_METHOD, params.clone())
+                .send_notification(mpe_plugin_sdk::protocol::notification::FLOW_ENDED_METHOD, params.clone())
                 .await
             {
                 log::debug!("flowEnded notify failed for plugin {}: {e}", entry.name);

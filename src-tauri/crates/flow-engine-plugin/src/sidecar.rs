@@ -28,7 +28,7 @@ use flow_engine_core::executor::resolve_variables_in_json;
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::plugin::{FrontendMetadata, NodePlugin, PortDef, ValidationError};
-use mpe_protocol::describe::NodeDescription;
+use mpe_plugin_sdk::protocol::describe::NodeDescription;
 use serde_json::Value;
 
 use crate::describe::frontend_metadata_from;

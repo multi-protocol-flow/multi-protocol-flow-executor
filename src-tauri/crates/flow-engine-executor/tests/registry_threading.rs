@@ -21,9 +21,9 @@ use flow_engine_plugin::framing::{FrameReader, FrameWriter};
 use flow_engine_plugin::lifecycle::{Connector, LifecycleConfig};
 use flow_engine_plugin::manager::{PluginManager, PluginRegistration};
 use flow_engine_plugin::transport::{ConnectionConfig, PluginConnection};
-use mpe_protocol::describe::{NodeDescription, PortDescription};
-use mpe_protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
-use mpe_protocol::request::Request;
+use mpe_plugin_sdk::protocol::describe::{NodeDescription, PortDescription};
+use mpe_plugin_sdk::protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
+use mpe_plugin_sdk::protocol::request::Request;
 
 /// 最小合法 manifest（`entry.command` 不会被使用——连接器是进程内假实现）。
 fn test_manifest() -> PluginManifest {

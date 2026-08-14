@@ -16,8 +16,8 @@ use std::sync::Arc;
 
 use tokio::io::AsyncRead;
 
-use mpe_protocol::notification::Notification;
-use mpe_protocol::response::Response;
+use mpe_plugin_sdk::protocol::notification::Notification;
+use mpe_plugin_sdk::protocol::response::Response;
 
 use crate::error::PluginError;
 use crate::framing::{FrameError, FrameReader};
@@ -87,7 +87,7 @@ pub(crate) async fn reader_task(
 
 /// Parses one frame and routes it (response → pending map, notification →
 /// handlers). Batch arrays and mixed forms are rejected as malformed by
-/// construction of the `mpe_protocol` types.
+/// construction of the `mpe_plugin_sdk::protocol` types.
 fn dispatch_frame(frame: &[u8], shared: &ConnectionShared) -> Dispatch {
     let value: serde_json::Value = match serde_json::from_slice(frame) {
         Ok(value) => value,

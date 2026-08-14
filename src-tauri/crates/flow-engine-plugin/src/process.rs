@@ -18,7 +18,7 @@
 
 use std::collections::HashMap;
 
-use mpe_protocol::manifest::PluginEntry;
+use mpe_plugin_sdk::protocol::manifest::PluginEntry;
 use tokio::io::AsyncReadExt;
 use tokio::process::{Child, Command};
 

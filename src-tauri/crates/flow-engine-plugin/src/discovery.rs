@@ -12,7 +12,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use mpe_protocol::manifest::PluginManifest;
+use mpe_plugin_sdk::protocol::manifest::PluginManifest;
 
 use crate::manifest::{ManifestError, ManifestParse};
 use crate::semver;

@@ -332,7 +332,7 @@ mod tests {
         assert_eq!(deserialized.ports.len(), 2);
         assert_eq!(deserialized.ports[0].id, "true");
         assert_eq!(deserialized.ports[1].id, "false");
-        // `frontend.kind` 在 wire 上序列化为 `"type"`（与 mpe-protocol 对齐）
+        // `frontend.kind` 在 wire 上序列化为 `"type"`（与 mpe-plugin-sdk::protocol 对齐）
         assert!(json.contains("\"frontend\""));
         let frontend = deserialized
             .frontend

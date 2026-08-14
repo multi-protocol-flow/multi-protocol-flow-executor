@@ -24,7 +24,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use mpe_protocol::manifest::PluginManifest;
+use mpe_plugin_sdk::protocol::manifest::PluginManifest;
 
 use crate::error::PluginError;
 use crate::process;
@@ -121,7 +121,7 @@ fn inject_locale(
             .or_else(|| manifest.default_locale.clone())
     };
     if let Some(locale) = effective {
-        env.insert(mpe_protocol::LOCALE_ENV.to_string(), locale);
+        env.insert(mpe_plugin_sdk::protocol::LOCALE_ENV.to_string(), locale);
     }
 }
 

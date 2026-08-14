@@ -2,8 +2,8 @@
 
 use super::*;
 use crate::framing::{FrameReader, FrameWriter};
-use mpe_protocol::request::Request;
-use mpe_protocol::response::Response;
+use mpe_plugin_sdk::protocol::request::Request;
+use mpe_plugin_sdk::protocol::response::Response;
 
 /// Plugin side of an in-memory stdio pair (mirrors transport tests).
 struct FakePlugin {
@@ -39,7 +39,7 @@ impl FakePlugin {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let response = Response::Error {
             id,
-            error: mpe_protocol::error::JsonRpcError::internal_error(),
+            error: mpe_plugin_sdk::protocol::error::JsonRpcError::internal_error(),
         };
         let bytes = serde_json::to_vec(&response)?;
         let mut writer = FrameWriter::new(&mut self.tx);
@@ -253,13 +253,13 @@ async fn describe_handshake_accepts_sdk_array_shape(
         author: None,
         min_host_version: None,
         description: None,
-        entry: mpe_protocol::manifest::PluginEntry {
+        entry: mpe_plugin_sdk::protocol::manifest::PluginEntry {
             command: "demo".to_string(),
             args: Vec::new(),
         },
         env: std::collections::HashMap::new(),
         permissions: Vec::new(),
-        capabilities: mpe_protocol::manifest::PluginCapabilities::default(),
+        capabilities: mpe_plugin_sdk::protocol::manifest::PluginCapabilities::default(),
         locales: Vec::new(),
         default_locale: None,
     };

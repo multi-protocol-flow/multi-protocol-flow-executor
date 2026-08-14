@@ -138,13 +138,15 @@ async fn node_template_conformance() -> Result<(), Box<dyn std::error::Error + S
 ///
 /// The SDK answers `describe` with the array shape (no manifest echo), which
 /// the host reconciles via `perform_describe` + the on-disk fallback
-/// manifest. Requires `cargo build -p mpe-plugin-sdk --bin mpe_demo_plugin`.
+/// manifest. Requires `MPE_DEMO_PLUGIN_BIN` pointing at a built
+/// `mpe_demo_plugin` (build it in the SDK repo with
+/// `cargo build --bin mpe_demo_plugin`).
 #[tokio::test]
 async fn sdk_plugin_conformance() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let Some(bin) = template_harness::sdk_plugin_bin() else {
         eprintln!(
-            "SKIP sdk_plugin_conformance: mpe_demo_plugin not built \
-             (run `cargo build -p mpe-plugin-sdk --bin mpe_demo_plugin`)"
+            "SKIP sdk_plugin_conformance: mpe_demo_plugin not available \
+             (set MPE_DEMO_PLUGIN_BIN to a built mpe_demo_plugin)"
         );
         return Ok(());
     };

@@ -6,7 +6,7 @@
 
 use std::time::Duration;
 
-use mpe_protocol::error::JsonRpcError;
+use mpe_plugin_sdk::protocol::error::JsonRpcError;
 
 /// Host-side plugin error taxonomy.
 ///
