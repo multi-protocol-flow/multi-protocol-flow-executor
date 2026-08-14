@@ -109,6 +109,26 @@ describe('ReportStorage Mock', () => {
       expect(loaded.node_reports).toHaveLength(1);
       expect(loaded.node_reports[0].node_uuid).toBe('node-1');
     });
+
+    it('加载的报告包含 statistics 数据', async () => {
+      const report = createTestReport({
+        statistics: {
+          success_count: 5,
+          failed_count: 1,
+          avg_node_duration_ms: 200,
+          max_node_duration_ms: 500,
+          min_node_duration_ms: 50,
+          completion_rate: 0.85,
+          error_rate: 0.15,
+        },
+      });
+      await saveReport(report, testDir);
+
+      const loaded = await loadReport(report.uuid, testDir);
+
+      expect(loaded.statistics.success_count).toBe(5);
+      expect(loaded.statistics.failed_count).toBe(1);
+    });
   });
 
   describe('listReports', () => {
@@ -238,6 +258,31 @@ describe('ReportStorage Mock', () => {
       expect(getReportCount()).toBe(1);
       const loaded = await loadReport('report-2', testDir);
       expect(loaded.uuid).toBe('report-2');
+    });
+
+    it('删除后可从列表可见', async () => {
+      await saveReport(createTestReport({ uuid: 'report-1' }), testDir);
+      await saveReport(createTestReport({ uuid: 'report-2' }), testDir);
+
+      await deleteReport('report-1', testDir);
+
+      const reports = await listReports(testDir);
+      expect(reports).toHaveLength(1);
+      expect(reports[0].uuid).toBe('report-2');
+    });
+  });
+
+  describe('clearReports', () => {
+    it('清空所有报告', async () => {
+      await saveReport(createTestReport(), testDir);
+      await saveReport(createTestReport(), testDir);
+      expect(getReportCount()).toBe(2);
+
+      clearReports();
+
+      expect(getReportCount()).toBe(0);
+      const reports = await listReports(testDir);
+      expect(reports).toHaveLength(0);
     });
   });
 

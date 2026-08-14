@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { OnErrorSection } from './OnErrorSection';
+import { OnErrorSection } from '@/components/panels/shared/OnErrorSection';
 
 describe('OnErrorSection', () => {
   const mockOnChange = vi.fn();
