@@ -736,7 +736,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
-        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
+        let data = output_data.unwrap_or_else(|| panic!("expected output data"));
 
         // 验证顶层字段
         assert!(data.get("success").is_some());
@@ -759,7 +759,7 @@ mod tests {
         // 验证 timing 子结构
         let timing = data["timing"]
             .as_object()
-            .unwrap_or_else(|| panic!("timing 应为对象"));
+            .unwrap_or_else(|| panic!("expected timing object"));
         assert!(timing.contains_key("total_ms"));
     }
 
@@ -798,7 +798,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
-        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
+        let data = output_data.unwrap_or_else(|| panic!("expected output data"));
 
         // 验证 has_files 为 true
         assert_eq!(data["request"]["has_files"], true);
@@ -855,7 +855,7 @@ mod tests {
         // errors 应包含Error详情
         let errors = data["errors"]
             .as_array()
-            .unwrap_or_else(|| panic!("errors 应为数组"));
+            .unwrap_or_else(|| panic!("expected errors array"));
         assert!(!errors.is_empty());
         assert!(errors[0]["message"]
             .as_str()
@@ -877,16 +877,16 @@ mod tests {
 
         assert!(result.is_ok());
         let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
-        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
+        let data = output_data.unwrap_or_else(|| panic!("expected output data"));
 
         // 验证 timing 字段存在且有 total_ms
         let timing = data["timing"]
             .as_object()
-            .unwrap_or_else(|| panic!("timing 应为对象"));
+            .unwrap_or_else(|| panic!("expected timing object"));
         assert!(timing.contains_key("total_ms"));
         let total_ms = timing["total_ms"]
             .as_u64()
-            .unwrap_or_else(|| panic!("total_ms 应为数字"));
+            .unwrap_or_else(|| panic!("expected total_ms to be a number"));
         // timing 中有详细的子字段（来自 provider 的输出）
         assert!(timing.contains_key("dns_ms"));
         assert!(timing.contains_key("connect_ms"));

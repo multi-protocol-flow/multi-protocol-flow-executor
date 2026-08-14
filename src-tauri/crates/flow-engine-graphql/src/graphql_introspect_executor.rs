@@ -627,7 +627,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
-        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
+        let data = output_data.unwrap_or_else(|| panic!("expected output data"));
 
         // 验证顶层字段
         assert!(data.get("success").is_some());
@@ -640,14 +640,14 @@ mod tests {
         // 验证 schema 包含类型信息
         let schema = data["schema"]
             .as_object()
-            .unwrap_or_else(|| panic!("schema 应为对象"));
+            .unwrap_or_else(|| panic!("expected schema object"));
         assert!(schema.contains_key("queryType"));
         assert!(schema.contains_key("types"));
 
         // 验证 query_templates 包含模板列表
         let templates = data["query_templates"]
             .as_array()
-            .unwrap_or_else(|| panic!("query_templates 应为数组"));
+            .unwrap_or_else(|| panic!("expected query_templates array"));
         assert_eq!(templates.len(), 2);
         assert_eq!(templates[0]["type_name"], "User");
         assert_eq!(templates[0]["operation"], "query");
@@ -662,7 +662,7 @@ mod tests {
         // 验证 timing 子结构
         let timing = data["timing"]
             .as_object()
-            .unwrap_or_else(|| panic!("timing 应为对象"));
+            .unwrap_or_else(|| panic!("expected timing object"));
         assert!(timing.contains_key("total_ms"));
     }
 
@@ -707,7 +707,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
-        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
+        let data = output_data.unwrap_or_else(|| panic!("expected output data"));
 
         assert_eq!(data["success"], true);
         // query_templates 为 null

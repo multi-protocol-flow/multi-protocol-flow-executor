@@ -269,7 +269,7 @@ impl NodePlugin for GraphqlSubscribePlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "收到事件".into(),
+                label: "Event Received".into(),
                 position: "right".into(),
             },
             PortDef {
@@ -485,7 +485,7 @@ impl NodePlugin for GraphqlDisconnectPlugin {
     fn ports(&self) -> Vec<PortDef> {
         vec![PortDef {
             id: "out".into(),
-            label: "完成".into(),
+            label: "Done".into(),
             position: "right".into(),
         }]
     }
@@ -795,7 +795,7 @@ mod tests {
         });
         let report = plugin
             .build_report_input(&config)
-            .unwrap_or_else(|| panic!("报告应存在"));
+            .unwrap_or_else(|| panic!("expected report"));
         assert_eq!(report["query"], "{ users { id name } }");
     }
 
@@ -807,7 +807,7 @@ mod tests {
         });
         let report = plugin
             .build_report_input(&config)
-            .unwrap_or_else(|| panic!("报告应存在"));
+            .unwrap_or_else(|| panic!("expected report"));
         assert_eq!(
             report["subscription"],
             "subscription { messageAdded { id } }"
@@ -822,7 +822,7 @@ mod tests {
         });
         let report = plugin
             .build_report_input(&config)
-            .unwrap_or_else(|| panic!("报告应存在"));
+            .unwrap_or_else(|| panic!("expected report"));
         assert_eq!(report["endpoint"], "https://api.example.com/graphql");
     }
 
@@ -832,7 +832,7 @@ mod tests {
         let config = serde_json::json!({"connection_id": "conn-123"});
         let report = plugin
             .build_report_input(&config)
-            .unwrap_or_else(|| panic!("报告应存在"));
+            .unwrap_or_else(|| panic!("expected report"));
         assert_eq!(report["connection_id"], "conn-123");
     }
 

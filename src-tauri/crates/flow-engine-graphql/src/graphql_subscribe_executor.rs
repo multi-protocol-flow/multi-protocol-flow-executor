@@ -730,7 +730,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
-        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
+        let data = output_data.unwrap_or_else(|| panic!("expected output data"));
 
         // 验证顶层字段
         assert!(data.get("success").is_some());
@@ -744,7 +744,7 @@ mod tests {
         // 验证事件列表
         let events = data["events"]
             .as_array()
-            .unwrap_or_else(|| panic!("events 应为数组"));
+            .unwrap_or_else(|| panic!("expected events array"));
         assert_eq!(events.len(), 2);
         assert_eq!(events[0]["data"]["messageAdded"]["text"], "hello");
         assert_eq!(events[1]["data"]["messageAdded"]["text"], "world");
@@ -766,7 +766,7 @@ mod tests {
         // 验证 timing 子结构
         let timing = data["timing"]
             .as_object()
-            .unwrap_or_else(|| panic!("timing 应为对象"));
+            .unwrap_or_else(|| panic!("expected timing object"));
         assert!(timing.contains_key("subscribe_ms"));
         assert!(timing.contains_key("total_ms"));
     }

@@ -745,7 +745,7 @@ mod tests {
 
         assert!(result.is_ok());
         let (_, output_data) = result.unwrap_or_else(|e| panic!("{e}"));
-        let data = output_data.unwrap_or_else(|| panic!("应有输出数据"));
+        let data = output_data.unwrap_or_else(|| panic!("expected output data"));
 
         // 验证 report input 包含所有必要字段
         assert!(data.get("success").is_some());

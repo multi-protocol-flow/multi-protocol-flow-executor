@@ -134,7 +134,7 @@ impl Drop for GraphqlConnectionManager {
         // Drop 时尝试清理所有连接状态（非阻塞）
         if let Ok(mut statuses) = self.statuses.try_write() {
             for (id, _status) in statuses.drain() {
-                info!("GraphQL 连接 {} 已随 Manager 释放而清理", id);
+                info!("GraphQL connection {} cleaned up on manager drop", id);
             }
         }
         if let Ok(mut connections) = self.connections.try_write() {
@@ -159,7 +159,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
         config: &GraphqlConnectConfig,
     ) -> Result<GraphqlConnectOutput, String> {
         info!(
-            "GraphQL 开始连接: endpoint={}, id={}",
+            "GraphQL connecting: endpoint={}, id={}",
             config.endpoint, uuid
         );
 
@@ -170,7 +170,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                 let statuses = self.statuses.read().await;
                 if let Some(status) = statuses.get(uuid) {
                     if *status == GraphqlConnectionStatus::Connected {
-                        info!("GraphQL 复用已有连接: id={}", uuid);
+                        info!("GraphQL reusing existing connection: id={}", uuid);
                         return Ok(GraphqlConnectOutput {
                             success: true,
                             connection_id: uuid.to_string(),
@@ -214,7 +214,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                             .map(|e| e.message.as_str())
                             .collect::<Vec<_>>()
                             .join("; ");
-                        warn!("GraphQL 连接验证返回Error: {}", error_msg);
+                        warn!("GraphQL connection verification returned errors: {}", error_msg);
                         // 仍然算连接Success（可能是服务端不支持 __typename 查询）
                     }
                 }
@@ -237,7 +237,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                     statuses.insert(uuid.to_string(), GraphqlConnectionStatus::Connected);
                 }
 
-                info!("GraphQL 连接Success: id={}", uuid);
+                info!("GraphQL connection succeeded: id={}", uuid);
 
                 Ok(GraphqlConnectOutput {
                     success: true,
@@ -247,7 +247,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                 })
             }
             Err(e) => {
-                warn!("GraphQL 连接验证Failed: {}", e);
+                warn!("GraphQL connection verification failed: {}", e);
 
                 // 仍然存储连接（可能验证查询格式不兼容）
                 let connection = GraphqlConnection {
@@ -288,7 +288,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
             let conns = self.connections.read().await;
             let conn = conns
                 .get(uuid)
-                .ok_or_else(|| format!("GraphQL 连接 '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("GraphQL connection '{}' does not exist", uuid))?;
             (
                 conn.http_endpoint.clone(),
                 conn.headers.clone(),
@@ -409,7 +409,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
             let conns = self.connections.read().await;
             let conn = conns
                 .get(uuid)
-                .ok_or_else(|| format!("GraphQL 连接 '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("GraphQL connection '{}' does not exist", uuid))?;
             (
                 conn.ws_endpoint.clone(),
                 conn.headers.clone(),
@@ -418,7 +418,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
         }; // 读锁释放
 
         // 检查是否配置了 WebSocket 端点
-        let ws_url = ws_endpoint.ok_or_else(|| "GraphQL 连接未配置 WebSocket 端点".to_string())?;
+        let ws_url = ws_endpoint.ok_or_else(|| "GraphQL connection has no WebSocket endpoint configured".to_string())?;
 
         let start = std::time::Instant::now();
 
@@ -487,7 +487,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
             let conns = self.connections.read().await;
             let conn = conns
                 .get(uuid)
-                .ok_or_else(|| format!("GraphQL 连接 '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("GraphQL connection '{}' does not exist", uuid))?;
             (
                 conn.http_endpoint.clone(),
                 conn.headers.clone(),
@@ -633,7 +633,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
         _config: &GraphqlDisconnectConfig,
     ) -> Result<(), String> {
         if self.is_shared {
-            info!("共享模式下忽略 disconnect 请求: {}", uuid);
+            info!("ignoring disconnect request in shared mode: {}", uuid);
             return Ok(());
         }
 
@@ -643,12 +643,12 @@ impl GraphqlProvider for GraphqlConnectionManager {
             Some(_) => {
                 let mut statuses = self.statuses.write().await;
                 statuses.remove(uuid);
-                info!("GraphQL 断开连接: id={}", uuid);
+                info!("GraphQL disconnected: id={}", uuid);
                 Ok(())
             }
             None => {
-                warn!("GraphQL 断开connection failed: 连接 '{}' 不存在", uuid);
-                Err(format!("GraphQL 连接 '{}' 不存在", uuid))
+                warn!("GraphQL disconnect failed: connection '{}' does not exist", uuid);
+                Err(format!("GraphQL connection '{}' does not exist", uuid))
             }
         }
     }
@@ -841,7 +841,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("不存在"));
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -875,7 +875,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("不存在"));
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -887,7 +887,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("不存在"));
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -899,7 +899,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("不存在"));
+            .contains("does not exist"));
     }
 
     // ---- 状态显示测试 ----
@@ -1025,7 +1025,7 @@ mod tests {
         });
 
         let templates = GraphqlConnectionManager::generate_templates(&schema)
-            .unwrap_or_else(|| panic!("应该生成模板"));
+            .unwrap_or_else(|| panic!("expected templates to be generated"));
 
         // Query 模板（排除 __internal）
         assert_eq!(
@@ -1155,7 +1155,7 @@ mod tests {
         };
         let result = manager.connect("reuse-conn", &config).await;
         assert!(result.is_ok());
-        let output = result.unwrap_or_else(|e| panic!("连接应Success: {e}"));
+        let output = result.unwrap_or_else(|e| panic!("connection should succeed: {e}"));
         assert!(output.success);
     }
 }
