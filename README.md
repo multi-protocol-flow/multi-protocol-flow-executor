@@ -350,61 +350,66 @@ mpe --help
 
 ### 后端测试
 
+> **测试运行器：** 项目标准为 [cargo-nextest](https://nexte.st)（`cargo nextest run`）——进程级并行、输出捕获、失败重跑、按测试分组报告。nextest 不支持 doctest，文档测试用 `cargo test --doc` 补充。
+
 ```bash
 # 进入后端目录
 cd src-tauri
 
 # ── 全量测试 ─────────────────────────────────────────────────
-cargo test                        # 运行所有测试（单测 + 集成测试）
-cargo test -- --nocapture         # 显示 println 输出
-cargo test -- --test-threads=4    # 控制并行线程数
+cargo nextest run                  # 运行所有测试（单测 + 集成测试，进程级并行）
+cargo nextest run --nocapture      # 实时显示 println 输出（nextest 下隐含串行）
+cargo nextest run --test-threads 4 # 控制并行测试进程数（-j 别名）
+
+# ── 文档测试（nextest 不支持，用 cargo 补充） ────────────────
+cargo test --doc                   # 运行 doctest
 
 # ── 只跑单元测试（跳过集成测试） ──────────────────────────────
-cargo test --lib                  # 所有 crate 的单测
+cargo nextest run --lib            # 所有 crate 的单测
 
 # ── 单 crate 测试 ────────────────────────────────────────────
-cargo test -p flow-engine-core --lib        # flow-engine-core 单测
-cargo test -p flow-engine-executor          # executor 全部测试
-cargo test -p flow-engine-http              # HTTP 协议全部测试
-cargo test -p flow-engine-assertion         # 断言全部测试
-cargo test -p flow-engine-ws                # WebSocket 全部测试
-# db 节点测试在独立插件工程: cargo test --manifest-path plugins/db/Cargo.toml
-cargo test -p flow-engine-script            # 脚本全部测试
-cargo test -p flow-engine-grpc              # gRPC 全部测试
-cargo test -p flow-engine-mcp               # MCP 全部测试
-cargo test -p flow-engine-sse               # SSE 全部测试
-cargo test -p flow-engine-graphql           # GraphQL 全部测试
-cargo test -p flow-engine-tcp               # TCP/UDP 全部测试
-cargo test -p mpe-cli                       # CLI 全部测试
+cargo nextest run -p flow-engine-core --lib        # flow-engine-core 单测
+cargo nextest run -p flow-engine-executor          # executor 全部测试
+cargo nextest run -p flow-engine-http              # HTTP 协议全部测试
+cargo nextest run -p flow-engine-assertion         # 断言全部测试
+cargo nextest run -p flow-engine-ws                # WebSocket 全部测试
+# db/mcp 等插件在独立工程（仓库根 plugins/）:
+#   cargo nextest run --manifest-path ../plugins/db/Cargo.toml
+cargo nextest run -p flow-engine-script            # 脚本全部测试
+cargo nextest run -p flow-engine-grpc              # gRPC 全部测试
+cargo nextest run -p flow-engine-sse               # SSE 全部测试
+cargo nextest run -p flow-engine-graphql           # GraphQL 全部测试
+cargo nextest run -p flow-engine-tcp               # TCP/UDP 全部测试
+cargo nextest run -p mpe-cli                       # CLI 全部测试
 
 # ── 按测试名称过滤 ────────────────────────────────────────────
-cargo test cli_tests                # 仅 CLI 集成测试
-cargo test proptest                 # 仅属性测试
-cargo test variable                 # 变量相关测试
-cargo test report                   # 报告相关测试
-cargo test ws_debug                 # WebSocket 调试流测试
-cargo test http_executor            # HTTP 执行器测试
-cargo test assertion_executor       # 断言执行器测试
-cargo test dependency_test          # 依赖检测测试
-cargo test report_storage           # 报告存储测试
+cargo nextest run cli_tests                # 仅 CLI 集成测试
+cargo nextest run proptest                 # 仅属性测试
+cargo nextest run variable                 # 变量相关测试
+cargo nextest run report                   # 报告相关测试
+cargo nextest run ws_debug                 # WebSocket 调试流测试
+cargo nextest run http_executor            # HTTP 执行器测试
+cargo nextest run assertion_executor       # 断言执行器测试
+cargo nextest run dependency_test          # 依赖检测测试
+cargo nextest run report_storage           # 报告存储测试
 
 # ── 按模块路径过滤（单测模块级） ──────────────────────────────
-cargo test -p flow-engine-core --lib variable::tests::  # core 变量模块单测
-cargo test -p flow-engine-core --lib node::tests::      # core 节点模块单测
-cargo test -p flow-engine-core --lib context::tests::   # core 上下文模块单测
+cargo nextest run -p flow-engine-core --lib 'variable::tests::'  # core 变量模块单测
+cargo nextest run -p flow-engine-core --lib 'node::tests::'      # core 节点模块单测
+cargo nextest run -p flow-engine-core --lib 'context::tests::'   # core 上下文模块单测
 
 # ── 指定集成测试文件 ─────────────────────────────────────────
-cargo test --test integration                # 主集成测试
-cargo test --test cli_tests                  # CLI 集成测试
-cargo test --test dependency_test            # 依赖检测测试
-cargo test --test variable_tracking_test     # 变量追踪测试
-cargo test --test ws_debug_flow_test         # WS 调试流测试
-cargo test -p flow-engine-grpc --test grpc_integration  # gRPC 集成测试
+cargo nextest run --test integration                # 主集成测试
+cargo nextest run --test cli_tests                  # CLI 集成测试
+cargo nextest run --test dependency_test            # 依赖检测测试
+cargo nextest run --test variable_tracking_test     # 变量追踪测试
+cargo nextest run --test ws_debug_flow_test         # WS 调试流测试
+cargo nextest run -p flow-engine-grpc --test grpc_integration  # gRPC 集成测试
 
 # ── 其他组合 ──────────────────────────────────────────────────
-cargo test --lib -- --nocapture              # 所有单测 + 打印输出
-cargo test -p flow-engine-core               # core 全部测试（含集成）
-cargo test --workspace                       # workspace 所有包的全部测试
+cargo nextest run --lib --nocapture              # 所有单测 + 实时输出
+cargo nextest run -p flow-engine-core            # core 全部测试（含集成）
+cargo nextest run --workspace                    # workspace 所有包的全部测试
 
 # ── 外部服务集成测试（依赖 echo Docker 服务） ────────────────
 # 部分测试（HTTP、WebSocket、gRPC 等）依赖本地 echo Docker 服务，
@@ -413,10 +418,10 @@ cargo test --workspace                       # workspace 所有包的全部测�
 #
 #   cd echo && docker compose up -d    # 启动所有 echo 服务
 #   bash echo/scripts/verify.sh        # 验证全部服务就绪
-#   cargo test -- --include-ignored    # 运行所有测试（含 ignored）
-#   cargo test -p flow-engine-http -- --include-ignored  # 仅 HTTP
-#   cargo test -p flow-engine-ws -- --include-ignored    # 仅 WebSocket
-#   cargo test cli_tests -- --include-ignored             # 仅 CLI
+#   cargo nextest run --include-ignored    # 运行所有测试（含 ignored）
+#   cargo nextest run -p flow-engine-http --include-ignored  # 仅 HTTP
+#   cargo nextest run -p flow-engine-ws --include-ignored    # 仅 WebSocket
+#   cargo nextest run cli_tests --include-ignored             # 仅 CLI
 ```
 
 ### 前端测试
