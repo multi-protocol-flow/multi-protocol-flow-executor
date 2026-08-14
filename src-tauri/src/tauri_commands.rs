@@ -2519,8 +2519,8 @@ mod tests {
         // 验证流程有唯一 ID
         assert!(!output.flow.uuid.is_empty());
 
-        // 验证流程包含一个开始节点
-        assert_eq!(output.flow.nodes.len(), 1);
+        // 验证流程包含开始节点和结束节点
+        assert_eq!(output.flow.nodes.len(), 2);
 
         // 验证开始节点类型
         assert_eq!(output.flow.nodes[0].node_type, "entry");
@@ -2531,6 +2531,10 @@ mod tests {
         // 验证开始节点 ID 格式
         assert!(output.flow.nodes[0].uuid.starts_with("start-"));
         assert!(output.flow.nodes[0].uuid.contains(&output.flow.uuid));
+
+        // 验证结束节点
+        assert_eq!(output.flow.nodes[1].node_type, "end");
+        assert_eq!(output.flow.nodes[1].name, "End");
 
         // 验证连接列表为空
         assert_eq!(output.flow.connections.len(), 0);
@@ -2687,12 +2691,14 @@ mod tests {
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 验证执行Failed
+        // 验证执行Failed（校验先于执行，报缺少 Entry 节点）
         assert!(!result.success, "flow should fail (no start node)");
         assert!(result.error.is_some(), "should have error on failure");
+        let error = result.error.unwrap();
         assert!(
-            result.error.unwrap().contains("missing start node"),
-            "error should contain 'missing start node'"
+            error.contains("missing an Entry node"),
+            "error should contain 'missing an Entry node', got: {}",
+            error
         );
     }
 

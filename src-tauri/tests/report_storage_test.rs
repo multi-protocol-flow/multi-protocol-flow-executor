@@ -80,7 +80,7 @@ fn test_load_report_not_found() {
     let err = flow_engine::storage::load_report("non-existent-uuid", reports_dir)
         .expect_err("loading non-existent report should return error");
     assert!(
-        err.contains("报告文件不存在") || err.contains("not found"),
+        err.contains("does not exist") || err.contains("not found"),
         "unexpected error: {}",
         err
     );
@@ -140,7 +140,7 @@ fn test_delete_report_not_found() {
     let err = flow_engine::storage::delete_report("non-existent-uuid", reports_dir)
         .expect_err("deleting non-existent report should return error");
     assert!(
-        err.contains("报告文件不存在") || err.contains("not found"),
+        err.contains("does not exist") || err.contains("not found"),
         "unexpected error: {}",
         err
     );
