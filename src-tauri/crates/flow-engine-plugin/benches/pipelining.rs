@@ -6,8 +6,9 @@
 //!    `CARGO_BIN_EXE_echo_mock`), firing `echo` requests.
 //! 2. **Real Rust SDK plugin** (M5b): the compiled `mpe_demo_plugin` binary,
 //!    firing `execute` requests through the SDK's own pipelined dispatcher.
-//!    Skips with a log when the binary is not built (run
-//!    `cargo build -p mpe-plugin-sdk --bin mpe_demo_plugin` first).
+//!    Skips with a log when the binary is not available (build it in the SDK
+//!    repo with `cargo build --bin mpe_demo_plugin` and point
+//!    `MPE_DEMO_PLUGIN_BIN` at it).
 //!
 //! Both fire N pipelined requests **without waiting between them**, then
 //! collect all responses — measuring the host transport's pipelined RPC/s
@@ -23,7 +24,7 @@ use std::time::{Duration, Instant};
 
 use flow_engine_plugin::process::spawn_plugin;
 use flow_engine_plugin::transport::{ConnectionConfig, PluginConnection};
-use mpe_protocol::manifest::PluginEntry;
+use mpe_plugin_sdk::protocol::manifest::PluginEntry;
 
 /// Number of pipelined requests per measurement round.
 const REQUESTS_PER_ROUND: u64 = 20_000;
@@ -62,14 +63,29 @@ fn main() {
             print_verdict(sdk_rps);
         }
         None => println!(
-            "pipelining: SKIP SDK plugin bench (mpe_demo_plugin not built; \
-             run `cargo build -p mpe-plugin-sdk --bin mpe_demo_plugin`)"
+            "pipelining: SKIP SDK plugin bench (mpe_demo_plugin not available; \
+             build it in the SDK repo and set MPE_DEMO_PLUGIN_BIN)"
         ),
     }
 }
 
-/// Path to the compiled SDK demo plugin binary, if built (workspace target).
+/// Path to the compiled SDK demo plugin binary, if available.
+///
+/// The SDK lives in its own repository now (not a workspace member), so its
+/// binary no longer lands in the workspace target dir. Set
+/// `MPE_DEMO_PLUGIN_BIN` to the built `mpe_demo_plugin` path (build it in
+/// the SDK repo with `cargo build --bin mpe_demo_plugin`); without it the
+/// legacy workspace-target scan always misses and the SDK bench leg is
+/// skipped with a log.
 fn sdk_plugin_bin() -> Option<PathBuf> {
+    if let Ok(path) = std::env::var("MPE_DEMO_PLUGIN_BIN") {
+        let path = PathBuf::from(path);
+        if path.is_file() {
+            return Some(path);
+        }
+        eprintln!("MPE_DEMO_PLUGIN_BIN set but not a file: {}", path.display());
+        return None;
+    }
     let exe = if cfg!(windows) {
         "mpe_demo_plugin.exe"
     } else {

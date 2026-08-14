@@ -16,8 +16,8 @@ use std::path::{Path, PathBuf};
 use flow_engine_plugin::describe::perform_describe;
 use flow_engine_plugin::process::{spawn_plugin, PluginProcess};
 use flow_engine_plugin::transport::{ConnectionConfig, PluginConnection};
-use mpe_protocol::describe::DescribeResult;
-use mpe_protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
+use mpe_plugin_sdk::protocol::describe::DescribeResult;
+use mpe_plugin_sdk::protocol::manifest::{PluginCapabilities, PluginEntry, PluginManifest};
 
 /// Repository root (three levels above the crate dir).
 pub fn repo_root() -> PathBuf {
@@ -42,13 +42,23 @@ pub fn template_script(kind: &str, script: &str) -> Option<PathBuf> {
     path.is_file().then_some(path)
 }
 
-/// Path to the compiled Rust SDK demo plugin binary, if built.
+/// Path to the compiled Rust SDK demo plugin binary, if available.
 ///
-/// The SDK is a workspace member, so its binary lands in the workspace
-/// target dir (`src-tauri/target/<profile>/`). Build it with
-/// `cargo build -p mpe-plugin-sdk --bin mpe_demo_plugin`; a missing binary
-/// skips the SDK conformance test rather than failing it.
+/// The SDK lives in its own repository now (not a workspace member), so its
+/// binary no longer lands in the workspace target dir. Set
+/// `MPE_DEMO_PLUGIN_BIN` to the built `mpe_demo_plugin` path (build it in
+/// the SDK repo with `cargo build --bin mpe_demo_plugin`); without it the
+/// legacy workspace-target scan always misses and the SDK conformance test
+/// is skipped with a log rather than failed.
 pub fn sdk_plugin_bin() -> Option<PathBuf> {
+    if let Ok(path) = std::env::var("MPE_DEMO_PLUGIN_BIN") {
+        let path = PathBuf::from(path);
+        if path.is_file() {
+            return Some(path);
+        }
+        eprintln!("MPE_DEMO_PLUGIN_BIN set but not a file: {}", path.display());
+        return None;
+    }
     let exe = if cfg!(windows) {
         "mpe_demo_plugin.exe"
     } else {
