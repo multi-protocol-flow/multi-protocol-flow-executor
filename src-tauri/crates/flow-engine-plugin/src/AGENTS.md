@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-宿主侧 sidecar 插件管理器。实现 MPE 插件协议的宿主半边：插件目录扫描、子进程生命周期、stdio 上的 JSON-RPC 传输、`SidecarPlugin` NodePlugin 包装。32 个 .rs 文件，约 4200 行，workspace 最大 crate。依赖 `flow-engine-core`（宿主类型）+ `mpe-protocol`（共享 wire 契约）+ `flow-engine-executor`。
+宿主侧 sidecar 插件管理器。实现 MPE 插件协议的宿主半边：插件目录扫描、子进程生命周期、stdio 上的 JSON-RPC 传输、`SidecarPlugin` NodePlugin 包装。32 个 .rs 文件，约 4200 行，workspace 最大 crate。依赖 `flow-engine-core`（宿主类型）+ `mpe-plugin-sdk`（共享 wire 契约，git 依赖 + tag 固定，`default-features = false`）+ `flow-engine-executor`。
 
 ## STRUCTURE
 
@@ -22,7 +22,7 @@ src/
 ├── transport/              # pipelined JSON-RPC 传输
 │   ├── mod.rs, reader.rs, writer.rs, connection.rs, backpressure.rs
 ├── framing.rs              # LF 行分隔 + 2 MiB 上限
-├── protocol.rs             # JSON-RPC wire 类型（经 mpe-protocol）
+├── protocol.rs             # JSON-RPC wire 类型（经 mpe-plugin-sdk::protocol）
 ├── semver.rs               # 最小化 semver 解析 + min_host_version 门槛
 ├── sidecar.rs              # SidecarPlugin: NodePlugin 包装
 ├── wrapper.rs              # execute RPC 映射 helper（pub(crate)，250 LOC 上限外置）

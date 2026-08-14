@@ -107,7 +107,7 @@ plugins/db/
 `Cargo.toml` 要点：
 ```toml
 [dependencies]
-mpe-plugin-sdk = { path = "../../src-tauri/crates/mpe-plugin-sdk" }
+mpe-plugin-sdk = { git = "https://github.com/multi-protocol-flow/mpe-plugin-sdk.git", tag = "v0.1.0" }
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "mysql", "postgres", "json", "chrono"] }
 tokio = { version = "1", features = ["time", "sync"] }
 serde_json = "1"
@@ -472,7 +472,7 @@ db_query execute（同 run_id）:
 - `docs/plugin-protocol.md` — wire 规范（framing/超时/反压）
 - `docs/plugin-architecture.md` — 架构决策（OD2 冲突策略、A10 变量契约）
 - `crates/flow-engine-db/src/` — 被剥离的内置实现（语义参照：pool.rs / db_connect_executor.rs / plugin.rs）
-- `crates/mpe-plugin-sdk/src/bin/demo_plugin.rs` — 最小插件骨架参考
+- SDK 仓库 `multi-protocol-flow/mpe-plugin-sdk` 的 `src/bin/demo_plugin.rs` — 最小插件骨架参考
 
 ---
 

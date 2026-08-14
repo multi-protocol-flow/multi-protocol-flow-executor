@@ -37,8 +37,7 @@ root/
 | CLI 入口 | `src-tauri/crates/mpe-cli/src/` (注意: `src-tauri/src/cli/` 是过期副本) |
 | CLI 测试夹具 | `tests/cli/` + `tests/fixtures/flows/` |
 | 插件管理器 | `src-tauri/crates/flow-engine-plugin/` |
-| 插件 SDK | `src-tauri/crates/mpe-plugin-sdk/` |
-| 插件 wire 协议 | `src-tauri/crates/mpe-protocol/` |
+| 插件 SDK + wire 协议 | 独立公开仓库 `multi-protocol-flow/mpe-plugin-sdk`（git 依赖 + tag 固定；宿主以 `default-features = false` 取 wire 类型） |
 | 插件文档 | `docs/plugin-{protocol,sdk,perf}.md` |
 
 ## 架构
@@ -57,12 +56,12 @@ Layer 3 (门面):     flow-engine (re-export 全部)
 Layer 4 (应用):     app (src-tauri/) 仅依赖 flow-engine
 CLI 独立:           mpe-cli (纯 Rust 二进制, 无 Tauri/GUI 依赖)
 Extra:              workspace-hack (cargo-hakari 自动管理)
-插件系统:           mpe-protocol (共享 wire 契约) + flow-engine-plugin (宿主侧边进程插件管理) + mpe-plugin-sdk (作者 SDK)
+插件系统:           mpe-plugin-sdk (独立公开仓库: 共享 wire 契约 + 作者 SDK) + flow-engine-plugin (宿主侧边进程插件管理)
 ```
 
 `src-tauri/src/cli.rs` + `src-tauri/src/cli/` 为过期副本（lib.rs 通过 `pub use mpe_cli::cli;` 从 mpe-cli crate 导入），真实 CLI 在 `crates/mpe-cli/src/`。
 
-**增量编译**: 修改 Layer N → Layer N+1 及以上重编译。修改 core → 全量。插件系统三个 crate 独立于协议分层：`mpe-protocol` 无依赖，`flow-engine-plugin` 依赖 `flow-engine-executor` + `mpe-protocol`，`mpe-plugin-sdk` 仅依赖 `mpe-protocol`。
+**增量编译**: 修改 Layer N → Layer N+1 及以上重编译。修改 core → 全量。插件系统独立于协议分层：`mpe-plugin-sdk` 为独立公开仓库（git 依赖 + tag 固定；宿主 `flow-engine-plugin` 以 `default-features = false` 消费其 `protocol` 模块），`flow-engine-plugin` 依赖 `flow-engine-executor`。
 
 ### IPC 命令 (61 个)
 
@@ -179,7 +178,6 @@ npm run tauri build             # 构建安装包
 - [src-tauri/crates/flow-engine-graphql/src/AGENTS.md](./src-tauri/crates/flow-engine-graphql/src/AGENTS.md) — GraphQL
 - [src-tauri/crates/flow-engine-sse/src/AGENTS.md](./src-tauri/crates/flow-engine-sse/src/AGENTS.md) — SSE
 - [src-tauri/crates/flow-engine-plugin/src/AGENTS.md](./src-tauri/crates/flow-engine-plugin/src/AGENTS.md) — 插件宿主
-- [src-tauri/crates/mpe-plugin-sdk/src/AGENTS.md](./src-tauri/crates/mpe-plugin-sdk/src/AGENTS.md) — 插件 SDK
-- [src-tauri/crates/mpe-protocol/src/AGENTS.md](./src-tauri/crates/mpe-protocol/src/AGENTS.md) — 插件 wire 协议
+- 插件 SDK / wire 协议：独立公开仓库 `multi-protocol-flow/mpe-plugin-sdk`（`AGENTS.md` 在仓库根）
 - [src-tauri/crates/mpe-cli/src/AGENTS.md](./src-tauri/crates/mpe-cli/src/AGENTS.md) — CLI 入口
 - [tests/AGENTS.md](./tests/AGENTS.md) — CLI 测试夹具

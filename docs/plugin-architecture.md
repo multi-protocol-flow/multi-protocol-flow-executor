@@ -685,7 +685,7 @@ python-template/
 
 ```python
 # plugin.py（示意）
-from mpe_protocol import PluginRuntime
+from mpe_plugin_sdk import PluginRuntime
 
 @PluginRuntime.register("mongodb_find")
 def mongodb_find(ctx):

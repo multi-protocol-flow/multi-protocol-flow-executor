@@ -3,7 +3,7 @@
 > **Status:** normative (M1). This document is the source of truth for the
 > JSON-RPC 2.0 stdio transport between the MPE host (`flow-engine-plugin`)
 > and sidecar plugins (`mpe-plugin-sdk` and language templates). The wire
-> types live in `mpe-protocol` so host and SDK cannot drift.
+> types live in `mpe-plugin-sdk::protocol` so host and SDK cannot drift.
 >
 > Locked decisions this spec honors: batch arrays forbidden by construction;
 > `variable_updates` flat-top-level keys only (A10); event notifications
@@ -12,7 +12,7 @@
 ## 1. Framing
 
 Each message is exactly **one JSON value per line**, terminated by a single
-`LF` (`0x0A`, `mpe_protocol::LINE_DELIMITER`).
+`LF` (`0x0A`, `mpe_plugin_sdk::protocol::LINE_DELIMITER`).
 
 - **CRLF tolerance.** A trailing `CR` before the `LF` is stripped by the
   reader. Plugins that emit `\r\n` (e.g. Python `print()`, which writes CRLF
@@ -28,7 +28,7 @@ Each message is exactly **one JSON value per line**, terminated by a single
   plugin observes EOF and can exit; the plugin half-closes stdout when it is
   done writing. A clean EOF is one observed *after* shutdown with no pending
   requests; EOF with pending requests or without shutdown is a crash.
-- **Max line.** `2 MiB` (`mpe_protocol::MAX_LINE_BYTES`). Lines longer than
+- **Max line.** `2 MiB` (`mpe_plugin_sdk::protocol::MAX_LINE_BYTES`). Lines longer than
   the cap are rejected while reading — the reader never buffers without
   bound (no unbounded `read_line`). The cap exceeds the 1 MiB `report_data`
   budget so report payloads always fit.
@@ -45,7 +45,7 @@ any other request.
 ## 2. Notification demux
 
 A **notification** is a message with `method` + `params` and **no top-level
-`id`** (`mpe_protocol::Notification` — the struct has no `id` field by
+`id`** (`mpe_plugin_sdk::protocol::Notification` — the struct has no `id` field by
 construction). Notifications are fire-and-forget in both directions:
 
 - **Plugin → host.** Incoming frames are discriminated by shape: a frame
@@ -70,7 +70,7 @@ broadcasts a fire-and-forget notification so plugins can release
 Contract:
 
 - `execution_id` is the **per-execution instance id** the plugin received on
-  every `execute` request of that run (`mpe_protocol::notification::
+  every `execute` request of that run (`mpe_plugin_sdk::protocol::notification::
   FLOW_ENDED_METHOD`), so the plugin can match it against its own per-run
   state. It is **not** the flow's stable uuid and is unique per execution
   (stress virtual users / dataset rows / repeated runs each get a fresh one).
@@ -87,7 +87,7 @@ Contract:
 
 A JSON-RPC error response (`{"id":N,"error":{...}}`) resolves the pending
 request with a typed host error: `PluginError::JsonRpc { code, message,
-data }`, mapped canonically from `mpe_protocol::JsonRpcError`. Standard
+data }`, mapped canonically from `mpe_plugin_sdk::protocol::JsonRpcError`. Standard
 codes retain their wire values (`-32700` parse, `-32600` invalid request,
 `-32601` method not found, `-32602` invalid params, `-32603` internal,
 `-32000..=-32099` server) and are identifiable via
@@ -119,7 +119,7 @@ correlate to a single node execution (schema frozen day one):
 
 The host's correlation registry (see `transport::CorrelationFilter`)
 subscribes handlers by method + optional `execution_id` / `node_instance_id`
-filters; the shape is defined in `mpe_protocol::notification` so host and
+filters; the shape is defined in `mpe_plugin_sdk::protocol::notification` so host and
 SDK agree on the field names.
 
 ## 6. P1 frontend loading (CSP foundation)

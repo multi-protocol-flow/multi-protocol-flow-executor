@@ -1,15 +1,15 @@
 # Workspace Crates
-**Generated:** 2026-08-05 | **Branch:** feature/plugins | **Crates:** 18
+**Generated:** 2026-08-05 | **Branch:** feature/plugins | **Crates:** 14
 
 ## OVERVIEW
-18 crate dirs across 4 layers + plugin system + CLI:
+14 crate dirs across 4 layers + CLI + workspace-hack（插件系统已独立为公开仓库，不在 workspace 内）:
 - **L0 (Leaves):** `flow-engine-core`
 - **L1 (Protocols):** 9 optional crates (http, ws, script, assertion, grpc, mcp, tcp, sse, graphql) — redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 已移出宿主 → plugins/* 第三方插件
 - **L2 (Orchestration):** `flow-engine-executor`
 - **L3 (Facade):** `flow-engine`
 - **CLI:** `mpe-cli` (纯 Rust, 无 Tauri 依赖)
 - **Extra:** `workspace-hack` (cargo-hakari)
-- **插件系统 (独立分层):** `mpe-protocol` (共享 wire 契约) + `flow-engine-plugin` (宿主侧) + `mpe-plugin-sdk` (作者 SDK)
+- **插件系统 (独立分层):** `mpe-plugin-sdk` (独立公开仓库: 共享 wire 契约 + 作者 SDK) + `flow-engine-plugin` (宿主侧)
 
 All L1 crates are feature-gated (`protocol-*`). Default `all-protocols` enables all 9.
 
@@ -17,8 +17,7 @@ All L1 crates are feature-gated (`protocol-*`). Default `all-protocols` enables 
 ```
 app/mpe -> flow-engine -> flow-engine-executor -> 9 L1 crates -> flow-engine-core
 mpe-cli -> flow-engine (default-features = false, 按需 feature)
-mpe-protocol (无依赖) <- flow-engine-plugin <- flow-engine-executor
-                        <- mpe-plugin-sdk (仅依赖 mpe-protocol)
+mpe-plugin-sdk (独立公开仓库, git+tag; 宿主以 default-features = false 取 wire 类型) <- flow-engine-plugin <- flow-engine-executor
 ```
 
 ## CRATE + WHERE TO LOOK
@@ -36,9 +35,7 @@ mpe-protocol (无依赖) <- flow-engine-plugin <- flow-engine-executor
 | flow-engine-executor | 2 | 39 | 18,557 | Execution engine, plugin sys | evalexpr, csv |
 | flow-engine | 3 | 2 | 286 | Facade / re-exports | - |
 | mpe-cli | CLI | 14 | ~2,500 | 纯 CLI 二进制 (run/validate/debug/stress/flow/report) | clap, flow-engine |
-| mpe-protocol | 插件 | 7 | ~900 | 插件 wire 契约 (JSON-RPC 2.0 subset + manifest + framing) | serde |
-| flow-engine-plugin | 插件 | 32 | ~4,200 | 宿主侧插件管理: discovery/lifecycle/transport/registration | mpe-protocol, executor |
-| mpe-plugin-sdk | 插件 | 11 | ~950 | 插件作者 SDK: Plugin trait + mpe_plugin_main! 宏 | mpe-protocol |
+| flow-engine-plugin | 插件 | 32 | ~4,200 | 宿主侧插件管理: discovery/lifecycle/transport/registration | mpe-plugin-sdk (git), executor |
 | workspace-hack | X | 1 | 1 | Dep unification | - |
 **Total: ~250 .rs files.**
 
@@ -58,8 +55,8 @@ cargo check --workspace                 # full workspace
 | Any L1 | executor, facade, app |
 | executor | facade, app, flow-engine-plugin |
 | facade | app, mpe-cli |
-| mpe-protocol | flow-engine-plugin, mpe-plugin-sdk |
+| mpe-plugin-sdk (git 依赖) | 宿主侧不参与增量重编译（tag 固定；升级 tag 才重拉） |
 | workspace-hack | full rebuild |
 
 ## SUBDIRECTORY AGENTS.MD
-每个 crate 的 `src/AGENTS.md` 记录其细节（协议 crate 均已有）。新 crate（flow-engine-plugin / mpe-plugin-sdk / mpe-protocol / mpe-cli）也各有一份。Entry point: each crate's `src/lib.rs`.
+每个 crate 的 `src/AGENTS.md` 记录其细节（协议 crate 均已有）。新 crate（flow-engine-plugin / mpe-cli）也各有一份。`mpe-plugin-sdk` 的知识库在独立公开仓库 `multi-protocol-flow/mpe-plugin-sdk` 根目录。Entry point: each crate's `src/lib.rs`.

@@ -1,5 +1,11 @@
 # MPE Plugin SDK — Author Guide
 
+> **NOTE:** the SDK and wire protocol now live in the standalone public
+> repository `multi-protocol-flow/mpe-plugin-sdk` — normative docs there:
+> `docs/plugin-guide.md` (EN) / `docs/plugin-guide.zh-CN.md` (中文) and
+> `docs/plugin-protocol.md`. This file is the host-side historical copy;
+> the standalone repo is authoritative.
+
 > **Status:** normative (M5). This guide covers writing plugins for the MPE
 > host: the Rust SDK (first-class), the Python and Node templates (light),
 > the `plugin.json` manifest, and the wire contract. The normative transport
@@ -82,8 +88,8 @@ plugins/
 ## 4. The wire contract (summary)
 
 Full normative spec: `docs/plugin-protocol.md`. Shared wire types live in
-`mpe-protocol` (host and SDK compile against the same crate so they cannot
-drift).
+`mpe-plugin-sdk::protocol` — the merged public SDK crate, consumed by the
+host with `default-features = false` (same crate, cannot drift).
 
 ### 4.1 `describe` handshake
 
@@ -255,8 +261,10 @@ every node the plugin provides so the palette stays coherent.
 
 ## 5. Rust SDK (first-class)
 
-Crate: `mpe-plugin-sdk` (leaf crate — depends only on `mpe-protocol`,
-`tokio`, `serde`, `serde_json`; **no host types**). The SDK owns the event
+Crate: `mpe-plugin-sdk` (single self-contained crate — shared wire protocol
+(`protocol` module) plus the SDK runtime; depends only on `serde`,
+`serde_json` and, for the runtime feature, `tokio`; **no host types**). The
+SDK owns the event
 loop, framing, single-writer stdout task, and spawn-per-request
 pipelining; the author writes pure handlers.
 
@@ -296,13 +304,15 @@ mpe_plugin_main!(AddPlugin);
   notifications), and `set_variable` for flat-key write-back.
 - `NodeDescription::new(type_id, display_name)` + builder-style optional
   fields keep minimal plugins clean.
-- Demo plugin: `crates/mpe-plugin-sdk/src/bin/demo_plugin.rs`
-  (`mpe_demo_plugin` binary; `cargo build -p mpe-plugin-sdk --bin
+- Demo plugin: `src/bin/demo_plugin.rs` in the SDK repo
+  (`mpe_demo_plugin` binary; build it there with `cargo build --bin
   mpe_demo_plugin`).
-- Test it without the host: the SDK's `tests/roundtrip.rs` spawns the demo
-  binary and speaks JSON-RPC over stdio; the host's conformance suite
+- Test it without the host: the SDK repo's `tests/roundtrip.rs` spawns the
+  demo binary and speaks JSON-RPC over stdio; the host's conformance suite
   (`cargo test -p flow-engine-plugin --test conformance`) runs the same
-  surface against the built binary.
+  surface against the built binary — set `MPE_DEMO_PLUGIN_BIN` to the built
+  `mpe_demo_plugin` path to enable the SDK leg (without it that leg is
+  skipped with a log).
 
 ### 5.1 Plugin language
 
@@ -383,11 +393,13 @@ with a log when the interpreter is unavailable.
 ## 8. End-to-end check
 
 ```bash
-# build the SDK demo plugin
-cargo build -p mpe-plugin-sdk --bin mpe_demo_plugin
+# build the SDK demo plugin (in the standalone SDK repo)
+cargo build --bin mpe_demo_plugin
 
-# conformance across all runtimes (echo mock + python + node + sdk)
-cargo test -p flow-engine-plugin --test conformance
+# conformance across all runtimes (echo mock + python + node + sdk;
+# set MPE_DEMO_PLUGIN_BIN to enable the SDK leg)
+MPE_DEMO_PLUGIN_BIN=/path/to/mpe_demo_plugin \
+  cargo test -p flow-engine-plugin --test conformance
 
 # e2e: mpe run with a fixture plugin
 cargo test -p mpe-cli --test cli_tests
