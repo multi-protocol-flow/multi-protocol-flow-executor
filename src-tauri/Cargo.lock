@@ -1587,7 +1587,7 @@ dependencies = [
  "jsonpath-rust",
  "log",
  "mockito",
- "mpe-protocol",
+ "mpe-plugin-sdk",
  "proptest",
  "rand 0.8.6",
  "regex",
@@ -1690,7 +1690,7 @@ dependencies = [
  "async-trait",
  "flow-engine-core",
  "log",
- "mpe-protocol",
+ "mpe-plugin-sdk",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
@@ -3117,16 +3117,7 @@ dependencies = [
 [[package]]
 name = "mpe-plugin-sdk"
 version = "0.1.0"
-dependencies = [
- "mpe-protocol",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "mpe-protocol"
-version = "0.1.0"
+source = "git+https://github.com/multi-protocol-flow/mpe-plugin-sdk.git?tag=v0.1.0#7fee20ed74756d09dc1e93acd06bdc52594592e5"
 dependencies = [
  "serde",
  "serde_json",
@@ -7155,7 +7146,6 @@ dependencies = [
  "percent-encoding",
  "phf_shared",
  "proc-macro2",
- "quote",
  "rand 0.8.6",
  "regex-automata",
  "reqwest",

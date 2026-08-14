@@ -38,7 +38,6 @@ once_cell = { version = "1" }
 percent-encoding = { version = "2" }
 phf_shared = { version = "0.13" }
 proc-macro2 = { version = "1", features = ["span-locations"] }
-quote = { version = "1" }
 rand = { version = "0.8", features = ["small_rng"] }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa-onepass", "dfa-search", "hybrid", "meta", "nfa-backtrack", "perf-inline", "perf-literal", "std", "unicode"] }
 reqwest = { version = "0.13", default-features = false, features = ["form", "json", "multipart", "rustls-no-provider", "stream"] }
@@ -78,7 +77,6 @@ miniz_oxide = { version = "0.8", features = ["simd"] }
 percent-encoding = { version = "2" }
 phf_shared = { version = "0.13" }
 proc-macro2 = { version = "1", features = ["span-locations"] }
-quote = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa-onepass", "dfa-search", "hybrid", "meta", "nfa-backtrack", "perf-inline", "perf-literal", "std", "unicode"] }
 schemars = { version = "0.8", features = ["preserve_order", "url", "uuid1"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }

@@ -13,9 +13,7 @@ members = [
     "crates/flow-engine-sse",
     "crates/flow-engine-graphql",
     "crates/mpe-cli",
-    "crates/mpe-protocol",
     "crates/flow-engine-plugin",
-    "crates/mpe-plugin-sdk",
     "crates/workspace-hack",
 ]
 resolver = "2"
