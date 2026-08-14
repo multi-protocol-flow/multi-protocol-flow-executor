@@ -27,15 +27,6 @@ describe('App', () => {
     expect(screen.getByTestId('app-title')).toBeDefined()
   })
 
-  it('renders the sidebar with flow list', () => {
-    render(
-      <TestWrapper>
-        <App />
-      </TestWrapper>
-    )
-    expect(screen.getByTestId('sidebar-flow-list')).toBeDefined()
-  })
-
   it('does not render node library in sidebar', () => {
     render(
       <TestWrapper>

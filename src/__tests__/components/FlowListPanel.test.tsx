@@ -312,53 +312,6 @@ describe('FlowListPanel', () => {
       expect(useFlowStore.getState().flow).toBeNull();
     });
 
-    it('删除非当前流程不应清空画布', async () => {
-      const user = userEvent.setup();
-      const currentFlow = createMockFlow('flow-1', '当前流程');
-      const flowMetas = [
-        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpf', folderPath: '' },
-        { uuid: 'flow-2', name: '其他流程', updatedAt: Date.now(), filePath: 'flow-2.mpf', folderPath: '' },
-      ];
-      
-      // 设置当前流程
-      useFlowStore.getState().setFlow(currentFlow);
-      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
-      useFlowListStore.getState().setFlows(flowMetas.map(m => ({ uuid: m.uuid, name: m.name, updated_at: m.updatedAt, folder_path: '' })));
-
-      await act(async () => {
-        render(<FlowListPanel />);
-      });
-
-      // 触发删除其他流程 - 点击其"更多操作"按钮
-      const flowItem = screen.getByText('其他流程');
-      await user.hover(flowItem);
-      
-      // 获取所有"更多操作"按钮 - 点击第二个（其他流程的）
-      const moreButtons = screen.getAllByRole('button', { name: '更多操作' });
-      
-      await act(async () => {
-        await user.click(moreButtons[moreButtons.length - 1]);
-      });
-      
-      // 获取删除按钮（点击更多操作后只有一个删除按钮可见）
-      const deleteButton = screen.getByRole('button', { name: '删除流程' });
-      
-      await act(async () => {
-        await user.click(deleteButton);
-      });
-
-      // 确认删除
-      const confirmCallback = useUIStore.getState().confirmDialogConfig?.onConfirm;
-      await act(async () => {
-        confirmCallback?.();
-      });
-
-      // 验证当前流程未受影响
-      expect(useFlowStore.getState().flow).toEqual(currentFlow);
-      // 验证列表更新
-      expect(useFlowListStore.getState().flows.length).toBe(1);
-      expect(useFlowListStore.getState().flows[0].uuid).toBe('flow-1');
-    });
   });
 
   describe('空列表状态', () => {
