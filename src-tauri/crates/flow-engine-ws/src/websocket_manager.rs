@@ -2080,7 +2080,7 @@ mod tests {
                 "ws://192.0.2.1:81/ws".to_string(), // RFC 3330 测试地址，不可路由
                 vec![],                             // headers
                 vec![],                             // subprotocols
-                2000,                               // 2 秒超时
+                1000,                               // 1 秒超时（最小值被 clamp 到 1000ms）
                 false,                              // use_tls
                 false,                              // tls_skip_verify
                 None,                               // ping_interval_ms

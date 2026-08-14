@@ -26,9 +26,9 @@
 **JSON 示例：**
 ```json
 {
-  "type": "start",
+  "type": "entry",
   "data": {
-    "type": "start",
+    "type": "entry",
     "initial_variables": {
       "api_key": "sk-xxx",
       "environment": "production"

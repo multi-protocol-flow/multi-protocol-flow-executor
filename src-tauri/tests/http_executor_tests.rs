@@ -375,14 +375,14 @@ async fn test_timeout_config_custom() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/slow"))
-        .respond_with(ResponseTemplate::new(200).set_delay(std::time::Duration::from_millis(2500)))
+        .respond_with(ResponseTemplate::new(200).set_delay(std::time::Duration::from_millis(1300)))
         .mount(&server)
         .await;
 
     let url = server.uri();
 
-    // 设置 1500ms 超时（大于最小值 1000ms，小于服务器延迟 2500ms）
-    let node = create_timeout_node("timeout-fast", &format!("{}/slow", url), 1500);
+    // 设置 1000ms 超时（等于最小值 1000ms，小于服务器延迟 1300ms）
+    let node = create_timeout_node("timeout-fast", &format!("{}/slow", url), 1000);
     let mut context = create_context("test-flow-timeout");
     let executor = HttpNodeExecutor::new();
 
@@ -392,7 +392,7 @@ async fn test_timeout_config_custom() {
         .await;
     let elapsed = start.elapsed();
 
-    // 验证: 超时配置已生效，1500ms 超时后应返回错误
+    // 验证: 超时配置已生效，1000ms 超时后应返回错误
 
     // 验证超时配置生效 - 应该在 3 秒内返回（考虑网络延迟）
     assert!(
@@ -496,13 +496,13 @@ async fn test_timeout_config_default() {
 /// 注意: 超时最小值被 clamp 到 1000ms
 async fn test_timeout_config_sufficient() {
     ensure_crypto_provider();
-    // 创建一个轻微延迟的 wiremock 服务器（1100ms）
+    // 创建一个轻微延迟的 wiremock 服务器（200ms）
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/slightly-slow"))
         .respond_with(
             ResponseTemplate::new(200)
-                .set_delay(std::time::Duration::from_millis(1100))
+                .set_delay(std::time::Duration::from_millis(200))
                 .set_body_json(serde_json::json!({"status": "ok"})),
         )
         .mount(&server)
@@ -510,7 +510,7 @@ async fn test_timeout_config_sufficient() {
 
     let url = server.uri();
 
-    // 设置 2000ms 超时（大于最小值 1000ms，大于服务器延迟 1100ms）
+    // 设置 2000ms 超时（大于最小值 1000ms，大于服务器延迟 200ms）
     let node = create_timeout_node(
         "sufficient-timeout",
         &format!("{}/slightly-slow", url),

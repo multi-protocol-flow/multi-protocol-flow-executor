@@ -745,7 +745,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
                 url: "ws://192.0.2.1:81/ws".to_string(), // RFC 3330 测试地址，不可路由
-                connect_timeout_ms: 2000,                // 2 秒超时
+                connect_timeout_ms: 1000,                // 1 秒超时（最小值被 clamp 到 1000ms）
                 ..Default::default()
             }),
             ports: None,
