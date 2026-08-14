@@ -162,10 +162,10 @@ impl GrpcConnectionManager {
             let conns = self
                 .connections
                 .read()
-                .map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire connection pool read lock: {}", e))?;
             let conn = conns
                 .get(connection_id)
-                .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+                .ok_or_else(|| format!("connection '{}' does not exist", connection_id))?;
             (
                 conn.channel.clone(),
                 conn.created_at,
@@ -297,7 +297,7 @@ impl GrpcProvider for GrpcConnectionManager {
             // 通过 Server Reflection 发现服务（传递 reflection_metadata）
             reflect_services(channel.clone(), reflection_metadata).await?
         } else if proto_files.is_empty() {
-            return Err("未提供 proto 文件且未启用 Server Reflection，无法发现服务".to_string());
+            return Err("no proto files provided and Server Reflection not enabled, cannot discover services".to_string());
         } else {
             // 解析用户提供的 proto 文件
             let files: Vec<proto_parser::ProtoFile> = proto_files
@@ -305,7 +305,7 @@ impl GrpcProvider for GrpcConnectionManager {
                 .map(|(path, content)| proto_parser::ProtoFile { path, content })
                 .collect();
             proto_parser::parse_proto_files(&files)
-                .map_err(|e| format!("解析 proto 文件Failed: {}", e))?
+                .map_err(|e| format!("failed to parse proto files: {}", e))?
         };
 
         // 4. 提取服务信息
@@ -347,7 +347,7 @@ impl GrpcProvider for GrpcConnectionManager {
             let mut conns = self
                 .connections
                 .write()
-                .map_err(|e| format!("获取连接池写锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire connection pool write lock: {}", e))?;
             conns.insert(uuid, connection);
         }
 
@@ -376,10 +376,10 @@ impl GrpcProvider for GrpcConnectionManager {
             let conns = self
                 .connections
                 .read()
-                .map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire connection pool read lock: {}", e))?;
             let conn = conns
                 .get(connection_id)
-                .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+                .ok_or_else(|| format!("connection '{}' does not exist", connection_id))?;
             (
                 conn.channel.clone(),
                 Arc::clone(&conn.descriptor_pool),
@@ -394,11 +394,11 @@ impl GrpcProvider for GrpcConnectionManager {
         // 3. 查找方法描述符
         let service = pool
             .get_service_by_name(service_name)
-            .ok_or_else(|| format!("服务 '{}' 不存在", service_name))?;
+            .ok_or_else(|| format!("service '{}' does not exist", service_name))?;
         let method = service
             .methods()
             .find(|m| m.name() == method_name)
-            .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
+            .ok_or_else(|| format!("method '{}' does not exist in service '{}'", method_name, service_name))?;
 
         // 4. 反序列化请求 JSON 为 DynamicMessage
         let req_message = json_to_dynamic_message(request_json, method.input())?;
@@ -408,9 +408,9 @@ impl GrpcProvider for GrpcConnectionManager {
         // 设置合并后的 metadata
         for (key, value) in merged_metadata {
             let meta_key = MetadataKey::from_bytes(key.as_bytes())
-                .map_err(|e| format!("无效的 metadata key '{}': {:?}", key, e))?;
+                .map_err(|e| format!("invalid metadata key '{}': {:?}", key, e))?;
             let meta_val = MetadataValue::try_from(&value)
-                .map_err(|e| format!("无效的 metadata value '{}': {:?}", value, e))?;
+                .map_err(|e| format!("invalid metadata value '{}': {:?}", value, e))?;
             request.metadata_mut().insert(meta_key, meta_val);
         }
         // 设置超时
@@ -434,12 +434,12 @@ impl GrpcProvider for GrpcConnectionManager {
         client
             .ready()
             .await
-            .map_err(|e| format!("gRPC 客户端未就绪: {}", e))?;
+            .map_err(|e| format!("gRPC client not ready: {}", e))?;
 
         let response = client
             .unary(request, path, codec)
             .await
-            .map_err(|e| format_grpc_error("gRPC Unary 调用Failed", &e, &pool))?;
+            .map_err(|e| format_grpc_error("gRPC Unary call failed", &e, &pool))?;
 
         // 7. 提取响应 metadata 并序列化响应为 JSON
         let response_metadata = extract_metadata(response.metadata());
@@ -487,10 +487,10 @@ impl GrpcProvider for GrpcConnectionManager {
             let conns = self
                 .connections
                 .read()
-                .map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire connection pool read lock: {}", e))?;
             let conn = conns
                 .get(connection_id)
-                .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+                .ok_or_else(|| format!("connection '{}' does not exist", connection_id))?;
             (
                 conn.channel.clone(),
                 Arc::clone(&conn.descriptor_pool),
@@ -505,7 +505,7 @@ impl GrpcProvider for GrpcConnectionManager {
         {
             let mut calls = active_calls
                 .lock()
-                .map_err(|e| format!("获取活跃调用锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire active calls lock: {}", e))?;
             calls.insert(call_id.to_string(), cancel_token.clone());
         }
 
@@ -515,11 +515,11 @@ impl GrpcProvider for GrpcConnectionManager {
         // 3. 查找方法描述符
         let service = pool
             .get_service_by_name(service_name)
-            .ok_or_else(|| format!("服务 '{}' 不存在", service_name))?;
+            .ok_or_else(|| format!("service '{}' does not exist", service_name))?;
         let method = service
             .methods()
             .find(|m| m.name() == method_name)
-            .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
+            .ok_or_else(|| format!("method '{}' does not exist in service '{}'", method_name, service_name))?;
 
         // 4. 反序列化请求 JSON 为 DynamicMessage
         let req_message = json_to_dynamic_message(request_json, method.input())?;
@@ -528,9 +528,9 @@ impl GrpcProvider for GrpcConnectionManager {
         let mut request = tonic::Request::new(req_message);
         for (key, value) in merged_metadata {
             let meta_key = MetadataKey::from_bytes(key.as_bytes())
-                .map_err(|e| format!("无效的 metadata key '{}': {:?}", key, e))?;
+                .map_err(|e| format!("invalid metadata key '{}': {:?}", key, e))?;
             let meta_val = MetadataValue::try_from(&value)
-                .map_err(|e| format!("无效的 metadata value '{}': {:?}", value, e))?;
+                .map_err(|e| format!("invalid metadata value '{}': {:?}", value, e))?;
             request.metadata_mut().insert(meta_key, meta_val);
         }
         // 6. 发起 Server Streaming 调用（不设 request deadline，避免过早终止流式响应）
@@ -549,12 +549,12 @@ impl GrpcProvider for GrpcConnectionManager {
         client
             .ready()
             .await
-            .map_err(|e| format!("gRPC 客户端未就绪: {}", e))?;
+            .map_err(|e| format!("gRPC client not ready: {}", e))?;
 
         let response = client
             .server_streaming(request, path, codec)
             .await
-            .map_err(|e| format_grpc_error("gRPC Server Streaming 调用Failed", &e, &pool))?;
+            .map_err(|e| format_grpc_error("gRPC Server Streaming call failed", &e, &pool))?;
 
         // 6. 提取响应 Initial Metadata 并采集响应流（带超时 + 取消支持）
         let response_metadata = extract_metadata(response.metadata());
@@ -606,11 +606,11 @@ impl GrpcProvider for GrpcConnectionManager {
                                             node_uuid: node_uuid.to_string(),
                                             connection_id: connection_id.to_string(),
                                             call_id: call_id.to_string(),
-                                            message: format!("流式响应Error: {} ({})", e.message(), e.code()),
+                                            message: format!("streaming response error: {} ({})", e.message(), e.code()),
                                         });
                                     }
                                     return Err(format!(
-                                        "流式响应Error: {} ({})",
+                                        "streaming response error: {} ({})",
                                         e.message(),
                                         e.code()
                                     ));
@@ -619,7 +619,7 @@ impl GrpcProvider for GrpcConnectionManager {
                         }
                         _ = cancel_token.cancelled() => {
                             log::info!(
-                                "[gRPC Server Streaming] 调用被取消 (call_id={})，已收集 {} 条响应",
+                                "[gRPC Server Streaming] call cancelled (call_id={}), collected {} responses",
                                 call_id,
                                 results.len()
                             );
@@ -636,7 +636,7 @@ impl GrpcProvider for GrpcConnectionManager {
         {
             let mut calls = active_calls
                 .lock()
-                .map_err(|e| format!("获取活跃调用锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire active calls lock: {}", e))?;
             calls.remove(call_id);
         }
 
@@ -645,7 +645,7 @@ impl GrpcProvider for GrpcConnectionManager {
             Ok(Err(e)) => return Err(e),
             Err(_) => {
                 log::warn!(
-                    "[gRPC Server Streaming] 采集超时 ({}ms)，已收集 {} 条响应",
+                    "[gRPC Server Streaming] collection timed out ({}ms), collected {} responses",
                     timeout_ms,
                     results.len()
                 );
@@ -674,10 +674,10 @@ impl GrpcProvider for GrpcConnectionManager {
             let conns = self
                 .connections
                 .read()
-                .map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire connection pool read lock: {}", e))?;
             let conn = conns
                 .get(connection_id)
-                .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+                .ok_or_else(|| format!("connection '{}' does not exist", connection_id))?;
             (
                 conn.channel.clone(),
                 Arc::clone(&conn.descriptor_pool),
@@ -692,11 +692,11 @@ impl GrpcProvider for GrpcConnectionManager {
         // 3. 查找方法描述符
         let service = pool
             .get_service_by_name(service_name)
-            .ok_or_else(|| format!("服务 '{}' 不存在", service_name))?;
+            .ok_or_else(|| format!("service '{}' does not exist", service_name))?;
         let method = service
             .methods()
             .find(|m| m.name() == method_name)
-            .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
+            .ok_or_else(|| format!("method '{}' does not exist in service '{}'", method_name, service_name))?;
 
         // 4. 将所有 request_messages 解码为 DynamicMessage
         let messages: Vec<prost_reflect::DynamicMessage> = request_messages
@@ -711,9 +711,9 @@ impl GrpcProvider for GrpcConnectionManager {
         // 6. 设置合并后的 metadata
         for (key, value) in merged_metadata {
             let meta_key = MetadataKey::from_bytes(key.as_bytes())
-                .map_err(|e| format!("无效的 metadata key '{}': {:?}", key, e))?;
+                .map_err(|e| format!("invalid metadata key '{}': {:?}", key, e))?;
             let meta_val = MetadataValue::try_from(&value)
-                .map_err(|e| format!("无效的 metadata value '{}': {:?}", value, e))?;
+                .map_err(|e| format!("invalid metadata value '{}': {:?}", value, e))?;
             request.metadata_mut().insert(meta_key, meta_val);
         }
         if timeout_ms > 0 {
@@ -736,12 +736,12 @@ impl GrpcProvider for GrpcConnectionManager {
         client
             .ready()
             .await
-            .map_err(|e| format!("gRPC 客户端未就绪: {}", e))?;
+            .map_err(|e| format!("gRPC client not ready: {}", e))?;
 
         let response = client
             .client_streaming(request, path, codec)
             .await
-            .map_err(|e| format_grpc_error("gRPC Client Streaming 调用Failed", &e, &pool))?;
+            .map_err(|e| format_grpc_error("gRPC Client Streaming call failed", &e, &pool))?;
 
         // 7. 提取响应 metadata 并序列化响应为 JSON
         let response_metadata = extract_metadata(response.metadata());
@@ -790,10 +790,10 @@ impl GrpcProvider for GrpcConnectionManager {
             let conns = self
                 .connections
                 .read()
-                .map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire connection pool read lock: {}", e))?;
             let conn = conns
                 .get(connection_id)
-                .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+                .ok_or_else(|| format!("connection '{}' does not exist", connection_id))?;
             (
                 conn.channel.clone(),
                 Arc::clone(&conn.descriptor_pool),
@@ -808,7 +808,7 @@ impl GrpcProvider for GrpcConnectionManager {
         {
             let mut calls = active_calls
                 .lock()
-                .map_err(|e| format!("获取活跃调用锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire active calls lock: {}", e))?;
             calls.insert(call_id.to_string(), cancel_token.clone());
         }
 
@@ -818,11 +818,11 @@ impl GrpcProvider for GrpcConnectionManager {
         // 3. 查找方法描述符
         let service = pool
             .get_service_by_name(service_name)
-            .ok_or_else(|| format!("服务 '{}' 不存在", service_name))?;
+            .ok_or_else(|| format!("service '{}' does not exist", service_name))?;
         let method = service
             .methods()
             .find(|m| m.name() == method_name)
-            .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
+            .ok_or_else(|| format!("method '{}' does not exist in service '{}'", method_name, service_name))?;
 
         // 4. 将所有 request_messages 解码为 DynamicMessage
         let messages: Vec<prost_reflect::DynamicMessage> = request_messages
@@ -838,9 +838,9 @@ impl GrpcProvider for GrpcConnectionManager {
         // 6. 设置合并后的 metadata
         for (key, value) in merged_metadata {
             let meta_key = MetadataKey::from_bytes(key.as_bytes())
-                .map_err(|e| format!("无效的 metadata key '{}': {:?}", key, e))?;
+                .map_err(|e| format!("invalid metadata key '{}': {:?}", key, e))?;
             let meta_val = MetadataValue::try_from(&value)
-                .map_err(|e| format!("无效的 metadata value '{}': {:?}", value, e))?;
+                .map_err(|e| format!("invalid metadata value '{}': {:?}", value, e))?;
             request.metadata_mut().insert(meta_key, meta_val);
         }
 
@@ -860,12 +860,12 @@ impl GrpcProvider for GrpcConnectionManager {
         client
             .ready()
             .await
-            .map_err(|e| format!("gRPC 客户端未就绪: {}", e))?;
+            .map_err(|e| format!("gRPC client not ready: {}", e))?;
 
         let response = client
             .streaming(request, path, codec)
             .await
-            .map_err(|e| format_grpc_error("gRPC Bidi Streaming 调用Failed", &e, &pool))?;
+            .map_err(|e| format_grpc_error("gRPC Bidi Streaming call failed", &e, &pool))?;
 
         // 8. 提取响应 Initial Metadata 并采集响应流（带超时 + 取消支持）
         let response_metadata = extract_metadata(response.metadata());
@@ -921,16 +921,16 @@ impl GrpcProvider for GrpcConnectionManager {
                                             node_uuid: node_uuid.to_string(),
                                             connection_id: connection_id.to_string(),
                                             call_id: call_id.to_string(),
-                                            message: format!("Bidi 流式响应Error: {} ({})", e.message(), e.code()),
+                                            message: format!("bidi streaming response error: {} ({})", e.message(), e.code()),
                                         });
                                     }
-                                    return Err(format!("Bidi 流式响应Error: {} ({})", e.message(), e.code()));
+                                    return Err(format!("bidi streaming response error: {} ({})", e.message(), e.code()));
                                 }
                             }
                         }
                         _ = cancel_token.cancelled() => {
                             log::info!(
-                                "[gRPC Bidi] 调用被取消 (call_id={})，已收集 {} 条响应",
+                                "[gRPC Bidi] call cancelled (call_id={}), collected {} responses",
                                 call_id,
                                 responses.len()
                             );
@@ -947,7 +947,7 @@ impl GrpcProvider for GrpcConnectionManager {
         {
             let mut calls = active_calls
                 .lock()
-                .map_err(|e| format!("获取活跃调用锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire active calls lock: {}", e))?;
             calls.remove(call_id);
         }
 
@@ -957,7 +957,7 @@ impl GrpcProvider for GrpcConnectionManager {
             Err(_) => {
                 // 超时，收集已获取的响应（非致命）
                 log::warn!(
-                    "[gRPC Bidi] 采集超时 ({}ms)，已收集 {} 条响应",
+                    "[gRPC Bidi] collection timed out ({}ms), collected {} responses",
                     timeout_ms,
                     responses.len()
                 );
@@ -989,10 +989,10 @@ impl GrpcProvider for GrpcConnectionManager {
         let mut conns = self
             .connections
             .write()
-            .map_err(|e| format!("获取连接池写锁Failed: {}", e))?;
+            .map_err(|e| format!("failed to acquire connection pool write lock: {}", e))?;
         conns
             .remove(connection_id)
-            .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("connection '{}' does not exist", connection_id))?;
         Ok(())
     }
 
@@ -1050,10 +1050,10 @@ impl GrpcProvider for GrpcConnectionManager {
             let conns = self
                 .connections
                 .read()
-                .map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire connection pool read lock: {}", e))?;
             let conn = conns
                 .get(connection_id)
-                .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+                .ok_or_else(|| format!("connection '{}' does not exist", connection_id))?;
             conn.channel.clone()
         }; // 读锁在此释放
 
@@ -1088,7 +1088,7 @@ impl GrpcProvider for GrpcConnectionManager {
                     })
                 } else {
                     Err(format!(
-                        "健康检查Failed: {} ({})",
+                        "health check failed: {} ({})",
                         status.message(),
                         status.code()
                     ))
@@ -1103,20 +1103,20 @@ impl GrpcProvider for GrpcConnectionManager {
             let conns = self
                 .connections
                 .read()
-                .map_err(|e| format!("获取连接池读锁Failed: {}", e))?;
+                .map_err(|e| format!("failed to acquire connection pool read lock: {}", e))?;
             let conn = conns
                 .get(connection_id)
-                .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+                .ok_or_else(|| format!("connection '{}' does not exist", connection_id))?;
             Arc::clone(&conn.active_calls)
         };
 
         let mut calls = active_calls
             .lock()
-            .map_err(|e| format!("获取活跃调用锁Failed: {}", e))?;
+            .map_err(|e| format!("failed to acquire active calls lock: {}", e))?;
         match calls.get(call_id) {
             Some(token) => {
                 log::info!(
-                    "[gRPC] 取消流式调用: connection_id={}, call_id={}",
+                    "[gRPC] cancelling streaming call: connection_id={}, call_id={}",
                     connection_id,
                     call_id
                 );
@@ -1124,7 +1124,7 @@ impl GrpcProvider for GrpcConnectionManager {
                 calls.remove(call_id);
                 Ok(())
             }
-            None => Err(format!("调用 '{}' 不存在或已完成", call_id)),
+            None => Err(format!("call '{}' does not exist or already finished", call_id)),
         }
     }
 }

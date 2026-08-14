@@ -44,7 +44,7 @@ impl Encoder for DynamicCodec {
 
     fn encode(&mut self, item: Self::Item, dst: &mut EncodeBuf<'_>) -> Result<(), Self::Error> {
         prost::Message::encode(&item, dst)
-            .map_err(|e| tonic::Status::internal(format!("编码消息Failed: {}", e)))?;
+            .map_err(|e| tonic::Status::internal(format!("failed to encode message: {}", e)))?;
         Ok(())
     }
 }
@@ -56,7 +56,7 @@ impl Decoder for DynamicCodec {
     fn decode(&mut self, src: &mut DecodeBuf<'_>) -> Result<Option<Self::Item>, Self::Error> {
         let mut msg = DynamicMessage::new(self.method.output());
         prost::Message::merge(&mut msg, src)
-            .map_err(|e| tonic::Status::internal(format!("解码消息Failed: {}", e)))?;
+            .map_err(|e| tonic::Status::internal(format!("failed to decode message: {}", e)))?;
         Ok(Some(msg))
     }
 }

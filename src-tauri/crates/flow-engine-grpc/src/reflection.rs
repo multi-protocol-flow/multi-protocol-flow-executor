@@ -37,7 +37,7 @@ async fn reflect_services_v1alpha(
         ServerReflectionRequest,
     };
 
-    log::info!("[gRPC Reflection v1alpha] 创建反射客户端...");
+    log::info!("[gRPC Reflection v1alpha] creating reflection client...");
 
     // 创建反射客户端和双向流的请求通道
     let mut client = ServerReflectionClient::new(channel);
@@ -45,7 +45,7 @@ async fn reflect_services_v1alpha(
     let request_stream = tokio_stream::wrappers::ReceiverStream::new(rx);
 
     // 预发送 ListServices 请求
-    log::info!("[gRPC Reflection v1alpha] 预发送 ListServices 请求...");
+    log::info!("[gRPC Reflection v1alpha] pre-sending ListServices request...");
     tx.send(ServerReflectionRequest {
         host: String::new(),
         message_request: Some(server_reflection_request::MessageRequest::ListServices(
@@ -53,10 +53,10 @@ async fn reflect_services_v1alpha(
         )),
     })
     .await
-    .map_err(|e| format!("发送 ListServices 请求Failed: {}", e))?;
+    .map_err(|e| format!("failed to send ListServices request: {}", e))?;
 
     // 发起双向流调用（带 metadata 和超时）
-    log::info!("[gRPC Reflection v1alpha] 发起双向流调用...");
+    log::info!("[gRPC Reflection v1alpha] starting bidi stream call...");
     let mut request = tonic::Request::new(request_stream);
     set_metadata_on_request(&mut request, metadata)?;
 
@@ -66,18 +66,18 @@ async fn reflect_services_v1alpha(
     )
     .await
     .map_err(|_| {
-        log::error!("[gRPC Reflection v1alpha] 双向流连接超时");
-        "Server Reflection v1alpha 连接超时（服务器可能不支持 Reflection）".to_string()
+        log::error!("[gRPC Reflection v1alpha] bidi stream connection timed out");
+        "Server Reflection v1alpha connection timed out (server may not support Reflection)".to_string()
     })?
     .map_err(|e| {
-        log::error!("[gRPC Reflection v1alpha] 双向流connection failed: {}", e);
+        log::error!("[gRPC Reflection v1alpha] bidi stream connection failed: {}", e);
         format!(
-            "Server Reflection v1alpha connection failed: {}（服务器可能不支持 Reflection）",
+            "Server Reflection v1alpha connection failed: {} (server may not support Reflection)",
             e
         )
     })?;
     let stream = response.into_inner();
-    log::info!("[gRPC Reflection v1alpha] 双向流已建立，等待 ListServices 响应...");
+    log::info!("[gRPC Reflection v1alpha] bidi stream established, waiting for ListServices response...");
 
     collect_reflection_data_v1alpha(stream, tx).await
 }
@@ -96,19 +96,19 @@ async fn collect_reflection_data_v1alpha(
     )
     .await
     .map_err(|_| {
-        log::error!("[gRPC Reflection v1alpha] ListServices 响应超时");
-        "ListServices 响应超时（服务器可能不支持 Reflection）".to_string()
+        log::error!("[gRPC Reflection v1alpha] ListServices response timed out");
+        "ListServices response timed out (server may not support Reflection)".to_string()
     })?
     .map_err(|e| {
         log::error!(
-            "[gRPC Reflection v1alpha] 读取 ListServices 响应Failed: {}",
+            "[gRPC Reflection v1alpha] failed to read ListServices response: {}",
             e
         );
-        format!("读取 ListServices 响应Failed: {}", e)
+        format!("failed to read ListServices response: {}", e)
     })?
     .ok_or_else(|| {
-        log::error!("[gRPC Reflection v1alpha] 服务器关闭了流，未返回服务列表");
-        "Server Reflection 未返回服务列表响应".to_string()
+        log::error!("[gRPC Reflection v1alpha] server closed the stream without returning a service list");
+        "Server Reflection returned no service list response".to_string()
     })?;
 
     let services = match list_resp.message_response {
@@ -118,17 +118,17 @@ async fn collect_reflection_data_v1alpha(
         Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
             return Err(format!("Server Reflection Error: {}", err.error_message));
         }
-        _ => return Err("Server Reflection 返回了意外的响应类型".to_string()),
+        _ => return Err("Server Reflection returned an unexpected response type".to_string()),
     };
 
     let service_names = filter_services(services);
 
     if service_names.is_empty() {
-        return Err("服务器没有暴露任何业务 gRPC 服务（仅发现反射服务）".to_string());
+        return Err("server does not expose any business gRPC services (only reflection service found)".to_string());
     }
 
     log::info!(
-        "[gRPC Reflection v1alpha] 发现 {} 个服务: {:?}",
+        "[gRPC Reflection v1alpha] discovered {} services: {:?}",
         service_names.len(),
         service_names
     );
@@ -166,27 +166,27 @@ async fn fetch_file_descriptors_v1alpha(
             ),
         })
         .await
-        .map_err(|e| format!("发送 FileContainingSymbol 请求Failed: {}", e))?;
+        .map_err(|e| format!("failed to send FileContainingSymbol request: {}", e))?;
 
         let resp = tokio::time::timeout(
             std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
             stream.message(),
         )
         .await
-        .map_err(|_| format!("查询服务 '{}' 的文件描述符超时", service_name))?
-        .map_err(|e| format!("查询服务 '{}' 的文件描述符Failed: {}", service_name, e))?
-        .ok_or_else(|| format!("Server Reflection 在查询服务 '{}' 时关闭了流", service_name))?;
+        .map_err(|_| format!("timed out querying file descriptors for service '{}'", service_name))?
+        .map_err(|e| format!("failed to query file descriptors for service '{}': {}", service_name, e))?
+        .ok_or_else(|| format!("Server Reflection closed the stream while querying service '{}'", service_name))?;
 
         match resp.message_response {
             Some(server_reflection_response::MessageResponse::FileDescriptorResponse(fdr)) => {
                 for fd_bytes in &fdr.file_descriptor_proto {
                     let fd: prost_types::FileDescriptorProto =
                         prost::Message::decode(fd_bytes.as_slice())
-                            .map_err(|e| format!("解码 FileDescriptorProto Failed: {}", e))?;
+                            .map_err(|e| format!("failed to decode FileDescriptorProto: {}", e))?;
 
                     if let Some(name) = &fd.name {
                         if seen_files.insert(name.clone()) {
-                            log::debug!("从反射获取到文件描述符: {}", name);
+                            log::debug!("fetched file descriptor from reflection: {}", name);
                             all_fds.push(fd);
                         }
                     }
@@ -194,14 +194,14 @@ async fn fetch_file_descriptors_v1alpha(
             }
             Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
                 log::warn!(
-                    "查询服务 '{}' 的文件描述符时收到Error: {}",
+                    "received error while querying file descriptors for service '{}': {}",
                     service_name,
                     err.error_message
                 );
                 continue;
             }
             _ => {
-                log::warn!("查询服务 '{}' 时收到意外响应", service_name);
+                log::warn!("received unexpected response while querying service '{}'", service_name);
                 continue;
             }
         }
@@ -229,7 +229,7 @@ async fn resolve_dependencies_v1alpha(
     loop {
         max_iterations -= 1;
         if max_iterations <= 0 {
-            log::warn!("依赖解析达到最大迭代次数限制，可能有未解析的依赖");
+            log::warn!("dependency resolution reached the max iteration limit, some dependencies may be unresolved");
             break;
         }
 
@@ -243,7 +243,7 @@ async fn resolve_dependencies_v1alpha(
             break;
         }
 
-        log::debug!("发现 {} 个未解析的传递依赖", missing_deps.len());
+        log::debug!("found {} unresolved transitive dependencies", missing_deps.len());
 
         for dep_name in &missing_deps {
             tx.send(ServerReflectionRequest {
@@ -253,24 +253,24 @@ async fn resolve_dependencies_v1alpha(
                 )),
             })
             .await
-            .map_err(|e| format!("发送 FileByFilename 请求Failed: {}", e))?;
+            .map_err(|e| format!("failed to send FileByFilename request: {}", e))?;
 
             let resp = tokio::time::timeout(
                 std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
                 stream.message(),
             )
             .await
-            .map_err(|_| format!("查询依赖文件 '{}' 超时", dep_name))?;
+            .map_err(|_| format!("timed out querying dependency file '{}'", dep_name))?;
 
             let resp = match resp {
                 Ok(Some(resp)) => resp,
                 Ok(None) => {
-                    log::warn!("查询依赖文件 '{}' 时流已关闭", dep_name);
+                    log::warn!("stream closed while querying dependency file '{}'", dep_name);
                     seen_files.insert(dep_name.clone());
                     continue;
                 }
                 Err(e) => {
-                    log::warn!("查询依赖文件 '{}' Failed: {}", dep_name, e);
+                    log::warn!("failed to query dependency file '{}': {}", dep_name, e);
                     seen_files.insert(dep_name.clone());
                     continue;
                 }
@@ -281,11 +281,11 @@ async fn resolve_dependencies_v1alpha(
                     for fd_bytes in &fdr.file_descriptor_proto {
                         let fd: prost_types::FileDescriptorProto =
                             prost::Message::decode(fd_bytes.as_slice()).map_err(|e| {
-                                format!("解码依赖 FileDescriptorProto Failed: {}", e)
+                                format!("failed to decode dependency FileDescriptorProto: {}", e)
                             })?;
                         if let Some(name) = &fd.name {
                             if seen_files.insert(name.clone()) {
-                                log::debug!("从反射获取到依赖文件: {}", name);
+                                log::debug!("fetched dependency file from reflection: {}", name);
                                 all_fds.push(fd);
                             }
                         }
@@ -293,7 +293,7 @@ async fn resolve_dependencies_v1alpha(
                 }
                 Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
                     log::warn!(
-                        "查询依赖文件 '{}' 时收到Error: {}",
+                        "received error while querying dependency file '{}': {}",
                         dep_name,
                         err.error_message
                     );
@@ -325,14 +325,14 @@ async fn reflect_services_v1(
         server_reflection_response, ServerReflectionRequest,
     };
 
-    log::info!("[gRPC Reflection v1] 创建反射客户端...");
+    log::info!("[gRPC Reflection v1] creating reflection client...");
 
     let mut client = ServerReflectionClient::new(channel);
     let (tx, rx) = tokio::sync::mpsc::channel(16);
     let request_stream = tokio_stream::wrappers::ReceiverStream::new(rx);
 
     // 预发送 ListServices 请求
-    log::info!("[gRPC Reflection v1] 预发送 ListServices 请求...");
+    log::info!("[gRPC Reflection v1] pre-sending ListServices request...");
     tx.send(ServerReflectionRequest {
         host: String::new(),
         message_request: Some(server_reflection_request::MessageRequest::ListServices(
@@ -340,10 +340,10 @@ async fn reflect_services_v1(
         )),
     })
     .await
-    .map_err(|e| format!("发送 ListServices 请求Failed: {}", e))?;
+    .map_err(|e| format!("failed to send ListServices request: {}", e))?;
 
     // 发起双向流调用（带 metadata 和超时）
-    log::info!("[gRPC Reflection v1] 发起双向流调用...");
+    log::info!("[gRPC Reflection v1] starting bidi stream call...");
     let mut request = tonic::Request::new(request_stream);
     set_metadata_on_request(&mut request, metadata)?;
 
@@ -353,15 +353,15 @@ async fn reflect_services_v1(
     )
     .await
     .map_err(|_| {
-        log::error!("[gRPC Reflection v1] 双向流连接超时");
-        "Server Reflection v1 连接超时".to_string()
+        log::error!("[gRPC Reflection v1] bidi stream connection timed out");
+        "Server Reflection v1 connection timed out".to_string()
     })?
     .map_err(|e| {
-        log::error!("[gRPC Reflection v1] 双向流connection failed: {}", e);
+        log::error!("[gRPC Reflection v1] bidi stream connection failed: {}", e);
         format!("Server Reflection v1 connection failed: {}", e)
     })?;
     let mut stream = response.into_inner();
-    log::info!("[gRPC Reflection v1] 双向流已建立，等待 ListServices 响应...");
+    log::info!("[gRPC Reflection v1] bidi stream established, waiting for ListServices response...");
 
     // 等待 ListServices 响应
     let list_resp = tokio::time::timeout(
@@ -370,16 +370,16 @@ async fn reflect_services_v1(
     )
     .await
     .map_err(|_| {
-        log::error!("[gRPC Reflection v1] ListServices 响应超时");
-        "ListServices v1 响应超时".to_string()
+        log::error!("[gRPC Reflection v1] ListServices response timed out");
+        "ListServices v1 response timed out".to_string()
     })?
     .map_err(|e| {
-        log::error!("[gRPC Reflection v1] 读取 ListServices 响应Failed: {}", e);
-        format!("读取 ListServices v1 响应Failed: {}", e)
+        log::error!("[gRPC Reflection v1] failed to read ListServices response: {}", e);
+        format!("failed to read ListServices v1 response: {}", e)
     })?
     .ok_or_else(|| {
-        log::error!("[gRPC Reflection v1] 服务器关闭了流，未返回服务列表");
-        "Server Reflection v1 未返回服务列表响应".to_string()
+        log::error!("[gRPC Reflection v1] server closed the stream without returning a service list");
+        "Server Reflection v1 returned no service list response".to_string()
     })?;
 
     let services = match list_resp.message_response {
@@ -389,7 +389,7 @@ async fn reflect_services_v1(
         Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
             return Err(format!("Server Reflection v1 Error: {}", err.error_message));
         }
-        _ => return Err("Server Reflection v1 返回了意外的响应类型".to_string()),
+        _ => return Err("Server Reflection v1 returned an unexpected response type".to_string()),
     };
 
     let service_names: Vec<String> = services
@@ -399,11 +399,11 @@ async fn reflect_services_v1(
         .collect();
 
     if service_names.is_empty() {
-        return Err("服务器没有暴露任何业务 gRPC 服务（仅发现反射服务）".to_string());
+        return Err("server does not expose any business gRPC services (only reflection service found)".to_string());
     }
 
     log::info!(
-        "[gRPC Reflection v1] 发现 {} 个服务: {:?}",
+        "[gRPC Reflection v1] discovered {} services: {:?}",
         service_names.len(),
         service_names
     );
@@ -438,18 +438,18 @@ async fn fetch_file_descriptors_v1(
             ),
         })
         .await
-        .map_err(|e| format!("发送 FileContainingSymbol 请求Failed: {}", e))?;
+        .map_err(|e| format!("failed to send FileContainingSymbol request: {}", e))?;
 
         let resp = tokio::time::timeout(
             std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
             stream.message(),
         )
         .await
-        .map_err(|_| format!("查询服务 '{}' 的文件描述符超时", service_name))?
-        .map_err(|e| format!("查询服务 '{}' 的文件描述符Failed: {}", service_name, e))?
+        .map_err(|_| format!("timed out querying file descriptors for service '{}'", service_name))?
+        .map_err(|e| format!("failed to query file descriptors for service '{}': {}", service_name, e))?
         .ok_or_else(|| {
             format!(
-                "Server Reflection v1 在查询服务 '{}' 时关闭了流",
+                "Server Reflection v1 closed the stream while querying service '{}'",
                 service_name
             )
         })?;
@@ -459,11 +459,11 @@ async fn fetch_file_descriptors_v1(
                 for fd_bytes in &fdr.file_descriptor_proto {
                     let fd: prost_types::FileDescriptorProto =
                         prost::Message::decode(fd_bytes.as_slice())
-                            .map_err(|e| format!("解码 FileDescriptorProto Failed: {}", e))?;
+                            .map_err(|e| format!("failed to decode FileDescriptorProto: {}", e))?;
 
                     if let Some(name) = &fd.name {
                         if seen_files.insert(name.clone()) {
-                            log::debug!("从反射获取到文件描述符: {}", name);
+                            log::debug!("fetched file descriptor from reflection: {}", name);
                             all_fds.push(fd);
                         }
                     }
@@ -471,14 +471,14 @@ async fn fetch_file_descriptors_v1(
             }
             Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
                 log::warn!(
-                    "查询服务 '{}' 的文件描述符时收到Error: {}",
+                    "received error while querying file descriptors for service '{}': {}",
                     service_name,
                     err.error_message
                 );
                 continue;
             }
             _ => {
-                log::warn!("查询服务 '{}' 时收到意外响应", service_name);
+                log::warn!("received unexpected response while querying service '{}'", service_name);
                 continue;
             }
         }
@@ -505,7 +505,7 @@ async fn resolve_dependencies_v1(
     loop {
         max_iterations -= 1;
         if max_iterations <= 0 {
-            log::warn!("依赖解析达到最大迭代次数限制，可能有未解析的依赖");
+            log::warn!("dependency resolution reached the max iteration limit, some dependencies may be unresolved");
             break;
         }
 
@@ -519,7 +519,7 @@ async fn resolve_dependencies_v1(
             break;
         }
 
-        log::debug!("发现 {} 个未解析的传递依赖", missing_deps.len());
+        log::debug!("found {} unresolved transitive dependencies", missing_deps.len());
 
         for dep_name in &missing_deps {
             tx.send(ServerReflectionRequest {
@@ -529,24 +529,24 @@ async fn resolve_dependencies_v1(
                 )),
             })
             .await
-            .map_err(|e| format!("发送 FileByFilename 请求Failed: {}", e))?;
+            .map_err(|e| format!("failed to send FileByFilename request: {}", e))?;
 
             let resp = tokio::time::timeout(
                 std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
                 stream.message(),
             )
             .await
-            .map_err(|_| format!("查询依赖文件 '{}' 超时", dep_name))?;
+            .map_err(|_| format!("timed out querying dependency file '{}'", dep_name))?;
 
             let resp = match resp {
                 Ok(Some(resp)) => resp,
                 Ok(None) => {
-                    log::warn!("查询依赖文件 '{}' 时流已关闭", dep_name);
+                    log::warn!("stream closed while querying dependency file '{}'", dep_name);
                     seen_files.insert(dep_name.clone());
                     continue;
                 }
                 Err(e) => {
-                    log::warn!("查询依赖文件 '{}' Failed: {}", dep_name, e);
+                    log::warn!("failed to query dependency file '{}': {}", dep_name, e);
                     seen_files.insert(dep_name.clone());
                     continue;
                 }
@@ -557,11 +557,11 @@ async fn resolve_dependencies_v1(
                     for fd_bytes in &fdr.file_descriptor_proto {
                         let fd: prost_types::FileDescriptorProto =
                             prost::Message::decode(fd_bytes.as_slice()).map_err(|e| {
-                                format!("解码依赖 FileDescriptorProto Failed: {}", e)
+                                format!("failed to decode dependency FileDescriptorProto: {}", e)
                             })?;
                         if let Some(name) = &fd.name {
                             if seen_files.insert(name.clone()) {
-                                log::debug!("从反射获取到依赖文件: {}", name);
+                                log::debug!("fetched dependency file from reflection: {}", name);
                                 all_fds.push(fd);
                             }
                         }
@@ -569,7 +569,7 @@ async fn resolve_dependencies_v1(
                 }
                 Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
                     log::warn!(
-                        "查询依赖文件 '{}' 时收到Error: {}",
+                        "received error while querying dependency file '{}': {}",
                         dep_name,
                         err.error_message
                     );
@@ -598,21 +598,21 @@ pub(crate) async fn reflect_services(
     metadata: Vec<(String, String)>,
 ) -> Result<prost_reflect::DescriptorPool, String> {
     // 先尝试 v1
-    log::info!("[gRPC Reflection] 尝试 v1 协议...");
+    log::info!("[gRPC Reflection] trying v1 protocol...");
     match reflect_services_v1(channel.clone(), &metadata).await {
         Ok(pool) => {
-            log::info!("[gRPC Reflection] v1 协议Success");
+            log::info!("[gRPC Reflection] v1 protocol succeeded");
             return Ok(pool);
         }
         Err(e) => {
             // 判断是否应该回退: 连接Error或 UNIMPLEMENTED 可回退
             let should_fallback = is_fallback_eligible_error(&e);
             if !should_fallback {
-                log::error!("[gRPC Reflection] v1 Failed（不可回退）: {}", e);
+                log::error!("[gRPC Reflection] v1 failed (not fallback-eligible): {}", e);
                 return Err(e);
             }
             log::info!(
-                "[gRPC Reflection] v1 Failed（可回退）: {}, 尝试 v1alpha...",
+                "[gRPC Reflection] v1 failed (fallback-eligible): {}, trying v1alpha...",
                 e
             );
         }
@@ -621,13 +621,13 @@ pub(crate) async fn reflect_services(
     // 回退到 v1alpha
     match reflect_services_v1alpha(channel, &metadata).await {
         Ok(pool) => {
-            log::info!("[gRPC Reflection] v1alpha 回退Success");
+            log::info!("[gRPC Reflection] v1alpha fallback succeeded");
             Ok(pool)
         }
         Err(e) => {
-            log::error!("[gRPC Reflection] v1alpha 也Failed: {}", e);
+            log::error!("[gRPC Reflection] v1alpha also failed: {}", e);
             Err(format!(
-                "Server Reflection Failed（已尝试 v1 和 v1alpha）: {}",
+                "Server Reflection failed (tried v1 and v1alpha): {}",
                 e
             ))
         }
@@ -661,9 +661,9 @@ fn set_metadata_on_request<T>(
 ) -> Result<(), String> {
     for (key, value) in metadata {
         let meta_key = MetadataKey::from_bytes(key.as_bytes())
-            .map_err(|e| format!("无效的 reflection metadata key '{}': {:?}", key, e))?;
+            .map_err(|e| format!("invalid reflection metadata key '{}': {:?}", key, e))?;
         let meta_val = MetadataValue::try_from(value.as_str())
-            .map_err(|e| format!("无效的 reflection metadata value '{}': {:?}", value, e))?;
+            .map_err(|e| format!("invalid reflection metadata value '{}': {:?}", value, e))?;
         request.metadata_mut().insert(meta_key, meta_val);
     }
     Ok(())
@@ -674,12 +674,12 @@ fn build_descriptor_pool(
     all_fds: Vec<prost_types::FileDescriptorProto>,
 ) -> Result<prost_reflect::DescriptorPool, String> {
     if all_fds.is_empty() {
-        return Err("Server Reflection 未返回任何文件描述符".to_string());
+        return Err("Server Reflection returned no file descriptors".to_string());
     }
 
     let fds = prost_types::FileDescriptorSet { file: all_fds };
     prost_reflect::DescriptorPool::from_file_descriptor_set(fds)
-        .map_err(|e| format!("从反射数据构建 DescriptorPool Failed: {}", e))
+        .map_err(|e| format!("failed to build DescriptorPool from reflection data: {}", e))
 }
 
 /// 判断是否为 gRPC 反射服务（应从结果中过滤）
@@ -717,7 +717,7 @@ pub async fn discover_services_via_reflection(
     };
 
     log::info!(
-        "[gRPC] 开始反射发现: url={}, use_tls={}, tls_skip_verify={}, timeout={}ms, metadata_count={}",
+        "[gRPC] starting reflection discovery: url={}, use_tls={}, tls_skip_verify={}, timeout={}ms, metadata_count={}",
         url_with_scheme,
         use_tls,
         tls_skip_verify,
@@ -794,7 +794,7 @@ pub async fn generate_skeleton_via_reflection(
     };
 
     log::info!(
-        "[gRPC] 通过反射生成骨架: url={}, service={}, method={}",
+        "[gRPC] generating skeleton via reflection: url={}, service={}, method={}",
         url_with_scheme,
         service_name,
         method_name
@@ -838,7 +838,7 @@ pub fn discover_services_via_proto(
         .collect();
 
     let pool = proto_parser::parse_proto_files(&files)
-        .map_err(|e| format!("解析 proto 文件Failed: {}", e))?;
+        .map_err(|e| format!("failed to parse proto files: {}", e))?;
 
     let services = proto_parser::list_services(&pool);
     let message_definitions = Arc::new(proto_parser::get_message_definitions(&pool));

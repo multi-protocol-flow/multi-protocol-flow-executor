@@ -114,7 +114,7 @@ fn get_error_detail_pool() -> &'static prost_reflect::DescriptorPool {
         let temp_dir = match tempfile::tempdir() {
             Ok(dir) => dir,
             Err(e) => {
-                log::warn!("[gRPC ErrorDetail] 创建临时目录Failed: {}", e);
+                log::warn!("[gRPC ErrorDetail] failed to create temp directory: {}", e);
                 return prost_reflect::DescriptorPool::new();
             }
         };
@@ -122,14 +122,14 @@ fn get_error_detail_pool() -> &'static prost_reflect::DescriptorPool {
         // 创建 google/rpc/ 目录结构
         let rpc_dir = temp_dir.path().join("google").join("rpc");
         if let Err(e) = std::fs::create_dir_all(&rpc_dir) {
-            log::warn!("[gRPC ErrorDetail] 创建目录Failed: {}", e);
+            log::warn!("[gRPC ErrorDetail] failed to create directory: {}", e);
             return prost_reflect::DescriptorPool::new();
         }
 
         // 写入 proto 文件
         let proto_path = rpc_dir.join("error_details.proto");
         if let Err(e) = std::fs::write(&proto_path, ERROR_DETAILS_PROTO) {
-            log::warn!("[gRPC ErrorDetail] 写入 proto 文件Failed: {}", e);
+            log::warn!("[gRPC ErrorDetail] failed to write proto file: {}", e);
             return prost_reflect::DescriptorPool::new();
         }
 
@@ -142,19 +142,19 @@ fn get_error_detail_pool() -> &'static prost_reflect::DescriptorPool {
                 match prost_reflect::DescriptorPool::from_file_descriptor_set(fds) {
                     Ok(pool) => {
                         log::debug!(
-                            "[gRPC ErrorDetail] Error详情 DescriptorPool 构建Success，包含 {} 个消息类型",
+                            "[gRPC ErrorDetail] error details DescriptorPool built successfully, contains {} message types",
                             pool.all_messages().count()
                         );
                         pool
                     }
                     Err(e) => {
-                        log::warn!("[gRPC ErrorDetail] 构建 DescriptorPool Failed: {}", e);
+                        log::warn!("[gRPC ErrorDetail] failed to build DescriptorPool: {}", e);
                         prost_reflect::DescriptorPool::new()
                     }
                 }
             }
             Err(e) => {
-                log::warn!("[gRPC ErrorDetail] 编译 proto 文件Failed: {}", e);
+                log::warn!("[gRPC ErrorDetail] failed to compile proto files: {}", e);
                 prost_reflect::DescriptorPool::new()
             }
         }

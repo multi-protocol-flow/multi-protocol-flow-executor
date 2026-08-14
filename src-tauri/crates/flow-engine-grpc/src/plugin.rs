@@ -157,12 +157,12 @@ impl NodePlugin for GrpcCallPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "调用Success".into(),
+                label: "Call Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "调用Failed".into(),
+                label: "Call Failed".into(),
                 position: "bottom".into(),
             },
         ]

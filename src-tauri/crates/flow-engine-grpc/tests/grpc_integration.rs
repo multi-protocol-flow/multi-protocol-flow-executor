@@ -336,10 +336,10 @@ fn test_grpc_call_plugin_full_metadata() {
     let ports = plugin.ports();
     assert_eq!(ports.len(), 2);
     assert_eq!(ports[0].id, "true");
-    assert_eq!(ports[0].label, "调用Success");
+    assert_eq!(ports[0].label, "Call Success");
     assert_eq!(ports[0].position, "right");
     assert_eq!(ports[1].id, "false");
-    assert_eq!(ports[1].label, "调用Failed");
+    assert_eq!(ports[1].label, "Call Failed");
     assert_eq!(ports[1].position, "bottom");
 
     let config = plugin.default_config();

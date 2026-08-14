@@ -46,10 +46,10 @@ pub struct MethodInfo {
 #[derive(Debug, thiserror::Error)]
 pub enum ProtoParseError {
     /// Proto 文件解析Failed
-    #[error("Proto 文件解析Failed: {0}")]
+    #[error("failed to parse proto files: {0}")]
     ParseError(String),
     /// 缺失文件
-    #[error("缺失文件: {0:?}")]
+    #[error("missing files: {0:?}")]
     MissingFiles(Vec<String>),
     /// I/O Error
     #[error("I/O Error: {0}")]
@@ -90,7 +90,7 @@ pub fn parse_proto_files(files: &[ProtoFile]) -> Result<DescriptorPool, ProtoPar
 
     if file_names.is_empty() {
         return Err(ProtoParseError::ParseError(
-            "没有提供有效的 proto 文件".to_string(),
+            "no valid proto files provided".to_string(),
         ));
     }
 
@@ -101,7 +101,7 @@ pub fn parse_proto_files(files: &[ProtoFile]) -> Result<DescriptorPool, ProtoPar
 
     // 从 FileDescriptorSet 构建 DescriptorPool
     let pool = DescriptorPool::from_file_descriptor_set(fds)
-        .map_err(|e| ProtoParseError::ParseError(format!("构建 DescriptorPool Failed: {}", e)))?;
+        .map_err(|e| ProtoParseError::ParseError(format!("failed to build DescriptorPool: {}", e)))?;
 
     Ok(pool)
 }
@@ -144,14 +144,14 @@ pub fn generate_skeleton_from_pool(
 ) -> Result<String, String> {
     let service = pool
         .get_service_by_name(service_name)
-        .ok_or_else(|| format!("未找到服务: {}", service_name))?;
+        .ok_or_else(|| format!("service not found: {}", service_name))?;
     let method = service
         .methods()
         .find(|m| m.name() == method_name)
-        .ok_or_else(|| format!("服务 {} 中未找到方法: {}", service_name, method_name))?;
+        .ok_or_else(|| format!("method not found in service {}: {}", service_name, method_name))?;
     let input_msg = method.input();
     let skeleton = generate_json_skeleton(&input_msg);
-    serde_json::to_string_pretty(&skeleton).map_err(|e| format!("序列化 JSON 骨架Failed: {}", e))
+    serde_json::to_string_pretty(&skeleton).map_err(|e| format!("failed to serialize JSON skeleton: {}", e))
 }
 
 /// 生成消息类型的 JSON 骨架
@@ -215,7 +215,7 @@ pub fn discover_proto_files_in_dir(
     let root = std::path::Path::new(dir_path);
     if !root.is_dir() {
         return Err(ProtoParseError::ParseError(format!(
-            "路径不是一个有效目录: {}",
+            "path is not a valid directory: {}",
             dir_path
         )));
     }
@@ -225,7 +225,7 @@ pub fn discover_proto_files_in_dir(
 
     if files.is_empty() {
         return Err(ProtoParseError::ParseError(
-            "目录中未找到任何 .proto 文件".to_string(),
+            "no .proto files found in directory".to_string(),
         ));
     }
 
@@ -284,7 +284,7 @@ fn scan_proto_dir(
 /// Success时返回 `DescriptorPool`
 pub fn parse_descriptor_set(data: &[u8]) -> Result<DescriptorPool, ProtoParseError> {
     DescriptorPool::decode(data)
-        .map_err(|e| ProtoParseError::ParseError(format!("解析 FileDescriptorSet Failed: {}", e)))
+        .map_err(|e| ProtoParseError::ParseError(format!("failed to parse FileDescriptorSet: {}", e)))
 }
 
 // ============================================================================
@@ -330,12 +330,12 @@ pub fn validate_request_json(
 ) -> Result<ValidationResult, String> {
     // 1. 解析 JSON 语法
     let value: serde_json::Value =
-        serde_json::from_str(json).map_err(|e| format!("JSON 语法Error: {}", e))?;
+        serde_json::from_str(json).map_err(|e| format!("invalid JSON syntax: {}", e))?;
 
     // 2. 获取消息描述符
     let msg_desc = pool
         .get_message_by_name(message_name)
-        .ok_or_else(|| format!("未找到消息类型: {}", message_name))?;
+        .ok_or_else(|| format!("message type not found: {}", message_name))?;
 
     // 3. 必须是 JSON 对象
     let obj = match value.as_object() {
@@ -345,7 +345,7 @@ pub fn validate_request_json(
                 valid: false,
                 errors: vec![ValidationError {
                     path: String::new(),
-                    message: "期望 JSON 对象，实际为其他类型".to_string(),
+                    message: "expected JSON object, got another type".to_string(),
                 }],
             });
         }
@@ -382,7 +382,7 @@ fn validate_json_object(
             None => {
                 errors.push(ValidationError {
                     path: field_path,
-                    message: "未知字段".to_string(),
+                    message: "unknown field".to_string(),
                 });
             }
             Some(fd) => {
@@ -392,7 +392,7 @@ fn validate_json_object(
                         errors.push(ValidationError {
                             path: field_path,
                             message: format!(
-                                "期望 map (JSON 对象)，实际为 {}",
+                                "expected map (JSON object), got {}",
                                 json_type_name(value)
                             ),
                         });
@@ -406,7 +406,7 @@ fn validate_json_object(
                         errors.push(ValidationError {
                             path: field_path,
                             message: format!(
-                                "期望 repeated (JSON 数组)，实际为 {}",
+                                "expected repeated (JSON array), got {}",
                                 json_type_name(value)
                             ),
                         });
@@ -438,7 +438,7 @@ fn check_field_type(
             if !value.is_string() {
                 errors.push(ValidationError {
                     path: field_path,
-                    message: format!("期望 string 类型，实际为 {}", json_type_name(value)),
+                    message: format!("expected string type, got {}", json_type_name(value)),
                 });
             }
         }
@@ -446,7 +446,7 @@ fn check_field_type(
             if !value.is_boolean() {
                 errors.push(ValidationError {
                     path: field_path,
-                    message: format!("期望 bool 类型，实际为 {}", json_type_name(value)),
+                    message: format!("expected bool type, got {}", json_type_name(value)),
                 });
             }
         }
@@ -459,7 +459,7 @@ fn check_field_type(
             if !value.is_number() {
                 errors.push(ValidationError {
                     path: field_path,
-                    message: format!("期望整数类型，实际为 {}", json_type_name(value)),
+                    message: format!("expected integer type, got {}", json_type_name(value)),
                 });
             }
         }
@@ -467,7 +467,7 @@ fn check_field_type(
             if !value.is_number() {
                 errors.push(ValidationError {
                     path: field_path,
-                    message: format!("期望无符号整数类型，实际为 {}", json_type_name(value)),
+                    message: format!("expected unsigned integer type, got {}", json_type_name(value)),
                 });
             }
         }
@@ -475,7 +475,7 @@ fn check_field_type(
             if !value.is_number() {
                 errors.push(ValidationError {
                     path: field_path,
-                    message: format!("期望浮点数类型，实际为 {}", json_type_name(value)),
+                    message: format!("expected float type, got {}", json_type_name(value)),
                 });
             }
         }
@@ -484,7 +484,7 @@ fn check_field_type(
                 errors.push(ValidationError {
                     path: field_path,
                     message: format!(
-                        "期望 bytes (Base64 字符串)，实际为 {}",
+                        "expected bytes (Base64 string), got {}",
                         json_type_name(value)
                     ),
                 });
@@ -495,7 +495,7 @@ fn check_field_type(
             if !value.is_string() && !value.is_number() {
                 errors.push(ValidationError {
                     path: field_path,
-                    message: format!("期望 enum (字符串或数字)，实际为 {}", json_type_name(value)),
+                    message: format!("expected enum (string or number), got {}", json_type_name(value)),
                 });
             }
         }
@@ -506,7 +506,7 @@ fn check_field_type(
             } else {
                 errors.push(ValidationError {
                     path: field_path,
-                    message: format!("期望 message (JSON 对象)，实际为 {}", json_type_name(value)),
+                    message: format!("expected message (JSON object), got {}", json_type_name(value)),
                 });
             }
         }
@@ -1277,7 +1277,7 @@ message Status {
         let vr = result.unwrap_or_else(|e| panic!("应返回验证结果: {e}"));
         assert!(!vr.valid, "非 JSON 对象应不通过");
         assert_eq!(vr.errors.len(), 1);
-        assert!(vr.errors[0].message.contains("期望 JSON 对象"));
+        assert!(vr.errors[0].message.contains("expected JSON object"));
     }
 
     /// 测试验证 — 未知字段
@@ -1295,7 +1295,7 @@ message Status {
         assert!(vr
             .errors
             .iter()
-            .any(|e| e.path == "unknown_field" && e.message.contains("未知字段")));
+            .any(|e| e.path == "unknown_field" && e.message.contains("unknown field")));
     }
 
     /// 测试验证 — 类型不匹配
