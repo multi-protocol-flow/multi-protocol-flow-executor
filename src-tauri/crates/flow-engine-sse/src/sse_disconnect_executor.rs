@@ -52,7 +52,7 @@ impl NodeExecutor for SseDisconnectExecutor {
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID variable substitution failed: {}", e);
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
                 "[Flow {}] [Error] NodeID: {}, NodeName: {}, Error: {}",
                 context.flow_uuid,
@@ -75,7 +75,7 @@ impl NodeExecutor for SseDisconnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("SSE Disconnect 节点 {} start execution", node.name),
+                message: format!("SSE disconnect node {} start execution", node.name),
                 timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -113,7 +113,7 @@ impl NodeExecutor for SseDisconnectExecutor {
 
         match disconnect_result {
             Ok(()) => {
-                log::info!("[SSE] 连接断开Success: connection_id={}", connection_id);
+                log::info!("[SSE] disconnect success: connection_id={}", connection_id);
 
                 // 6. 构建输出数据
                 let output_data = json!({
@@ -132,7 +132,7 @@ impl NodeExecutor for SseDisconnectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!("SSE 连接断开Success ({}ms)", duration.as_millis()),
+                        message: format!("SSE disconnect success ({}ms)", duration.as_millis()),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -144,7 +144,7 @@ impl NodeExecutor for SseDisconnectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[SSE] 连接断开Failed: connection_id={}, error={}",
+                    "[SSE] disconnect failed: connection_id={}, error={}",
                     connection_id,
                     e
                 );
@@ -153,7 +153,7 @@ impl NodeExecutor for SseDisconnectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("SSE 连接断开Failed: {}", e),
+                        message: format!("SSE disconnect failed: {}", e),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),

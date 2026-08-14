@@ -84,7 +84,7 @@ impl NodeExecutor for SseListenExecutor {
             .emit_log(LogEvent {
                 level: LogLevel::Info,
                 message: format!(
-                    "SSE 监听节点 {} start execution: connection_id={}",
+                    "SSE listen node {} start execution: connection_id={}",
                     node.name, connection_id
                 ),
                 timestamp: flow_engine_core::utils::unix_timestamp_ms(),
@@ -156,7 +156,7 @@ impl NodeExecutor for SseListenExecutor {
                         let error_msg = output_data
                             .get("error")
                             .and_then(|v| v.as_str())
-                            .unwrap_or("SSE 监听无事件或Failed")
+                            .unwrap_or("SSE listen: no events or failed")
                             .to_string();
                         return Err(ErrorDetail::execution_error(error_msg));
                     }
@@ -169,14 +169,14 @@ impl NodeExecutor for SseListenExecutor {
 
                 if is_success {
                     log::info!(
-                        "[SSE] 监听Success: connection_id={}, 事件数={}, 耗时={}ms",
+                        "[SSE] listen success: connection_id={}, events={}, duration={}ms",
                         connection_id,
                         event_count,
                         duration.as_millis()
                     );
                 } else {
                     log::warn!(
-                        "[SSE] 监听超时或无事件: connection_id={}, 事件数={}, 耗时={}ms",
+                        "[SSE] listen timeout or no events: connection_id={}, events={}, duration={}ms",
                         connection_id,
                         event_count,
                         duration.as_millis()
@@ -191,13 +191,13 @@ impl NodeExecutor for SseListenExecutor {
                 };
                 let log_msg = if is_success {
                     format!(
-                        "SSE 监听Success: 收到 {} 个事件 ({}ms)",
+                        "SSE listen success: received {} events ({}ms)",
                         event_count,
                         duration.as_millis()
                     )
                 } else {
                     format!(
-                        "SSE 监听超时或无事件: 事件数={} ({}ms)",
+                        "SSE listen timeout or no events: events={} ({}ms)",
                         event_count,
                         duration.as_millis()
                     )
@@ -237,7 +237,7 @@ impl NodeExecutor for SseListenExecutor {
                 let duration = start_time.elapsed();
 
                 log::error!(
-                    "[SSE] 监听异常: uuid={}, connection_id={}, error={}",
+                    "[SSE] listen error: uuid={}, connection_id={}, error={}",
                     node.uuid,
                     connection_id,
                     e
@@ -246,7 +246,7 @@ impl NodeExecutor for SseListenExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("SSE 监听异常: {}", e),
+                        message: format!("SSE listen error: {}", e),
                         timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),

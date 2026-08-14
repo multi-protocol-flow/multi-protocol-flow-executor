@@ -128,7 +128,7 @@ impl Drop for SseConnectionManager {
                 if let Some(handle) = conn.listen_handle {
                     handle.abort();
                 }
-                info!("SSE 连接 {} 已随 Manager 释放而清理", id);
+                info!("SSE connection {} cleaned up on manager release", id);
             }
         }
     }
@@ -177,7 +177,7 @@ impl SseProvider for SseConnectionManager {
         uuid: &str,
         config: &SseConnectConfig,
     ) -> Result<SseConnectOutput, String> {
-        info!("SSE 开始连接: url={}, id={}", config.url, uuid);
+        info!("SSE connecting: url={}, id={}", config.url, uuid);
 
         // UUID 去重：如果已存在且已连接，直接返回Success
         {
@@ -185,7 +185,7 @@ impl SseProvider for SseConnectionManager {
             if let Some(existing) = conns.get(uuid) {
                 let s = existing.status.read().await;
                 if *s == SseConnectionStatus::Connected {
-                    info!("SSE 复用已有连接: id={}", uuid);
+                    info!("SSE reusing existing connection: id={}", uuid);
                     let last_id = existing.last_event_id.read().await.clone();
                     return Ok(SseConnectOutput {
                         success: true,
@@ -259,7 +259,7 @@ impl SseProvider for SseConnectionManager {
         // 存入连接池
         {
             let mut conns = self.connections.write().await;
-            info!("SSE 添加连接: id={}", uuid);
+            info!("SSE adding connection: id={}", uuid);
             conns.insert(uuid.to_string(), connection);
         }
 
@@ -288,7 +288,7 @@ impl SseProvider for SseConnectionManager {
             let conns = self.connections.read().await;
             let conn = conns
                 .get(uuid)
-                .ok_or_else(|| format!("SSE 连接 '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("SSE connection '{}' does not exist", uuid))?;
             conn.event_tx.clone()
         };
 
@@ -339,7 +339,7 @@ impl SseProvider for SseConnectionManager {
                     break;
                 }
                 Ok(Err(broadcast::error::RecvError::Lagged(n))) => {
-                    warn!("SSE 接收滞后，丢失 {} 个事件", n);
+                    warn!("SSE receiver lagged, dropped {} events", n);
                     continue;
                 }
                 Err(_elapsed) => {
@@ -367,7 +367,7 @@ impl SseProvider for SseConnectionManager {
     /// 共享模式下为 no-op。
     async fn disconnect(&self, uuid: &str, _config: &SseDisconnectConfig) -> Result<(), String> {
         if self.is_shared {
-            info!("共享模式下忽略 disconnect 请求: {}", uuid);
+            info!("ignoring disconnect request in shared mode: {}", uuid);
             return Ok(());
         }
 
@@ -379,12 +379,12 @@ impl SseProvider for SseConnectionManager {
                 if let Some(handle) = conn.listen_handle {
                     handle.abort();
                 }
-                info!("SSE 断开连接: id={}", uuid);
+                info!("SSE disconnecting: id={}", uuid);
                 Ok(())
             }
             None => {
-                warn!("SSE 断开connection failed: 连接 '{}' 不存在", uuid);
-                Err(format!("SSE 连接 '{}' 不存在", uuid))
+                warn!("SSE disconnect failed: connection '{}' does not exist", uuid);
+                Err(format!("SSE connection '{}' does not exist", uuid))
             }
         }
     }
@@ -455,7 +455,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("不存在"));
+            .contains("does not exist"));
     }
 
     #[tokio::test]
@@ -488,7 +488,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("不存在"));
+            .contains("does not exist"));
     }
 
     // ---- 状态显示测试 ----

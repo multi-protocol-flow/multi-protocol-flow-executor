@@ -154,12 +154,12 @@ impl NodePlugin for SseListenPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "收到事件".into(),
+                label: "Event Received".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "超时/无事件".into(),
+                label: "Timeout / No Event".into(),
                 position: "bottom".into(),
             },
         ]
@@ -260,7 +260,7 @@ impl NodePlugin for SseDisconnectPlugin {
     fn ports(&self) -> Vec<PortDef> {
         vec![PortDef {
             id: "out".into(),
-            label: "完成".into(),
+            label: "Done".into(),
             position: "right".into(),
         }]
     }

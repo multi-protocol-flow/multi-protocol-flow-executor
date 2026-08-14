@@ -104,7 +104,7 @@ impl NodeExecutor for SseConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("SSE 连接节点 {} start execution", node.name),
+                message: format!("SSE connect node {} start execution", node.name),
                 timestamp: flow_engine_core::utils::unix_timestamp_ms(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -129,7 +129,7 @@ impl NodeExecutor for SseConnectExecutor {
 
                 if output.success {
                     log::info!(
-                        "[SSE] 连接Success: uuid={}, url={}, connection_id={}",
+                        "[SSE] connect success: uuid={}, url={}, connection_id={}",
                         node.uuid,
                         connect_config.url,
                         output.connection_id
@@ -173,11 +173,11 @@ impl NodeExecutor for SseConnectExecutor {
                     LogLevel::Error
                 };
                 let log_message = if output.success {
-                    format!("SSE 连接Success ({}ms)", duration.as_millis())
+                    format!("SSE connect success ({}ms)", duration.as_millis())
                 } else {
                     format!(
                         "SSE connection failed: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知Error"),
+                        output.error.as_deref().unwrap_or("unknown error"),
                         duration.as_millis()
                     )
                 };

@@ -101,14 +101,14 @@ impl SseClient {
         let response = builder
             .send()
             .await
-            .map_err(|e| format!("SSE 连接请求Failed: {}", e))?;
+            .map_err(|e| format!("failed to send SSE connection request: {}", e))?;
 
         let status = response.status();
         if !status.is_success() {
             return Err(format!("SSE connection failed: HTTP {}", status.as_u16()));
         }
 
-        info!("SSE 连接Success: {}", config.url);
+        info!("SSE connect success: {}", config.url);
         Ok(response)
     }
 
@@ -124,7 +124,7 @@ impl SseClient {
         tokio::spawn(async move {
             if let Err(e) = Self::read_sse_stream(response, &cancel_token, &event_sender).await {
                 if !cancel_token.is_cancelled() {
-                    warn!("SSE 流读取Error: {}", e);
+                    warn!("SSE stream read error: {}", e);
                 }
             }
         })
@@ -152,11 +152,11 @@ impl SseClient {
         while let Some(chunk_result) = stream.next().await {
             // 检查取消
             if cancel_token.is_cancelled() {
-                info!("SSE 流读取被取消");
+                info!("SSE stream read cancelled");
                 return Ok(());
             }
 
-            let chunk = chunk_result.map_err(|e| format!("SSE 流读取Failed: {}", e))?;
+            let chunk = chunk_result.map_err(|e| format!("failed to read SSE stream: {}", e))?;
             let text = String::from_utf8_lossy(&chunk);
             line_buffer.push_str(&text);
 
@@ -238,7 +238,7 @@ impl SseClient {
             let _ = event_sender.send(event);
         }
 
-        info!("SSE 流结束");
+        info!("SSE stream ended");
         Ok(())
     }
 }
