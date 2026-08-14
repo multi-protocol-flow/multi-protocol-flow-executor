@@ -30,7 +30,7 @@ pub fn extract_value_by_path(value: &serde_json::Value, path: &str) -> Option<se
     let json_path = match JsonPath::parse(path) {
         Ok(p) => p,
         Err(_) => {
-            log::warn!("无效的 JSONPath 语法: {}", path);
+            log::warn!("invalid JSONPath syntax: {}", path);
             return None;
         }
     };
@@ -59,7 +59,7 @@ pub fn apply_output_mappings(
     for mapping in mappings {
         if let Some(value) = extract_value_by_path(response, &mapping.source) {
             log::info!(
-                "[流程 {}] [输出映射] 节点: {}, 路径: {} -> 变量: {}",
+                "[Flow {}] [output mapping] node: {}, path: {} -> variable: {}",
                 context.flow_uuid,
                 node_uuid,
                 mapping.source,
@@ -70,7 +70,7 @@ pub fn apply_output_mappings(
                 .set_variable(mapping.target.clone(), value, node_uuid.to_string());
         } else {
             log::warn!(
-                "[流程 {}] [输出映射] 节点: {}, 路径 '{}' 未找到值",
+                "[Flow {}] [output mapping] node: {}, path '{}' not found",
                 context.flow_uuid,
                 node_uuid,
                 mapping.source

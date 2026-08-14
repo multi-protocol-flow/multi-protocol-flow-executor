@@ -160,7 +160,7 @@ impl LogSender for QueuedLogSender {
             // 发布模式：推入队列（几乎立即返回 ~1µs）
             self.sender
                 .as_ref()
-                .ok_or("队列发送器未初始化")?
+                .ok_or("queue sender not initialized")?
                 .send(event)
                 .map_err(|e| e.to_string())
         }

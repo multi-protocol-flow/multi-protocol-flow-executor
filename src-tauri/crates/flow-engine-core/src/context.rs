@@ -479,7 +479,7 @@ impl ExecutionContext {
         if let Some(stream) = streams.get_mut(connection_id) {
             stream.push_message(message)
         } else {
-            Err(format!("WebSocket 连接 {} 不存在", connection_id))
+            Err(format!("WebSocket connection '{}' does not exist", connection_id))
         }
     }
 
@@ -1022,7 +1022,7 @@ mod tests {
         assert!(result
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
-            .contains("不存在"));
+            .contains("does not exist"));
     }
 
     #[tokio::test]

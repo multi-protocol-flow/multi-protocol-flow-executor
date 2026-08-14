@@ -23,11 +23,11 @@ impl AppDirProvider for DefaultAppDirProvider {
         if cfg!(windows) {
             std::env::var("APPDATA")
                 .map(|p| PathBuf::from(p).join("flow-executor"))
-                .map_err(|e| format!("获取 APPDATA Failed: {}", e))
+                .map_err(|e| format!("failed to get APPDATA: {}", e))
         } else {
             std::env::var("HOME")
                 .map(|p| PathBuf::from(p).join(".flow-executor"))
-                .map_err(|e| format!("获取 HOME Failed: {}", e))
+                .map_err(|e| format!("failed to get HOME: {}", e))
         }
     }
 }
