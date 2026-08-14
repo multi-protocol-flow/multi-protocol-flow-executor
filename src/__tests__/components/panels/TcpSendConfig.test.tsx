@@ -1,0 +1,179 @@
+/**
+ * TcpSendConfig 组件测试
+ * - 渲染表单字段：连接 ID、数据输入、发送超时
+ * - 数据保存 (onSave 回调)：卸载保存、协议模板即时保存
+ * - 连接选择：有/无 tcp_connect 节点时的渲染差异
+ */
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { TcpSendConfig } from '@/components/panels/TcpSendConfig';
+import type { TcpSendConfig as TcpSendConfigType } from '@/types';
+import { useFlowStore } from '@/stores';
+
+// Mock useFlowStore
+vi.mock('@/stores', () => ({
+  useFlowStore: vi.fn(),
+}));
+
+// Mock react-hook-form 的 zodResolver（简化 schema 验证）
+vi.mock('@hookform/resolvers/zod', () => ({
+  zodResolver: (_schema: unknown) => (values: unknown) => ({
+    values,
+    errors: {},
+  }),
+}));
+
+/**
+ * 创建基础 TcpSendConfig 数据
+ */
+function createBaseConfig(
+  overrides: Partial<TcpSendConfigType> = {},
+): TcpSendConfigType {
+  return {
+    type: 'tcp_send',
+    connection_id: 'tcp-conn-001',
+    data: 'hello',
+    data_encoding: 'text',
+    send_timeout_ms: 30000,
+    ...overrides,
+  };
+}
+
+/**
+ * 配置 store mock，模拟包含 tcp_connect 节点的 flow
+ */
+function setupStoreMock(withTcpConnect: boolean = true) {
+  const nodes: Array<{
+    uuid: string;
+    type: string;
+    name: string;
+    position: { x: number; y: number };
+    data: Record<string, unknown>;
+  }> = [];
+
+  if (withTcpConnect) {
+    nodes.push({
+      uuid: 'tcp-conn-001',
+      type: 'tcp_connect',
+      name: 'TCP 连接 1',
+      position: { x: 200, y: 0 },
+      data: {
+        type: 'tcp_connect',
+        host: '127.0.0.1',
+        port: 8080,
+      },
+    });
+  }
+
+  const mockFlow = {
+    uuid: 'test-flow',
+    name: 'Test Flow',
+    nodes,
+    connections: [],
+  };
+
+  (useFlowStore as unknown as Mock).mockImplementation((selector: unknown) => {
+    if (typeof selector === 'function') {
+      return selector({ flow: mockFlow });
+    }
+    return { flow: mockFlow };
+  });
+
+  return mockFlow;
+}
+
+describe('TcpSendConfig', () => {
+  const mockOnSave = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('基础渲染', () => {
+    it('渲染 TCP 发送节点标题', () => {
+      setupStoreMock(false);
+      render(<TcpSendConfig data={createBaseConfig()} onSave={mockOnSave} />);
+
+      expect(screen.getByText('TCP 发送节点')).toBeDefined();
+    });
+
+    it('渲染连接 ID、数据输入与发送超时的当前值', () => {
+      setupStoreMock(false);
+      const config = createBaseConfig({ data: 'hello world', send_timeout_ms: 15000 });
+      render(<TcpSendConfig data={config} onSave={mockOnSave} />);
+
+      const connInput = document.getElementById('connection_id') as HTMLInputElement;
+      expect(connInput?.value).toBe('tcp-conn-001');
+
+      const dataInput = document.getElementById('data') as HTMLTextAreaElement;
+      expect(dataInput?.value).toBe('hello world');
+
+      const timeoutInput = document.getElementById('send_timeout_ms') as HTMLInputElement;
+      expect(timeoutInput?.value).toBe('15000');
+    });
+  });
+
+  describe('数据保存', () => {
+    it('修改数据内容后卸载时保存新值', async () => {
+      setupStoreMock(false);
+      const user = userEvent.setup();
+      const { unmount } = render(
+        <TcpSendConfig data={createBaseConfig()} onSave={mockOnSave} />,
+      );
+
+      const dataInput = document.getElementById('data') as HTMLTextAreaElement;
+      await user.clear(dataInput);
+      await user.type(dataInput, 'world');
+
+      unmount();
+
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith(
+          expect.objectContaining({ data: 'world', connection_id: 'tcp-conn-001' }),
+        );
+      });
+    });
+
+    it('点击 Redis RESP 协议模板后自动填充成帧与解析器配置并保存', async () => {
+      setupStoreMock(false);
+      const user = userEvent.setup();
+      render(<TcpSendConfig data={createBaseConfig()} onSave={mockOnSave} />);
+
+      await user.click(screen.getByText('Redis RESP'));
+
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith(
+          expect.objectContaining({
+            framing_mode: { type: 'delimiter', delimiter: '\r\n' },
+            parser_config: { type: 'delimiter', delimiter_hex: '0d0a', keep_delimiter: false },
+          }),
+        );
+      });
+    });
+  });
+
+  describe('连接选择', () => {
+    it('有 tcp_connect 节点时显示 Select 选择器', () => {
+      setupStoreMock(true);
+      const config = createBaseConfig();
+      render(<TcpSendConfig data={config} onSave={mockOnSave} />);
+
+      const selectTrigger = document.getElementById('connection_id');
+      expect(selectTrigger).toBeDefined();
+      // Select 模式下不显示手动输入提示
+      expect(screen.queryByText(/未检测到 TCP Connect 节点/)).toBeNull();
+    });
+
+    it('无 tcp_connect 节点时显示 Input 与提示', () => {
+      setupStoreMock(false);
+      const config = createBaseConfig({ connection_id: '' });
+      render(<TcpSendConfig data={config} onSave={mockOnSave} />);
+
+      expect(screen.getByPlaceholderText('输入连接 ID')).toBeDefined();
+      expect(screen.getByText(/未检测到 TCP Connect 节点/)).toBeDefined();
+    });
+  });
+});
+
+vi.restoreAllMocks();
