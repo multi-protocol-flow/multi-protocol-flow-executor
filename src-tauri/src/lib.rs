@@ -103,6 +103,12 @@ pub use tauri_commands::{
 #[cfg(feature = "plugin-manager")]
 pub use tauri_commands::plugin_ui_call;
 
+// 插件设置命令（目录信息/热重载/已安装列表/市场列表）
+#[cfg(feature = "plugin-manager")]
+pub use tauri_commands::{
+    get_plugin_dir_info, list_installed_plugins, list_marketplace_plugins, reload_plugins,
+};
+
 // SSE 连接测试命令
 #[cfg(feature = "protocol-sse")]
 pub use tauri_commands::sse_test_connection;
@@ -132,24 +138,60 @@ fn default_logs_dir(app: &tauri::AppHandle) -> PathBuf {
 ///
 /// 应用启动时构建一次，所有执行/验证/注册表查询命令共享同一个注册表，
 /// 使插件节点（`SidecarPlugin`）的插件进程在多次执行之间复用。
+///
+/// 插件目录热重载（`reload_plugins` 命令）通过替换整个快照实现：命令短临界区
+/// 内克隆 Arc（不跨 await 持锁），旧快照的插件管理器在锁释放后统一 shutdown，
+/// 因此重载瞬间正在执行的插件节点可能报错（预期行为）。
 pub struct NodeRegistryState {
+    /// 当前生效的注册表快照（registry + 插件管理器 + 插件目录）
+    pub inner: std::sync::RwLock<RegistrySnapshot>,
+}
+
+impl NodeRegistryState {
+    /// 克隆当前生效的快照（短临界区读锁，`into_inner` 处理中毒锁）
+    pub fn snapshot(&self) -> RegistrySnapshot {
+        self.inner
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+    }
+}
+
+/// 注册表快照：一次插件扫描/describe 的完整结果，原子替换。
+#[derive(Clone)]
+pub struct RegistrySnapshot {
     /// 共享节点注册表（内置节点 + 已登记的插件节点）
     pub registry: Arc<flow_engine::registry::NodeRegistry>,
+    /// 本次快照对应的插件目录
+    #[cfg(feature = "plugin-manager")]
+    pub plugins_dir: PathBuf,
     /// 插件管理器（持有插件进程生命周期；`plugin-manager` 特性关闭时不存在）
     #[cfg(feature = "plugin-manager")]
     pub manager: Arc<flow_engine::PluginManager>,
 }
 
-/// 解析插件目录：`MPE_PLUGIN_DIR` 环境变量优先，否则默认数据目录下 `plugins`
-fn plugins_dir() -> PathBuf {
-    std::env::var_os("MPE_PLUGIN_DIR")
-        .map(PathBuf::from)
-        .or_else(|| {
-            flow_engine::storage::get_data_dir()
-                .ok()
-                .map(|d| d.join("plugins"))
-        })
-        .unwrap_or_else(|| PathBuf::from("plugins"))
+/// 解析插件目录：`MPE_PLUGIN_DIR` 环境变量优先，否则设置文件 `pluginDir`，
+/// 否则默认数据目录下 `plugins`，最后兜底相对路径 `plugins`。
+///
+/// 返回解析结果与来源（前端据此展示来源徽标并在 env 指定时禁用编辑）。
+fn resolve_plugin_dir(app: &tauri::AppHandle) -> (PathBuf, crate::tauri_commands::PluginDirSource) {
+    use crate::tauri_commands::PluginDirSource;
+    if let Some(dir) = std::env::var_os("MPE_PLUGIN_DIR") {
+        return (PathBuf::from(dir), PluginDirSource::Env);
+    }
+    if let Ok(store) = app.store("store/settings.bin") {
+        if let Some(dir) = store
+            .get("pluginDir")
+            .and_then(|v| v.as_str().map(PathBuf::from))
+        {
+            return (dir, PluginDirSource::Config);
+        }
+    }
+    let dir = flow_engine::storage::get_data_dir()
+        .ok()
+        .map(|d| d.join("plugins"))
+        .unwrap_or_else(|| PathBuf::from("plugins"));
+    (dir, PluginDirSource::Default)
 }
 
 /// 构建共享节点注册表状态
@@ -161,21 +203,30 @@ fn plugins_dir() -> PathBuf {
 /// `host_locale` 是宿主当前 UI 语言（BCP-47，如 `en-US`）：插件进程在
 /// spawn 时经 `MPE_LOCALE` 环境变量注入（匹配插件 `locales` 则用宿主语言，
 /// 否则用插件 `default_locale`），语言在插件进程生命周期内固定。
-fn build_node_registry_state(host_locale: Option<String>) -> NodeRegistryState {
+fn build_node_registry_state(app: &tauri::AppHandle, host_locale: Option<String>) -> NodeRegistryState {
     #[cfg(feature = "plugin-manager")]
     {
-        let mut manager = flow_engine::PluginManager::new(plugins_dir())
+        let (plugins_dir, _source) = resolve_plugin_dir(app);
+        let mut manager = flow_engine::PluginManager::new(plugins_dir.clone())
             .with_host_locale(host_locale);
         let _ = tauri::async_runtime::block_on(manager.scan_and_describe());
         let manager = Arc::new(manager);
         let registry = Arc::new(flow_engine::default_registry_with_plugins(&manager));
-        NodeRegistryState { registry, manager }
+        NodeRegistryState {
+            inner: std::sync::RwLock::new(RegistrySnapshot {
+                registry,
+                plugins_dir,
+                manager,
+            }),
+        }
     }
     #[cfg(not(feature = "plugin-manager"))]
     {
         let _ = host_locale;
         NodeRegistryState {
-            registry: Arc::new(flow_engine::default_registry::default_registry()),
+            inner: std::sync::RwLock::new(RegistrySnapshot {
+                registry: Arc::new(flow_engine::default_registry::default_registry()),
+            }),
         }
     }
 }
@@ -204,7 +255,7 @@ pub fn run() {
         plugin_protocol::SCHEME,
         |ctx, request, responder| {
             let state = ctx.app_handle().state::<NodeRegistryState>();
-            let manager = Arc::clone(&state.manager);
+            let manager = Arc::clone(&state.snapshot().manager);
             let host = request.uri().host().unwrap_or_default().to_owned();
             let page = request.uri().path().trim_start_matches('/').to_owned();
             let response = plugin_protocol::plugin_iframe_response(
@@ -240,8 +291,8 @@ pub fn run() {
             };
 
             // 注册共享节点注册表状态（内置节点 + 插件节点，全局构建一次）
-            let node_registry_state = build_node_registry_state(host_locale);
-            let stress_registry = Arc::clone(&node_registry_state.registry);
+            let node_registry_state = build_node_registry_state(app.handle(), host_locale);
+            let stress_registry = Arc::clone(&node_registry_state.snapshot().registry);
             app.manage(node_registry_state);
 
             // 注册调试会话管理器状态
@@ -387,6 +438,15 @@ pub fn run() {
             // 插件配置面板 uiCall 转发命令
             #[cfg(feature = "plugin-manager")]
             plugin_ui_call,
+            // 插件设置（目录热重载 / 已安装列表 / 市场列表）
+            #[cfg(feature = "plugin-manager")]
+            get_plugin_dir_info,
+            #[cfg(feature = "plugin-manager")]
+            reload_plugins,
+            #[cfg(feature = "plugin-manager")]
+            list_installed_plugins,
+            #[cfg(feature = "plugin-manager")]
+            list_marketplace_plugins,
             // CSV 模板命令
             save_csv_template,
             // 数据集执行命令

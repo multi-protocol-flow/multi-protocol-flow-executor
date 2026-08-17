@@ -2,13 +2,19 @@
 //!
 //! 提供 #[`tauri::command`] 包装器，调用 flow-engine 的业务逻辑。
 
+use std::collections::HashSet;
+use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
+
+use serde::{Deserialize, Serialize};
 use tauri::ipc::Channel;
 use tauri::Emitter;
 use tauri::Manager;
+use tauri_plugin_store::StoreExt;
 
 use crate::tauri_adapters::{create_log_sender, TauriDebugEventSender, TauriExecutionEventSender};
-use crate::NodeRegistryState;
+use crate::{NodeRegistryState, RegistrySnapshot};
 use flow_engine::command::{
     CreateFlowCommandInput, CreateFlowCommandOutput, DeleteNodeCommandInput,
     DeleteNodeCommandOutput, ExecuteFlowCommandInput, ExecuteFlowCommandOutput,
@@ -206,9 +212,10 @@ pub async fn execute_flow(
     let flow_uuid = flow.uuid.clone();
     let flow_name = flow.name.clone();
     let input_variables = input.variables.clone();
+    let snap = node_registry.snapshot();
 
     let mut executor = flow_engine::executor::FlowExecutor::new()
-        .with_registry(Arc::clone(&node_registry.registry));
+        .with_registry(Arc::clone(&snap.registry));
     if let Some(sender) = execution_event_sender {
         executor = executor.with_execution_event_sender(sender);
     }
@@ -256,8 +263,7 @@ pub async fn execute_flow(
     // 幂等：仅通知已在运行的插件，不拉起空闲插件。
     #[cfg(feature = "plugin-manager")]
     {
-        node_registry
-            .manager
+        snap.manager
             .notify_flow_ended(&result.execution_id)
             .await;
     }
@@ -297,7 +303,8 @@ pub async fn execute_single_node(
     // 内置节点走 SUPPORTED_SINGLE_NODE_TYPES，插件节点走 describe 的
     // capabilities.single_node 声明。
     let type_id = node.data.type_name();
-    if !flow_engine::executor::supports_single_node(&node_registry.registry, &type_id) {
+    let snap = node_registry.snapshot();
+    if !flow_engine::executor::supports_single_node(&snap.registry, &type_id) {
         return Err(format!(
             "Unsupported node type for single-node execution: {}",
             type_id
@@ -321,7 +328,7 @@ pub async fn execute_single_node(
     }
 
     let executor = flow_engine::executor::FlowExecutor::new()
-        .with_registry(Arc::clone(&node_registry.registry))
+        .with_registry(Arc::clone(&snap.registry))
         .with_cancel_receiver(cancel_rx)
         .with_hook_executor(std::sync::Arc::new(
             flow_engine::hook_runner::DefaultHookExecutor::new(),
@@ -376,19 +383,20 @@ pub async fn validate_flow(
     // 注：本版本 Tauri 的 async 命令要求引用型入参（State）必须返回 Result，
     // 因此经 AppHandle 取 State，保持非 Result 返回类型不被包装。
     let node_registry = app.state::<NodeRegistryState>();
+    let snap = node_registry.snapshot();
     #[cfg(feature = "plugin-manager")]
     {
         validator
             .validate_with_registry_async(
                 &flow,
-                &node_registry.registry,
-                Some(node_registry.manager.as_ref()),
+                &snap.registry,
+                Some(snap.manager.as_ref()),
             )
             .await
     }
     #[cfg(not(feature = "plugin-manager"))]
     {
-        validator.validate_with_registry(&flow, &node_registry.registry)
+        validator.validate_with_registry(&flow, &snap.registry)
     }
 }
 
@@ -1876,7 +1884,7 @@ pub async fn start_debug(
     tokio::spawn(log_worker);
 
     // 启动调试会话（在后台任务中）
-    let debug_registry = Arc::clone(&node_registry.registry);
+    let debug_registry = Arc::clone(&node_registry.snapshot().registry);
     tokio::spawn(async move {
         let executor =
             flow_engine::debug::DebuggableFlowExecutor::new().with_registry(debug_registry);
@@ -2162,7 +2170,7 @@ pub fn move_folder(
 /// 供前端动态渲染节点面板和画布。
 #[tauri::command]
 pub fn get_registered_node_types(node_registry: State<'_, NodeRegistryState>) -> Vec<NodeMetadata> {
-    node_registry.registry.all_metadata()
+    node_registry.snapshot().registry.all_metadata()
 }
 
 /// 获取指定节点类型的配置 JSON Schema
@@ -2175,6 +2183,7 @@ pub fn get_node_config_schema(
     node_registry: State<'_, NodeRegistryState>,
 ) -> Option<serde_json::Value> {
     node_registry
+        .snapshot()
         .registry
         .get(&type_id)
         .and_then(|plugin| plugin.config_schema())
@@ -2186,7 +2195,7 @@ pub fn get_node_config_schema(
 /// 返回全部插件（含 sidecar 插件节点）的 `NodeMetadata` 列表。
 #[tauri::command]
 pub fn list_registered_plugins(node_registry: State<'_, NodeRegistryState>) -> Vec<NodeMetadata> {
-    node_registry.registry.all_metadata()
+    node_registry.snapshot().registry.all_metadata()
 }
 
 /// 转发插件配置面板的 `uiCall` 发现查询到插件进程
@@ -2203,13 +2212,205 @@ pub async fn plugin_ui_call(
     method: String,
     payload: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
-    node_registry
-        .manager
+    let manager = node_registry.snapshot().manager;
+    manager
         .ui_call(
             &node_type,
             &method,
             payload.unwrap_or(serde_json::Value::Null),
         )
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// ============================================================================
+// 插件设置命令（目录信息 / 热重载 / 已安装列表 / 市场列表）
+// ============================================================================
+
+/// 插件目录来源
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum PluginDirSource {
+    /// `MPE_PLUGIN_DIR` 环境变量指定
+    Env,
+    /// 设置文件 `pluginDir` 键指定
+    Config,
+    /// 默认目录
+    Default,
+}
+
+/// 插件目录信息（`get_plugin_dir_info` 返回）
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginDirInfo {
+    /// 当前生效的插件目录（绝对路径字符串）
+    pub effective_dir: String,
+    /// 目录来源（env / config / default）
+    pub source: PluginDirSource,
+    /// 设置文件中的 `pluginDir` 值（未配置则为 None）
+    pub configured: Option<String>,
+}
+
+/// 插件重载结果（`reload_plugins` 返回）
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ReloadPluginsResult {
+    /// 新快照中已登记（describe 成功）的插件数
+    pub plugins_registered: usize,
+    /// 新快照的节点类型总数（内置 + 插件）
+    pub node_types: usize,
+}
+
+/// 已安装插件条目（`list_installed_plugins` 返回）
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct InstalledPlugin {
+    /// 插件名
+    pub name: String,
+    /// 插件版本
+    pub version: String,
+    /// 描述
+    pub description: Option<String>,
+    /// 安装目录
+    pub path: String,
+    /// 状态：`loaded`（已登记进注册表）| `error`
+    pub status: String,
+    /// 错误/跳过原因（`status == "error"` 时通常非空）
+    pub error: Option<String>,
+}
+
+/// 获取当前生效的插件目录信息（含来源与设置文件中的配置值）
+#[cfg(feature = "plugin-manager")]
+#[tauri::command]
+pub fn get_plugin_dir_info(app: tauri::AppHandle) -> PluginDirInfo {
+    let (effective_dir, source) = crate::resolve_plugin_dir(&app);
+    let configured = app
+        .store("store/settings.bin")
+        .ok()
+        .and_then(|store| store.get("pluginDir").and_then(|v| v.as_str().map(String::from)));
+    PluginDirInfo {
+        effective_dir: effective_dir.display().to_string(),
+        source,
+        configured,
+    }
+}
+
+/// 重载插件目录（运行时热重载，立即生效）
+///
+/// 用新目录构建全新快照（新 `PluginManager` + describe + 注册表）后原子替换
+/// `NodeRegistryState`；旧快照的插件管理器在锁释放后统一 shutdown（终止旧插件
+/// 子进程，防止旧注册表 Arc 令其常驻）。重载瞬间正在执行的插件节点可能报错，
+/// 属预期行为。压测管理器同步切换到新注册表（新会话生效）。
+#[cfg(feature = "plugin-manager")]
+#[tauri::command]
+pub async fn reload_plugins(
+    app: tauri::AppHandle,
+    dir: String,
+) -> Result<ReloadPluginsResult, String> {
+    // 读取宿主当前 UI 语言，注入新插件进程（与启动时行为一致）
+    let host_locale = app
+        .store("store/settings.bin")
+        .ok()
+        .and_then(|store| store.get("locale").and_then(|v| v.as_str().map(String::from)));
+
+    // 新目录 → 新管理器 → describe → 新注册表
+    let mut manager = flow_engine::PluginManager::new(PathBuf::from(&dir))
+        .with_host_locale(host_locale);
+    manager.scan_and_describe().await;
+    let manager = Arc::new(manager);
+    let registry = Arc::new(flow_engine::default_registry_with_plugins(&manager));
+
+    let plugins_registered = manager.registrations().len();
+    let node_types = registry.all_metadata().len();
+
+    let new_snapshot = RegistrySnapshot {
+        registry: Arc::clone(&registry),
+        plugins_dir: PathBuf::from(&dir),
+        manager: Arc::clone(&manager),
+    };
+
+    // 原子替换快照（短临界区；Poisoned 锁用 into_inner 恢复）
+    let old_snapshot = {
+        let state = app.state::<NodeRegistryState>();
+        let mut guard = state
+            .inner
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        std::mem::replace(&mut *guard, new_snapshot)
+    };
+
+    // 锁已释放：停掉旧插件进程（防止旧注册表 Arc 令插件子进程常驻）
+    old_snapshot
+        .manager
+        .shutdown_all(Duration::from_secs(5))
+        .await;
+
+    // 压测管理器切换到新注册表（新启动的压测会话使用；旧会话沿用旧 Arc 直至结束）
+    let stress = app.state::<Arc<StressTestSessionManager>>();
+    stress.set_registry(registry);
+
+    Ok(ReloadPluginsResult {
+        plugins_registered,
+        node_types,
+    })
+}
+
+/// 列出已安装插件（扫描插件目录 + 加载状态）
+///
+/// `loaded` 表示该插件已通过 describe 并登记进当前注册表；`Skipped` 条目
+/// 以 `error` 状态返回，跳过原因进 `error` 字段。
+#[cfg(feature = "plugin-manager")]
+#[tauri::command]
+pub fn list_installed_plugins(app: tauri::AppHandle) -> Vec<InstalledPlugin> {
+    let snap = app.state::<NodeRegistryState>().snapshot();
+    // 与 flow-engine-plugin discovery 的 host_version() 对齐：
+    // MPE_HOST_VERSION 覆盖，否则取本 crate 包版本
+    let host_version = std::env::var("MPE_HOST_VERSION")
+        .unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string());
+    let loaded: HashSet<&str> = snap
+        .manager
+        .registrations()
+        .iter()
+        .map(|registration| registration.name.as_str())
+        .collect();
+    flow_engine::PluginScan::scan_with_errors(&snap.plugins_dir, &host_version)
+        .into_iter()
+        .map(|entry| match entry {
+            flow_engine::ScanEntry::Discovered(plugin) => InstalledPlugin {
+                name: plugin.name.clone(),
+                version: plugin.version.clone(),
+                description: plugin.manifest.description.clone(),
+                path: plugin.dir.display().to_string(),
+                status: if loaded.contains(plugin.name.as_str()) {
+                    "loaded".to_string()
+                } else {
+                    "error".to_string()
+                },
+                error: None,
+            },
+            flow_engine::ScanEntry::Skipped { dir, reason } => InstalledPlugin {
+                name: dir
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default(),
+                version: String::new(),
+                description: None,
+                path: dir.display().to_string(),
+                status: "error".to_string(),
+                error: Some(format!("{reason:?}")),
+            },
+        })
+        .collect()
+}
+
+/// 从插件市场拉取插件列表（`GET {base}/plugins`，契约见 docs/plugin-marketplace.md）
+#[cfg(feature = "plugin-manager")]
+#[tauri::command]
+pub async fn list_marketplace_plugins(
+    url: String,
+) -> Result<Vec<flow_engine::flow_engine_plugin_marketplace::MarketplacePlugin>, String> {
+    flow_engine::flow_engine_plugin_marketplace::MarketplaceClient::new(url)
+        .list_plugins()
         .await
         .map_err(|e| e.to_string())
 }
@@ -2277,7 +2478,7 @@ pub async fn execute_flow_with_dataset(
     let flow = input.flow;
     let config = input.config;
     let state_cancel = state.cancel_sender.clone();
-    let registry = Arc::clone(&node_registry.registry);
+    let registry = Arc::clone(&node_registry.snapshot().registry);
 
     // 在后台启动执行
     tokio::spawn(async move {

@@ -76,7 +76,11 @@ pub struct StressTestSessionManager {
     /// - `None` - 没有运行中的会话
     session: RwLock<Option<Arc<StressTestExecutor>>>,
     /// 节点插件注册表（共享，注入到每个压测会话的执行器）
-    registry: Arc<flow_engine_core::registry::NodeRegistry>,
+    ///
+    /// `std::sync::RwLock` 使插件目录热重载（`reload_plugins`）能在运行时替换注册表；
+    /// 正在运行的压测会话沿用启动时克隆的 Arc，不受影响。锁仅用于克隆 Arc，
+    /// 不跨 await 持有。
+    registry: std::sync::RwLock<Arc<flow_engine_core::registry::NodeRegistry>>,
 }
 
 impl Default for StressTestSessionManager {
@@ -90,7 +94,9 @@ impl StressTestSessionManager {
     pub fn new() -> Self {
         Self {
             session: RwLock::new(None),
-            registry: Arc::new(crate::default_registry::default_registry()),
+            registry: std::sync::RwLock::new(Arc::new(
+                crate::default_registry::default_registry(),
+            )),
         }
     }
 
@@ -101,8 +107,15 @@ impl StressTestSessionManager {
         mut self,
         registry: Arc<flow_engine_core::registry::NodeRegistry>,
     ) -> Self {
-        self.registry = registry;
+        self.registry = std::sync::RwLock::new(registry);
         self
+    }
+
+    /// 运行时替换共享节点插件注册表（插件目录热重载）
+    ///
+    /// 已启动的压测会话沿用其启动时的注册表 Arc 直至结束；后续新会话使用新注册表。
+    pub fn set_registry(&self, registry: Arc<flow_engine_core::registry::NodeRegistry>) {
+        *self.registry.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = registry;
     }
 
     /// 启动新的压测会话
@@ -139,12 +152,18 @@ impl StressTestSessionManager {
             *session = None;
         }
 
-        // 创建执行器（传入 event_sender 与共享注册表）
+        // 创建执行器（传入 event_sender 与共享注册表；锁仅用于克隆 Arc）
+        let registry = Arc::clone(
+            &self
+                .registry
+                .read()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+        );
         let executor = Arc::new(StressTestExecutor::new(
             flow,
             config,
             event_sender.clone(),
-            Arc::clone(&self.registry),
+            registry,
         ));
 
         // 启动执行器（在持有锁的情况下启动，确保状态一致性）
