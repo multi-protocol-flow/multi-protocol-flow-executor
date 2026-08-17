@@ -153,7 +153,7 @@ export function PluginSettingsDialog() {
 
   /** 选择新目录 → 持久化 → 热重载 → 刷新已安装列表与节点面板 */
   const handleChangeDir = async () => {
-    const dir = await selectDirectory(pluginDirInfo?.effective_dir ?? '');
+    const dir = await selectDirectory(pluginDirInfo?.effectiveDir ?? '');
     if (!dir) return;
     setChangingDir(true);
     try {
@@ -174,7 +174,7 @@ export function PluginSettingsDialog() {
 
   /** 手动重载插件目录（安装新插件后 describe 失败时重试；也用于刷新已安装列表） */
   const handleReloadPlugins = async () => {
-    const dir = pluginDirInfo?.effective_dir;
+    const dir = pluginDirInfo?.effectiveDir;
     if (!dir || reloading) return;
     setReloading(true);
     try {
@@ -260,7 +260,7 @@ export function PluginSettingsDialog() {
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={!pluginDirInfo?.effective_dir || reloading}
+                    disabled={!pluginDirInfo?.effectiveDir || reloading}
                     onClick={handleReloadPlugins}
                   >
                     {reloading ? (
@@ -288,8 +288,8 @@ export function PluginSettingsDialog() {
               {/* 配置来源展示：config 显示用户配置的目录，env 显示生效目录（同 env 值），default 显示默认目录 */}
               <p className="mt-2 break-all text-xs text-muted-foreground">
                 {pluginDirInfo?.source === 'config'
-                  ? (pluginDirInfo.configured ?? pluginDirInfo.effective_dir)
-                  : (pluginDirInfo?.effective_dir ?? '-')}
+                  ? (pluginDirInfo.configured ?? pluginDirInfo.effectiveDir)
+                  : (pluginDirInfo?.effectiveDir ?? '-')}
               </p>
               {envLocked ? (
                 <p className="mt-2 text-xs text-amber-600">{ll.source_env()}</p>

@@ -132,8 +132,8 @@ export const usePluginsStore = create<PluginsState>((set) => ({
       // 安装后热重载插件目录，让新插件通过 describe 登记进注册表；
       // 重载成功后再刷新列表与目录信息（避免用旧快照展示中间态 error）
       const info = await service.getPluginDirInfo();
-      if (info?.effective_dir) {
-        await service.reloadPlugins(info.effective_dir);
+      if (info?.effectiveDir) {
+        await service.reloadPlugins(info.effectiveDir);
       }
       const [installed, pluginDirInfo] = await Promise.all([
         service.listInstalledPlugins(),

@@ -370,7 +370,7 @@ export async function listRegisteredPlugins(): Promise<[]> {
  */
 export async function getPluginDirInfo(): Promise<PluginDirInfo> {
   return {
-    effective_dir: '/mock/plugins',
+    effectiveDir: '/mock/plugins',
     source: 'default',
     configured: null,
   };

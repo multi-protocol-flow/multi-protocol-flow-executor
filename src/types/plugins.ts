@@ -13,10 +13,10 @@
 /** 插件目录来源 */
 export type PluginDirSource = 'env' | 'config' | 'default';
 
-/** 当前生效的插件目录信息（`get_plugin_dir_info` 返回） */
+/** 当前生效的插件目录信息（`get_plugin_dir_info` 返回，后端 serde camelCase） */
 export interface PluginDirInfo {
   /** 当前生效的插件目录（绝对路径字符串） */
-  effective_dir: string;
+  effectiveDir: string;
   /** 目录来源 */
   source: PluginDirSource;
   /** 设置文件中的 `pluginDir` 值（未配置则为 null） */
