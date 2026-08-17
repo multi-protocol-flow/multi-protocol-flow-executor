@@ -4,6 +4,7 @@ import nodes from './nodes';
 import panels from './panels';
 import execution from './execution';
 import settings from './settings';
+import plugins from './plugins';
 import flow from './flow';
 import validation from './validation';
 import welcome from './welcome';
@@ -17,6 +18,7 @@ const zh_CN = {
   panels,
   execution,
   settings,
+  plugins,
   flow,
   validation,
   welcome,

@@ -34,12 +34,16 @@ export async function loadSettings(): Promise<Settings> {
     const reportDir = await store.get<string>('reportDir');
     const logDir = await store.get<string>('logDir');
     const flowsDir = await store.get<string>('flowsDir');
+    const pluginDir = await store.get<string>('pluginDir');
+    const pluginRegistryUrl = await store.get<string>('pluginRegistryUrl');
     const theme = await store.get<string>('theme');
     const locale = await store.get<string>('locale');
     return {
       reportDir: reportDir ?? `${appDataDir}/reports/`,
       logDir: logDir ?? `${appDataDir}/logs/`,
       flowsDir: flowsDir ?? `${appDataDir}/flows/`,
+      pluginDir,
+      pluginRegistryUrl,
       theme: (theme as ThemeMode) ?? 'system',
       locale: (locale as Locale) ?? 'en-US',
     };
@@ -66,6 +70,12 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
     }
     if (settings.flowsDir !== undefined) {
       await store.set('flowsDir', settings.flowsDir);
+    }
+    if (settings.pluginDir !== undefined) {
+      await store.set('pluginDir', settings.pluginDir);
+    }
+    if (settings.pluginRegistryUrl !== undefined) {
+      await store.set('pluginRegistryUrl', settings.pluginRegistryUrl);
     }
     if (settings.theme !== undefined) {
       await store.set('theme', settings.theme);

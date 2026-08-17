@@ -13,6 +13,7 @@ import { FlowCompareDialog } from '@/components/execution/FlowCompareDialog';
 import { StressTestResult } from '@/components/stress-test/StressTestResult';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
+import { PluginSettingsDialog } from '@/components/dialogs/PluginSettingsDialog';
 import { UpdateDialog } from '@/components/dialogs/UpdateDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { ShortcutsDialog } from '@/components/dialogs/ShortcutsDialog';
@@ -29,7 +30,7 @@ import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDeb
 import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, Puzzle, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -381,6 +382,17 @@ export function MainLayout() {
             <Settings className="h-5 w-5" />
           </Button>
 
+          {/* 插件设置按钮 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => useUIStore.getState().openPluginSettingsDialog()}
+            title={getLL().plugins.settings_title()}
+            className="hidden sm:inline-flex"
+          >
+            <Puzzle className="h-5 w-5" />
+          </Button>
+
         </div>
       </header>
 
@@ -721,6 +733,9 @@ export function MainLayout() {
 
       {/* ===== 快捷键面板 ===== */}
       <ShortcutsDialog />
+
+      {/* ===== 插件设置对话框 ===== */}
+      <PluginSettingsDialog />
 
       {/* ===== 全流程搜索面板 ===== */}
       <SearchOverlayHandler />

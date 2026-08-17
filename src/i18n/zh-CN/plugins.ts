@@ -1,0 +1,25 @@
+const zh_CN_plugins = {
+  settings_title: '插件',
+  tab_installed: '已安装',
+  tab_marketplace: '插件市场',
+  effective_dir: '插件目录',
+  change_dir: '更改',
+  source_env: '由环境变量 MPE_PLUGIN_DIR 指定（不可编辑）',
+  source_config: '配置指定',
+  source_default: '默认',
+  reload_success: '插件已重载',
+  reload_failed: '插件重载失败',
+  installed_empty: '尚未安装插件',
+  status_loaded: '已加载',
+  status_error: '错误',
+  market_url: '市场地址',
+  market_save_and_load: '保存并加载',
+  market_url_hint: '请在上方配置市场地址以浏览插件。',
+  market_empty: '该市场暂无插件',
+  market_error: '市场加载失败',
+  download: '下载',
+  coming_soon: '即将上线',
+  current_platform: '当前平台',
+};
+
+export default zh_CN_plugins;

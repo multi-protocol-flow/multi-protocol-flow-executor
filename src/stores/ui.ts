@@ -80,6 +80,8 @@ interface UIState {
   pendingDeleteFlowUuid: string | null;
   /** 是否显示设置对话框 */
   showSettingsDialog: boolean;
+  /** 是否显示插件设置对话框 */
+  showPluginSettingsDialog: boolean;
   /** 右侧配置面板模式（节点配置/全局设置） */
   configPanelMode: ConfigPanelMode;
   /** 是否显示压力测试配置对话框 */
@@ -159,6 +161,10 @@ interface UIState {
   openSettingsDialog: () => void;
   /** 关闭设置对话框 */
   closeSettingsDialog: () => void;
+  /** 显示插件设置对话框 */
+  openPluginSettingsDialog: () => void;
+  /** 关闭插件设置对话框 */
+  closePluginSettingsDialog: () => void;
   /** 设置右侧面板模式 */
   setConfigPanelMode: (mode: ConfigPanelMode) => void;
   /** 打开压力测试配置对话框 */
@@ -276,6 +282,7 @@ const initialState = {
   showDeleteConfirmDialog: false,
   pendingDeleteFlowUuid: null,
   showSettingsDialog: false,
+  showPluginSettingsDialog: false,
   configPanelMode: 'node' as ConfigPanelMode,
   showStressTestConfigDialog: false,
   showDatasetExecutionPanel: false,
@@ -370,6 +377,10 @@ export const useUIStore = create<UIState>((set) => ({
   openSettingsDialog: () => set({ showSettingsDialog: true, configPanelMode: 'settings', isConfigPanelOpen: true }),
 
   closeSettingsDialog: () => set({ showSettingsDialog: false, configPanelMode: 'node' }),
+
+  openPluginSettingsDialog: () => set({ showPluginSettingsDialog: true }),
+
+  closePluginSettingsDialog: () => set({ showPluginSettingsDialog: false }),
 
   // ===== 通用确认对话框 Actions =====
   showConfirm: (config: ConfirmDialogConfig) =>
@@ -511,6 +522,7 @@ export const useUIStore = create<UIState>((set) => ({
       isNodePaletteOpen: false,
       nodePalettePosition: null,
       showUpdateDialog: false,
+      showPluginSettingsDialog: false,
     }),
 }));
 
@@ -536,6 +548,9 @@ export const selectShowDeleteConfirmDialog = (state: UIState) =>
 /** 选择设置对话框状态 */
 export const selectShowSettingsDialog = (state: UIState) =>
   state.showSettingsDialog;
+/** 选择插件设置对话框状态 */
+export const selectShowPluginSettingsDialog = (state: UIState) =>
+  state.showPluginSettingsDialog;
 
 /** 选择底部面板 Tab */
 export const selectBottomPanelTab = (state: UIState) =>

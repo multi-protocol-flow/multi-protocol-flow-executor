@@ -60,6 +60,8 @@ describe('Settings types', () => {
       setReportDir: async (_dir: string) => {},
       setLogDir: async (_dir: string) => {},
       setFlowsDir: async (_dir: string) => {},
+      setPluginDir: async (_dir: string) => {},
+      setPluginRegistryUrl: async (_url: string) => {},
       setTheme: async (_theme: 'light' | 'dark' | 'system') => {},
       openReportDir: async () => {},
       openLogDir: async () => {},
@@ -71,6 +73,8 @@ describe('Settings types', () => {
     expect(typeof actions.setReportDir).toBe('function');
     expect(typeof actions.setLogDir).toBe('function');
     expect(typeof actions.setFlowsDir).toBe('function');
+    expect(typeof actions.setPluginDir).toBe('function');
+    expect(typeof actions.setPluginRegistryUrl).toBe('function');
     expect(typeof actions.setTheme).toBe('function');
     expect(typeof actions.setLocale).toBe('function');
     expect(typeof actions.openReportDir).toBe('function');
@@ -90,6 +94,8 @@ describe('Settings types', () => {
       setReportDir: async (_dir: string) => {},
       setLogDir: async (_dir: string) => {},
       setFlowsDir: async (_dir: string) => {},
+      setPluginDir: async (_dir: string) => {},
+      setPluginRegistryUrl: async (_url: string) => {},
       setTheme: async (_theme: 'light' | 'dark' | 'system') => {},
       openReportDir: async () => {},
       openLogDir: async () => {},

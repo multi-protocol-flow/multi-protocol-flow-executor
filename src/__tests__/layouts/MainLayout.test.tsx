@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { MainLayout } from '@/layouts/MainLayout';
-import { useUIStore, useFlowStore, useDebugStore } from '@/stores';
+import { useUIStore, useFlowStore, useDebugStore, usePluginsStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 
 // Mock 所有 stores
@@ -12,6 +12,7 @@ vi.mock('@/stores', () => ({
   useUIStore: vi.fn(),
   useFlowStore: vi.fn(),
   useDebugStore: vi.fn(),
+  usePluginsStore: vi.fn(),
   selectIsDebugging: (state: unknown) => (state as { isDebugging: boolean }).isDebugging,
   selectIsDebugDataReadOnly: (state: unknown) => (state as { isDebugDataReadOnly: boolean }).isDebugDataReadOnly,
 }));
@@ -137,6 +138,23 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
     
     (useDebugStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
       return selector ? selector(defaultDebugState) : defaultDebugState;
+    });
+
+    const defaultPluginsState = {
+      pluginDirInfo: null,
+      installed: [],
+      marketplace: [],
+      loading: false,
+      error: null,
+      loadPluginDirInfo: vi.fn(),
+      loadInstalled: vi.fn(),
+      reloadPlugins: vi.fn(),
+      loadMarketplace: vi.fn(),
+      clearMarketplace: vi.fn(),
+      reset: vi.fn(),
+    };
+    (usePluginsStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
+      return selector ? selector(defaultPluginsState) : defaultPluginsState;
     });
     
     (useConsoleStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue(defaultConsoleState);

@@ -1,0 +1,25 @@
+const en_US_plugins = {
+  settings_title: 'Plugins',
+  tab_installed: 'Installed',
+  tab_marketplace: 'Marketplace',
+  effective_dir: 'Plugin Directory',
+  change_dir: 'Change',
+  source_env: 'Set by the MPE_PLUGIN_DIR environment variable (edit disabled)',
+  source_config: 'Configured',
+  source_default: 'Default',
+  reload_success: 'Plugins reloaded',
+  reload_failed: 'Plugin reload failed',
+  installed_empty: 'No plugins installed',
+  status_loaded: 'Loaded',
+  status_error: 'Error',
+  market_url: 'Marketplace URL',
+  market_save_and_load: 'Save & Load',
+  market_url_hint: 'Set a marketplace URL above to browse plugins.',
+  market_empty: 'No plugins in this marketplace',
+  market_error: 'Failed to load marketplace',
+  download: 'Download',
+  coming_soon: 'Coming soon',
+  current_platform: 'Current platform',
+};
+
+export default en_US_plugins;

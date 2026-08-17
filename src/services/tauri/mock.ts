@@ -9,6 +9,11 @@ import type { FlowExecutionReport } from '@/types/report';
 import type { ReportMetadata } from '@/types/ipc';
 import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
+import type {
+  InstalledPlugin,
+  MarketplacePlugin,
+  PluginDirInfo,
+} from '@/types/plugins';
 
 /**
  * 生成 UUID v4
@@ -355,6 +360,50 @@ export async function getNodeConfigSchema(_typeId: string): Promise<null> {
  * @returns 空数组（Mock 环境不提供真实插件数据）
  */
 export async function listRegisteredPlugins(): Promise<[]> {
+  return [];
+}
+
+/**
+ * Mock 获取当前生效的插件目录信息
+ * 模拟后端 get_plugin_dir_info 命令行为
+ */
+export async function getPluginDirInfo(): Promise<PluginDirInfo> {
+  return {
+    effective_dir: '/mock/plugins',
+    source: 'default',
+    configured: null,
+  };
+}
+
+/**
+ * Mock 重载插件目录
+ * 模拟后端 reload_plugins 命令行为
+ *
+ * @param _dir - 目标插件目录（Mock 中未使用）
+ */
+export async function reloadPlugins(
+  _dir: string
+): Promise<{ pluginsRegistered: number; nodeTypes: number }> {
+  return { pluginsRegistered: 0, nodeTypes: 0 };
+}
+
+/**
+ * Mock 列出已安装插件
+ * 模拟后端 list_installed_plugins 命令行为
+ */
+export async function listInstalledPlugins(): Promise<InstalledPlugin[]> {
+  return [];
+}
+
+/**
+ * Mock 从插件市场拉取插件列表
+ * 模拟后端 list_marketplace_plugins 命令行为
+ *
+ * @param _url - 市场地址（Mock 中未使用）
+ */
+export async function listMarketplacePlugins(
+  _url: string
+): Promise<MarketplacePlugin[]> {
   return [];
 }
 

@@ -7471,6 +7471,92 @@ type RootTranslation = {
 			released_at: RequiredParams<'date'>
 		}
 	}
+	plugins: {
+		/**
+		 * 插​件
+		 */
+		settings_title: string
+		/**
+		 * 已​安​装
+		 */
+		tab_installed: string
+		/**
+		 * 插​件​市​场
+		 */
+		tab_marketplace: string
+		/**
+		 * 插​件​目​录
+		 */
+		effective_dir: string
+		/**
+		 * 更​改
+		 */
+		change_dir: string
+		/**
+		 * 由​环​境​变​量​ ​M​P​E​_​P​L​U​G​I​N​_​D​I​R​ ​指​定​（​不​可​编​辑​）
+		 */
+		source_env: string
+		/**
+		 * 配​置​指​定
+		 */
+		source_config: string
+		/**
+		 * 默​认
+		 */
+		source_default: string
+		/**
+		 * 插​件​已​重​载
+		 */
+		reload_success: string
+		/**
+		 * 插​件​重​载​失​败
+		 */
+		reload_failed: string
+		/**
+		 * 尚​未​安​装​插​件
+		 */
+		installed_empty: string
+		/**
+		 * 已​加​载
+		 */
+		status_loaded: string
+		/**
+		 * 错​误
+		 */
+		status_error: string
+		/**
+		 * 市​场​地​址
+		 */
+		market_url: string
+		/**
+		 * 保​存​并​加​载
+		 */
+		market_save_and_load: string
+		/**
+		 * 请​在​上​方​配​置​市​场​地​址​以​浏​览​插​件​。
+		 */
+		market_url_hint: string
+		/**
+		 * 该​市​场​暂​无​插​件
+		 */
+		market_empty: string
+		/**
+		 * 市​场​加​载​失​败
+		 */
+		market_error: string
+		/**
+		 * 下​载
+		 */
+		download: string
+		/**
+		 * 即​将​上​线
+		 */
+		coming_soon: string
+		/**
+		 * 当​前​平​台
+		 */
+		current_platform: string
+	}
 	flow: {
 		/**
 		 * 未​保​存
@@ -19611,6 +19697,92 @@ export type TranslationFunctions = {
 			 */
 			released_at: (arg: { date: unknown }) => LocalizedString
 		}
+	}
+	plugins: {
+		/**
+		 * 插件
+		 */
+		settings_title: () => LocalizedString
+		/**
+		 * 已安装
+		 */
+		tab_installed: () => LocalizedString
+		/**
+		 * 插件市场
+		 */
+		tab_marketplace: () => LocalizedString
+		/**
+		 * 插件目录
+		 */
+		effective_dir: () => LocalizedString
+		/**
+		 * 更改
+		 */
+		change_dir: () => LocalizedString
+		/**
+		 * 由环境变量 MPE_PLUGIN_DIR 指定（不可编辑）
+		 */
+		source_env: () => LocalizedString
+		/**
+		 * 配置指定
+		 */
+		source_config: () => LocalizedString
+		/**
+		 * 默认
+		 */
+		source_default: () => LocalizedString
+		/**
+		 * 插件已重载
+		 */
+		reload_success: () => LocalizedString
+		/**
+		 * 插件重载失败
+		 */
+		reload_failed: () => LocalizedString
+		/**
+		 * 尚未安装插件
+		 */
+		installed_empty: () => LocalizedString
+		/**
+		 * 已加载
+		 */
+		status_loaded: () => LocalizedString
+		/**
+		 * 错误
+		 */
+		status_error: () => LocalizedString
+		/**
+		 * 市场地址
+		 */
+		market_url: () => LocalizedString
+		/**
+		 * 保存并加载
+		 */
+		market_save_and_load: () => LocalizedString
+		/**
+		 * 请在上方配置市场地址以浏览插件。
+		 */
+		market_url_hint: () => LocalizedString
+		/**
+		 * 该市场暂无插件
+		 */
+		market_empty: () => LocalizedString
+		/**
+		 * 市场加载失败
+		 */
+		market_error: () => LocalizedString
+		/**
+		 * 下载
+		 */
+		download: () => LocalizedString
+		/**
+		 * 即将上线
+		 */
+		coming_soon: () => LocalizedString
+		/**
+		 * 当前平台
+		 */
+		current_platform: () => LocalizedString
 	}
 	flow: {
 		/**

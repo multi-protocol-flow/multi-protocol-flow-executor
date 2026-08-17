@@ -28,6 +28,10 @@ export interface Settings {
   logDir: string;
   /** 流程保存目录路径 */
   flowsDir: string;
+  /** 插件目录路径（可选；未配置时用后端默认解析） */
+  pluginDir?: string;
+  /** 插件市场地址（可选；未配置时 GUI 市场 Tab 显示引导文案） */
+  pluginRegistryUrl?: string;
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -48,6 +52,10 @@ export interface SettingsState {
   logDir: string;
   /** 流程保存目录路径 */
   flowsDir: string;
+  /** 插件目录路径（可选；未配置时用后端默认解析） */
+  pluginDir?: string;
+  /** 插件市场地址（可选） */
+  pluginRegistryUrl?: string;
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -74,6 +82,10 @@ export interface SettingsActions {
   setLogDir: (dir: string) => Promise<void>;
   /** 设置流程保存目录 */
   setFlowsDir: (dir: string) => Promise<void>;
+  /** 设置插件目录 */
+  setPluginDir: (dir: string) => Promise<void>;
+  /** 设置插件市场地址 */
+  setPluginRegistryUrl: (url: string) => Promise<void>;
   /** 设置主题模式 */
   setTheme: (theme: ThemeMode) => Promise<void>;
   /** 设置语言区域 */

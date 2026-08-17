@@ -162,6 +162,15 @@ export type {
   SettingsStore,
 } from './settings';
 
+// 插件设置 / 插件市场类型
+export type {
+  PluginDirInfo,
+  PluginDirSource,
+  InstalledPlugin,
+  MarketplacePlugin,
+  MarketplacePlatformAsset,
+} from './plugins';
+
 // 变量类型
 export type { Variable, VariablePool, OutputMapping } from './variable';
 

@@ -9,6 +9,7 @@ export { useUIStore } from './ui';
 export { useDebugStore } from './debug';
 export { useStressTestStore } from './stressTest';
 export { useWsStreamStore } from './wsStream';
+export { usePluginsStore } from './plugins';
 
 // Flow store selectors
 export {

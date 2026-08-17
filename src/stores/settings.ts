@@ -30,6 +30,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   reportDir: '',
   logDir: '',
   flowsDir: '',
+  pluginDir: undefined,
+  pluginRegistryUrl: undefined,
   theme: 'system' as ThemeMode,
   locale: 'en-US' as Locale,
   isLoading: true,
@@ -44,6 +46,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         reportDir: settings.reportDir,
         logDir: settings.logDir,
         flowsDir: settings.flowsDir,
+        pluginDir: settings.pluginDir,
+        pluginRegistryUrl: settings.pluginRegistryUrl,
         theme: settings.theme,
         locale: settings.locale,
         isLoading: false,
@@ -83,6 +87,26 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set({ flowsDir: dir });
     } catch (e) {
       set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setPluginDir: async (dir: string) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ pluginDir: dir });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+      throw e;
+    }
+  },
+
+  setPluginRegistryUrl: async (url: string) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ pluginRegistryUrl: url });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+      throw e;
     }
   },
 
