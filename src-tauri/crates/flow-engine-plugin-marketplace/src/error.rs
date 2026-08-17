@@ -4,10 +4,12 @@
 #[derive(Debug, thiserror::Error)]
 pub enum MarketplaceError {
     /// The marketplace returned a non-2xx HTTP status.
-    #[error("marketplace HTTP error: status {status}")]
+    #[error("marketplace HTTP error: status {status} for {url}")]
     Http {
         /// HTTP status code.
         status: u16,
+        /// The URL that returned the non-2xx status.
+        url: String,
     },
     /// The HTTP request itself failed.
     #[error("marketplace request failed: {0}")]

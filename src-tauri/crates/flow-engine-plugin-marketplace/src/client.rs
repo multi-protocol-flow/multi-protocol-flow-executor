@@ -33,6 +33,7 @@ impl MarketplaceClient {
         if !status.is_success() {
             return Err(MarketplaceError::Http {
                 status: status.as_u16(),
+                url,
             });
         }
         let body = response.bytes().await?;
@@ -135,7 +136,10 @@ mod tests {
             Ok(_) => panic!("list should fail"),
         };
         match err {
-            MarketplaceError::Http { status } => assert_eq!(status, 500),
+            MarketplaceError::Http { status, url } => {
+                assert_eq!(status, 500);
+                assert!(url.contains("/plugins"), "url should be the request URL: {url}");
+            }
             other => panic!("expected Http error, got {other:?}"),
         }
         join_fixture(handle);
