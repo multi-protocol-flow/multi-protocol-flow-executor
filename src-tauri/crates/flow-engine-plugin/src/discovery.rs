@@ -134,6 +134,22 @@ fn host_version() -> String {
     std::env::var(HOST_VERSION_ENV).unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string())
 }
 
+/// Resolve a marketplace-contract `entry.command` (e.g. `./mongo`) against
+/// the plugin directory.
+///
+/// The process layer spawns with `Command::new(&entry.command)` and does not
+/// chdir, so a `./`-prefixed command would resolve against the host's CWD.
+/// Bare names (`python3`, `demo`) keep PATH lookup semantics; absolute paths
+/// pass through untouched — only the explicit `./` / `.\` marketplace form
+/// is anchored to the plugin directory.
+pub(crate) fn resolve_entry_command(dir: &Path, command: &str) -> String {
+    let stripped = command
+        .strip_prefix("./")
+        .or_else(|| command.strip_prefix(".\\"))
+        .unwrap_or(command);
+    dir.join(stripped).to_string_lossy().into_owned()
+}
+
 /// Scan one plugin directory: parse `plugin.json`, gate on `min_host_version`.
 fn scan_plugin_dir(dir: &Path, host_version: &str) -> ScanEntry {
     let manifest_path = dir.join("plugin.json");
@@ -154,7 +170,7 @@ fn scan_plugin_dir(dir: &Path, host_version: &str) -> ScanEntry {
             };
         }
     };
-    let manifest = match PluginManifest::from_str(&text) {
+    let mut manifest = match PluginManifest::from_str(&text) {
         Ok(manifest) => manifest,
         Err(e) => {
             log::warn!("invalid plugin.json in {}: {e}; skipping", dir.display());
@@ -164,6 +180,12 @@ fn scan_plugin_dir(dir: &Path, host_version: &str) -> ScanEntry {
             };
         }
     };
+    // Marketplace-contract manifests carry a `./`-relative entry.command;
+    // anchor it to the plugin directory so the spawn layer (no chdir) can
+    // launch it regardless of the host's CWD.
+    if manifest.entry.command.starts_with("./") || manifest.entry.command.starts_with(".\\") {
+        manifest.entry.command = resolve_entry_command(dir, &manifest.entry.command);
+    }
     if let Some(required) = &manifest.min_host_version {
         if !semver::host_satisfies(host_version, required) {
             log::warn!(
@@ -320,5 +342,47 @@ mod tests {
         let root = unique_temp_dir("scan-missing").join("does-not-exist");
         assert!(PluginScan::scan(&root).is_empty());
         assert!(PluginScan::scan_with_errors(&root, "0.1.0").is_empty());
+    }
+
+    /// A marketplace-contract `./command` is anchored to the plugin
+    /// directory at scan time (the spawn layer does not chdir); bare names
+    /// keep PATH-lookup semantics and absolute paths pass through.
+    #[test]
+    fn scan_resolves_relative_entry_command() -> Result<(), Box<dyn std::error::Error>> {
+        let root = unique_temp_dir("scan-rel-command");
+        let rel = root.join("rel");
+        std::fs::create_dir_all(&rel)?;
+        std::fs::write(
+            rel.join("plugin.json"),
+            r#"{"name": "rel", "version": "1.0.0", "entry": {"command": "./mpe_plugin_redis"}}"#,
+        )?;
+        let bare = root.join("bare");
+        std::fs::create_dir_all(&bare)?;
+        std::fs::write(
+            bare.join("plugin.json"),
+            r#"{"name": "bare", "version": "1.0.0", "entry": {"command": "python3"}}"#,
+        )?;
+        let abs = root.join("abs");
+        std::fs::create_dir_all(&abs)?;
+        std::fs::write(
+            abs.join("plugin.json"),
+            r#"{"name": "abs", "version": "1.0.0", "entry": {"command": "/usr/bin/env"}}"#,
+        )?;
+
+        let found = PluginScan::scan(&root);
+        assert_eq!(found.len(), 3);
+        for p in &found {
+            match p.name.as_str() {
+                "rel" => assert_eq!(
+                    p.manifest.entry.command,
+                    rel.join("mpe_plugin_redis").to_string_lossy(),
+                    "`./` command must be anchored to the plugin directory"
+                ),
+                "bare" => assert_eq!(p.manifest.entry.command, "python3"),
+                "abs" => assert_eq!(p.manifest.entry.command, "/usr/bin/env"),
+                other => panic!("unexpected plugin {other}"),
+            }
+        }
+        Ok(())
     }
 }

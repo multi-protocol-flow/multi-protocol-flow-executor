@@ -321,11 +321,21 @@ impl PluginManager {
         };
         // Dropping the connection kills the child (last-handle Drop reaps).
         drop(connection);
+        // The plugin's echoed manifest may carry a `./`-relative
+        // entry.command (marketplace form); anchor it to the plugin
+        // directory like the scan path does.
+        let mut plugin_manifest = result.plugin;
+        if plugin_manifest.entry.command.starts_with("./")
+            || plugin_manifest.entry.command.starts_with(".\\")
+        {
+            plugin_manifest.entry.command =
+                crate::discovery::resolve_entry_command(&plugin.dir, &plugin_manifest.entry.command);
+        }
         Ok(PluginRegistration {
             name: plugin.name.clone(),
             version: plugin.version.clone(),
             dir: plugin.dir.clone(),
-            manifest: result.plugin,
+            manifest: plugin_manifest,
             nodes: normalize_nodes(result.nodes, &plugin.name),
         })
     }
