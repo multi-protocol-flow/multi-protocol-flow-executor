@@ -47,13 +47,15 @@ function sourceLabel(source: PluginDirSource): string {
   }
 }
 
-/** 市场插件条目（含当前平台徽标与下载安装按钮） */
+/** 市场插件条目（含当前平台徽标与下载安装按钮；已安装时按钮变「重新安装」） */
 function MarketplaceItem({
   plugin,
+  installed,
   installing,
   onInstall,
 }: {
   plugin: MarketplacePlugin;
+  installed: boolean;
   installing: boolean;
   onInstall: (plugin: MarketplacePlugin) => void;
 }) {
@@ -101,7 +103,7 @@ function MarketplaceItem({
         ) : (
           <Download className="mr-1 h-3.5 w-3.5" />
         )}
-        {installing ? ll.installing() : ll.download()}
+        {installing ? ll.installing() : installed ? ll.reinstall() : ll.download()}
       </Button>
     </div>
   );
@@ -184,13 +186,14 @@ export function PluginSettingsDialog() {
     }
   };
 
-  /** 安装市场插件（store 内完成安装 + 热重载 + 列表刷新） */
+  /** 安装市场插件（store 内完成安装 + 热重载 + 列表刷新；已安装时 force 重装） */
   const handleInstallPlugin = async (plugin: MarketplacePlugin) => {
     const url = pluginRegistryUrl ?? marketUrl.trim();
     if (!url) return;
+    const alreadyInstalled = installed.some((p) => p.name === plugin.name);
     setInstallingName(plugin.name);
     try {
-      await installMarketplacePlugin(url, plugin.name);
+      await installMarketplacePlugin(url, plugin.name, undefined, alreadyInstalled);
       await loadInstalled();
       toast.success(ll.install_success({ name: plugin.name }));
     } catch (e) {
@@ -331,6 +334,7 @@ export function PluginSettingsDialog() {
                   <MarketplaceItem
                     key={`${plugin.name}@${plugin.version}`}
                     plugin={plugin}
+                    installed={installed.some((p) => p.name === plugin.name)}
                     installing={installingName === plugin.name}
                     onInstall={handleInstallPlugin}
                   />

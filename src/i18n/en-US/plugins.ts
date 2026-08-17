@@ -18,6 +18,7 @@ const en_US_plugins = {
   market_empty: 'No plugins in this marketplace',
   market_error: 'Failed to load marketplace',
   download: 'Download',
+  reinstall: 'Reinstall',
   installing: 'Installing…',
   install_success: 'Plugin {name} installed',
   install_failed: 'Failed to install {name}',

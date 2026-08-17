@@ -50,6 +50,7 @@ interface PluginsState {
     url: string,
     name: string,
     version?: string,
+    force?: boolean,
   ) => Promise<void>;
   /** 清空市场列表 */
   clearMarketplace: () => void;
@@ -118,11 +119,16 @@ export const usePluginsStore = create<PluginsState>((set) => ({
     }
   },
 
-  installMarketplacePlugin: async (url: string, name: string, version?: string) => {
+  installMarketplacePlugin: async (
+    url: string,
+    name: string,
+    version?: string,
+    force?: boolean,
+  ) => {
     set({ loading: true, error: null });
     try {
       const service = await getPluginsService();
-      await service.installMarketplacePlugin(url, name, version);
+      await service.installMarketplacePlugin(url, name, version, force);
       // 安装后热重载插件目录，让新插件通过 describe 登记进注册表；
       // 重载成功后再刷新列表与目录信息（避免用旧快照展示中间态 error）
       const info = await service.getPluginDirInfo();

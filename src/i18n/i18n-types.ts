@@ -7549,6 +7549,10 @@ type RootTranslation = {
 		 */
 		download: string
 		/**
+		 * 重新安装
+		 */
+		reinstall: string
+		/**
 		 * 安装中
 		 */
 		installing: string
@@ -19787,6 +19791,10 @@ export type TranslationFunctions = {
 		 * 下载
 		 */
 		download: () => LocalizedString
+		/**
+		 * 重新安装
+		 */
+		reinstall: () => LocalizedString
 		/**
 		 * 安装中
 		 */

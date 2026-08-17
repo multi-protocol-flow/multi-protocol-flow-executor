@@ -18,6 +18,7 @@ const zh_CN_plugins = {
   market_empty: '该市场暂无插件',
   market_error: '市场加载失败',
   download: '下载',
+  reinstall: '重新安装',
   installing: '安装中…',
   install_success: '插件 {name} 安装成功',
   install_failed: '插件 {name} 安装失败',
