@@ -9,6 +9,7 @@ const zh_CN_plugins = {
   source_default: '默认',
   reload_success: '插件已重载',
   reload_failed: '插件重载失败',
+  reload_plugins: '重载',
   installed_empty: '尚未安装插件',
   status_loaded: '已加载',
   status_error: '错误',

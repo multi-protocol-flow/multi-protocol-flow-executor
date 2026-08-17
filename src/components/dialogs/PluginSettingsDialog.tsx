@@ -6,7 +6,7 @@
  * - 市场：配置市场地址并拉取插件列表（下载按钮本轮占位，下一轮接线）
  */
 import { useEffect, useState } from 'react';
-import { FolderOpen, Puzzle, Loader2, Package, Globe, Download } from 'lucide-react';
+import { FolderOpen, Puzzle, Loader2, Package, Globe, Download, RefreshCw } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -128,6 +128,7 @@ export function PluginSettingsDialog() {
   const setPluginRegistryUrl = useSettingsStore((s) => s.setPluginRegistryUrl);
   const [marketUrl, setMarketUrl] = useState('');
   const [changingDir, setChangingDir] = useState(false);
+  const [reloading, setReloading] = useState(false);
   const [installingName, setInstallingName] = useState<string | null>(null);
   const ll = getLL().plugins;
 
@@ -168,6 +169,27 @@ export function PluginSettingsDialog() {
       });
     } finally {
       setChangingDir(false);
+    }
+  };
+
+  /** 手动重载插件目录（安装新插件后 describe 失败时重试；也用于刷新已安装列表） */
+  const handleReloadPlugins = async () => {
+    const dir = pluginDirInfo?.effective_dir;
+    if (!dir || reloading) return;
+    setReloading(true);
+    try {
+      await reloadPlugins(dir);
+      await loadInstalled();
+      await loadPluginDirInfo();
+      // 插件节点面板元数据缓存失效，重新拉取（画布下次渲染即生效）
+      clearNodeMetadataCache();
+      toast.success(ll.reload_success());
+    } catch (e) {
+      toast.error(ll.reload_failed(), {
+        description: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setReloading(false);
     }
   };
 
@@ -234,23 +256,40 @@ export function PluginSettingsDialog() {
                     {sourceLabel(pluginDirInfo.source)}
                   </Badge>
                 ) : null}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="ml-auto shrink-0"
-                  disabled={envLocked || changingDir}
-                  onClick={handleChangeDir}
-                >
-                  {changingDir ? (
-                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <FolderOpen className="mr-1 h-3.5 w-3.5" />
-                  )}
-                  {ll.change_dir()}
-                </Button>
+                <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!pluginDirInfo?.effective_dir || reloading}
+                    onClick={handleReloadPlugins}
+                  >
+                    {reloading ? (
+                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-1 h-3.5 w-3.5" />
+                    )}
+                    {ll.reload_plugins()}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={envLocked || changingDir}
+                    onClick={handleChangeDir}
+                  >
+                    {changingDir ? (
+                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <FolderOpen className="mr-1 h-3.5 w-3.5" />
+                    )}
+                    {ll.change_dir()}
+                  </Button>
+                </div>
               </div>
+              {/* 配置来源展示：config 显示用户配置的目录，env 显示生效目录（同 env 值），default 显示默认目录 */}
               <p className="mt-2 break-all text-xs text-muted-foreground">
-                {pluginDirInfo?.effective_dir ?? '-'}
+                {pluginDirInfo?.source === 'config'
+                  ? (pluginDirInfo.configured ?? pluginDirInfo.effective_dir)
+                  : (pluginDirInfo?.effective_dir ?? '-')}
               </p>
               {envLocked ? (
                 <p className="mt-2 text-xs text-amber-600">{ll.source_env()}</p>

@@ -9,6 +9,7 @@ const en_US_plugins = {
   source_default: 'Default',
   reload_success: 'Plugins reloaded',
   reload_failed: 'Plugin reload failed',
+  reload_plugins: 'Reload',
   installed_empty: 'No plugins installed',
   status_loaded: 'Loaded',
   status_error: 'Error',

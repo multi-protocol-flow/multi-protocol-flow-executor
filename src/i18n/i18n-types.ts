@@ -7513,6 +7513,10 @@ type RootTranslation = {
 		 */
 		reload_failed: string
 		/**
+		 * 重​载
+		 */
+		reload_plugins: string
+		/**
 		 * 尚​未​安​装​插​件
 		 */
 		installed_empty: string
@@ -19755,6 +19759,10 @@ export type TranslationFunctions = {
 		 * 插件重载失败
 		 */
 		reload_failed: () => LocalizedString
+		/**
+		 * 重载
+		 */
+		reload_plugins: () => LocalizedString
 		/**
 		 * 尚未安装插件
 		 */
