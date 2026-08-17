@@ -123,9 +123,17 @@ export const usePluginsStore = create<PluginsState>((set) => ({
     try {
       const service = await getPluginsService();
       await service.installMarketplacePlugin(url, name, version);
-      // 安装成功后刷新已安装列表
-      const installed = await service.listInstalledPlugins();
-      set({ installed, loading: false });
+      // 安装后热重载插件目录，让新插件通过 describe 登记进注册表；
+      // 重载成功后再刷新列表与目录信息（避免用旧快照展示中间态 error）
+      const info = await service.getPluginDirInfo();
+      if (info?.effective_dir) {
+        await service.reloadPlugins(info.effective_dir);
+      }
+      const [installed, pluginDirInfo] = await Promise.all([
+        service.listInstalledPlugins(),
+        service.getPluginDirInfo(),
+      ]);
+      set({ installed, pluginDirInfo, loading: false });
     } catch (e) {
       set({ error: formatErrorMessage(e), loading: false });
       throw e;

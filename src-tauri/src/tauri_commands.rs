@@ -2317,6 +2317,28 @@ pub async fn reload_plugins(
     let mut manager = flow_engine::PluginManager::new(PathBuf::from(&dir))
         .with_host_locale(host_locale);
     manager.scan_and_describe().await;
+
+    // 瞬时 spawn 失败容错：安装完成后立刻热重载时，刚解压的二进制可能
+    // 仍被文件系统占用（Windows 杀软扫描 / 防病毒锁），首次 describe
+    // spawn 失败。对"扫描到但未登记"的插件延迟重试一次 describe，
+    // 避免新装的插件一直显示 error 直到重启。
+    let registered: std::collections::HashSet<String> = manager
+        .registrations()
+        .iter()
+        .map(|r| r.name.clone())
+        .collect();
+    let quarantined: std::collections::HashSet<String> =
+        manager.quarantined().into_iter().collect();
+    let needs_retry = flow_engine::PluginScan::scan(std::path::Path::new(&dir))
+        .into_iter()
+        .any(|plugin| {
+            !registered.contains(&plugin.name) && !quarantined.contains(&plugin.name)
+        });
+    if needs_retry {
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        manager.scan_and_describe().await;
+    }
+
     let manager = Arc::new(manager);
     let registry = Arc::new(flow_engine::default_registry_with_plugins(&manager));
 

@@ -184,18 +184,13 @@ export function PluginSettingsDialog() {
     }
   };
 
-  /** 安装市场插件 → 成功后热重载并刷新已安装列表 */
+  /** 安装市场插件（store 内完成安装 + 热重载 + 列表刷新） */
   const handleInstallPlugin = async (plugin: MarketplacePlugin) => {
     const url = pluginRegistryUrl ?? marketUrl.trim();
     if (!url) return;
     setInstallingName(plugin.name);
     try {
       await installMarketplacePlugin(url, plugin.name);
-      // 插件已落盘；重载插件目录使其注册进节点面板
-      const dir = pluginDirInfo?.effective_dir;
-      if (dir) {
-        await reloadPlugins(dir);
-      }
       await loadInstalled();
       toast.success(ll.install_success({ name: plugin.name }));
     } catch (e) {
