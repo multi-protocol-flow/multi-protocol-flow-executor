@@ -37,6 +37,9 @@ struct StorageConfig {
     /// Report storage directory
     #[serde(default)]
     reports_dir: Option<PathBuf>,
+    /// Plugin directory
+    #[serde(default)]
+    plugins_dir: Option<PathBuf>,
 }
 
 // ── Resolved config ────────────────────────────────────────────────────
@@ -48,6 +51,8 @@ pub struct AppConfig {
     pub flows_dir: PathBuf,
     /// Report storage directory
     pub reports_dir: PathBuf,
+    /// Plugin directory
+    pub plugins_dir: PathBuf,
 }
 
 impl AppConfig {
@@ -79,9 +84,23 @@ impl AppConfig {
             &flow_engine::storage::get_reports_dir,
         )?;
 
+        // Plugins: env > config file > data dir/plugins > ./plugins fallback
+        let plugins_dir = Self::resolve_path(
+            "MPE_PLUGIN_DIR",
+            config_file
+                .as_ref()
+                .and_then(|c| c.storage.plugins_dir.clone()),
+            &|| {
+                flow_engine::storage::get_data_dir()
+                    .map(|d| d.join("plugins"))
+                    .or_else(|_| Ok(PathBuf::from("plugins")))
+            },
+        )?;
+
         Ok(AppConfig {
             flows_dir,
             reports_dir,
+            plugins_dir,
         })
     }
 
@@ -177,6 +196,7 @@ mod tests {
         std::env::remove_var("MPE_CONFIG");
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
+        std::env::remove_var("MPE_PLUGIN_DIR");
 
         // Should successfully load defaults without config file
         let config = AppConfig::load();
@@ -188,6 +208,7 @@ mod tests {
         let config = config.unwrap_or_else(|e| panic!("confirmed is_ok, should not fail: {e}"));
         assert!(config.flows_dir.to_string_lossy().contains("flows"));
         assert!(config.reports_dir.to_string_lossy().contains("reports"));
+        assert!(config.plugins_dir.to_string_lossy().contains("plugins"));
     }
 
     #[test]
@@ -198,6 +219,7 @@ mod tests {
         std::env::remove_var("MPE_CONFIG");
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
+        std::env::remove_var("MPE_PLUGIN_DIR");
 
         let temp = std::env::temp_dir();
 
@@ -212,6 +234,7 @@ mod tests {
         // Cleanup
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
+        std::env::remove_var("MPE_PLUGIN_DIR");
     }
 
     #[test]
@@ -222,6 +245,7 @@ mod tests {
         std::env::remove_var("MPE_CONFIG");
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
+        std::env::remove_var("MPE_PLUGIN_DIR");
 
         std::env::set_var("MPE_FLOWS_DIR", "relative/path");
 
@@ -233,6 +257,16 @@ mod tests {
             .contains("absolute path"));
 
         std::env::remove_var("MPE_FLOWS_DIR");
+
+        // MPE_PLUGIN_DIR relative path fails the same way
+        std::env::set_var("MPE_PLUGIN_DIR", "relative/path");
+        let result = AppConfig::load();
+        assert!(result.is_err());
+        assert!(result
+            .err()
+            .unwrap_or_else(|| panic!("expected Err, got Ok"))
+            .contains("absolute path"));
+        std::env::remove_var("MPE_PLUGIN_DIR");
     }
 
     #[test]
@@ -245,15 +279,18 @@ mod tests {
 
         let flows = temp_dir.path().join("my_flows");
         let reports = temp_dir.path().join("my_reports");
+        let plugins = temp_dir.path().join("my_plugins");
 
         // Create directories to use absolute paths
         std::fs::create_dir_all(&flows).unwrap_or_else(|e| panic!("failed to create dir: {e}"));
         std::fs::create_dir_all(&reports).unwrap_or_else(|e| panic!("failed to create dir: {e}"));
+        std::fs::create_dir_all(&plugins).unwrap_or_else(|e| panic!("failed to create dir: {e}"));
 
         let toml_content = format!(
-            "[storage]\nflows_dir = \"{}\"\nreports_dir = \"{}\"\n",
+            "[storage]\nflows_dir = \"{}\"\nreports_dir = \"{}\"\nplugins_dir = \"{}\"\n",
             flows.to_string_lossy().replace('\\', "\\\\"),
-            reports.to_string_lossy().replace('\\', "\\\\")
+            reports.to_string_lossy().replace('\\', "\\\\"),
+            plugins.to_string_lossy().replace('\\', "\\\\")
         );
         std::fs::write(&config_path, toml_content)
             .unwrap_or_else(|e| panic!("failed to write config file: {e}"));
@@ -261,12 +298,14 @@ mod tests {
         // Clear env vars, use config file
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
+        std::env::remove_var("MPE_PLUGIN_DIR");
         std::env::set_var("MPE_CONFIG", config_path.to_string_lossy().as_ref());
 
         let config = AppConfig::load()
             .unwrap_or_else(|e| panic!("should load config file successfully: {e}"));
         assert_eq!(config.flows_dir, flows);
         assert_eq!(config.reports_dir, reports);
+        assert_eq!(config.plugins_dir, plugins);
 
         // Cleanup
         std::env::remove_var("MPE_CONFIG");

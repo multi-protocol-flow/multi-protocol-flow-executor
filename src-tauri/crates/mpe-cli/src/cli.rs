@@ -7,6 +7,7 @@ pub mod debug_cmd;
 pub mod flow;
 pub mod flow_edit;
 pub mod output;
+pub mod plugin;
 pub mod report;
 pub mod run;
 pub mod run_node;
@@ -144,6 +145,38 @@ pub enum Commands {
         /// Output format (json)
         #[arg(short, long, default_value = "json")]
         format: String,
+    },
+    /// Plugin management
+    Plugin {
+        /// Plugin management subcommand
+        #[command(subcommand)]
+        command: PluginCommands,
+    },
+}
+
+/// Plugin management subcommand enumeration
+#[derive(Subcommand)]
+pub enum PluginCommands {
+    /// Show the effective plugins directory
+    Dir,
+    /// List installed plugins
+    List,
+    /// Install a plugin from a marketplace
+    Install {
+        /// Plugin name
+        name: String,
+        /// Exact plugin version (defaults to the first listing match)
+        #[arg(long)]
+        version: Option<String>,
+        /// Install directory (defaults to the effective plugins directory)
+        #[arg(long)]
+        dir: Option<PathBuf>,
+        /// Marketplace base URL (or `MPE_PLUGIN_REGISTRY` env var)
+        #[arg(long)]
+        registry: Option<String>,
+        /// Re-install over an existing plugin
+        #[arg(long)]
+        force: bool,
     },
 }
 
@@ -413,11 +446,8 @@ async fn async_main() -> Result<(), CliError> {
         let _ = ctrlc_cancel_tx.send(true);
     });
 
-    // 构建共享节点注册表（内置节点 + 插件节点，整个进程只构建一次，
-    // 使插件进程在多次执行/压测之间复用）。同时保留插件管理器，
-    // 用于执行结束后广播 flowEnded（释放插件 per-execution 资源）。
-    let (registry, plugin_manager) = build_shared_registry().await;
-
+    // 按需构建共享节点注册表（内置节点 + 插件节点）：只有真正执行/验证/调试/
+    // 压测/单节点命令需要；flow/report/plugin 管理命令不拉起插件进程。
     match cli.command {
         Commands::Run {
             flow,
@@ -425,6 +455,7 @@ async fn async_main() -> Result<(), CliError> {
             stream,
             no_report,
         } => {
+            let (registry, plugin_manager) = build_shared_registry().await;
             run::execute(
                 &cli.format,
                 &flow,
@@ -438,12 +469,15 @@ async fn async_main() -> Result<(), CliError> {
             .await
         }
         Commands::Validate { flow } => {
+            let (registry, _plugin_manager) = build_shared_registry().await;
             validate::execute(&cli.format, &flow, registry).await
         }
         Commands::Debug { flow, r#break, var } => {
+            let (registry, _plugin_manager) = build_shared_registry().await;
             debug_cmd::execute(&cli.format, &flow, &r#break, &var, registry, cancel_rx).await
         }
         Commands::Stress { command } => {
+            let (registry, _plugin_manager) = build_shared_registry().await;
             stress::execute(&cli.format, command, registry, cancel_rx).await
         }
         Commands::Flow { command } => flow::execute(&cli.format, command).await,
@@ -451,21 +485,32 @@ async fn async_main() -> Result<(), CliError> {
             node_json,
             var,
             format,
-        } => run_node::execute(&format, &node_json, &var, registry).await,
+        } => {
+            let (registry, _plugin_manager) = build_shared_registry().await;
+            run_node::execute(&format, &node_json, &var, registry).await
+        }
         Commands::Report { command } => report::execute(&cli.format, command).await,
+        Commands::Plugin { command } => plugin::execute(command).await,
     }
 }
 
-/// 解析插件目录：`MPE_PLUGIN_DIR` 环境变量优先，否则默认数据目录下 `plugins`
+/// 解析插件目录：`MPE_PLUGIN_DIR` 环境变量 > config.toml `[storage].plugins_dir`
+/// > 默认数据目录 `plugins` > 兜底相对路径 `plugins`。
+///
+/// `AppConfig` 解析失败时降级为旧的 env → 默认目录解析。
 fn plugins_dir() -> PathBuf {
-    std::env::var_os("MPE_PLUGIN_DIR")
-        .map(PathBuf::from)
-        .or_else(|| {
-            flow_engine::storage::get_data_dir()
-                .ok()
-                .map(|d| d.join("plugins"))
+    crate::cli::config::AppConfig::load()
+        .map(|config| config.plugins_dir)
+        .unwrap_or_else(|_| {
+            std::env::var_os("MPE_PLUGIN_DIR")
+                .map(PathBuf::from)
+                .or_else(|| {
+                    flow_engine::storage::get_data_dir()
+                        .ok()
+                        .map(|d| d.join("plugins"))
+                })
+                .unwrap_or_else(|| PathBuf::from("plugins"))
         })
-        .unwrap_or_else(|| PathBuf::from("plugins"))
 }
 
 /// 构建 CLI 共享节点注册表

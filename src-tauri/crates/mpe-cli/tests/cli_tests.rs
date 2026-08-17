@@ -240,3 +240,259 @@ fn cli_run_plugin_flow_with_inline_frontend() -> Result<(), Box<dyn std::error::
     );
     Ok(())
 }
+
+// ============================================================================
+// `mpe plugin` subcommand e2e（插件市场 fixture 服务端到端）
+// ============================================================================
+
+use std::io::{Read, Write};
+use std::net::TcpListener;
+use std::thread;
+
+/// 当前宿主平台 key（与 flow-engine-plugin-marketplace::current_platform 对齐）。
+fn current_platform_key() -> String {
+    let os = match std::env::consts::OS {
+        "windows" => "windows",
+        "macos" => "macos",
+        _ => "linux",
+    };
+    let arch = match std::env::consts::ARCH {
+        "x86_64" => "x64",
+        _ => "arm64",
+    };
+    format!("{os}-{arch}")
+}
+
+/// 构造 mongo 插件 zip：根含 `mongo/plugin.json` + `mongo/mongo` 占位文件。
+fn build_mongo_zip() -> Vec<u8> {
+    let mut writer = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+    let options = zip::write::SimpleFileOptions::default();
+    writer
+        .start_file("mongo/plugin.json", options)
+        .unwrap_or_else(|e| panic!("zip write failed: {e}"));
+    writer
+        .write_all(br#"{"name":"mongo","version":"1.0.0","entry":{"command":"./mongo","args":[]}}"#)
+        .unwrap_or_else(|e| panic!("zip write failed: {e}"));
+    writer
+        .start_file("mongo/mongo", options)
+        .unwrap_or_else(|e| panic!("zip write failed: {e}"));
+    writer
+        .write_all(b"#!/bin/sh\nexit 0\n")
+        .unwrap_or_else(|e| panic!("zip write failed: {e}"));
+    writer
+        .finish()
+        .unwrap_or_else(|e| panic!("zip finish failed: {e}"))
+        .into_inner()
+}
+
+/// sha256 十六进制摘要。
+fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest;
+    let digest = sha2::Sha256::digest(bytes);
+    digest.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// 起一个 fixture 市场服务（随机端口）：
+/// - `GET /plugins` → `{"plugins":[{name:mongo, version:1.0.0, platforms:{<当前平台>:{url:…/mongo.zip, sha256}}}]}`
+/// - `GET /mongo.zip` → zip 字节
+///
+/// 非阻塞 accept + 500ms 空闲超时退出（每个测试请求数不同，避免 join 卡死）；
+/// 返回 (`base_url`, 线程句柄)。
+fn start_market_fixture() -> (String, thread::JoinHandle<()>) {
+    use std::time::Duration;
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap_or_else(|e| panic!("bind failed: {e}"));
+    listener.set_nonblocking(true).unwrap_or_else(|e| panic!("nonblocking failed: {e}"));
+    let addr = listener.local_addr().unwrap_or_else(|e| panic!("addr failed: {e}"));
+    let port = addr.port();
+    let platform = current_platform_key();
+    let handle = thread::spawn(move || {
+        let zip = build_mongo_zip();
+        let sha = sha256_hex(&zip);
+        let plugins_body = format!(
+            r#"{{"plugins":[{{"name":"mongo","version":"1.0.0","description":"MongoDB protocol plugin","platforms":{{"{platform}":{{"url":"http://127.0.0.1:{port}/mongo.zip","sha256":"{sha}"}}}}}}]}}"#
+        );
+        let mut idle_ms = 0u64;
+        loop {
+            match listener.accept() {
+                Ok((mut stream, _)) => {
+                    idle_ms = 0;
+                    let mut buf = [0u8; 4096];
+                    let n = stream.read(&mut buf).unwrap_or_else(|e| panic!("read failed: {e}"));
+                    let request = String::from_utf8_lossy(&buf[..n]);
+                    let path = request
+                        .lines()
+                        .next()
+                        .and_then(|line| line.split_whitespace().nth(1))
+                        .unwrap_or("/");
+                    let (status, body) = if path == "/plugins" {
+                        ("200 OK", plugins_body.clone().into_bytes())
+                    } else if path == "/mongo.zip" {
+                        ("200 OK", zip.clone())
+                    } else {
+                        ("404 Not Found", b"not found".to_vec())
+                    };
+                    let header = format!(
+                        "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                        body.len()
+                    );
+                    stream.write_all(header.as_bytes()).unwrap_or_else(|e| panic!("write failed: {e}"));
+                    stream.write_all(&body).unwrap_or_else(|e| panic!("write failed: {e}"));
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    thread::sleep(Duration::from_millis(20));
+                    idle_ms += 20;
+                    if idle_ms > 500 {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+    });
+    (format!("http://{addr}"), handle)
+}
+
+/// 运行 `mpe-cli plugin <args>`，注入 `MPE_PLUGIN_DIR`。
+fn run_plugin_cmd(dir: &Path, args: &[&str]) -> std::process::Output {
+    cargo::cargo_bin_cmd!("mpe-cli")
+        .env("MPE_PLUGIN_DIR", dir)
+        .args(args)
+        .output()
+        .unwrap_or_else(|e| panic!("spawn mpe-cli failed: {e}"))
+}
+
+/// `mpe plugin install`：下载 fixture 市场 zip → sha256 校验 → 解压安装。
+/// 端到端证明：目标目录出现 `mongo/plugin.json`。
+#[test]
+fn cli_plugin_install_from_marketplace() -> Result<(), Box<dyn std::error::Error>> {
+    let (base, handle) = start_market_fixture();
+    let temp = tempfile::tempdir()?;
+    let install_dir = temp.path().join("plugins");
+    std::fs::create_dir_all(&install_dir)?;
+
+    let output = run_plugin_cmd(
+        &install_dir,
+        &["plugin", "install", "mongo", "--registry", &base],
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        output.status.success(),
+        "install failed\nstdout: {stdout}\nstderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let value: Value = serde_json::from_str(&stdout)
+        .map_err(|e| format!("stdout is not JSON: {e}\nstdout: {stdout}"))?;
+    assert_eq!(value["success"], true, "{stdout}");
+    assert_eq!(value["data"]["name"], "mongo");
+    assert_eq!(value["data"]["version"], "1.0.0");
+    assert_eq!(
+        value["data"]["path"],
+        Value::String(install_dir.join("mongo").to_string_lossy().into_owned())
+    );
+
+    // 安装产物落地
+    assert!(
+        install_dir.join("mongo/plugin.json").exists(),
+        "mongo/plugin.json must exist after install"
+    );
+    assert!(install_dir.join("mongo/mongo").exists(), "entry file must be extracted");
+    handle.join().unwrap_or_else(|_| panic!("fixture server panicked"));
+    Ok(())
+}
+
+/// 重复安装报 `AlreadyInstalled`；`--force` 覆盖成功。
+#[test]
+fn cli_plugin_install_already_installed_and_force() -> Result<(), Box<dyn std::error::Error>> {
+    let (base, handle) = start_market_fixture();
+    let temp = tempfile::tempdir()?;
+    let install_dir = temp.path().join("plugins");
+    std::fs::create_dir_all(&install_dir)?;
+
+    // 首次安装成功
+    let output = run_plugin_cmd(
+        &install_dir,
+        &["plugin", "install", "mongo", "--registry", &base],
+    );
+    assert!(output.status.success(), "first install failed: {}", String::from_utf8_lossy(&output.stdout));
+
+    // 重复安装 → AlreadyInstalled 类错误（exit 1）
+    let output = run_plugin_cmd(
+        &install_dir,
+        &["plugin", "install", "mongo", "--registry", &base],
+    );
+    assert!(!output.status.success(), "second install must fail");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("already installed"),
+        "expected AlreadyInstalled error, got: {stdout}"
+    );
+
+    // --force 覆盖成功
+    let output = run_plugin_cmd(
+        &install_dir,
+        &["plugin", "install", "mongo", "--registry", &base, "--force"],
+    );
+    assert!(output.status.success(), "force reinstall failed: {}", String::from_utf8_lossy(&output.stdout));
+    handle.join().unwrap_or_else(|_| panic!("fixture server panicked"));
+    Ok(())
+}
+
+/// `mpe plugin dir` 输出 `MPE_PLUGIN_DIR` 指定的有效目录（source=env）。
+#[test]
+fn cli_plugin_dir_reports_effective_dir() -> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::tempdir()?;
+    let install_dir = temp.path().join("plugins");
+    std::fs::create_dir_all(&install_dir)?;
+
+    let output = run_plugin_cmd(&install_dir, &["plugin", "dir"]);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(output.status.success(), "plugin dir failed: {stdout}");
+    let value: Value = serde_json::from_str(&stdout)
+        .map_err(|e| format!("stdout is not JSON: {e}\nstdout: {stdout}"))?;
+    assert_eq!(value["success"], true);
+    assert_eq!(
+        value["data"]["dir"],
+        Value::String(install_dir.to_string_lossy().into_owned())
+    );
+    assert_eq!(value["data"]["source"], "env");
+    Ok(())
+}
+
+/// `mpe plugin list` 扫描 `MPE_PLUGIN_DIR`，返回已安装的 mongo 条目。
+#[test]
+fn cli_plugin_list_shows_installed() -> Result<(), Box<dyn std::error::Error>> {
+    let (base, handle) = start_market_fixture();
+    let temp = tempfile::tempdir()?;
+    let install_dir = temp.path().join("plugins");
+    std::fs::create_dir_all(&install_dir)?;
+
+    // 先安装，再 list
+    let output = run_plugin_cmd(
+        &install_dir,
+        &["plugin", "install", "mongo", "--registry", &base],
+    );
+    assert!(output.status.success(), "install failed: {}", String::from_utf8_lossy(&output.stdout));
+    handle.join().unwrap_or_else(|_| panic!("fixture server panicked"));
+
+    let output = run_plugin_cmd(&install_dir, &["plugin", "list"]);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(output.status.success(), "plugin list failed: {stdout}");
+    let value: Value = serde_json::from_str(&stdout)
+        .map_err(|e| format!("stdout is not JSON: {e}\nstdout: {stdout}"))?;
+    assert_eq!(value["success"], true);
+    let list = value["data"]
+        .as_array()
+        .ok_or_else(|| format!("data must be an array: {stdout}"))?;
+    let mongo = list
+        .iter()
+        .find(|entry| entry["name"] == "mongo")
+        .ok_or_else(|| format!("mongo entry missing: {stdout}"))?;
+    assert_eq!(mongo["version"], "1.0.0");
+    assert_eq!(
+        mongo["path"],
+        Value::String(install_dir.join("mongo").to_string_lossy().into_owned())
+    );
+    assert_eq!(mongo["error"], Value::Null);
+    Ok(())
+}
