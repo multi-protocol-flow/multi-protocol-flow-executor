@@ -114,6 +114,12 @@ pub use flow_engine_executor::default_registry::default_registry_with_plugins;
 pub use flow_engine_plugin::manager::PluginManager;
 #[cfg(feature = "plugin-manager")]
 pub use flow_engine_plugin::sidecar::SidecarPlugin;
+// 插件目录扫描（已安装列表；GUI 与 CLI 共用）
+#[cfg(feature = "plugin-manager")]
+pub use flow_engine_plugin::discovery::{PluginScan, ScanEntry};
+// 插件市场客户端 + 安装器（GUI 市场 Tab 与 `mpe plugin install` 共用）
+#[cfg(feature = "plugin-manager")]
+pub use flow_engine_plugin_marketplace;
 
 // 数据集执行模块
 pub use flow_engine_executor::csv_parser;

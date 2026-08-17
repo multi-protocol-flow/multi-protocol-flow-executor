@@ -1,0 +1,47 @@
+[package]
+name = "flow-engine-plugin-marketplace"
+version = "0.1.0"
+edition = "2021"
+description = "Plugin marketplace client + installer shared by the GUI and CLI"
+
+[dependencies]
+# Shared plugin wire types come from the standalone public SDK repo (tag
+# pinned); default-features = false keeps tokio out of the host build.
+mpe-plugin-sdk = { git = "https://github.com/multi-protocol-flow/mpe-plugin-sdk.git", tag = "v0.1.0", default-features = false }
+reqwest = { version = "0.13", default-features = false, features = ["json"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = "0.10"
+thiserror = { workspace = true }
+tokio = { workspace = true }
+log = { workspace = true }
+zip = "2"
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
+
+[dev-dependencies]
+tempfile = "3.0"
+# reqwest is unified to rustls-no-provider by workspace-hack; tests must
+# install a crypto provider before building a Client (same as the app crate).
+rustls = { workspace = true, features = ["ring"] }
+
+# This crate has no unsafe code; `unsafe_code = "allow"` mirrors the
+# flow-engine-plugin lint table (which must restate the workspace lint set
+# locally — cargo forbids combining `[lints] workspace = true` with local
+# overrides in the same package).
+[lints.rust]
+unsafe_code = "allow"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+missing_docs_in_private_items = "allow"
+doc_markdown = "warn"
+too_many_arguments = "allow"
+type_complexity = "allow"
+unwrap_used = "deny"
+expect_used = "warn"

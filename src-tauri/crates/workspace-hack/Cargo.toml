@@ -19,13 +19,16 @@ bit-vec = { version = "0.8" }
 digest = { version = "0.10", features = ["mac", "std"] }
 either = { version = "1", features = ["use_std"] }
 fastrand = { version = "2" }
+flate2 = { version = "1" }
 form_urlencoded = { version = "1" }
 futures-channel = { version = "0.3", features = ["sink"] }
 futures-core = { version = "0.3" }
 futures-sink = { version = "0.3" }
 futures-task = { version = "0.3", default-features = false, features = ["std"] }
 futures-util = { version = "0.3", features = ["channel", "io", "sink"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std", "wasm_js"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
+hmac = { version = "0.12", default-features = false, features = ["reset"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
 indexmap = { version = "1", default-features = false, features = ["serde-1"] }
@@ -62,6 +65,7 @@ tokio-util = { version = "0.7", features = ["codec", "io"] }
 tracing = { version = "0.1" }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
+zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [build-dependencies]
 bit-vec = { version = "0.8" }
@@ -69,6 +73,7 @@ cc = { version = "1", default-features = false, features = ["parallel"] }
 digest = { version = "0.10", features = ["mac", "std"] }
 either = { version = "1", features = ["use_std"] }
 fastrand = { version = "2" }
+flate2 = { version = "1" }
 form_urlencoded = { version = "1" }
 indexmap = { version = "1", default-features = false, features = ["serde-1"] }
 log = { version = "0.4", default-features = false, features = ["kv_unstable", "std"] }
