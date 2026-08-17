@@ -7545,15 +7545,27 @@ type RootTranslation = {
 		 */
 		market_error: string
 		/**
-		 * 下​载
+		 * 下载
 		 */
 		download: string
 		/**
-		 * 即​将​上​线
+		 * 安装中
 		 */
-		coming_soon: string
+		installing: string
 		/**
-		 * 当​前​平​台
+		 * 安装成功
+		 */
+		install_success: RequiredParams<'name'>
+		/**
+		 * 安装失败
+		 */
+		install_failed: RequiredParams<'name'>
+		/**
+		 * 当前平台无可用产物
+		 */
+		no_platform_asset: string
+		/**
+		 * 当前平台
 		 */
 		current_platform: string
 	}
@@ -19776,9 +19788,21 @@ export type TranslationFunctions = {
 		 */
 		download: () => LocalizedString
 		/**
-		 * 即将上线
+		 * 安装中
 		 */
-		coming_soon: () => LocalizedString
+		installing: () => LocalizedString
+		/**
+		 * 安装成功
+		 */
+		install_success: (arg: { name: unknown }) => LocalizedString
+		/**
+		 * 安装失败
+		 */
+		install_failed: (arg: { name: unknown }) => LocalizedString
+		/**
+		 * 当前平台无可用产物
+		 */
+		no_platform_asset: () => LocalizedString
 		/**
 		 * 当前平台
 		 */

@@ -45,6 +45,12 @@ interface PluginsState {
   reloadPlugins: (dir: string) => Promise<void>;
   /** 从市场拉取插件列表 */
   loadMarketplace: (url: string) => Promise<void>;
+  /** 从市场安装插件（成功后刷新已安装列表） */
+  installMarketplacePlugin: (
+    url: string,
+    name: string,
+    version?: string,
+  ) => Promise<void>;
   /** 清空市场列表 */
   clearMarketplace: () => void;
   /** 重置（测试隔离） */
@@ -106,6 +112,20 @@ export const usePluginsStore = create<PluginsState>((set) => ({
       const service = await getPluginsService();
       const marketplace = await service.listMarketplacePlugins(url);
       set({ marketplace, loading: false });
+    } catch (e) {
+      set({ error: formatErrorMessage(e), loading: false });
+      throw e;
+    }
+  },
+
+  installMarketplacePlugin: async (url: string, name: string, version?: string) => {
+    set({ loading: true, error: null });
+    try {
+      const service = await getPluginsService();
+      await service.installMarketplacePlugin(url, name, version);
+      // 安装成功后刷新已安装列表
+      const installed = await service.listInstalledPlugins();
+      set({ installed, loading: false });
     } catch (e) {
       set({ error: formatErrorMessage(e), loading: false });
       throw e;

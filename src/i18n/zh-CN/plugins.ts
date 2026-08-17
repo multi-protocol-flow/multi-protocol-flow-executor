@@ -18,7 +18,10 @@ const zh_CN_plugins = {
   market_empty: '该市场暂无插件',
   market_error: '市场加载失败',
   download: '下载',
-  coming_soon: '即将上线',
+  installing: '安装中…',
+  install_success: '插件 {name} 安装成功',
+  install_failed: '插件 {name} 安装失败',
+  no_platform_asset: '当前平台无可用产物',
   current_platform: '当前平台',
 };
 

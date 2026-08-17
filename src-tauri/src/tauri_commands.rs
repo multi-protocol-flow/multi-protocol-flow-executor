@@ -2415,6 +2415,40 @@ pub async fn list_marketplace_plugins(
         .map_err(|e| e.to_string())
 }
 
+/// 从插件市场安装插件（下载 + sha256 校验 + 解压到生效插件目录 `<dir>/<name>/`）
+///
+/// 安装目录解析与 `get_plugin_dir_info` 一致（env > 设置文件 > 默认）。
+/// `version` 缺省取市场列表第一个匹配项（服务端按版本降序返回）；
+/// `force` 覆盖已存在的安装。
+#[cfg(feature = "plugin-manager")]
+#[tauri::command]
+pub async fn install_marketplace_plugin(
+    app: tauri::AppHandle,
+    url: String,
+    name: String,
+    version: Option<String>,
+    force: bool,
+) -> Result<flow_engine::flow_engine_plugin_marketplace::InstalledPluginInfo, String> {
+    let install_dir = crate::resolve_plugin_dir(&app).0;
+    let client = flow_engine::flow_engine_plugin_marketplace::MarketplaceClient::new(url);
+    let plugins = client
+        .list_plugins()
+        .await
+        .map_err(|e| e.to_string())?;
+    let plugin = plugins
+        .iter()
+        .find(|plugin| plugin.name == name && version.as_deref().is_none_or(|v| plugin.version == v))
+        .ok_or_else(|| {
+            format!(
+                "plugin {name}{} not found in marketplace",
+                version.map(|v| format!("@{v}")).unwrap_or_default()
+            )
+        })?;
+    flow_engine::flow_engine_plugin_marketplace::install_plugin(&client, plugin, &install_dir, force)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 // ============================================================================
 // 数据集执行命令
 // ============================================================================

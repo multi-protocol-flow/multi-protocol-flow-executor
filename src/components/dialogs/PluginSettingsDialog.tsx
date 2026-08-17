@@ -47,8 +47,16 @@ function sourceLabel(source: PluginDirSource): string {
   }
 }
 
-/** 市场插件条目（含当前平台徽标与占位下载按钮） */
-function MarketplaceItem({ plugin }: { plugin: MarketplacePlugin }) {
+/** 市场插件条目（含当前平台徽标与下载安装按钮） */
+function MarketplaceItem({
+  plugin,
+  installing,
+  onInstall,
+}: {
+  plugin: MarketplacePlugin;
+  installing: boolean;
+  onInstall: (plugin: MarketplacePlugin) => void;
+}) {
   const ll = getLL().plugins;
   const platform = currentPlatformKey();
   const hasCurrentPlatform = Boolean(plugin.platforms[platform]);
@@ -83,12 +91,17 @@ function MarketplaceItem({ plugin }: { plugin: MarketplacePlugin }) {
       <Button
         variant="outline"
         size="sm"
-        disabled
-        title={ll.coming_soon()}
+        disabled={!hasCurrentPlatform || installing}
+        title={hasCurrentPlatform ? undefined : ll.no_platform_asset()}
         className="shrink-0"
+        onClick={() => onInstall(plugin)}
       >
-        <Download className="mr-1 h-3.5 w-3.5" />
-        {ll.download()}
+        {installing ? (
+          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Download className="mr-1 h-3.5 w-3.5" />
+        )}
+        {installing ? ll.installing() : ll.download()}
       </Button>
     </div>
   );
@@ -107,11 +120,13 @@ export function PluginSettingsDialog() {
     loadInstalled,
     reloadPlugins,
     loadMarketplace,
+    installMarketplacePlugin,
   } = usePluginsStore();
   const pluginRegistryUrl = useSettingsStore((s) => s.pluginRegistryUrl);
   const setPluginRegistryUrl = useSettingsStore((s) => s.setPluginRegistryUrl);
   const [marketUrl, setMarketUrl] = useState('');
   const [changingDir, setChangingDir] = useState(false);
+  const [installingName, setInstallingName] = useState<string | null>(null);
   const ll = getLL().plugins;
 
   // 打开时加载目录信息与已安装列表
@@ -166,6 +181,29 @@ export function PluginSettingsDialog() {
       toast.error(ll.market_error(), {
         description: e instanceof Error ? e.message : String(e),
       });
+    }
+  };
+
+  /** 安装市场插件 → 成功后热重载并刷新已安装列表 */
+  const handleInstallPlugin = async (plugin: MarketplacePlugin) => {
+    const url = pluginRegistryUrl ?? marketUrl.trim();
+    if (!url) return;
+    setInstallingName(plugin.name);
+    try {
+      await installMarketplacePlugin(url, plugin.name);
+      // 插件已落盘；重载插件目录使其注册进节点面板
+      const dir = pluginDirInfo?.effective_dir;
+      if (dir) {
+        await reloadPlugins(dir);
+      }
+      await loadInstalled();
+      toast.success(ll.install_success({ name: plugin.name }));
+    } catch (e) {
+      toast.error(ll.install_failed({ name: plugin.name }), {
+        description: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setInstallingName(null);
     }
   };
 
@@ -295,7 +333,12 @@ export function PluginSettingsDialog() {
             ) : (
               <div className="mt-4 space-y-2">
                 {marketplace.map((plugin) => (
-                  <MarketplaceItem key={`${plugin.name}@${plugin.version}`} plugin={plugin} />
+                  <MarketplaceItem
+                    key={`${plugin.name}@${plugin.version}`}
+                    plugin={plugin}
+                    installing={installingName === plugin.name}
+                    onInstall={handleInstallPlugin}
+                  />
                 ))}
               </div>
             )}

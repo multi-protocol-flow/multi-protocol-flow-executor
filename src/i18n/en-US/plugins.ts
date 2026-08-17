@@ -18,7 +18,10 @@ const en_US_plugins = {
   market_empty: 'No plugins in this marketplace',
   market_error: 'Failed to load marketplace',
   download: 'Download',
-  coming_soon: 'Coming soon',
+  installing: 'Installing…',
+  install_success: 'Plugin {name} installed',
+  install_failed: 'Failed to install {name}',
+  no_platform_asset: 'No asset for the current platform',
   current_platform: 'Current platform',
 };
 

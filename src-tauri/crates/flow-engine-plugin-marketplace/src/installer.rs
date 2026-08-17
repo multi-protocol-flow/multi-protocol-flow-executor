@@ -26,7 +26,7 @@ use crate::model::MarketplacePlugin;
 use crate::platform::current_platform;
 
 /// Metadata about a successfully installed plugin.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct InstalledPluginInfo {
     /// Plugin name (from the marketplace entry and manifest).
     pub name: String,

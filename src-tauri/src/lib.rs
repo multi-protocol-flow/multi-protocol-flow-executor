@@ -103,10 +103,11 @@ pub use tauri_commands::{
 #[cfg(feature = "plugin-manager")]
 pub use tauri_commands::plugin_ui_call;
 
-// 插件设置命令（目录信息/热重载/已安装列表/市场列表）
+// 插件设置命令（目录信息/热重载/已安装列表/市场列表/市场安装）
 #[cfg(feature = "plugin-manager")]
 pub use tauri_commands::{
-    get_plugin_dir_info, list_installed_plugins, list_marketplace_plugins, reload_plugins,
+    get_plugin_dir_info, install_marketplace_plugin, list_installed_plugins,
+    list_marketplace_plugins, reload_plugins,
 };
 
 // SSE 连接测试命令
@@ -447,6 +448,8 @@ pub fn run() {
             list_installed_plugins,
             #[cfg(feature = "plugin-manager")]
             list_marketplace_plugins,
+            #[cfg(feature = "plugin-manager")]
+            install_marketplace_plugin,
             // CSV 模板命令
             save_csv_template,
             // 数据集执行命令

@@ -7,7 +7,12 @@
 
 import { isTauriEnv } from '@/lib/platform';
 import { formatError } from './flow';
-import type { PluginDirInfo, InstalledPlugin, MarketplacePlugin } from '@/types/plugins';
+import type {
+  InstalledPlugin,
+  InstalledPluginInfo,
+  MarketplacePlugin,
+  PluginDirInfo,
+} from '@/types/plugins';
 
 /** 插件重载结果（`reload_plugins` 返回，camelCase） */
 export interface ReloadPluginsResult {
@@ -83,4 +88,35 @@ export async function listMarketplacePlugins(url: string): Promise<MarketplacePl
   }
   const { listMarketplacePlugins: mock } = await import('./mock');
   return mock(url);
+}
+
+/**
+ * 从插件市场安装插件（下载 + sha256 校验 + 解压到生效插件目录）
+ *
+ * @param url - 市场地址
+ * @param name - 插件名
+ * @param version - 精确版本（缺省取市场列表第一个匹配项）
+ * @param force - 覆盖已存在的安装
+ */
+export async function installMarketplacePlugin(
+  url: string,
+  name: string,
+  version?: string,
+  force = false,
+): Promise<InstalledPluginInfo> {
+  if (isTauriEnv()) {
+    const { invoke } = await import('@tauri-apps/api/core');
+    try {
+      return await invoke<InstalledPluginInfo>('install_marketplace_plugin', {
+        url,
+        name,
+        version: version ?? null,
+        force,
+      });
+    } catch (error) {
+      throw formatError(error, 'install_marketplace_plugin');
+    }
+  }
+  const { installMarketplacePlugin: mock } = await import('./mock');
+  return mock(url, name, version, force);
 }

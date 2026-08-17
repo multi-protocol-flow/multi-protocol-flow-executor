@@ -78,3 +78,13 @@ export interface MarketplacePlugin {
   /** 各平台下载资产（key 为 `windows-x64|windows-arm64|linux-x64|linux-arm64|macos-x64|macos-arm64`） */
   platforms: Record<string, MarketplacePlatformAsset>;
 }
+
+/** 市场安装结果（`install_marketplace_plugin` 返回） */
+export interface InstalledPluginInfo {
+  /** 插件名 */
+  name: string;
+  /** 插件版本 */
+  version: string;
+  /** 安装目录（含 `plugin.json`） */
+  path: string;
+}

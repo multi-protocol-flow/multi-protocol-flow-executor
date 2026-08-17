@@ -11,6 +11,7 @@ import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
 import type {
   InstalledPlugin,
+  InstalledPluginInfo,
   MarketplacePlugin,
   PluginDirInfo,
 } from '@/types/plugins';
@@ -405,6 +406,24 @@ export async function listMarketplacePlugins(
   _url: string
 ): Promise<MarketplacePlugin[]> {
   return [];
+}
+
+/**
+ * Mock 从插件市场安装插件
+ * 模拟后端 install_marketplace_plugin 命令行为
+ *
+ * @param _url - 市场地址（Mock 中未使用）
+ * @param _name - 插件名（Mock 中未使用）
+ * @param _version - 插件版本（Mock 中未使用）
+ * @param _force - 是否覆盖（Mock 中未使用）
+ */
+export async function installMarketplacePlugin(
+  _url: string,
+  _name: string,
+  _version?: string,
+  _force?: boolean
+): Promise<InstalledPluginInfo> {
+  throw new Error('marketplace install is not supported in mock mode');
 }
 
 /**
