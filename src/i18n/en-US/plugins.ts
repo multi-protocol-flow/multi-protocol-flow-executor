@@ -24,7 +24,6 @@ const en_US_plugins = {
   install_success: 'Plugin {name} installed',
   install_failed: 'Failed to install {name}',
   no_platform_asset: 'No asset for the current platform',
-  current_platform: 'Current platform',
 };
 
 export default en_US_plugins;

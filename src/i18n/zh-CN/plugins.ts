@@ -24,7 +24,6 @@ const zh_CN_plugins = {
   install_success: '插件 {name} 安装成功',
   install_failed: '插件 {name} 安装失败',
   no_platform_asset: '当前平台无可用产物',
-  current_platform: '当前平台',
 };
 
 export default zh_CN_plugins;

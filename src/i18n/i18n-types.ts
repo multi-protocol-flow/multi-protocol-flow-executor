@@ -7572,10 +7572,6 @@ type RootTranslation = {
 		 * 当前平台无可用产物
 		 */
 		no_platform_asset: string
-		/**
-		 * 当前平台
-		 */
-		current_platform: string
 	}
 	flow: {
 		/**
@@ -19819,10 +19815,6 @@ export type TranslationFunctions = {
 		 * 当前平台无可用产物
 		 */
 		no_platform_asset: () => LocalizedString
-		/**
-		 * 当前平台
-		 */
-		current_platform: () => LocalizedString
 	}
 	flow: {
 		/**

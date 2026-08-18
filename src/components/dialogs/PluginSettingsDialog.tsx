@@ -73,15 +73,6 @@ function MarketplaceItem({
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium text-foreground">{plugin.name}</span>
           <span className="text-xs text-muted-foreground">v{plugin.version}</span>
-          {hasCurrentPlatform ? (
-            <Badge variant="outline" className="text-xs">
-              {ll.current_platform()} ({platform})
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="text-xs">
-              {platform}
-            </Badge>
-          )}
         </div>
         {plugin.description ? (
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{plugin.description}</p>
@@ -235,7 +226,12 @@ export function PluginSettingsDialog() {
         {/* 标题 */}
         <div className="flex items-center gap-2 px-6 pt-5 pb-3 border-b border-border">
           <Puzzle className="w-5 h-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-foreground">{ll.settings_title()}</h2>
+          <h2 className="text-lg font-semibold text-foreground">
+            {ll.settings_title()}
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              ({currentPlatformKey()})
+            </span>
+          </h2>
         </div>
 
         <Tabs defaultValue="installed" className="flex min-h-0 flex-1 flex-col px-6">
