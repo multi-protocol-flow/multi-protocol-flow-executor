@@ -7,6 +7,7 @@ pub mod debug_cmd;
 pub mod flow;
 pub mod flow_edit;
 pub mod output;
+#[cfg(feature = "plugin-manager")]
 pub mod plugin;
 pub mod report;
 pub mod run;
@@ -147,6 +148,7 @@ pub enum Commands {
         format: String,
     },
     /// Plugin management
+    #[cfg(feature = "plugin-manager")]
     Plugin {
         /// Plugin management subcommand
         #[command(subcommand)]
@@ -155,6 +157,7 @@ pub enum Commands {
 }
 
 /// Plugin management subcommand enumeration
+#[cfg(feature = "plugin-manager")]
 #[derive(Subcommand)]
 pub enum PluginCommands {
     /// Show the effective plugins directory
@@ -490,6 +493,7 @@ async fn async_main() -> Result<(), CliError> {
             run_node::execute(&format, &node_json, &var, registry).await
         }
         Commands::Report { command } => report::execute(&cli.format, command).await,
+        #[cfg(feature = "plugin-manager")]
         Commands::Plugin { command } => plugin::execute(command).await,
     }
 }
@@ -498,6 +502,7 @@ async fn async_main() -> Result<(), CliError> {
 /// > 默认数据目录 `plugins` > 兜底相对路径 `plugins`。
 ///
 /// `AppConfig` 解析失败时降级为旧的 env → 默认目录解析。
+#[cfg(feature = "plugin-manager")]
 fn plugins_dir() -> PathBuf {
     crate::cli::config::AppConfig::load()
         .map(|config| config.plugins_dir)
@@ -513,16 +518,21 @@ fn plugins_dir() -> PathBuf {
         })
 }
 
+/// 插件管理器句柄；`plugin-manager` 特性关闭时退化为 `()`（最小 CLI 构建）。
+#[cfg(feature = "plugin-manager")]
+pub(crate) type PluginManagerHandle = Option<Arc<flow_engine::PluginManager>>;
+#[cfg(not(feature = "plugin-manager"))]
+pub(crate) type PluginManagerHandle = ();
+
 /// 构建 CLI 共享节点注册表
 ///
 /// 启用 `plugin-manager` 特性时扫描插件目录并登记插件节点（describe 拉起
 /// 插件进程），同时返回插件管理器（用于 flowEnded 等 fire-and-forget 通知，
 /// 插件进程可跨多次执行复用）；关闭时仅注册内置节点，管理器为 `None`。
 /// 扫描失败仅告警，不影响启动。
-async fn build_shared_registry(
-) -> (
+async fn build_shared_registry() -> (
     Arc<flow_engine::registry::NodeRegistry>,
-    Option<Arc<flow_engine::PluginManager>>,
+    PluginManagerHandle,
 ) {
     #[cfg(feature = "plugin-manager")]
     {
@@ -539,7 +549,7 @@ async fn build_shared_registry(
     {
         (
             Arc::new(flow_engine::default_registry::default_registry()),
-            None,
+            (),
         )
     }
 }
