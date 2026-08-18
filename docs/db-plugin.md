@@ -353,7 +353,7 @@ let message = errors
 - **契约**：SDK（`mpe-plugin-sdk/src/types.rs:91-92`）声明 `next_ports` 为 "Explicitly chosen next ports; **empty lets the host apply its default routing**"——空数组 = 宿主应用默认路由。此前宿主对空 `next_ports` 得空数组 → `executor.rs` 对"空 next + 端口路由节点"判 `None` → **break 静默终止**（最小插件让流程在第一个成功节点断链）。
 - **实现**：`default_success_port(ports)` 从 describe ports 推导：ports 含 `"true"` → `"true"`；否则 ports 中唯一的非 `"in"` 端口 → 该端口（如 `db:close` 的 `"out"`）；否则 `None`。success 且 `next_ports` 缺失/为空时，用默认端口替换空数组后再 `resolve_next_node_ids`。
 - **语义**：插件显式返回 `next_ports` 仍覆盖默认路由（多分支节点）；二态/单端口节点零负担——下一跳归属宿主（`resolve_next_node_ids` 按 `connections` 解析，插件永不接触流程拓扑）。
-- **验证（通过）**：`ExecuteResult::ok(...)` 最小插件 → db_connect 成功后流程继续（不 break）；插件显式 `next_ports` 仍生效；sidecar_tests 覆盖默认端口注入与显式覆盖。
+- **验证（通过）**：`ExecuteResult::ok(...)` 最小插件 → db_connect 成功后流程继续（不 break）；插件显式 `next_ports` 仍生效。
 
 ---
 

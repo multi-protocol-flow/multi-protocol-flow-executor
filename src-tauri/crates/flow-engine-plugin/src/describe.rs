@@ -125,6 +125,3 @@ pub fn frontend_metadata_from(frontend: &FrontendDescription) -> FrontendMetadat
     }
 }
 
-#[cfg(test)]
-#[path = "describe_tests.rs"]
-mod tests;

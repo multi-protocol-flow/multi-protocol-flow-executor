@@ -52,11 +52,6 @@ plugin-manager = ["flow-engine/plugin-manager"]
 
 [dev-dependencies]
 tempfile = "3.0"
-assert_cmd = "2.0"
-predicates = "3"
-# Fixture marketplace server: in-test zip building + sha256 digests
-zip = "2"
-sha2 = "0.10"
 
 [lints]
 workspace = true

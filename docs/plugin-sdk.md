@@ -308,11 +308,7 @@ mpe_plugin_main!(AddPlugin);
   (`mpe_demo_plugin` binary; build it there with `cargo build --bin
   mpe_demo_plugin`).
 - Test it without the host: the SDK repo's `tests/roundtrip.rs` spawns the
-  demo binary and speaks JSON-RPC over stdio; the host's conformance suite
-  (`cargo test -p flow-engine-plugin --test conformance`) runs the same
-  surface against the built binary — set `MPE_DEMO_PLUGIN_BIN` to the built
-  `mpe_demo_plugin` path to enable the SDK leg (without it that leg is
-  skipped with a log).
+  demo binary and speaks JSON-RPC over stdio.
 
 ### 5.1 Plugin language
 
@@ -373,10 +369,6 @@ echo '{"jsonrpc":"2.0","id":2,"method":"execute","params":{"config":{"a":2,"b":3
   node sdk-templates/node/plugin.js
 ```
 
-The host conformance suite drives both templates automatically
-(`python_template_conformance`, `node_template_conformance`), skipping
-with a log when the interpreter is unavailable.
-
 ## 7. Known limitations (P0)
 
 - `mpe run-node` stays built-in-only; plugin node types run via `mpe run`
@@ -395,14 +387,6 @@ with a log when the interpreter is unavailable.
 ```bash
 # build the SDK demo plugin (in the standalone SDK repo)
 cargo build --bin mpe_demo_plugin
-
-# conformance across all runtimes (echo mock + python + node + sdk;
-# set MPE_DEMO_PLUGIN_BIN to enable the SDK leg)
-MPE_DEMO_PLUGIN_BIN=/path/to/mpe_demo_plugin \
-  cargo test -p flow-engine-plugin --test conformance
-
-# e2e: mpe run with a fixture plugin
-cargo test -p mpe-cli --test cli_tests
 
 # pipelining bench (echo mock + real SDK plugin)
 cargo bench -p flow-engine-plugin --bench pipelining

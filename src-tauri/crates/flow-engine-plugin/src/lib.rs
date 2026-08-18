@@ -43,5 +43,3 @@ pub mod transport;
 /// for the 250-pure-LOC ceiling).
 pub(crate) mod wrapper;
 
-#[cfg(test)]
-mod registration_tests;

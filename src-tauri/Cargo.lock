@@ -1655,7 +1655,6 @@ dependencies = [
  "jsonpath-rust",
  "log",
  "mockito",
- "mpe-plugin-sdk",
  "proptest",
  "rand 0.8.6",
  "regex",
@@ -3215,23 +3214,19 @@ dependencies = [
 name = "mpe-cli"
 version = "0.1.0"
 dependencies = [
- "assert_cmd",
  "chrono",
  "clap",
  "fern",
  "flow-engine",
  "log",
- "predicates",
  "rustls",
  "serde",
  "serde_json",
- "sha2",
  "tempfile",
  "tokio",
  "toml 0.8.2",
  "uuid",
  "workspace-hack",
- "zip 2.4.2",
 ]
 
 [[package]]

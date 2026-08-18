@@ -27,9 +27,7 @@ src/
 ├── sidecar.rs              # SidecarPlugin: NodePlugin 包装
 ├── wrapper.rs              # execute RPC 映射 helper（pub(crate)，250 LOC 上限外置）
 ├── error.rs                # 插件错误类型
-├── describe_tests.rs, lifecycle_tests.rs, registration_tests.rs, sidecar_tests.rs
-├── bin/echo_mock.rs        # 测试用 mock 插件进程
-└── (crate 级) tests/       # conformance.rs, spawn_hygiene.rs, template_conformance.rs + common/
+├── bin/echo_mock.rs        # echo mock 插件 demo 二进制
 ```
 
 ## WHERE TO LOOK

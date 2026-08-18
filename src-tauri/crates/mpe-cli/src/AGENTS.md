@@ -40,7 +40,6 @@ src/
 | 输出格式 (json/table) | `cli/output.rs` |
 | 全局配置 | `cli/config.rs` |
 | 单节点连通性预检 | `cli/run_node.rs` |
-| CLI 集成测试 | `tests/cli_tests.rs` (assert_cmd + predicates + tempfile) |
 | 测试夹具 | 仓库根 `tests/cli/` (JSON flow + FlowFile 包装) + `tests/fixtures/flows/` |
 
 ## CONVENTIONS
@@ -50,7 +49,6 @@ src/
 - 退出码由 `run_cli()` 映射 `CliError`：成功 0，`InvalidArgs`/`Io` 1，`Config`/`Execution` 2
 - `CliError` 含 `Config`/`Execution`/`InvalidArgs`/`Io` 变体，有 `From<std::io::Error>` 实现
 - 全局 flag `--format json|table`；`--var KEY=VALUE` 注入初始变量
-- 插件 e2e 测试通过 env `MPE_PLUGIN_DIR` 指向 `tests/plugin-fixtures/pyecho/`（plugin.json + plugin.py）
 - 协议 feature 按需转发：`--no-default-features -F protocol-http -F protocol-script` 控制体积
 
 ## ANTI-PATTERNS

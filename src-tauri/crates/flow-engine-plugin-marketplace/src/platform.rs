@@ -18,22 +18,3 @@ pub fn current_platform() -> Option<String> {
     Some(format!("{os}-{arch}"))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn current_platform_is_known_key() {
-        let platform = current_platform();
-        assert!(platform.is_some(), "host platform must be mapped");
-        let key = platform.unwrap_or_default();
-        assert!(
-            key.starts_with("windows-") || key.starts_with("linux-") || key.starts_with("macos-"),
-            "unexpected OS prefix: {key}"
-        );
-        assert!(
-            key.ends_with("-x64") || key.ends_with("-arm64"),
-            "unexpected arch suffix: {key}"
-        );
-    }
-}

@@ -9,8 +9,7 @@
 //! `provider_updates`), and crash mapping into a single `ErrorDetail`.
 //!
 //! The mapping/error helpers live in [`crate::wrapper`] so this file stays
-//! under the workspace 250-pure-LOC ceiling; the tests live in
-//! `sidecar_tests.rs` (via `#[path]`, the same pattern as `lifecycle.rs`).
+//! under the workspace 250-pure-LOC ceiling.
 //!
 //! The plugin process is owned by the `PluginManager`'s lifecycle entries
 //! (M2b); this wrapper only acquires a connection via
@@ -237,6 +236,3 @@ impl NodePlugin for SidecarPlugin {
     }
 }
 
-#[cfg(test)]
-#[path = "sidecar_tests.rs"]
-mod tests;

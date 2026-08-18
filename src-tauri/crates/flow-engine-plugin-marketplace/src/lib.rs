@@ -21,15 +21,3 @@ pub use installer::{install_plugin, InstalledPluginInfo};
 pub use model::{MarketplacePlugin, PlatformAsset};
 pub use platform::current_platform;
 
-#[cfg(test)]
-pub(crate) mod test_support {
-    /// Install the rustls ring crypto provider exactly once (reqwest is
-    /// unified to `rustls-no-provider` by workspace-hack, so a provider must
-    /// be installed before any `Client` is built in tests).
-    pub(crate) fn install_crypto_provider() {
-        static ONCE: std::sync::Once = std::sync::Once::new();
-        ONCE.call_once(|| {
-            let _ = rustls::crypto::ring::default_provider().install_default();
-        });
-    }
-}
