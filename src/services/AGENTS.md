@@ -22,7 +22,6 @@ services/
 │   ├── stressTest.ts                 # 压力测试命令
 │   ├── tcp.ts                        # TCP/UDP 录制命令
 │   ├── settings.ts / settings.mock.ts# 设置持久化（tauri-plugin-store + 目录对话框）
-│   └── updater.ts / updater.mock.ts  # 应用更新检查与安装
 ├── storage/
 │   ├── index.ts                      # re-export
 │   ├── flowStorage.ts / .mock.ts     # 流程 .mpf 文件 CRUD + 文件夹管理
@@ -38,7 +37,6 @@ services/
 | 流程 CRUD / 执行 / Channel 订阅 | `tauri/flow.ts` |
 | 调试会话控制 | `tauri/debug.ts` |
 | 设置读写 + 目录对话框 | `tauri/settings.ts` |
-| 应用更新 | `tauri/updater.ts` |
 | gRPC 服务发现 / 骨架生成 / Proto 操作 | `tauri/grpc.ts` |
 | MCP 工具发现 | `tauri/mcp.ts` |
 | GraphQL Schema 内省 | `tauri/graphql.ts` |

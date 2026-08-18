@@ -3,7 +3,7 @@
  * 复用 NodeConfigPanel 的布局样式，提供配置文件存储位置提示
  */
 import { useEffect, useState } from 'react';
-import { Settings2, FolderOpen, FolderCog, FolderInput, Info, Sun, Moon, Monitor, Globe, Download } from 'lucide-react';
+import { Settings2, FolderOpen, FolderCog, FolderInput, Info, Sun, Moon, Monitor, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -13,8 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSettingsStore } from '@/stores/settings';
 import type { ThemeMode, Locale } from '@/types/settings';
 import { getLL } from '@/i18n/i18n-lazy';
-import { useUpdaterStore } from '@/stores/updater';
-import { useUIStore } from '@/stores/ui';
 
 import { isTauriEnv } from '@/lib/platform';
 
@@ -232,30 +230,6 @@ export function SettingsPanel() {
                 </Button>
                 <Button variant="outline" size="sm" onClick={openLogDir} className="flex-1">
                   {ll?.settings?.open_dir() ?? 'Open Directory'}
-                </Button>
-              </div>
-            </div>
-
-            {/* 更新 */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm">
-                <Download className="h-4 w-4 text-muted-foreground" />
-                {ll?.settings?.update?.title?.() ?? 'Updates'}
-              </Label>
-              <div className="text-sm text-foreground bg-muted border border-border rounded-md px-3 py-2">
-                {ll?.settings?.update?.current_version?.() ?? 'Current version'}: v0.1.0
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => useUIStore.getState().openUpdateDialog()}
-                  className="flex-1"
-                  disabled={useUpdaterStore.getState().checking}
-                >
-                  {useUpdaterStore.getState().checking
-                    ? (ll?.settings?.update?.checking?.() ?? 'Checking for updates...')
-                    : (ll?.settings?.update?.check_updates?.() ?? 'Check for Updates')}
                 </Button>
               </div>
             </div>

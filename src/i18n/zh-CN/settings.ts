@@ -19,21 +19,6 @@ const zh_CN_settings: BaseTranslation = {
   not_set: '未设置',
   select_dir: '选择目录',
   open_dir: '打开目录',
-  update: {
-    title: '更新',
-    check_updates: '检查更新',
-    current_version: '当前版本',
-    checking: '正在检查更新...',
-    update_available: '发现新版本 {version}',
-    up_to_date: '已是最新版本',
-    download_and_install: '下载并安装',
-    later: '稍后提醒',
-    skip_version: '跳过此版本',
-    downloading: '正在下载... ({progress}%)',
-    update_error: '更新失败: {error}',
-    release_notes: '更新说明',
-    released_at: '发布于 {date}',
-  },
 };
 
 export default zh_CN_settings;

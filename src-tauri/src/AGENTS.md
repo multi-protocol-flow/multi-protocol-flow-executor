@@ -6,7 +6,7 @@
 
 本节是 `src-tauri/src/` — Tauri 应用的二合一入口（GUI + CLI 同一二进制）和 IPC 命令适配层。
 
-`main.rs` 检测参数数量：有参数 → 派发 `cli::run_cli()`，无参数 → 启动 Tauri GUI（Windows 上 `FreeConsole()` 分离控制台）。`lib.rs` 是 Tauri Builder 配置点：插件注册（dialog/opener/store/process/log/updater）、状态注入（DebugSessionManager / ExecutionSessionManager / DatasetExecutionSessionManager / GrpcCancelSessionManager / StressTestSessionManager）、以及 72+ IPC 命令的 `invoke_handler`。
+`main.rs` 检测参数数量：有参数 → 派发 `cli::run_cli()`，无参数 → 启动 Tauri GUI（Windows 上 `FreeConsole()` 分离控制台）。`lib.rs` 是 Tauri Builder 配置点：插件注册（dialog/opener/store/process/log）、状态注入（DebugSessionManager / ExecutionSessionManager / DatasetExecutionSessionManager / GrpcCancelSessionManager / StressTestSessionManager）、以及 72+ IPC 命令的 `invoke_handler`。
 
 业务逻辑不在此层 — 所有命令委托给 `flow-engine::commands::*`（见 `src-tauri/crates/flow-engine/src/commands/`）。
 
@@ -73,7 +73,7 @@
 │  ┌──────────────────────────────────────────────┐     │
 │  │  lib.rs: tauri::generate_handler![...]       │     │
 │  │  + 5 State managers (Arc<Mutex<T>>)          │     │
-│  │  + Plugins (dialog/opener/store/log/updater) │     │
+│  │  + Plugins (dialog/opener/store/log)        │     │
 │  └──────┬───────────────────────────────────────┘     │
 │         │ #[tauri::command]                           │
 │  ┌──────▼───────────────────────────────────────┐     │

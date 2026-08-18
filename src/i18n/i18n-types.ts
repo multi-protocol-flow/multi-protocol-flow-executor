@@ -7412,64 +7412,6 @@ type RootTranslation = {
 		 * 打​开​目​录
 		 */
 		open_dir: string
-		update: {
-			/**
-			 * 更​新
-			 */
-			title: string
-			/**
-			 * 检​查​更​新
-			 */
-			check_updates: string
-			/**
-			 * 当​前​版​本
-			 */
-			current_version: string
-			/**
-			 * 正​在​检​查​更​新​.​.​.
-			 */
-			checking: string
-			/**
-			 * 发​现​新​版​本​ ​{​v​e​r​s​i​o​n​}
-			 * @param {unknown} version
-			 */
-			update_available: RequiredParams<'version'>
-			/**
-			 * 已​是​最​新​版​本
-			 */
-			up_to_date: string
-			/**
-			 * 下​载​并​安​装
-			 */
-			download_and_install: string
-			/**
-			 * 稍​后​提​醒
-			 */
-			later: string
-			/**
-			 * 跳​过​此​版​本
-			 */
-			skip_version: string
-			/**
-			 * 正​在​下​载​.​.​.​ ​(​{​p​r​o​g​r​e​s​s​}​%​)
-			 * @param {unknown} progress
-			 */
-			downloading: RequiredParams<'progress'>
-			/**
-			 * 更​新​失​败​:​ ​{​e​r​r​o​r​}
-			 * @param {unknown} error
-			 */
-			update_error: RequiredParams<'error'>
-			/**
-			 * 更​新​说​明
-			 */
-			release_notes: string
-			/**
-			 * 发​布​于​ ​{​d​a​t​e​}
-			 * @param {unknown} date
-			 */
-			released_at: RequiredParams<'date'>
-		}
 	}
 	plugins: {
 		/**
@@ -7549,27 +7491,29 @@ type RootTranslation = {
 		 */
 		market_error: string
 		/**
-		 * 下载
+		 * 下​载
 		 */
 		download: string
 		/**
-		 * 重新安装
+		 * 重​新​安​装
 		 */
 		reinstall: string
 		/**
-		 * 安装中
+		 * 安​装​中​…
 		 */
 		installing: string
 		/**
-		 * 安装成功
+		 * 插​件​ ​{​n​a​m​e​}​ ​安​装​成​功
+		 * @param {unknown} name
 		 */
 		install_success: RequiredParams<'name'>
 		/**
-		 * 安装失败
+		 * 插​件​ ​{​n​a​m​e​}​ ​安​装​失​败
+		 * @param {unknown} name
 		 */
 		install_failed: RequiredParams<'name'>
 		/**
-		 * 当前平台无可用产物
+		 * 当​前​平​台​无​可​用​产​物
 		 */
 		no_platform_asset: string
 	}
@@ -19659,60 +19603,6 @@ export type TranslationFunctions = {
 		 * 打开目录
 		 */
 		open_dir: () => LocalizedString
-		update: {
-			/**
-			 * 更新
-			 */
-			title: () => LocalizedString
-			/**
-			 * 检查更新
-			 */
-			check_updates: () => LocalizedString
-			/**
-			 * 当前版本
-			 */
-			current_version: () => LocalizedString
-			/**
-			 * 正在检查更新...
-			 */
-			checking: () => LocalizedString
-			/**
-			 * 发现新版本 {version}
-			 */
-			update_available: (arg: { version: unknown }) => LocalizedString
-			/**
-			 * 已是最新版本
-			 */
-			up_to_date: () => LocalizedString
-			/**
-			 * 下载并安装
-			 */
-			download_and_install: () => LocalizedString
-			/**
-			 * 稍后提醒
-			 */
-			later: () => LocalizedString
-			/**
-			 * 跳过此版本
-			 */
-			skip_version: () => LocalizedString
-			/**
-			 * 正在下载... ({progress}%)
-			 */
-			downloading: (arg: { progress: unknown }) => LocalizedString
-			/**
-			 * 更新失败: {error}
-			 */
-			update_error: (arg: { error: unknown }) => LocalizedString
-			/**
-			 * 更新说明
-			 */
-			release_notes: () => LocalizedString
-			/**
-			 * 发布于 {date}
-			 */
-			released_at: (arg: { date: unknown }) => LocalizedString
-		}
 	}
 	plugins: {
 		/**
@@ -19800,15 +19690,15 @@ export type TranslationFunctions = {
 		 */
 		reinstall: () => LocalizedString
 		/**
-		 * 安装中
+		 * 安装中…
 		 */
 		installing: () => LocalizedString
 		/**
-		 * 安装成功
+		 * 插件 {name} 安装成功
 		 */
 		install_success: (arg: { name: unknown }) => LocalizedString
 		/**
-		 * 安装失败
+		 * 插件 {name} 安装失败
 		 */
 		install_failed: (arg: { name: unknown }) => LocalizedString
 		/**

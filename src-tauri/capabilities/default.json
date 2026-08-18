@@ -21,7 +21,6 @@
       ]
     },
     "store:default",
-    "updater:default",
     "process:default"
   ]
 }

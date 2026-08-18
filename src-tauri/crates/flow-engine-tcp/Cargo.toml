@@ -17,7 +17,7 @@ socket2 = "0.5"
 
 # TLS 依赖（支持 TLS 加密连接）
 rustls = { workspace = true, features = ["logging", "tls12"] }
-tokio-rustls = { workspace = true, features = ["logging", "tls12", "ring"] }
+tokio-rustls = { workspace = true }
 webpki-roots = { workspace = true }
 rustls-pemfile = { workspace = true }
 workspace-hack = { version = "0.1", path = "../workspace-hack" }

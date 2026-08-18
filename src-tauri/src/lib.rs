@@ -347,12 +347,6 @@ pub fn run() {
                     .build(),
             );
 
-            // 注册更新插件（仅桌面平台）
-            #[cfg(any(target_os = "windows", target_os = "macos"))]
-            let _ = app
-                .handle()
-                .plugin(tauri_plugin_updater::Builder::new().build());
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

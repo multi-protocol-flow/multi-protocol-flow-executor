@@ -14,10 +14,6 @@ import { get_debug_status, force_end_debug } from '@/services/tauri';
 import { TypesafeI18n, switchLocale } from '@/i18n';
 import { useI18nContext } from '@/i18n/i18n-react';
 import type { Locales } from '@/i18n';
-import { useUpdaterStore, selectUpdateAvailable } from '@/stores/updater';
-import { useUIStore } from '@/stores/ui';
-import { getLL } from '@/i18n/i18n-lazy';
-import { toast } from 'sonner';
 import { isTauriEnv } from '@/lib/platform';
 
 /**
@@ -78,33 +74,6 @@ function App() {
 
       // 恢复上次保存的缩放级别
       useZoomStore.getState().applyZoom();
-
-      // 启动时自动检查更新（仅 Tauri 环境，仅执行一次）
-      if (isTauriEnv()) {
-        const { autoChecked } = useUIStore.getState();
-        if (!autoChecked) {
-          try {
-            const updaterStore = useUpdaterStore.getState();
-            await updaterStore.checkForUpdates();
-            const state = useUpdaterStore.getState();
-            if (selectUpdateAvailable(state)) {
-              const LL = getLL();
-              toast.info(
-                LL.settings.update.update_available({ version: state.updateInfo?.version || '' }),
-                {
-                  action: {
-                    label: LL.settings.update.check_updates(),
-                    onClick: () => useUIStore.getState().openUpdateDialog(),
-                  },
-                },
-              );
-            }
-          } catch {
-            // 静默失败 - 不显示错误提示
-          }
-          useUIStore.getState().setAutoChecked();
-        }
-      }
     };
 
     initApp();

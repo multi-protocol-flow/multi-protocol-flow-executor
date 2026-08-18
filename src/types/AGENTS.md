@@ -27,7 +27,6 @@ TypeScript 类型定义层，与 Rust 后端结构体严格对齐。核心是 `N
 | `stressTest.ts` | `flow-engine/src/stress_test/types.rs` |
 | `ws_stream.ts` | `flow-engine/src/debug/ws_stream.rs` |
 | `settings.ts` | 前端独有（无 Rust 映射） |
-| `updater.ts` | 前端独有（Tauri updater events） |
 | `index.ts` | barrel re-export |
 
 ## WHERE TO LOOK

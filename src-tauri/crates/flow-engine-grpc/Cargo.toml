@@ -18,7 +18,7 @@ http = { workspace = true }
 # TLS 依赖（用于 tls_skip_verify 的自定义 ClientConfig）
 rustls = { workspace = true, features = ["logging", "tls12"] }
 rustls-pemfile = { workspace = true }
-tokio-rustls = { workspace = true, features = ["logging", "tls12", "ring"] }
+tokio-rustls = { workspace = true }
 webpki-roots = { workspace = true }
 hyper-util = "0.1"
 tower = { version = "0.4", default-features = false }

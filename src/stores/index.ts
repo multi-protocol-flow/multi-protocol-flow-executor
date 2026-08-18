@@ -89,6 +89,3 @@ export {
 // Zoom store
 export { useZoomStore, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP, ZOOM_DEFAULT } from './zoom';
 export { selectZoom } from './zoom';
-
-// Updater store
-export { useUpdaterStore, selectUpdateAvailable } from './updater';
