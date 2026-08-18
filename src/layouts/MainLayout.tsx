@@ -372,16 +372,6 @@ export function MainLayout() {
             <Keyboard className="h-5 w-5" />
           </Button>
 
-          {/* 设置按钮 */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={openSettingsDialog}
-            title={getLL().common.settings_label()}
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
-
           {/* 插件设置按钮 */}
           <Button
             variant="ghost"
@@ -391,6 +381,16 @@ export function MainLayout() {
             className="hidden sm:inline-flex"
           >
             <Puzzle className="h-5 w-5" />
+          </Button>
+
+          {/* 设置按钮 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={openSettingsDialog}
+            title={getLL().common.settings_label()}
+          >
+            <Settings className="h-5 w-5" />
           </Button>
 
         </div>
