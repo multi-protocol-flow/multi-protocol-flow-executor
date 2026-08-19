@@ -8,7 +8,6 @@ members = [
     "crates/flow-engine-script",
     "crates/flow-engine-assertion",
     "crates/flow-engine-executor",
-    "crates/flow-engine-grpc",
     "crates/flow-engine-tcp",
     "crates/flow-engine-sse",
     "crates/flow-engine-graphql",
@@ -103,7 +102,7 @@ mpe-cli = { path = "crates/mpe-cli" }
 rustls = { workspace = true, features = ["ring"] }
 
 # Tauri 框架
-tauri = { version = "2.10.0", features = [] }
+tauri = { version = "2.10.0", features = ["devtools"] }
 tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
@@ -135,7 +134,6 @@ all-protocols = [
     "protocol-ws",
     "protocol-script",
     "protocol-assertion",
-    "protocol-grpc",
     "protocol-tcp",
     "protocol-sse",
     "protocol-graphql",
@@ -144,7 +142,6 @@ protocol-http = ["flow-engine/protocol-http"]
 protocol-ws = ["flow-engine/protocol-ws"]
 protocol-script = ["flow-engine/protocol-script"]
 protocol-assertion = ["flow-engine/protocol-assertion"]
-protocol-grpc = ["flow-engine/protocol-grpc"]
 protocol-tcp = ["flow-engine/protocol-tcp"]
 protocol-sse = ["flow-engine/protocol-sse"]
 protocol-graphql = ["flow-engine/protocol-graphql"]
@@ -175,10 +172,6 @@ panic = "abort"       # abort 替代 unwind，减小二进制体积
 opt-level = "z"       # 体积优先优化
 
 # Debug 编译优化（不经常修改的重依赖预编译为 O3 加速日常开发）
-[profile.dev.package.tonic]
-opt-level = 3
-[profile.dev.package.prost]
-opt-level = 3
 [profile.dev.package.rquickjs]
 opt-level = 3
 [profile.dev.package."tokio-tungstenite"]
@@ -206,8 +199,6 @@ opt-level = 3
 [profile.dev.package.tokio]
 opt-level = 3
 [profile.dev.package.tokio-util]
-opt-level = 3
-[profile.dev.package.tokio-stream]
 opt-level = 3
 [profile.dev.package.tokio-rustls]
 opt-level = 3

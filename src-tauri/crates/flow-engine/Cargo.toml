@@ -10,7 +10,6 @@ all-protocols = [
     "protocol-ws",
     "protocol-script",
     "protocol-assertion",
-    "protocol-grpc",
     "protocol-tcp",
     "protocol-sse",
     "protocol-graphql",
@@ -19,7 +18,6 @@ protocol-http = ["flow-engine-executor/protocol-http"]
 protocol-ws = ["flow-engine-executor/protocol-ws"]
 protocol-script = ["flow-engine-executor/protocol-script"]
 protocol-assertion = ["flow-engine-executor/protocol-assertion"]
-protocol-grpc = ["flow-engine-executor/protocol-grpc"]
 protocol-tcp = ["flow-engine-executor/protocol-tcp"]
 protocol-sse = ["flow-engine-executor/protocol-sse"]
 protocol-graphql = ["flow-engine-executor/protocol-graphql"]
