@@ -43,17 +43,6 @@ export function inferDefaults(
       // 如果上游是 entry 且有 base_url 变量引用，则使用默认 URL
       return {};
 
-    // ========== gRPC ==========
-    case 'grpc_call':
-      if (upType === 'grpc_connect') {
-        return {
-          proto_file: upstreamNode.data.proto_file,
-          service_name: upstreamNode.data.service_name,
-          connection_id: upstreamNode.data.connection_id,
-        };
-      }
-      break;
-
     // ========== TCP ==========
     case 'tcp_send':
       if (upType === 'tcp_connect') {

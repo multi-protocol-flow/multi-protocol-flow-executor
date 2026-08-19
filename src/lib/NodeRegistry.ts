@@ -75,7 +75,6 @@ export const CATEGORY_NAMES: Record<string, string> = {
   get tools() { return getLL().nodes.category.tools(); },
   get script() { return getLL().nodes.category.script(); },
   get assertion() { return getLL().nodes.category.assertion(); },
-  get grpc() { return getLL().nodes.category.grpc(); },
   get sse() { return getLL().nodes.category.sse(); },
   get graphql() { return getLL().nodes.category.graphql(); },
   get tcp() { return getLL().nodes.category.tcp(); },
@@ -88,7 +87,6 @@ export const CATEGORY_NAMES: Record<string, string> = {
  * 按一级分类分组，组内间隔 10 方便后续插入
  *
  * 网络: http(0), websocket(1), sse(2), graphql(3)
- * 服务: grpc(10)
  * 工具: tools(30), script(31), assertion(32)
  * 其他: database(40), tcp(42), udp(43)
  */
@@ -97,7 +95,6 @@ export const CATEGORY_ORDER: Record<string, number> = {
   websocket: 1,
   sse: 2,
   graphql: 3,
-  grpc: 10,
   tools: 30,
   script: 31,
   assertion: 32,
@@ -121,12 +118,6 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   ws_connect: 0,
   ws_send_collect: 1,
   ws_close: 2,
-
-  // gRPC: 连接 → 调用 → 关闭
-  grpc_connect: 0,
-  grpc_call: 1,
-  grpc_close: 2,
-
 
   // SSE: 连接 → 监听 → 断开
   sse_connect: 0,
@@ -182,9 +173,6 @@ export function getBadgeClassForType(typeId: string): string {
     ws_connect: 'bg-amber-100 text-amber-700',
     ws_send_collect: 'bg-teal-100 text-teal-700',
     ws_close: 'bg-rose-100 text-rose-700',
-    grpc_connect: 'bg-sky-100 text-sky-700',
-    grpc_call: 'bg-sky-100 text-sky-700',
-    grpc_close: 'bg-sky-100 text-sky-700',
     variable_extractor: 'bg-amber-100 text-amber-700',
     proxy: 'bg-lime-100 text-lime-700',
     end: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',

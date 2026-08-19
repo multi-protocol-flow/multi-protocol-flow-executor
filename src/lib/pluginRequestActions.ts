@@ -159,11 +159,29 @@ async function handleTestConnection(
  * openFileDialog —— 原生文件选择器（见模块头审计 2）。
  * 动态导入 @tauri-apps/plugin-dialog：Tauri 环境走原生对话框，
  * 浏览器模式（playground/测试）走 browser-shim（恒返回 null = 取消）。
- * 只返回路径字符串；对话框选项固定，插件 params 不参与。
+ * 参数（插件可选提供）：
+ *   - `multiple?: boolean` — 多选（返回 string[]）；
+ *   - `filters?: {name: string; extensions: string[]}[]` — 文件类型过滤；
+ *   - `directory?: boolean` — 目录选择。
+ * 返回 `string | string[] | null`。
  */
-async function handleOpenFileDialog(): Promise<string | null> {
+async function handleOpenFileDialog(params?: unknown): Promise<string | string[] | null> {
   const { open } = await import('@tauri-apps/plugin-dialog');
-  const result = await open({ multiple: false });
+  const options = isPlainObject(params) ? (params as Record<string, unknown>) : {};
+  const multiple = options['multiple'] === true;
+  const directory = options['directory'] === true;
+  const filters = Array.isArray(options['filters'])
+    ? (options['filters'] as { name: string; extensions: string[] }[])
+    : undefined;
+  const result = await open({ multiple, directory, filters });
+  if (multiple) {
+    if (Array.isArray(result)) {
+      const strings = result.filter((r): r is string => typeof r === 'string');
+      return strings;
+    }
+    if (typeof result === 'string') return [result];
+    return null;
+  }
   if (typeof result === 'string') return result;
   if (Array.isArray(result)) {
     const first = result[0];

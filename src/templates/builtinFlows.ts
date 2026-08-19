@@ -9,7 +9,7 @@ import type { Flow } from '@/types/flow';
 
 /** 模板分类 */
 export type TemplateCategory =
-  | 'http' | 'websocket' | 'database' | 'grpc'
+  | 'http' | 'websocket' | 'database'
   | 'graphql'
   | 'sse' | 'tcp' | 'udp' | 'mcp' | 'script' | 'assertion' | 'combination';
 
@@ -421,102 +421,6 @@ export const WS_DEMO_FLOW: Flow = {
   },
 } as Flow & { _meta?: { version: number; isBuiltin: boolean } };
 
-/**
- * gRPC 节点示例流程
- * 注意：请将 proto 文件内容和服务器地址替换为你自己的 gRPC 服务信息
- */
-export const GRPC_DEMO_FLOW: Flow = {
-  uuid: 'demo-grpc-testing',
-  name: 'gRPC Node Example Flow',
-  initial_variables: {},
-  nodes: [
-    // 节点 1: Entry 节点
-    {
-      uuid: 'entry-grpc-001',
-      type: 'entry',
-      name: 'Entry',
-      position: { x: 0, y: 0 },
-      data: { type: 'entry' }
-    },
-    // 节点 2: gRPC Connect 节点
-    {
-      uuid: 'grpc-connect-001',
-      type: 'grpc_connect',
-      name: 'Connect gRPC Service',
-      position: { x: 250, y: 0 },
-      data: {
-        type: 'grpc_connect',
-        url: 'http://localhost:50051',
-        use_tls: false,
-        enable_reflection: true,
-        proto_files: [
-          {
-            path: 'example.proto',
-            content: '// Replace with your Proto file content\nsyntax = "proto3";\n\npackage example;\n\nservice ExampleService {\n  rpc GetData (GetDataRequest) returns (GetDataResponse);\n}\n\nmessage GetDataRequest {\n  string id = 1;\n}\n\nmessage GetDataResponse {\n  string result = 1;\n}'
-          }
-        ],
-        connect_timeout_ms: 10000
-      }
-    },
-    // 节点 3: gRPC Call 节点
-    {
-      uuid: 'grpc-call-001',
-      type: 'grpc_call',
-      name: 'Call gRPC Method',
-      position: { x: 500, y: 0 },
-      data: {
-        type: 'grpc_call',
-        connection_id: 'grpc-connect-001',
-        service_name: 'example.ExampleService',
-        method_name: 'GetData',
-        request_json: '{"id": "1"}',
-        timeout_ms: 5000
-      }
-    },
-    // 节点 4: gRPC Close 节点
-    {
-      uuid: 'grpc-close-001',
-      type: 'grpc_close',
-      name: 'Close Connection',
-      position: { x: 750, y: 0 },
-      data: {
-        type: 'grpc_close',
-        connection_id: 'grpc-connect-001'
-      }
-    }
-  ],
-  connections: [
-    // Entry → gRPC Connect
-    {
-      id: 'conn-grpc-1',
-      source_node_uuid: 'entry-grpc-001',
-      target_node_uuid: 'grpc-connect-001',
-      source_port_id: 'out',
-      target_port_id: 'in'
-    },
-    // gRPC Connect → gRPC Call
-    {
-      id: 'conn-grpc-2',
-      source_node_uuid: 'grpc-connect-001',
-      target_node_uuid: 'grpc-call-001',
-      source_port_id: 'true',
-      target_port_id: 'in'
-    },
-    // gRPC Call → gRPC Close
-    {
-      id: 'conn-grpc-3',
-      source_node_uuid: 'grpc-call-001',
-      target_node_uuid: 'grpc-close-001',
-      source_port_id: 'true',
-      target_port_id: 'in'
-    }
-  ],
-  _meta: {
-    version: BUILTIN_FLOW_VERSION,
-    isBuiltin: true,
-  },
-} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
-
 // ============================================================================
 // 模板注册表
 // ============================================================================
@@ -564,17 +468,6 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     tags: ['Database', 'SQLite', 'Query'],
     difficulty: 'beginner',
     flow: DB_SQLITE_FLOW,
-  },
-  // ── gRPC 模板 ──
-  {
-    id: 'template-grpc-call',
-    name: 'gRPC Service Call',
-    description: 'Connect to gRPC server and call a remote method',
-    category: 'grpc',
-    icon: 'Server',
-    tags: ['gRPC', 'RPC'],
-    difficulty: 'intermediate',
-    flow: GRPC_DEMO_FLOW,
   },
   // ── GraphQL 模板 ──
   {

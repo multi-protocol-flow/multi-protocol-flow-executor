@@ -12,7 +12,6 @@ import { WsCloseViewer } from '@/components/execution/viewers/WsCloseViewer';
 import { ConditionalViewer } from '@/components/execution/viewers/ConditionalViewer';
 import { AssertionViewer } from '@/components/execution/viewers/AssertionViewer';
 import { GenericViewer } from '@/components/execution/viewers/GenericViewer';
-import { GrpcViewer } from '@/components/execution/viewers/GrpcViewer';
 import { TcpUdpViewer } from '@/components/execution/viewers/TcpUdpViewer';
 import { SseViewer } from '@/components/execution/viewers/SseViewer';
 import { GraphqlViewer } from '@/components/execution/viewers/GraphqlViewer';
@@ -49,9 +48,6 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   ws_close: WsCloseViewer,
   conditional: ConditionalViewer,
   assertion: AssertionViewer,
-  grpc_connect: GrpcViewer,
-  grpc_call: GrpcViewer,
-  grpc_close: GrpcViewer,
   tcp_connect: TcpUdpViewer,
   tcp_send: TcpUdpViewer,
   tcp_receive: TcpUdpViewer,
