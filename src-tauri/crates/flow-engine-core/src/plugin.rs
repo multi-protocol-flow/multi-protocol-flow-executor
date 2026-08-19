@@ -65,6 +65,9 @@ pub struct NodeMetadata {
     /// 前端元数据（插件节点的 iframe 配置面板；内置节点为 None）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontend: Option<FrontendMetadata>,
+    /// 报告 viewer 前端元数据（插件节点的 iframe 报告页；内置节点为 None）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub viewer: Option<FrontendMetadata>,
     /// 是否支持单节点独立执行（`execute_single_node` 连接性验证）。
     /// 插件节点由 describe 的 `capabilities.single_node` 透传而来；
     /// 内置节点默认 false（由宿主白名单常量另行放行）。
@@ -147,6 +150,14 @@ pub trait NodePlugin: Send + Sync {
     /// 默认返回 None，内置节点无需任何改动；插件节点（
     /// `SidecarPlugin` / `PendingPlugin`）返回其 describe 产出的前端描述。
     fn frontend(&self) -> Option<&FrontendMetadata> {
+        None
+    }
+
+    /// 节点的报告 viewer 前端元数据（插件 iframe 报告页等）
+    ///
+    /// 默认返回 None；插件节点（`SidecarPlugin`）返回 describe 产出的
+    /// `viewer` 描述（如 grpc 插件的报告页）。
+    fn viewer(&self) -> Option<&FrontendMetadata> {
         None
     }
 
@@ -319,6 +330,11 @@ mod tests {
             frontend: Some(FrontendMetadata {
                 kind: "inline".to_string(),
                 content: Some("<p>hi</p>".to_string()),
+                url: None,
+            }),
+            viewer: Some(FrontendMetadata {
+                kind: "inline".to_string(),
+                content: Some("<p>report</p>".to_string()),
                 url: None,
             }),
             supports_single_node: false,

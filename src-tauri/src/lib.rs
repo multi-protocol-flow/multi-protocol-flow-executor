@@ -88,15 +88,6 @@ pub use tauri_commands::{
     // 会话管理
     DebugSessionManager,
     ExecutionSessionManager,
-    GrpcCancelSessionManager,
-};
-
-// gRPC 命令
-#[cfg(feature = "protocol-grpc")]
-pub use tauri_commands::{
-    grpc_channelz_info, grpc_discover_services, grpc_generate_request_skeleton,
-    grpc_generate_request_skeleton_from_reflection, grpc_parse_descriptor_set,
-    grpc_read_proto_files, grpc_scan_proto_directory, grpc_validate_request,
 };
 
 // 插件配置面板 uiCall 转发命令
@@ -260,18 +251,30 @@ pub fn run() {
             let host = request.uri().host().unwrap_or_default().to_owned();
             let page = request.uri().path().trim_start_matches('/').to_owned();
             let response = plugin_protocol::plugin_iframe_response(
-                |plugin_id| {
-                    manager
+                |plugin_id, page| {
+                    let resolved = manager
                         .registrations()
                         .iter()
                         .find(|registration| registration.name == plugin_id)
                         .and_then(|registration| {
-                            registration
-                                .nodes
-                                .iter()
-                                .find_map(|node| node.frontend.as_ref())
-                        })
-                        .map(|frontend| (frontend.kind.as_str(), frontend.content.as_deref()))
+                            registration.nodes.iter().find_map(|node| {
+                                let frontend = if page == plugin_protocol::VIEWER_PAGE {
+                                    node.viewer.as_ref()
+                                } else {
+                                    node.frontend.as_ref()
+                                };
+                                frontend.map(|f| (f.kind.as_str(), f.content.as_deref()))
+                            })
+                        });
+                    // 面板 iframe 加载诊断：每次 scheme 请求记录命中情况到
+                    // 日志（GUI 无控制台时 logs/app.log 可查）。
+                    log::info!(
+                        "[plugin-iframe] {} {} -> {}",
+                        host,
+                        page,
+                        if resolved.is_some() { "hit" } else { "miss" }
+                    );
+                    resolved
                 },
                 &host,
                 &page,
@@ -311,9 +314,6 @@ pub fn run() {
             // 注册数据驱动执行会话管理器状态（用于取消数据驱动执行）
             app.manage(DatasetExecutionSessionManager::new());
 
-            // 注册 gRPC 取消会话管理器状态（用于取消流式调用和 Channelz 内省）
-            app.manage(GrpcCancelSessionManager::new());
-
             // 从 store 读取日志目录配置
             let log_dir = match app.store("store/settings.bin") {
                 Ok(store) => store
@@ -337,11 +337,17 @@ pub fn run() {
             let _ = app.handle().plugin(
                 tauri_plugin_log::Builder::new()
                     .level(level)
+                    // 文件 target（生产诊断）
                     .target(tauri_plugin_log::Target::new(
                         tauri_plugin_log::TargetKind::Folder {
                             path: log_dir,
                             file_name: Some("app".into()),
                         },
+                    ))
+                    // Stdout target：插件加载失败等 warn/error 同时打到终端
+                    // 控制台（开发诊断可见；无控制台的 GUI 环境自动 no-op）。
+                    .target(tauri_plugin_log::Target::new(
+                        tauri_plugin_log::TargetKind::Stdout,
                     ))
                     .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
                     .build(),
@@ -374,30 +380,6 @@ pub fn run() {
             load_stress_test_report,
             list_stress_test_reports,
             delete_stress_test_report,
-            // gRPC 服务发现命令
-            #[cfg(feature = "protocol-grpc")]
-            grpc_discover_services,
-            // gRPC 请求骨架生成命令
-            #[cfg(feature = "protocol-grpc")]
-            grpc_generate_request_skeleton,
-            // gRPC 请求骨架生成命令（Reflection 模式）
-            #[cfg(feature = "protocol-grpc")]
-            grpc_generate_request_skeleton_from_reflection,
-            // gRPC 请求 JSON 预验证命令
-            #[cfg(feature = "protocol-grpc")]
-            grpc_validate_request,
-            // gRPC Proto 目录扫描命令
-            #[cfg(feature = "protocol-grpc")]
-            grpc_scan_proto_directory,
-            // gRPC 读取 Proto 文件命令
-            #[cfg(feature = "protocol-grpc")]
-            grpc_read_proto_files,
-            // gRPC Descriptor Set 解析命令
-            #[cfg(feature = "protocol-grpc")]
-            grpc_parse_descriptor_set,
-            // gRPC Channelz 内省命令（EXPERIMENTAL）
-            #[cfg(feature = "protocol-grpc")]
-            grpc_channelz_info,
             // SSE 连接测试命令
             #[cfg(feature = "protocol-sse")]
             sse_test_connection,

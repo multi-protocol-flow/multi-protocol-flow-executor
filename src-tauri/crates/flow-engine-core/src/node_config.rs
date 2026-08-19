@@ -1,6 +1,6 @@
 // 节点配置模块 - 强类型节点配置定义
 
-use crate::traits::{FramingConfig, GraphqlQueryTemplate, GrpcServiceInfo, TcpFramingMode};
+use crate::traits::{FramingConfig, GraphqlQueryTemplate, TcpFramingMode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -568,213 +568,6 @@ pub struct ProtoFile {
     pub content: String,
 }
 
-/// gRPC Metadata 条目
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct GrpcMetadataEntry {
-    /// 键
-    pub key: String,
-    /// 值
-    pub value: String,
-}
-
-/// gRPC 流式消息
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct StreamMessage {
-    /// 是否启用
-    #[serde(default = "default_true")]
-    pub enabled: bool,
-    /// 消息内容（JSON 字符串）
-    #[serde(default)]
-    pub content: String,
-}
-
-/// gRPC Connect 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct GrpcConnectConfig {
-    /// gRPC 服务器地址
-    pub url: String,
-    /// 是否使用 TLS
-    #[serde(default)]
-    pub use_tls: bool,
-    /// 是否跳过 TLS 证书验证
-    #[serde(default)]
-    pub tls_skip_verify: bool,
-    /// 是否启用 Server Reflection
-    #[serde(default)]
-    pub enable_reflection: bool,
-    /// Proto 文件列表（当不使用 Reflection 时）
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub proto_files: Vec<ProtoFile>,
-    /// 默认 metadata
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub default_metadata: Vec<GrpcMetadataEntry>,
-    /// 连接超时（毫秒）
-    #[serde(default = "default_grpc_connect_timeout")]
-    pub connect_timeout_ms: u64,
-    /// 通过 Server Reflection 或 Proto 解析发现的服务列表（设计时缓存，仅前端使用）
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub discovered_services: Vec<GrpcServiceInfo>,
-    // === TLS 增强字段 ===
-    /// TLS CA 证书（PEM 格式内容）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tls_ca_cert: Option<String>,
-    /// TLS 客户端证书（PEM 格式内容）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tls_client_cert: Option<String>,
-    /// TLS 客户端私钥（PEM 格式内容）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tls_client_key: Option<String>,
-    /// TLS 服务器名称覆盖
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub tls_server_name_override: Option<String>,
-    // === 压缩配置 ===
-    /// 压缩编码："gzip" 或 "none"
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub compression_encoding: Option<String>,
-    // === Keepalive 配置 ===
-    /// Keepalive 间隔（毫秒）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub keepalive_time_ms: Option<u64>,
-    /// Keepalive 超时（毫秒）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub keepalive_timeout_ms: Option<u64>,
-    /// 是否允许无流时发送 Keepalive
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub keepalive_permit_without_streams: Option<bool>,
-    // === Reflection 增强配置 ===
-    /// Reflection 请求附加 metadata
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub reflection_metadata: Option<Vec<GrpcMetadataEntry>>,
-    // === 健康检查配置 ===
-    /// 健康检查服务名称
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub health_check_service: Option<String>,
-    // === 负载均衡配置 ===
-    /// 多端点列表（用于负载均衡）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub endpoints: Option<Vec<String>>,
-    // === 重试配置 ===
-    /// 最大重试次数
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub max_retries: Option<u32>,
-    /// 初始退避时间（毫秒）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub initial_backoff_ms: Option<u64>,
-    /// 最大退避时间（毫秒）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub max_backoff_ms: Option<u64>,
-    /// 可重试的 gRPC 状态码列表
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub retryable_status_codes: Option<Vec<String>>,
-}
-
-impl Default for GrpcConnectConfig {
-    fn default() -> Self {
-        Self {
-            url: String::new(),
-            use_tls: false,
-            tls_skip_verify: false,
-            enable_reflection: false,
-            proto_files: Vec::new(),
-            default_metadata: Vec::new(),
-            connect_timeout_ms: default_grpc_connect_timeout(),
-            discovered_services: Vec::new(),
-            tls_ca_cert: None,
-            tls_client_cert: None,
-            tls_client_key: None,
-            tls_server_name_override: None,
-            compression_encoding: None,
-            keepalive_time_ms: None,
-            keepalive_timeout_ms: None,
-            keepalive_permit_without_streams: None,
-            reflection_metadata: None,
-            health_check_service: None,
-            endpoints: None,
-            max_retries: None,
-            initial_backoff_ms: None,
-            max_backoff_ms: None,
-            retryable_status_codes: None,
-        }
-    }
-}
-
-/// gRPC Call 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct GrpcCallConfig {
-    /// 连接 ID（引用 `grpc_connect` 节点的 UUID）
-    pub connection_id: String,
-    /// 服务名称
-    pub service_name: String,
-    /// 方法名称
-    pub method_name: String,
-    /// 请求 JSON
-    pub request_json: String,
-    /// 调用超时（毫秒）
-    #[serde(default = "default_grpc_call_timeout")]
-    pub timeout_ms: u64,
-    /// 调用级 metadata
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub metadata: Vec<GrpcMetadataEntry>,
-    /// 流式消息列表（Client/Bidi Streaming 模式）
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub request_messages: Vec<StreamMessage>,
-    // === 压缩覆盖配置 ===
-    /// 调用级压缩编码（覆盖连接级配置）："gzip" 或 "none"
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub compression_encoding: Option<String>,
-    // === 消息大小限制 ===
-    /// 最大接收消息大小（字节）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub max_receive_message_size: Option<usize>,
-    /// 最大发送消息大小（字节）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub max_send_message_size: Option<usize>,
-    // === 重试配置（调用级覆盖，None 时使用连接级默认值）===
-    /// 最大重试次数（0 = 不重试，覆盖连接级配置）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub max_retries: Option<u32>,
-    /// 初始退避时间（毫秒，覆盖连接级配置）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub initial_backoff_ms: Option<u64>,
-}
-
-impl Default for GrpcCallConfig {
-    fn default() -> Self {
-        Self {
-            connection_id: String::new(),
-            service_name: String::new(),
-            method_name: String::new(),
-            request_json: String::new(),
-            timeout_ms: default_grpc_call_timeout(),
-            metadata: Vec::new(),
-            request_messages: Vec::new(),
-            compression_encoding: None,
-            max_receive_message_size: None,
-            max_send_message_size: None,
-            max_retries: None,
-            initial_backoff_ms: None,
-        }
-    }
-}
-
-/// gRPC Close 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct GrpcCloseConfig {
-    /// 连接 ID（引用 `grpc_connect` 节点的 UUID）
-    pub connection_id: String,
-}
-
-// gRPC Default value helpers
-fn default_grpc_connect_timeout() -> u64 {
-    30000
-}
-fn default_grpc_call_timeout() -> u64 {
-    30000
-}
-
-fn default_true() -> bool {
-    true
-}
 
 // ============================================================================
 // Assertion 节点配置
@@ -1210,6 +1003,10 @@ fn default_udp_local_addr() -> String {
     "0.0.0.0".to_string()
 }
 
+fn default_true() -> bool {
+    true
+}
+
 impl Default for UdpBindConfig {
     fn default() -> Self {
         Self {
@@ -1571,15 +1368,6 @@ pub enum NodeData {
     /// 脚本节点配置
     #[serde(rename = "script")]
     Script(ScriptNodeConfig),
-    /// gRPC 连接节点配置
-    #[serde(rename = "grpc_connect")]
-    GrpcConnect(GrpcConnectConfig),
-    /// gRPC 调用节点配置
-    #[serde(rename = "grpc_call")]
-    GrpcCall(GrpcCallConfig),
-    /// gRPC 关闭节点配置
-    #[serde(rename = "grpc_close")]
-    GrpcClose(GrpcCloseConfig),
     /// TCP 连接节点配置
     #[serde(rename = "tcp_connect")]
     TcpConnect(TcpConnectConfig),
@@ -1681,15 +1469,6 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "script" => serde_json::from_value::<ScriptNodeConfig>(value.clone())
                 .map(NodeData::Script)
                 .map_err(serde::de::Error::custom),
-            "grpc_connect" => serde_json::from_value::<GrpcConnectConfig>(value.clone())
-                .map(NodeData::GrpcConnect)
-                .map_err(serde::de::Error::custom),
-            "grpc_call" => serde_json::from_value::<GrpcCallConfig>(value.clone())
-                .map(NodeData::GrpcCall)
-                .map_err(serde::de::Error::custom),
-            "grpc_close" => serde_json::from_value::<GrpcCloseConfig>(value.clone())
-                .map(NodeData::GrpcClose)
-                .map_err(serde::de::Error::custom),
             "tcp_connect" => serde_json::from_value::<TcpConnectConfig>(value.clone())
                 .map(NodeData::TcpConnect)
                 .map_err(serde::de::Error::custom),
@@ -1770,9 +1549,6 @@ impl NodeData {
             NodeData::WsClose(_) => "ws_close".to_string(),
             NodeData::Assertion(_) => "assertion".to_string(),
             NodeData::Script(_) => "script".to_string(),
-            NodeData::GrpcConnect(_) => "grpc_connect".to_string(),
-            NodeData::GrpcCall(_) => "grpc_call".to_string(),
-            NodeData::GrpcClose(_) => "grpc_close".to_string(),
             NodeData::TcpConnect(_) => "tcp_connect".to_string(),
             NodeData::TcpSend(_) => "tcp_send".to_string(),
             NodeData::TcpReceive(_) => "tcp_receive".to_string(),
@@ -1810,8 +1586,6 @@ impl NodeData {
         match self {
             NodeData::Http(cfg) => cfg.timeout_ms,
             NodeData::Script(cfg) => Some(cfg.timeout_ms),
-            NodeData::GrpcConnect(cfg) => Some(cfg.connect_timeout_ms),
-            NodeData::GrpcCall(cfg) => Some(cfg.timeout_ms),
             NodeData::SseConnect(cfg) => Some(cfg.timeout_ms),
             NodeData::SseListen(cfg) => Some(cfg.timeout_ms),
             NodeData::TcpConnect(cfg) => Some(cfg.connect_timeout_ms),
@@ -1903,35 +1677,6 @@ impl NodeData {
         Self::WsClose(WsCloseConfig {
             connection_id: connection_id.into(),
             ..Default::default()
-        })
-    }
-
-    /// 创建 `GrpcConnect` 节点配置
-    pub fn grpc_connect(url: impl Into<String>) -> Self {
-        Self::GrpcConnect(GrpcConnectConfig {
-            url: url.into(),
-            ..Default::default()
-        })
-    }
-
-    /// 创建 `GrpcCall` 节点配置
-    pub fn grpc_call(
-        connection_id: impl Into<String>,
-        service_name: impl Into<String>,
-        method_name: impl Into<String>,
-    ) -> Self {
-        Self::GrpcCall(GrpcCallConfig {
-            connection_id: connection_id.into(),
-            service_name: service_name.into(),
-            method_name: method_name.into(),
-            ..Default::default()
-        })
-    }
-
-    /// 创建 `GrpcClose` 节点配置
-    pub fn grpc_close(connection_id: impl Into<String>) -> Self {
-        Self::GrpcClose(GrpcCloseConfig {
-            connection_id: connection_id.into(),
         })
     }
 

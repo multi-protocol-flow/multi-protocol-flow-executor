@@ -7,7 +7,7 @@ description = "Plugin marketplace client + installer shared by the GUI and CLI"
 [dependencies]
 # Shared plugin wire types come from the standalone public SDK repo (tag
 # pinned); default-features = false keeps tokio out of the host build.
-mpe-plugin-sdk = { git = "https://github.com/multi-protocol-flow/mpe-plugin-sdk.git", tag = "v0.1.0", default-features = false }
+mpe-plugin-sdk = { git = "https://github.com/multi-protocol-flow/mpe-plugin-sdk.git", tag = "v0.2.2", default-features = false }
 reqwest = { version = "0.13", default-features = false, features = ["json"] }
 serde = { workspace = true }
 serde_json = { workspace = true }

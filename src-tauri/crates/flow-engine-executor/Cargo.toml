@@ -10,7 +10,6 @@ all-protocols = [
     "protocol-ws",
     "protocol-script",
     "protocol-assertion",
-    "protocol-grpc",
     "protocol-tcp",
     "protocol-sse",
     "protocol-graphql",
@@ -19,7 +18,6 @@ protocol-http = ["dep:flow-engine-http"]
 protocol-ws = ["dep:flow-engine-ws"]
 protocol-script = ["dep:flow-engine-script"]
 protocol-assertion = ["dep:flow-engine-assertion"]
-protocol-grpc = ["dep:flow-engine-grpc"]
 protocol-tcp = ["dep:flow-engine-tcp"]
 protocol-sse = ["dep:flow-engine-sse"]
 protocol-graphql = ["dep:flow-engine-graphql"]
@@ -33,7 +31,6 @@ flow-engine-http = { path = "../flow-engine-http", optional = true }
 flow-engine-ws = { path = "../flow-engine-ws", optional = true }
 flow-engine-script = { path = "../flow-engine-script", optional = true }
 flow-engine-assertion = { path = "../flow-engine-assertion", optional = true }
-flow-engine-grpc = { path = "../flow-engine-grpc", optional = true }
 flow-engine-tcp = { path = "../flow-engine-tcp", optional = true }
 flow-engine-sse = { path = "../flow-engine-sse", optional = true }
 flow-engine-graphql = { path = "../flow-engine-graphql", optional = true }

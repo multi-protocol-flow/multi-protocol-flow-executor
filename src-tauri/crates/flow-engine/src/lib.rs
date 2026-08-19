@@ -49,15 +49,6 @@ pub use flow_engine_executor::flow_engine_ws::{
     websocket_manager, ws_close_executor, ws_connect_executor, ws_send_collect_executor,
 };
 
-// gRPC (flow-engine-grpc)
-#[cfg(feature = "protocol-grpc")]
-pub use flow_engine_executor::flow_engine_grpc;
-#[cfg(feature = "protocol-grpc")]
-pub use flow_engine_executor::flow_engine_grpc::{
-    grpc_call_executor, grpc_close_executor, grpc_connect_executor, grpc_connection_manager,
-    proto_parser, reflection,
-};
-
 // TCP/UDP (flow-engine-tcp)
 #[cfg(feature = "protocol-tcp")]
 pub use flow_engine_executor::flow_engine_tcp;

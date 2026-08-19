@@ -4,18 +4,18 @@
 ## OVERVIEW
 14 crate dirs across 4 layers + CLI + workspace-hack（插件系统已独立为公开仓库，不在 workspace 内）:
 - **L0 (Leaves):** `flow-engine-core`
-- **L1 (Protocols):** 9 optional crates (http, ws, script, assertion, grpc, mcp, tcp, sse, graphql) — redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 已移出宿主 → plugins/* 第三方插件
+- **L1 (Protocols):** 7 optional crates (http, ws, script, assertion, tcp, sse, graphql) — redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 及 mcp/grpc 已移出宿主 → plugins/* 第三方插件
 - **L2 (Orchestration):** `flow-engine-executor`
 - **L3 (Facade):** `flow-engine`
 - **CLI:** `mpe-cli` (纯 Rust, 无 Tauri 依赖)
 - **Extra:** `workspace-hack` (cargo-hakari)
 - **插件系统 (独立分层):** `mpe-plugin-sdk` (独立公开仓库: 共享 wire 契约 + 作者 SDK) + `flow-engine-plugin` (宿主侧)
 
-All L1 crates are feature-gated (`protocol-*`). Default `all-protocols` enables all 9.
+All L1 crates are feature-gated (`protocol-*`). Default `all-protocols` enables all 7.
 
 ## DEPENDENCY GRAPH
 ```
-app/mpe -> flow-engine -> flow-engine-executor -> 9 L1 crates -> flow-engine-core
+app/mpe -> flow-engine -> flow-engine-executor -> 7 L1 crates -> flow-engine-core
 mpe-cli -> flow-engine (default-features = false, 按需 feature)
 mpe-plugin-sdk (独立公开仓库, git+tag; 宿主以 default-features = false 取 wire 类型) <- flow-engine-plugin <- flow-engine-executor
 ```
@@ -28,7 +28,6 @@ mpe-plugin-sdk (独立公开仓库, git+tag; 宿主以 default-features = false 
 | flow-engine-ws | 1 | 6 | 5,461 | WebSocket client nodes | tokio-tungstenite |
 | flow-engine-script | 1 | 5 | 3,710 | JS script execution | rquickjs |
 | flow-engine-assertion | 1 | 7 | 3,105 | Assertion/validation | regex, jsonpath |
-| flow-engine-grpc | 1 | 12 | 7,141 | gRPC client + reflection | tonic, prost |
 | flow-engine-tcp | 1 | 18 | 10,702 | TCP/UDP socket nodes | tokio, rustls |
 | flow-engine-sse | 1 | 7 | 3,003 | Server-Sent Events | reqwest |
 | flow-engine-graphql | 1 | 9 | 6,111 | GraphQL query/sub | reqwest, tungstenite |

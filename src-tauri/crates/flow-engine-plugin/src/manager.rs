@@ -19,7 +19,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use mpe_plugin_sdk::protocol::describe::{DescribeResult, NodeDescription};
@@ -97,6 +97,11 @@ pub struct PluginManager {
     /// plugin's declared `locales` (falling back to `default_locale`).
     /// `None` = no injection; plugins keep their hard-coded default.
     host_locale: Option<String>,
+    /// Most recent describe failure reason per plugin name — surfaced to the
+    /// UI (`list_installed_plugins` `error` field) and to the reload flow so
+    /// a plugin that fails to load is diagnosable without digging through
+    /// logs.
+    last_errors: Mutex<HashMap<String, String>>,
 }
 
 impl PluginManager {
@@ -116,6 +121,7 @@ impl PluginManager {
             type_id_to_plugin: HashMap::new(),
             describe_timeout: DESCRIBE_TIMEOUT,
             host_locale: None,
+            last_errors: Mutex::new(HashMap::new()),
         }
     }
 
@@ -232,6 +238,9 @@ impl PluginManager {
             }
             match self.describe_one(&plugin).await {
                 Ok(registration) => {
+                    if let Ok(mut errors) = self.last_errors.lock() {
+                        errors.remove(&plugin.name);
+                    }
                     self.note_describe_success(&plugin.name);
                     self.register_plugin(registration.name.clone(), registration.manifest.clone());
                     self.add_registration(registration.clone());
@@ -243,6 +252,9 @@ impl PluginManager {
                         plugin.name,
                         plugin.version
                     );
+                    if let Ok(mut errors) = self.last_errors.lock() {
+                        errors.insert(plugin.name.clone(), e.to_string());
+                    }
                     if self.note_describe_failure(&plugin.name) {
                         log::warn!(
                             "plugin {} quarantined after {MAX_DESCRIBE_FAILURES} describe failures",
@@ -253,6 +265,12 @@ impl PluginManager {
             }
         }
         registrations
+    }
+
+    /// Most recent describe failure reason for `name` (UI-facing; `None`
+    /// when the plugin loaded or was never scanned).
+    pub fn last_error(&self, name: &str) -> Option<String> {
+        self.last_errors.lock().ok()?.get(name).cloned()
     }
 
     /// Names of plugins quarantined by the describe policy (sorted).
@@ -341,3 +359,43 @@ impl PluginManager {
     }
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    /// 坏插件（入口二进制不存在）→ scan_and_describe 失败且 `last_error`
+    /// 记录可诊断原因（UI `list_installed_plugins` 的 error 字段据此填充）。
+    #[tokio::test]
+    async fn describe_failure_records_last_error() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let plugin_dir = dir.path().join("broken");
+        fs::create_dir_all(&plugin_dir).expect("mkdir");
+        fs::write(
+            plugin_dir.join("plugin.json"),
+            r#"{
+                "name": "broken",
+                "version": "0.1.0",
+                "description": "broken",
+                "entry": { "command": "./does_not_exist" },
+                "capabilities": {}
+            }"#,
+        )
+        .expect("write manifest");
+
+        let mut manager = PluginManager::new(dir.path().to_path_buf());
+        manager.describe_timeout = Duration::from_secs(3);
+        let registrations = manager.scan_and_describe().await;
+
+        assert!(registrations.is_empty(), "broken plugin must not register");
+        let error = manager
+            .last_error("broken")
+            .expect("last_error must record the describe failure reason");
+        assert!(
+            !error.is_empty(),
+            "error reason must be non-empty (UI-facing)"
+        );
+        assert!(manager.quarantined().is_empty(), "single failure is not quarantine");
+    }
+}

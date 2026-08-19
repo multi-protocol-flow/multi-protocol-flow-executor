@@ -32,6 +32,7 @@ use serde_json::Value;
 
 use crate::describe::frontend_metadata_from;
 use crate::manager::PluginManager;
+// (grpc.stream 通知 handler 在 wrapper.rs)
 use crate::wrapper::{
     execution_timeout, extract_referenced_variables, map_execute_response, map_plugin_error,
     run_with_timeout_and_cancel,
@@ -48,6 +49,7 @@ pub const VALIDATE_METHOD: &str = "validate";
 pub struct SidecarPlugin {
     node: NodeDescription,
     frontend: Option<FrontendMetadata>,
+    viewer: Option<FrontendMetadata>,
     manager: Arc<PluginManager>,
 }
 
@@ -61,9 +63,11 @@ impl SidecarPlugin {
     /// can hand it back by reference.
     pub fn new(node: NodeDescription, manager: Arc<PluginManager>) -> Arc<Self> {
         let frontend = node.frontend.as_ref().map(frontend_metadata_from);
+        let viewer = node.viewer.as_ref().map(frontend_metadata_from);
         Arc::new(Self {
             node,
             frontend,
+            viewer,
             manager,
         })
     }
@@ -129,6 +133,10 @@ impl NodePlugin for SidecarPlugin {
 
     fn frontend(&self) -> Option<&FrontendMetadata> {
         self.frontend.as_ref()
+    }
+
+    fn viewer(&self) -> Option<&FrontendMetadata> {
+        self.viewer.as_ref()
     }
 
     /// Single-node execution capability comes from the plugin's describe
@@ -197,6 +205,18 @@ impl NodePlugin for SidecarPlugin {
             .await
             .map_err(map_plugin_error)?;
 
+        // 6.5 gRPC 流式实时链路（helper 在 wrapper.rs）：grpc:* 节点执行
+        // 时把插件的 `grpc.stream` 通知转成 DebugEvent 进 debug store，
+        // 报告 viewer 实时消费。非 grpc 节点不注册（零开销）；subscription
+        // handle 在 execute 返回后 drop 自动退订。
+        let _grpc_stream_subscription = crate::wrapper::register_grpc_stream_if_needed(
+            self.node.type_id.as_str(),
+            conn.as_ref(),
+            context,
+            node,
+            &resolved_config,
+        );
+
         let params = serde_json::json!({
             "config": resolved_config,
             "providers": providers,
@@ -235,4 +255,3 @@ impl NodePlugin for SidecarPlugin {
         )
     }
 }
-

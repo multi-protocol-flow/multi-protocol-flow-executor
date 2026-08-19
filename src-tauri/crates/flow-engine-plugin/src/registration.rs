@@ -92,6 +92,7 @@ pub fn decide_registration(
 pub struct PendingPlugin {
     node: NodeDescription,
     frontend: Option<FrontendMetadata>,
+    viewer: Option<FrontendMetadata>,
 }
 
 impl PendingPlugin {
@@ -102,7 +103,12 @@ impl PendingPlugin {
     /// back by reference (same pattern as `SidecarPlugin`).
     pub fn new(node: NodeDescription) -> Self {
         let frontend = node.frontend.as_ref().map(frontend_metadata_from);
-        Self { node, frontend }
+        let viewer = node.viewer.as_ref().map(frontend_metadata_from);
+        Self {
+            node,
+            frontend,
+            viewer,
+        }
     }
 }
 
@@ -146,6 +152,10 @@ impl NodePlugin for PendingPlugin {
 
     fn frontend(&self) -> Option<&FrontendMetadata> {
         self.frontend.as_ref()
+    }
+
+    fn viewer(&self) -> Option<&FrontendMetadata> {
+        self.viewer.as_ref()
     }
 
     async fn execute(

@@ -115,7 +115,6 @@ pub const SUPPORTED_SINGLE_NODE_TYPES: &[&str] = &[
     "assertion",
     "ws_connect",
     "sse_connect",
-    "grpc_connect",
     "graphql_connect",
     "tcp_connect",
 ];
@@ -286,7 +285,7 @@ impl FlowExecutor {
             current_node_plugin_data: None,
         }
         .with_default_providers()
-        .with_default_providers_and_grpc(None);
+        .with_default_providers();
 
         // 集成流程验证器
         let validator = crate::validator::FlowValidator::new();
@@ -1283,7 +1282,7 @@ impl FlowExecutor {
         // 2. Build execution context with unique flow id
         let mut context = ExecutionContext::new("_single_node_".to_string(), now_ms)
             .with_default_providers()
-            .with_default_providers_and_grpc(None);
+            .with_default_providers();
 
         // 3. Inject variables from JSON object
         if let Some(serde_json::Value::Object(obj)) = variables {

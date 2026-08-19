@@ -49,8 +49,6 @@ pub mod variable_extractor_executor;
 pub use flow_engine_assertion;
 #[cfg(feature = "protocol-graphql")]
 pub use flow_engine_graphql;
-#[cfg(feature = "protocol-grpc")]
-pub use flow_engine_grpc;
 #[cfg(feature = "protocol-http")]
 pub use flow_engine_http;
 #[cfg(feature = "protocol-script")]

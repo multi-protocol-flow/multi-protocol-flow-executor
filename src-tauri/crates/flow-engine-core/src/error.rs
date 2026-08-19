@@ -191,18 +191,6 @@ pub enum ErrorKind {
     /// WebSocket 协议Error
     WebSocketProtocol,
 
-    // ===== gRPC Error（容错模式，继续执行） =====
-    /// gRPC connection failed
-    GrpcConnection,
-    /// gRPC 超时
-    GrpcTimeout,
-    /// gRPC 消息Error
-    GrpcMessage,
-    /// gRPC 状态Error
-    GrpcStatus,
-    /// gRPC 关闭Error
-    GrpcClose,
-
     // ===== 断言Error（容错模式，继续执行） =====
     /// 断言Failed
     Assertion,
@@ -378,18 +366,6 @@ pub enum ErrorCode {
     /// Script assertion failed.
     E_SCRIPT_ASSERTION,
 
-    // ===== gRPC errors =====
-    /// gRPC connection failed.
-    E_GRPC_CONNECTION,
-    /// gRPC operation timed out.
-    E_GRPC_TIMEOUT,
-    /// gRPC message error.
-    E_GRPC_MESSAGE,
-    /// gRPC status error.
-    E_GRPC_STATUS,
-    /// gRPC close error.
-    E_GRPC_CLOSE,
-
     // ===== TCP errors =====
     /// TCP connection failed.
     E_TCP_CONNECTION,
@@ -496,12 +472,6 @@ impl ErrorCode {
             Self::E_SCRIPT_RUNTIME => &["message"],
             Self::E_SCRIPT_TIMEOUT => &["duration"],
             Self::E_SCRIPT_ASSERTION => &["expected", "actual", "message"],
-            // gRPC
-            Self::E_GRPC_CONNECTION => &["host", "port", "message"],
-            Self::E_GRPC_TIMEOUT => &["host", "duration"],
-            Self::E_GRPC_MESSAGE => &["host", "message"],
-            Self::E_GRPC_STATUS => &["host", "status", "message"],
-            Self::E_GRPC_CLOSE => &["host", "message"],
             // TCP
             Self::E_TCP_CONNECTION => &["host", "port", "message"],
             Self::E_TCP_TIMEOUT => &["host", "port", "duration"],
@@ -570,11 +540,6 @@ impl ErrorCode {
             Self::E_SCRIPT_RUNTIME => "E_SCRIPT_RUNTIME",
             Self::E_SCRIPT_TIMEOUT => "E_SCRIPT_TIMEOUT",
             Self::E_SCRIPT_ASSERTION => "E_SCRIPT_ASSERTION",
-            Self::E_GRPC_CONNECTION => "E_GRPC_CONNECTION",
-            Self::E_GRPC_TIMEOUT => "E_GRPC_TIMEOUT",
-            Self::E_GRPC_MESSAGE => "E_GRPC_MESSAGE",
-            Self::E_GRPC_STATUS => "E_GRPC_STATUS",
-            Self::E_GRPC_CLOSE => "E_GRPC_CLOSE",
             Self::E_TCP_CONNECTION => "E_TCP_CONNECTION",
             Self::E_TCP_TIMEOUT => "E_TCP_TIMEOUT",
             Self::E_TCP_SEND => "E_TCP_SEND",
@@ -637,11 +602,6 @@ impl ErrorCode {
             Self::E_SCRIPT_RUNTIME => ErrorKind::ScriptRuntime,
             Self::E_SCRIPT_TIMEOUT => ErrorKind::ScriptTimeout,
             Self::E_SCRIPT_ASSERTION => ErrorKind::ScriptAssertion,
-            Self::E_GRPC_CONNECTION => ErrorKind::GrpcConnection,
-            Self::E_GRPC_TIMEOUT => ErrorKind::GrpcTimeout,
-            Self::E_GRPC_MESSAGE => ErrorKind::GrpcMessage,
-            Self::E_GRPC_STATUS => ErrorKind::GrpcStatus,
-            Self::E_GRPC_CLOSE => ErrorKind::GrpcClose,
             Self::E_TCP_CONNECTION => ErrorKind::TcpConnection,
             Self::E_TCP_TIMEOUT => ErrorKind::TcpTimeout,
             Self::E_TCP_SEND => ErrorKind::TcpSend,
@@ -705,11 +665,6 @@ impl std::fmt::Display for ErrorCode {
             Self::E_SCRIPT_RUNTIME => write!(f, "Script runtime error"),
             Self::E_SCRIPT_TIMEOUT => write!(f, "Script execution timed out"),
             Self::E_SCRIPT_ASSERTION => write!(f, "Script assertion failed"),
-            Self::E_GRPC_CONNECTION => write!(f, "gRPC connection failed"),
-            Self::E_GRPC_TIMEOUT => write!(f, "gRPC operation timed out"),
-            Self::E_GRPC_MESSAGE => write!(f, "gRPC message error"),
-            Self::E_GRPC_STATUS => write!(f, "gRPC status error"),
-            Self::E_GRPC_CLOSE => write!(f, "gRPC close error"),
             Self::E_TCP_CONNECTION => write!(f, "TCP connection failed"),
             Self::E_TCP_TIMEOUT => write!(f, "TCP operation timed out"),
             Self::E_TCP_SEND => write!(f, "TCP send error"),
@@ -1219,12 +1174,6 @@ mod tests {
             ErrorCode::E_SCRIPT_RUNTIME,
             ErrorCode::E_SCRIPT_TIMEOUT,
             ErrorCode::E_SCRIPT_ASSERTION,
-            // gRPC
-            ErrorCode::E_GRPC_CONNECTION,
-            ErrorCode::E_GRPC_TIMEOUT,
-            ErrorCode::E_GRPC_MESSAGE,
-            ErrorCode::E_GRPC_STATUS,
-            ErrorCode::E_GRPC_CLOSE,
             // TCP
             ErrorCode::E_TCP_CONNECTION,
             ErrorCode::E_TCP_TIMEOUT,
@@ -1259,8 +1208,8 @@ mod tests {
         let all_codes = all_error_codes();
         assert_eq!(
             all_codes.len(),
-            53,
-            "ErrorCode should have exactly 53 variants"
+            48,
+            "ErrorCode should have exactly 48 variants"
         );
 
         for code in all_codes {
@@ -1337,7 +1286,6 @@ mod tests {
             ErrorCode::E_WS_CONNECTION.error_kind_hint(),
             WebSocketConnection
         );
-        assert_eq!(ErrorCode::E_GRPC_TIMEOUT.error_kind_hint(), GrpcTimeout);
         assert_eq!(ErrorCode::E_TCP_SEND.error_kind_hint(), TcpSend);
         assert_eq!(ErrorCode::E_UDP_BIND.error_kind_hint(), UdpBind);
         assert_eq!(ErrorCode::E_SSE_EVENT.error_kind_hint(), SseEvent);

@@ -20,14 +20,13 @@
 //! with the concrete type, not the trait object.
 
 use flow_engine_core::context::ExecutionContext;
-use flow_engine_core::traits::GrpcProvider;
 use std::sync::Arc;
 
 /// Extension trait adding protocol provider construction methods to `ExecutionContext`.
 ///
 /// Cannot use inherent `impl` because `ExecutionContext` is defined in
 /// `flow-engine-core`. Instead, this trait provides `with_default_providers`
-/// and `with_default_providers_and_grpc` as extension methods.
+/// as an extension method.
 pub trait ProviderBuilderExt: Sized {
     /// Create and inject all protocol providers (from enabled features).
     ///
@@ -35,13 +34,6 @@ pub trait ProviderBuilderExt: Sized {
     /// disabled are simply skipped — providers won't be inserted into
     /// the `HashMap`.
     fn with_default_providers(self) -> Self;
-
-    /// Create and inject all protocol providers, with optional external gRPC manager.
-    ///
-    /// gRPC is special because the `FlowExecutor` has an externally-injected
-    /// `grpc_manager` (used for IPC `cancel_stream` etc). If `grpc` is `Some`,
-    /// that instance is used; otherwise a fresh one is created (when feature is enabled).
-    fn with_default_providers_and_grpc(self, _grpc: Option<Arc<dyn GrpcProvider>>) -> Self;
 }
 
 impl ProviderBuilderExt for ExecutionContext {
@@ -85,15 +77,4 @@ impl ProviderBuilderExt for ExecutionContext {
         self
     }
 
-    #[allow(unused_mut)] // only mut when protocol-grpc is enabled
-    fn with_default_providers_and_grpc(mut self, _grpc: Option<Arc<dyn GrpcProvider>>) -> Self {
-        #[cfg(feature = "protocol-grpc")]
-        {
-            let grpc =
-                Arc::new(flow_engine_grpc::grpc_connection_manager::GrpcConnectionManager::new());
-            self.set_provider("grpc", grpc);
-        }
-
-        self
-    }
 }

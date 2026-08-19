@@ -30,15 +30,6 @@ pub enum NodeType {
     /// 脚本节点
     #[serde(rename = "script")]
     Script,
-    /// gRPC 连接节点
-    #[serde(rename = "grpc_connect")]
-    GrpcConnect,
-    /// gRPC 调用节点
-    #[serde(rename = "grpc_call")]
-    GrpcCall,
-    /// gRPC 关闭节点
-    #[serde(rename = "grpc_close")]
-    GrpcClose,
     /// TCP 连接节点
     #[serde(rename = "tcp_connect")]
     TcpConnect,

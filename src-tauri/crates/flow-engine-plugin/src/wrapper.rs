@@ -350,3 +350,115 @@ fn cancelled_error() -> ErrorDetail {
     )
     .with_error_code_typed(ErrorCode::E_CANCELLED)
 }
+
+/// Registers a `grpc.stream` notification subscription on `conn` that
+/// forwards plugin-side streaming messages/errors into the host debug store
+/// as `DebugEvent::GrpcStreamMessage/Error` (the existing grpcStreamMessages
+/// data path — the report viewer iframe consumes it in real time).
+///
+/// The `CorrelationFilter` restricts delivery to notifications from
+/// `execution_id`; notifications from other executions are dropped. The
+/// returned `SubscriptionHandle` unsubscribes when dropped (execute done).
+pub(crate) fn register_grpc_stream_handler(
+    conn: &crate::transport::PluginConnection,
+    execution_id: String,
+    node_uuid: String,
+    connection_id: String,
+    sender: Arc<dyn flow_engine_core::traits::DebugEventSender>,
+) -> crate::transport::SubscriptionHandle {
+    use flow_engine_core::debug_types::DebugEvent;
+    use mpe_plugin_sdk::protocol::notification::Notification;
+    use std::sync::Mutex;
+
+    let counters: Arc<Mutex<std::collections::HashMap<String, u32>>> = Arc::default();
+    conn.register_notification_handler(
+        "grpc.stream",
+        crate::transport::CorrelationFilter {
+            execution_id: Some(execution_id),
+            node_instance_id: None,
+        },
+        move |notification: &Notification| {
+            let params = &notification.params;
+            let Some(call_id) = params.get("call_id").and_then(Value::as_str) else {
+                return;
+            };
+            let kind = params
+                .get("kind")
+                .and_then(Value::as_str)
+                .unwrap_or("message");
+            // 归属到发出该流的 call 节点（emit 自动注入 correlation）
+            let node_instance_id = params
+                .get("node_instance_id")
+                .and_then(Value::as_str)
+                .unwrap_or(&node_uuid);
+            if kind == "error" {
+                let message = params
+                    .get("data")
+                    .and_then(|d| d.get("message"))
+                    .and_then(Value::as_str)
+                    .unwrap_or("grpc stream error")
+                    .to_string();
+                let _ = sender.send_event(DebugEvent::GrpcStreamError {
+                    node_uuid: node_instance_id.to_string(),
+                    connection_id: connection_id.clone(),
+                    call_id: call_id.to_string(),
+                    message,
+                });
+            } else {
+                let data = params.get("data").cloned().unwrap_or(Value::Null);
+                let data_str = serde_json::to_string(&data).unwrap_or_default();
+                let size_bytes = data_str.len() as u64;
+                let index = {
+                    let mut counters = counters
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
+                    let counter = counters.entry(call_id.to_string()).or_insert(0);
+                    *counter += 1;
+                    *counter
+                };
+                let _ = sender.send_event(DebugEvent::GrpcStreamMessage {
+                    node_uuid: node_instance_id.to_string(),
+                    connection_id: connection_id.clone(),
+                    call_id: call_id.to_string(),
+                    index,
+                    data: data_str,
+                    received_at_ms: 0,
+                    size_bytes,
+                    is_last: false,
+                });
+            }
+        },
+    )
+}
+
+/// gRPC 流式实时链路入口（sidecar execute 调用）：`grpc:*` 节点执行时把
+/// 插件的 `grpc.stream` 通知（backpressure emit，自动带 correlation）
+/// 转成 `DebugEvent::GrpcStreamMessage/Error` 进宿主 debug store
+/// （grpcStreamMessages 按 call_id 累积，报告 viewer iframe 实时消费）。
+///
+/// 非 grpc 节点返回 None（零开销）；宿主未注入 debug sender 也返回 None。
+/// 返回的 handle 在 execute 返回后 drop 自动退订。
+pub(crate) fn register_grpc_stream_if_needed(
+    node_type_id: &str,
+    conn: &crate::transport::PluginConnection,
+    context: &ExecutionContext,
+    node: &Node,
+    resolved_config: &Value,
+) -> Option<crate::transport::SubscriptionHandle> {
+    if !node_type_id.starts_with("grpc:") {
+        return None;
+    }
+    let sender = context.debug_event_sender.clone()?;
+    let connection_id = resolved_config
+        .get("connection_id")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_string();
+    Some(register_grpc_stream_handler(
+        conn,
+        context.execution_id.clone(),
+        node.uuid.clone(),
+        connection_id,
+        sender,
+    ))
+}

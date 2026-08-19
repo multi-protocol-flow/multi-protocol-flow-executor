@@ -34,8 +34,11 @@ use tauri::http::{header, Response, StatusCode};
 
 /// URI scheme registered for plugin frontend pages.
 pub(crate) const SCHEME: &str = "mpe-plugin";
-/// The only page served today; PR-0 generates exactly this page.
+/// The config-panel page; PR-0 generates exactly this page.
 pub(crate) const CONFIG_PANEL_PAGE: &str = "config-panel";
+/// The report-viewer page (plugin `NodeDescription.viewer`, e.g. the grpc
+/// plugin's report iframe).
+pub(crate) const VIEWER_PAGE: &str = "viewer";
 /// Every plugin origin ends with this suffix: `<plugin-id>.localhost`.
 const LOCALHOST_SUFFIX: &str = ".localhost";
 /// D8: strict plugin content self-CSP (content-less wrapper page).
@@ -72,14 +75,14 @@ fn parse_plugin_host(host: &str) -> Option<&str> {
 
 /// Builds the HTTP response for one plugin-frontend request.
 ///
-/// `find_plugin_frontend` resolves a plugin id to its frontend
+/// `find_plugin_frontend` resolves a plugin id + page to its frontend
 /// `(kind, content)`; the caller supplies it so this function stays free of
 /// Tauri and `flow-engine-plugin` types. `host` is the raw request host
 /// (e.g. `demo.localhost`), `page` the URL path without the leading `/`.
 ///
 /// Resolution order:
 /// 1. strict host parsing (bad host → 404);
-/// 2. page must be [`CONFIG_PANEL_PAGE`] (unknown page → 404);
+/// 2. page must be [`CONFIG_PANEL_PAGE`] or [`VIEWER_PAGE`] (unknown → 404);
 /// 3. the plugin frontend must exist (unknown plugin / no frontend → 404).
 ///
 /// Inline content is served verbatim; content-less (iframe/url) frontends get
@@ -90,15 +93,15 @@ pub(crate) fn plugin_iframe_response<'a, F>(
     page: &str,
 ) -> Response<Vec<u8>>
 where
-    F: FnOnce(&str) -> Option<(&'a str, Option<&'a str>)>,
+    F: FnOnce(&str, &str) -> Option<(&'a str, Option<&'a str>)>,
 {
     let Some(plugin_id) = parse_plugin_host(host) else {
         return not_found();
     };
-    if page != CONFIG_PANEL_PAGE {
+    if page != CONFIG_PANEL_PAGE && page != VIEWER_PAGE {
         return not_found();
     }
-    let Some((_kind, content)) = find_plugin_frontend(plugin_id) else {
+    let Some((_kind, content)) = find_plugin_frontend(plugin_id, page) else {
         return not_found();
     };
     match content {
@@ -156,3 +159,50 @@ fn minimal_wrapper(plugin_id: &str) -> String {
     )
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// config-panel / viewer 两页路由：内联内容原样返回 + INLINE_SELF_CSP；
+    /// 未知 page 404。
+    #[test]
+    fn serves_config_panel_and_viewer_pages() {
+        let resolver = |_plugin: &str, page: &str| -> Option<(&'static str, Option<&'static str>)> {
+            match page {
+                "config-panel" => Some(("inline", Some("<html>panel</html>"))),
+                "viewer" => Some(("inline", Some("<html>viewer</html>"))),
+                _ => None,
+            }
+        };
+        let panel = plugin_iframe_response(resolver, "grpc.localhost", "config-panel");
+        assert_eq!(panel.status(), StatusCode::OK);
+        assert_eq!(panel.body().as_slice(), b"<html>panel</html>");
+        let csp = panel
+            .headers()
+            .get(header::CONTENT_SECURITY_POLICY)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or_default();
+        assert!(csp.contains("unsafe-inline"), "inline page gets inline CSP");
+
+        let viewer = plugin_iframe_response(resolver, "grpc.localhost", "viewer");
+        assert_eq!(viewer.status(), StatusCode::OK);
+        assert_eq!(viewer.body().as_slice(), b"<html>viewer</html>");
+
+        let unknown = plugin_iframe_response(resolver, "grpc.localhost", "nope");
+        assert_eq!(unknown.status(), StatusCode::NOT_FOUND);
+    }
+
+    /// viewer 页回退：无 viewer 内容时走 minimal wrapper（严格 CSP）。
+    #[test]
+    fn viewer_without_content_gets_wrapper() {
+        let resolver = |_plugin: &str, page: &str| -> Option<(&'static str, Option<&'static str>)> {
+            match page {
+                "config-panel" => Some(("inline", Some("<html>panel</html>"))),
+                _ => None,
+            }
+        };
+        let viewer = plugin_iframe_response(resolver, "grpc.localhost", "viewer");
+        assert_eq!(viewer.status(), StatusCode::NOT_FOUND, "no viewer → 404");
+    }
+}

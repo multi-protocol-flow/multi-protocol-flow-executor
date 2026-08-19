@@ -100,11 +100,15 @@ pub fn normalize_nodes(nodes: Vec<NodeDescription>, plugin_name: &str) -> Vec<No
         .collect()
 }
 
-/// Normalizes one node's frontend: all kinds pass through and the host
-/// generates the iframe URL into `frontend.url`.
+/// Normalizes one node's frontends: all kinds pass through and the host
+/// generates the iframe URLs — `frontend` → the `config-panel` page,
+/// `viewer` → the `/viewer` report page.
 fn normalize_node(mut node: NodeDescription, plugin_name: &str) -> NodeDescription {
     if let Some(frontend) = &mut node.frontend {
         frontend.url = Some(plugin_iframe_url(plugin_name, "config-panel"));
+    }
+    if let Some(viewer) = &mut node.viewer {
+        viewer.url = Some(plugin_iframe_url(plugin_name, "viewer"));
     }
     node
 }

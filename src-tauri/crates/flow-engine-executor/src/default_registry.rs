@@ -1,7 +1,7 @@
 //! 默认节点注册表 — 注册全部内置节点插件
 //!
 //! 此模块位于 `flow-engine-executor` crate 中，因为它需要依赖所有协议 crate
-//! （http、ws、script、assertion、grpc、tcp、sse），而 `flow-engine-core` 作为叶子 crate
+//! （http、ws、script、assertion、tcp、sse），而 `flow-engine-core` 作为叶子 crate
 //! 不能依赖它们。
 
 use flow_engine_core::registry::NodeRegistry;
@@ -23,9 +23,6 @@ use flow_engine_plugin::manager::PluginManager;
 /// | WebSocket | WsClosePlugin | `ws_close` |
 /// | Script | ScriptPlugin | `script` |
 /// | Assertion | AssertionPlugin | `assertion` |
-/// | gRPC | GrpcConnectPlugin | `grpc_connect` |
-/// | gRPC | GrpcCallPlugin | `grpc_call` |
-/// | gRPC | GrpcClosePlugin | `grpc_close` |
 /// | TCP | TcpConnectPlugin | `tcp_connect` |
 /// | TCP | TcpSendPlugin | `tcp_send` |
 /// | TCP | TcpReceivePlugin | `tcp_receive` |
@@ -73,10 +70,6 @@ pub fn default_registry() -> NodeRegistry {
     registry.register(std::sync::Arc::new(
         flow_engine_assertion::plugin::AssertionPlugin,
     ));
-
-    // gRPC (flow-engine-grpc) — 批量注册 3 个插件
-    #[cfg(feature = "protocol-grpc")]
-    flow_engine_grpc::plugin::GrpcPluginGroup::register_all(&mut registry);
 
     // TCP (flow-engine-tcp) — 批量注册 4 个插件
     #[cfg(feature = "protocol-tcp")]
@@ -188,10 +181,6 @@ mod tests {
         {
             expected += 1;
         }
-        #[cfg(feature = "protocol-grpc")]
-        {
-            expected += 3;
-        }
         #[cfg(feature = "protocol-tcp")]
         {
             expected += 8;
@@ -251,15 +240,6 @@ mod tests {
         #[cfg(not(feature = "protocol-script"))]
         {
             assert!(!type_ids.contains(&"script"));
-        }
-
-        #[cfg(feature = "protocol-grpc")]
-        {
-            assert!(type_ids.contains(&"grpc_connect"));
-        }
-        #[cfg(not(feature = "protocol-grpc"))]
-        {
-            assert!(!type_ids.contains(&"grpc_connect"));
         }
 
     }

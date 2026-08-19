@@ -50,6 +50,7 @@ impl NodeRegistry {
                 default_config: p.default_config(),
                 config_schema: p.config_schema(),
                 frontend: p.frontend().cloned(),
+                viewer: p.viewer().cloned(),
                 supports_single_node: p.supports_single_node(),
             })
             .collect()
@@ -180,9 +181,9 @@ mod tests {
         registry.register(Arc::new(MockPlugin::new("http", "HTTP 请求", "http")));
 
         registry.register(Arc::new(MockPlugin::new(
-            "grpc_call",
-            "gRPC 调用",
-            "grpc",
+            "tcp_connect",
+            "TCP 连接",
+            "tcp",
         )));
 
         let metadata = registry.all_metadata();
@@ -200,12 +201,12 @@ mod tests {
         assert_eq!(http_meta.ports.len(), 1);
         assert_eq!(http_meta.ports[0].id, "output");
 
-        let grpc_meta = metadata
+        let tcp_meta = metadata
             .iter()
-            .find(|m| m.type_id == "grpc_call")
+            .find(|m| m.type_id == "tcp_connect")
             .unwrap_or_else(|| panic!("expected Some"));
-        assert_eq!(grpc_meta.display_name, "gRPC 调用");
-        assert_eq!(grpc_meta.category, "grpc");
+        assert_eq!(tcp_meta.display_name, "TCP 连接");
+        assert_eq!(tcp_meta.category, "tcp");
     }
 
     /// 测试：`all_metadata` 携带插件节点的 `frontend` 元数据

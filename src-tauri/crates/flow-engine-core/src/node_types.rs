@@ -20,11 +20,8 @@ pub const ASSERTION: &str = "assertion";
 /// 脚本节点
 pub const SCRIPT: &str = "script";
 /// gRPC 连接节点
-pub const GRPC_CONNECT: &str = "grpc_connect";
 /// gRPC 调用节点
-pub const GRPC_CALL: &str = "grpc_call";
 /// gRPC 关闭节点
-pub const GRPC_CLOSE: &str = "grpc_close";
 /// TCP 连接节点
 pub const TCP_CONNECT: &str = "tcp_connect";
 /// TCP 发送节点
