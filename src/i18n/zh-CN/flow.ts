@@ -61,7 +61,6 @@ const zh_CN_flow: BaseTranslation = {
 
   http_example: 'HTTP节点示例流程',
   ws_example: 'WebSocket节点示例流程',
-  grpc_example: 'gRPC节点示例流程',
 
   // 画布空状态
   no_flow_title: '暂无流程',

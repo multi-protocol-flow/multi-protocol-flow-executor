@@ -38,12 +38,6 @@ declare module './i18n-types' {
 			E_SCRIPT_RUNTIME: RequiredParams<'detail'>
 			E_SCRIPT_TIMEOUT: RequiredParams<'ms'>
 			E_SCRIPT_ASSERTION: RequiredParams<'detail'>
-			// gRPC
-			E_GRPC_CONNECTION: RequiredParams<'target'>
-			E_GRPC_TIMEOUT: RequiredParams<'target'>
-			E_GRPC_MESSAGE: RequiredParams<'target'>
-			E_GRPC_STATUS: RequiredParams<'target' | 'code'>
-			E_GRPC_CLOSE: RequiredParams<'target'>
 			// MCP
 			E_MCP_CONNECTION: RequiredParams<'server'>
 			E_MCP_TOOL_CALL: RequiredParams<'tool'>

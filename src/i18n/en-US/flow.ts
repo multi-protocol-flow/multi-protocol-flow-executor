@@ -59,7 +59,6 @@ const en_US_flow = {
 
   http_example: 'HTTP Example Flow',
   ws_example: 'WebSocket Example Flow',
-  grpc_example: 'gRPC Example Flow',
 
   // Canvas empty state
   no_flow_title: 'No Flow',

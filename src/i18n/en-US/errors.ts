@@ -39,13 +39,6 @@ const en_US_errors = {
   E_SCRIPT_TIMEOUT: 'Script timed out after {ms}ms',
   E_SCRIPT_ASSERTION: 'Script assertion failed: {detail}',
 
-  // gRPC
-  E_GRPC_CONNECTION: 'gRPC connection failed: {target}',
-  E_GRPC_TIMEOUT: 'gRPC timeout: {target}',
-  E_GRPC_MESSAGE: 'gRPC message error: {target}',
-  E_GRPC_STATUS: 'gRPC error from {target}: status {code}',
-  E_GRPC_CLOSE: 'gRPC connection closed: {target}',
-
   // MCP
   E_MCP_CONNECTION: 'MCP connection failed: {server}',
   E_MCP_TOOL_CALL: 'MCP tool call failed: {tool}',

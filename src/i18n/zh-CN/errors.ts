@@ -41,13 +41,6 @@ const zh_CN_errors: BaseTranslation = {
   E_SCRIPT_TIMEOUT: '脚本执行超时 ({ms}ms)',
   E_SCRIPT_ASSERTION: '脚本断言失败: {detail}',
 
-  // gRPC
-  E_GRPC_CONNECTION: 'gRPC 连接失败: {target}',
-  E_GRPC_TIMEOUT: 'gRPC 超时: {target}',
-  E_GRPC_MESSAGE: 'gRPC 消息错误: {target}',
-  E_GRPC_STATUS: 'gRPC 错误 {target}: 状态码 {code}',
-  E_GRPC_CLOSE: 'gRPC 连接已关闭: {target}',
-
   // MCP
   E_MCP_CONNECTION: 'MCP 连接失败: {server}',
   E_MCP_TOOL_CALL: 'MCP 工具调用失败: {tool}',
