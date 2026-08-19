@@ -10,8 +10,8 @@ Frontend unit test suite. Vitest 3.x + Testing Library 16.x, jsdom. **121 test f
 
 ```
 __tests__/
-├── components/       43 files（root 28 + panels/24 + execution/9 + plugin/1 + panels/shared/1 + panels/grpc/1）
-│   ├── execution/    viewers (HttpNodeViewer, GrpcViewer, etc.)
+├── components/       58 files（root 27 + panels/21 + execution/8 + plugin/1 + panels/shared/1）
+│   ├── execution/    viewers (HttpNodeViewer, etc.)
 │   ├── panels/       config panels（5 个原有 + 19 个 TCP/UDP/SSE/GraphQL/Script/Proxy/VariableExtractor）
 │   └── panels/shared/ 共享组件（OnErrorSection）
 ├── stores/           15 files — one per Zustand store（含从 e2e/ 并入的 settings-journey / debug-journey）
@@ -63,4 +63,4 @@ __tests__/
 - i18n mock returns real zh-CN strings with `{param}` substitution。
 - Mock service covers 49 IPC commands (flow, debug, settings, dataset)。
 - 新增 store 或 hook？补 `stores/<name>.test.ts` / `hooks/<name>.test.ts`，store 必须测 `reset()`（或等价隔离）。
-- 面板新增 node type 时同步补 `components/panels/<XxxConfig>.test.tsx`，参照 `GrpcConnectConfig.test.tsx` 模板。
+- 面板新增 node type 时同步补 `components/panels/<XxxConfig>.test.tsx`，参照 `TcpConnectConfig.test.tsx` 模板。

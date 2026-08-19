@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-Utility functions and the triple registry system that bridges backend node types with frontend rendering. The three registries work together: `NodeRegistry` fetches metadata from the backend via IPC, `configPanelRegistry` lazily loads config panel components, and `viewerRegistry` maps execution results to viewer components. Supporting utilities handle flow diff/restore/search, cURL import/export, grpcurl generation, proto field parsing, and GraphQL schema introspection.
+Utility functions and the triple registry system that bridges backend node types with frontend rendering. The three registries work together: `NodeRegistry` fetches metadata from the backend via IPC, `configPanelRegistry` lazily loads config panel components, and `viewerRegistry` maps execution results to viewer components. Supporting utilities handle flow diff/restore/search, cURL import/export, proto field parsing, and GraphQL schema introspection.
 
 ## STRUCTURE
 
@@ -22,7 +22,6 @@ Utility functions and the triple registry system that bridges backend node types
 | `utils.ts` | `cn()` — Tailwind class merge utility (`clsx` + `twMerge`) |
 | `curlParser.ts` | cURL string to `HttpConfigFormData` parser |
 | `curlExporter.ts` | HTTP config to cURL CLI command generator |
-| `grpcurlGenerator.ts` | gRPC call config to `grpcurl` CLI command generator |
 | `protoFieldParser.ts` | Lightweight `.proto` file parser (proto3 field declarations, enums, messages) |
 | `graphqlSchema.ts` | GraphQL introspection JSON to field tree (query builder support) |
 | `hotkeyLabels.ts` | Platform-aware shortcut labels (Cmd on macOS, Ctrl on Windows) |
@@ -39,7 +38,6 @@ Utility functions and the triple registry system that bridges backend node types
 | Search across the current flow | `flowSearch.ts` |
 | Restore a flow from snapshot | `restoreFlow.ts` |
 | Import/export cURL commands | `curlParser.ts`, `curlExporter.ts` |
-| Generate grpcurl command | `grpcurlGenerator.ts` |
 | Parse .proto files for form UI | `protoFieldParser.ts` |
 | Build GraphQL query from schema | `graphqlSchema.ts` |
 | Format platform-aware shortcuts | `hotkeyLabels.ts` |

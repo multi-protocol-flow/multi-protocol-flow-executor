@@ -26,10 +26,9 @@ execution/
 
 | Viewer | Node types | |
 |--------|------------|---|
-| `HttpNodeViewer` | http | `GrpcViewer` | grpc_* |
-| `McpViewer` | mcp_* | `WsConnectViewer`/`WsSendCollectViewer`/`WsCloseViewer` | ws_* |
-| `TcpUdpViewer` | tcp_*/udp_* | `GraphqlViewer` | graphql_* |
-| `SseViewer` | sse_* | `GenericViewer` | 其余 |
+| `HttpNodeViewer` | http | `WsConnectViewer`/`WsSendCollectViewer`/`WsCloseViewer` | ws_* |
+| `McpViewer` | mcp_* | `TcpUdpViewer` | tcp_*/udp_* |
+| `SseViewer` | sse_* | `GraphqlViewer` | graphql_* |
 | `AssertionViewer` | assertion | `ConditionalViewer` | conditional |
 | `RecordingViewer` | recording | `GenericViewer` | (兜底) |
 | `RawJsonViewer` / `VariableChangesCard` | 子组件，被所有 viewer 复用 |

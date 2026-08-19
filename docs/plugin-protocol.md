@@ -28,7 +28,7 @@ Each message is exactly **one JSON value per line**, terminated by a single
   plugin observes EOF and can exit; the plugin half-closes stdout when it is
   done writing. A clean EOF is one observed *after* shutdown with no pending
   requests; EOF with pending requests or without shutdown is a crash.
-- **Max line.** `2 MiB` (`mpe_plugin_sdk::protocol::MAX_LINE_BYTES`). Lines longer than
+- **Max line.** `8 MiB` (`mpe_plugin_sdk::protocol::MAX_LINE_BYTES`). Lines longer than
   the cap are rejected while reading — the reader never buffers without
   bound (no unbounded `read_line`). The cap exceeds the 1 MiB `report_data`
   budget so report payloads always fit.

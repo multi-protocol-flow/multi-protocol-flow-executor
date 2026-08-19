@@ -17,7 +17,7 @@ services/
 │   ├── debug.ts                      # 调试会话: 启动/命令/结束/状态
 │   ├── events.ts                     # Channel 辅助函数（订阅日志）
 │   ├── mock.ts                       # 全协议 Mock 实现（用于开发/测试）
-│   ├── grpc.ts / mcp.ts / graphql.ts # 协议辅助命令（服务发现、内省、骨架生成）
+│   ├── mcp.ts / graphql.ts           # 协议辅助命令（工具发现、内省、骨架生成）
 │   ├── sse.ts    # 协议连接测试命令
 │   ├── stressTest.ts                 # 压力测试命令
 │   ├── tcp.ts                        # TCP/UDP 录制命令
@@ -37,7 +37,6 @@ services/
 | 流程 CRUD / 执行 / Channel 订阅 | `tauri/flow.ts` |
 | 调试会话控制 | `tauri/debug.ts` |
 | 设置读写 + 目录对话框 | `tauri/settings.ts` |
-| gRPC 服务发现 / 骨架生成 / Proto 操作 | `tauri/grpc.ts` |
 | MCP 工具发现 | `tauri/mcp.ts` |
 | GraphQL Schema 内省 | `tauri/graphql.ts` |
 | SSE 连接测试 | `tauri/sse.ts` |

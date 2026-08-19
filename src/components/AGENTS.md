@@ -21,7 +21,7 @@ components/
 │   └── layout.ts / utils.ts
 ├── panels/ (104)         节点配置面板
 │   ├── NodeConfigPanel.tsx 按 nodeType 分发到具体面板
-│   ├── Http/Grpc/Mcp/Tcp/Udp/Mqtt/Kafka/Sse/Graphql/Amqp/Imap/Smtp/Redis/Db
+│   ├── Http/Mcp/Tcp/Udp/Mqtt/Kafka/Sse/Graphql/Amqp/Imap/Smtp/Redis/Db
 │   ├── Assertion/Conditional/Script/Entry/End/Proxy/VariableExtractor
 │   ├── SettingsPanel / EnvironmentManager / SchemaConfigPanel
 │   ├── schemas.ts        ~1700 行 Zod schema
