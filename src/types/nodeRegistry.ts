@@ -42,4 +42,10 @@ export interface NodeMetadata {
    * `http://<plugin-id>.localhost/config-panel`（P1 iframe 配置面板用）
    */
   frontend?: { type: string; content?: string; url?: string };
+  /**
+   * 报告 viewer 前端描述（插件 describe 的 `viewer` 页；grpc 等插件的
+   * 报告 iframe）。`url` 由宿主生成：
+   * `mpe-plugin://<plugin-id>.localhost/viewer`（Windows 为 http 形式）。
+   */
+  viewer?: { type: string; content?: string; url?: string };
 }

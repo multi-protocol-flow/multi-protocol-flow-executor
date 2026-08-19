@@ -33,12 +33,6 @@ export type ErrorKind =
   | 'web_socket_message' // WebSocket 消息错误
   | 'web_socket_close' // WebSocket 关闭错误
   | 'web_socket_protocol' // WebSocket 协议错误
-  // ===== gRPC 错误（容错模式，继续执行） =====
-  | 'grpc_connection' // gRPC 连接失败
-  | 'grpc_timeout' // gRPC 超时
-  | 'grpc_message' // gRPC 消息错误
-  | 'grpc_status' // gRPC 状态错误
-  | 'grpc_close' // gRPC 关闭错误
   // ===== 断言错误（容错模式，继续执行） =====
   | 'assertion' // 断言失败
   // ===== 脚本错误（根据 on_error 配置决定是否致命） =====
@@ -88,8 +82,6 @@ export type ErrorCode =
   | 'E_WS_CONNECTION' | 'E_WS_TIMEOUT' | 'E_WS_MESSAGE' | 'E_WS_CLOSE' | 'E_WS_PROTOCOL'
   // Script
   | 'E_SCRIPT_SYNTAX' | 'E_SCRIPT_RUNTIME' | 'E_SCRIPT_TIMEOUT' | 'E_SCRIPT_ASSERTION'
-  // gRPC
-  | 'E_GRPC_CONNECTION' | 'E_GRPC_TIMEOUT' | 'E_GRPC_MESSAGE' | 'E_GRPC_STATUS' | 'E_GRPC_CLOSE'
   // MCP
   | 'E_MCP_CONNECTION' | 'E_MCP_TOOL_CALL' | 'E_MCP_RESOURCE_READ' | 'E_MCP_NOT_CONNECTED'
   // TCP
