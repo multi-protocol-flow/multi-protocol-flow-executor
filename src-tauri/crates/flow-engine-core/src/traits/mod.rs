@@ -7,7 +7,6 @@ mod debug_event_sender;
 mod directory_opener;
 mod execution_event_sender;
 mod graphql_provider;
-mod grpc_provider;
 mod hook_executor;
 mod log_sender;
 mod provider_key;
@@ -25,17 +24,12 @@ pub use graphql_provider::{
     GraphqlQueryOutput, GraphqlQueryTemplate, GraphqlSubscribeOutput, GraphqlSubscriptionEvent,
     GraphqlTimingInfo,
 };
-pub use grpc_provider::{
-    GrpcConnectionInfo, GrpcEnumValue, GrpcErrorDetail, GrpcFieldInfo, GrpcMessageInfo,
-    GrpcMethodInfo, GrpcOneofInfo, GrpcPattern, GrpcProvider, GrpcServiceInfo, GrpcStreamMessage,
-    GrpcStreamingResult, GrpcTimingInfo, HealthCheckResponse,
-};
 pub use hook_executor::{HookExecutor, NoopHookExecutor};
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
 };
 pub use provider_key::{
-    Graphql, Grpc, ProviderKey, Sse, Tcp, Udp, Ws,
+    Graphql, ProviderKey, Sse, Tcp, Udp, Ws,
 };
 pub use sse_provider::{
     SseConnectOutput, SseConnectionInfo, SseEventItem, SseListenOutput, SseProvider,

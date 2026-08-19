@@ -23,8 +23,6 @@ pub trait ProviderKey {
 
 /// WebSocket provider key
 pub struct Ws;
-/// gRPC provider key
-pub struct Grpc;
 /// TCP provider key
 pub struct Tcp;
 /// UDP provider key
@@ -37,11 +35,6 @@ pub struct Graphql;
 impl ProviderKey for Ws {
     fn key() -> &'static str {
         "ws"
-    }
-}
-impl ProviderKey for Grpc {
-    fn key() -> &'static str {
-        "grpc"
     }
 }
 impl ProviderKey for Tcp {
@@ -72,11 +65,6 @@ mod tests {
     #[test]
     fn test_ws_key() {
         assert_eq!(Ws::key(), "ws");
-    }
-
-    #[test]
-    fn test_grpc_key() {
-        assert_eq!(Grpc::key(), "grpc");
     }
 
     #[test]
