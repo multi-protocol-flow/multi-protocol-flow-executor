@@ -84,7 +84,7 @@ function getNodeOutputVariables(node: Node): string[] {
   }
 
   // 通用输出变量约定：body.*, status, headers.*
-  if (['http', 'grpc_call'].includes(node.type)) {
+  if (['http'].includes(node.type)) {
     vars.push('status');
     vars.push('body');
     vars.push('headers');

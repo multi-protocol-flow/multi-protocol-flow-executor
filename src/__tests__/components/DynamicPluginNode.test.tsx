@@ -105,3 +105,75 @@ describe('DynamicPluginNode — mcp:connect 发现徽章', () => {
     expect(screen.queryByTestId('mcp-prompts-count')).toBeNull();
   });
 });
+
+describe('DynamicPluginNode — grpc:connect 发现徽章', () => {
+  beforeEach(() => {
+    useFlowStore.getState().reset();
+  });
+
+  it('平铺 data 中的 discovered_services 数量渲染为徽章', () => {
+    renderNode({
+      type: 'grpc:connect',
+      data: {
+        type: 'grpc:connect',
+        url: 'http://localhost:50051',
+        discovered_services: [
+          {
+            service_name: 'helloworld.Greeter',
+            methods: [
+              { name: 'SayHello', is_server_streaming: false, is_client_streaming: false },
+              { name: 'SayHelloStream', is_server_streaming: true, is_client_streaming: false },
+            ],
+          },
+          {
+            service_name: 'calculator.Calculator',
+            methods: [
+              { name: 'Add', is_server_streaming: false, is_client_streaming: false },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(screen.getByTestId('grpc-services-count').textContent).toBe('2');
+    expect(screen.getByTestId('grpc-methods-count').textContent).toBe('3');
+    expect(screen.getByTestId('grpc-streaming-count').textContent).toBe('1');
+  });
+
+  it('嵌套 config 中的 discovered_services 数量渲染为徽章', () => {
+    renderNode({
+      type: 'grpc:connect',
+      data: {
+        config: {
+          type: 'grpc:connect',
+          discovered_services: [
+            {
+              service_name: 'test.Service',
+              methods: [
+                { name: 'Unary', is_server_streaming: false, is_client_streaming: false },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    expect(screen.getByTestId('grpc-services-count').textContent).toBe('1');
+    expect(screen.getByTestId('grpc-methods-count').textContent).toBe('1');
+    expect(screen.queryByTestId('grpc-streaming-count')).toBeNull();
+  });
+
+  it('发现服务为空时不渲染徽章', () => {
+    renderNode({
+      type: 'grpc:connect',
+      data: {
+        type: 'grpc:connect',
+        discovered_services: [],
+      },
+    });
+
+    expect(screen.queryByTestId('grpc-services-count')).toBeNull();
+    expect(screen.queryByTestId('grpc-methods-count')).toBeNull();
+    expect(screen.queryByTestId('grpc-streaming-count')).toBeNull();
+  });
+});

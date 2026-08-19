@@ -49,12 +49,6 @@ function createNodeData(type: NodeData['type']): NodeData {
       };
     case 'script':
       return { type: 'script', script: '// test script' };
-    case 'grpc_connect':
-      return { type: 'grpc_connect', url: 'http://localhost:50051' };
-    case 'grpc_call':
-      return { type: 'grpc_call', connection_id: 'grpc-conn-1', service_name: 'TestService', method_name: 'TestMethod', request_json: '{}' };
-    case 'grpc_close':
-      return { type: 'grpc_close', connection_id: 'grpc-conn-1' };
     case 'tcp_connect':
       return { type: 'tcp_connect', host: '127.0.0.1', port: 8080 };
     case 'tcp_send':

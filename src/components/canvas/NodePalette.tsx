@@ -18,8 +18,6 @@ import {
   Wrench,
   Network,
   Cable,
-  PhoneOutgoing,
-  PhoneOff,
   Search,
   X,
 } from 'lucide-react';
@@ -100,16 +98,6 @@ export const FALLBACK_NODE_GROUPS: NodeGroup[] = [
     ],
   },
   {
-    key: 'grpc',
-    label: 'gRPC',
-    icon: Network,
-    items: [
-      { type: 'grpc_connect', name: LL.nodes.grpc_connect(), icon: Cable },
-      { type: 'grpc_call', name: LL.nodes.grpc_call(), icon: PhoneOutgoing },
-      { type: 'grpc_close', name: LL.nodes.grpc_close(), icon: PhoneOff },
-    ],
-  },
-  {
     key: 'tools',
     label: 'Tool',
     icon: Wrench,
@@ -183,10 +171,6 @@ const SUPER_CATEGORIES: SuperCategory[] = [
   {
     key: 'network',
     categories: ['http', 'websocket', 'sse', 'graphql'],
-  },
-  {
-    key: 'services',
-    categories: ['grpc'],
   },
   {
     key: 'tools',
@@ -265,7 +249,6 @@ const SEARCH_ALIASES: Record<string, string[]> = {
   rest: ['http'],
   stream: ['sse_listen'],
   trigger: ['sse_listen'],
-  rpc: ['grpc_call'],
   realtime: ['ws_connect', 'sse_listen'],
   crud: ['http'],
 };

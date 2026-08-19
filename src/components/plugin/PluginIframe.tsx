@@ -20,6 +20,18 @@ import type { PluginIframeHostApi, PluginIframeNodeSnapshot } from '@/types/plug
 /** 插件未上报 resize 前的兜底高度（px） */
 const DEFAULT_IFRAME_HEIGHT = 300;
 
+/**
+ * iframe 元素边框补偿（px）。
+ *
+ * 宿主全局 preflight 是 `box-sizing: border-box`，且本组件给 iframe 加了
+ * `border`（1px）——因此元素高度等于「上报的内容高度」时，内部视口实际只有
+ * `高度 - 2`。插件（如 grpc）上报 `document.body.scrollHeight` 后内容恒定
+ * 溢出 2px → 内部出现一条几乎滚不动的死滚动条，滚轮只能滚宿主面板。
+ * 补偿使内部视口 == 内容高度（WebKitGTK 实测：deClient == deScroll）。
+ * 与下方 iframe 的 `border` class 强耦合：改边框宽度必须同步此常量。
+ */
+const IFRAME_CHROME_PX = 2;
+
 export interface PluginIframeProps {
   /** iframe URL（`meta.frontend.url`） */
   src: string;
@@ -106,7 +118,7 @@ export function PluginIframe({
         // D2：仅 allow-scripts —— 不透明源，禁 allow-same-origin（RCE 防御）
         sandbox="allow-scripts"
         className="w-full border rounded bg-background"
-        style={{ height: height ?? DEFAULT_IFRAME_HEIGHT }}
+        style={{ height: (height ?? DEFAULT_IFRAME_HEIGHT) + IFRAME_CHROME_PX }}
         onLoad={handleIframeLoad}
         onError={handleIframeError}
       />

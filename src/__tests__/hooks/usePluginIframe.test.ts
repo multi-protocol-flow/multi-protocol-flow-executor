@@ -118,6 +118,73 @@ describe('usePluginIframe', () => {
     });
   });
 
+  describe('init 重发兜底（WebKitGTK 竞态）', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('load 后未收到 ready → 每 300ms 重发 init', () => {
+      const { result, fake } = renderBridge();
+
+      act(() => {
+        result.current.handleIframeLoad();
+      });
+      expect(fake.postMessage.mock.calls.filter(([m]) => m?.type === 'init')).toHaveLength(1);
+
+      // 300ms：首次重发（监听器晚装时，首个 init 已丢，这是恢复的关键路径）
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(fake.postMessage.mock.calls.filter(([m]) => m?.type === 'init')).toHaveLength(2);
+
+      // 再 600ms：又两次
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(fake.postMessage.mock.calls.filter(([m]) => m?.type === 'init')).toHaveLength(4);
+    });
+
+    it('load 前不重发（loaded 门控）', () => {
+      const { fake } = renderBridge();
+
+      act(() => {
+        vi.advanceTimersByTime(1200);
+      });
+
+      expect(fake.postMessage).not.toHaveBeenCalled();
+    });
+
+    it('收到 ready 后停止重发，仅回发最新 config 同步', () => {
+      const { result, fake } = renderBridge();
+
+      act(() => {
+        result.current.handleIframeLoad();
+      });
+      act(() => {
+        vi.advanceTimersByTime(300); // 1 次重发
+      });
+      act(() => {
+        dispatchMessage(fake, { type: 'ready', payload: {} });
+        vi.advanceTimersByTime(900);
+      });
+
+      const inits = fake.postMessage.mock.calls.filter(([m]) => m?.type === 'init');
+      const configUpdated = fake.postMessage.mock.calls.filter(
+        ([m]) => m?.type === 'configUpdated'
+      );
+      expect(inits).toHaveLength(2);
+      expect(configUpdated).toHaveLength(1);
+      expect(configUpdated[0]?.[0]).toEqual({
+        type: 'configUpdated',
+        payload: { config: INITIAL_CONFIG },
+      });
+    });
+  });
+
   describe('configChanged 流转', () => {
     it('ready 后收到 configChanged → 调用 onConfigChange 且状态变 active', () => {
       const { result, fake, onConfigChange } = renderBridge();

@@ -210,12 +210,6 @@ export function createDefaultNodeData(type: AnyNodeType): NodeData {
       };
     case 'script':
       return { type: 'script', script: '' };
-    case 'grpc_connect':
-      return { type: 'grpc_connect', url: '' };
-    case 'grpc_call':
-      return { type: 'grpc_call', connection_id: '', service_name: '', method_name: '', request_json: '' };
-    case 'grpc_close':
-      return { type: 'grpc_close', connection_id: '' };
     case 'tcp_connect':
       return { type: 'tcp_connect', host: '', port: 0 };
     case 'tcp_send':

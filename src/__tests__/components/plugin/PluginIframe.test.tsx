@@ -116,6 +116,23 @@ describe('PluginIframe', () => {
     });
   });
 
+  describe('自适应高度', () => {
+    it('默认高度 = 300 + 1px 边框补偿（border-box 下内部视口 == 内容高度）', () => {
+      const { iframe } = renderPanel(makeProps());
+      // 宿主 preflight 为 border-box + iframe 1px border：元素高度必须比上报
+      // 内容高度多 2px，否则内部文档恒定溢出 → 内部死滚动条（WebKitGTK 实证）
+      expect(iframe.style.height).toBe('302px');
+    });
+
+    it('插件 resize 上报 → 元素高度 = 上报值 + 边框补偿', () => {
+      const { iframe } = renderPanel(makeProps());
+
+      dispatchFromIframe(iframe, { type: 'resize', payload: { height: 1698 } });
+
+      expect(iframe.style.height).toBe('1700px');
+    });
+  });
+
   describe('init 发送', () => {
     it('iframe load 事件触发 init（含 config + 变量 + host_api）', () => {
       const { iframe } = renderPanel(makeProps());

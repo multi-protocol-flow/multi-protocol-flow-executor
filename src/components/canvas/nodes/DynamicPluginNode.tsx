@@ -5,7 +5,7 @@
  */
 import { memo, type CSSProperties } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Box, Wrench, FileText, MessageSquare } from 'lucide-react';
+import { Box, Wrench, FileText, MessageSquare, Server, Zap, Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ICON_MAP, getNodeDisplayName } from '@/lib/nodeMeta';
 import { resolveBackendIcon } from '@/lib/nodeIcons';
@@ -47,6 +47,39 @@ function getMcpDiscoveryCounts(data: DynamicNodeData): McpDiscoveryCounts | null
     prompts: count(cfg.discovered_prompts),
   };
   return counts.tools + counts.resources + counts.prompts > 0 ? counts : null;
+}
+
+/** grpc:connect 发现快照数量（services/methods/streaming）。与
+ *  getMcpDiscoveryCounts 同款平铺/嵌套 config 兼容。 */
+interface GrpcDiscoveryCounts {
+  services: number;
+  methods: number;
+  streaming: number;
+}
+
+function getGrpcDiscoveryCounts(data: DynamicNodeData): GrpcDiscoveryCounts | null {
+  const cfg =
+    data.config && typeof data.config === 'object' && !Array.isArray(data.config)
+      ? data.config
+      : (data as unknown as Record<string, unknown>);
+  const services = Array.isArray(cfg.discovered_services) ? cfg.discovered_services : [];
+  if (services.length === 0) return null;
+  let methods = 0;
+  let streaming = 0;
+  for (const service of services) {
+    if (!service || typeof service !== 'object' || !('methods' in service)) continue;
+    if (!Array.isArray(service.methods)) continue;
+    for (const m of service.methods) {
+      if (!m || typeof m !== 'object') continue;
+      methods += 1;
+      const isServerStreaming =
+        'is_server_streaming' in m && m.is_server_streaming === true;
+      const isClientStreaming =
+        'is_client_streaming' in m && m.is_client_streaming === true;
+      if (isServerStreaming || isClientStreaming) streaming += 1;
+    }
+  }
+  return { services: services.length, methods, streaming };
 }
 
 /** 端口配色：true → emerald，false → rose，其余 → slate */
@@ -222,7 +255,7 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
                   {counts.tools > 0 && (
                     <span
                       data-testid="mcp-tools-count"
-                      className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0 text-[9px] font-medium text-amber-700"
+                      className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 px-1.5 py-0 text-[9px] font-medium text-amber-700 dark:text-amber-300"
                     >
                       <Wrench className="h-2.5 w-2.5" />
                       {counts.tools}
@@ -231,7 +264,7 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
                   {counts.resources > 0 && (
                     <span
                       data-testid="mcp-resources-count"
-                      className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-1.5 py-0 text-[9px] font-medium text-blue-700"
+                      className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 dark:bg-blue-950/50 px-1.5 py-0 text-[9px] font-medium text-blue-700 dark:text-blue-300"
                     >
                       <FileText className="h-2.5 w-2.5" />
                       {counts.resources}
@@ -240,10 +273,49 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
                   {counts.prompts > 0 && (
                     <span
                       data-testid="mcp-prompts-count"
-                      className="inline-flex items-center gap-0.5 rounded-full bg-purple-100 px-1.5 py-0 text-[9px] font-medium text-purple-700"
+                      className="inline-flex items-center gap-0.5 rounded-full bg-purple-100 dark:bg-purple-950/50 px-1.5 py-0 text-[9px] font-medium text-purple-700 dark:text-purple-300"
                     >
                       <MessageSquare className="h-2.5 w-2.5" />
                       {counts.prompts}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
+          {nodeType === 'grpc:connect' &&
+            (() => {
+              const counts = getGrpcDiscoveryCounts(nodeData);
+              if (!counts) return null;
+              return (
+                <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                  {counts.services > 0 && (
+                    <span
+                      data-testid="grpc-services-count"
+                      title="Services"
+                      className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 dark:bg-violet-950/50 px-1.5 py-0 text-[9px] font-medium text-violet-700 dark:text-violet-300"
+                    >
+                      <Server className="h-2.5 w-2.5" />
+                      {counts.services}
+                    </span>
+                  )}
+                  {counts.methods > 0 && (
+                    <span
+                      data-testid="grpc-methods-count"
+                      title="Methods"
+                      className="inline-flex items-center gap-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/50 px-1.5 py-0 text-[9px] font-medium text-indigo-700 dark:text-indigo-300"
+                    >
+                      <Zap className="h-2.5 w-2.5" />
+                      {counts.methods}
+                    </span>
+                  )}
+                  {counts.streaming > 0 && (
+                    <span
+                      data-testid="grpc-streaming-count"
+                      title="Streaming Methods"
+                      className="inline-flex items-center gap-0.5 rounded-full bg-purple-100 dark:bg-purple-950/50 px-1.5 py-0 text-[9px] font-medium text-purple-700 dark:text-purple-300"
+                    >
+                      <Radio className="h-2.5 w-2.5" />
+                      {counts.streaming}
                     </span>
                   )}
                 </div>

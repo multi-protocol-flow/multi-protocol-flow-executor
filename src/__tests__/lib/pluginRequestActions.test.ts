@@ -6,7 +6,7 @@
  * (b) 未知动作 × usePluginIframe：onRequestAction 立即拒绝 → actionResult 错误回传（插件不挂起）
  * (c) testConnection（SSRF 原语审计）：目标只来自用户 config（params 的 URL 被忽略）、
  *     硬超时、返回脱敏（不含 body/headers/status，不透传原始错误）
- * (d) openFileDialog：只返回路径字符串，插件 params 不影响对话框
+ * (d) openFileDialog：返回路径（string/string[]/null），params 透传 multiple/filters/directory
  * (e) hostApi 声明与白名单完全一致
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -290,7 +290,7 @@ describe('testConnection（SSRF 原语审计）', () => {
   });
 });
 
-describe('openFileDialog（只返回路径）', () => {
+describe('openFileDialog（路径返回 + 参数透传）', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -301,13 +301,13 @@ describe('openFileDialog（只返回路径）', () => {
     const result = await handlerFor('openFileDialog')();
 
     expect(result).toBe('/home/user/data/file.json');
-    expect(open).toHaveBeenCalledWith({ multiple: false });
+    expect(open).toHaveBeenCalledWith({ multiple: false, directory: false });
   });
 
-  it('多选结果（防御性处理）→ 只返回第一个路径', async () => {
+  it('多选结果 → 返回路径数组', async () => {
     vi.mocked(open).mockResolvedValue(['/a.txt', '/b.txt']);
 
-    expect(await handlerFor('openFileDialog')()).toBe('/a.txt');
+    expect(await handlerFor('openFileDialog')({ multiple: true })).toEqual(['/a.txt', '/b.txt']);
   });
 
   it('取消（null）→ 返回 null', async () => {
@@ -316,16 +316,28 @@ describe('openFileDialog（只返回路径）', () => {
     expect(await handlerFor('openFileDialog')()).toBeNull();
   });
 
-  it('插件 params 不影响对话框行为：始终只传 { multiple: false }', async () => {
-    vi.mocked(open).mockResolvedValue('/p.txt');
+  it('插件 params 控制对话框：multiple/filters/directory 透传', async () => {
+    vi.mocked(open).mockResolvedValue(['/a.proto', '/b.proto']);
 
-    await handlerFor('openFileDialog')({
-      filters: [{ name: 'all', extensions: ['*'] }],
-      defaultPath: '/etc/passwd',
-      directory: true,
+    const result = await handlerFor('openFileDialog')({
+      multiple: true,
+      filters: [{ name: 'Proto', extensions: ['proto'] }],
+      directory: false,
     });
 
-    expect(open).toHaveBeenCalledWith({ multiple: false });
+    expect(result).toEqual(['/a.proto', '/b.proto']);
+    expect(open).toHaveBeenCalledWith({
+      multiple: true,
+      directory: false,
+      filters: [{ name: 'Proto', extensions: ['proto'] }],
+    });
+  });
+
+  it('directory 模式透传', async () => {
+    vi.mocked(open).mockResolvedValue('/proto/dir');
+
+    expect(await handlerFor('openFileDialog')({ directory: true })).toBe('/proto/dir');
+    expect(open).toHaveBeenCalledWith({ multiple: false, directory: true });
   });
 });
 

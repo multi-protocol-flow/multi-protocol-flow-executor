@@ -5,8 +5,8 @@
  * 不透明源）与宿主 UI 连接起来。插件 iframe 内 `window.__TAURI_INVOKE__`
  * 天然不可用（F5），postMessage 是唯一通道。
  *
- * 状态机: `loading` →（iframe load + init 发送）→ `ready`（插件发来 ready）
- * → `active`（插件首次 configChanged / requestAction，用户已交互）。
+ * 状态机: `loading` →（iframe load + init 发送，未 ready 前周期重发）→ `ready`
+ * （插件发来 ready）→ `active`（插件首次 configChanged / requestAction，用户已交互）。
  *
  * 安全（D3，真实浏览器实证修正）：
  * 沙箱 iframe（无 `allow-same-origin`）的源是**不透明的**，浏览器将其序列化
@@ -40,6 +40,14 @@ import type {
 
 /** iframe 加载失败（onError）时展示的错误文案 */
 export const PLUGIN_IFRAME_LOAD_ERROR = 'Failed to load plugin panel';
+
+/**
+ * init 重发间隔（WebKitGTK 竞态兜底，实证见 handleIframeLoad 注释）。
+ * 插件面板一般在 React effect 里安装 message 监听器，可能晚于 iframe
+ * `load` 事件；load 时发出的首个 init 会丢失。宿主按此间隔周期重发
+ * init，直至收到 ready，保证监听器就绪后 ≤ 一个间隔内收到 init。
+ */
+export const INIT_RETRY_INTERVAL_MS = 300;
 
 /** 面板桥接状态 */
 export type PluginIframeReadyState = 'loading' | 'ready' | 'active';
@@ -86,6 +94,8 @@ export function usePluginIframe(options: UsePluginIframeOptions): UsePluginIfram
   const [readyState, setReadyState] = useState<PluginIframeReadyState>('loading');
   const [error, setError] = useState<string | null>(null);
   const [height, setHeight] = useState<number | null>(null);
+  // iframe 是否已触发 load —— init 重发兜底只在 load 之后运行
+  const [loaded, setLoaded] = useState(false);
 
   // 最新 props 快照：window message 监听器只注册一次，经 ref 读取最新回调，
   // 避免每次渲染重建监听器。
@@ -111,6 +121,7 @@ export function usePluginIframe(options: UsePluginIframeOptions): UsePluginIfram
 
   /** iframe load：发送 init（config + 变量快照 + host_api 能力声明 + 节点上下文） */
   const handleIframeLoad = useCallback((): void => {
+    setLoaded(true);
     const {
       config: cfg,
       variables: vars,
@@ -215,10 +226,36 @@ export function usePluginIframe(options: UsePluginIframeOptions): UsePluginIfram
   // src 变更（切换插件/页面）→ 重置状态，等待新 iframe 重新走状态机
   useEffect(() => {
     readyRef.current = false;
+    setLoaded(false);
     setReadyState('loading');
     setError(null);
     setHeight(null);
   }, [options.src]);
+
+  // init 重发兜底（WebKitGTK 实证）：iframe `load` 事件可早于插件安装
+  // message 监听器（React effect 在 load 之后才跑），load 时发出的首个
+  // init 会被丢弃 → 插件永不回 ready → 宿主永久 loading 转圈。
+  // Chromium 的调度恰好先跑 effect 再派发 load，所以浏览器里不重现；
+  // 协议未约定插件必须同步监听，宿主作为协议拥有方周期重发直至 ready。
+  useEffect(() => {
+    if (!loaded || readyRef.current) return;
+    const timer = window.setInterval(() => {
+      if (readyRef.current) {
+        window.clearInterval(timer);
+        return;
+      }
+      const {
+        config: cfg,
+        variables: vars,
+        hostApi: api,
+        nodeType,
+        locale,
+        nodes,
+      } = latestRef.current;
+      sendToIframe(createInitMessage(cfg, vars, api, nodeType, locale, nodes));
+    }, INIT_RETRY_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [loaded, options.src, sendToIframe]);
 
   return { iframeRef, readyState, error, height, handleIframeLoad, handleIframeError };
 }

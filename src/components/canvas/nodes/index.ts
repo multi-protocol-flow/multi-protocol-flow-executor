@@ -9,9 +9,6 @@ export { WsSendCollectNode, type WsSendCollectNodeData } from './WsSendCollectNo
 export { WsCloseNode, type WsCloseNodeData } from './WsCloseNode';
 export { AssertionNode, type AssertionNodeData } from './AssertionNode';
 export { ScriptNode, type ScriptNodeData } from './ScriptNode';
-export { GrpcConnectNode, type GrpcConnectNodeData } from './GrpcConnectNode';
-export { GrpcCallNode, type GrpcCallNodeData } from './GrpcCallNode';
-export { GrpcCloseNode, type GrpcCloseNodeData } from './GrpcCloseNode';
 export { TcpConnectNode, type TcpConnectNodeData } from './TcpConnectNode';
 export { TcpSendNode, type TcpSendNodeData } from './TcpSendNode';
 export { TcpReceiveNode, type TcpReceiveNodeData } from './TcpReceiveNode';

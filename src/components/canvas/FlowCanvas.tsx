@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpReceiveNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, VariableExtractorNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode, ProxyNode, EndNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, ScriptNode, TcpConnectNode, TcpSendNode, TcpReceiveNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, VariableExtractorNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode, ProxyNode, EndNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { ExecutionOverlay } from './ExecutionOverlay';
 import { CanvasToolbar } from './CanvasToolbar';
@@ -199,9 +199,6 @@ const nodeTypes = {
   ws_close: WsCloseNode,
   assertion: AssertionNode,
   script: ScriptNode,
-  grpc_connect: GrpcConnectNode,
-  grpc_call: GrpcCallNode,
-  grpc_close: GrpcCloseNode,
   tcp_connect: TcpConnectNode,
   tcp_send: TcpSendNode,
   tcp_receive: TcpReceiveNode,
@@ -239,9 +236,6 @@ const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   ws_close: '#f43f5e',
   assertion: '#a855f7',
   script: '#6366f1',
-  grpc_connect: '#8b5cf6',
-  grpc_call: '#8b5cf6',
-  grpc_close: '#8b5cf6',
   tcp_connect: '#10b981',
   tcp_send: '#10b981',
   tcp_receive: '#10b981',
