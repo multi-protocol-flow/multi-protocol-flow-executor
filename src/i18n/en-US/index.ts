@@ -5,6 +5,7 @@ import panels from './panels';
 import execution from './execution';
 import settings from './settings';
 import plugins from './plugins';
+import datasource from './datasource';
 import flow from './flow';
 import validation from './validation';
 import welcome from './welcome';
@@ -19,6 +20,7 @@ const en_US: Translation = {
   execution,
   settings,
   plugins,
+  datasource,
   flow,
   validation,
   welcome,

@@ -6859,6 +6859,88 @@ type RootTranslation = {
 		 */
 		no_platform_asset: string
 	}
+	datasource: {
+		/**
+		 * 数​据​源
+		 */
+		title: string
+		/**
+		 * 配​置
+		 */
+		configure: string
+		/**
+		 * 修​改​配​置
+		 */
+		edit: string
+		/**
+		 * 断​开​连​接
+		 */
+		disconnect: string
+		/**
+		 * 已​连​接
+		 */
+		connected: string
+		/**
+		 * 未​连​接
+		 */
+		not_connected: string
+		/**
+		 * 刷​新
+		 */
+		refresh: string
+		/**
+		 * 保​存
+		 */
+		save: string
+		/**
+		 * 取​消
+		 */
+		cancel: string
+		/**
+		 * 配​置​验​证​失​败
+		 */
+		validate_fail: string
+		/**
+		 * 认​证​失​败​，​请​重​新​配​置​连​接
+		 */
+		auth_failed: string
+		/**
+		 * 未​知​节​点​类​型​ ​{​t​y​p​e​_​i​d​}
+		 * @param {unknown} type_id
+		 */
+		unknown_node_type: RequiredParams<'type_id'>
+		/**
+		 * 拖​拽​条​目​到​画​布​创​建​节​点
+		 */
+		drag_hint: string
+		/**
+		 * 无​效​的​拖​拽​数​据
+		 */
+		drag_payload_invalid: string
+		/**
+		 * 无​已​安​装​的​数​据​源​插​件
+		 */
+		no_datasources: string
+		/**
+		 * 暂​无​数​据
+		 */
+		empty: string
+		/**
+		 * 必​填​字​段​：​{​f​i​e​l​d​}
+		 * @param {unknown} field
+		 */
+		required_field: RequiredParams<'field'>
+		detail_title: string
+		raw_data: string
+		overview: string
+		template_preview: string
+		copy_json: string
+		copy_success: string
+		add_to_canvas: string
+		add_success: string
+		view_detail: string
+		loading_detail: string
+	}
 	flow: {
 		/**
 		 * 未​保​存
@@ -18102,6 +18184,86 @@ export type TranslationFunctions = {
 		 */
 		no_platform_asset: () => LocalizedString
 	}
+	datasource: {
+		/**
+		 * 数据源
+		 */
+		title: () => LocalizedString
+		/**
+		 * 配置
+		 */
+		configure: () => LocalizedString
+		/**
+		 * 修改配置
+		 */
+		edit: () => LocalizedString
+		/**
+		 * 断开连接
+		 */
+		disconnect: () => LocalizedString
+		/**
+		 * 已连接
+		 */
+		connected: () => LocalizedString
+		/**
+		 * 未连接
+		 */
+		not_connected: () => LocalizedString
+		/**
+		 * 刷新
+		 */
+		refresh: () => LocalizedString
+		/**
+		 * 保存
+		 */
+		save: () => LocalizedString
+		/**
+		 * 取消
+		 */
+		cancel: () => LocalizedString
+		/**
+		 * 配置验证失败
+		 */
+		validate_fail: () => LocalizedString
+		/**
+		 * 认证失败，请重新配置连接
+		 */
+		auth_failed: () => LocalizedString
+		/**
+		 * 未知节点类型 {type_id}
+		 */
+		unknown_node_type: (arg: { type_id: unknown }) => LocalizedString
+		/**
+		 * 拖拽条目到画布创建节点
+		 */
+		drag_hint: () => LocalizedString
+		/**
+		 * 无效的拖拽数据
+		 */
+		drag_payload_invalid: () => LocalizedString
+		/**
+		 * 无已安装的数据源插件
+		 */
+		no_datasources: () => LocalizedString
+		/**
+		 * 暂无数据
+		 */
+		empty: () => LocalizedString
+		/**
+		 * 必填字段：{field}
+		 */
+		required_field: (arg: { field: unknown }) => LocalizedString
+		detail_title: () => LocalizedString
+		raw_data: () => LocalizedString
+		overview: () => LocalizedString
+		template_preview: () => LocalizedString
+		copy_json: () => LocalizedString
+		copy_success: () => LocalizedString
+		add_to_canvas: () => LocalizedString
+		add_success: () => LocalizedString
+		view_detail: () => LocalizedString
+		loading_detail: () => LocalizedString
+	}
 	flow: {
 		/**
 		 * 未保存
@@ -22451,5 +22613,3 @@ export type TranslationFunctions = {
 }
 
 export type Formatters = {}
-
-
