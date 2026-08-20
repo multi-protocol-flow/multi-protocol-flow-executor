@@ -29,7 +29,7 @@ jobs:
             -g '!**/tests/' \
             '[\u4e00-\u9fff]' \
             src-tauri/ \
-          | rg -v '^\s*///' \
+          | rg -v '^\s*//' \
           > /tmp/i18n-issues.txt || true
 
           if [ -s /tmp/i18n-issues.txt ]; then

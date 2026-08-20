@@ -102,7 +102,7 @@ jobs:
             args: --no-default-features
             hakari_check: false
           - label: minimal-set
-            args: --no-default-features --features "protocol-http,protocol-script"
+            args: --no-default-features --features protocol-http,protocol-script
             hakari_check: false
 
     runs-on: ubuntu-22.04
@@ -129,9 +129,8 @@ jobs:
         run: cd src-tauri && cargo hakari generate --diff
 
       - name: Run cargo clippy (unwrap/expect enforcement)
-        run: cd src-tauri && cargo clippy --lib --bins ${{ matrix.args }} -- \
-          -D clippy::unwrap_used \
-          -D clippy::expect_used
-
+        run: |
+          cd src-tauri
+          cargo clippy --lib --bins ${{ matrix.args }} -- -D clippy::unwrap_used -D clippy::expect_used
       - name: Run cargo test (${{ matrix.label }})
         run: cd src-tauri && cargo test ${{ matrix.args }}
