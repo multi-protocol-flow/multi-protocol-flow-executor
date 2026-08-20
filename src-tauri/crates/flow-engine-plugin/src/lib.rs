@@ -10,6 +10,8 @@
 
 /// Describe RPC handshake and P0 frontend normalization.
 pub mod describe;
+/// Host-side datasource registry + RPC relay.
+pub mod datasource;
 /// Plugin directory scanning and discovery.
 pub mod discovery;
 /// Plugin error types.

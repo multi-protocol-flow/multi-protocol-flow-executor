@@ -22,6 +22,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use mpe_plugin_sdk::protocol::datasource::DatasourceDescription;
 use mpe_plugin_sdk::protocol::describe::{DescribeResult, NodeDescription};
 use mpe_plugin_sdk::protocol::manifest::PluginManifest;
 
@@ -60,6 +61,8 @@ pub struct PluginRegistration {
     /// Node types the plugin provides, P0-normalized (non-inline frontends
     /// dropped with a warning).
     pub nodes: Vec<NodeDescription>,
+    /// Datasources the plugin provides (empty for protocol plugins).
+    pub datasources: Vec<DatasourceDescription>,
 }
 
 /// `PluginManager`: plugins-directory scan, describe handshake, quarantine,
@@ -88,6 +91,13 @@ pub struct PluginManager {
     /// (populated by [`PluginManager::add_registration`]; drives
     /// [`PluginManager::connection_for_node`]).
     pub(crate) type_id_to_plugin: HashMap<String, String>,
+    /// Maps a registered datasource id to the plugin name that owns it
+    /// (populated by [`PluginManager::register_datasources`]; drives
+    /// [`PluginManager::datasource_call`]).
+    pub(crate) datasource_index: HashMap<String, String>,
+    /// Registered datasource descriptions by id (first-wins; listing source
+    /// for `list_datasources`).
+    pub(crate) datasource_descriptions: HashMap<String, DatasourceDescription>,
     /// Upper bound for one describe handshake; exceeded, the plugin process
     /// is killed and the failure counts toward the quarantine policy
     /// (defaults to [`DESCRIBE_TIMEOUT`]).
@@ -119,6 +129,8 @@ impl PluginManager {
             claimed_node_ids: HashSet::new(),
             collisions: Vec::new(),
             type_id_to_plugin: HashMap::new(),
+            datasource_index: HashMap::new(),
+            datasource_descriptions: HashMap::new(),
             describe_timeout: DESCRIBE_TIMEOUT,
             host_locale: None,
             last_errors: Mutex::new(HashMap::new()),
@@ -244,6 +256,9 @@ impl PluginManager {
                     self.note_describe_success(&plugin.name);
                     self.register_plugin(registration.name.clone(), registration.manifest.clone());
                     self.add_registration(registration.clone());
+                    if !registration.datasources.is_empty() {
+                        self.register_datasources(&registration.name, registration.datasources.clone());
+                    }
                     registrations.push(registration);
                 }
                 Err(e) => {
@@ -340,7 +355,7 @@ impl PluginManager {
         // Dropping the connection kills the child (last-handle Drop reaps).
         drop(connection);
         // The plugin's echoed manifest may carry a `./`-relative
-        // entry.command (marketplace form); anchor it to the plugin
+        // entry.command or entry.args (marketplace form); anchor them to the plugin
         // directory like the scan path does.
         let mut plugin_manifest = result.plugin;
         if plugin_manifest.entry.command.starts_with("./")
@@ -349,12 +364,18 @@ impl PluginManager {
             plugin_manifest.entry.command =
                 crate::discovery::resolve_entry_command(&plugin.dir, &plugin_manifest.entry.command);
         }
+        for arg in &mut plugin_manifest.entry.args {
+            if arg.starts_with("./") || arg.starts_with(".\\") {
+                *arg = crate::discovery::resolve_entry_command(&plugin.dir, arg);
+            }
+        }
         Ok(PluginRegistration {
             name: plugin.name.clone(),
             version: plugin.version.clone(),
             dir: plugin.dir.clone(),
             manifest: plugin_manifest,
             nodes: normalize_nodes(result.nodes, &plugin.name),
+            datasources: result.datasources,
         })
     }
 }
@@ -397,5 +418,54 @@ mod tests {
             "error reason must be non-empty (UI-facing)"
         );
         assert!(manager.quarantined().is_empty(), "single failure is not quarantine");
+    }
+
+    /// 测试真实 Python 数据源插件 describe 与注册
+    #[tokio::test]
+    async fn describe_python_datasource_plugin() {
+        let eolink_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../plugins/eolink");
+        if !eolink_dir.exists() {
+            return;
+        }
+        let parent_dir = eolink_dir.parent().expect("parent dir");
+        let mut manager = PluginManager::new(parent_dir.to_path_buf());
+        manager.describe_timeout = Duration::from_secs(5);
+
+        let registrations = manager.scan_and_describe().await;
+        let eolink_reg = registrations.iter().find(|r| r.name == "eolink");
+        assert!(eolink_reg.is_some(), "eolink plugin must describe successfully");
+        let eolink_reg = eolink_reg.unwrap();
+        assert_eq!(eolink_reg.datasources.len(), 1);
+        assert_eq!(eolink_reg.datasources[0].id, "eolink");
+
+        // 确认 manager 已注册 datasource
+        let datasources = manager.list_datasources();
+        assert!(datasources.iter().any(|d| d.id == "eolink"));
+        assert_eq!(
+            manager.datasource_index.get("eolink").map(String::as_str),
+            Some("eolink")
+        );
+    }
+
+    /// 测试通过 manager.datasource_call 调用 Python 插件的 browse
+    #[tokio::test]
+    async fn datasource_call_python_plugin_browse() {
+        let eolink_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../plugins/eolink");
+        if !eolink_dir.exists() {
+            return;
+        }
+        let parent_dir = eolink_dir.parent().expect("parent dir");
+        let mut manager = PluginManager::new(parent_dir.to_path_buf());
+        manager.scan_and_describe().await;
+
+        // 调用 validate_config（空 key 校验）
+        let val_res = manager
+            .datasource_call("eolink", "validate_config", serde_json::json!({"config": {}}))
+            .await
+            .expect("validate_config call");
+        assert_eq!(val_res["valid"], false);
+        assert!(val_res["message"].is_string());
     }
 }

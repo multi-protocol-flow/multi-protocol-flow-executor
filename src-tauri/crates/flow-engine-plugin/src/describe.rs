@@ -52,6 +52,7 @@ pub async fn perform_describe(
         return Ok(DescribeResult {
             plugin: manifest,
             nodes,
+            datasources: Vec::new(),
         });
     }
     Err(PluginError::ProtocolError(

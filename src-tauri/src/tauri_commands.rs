@@ -903,6 +903,139 @@ pub async fn plugin_ui_call(
 }
 
 // ============================================================================
+// 数据源插件命令（列表 / browse / get_item / get_templates / validate_config）
+// ============================================================================
+
+/// 列出全部已注册数据源（插件 describe 时注册；供左侧栏数据源面板渲染）。
+#[cfg(feature = "plugin-manager")]
+#[tauri::command]
+pub fn list_datasources(
+    app: tauri::AppHandle,
+) -> Vec<flow_engine::datasource::DatasourceDescription> {
+    let snap = app.state::<NodeRegistryState>().snapshot();
+    snap.manager
+        .list_datasources()
+        .into_iter()
+        .cloned()
+        .collect()
+}
+
+/// 浏览数据源某资源（项目列表 / 接口列表）。
+///
+/// `page`/`size` 缺省为 1/100（与 SDK `BrowseParams` serde default 一致）。
+/// `config` 是保存的连接配置（api_key 等），由宿主转发给插件，插件无状态。
+#[cfg(feature = "plugin-manager")]
+#[tauri::command]
+pub async fn datasource_browse(
+    app: tauri::AppHandle,
+    datasource_id: String,
+    resource_id: String,
+    parent_id: Option<String>,
+    page: Option<u32>,
+    size: Option<u32>,
+    config: serde_json::Value,
+) -> Result<Vec<flow_engine::datasource::DataItem>, String> {
+    let snap = app.state::<NodeRegistryState>().snapshot();
+    let params = serde_json::to_value(flow_engine::datasource::BrowseParams {
+        config,
+        resource_id,
+        parent_id,
+        page: page.unwrap_or(1),
+        size: size.unwrap_or(100),
+    })
+    .map_err(|e| format!("browse params serialization failed: {e}"))?;
+    let value = snap
+        .manager
+        .datasource_call(
+            &datasource_id,
+            flow_engine::datasource::BROWSE_METHOD,
+            params,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    serde_json::from_value(value).map_err(|e| format!("invalid browse result: {e}"))
+}
+
+/// 获取数据源单个条目详情（`get_item`）。
+#[cfg(feature = "plugin-manager")]
+#[tauri::command]
+pub async fn datasource_get_item(
+    app: tauri::AppHandle,
+    datasource_id: String,
+    resource_id: String,
+    item_id: String,
+    config: serde_json::Value,
+) -> Result<flow_engine::datasource::DataItem, String> {
+    let snap = app.state::<NodeRegistryState>().snapshot();
+    let params = serde_json::to_value(flow_engine::datasource::GetItemParams {
+        config,
+        resource_id,
+        item_id,
+    })
+    .map_err(|e| format!("get_item params serialization failed: {e}"))?;
+    let value = snap
+        .manager
+        .datasource_call(
+            &datasource_id,
+            flow_engine::datasource::GET_ITEM_METHOD,
+            params,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    serde_json::from_value(value).map_err(|e| format!("invalid get_item result: {e}"))
+}
+
+/// 把平台条目转换成可落画布的节点模板（`get_templates`）。
+#[cfg(feature = "plugin-manager")]
+#[tauri::command]
+pub async fn datasource_get_templates(
+    app: tauri::AppHandle,
+    datasource_id: String,
+    item_ids: Vec<String>,
+    config: serde_json::Value,
+) -> Result<Vec<flow_engine::datasource::NodeTemplate>, String> {
+    let snap = app.state::<NodeRegistryState>().snapshot();
+    let params = serde_json::to_value(flow_engine::datasource::GetTemplatesParams {
+        config,
+        item_ids,
+    })
+    .map_err(|e| format!("get_templates params serialization failed: {e}"))?;
+    let value = snap
+        .manager
+        .datasource_call(
+            &datasource_id,
+            flow_engine::datasource::GET_TEMPLATES_METHOD,
+            params,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    serde_json::from_value(value).map_err(|e| format!("invalid get_templates result: {e}"))
+}
+
+/// 验证数据源连接配置（`validate_config`；保存连接前调用）。
+#[cfg(feature = "plugin-manager")]
+#[tauri::command]
+pub async fn datasource_validate_config(
+    app: tauri::AppHandle,
+    datasource_id: String,
+    config: serde_json::Value,
+) -> Result<flow_engine::datasource::ValidateConfigResult, String> {
+    let snap = app.state::<NodeRegistryState>().snapshot();
+    let params = serde_json::to_value(flow_engine::datasource::ValidateConfigParams { config })
+        .map_err(|e| format!("validate_config params serialization failed: {e}"))?;
+    let value = snap
+        .manager
+        .datasource_call(
+            &datasource_id,
+            flow_engine::datasource::VALIDATE_CONFIG_METHOD,
+            params,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    serde_json::from_value(value).map_err(|e| format!("invalid validate_config result: {e}"))
+}
+
+// ============================================================================
 // 插件设置命令（目录信息 / 热重载 / 已安装列表 / 市场列表）
 // ============================================================================
 

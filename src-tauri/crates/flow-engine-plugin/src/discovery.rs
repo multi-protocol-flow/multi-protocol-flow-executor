@@ -180,11 +180,17 @@ fn scan_plugin_dir(dir: &Path, host_version: &str) -> ScanEntry {
             };
         }
     };
-    // Marketplace-contract manifests carry a `./`-relative entry.command;
-    // anchor it to the plugin directory so the spawn layer (no chdir) can
-    // launch it regardless of the host's CWD.
+    // Marketplace-contract manifests carry a `./`-relative entry.command or
+    // `./`-relative entry.args (e.g. `{"command": "python3", "args": ["./eolink.py"]}`);
+    // anchor them to the plugin directory so the spawn layer (no chdir) can
+    // launch them regardless of the host's CWD.
     if manifest.entry.command.starts_with("./") || manifest.entry.command.starts_with(".\\") {
         manifest.entry.command = resolve_entry_command(dir, &manifest.entry.command);
+    }
+    for arg in &mut manifest.entry.args {
+        if arg.starts_with("./") || arg.starts_with(".\\") {
+            *arg = resolve_entry_command(dir, arg);
+        }
     }
     if let Some(required) = &manifest.min_host_version {
         if !semver::host_satisfies(host_version, required) {
@@ -207,5 +213,40 @@ fn scan_plugin_dir(dir: &Path, host_version: &str) -> ScanEntry {
         dir: dir.to_path_buf(),
         manifest,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scan_anchors_relative_command_and_args() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let plugin_dir = dir.path().join("python_plugin");
+        fs::create_dir_all(&plugin_dir).expect("mkdir");
+        fs::write(
+            plugin_dir.join("plugin.json"),
+            r#"{
+                "name": "python_plugin",
+                "version": "0.1.0",
+                "entry": {
+                    "command": "python3",
+                    "args": ["./script.py", "--flag"]
+                }
+            }"#,
+        )
+        .expect("write");
+
+        let entry = scan_plugin_dir(&plugin_dir, "0.1.0");
+        match entry {
+            ScanEntry::Discovered(plugin) => {
+                assert_eq!(plugin.manifest.entry.command, "python3");
+                let expected_script = plugin_dir.join("script.py").to_string_lossy().into_owned();
+                assert_eq!(plugin.manifest.entry.args[0], expected_script);
+                assert_eq!(plugin.manifest.entry.args[1], "--flag");
+            }
+            other => panic!("expected discovered, got {other:?}"),
+        }
+    }
 }
 

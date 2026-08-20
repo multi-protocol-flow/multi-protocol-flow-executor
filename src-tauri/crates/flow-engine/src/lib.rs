@@ -104,6 +104,8 @@ pub use flow_engine_executor::default_registry::default_registry_with_plugins;
 #[cfg(feature = "plugin-manager")]
 pub use flow_engine_plugin::manager::PluginManager;
 #[cfg(feature = "plugin-manager")]
+pub use flow_engine_plugin::datasource;
+#[cfg(feature = "plugin-manager")]
 pub use flow_engine_plugin::sidecar::SidecarPlugin;
 // 插件目录扫描（已安装列表；GUI 与 CLI 共用）
 #[cfg(feature = "plugin-manager")]

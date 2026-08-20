@@ -94,6 +94,13 @@ pub use tauri_commands::{
 #[cfg(feature = "plugin-manager")]
 pub use tauri_commands::plugin_ui_call;
 
+// 数据源插件命令（列表 / browse / get_item / get_templates / validate_config）
+#[cfg(feature = "plugin-manager")]
+pub use tauri_commands::{
+    datasource_browse, datasource_get_item, datasource_get_templates, datasource_validate_config,
+    list_datasources,
+};
+
 // 插件设置命令（目录信息/热重载/已安装列表/市场列表/市场安装）
 #[cfg(feature = "plugin-manager")]
 pub use tauri_commands::{
@@ -415,6 +422,17 @@ pub fn run() {
             // 插件配置面板 uiCall 转发命令
             #[cfg(feature = "plugin-manager")]
             plugin_ui_call,
+            // 数据源插件命令（列表 / browse / get_item / get_templates / validate_config）
+            #[cfg(feature = "plugin-manager")]
+            list_datasources,
+            #[cfg(feature = "plugin-manager")]
+            datasource_browse,
+            #[cfg(feature = "plugin-manager")]
+            datasource_get_item,
+            #[cfg(feature = "plugin-manager")]
+            datasource_get_templates,
+            #[cfg(feature = "plugin-manager")]
+            datasource_validate_config,
             // 插件设置（目录热重载 / 已安装列表 / 市场列表）
             #[cfg(feature = "plugin-manager")]
             get_plugin_dir_info,
