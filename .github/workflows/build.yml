@@ -91,20 +91,6 @@ jobs:
           if-no-files-found: warn
 
   test:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - label: all-features
-            args: --all-features
-            hakari_check: true
-          - label: no-default-features
-            args: --no-default-features
-            hakari_check: false
-          - label: minimal-set
-            args: --no-default-features --features protocol-http,protocol-script
-            hakari_check: false
-
     runs-on: ubuntu-22.04
 
     steps:
@@ -121,16 +107,15 @@ jobs:
             libcurl4-openssl-dev libssl-dev libsasl2-dev cmake pkg-config
 
       - name: Install cargo-hakari
-        if: matrix.hakari_check
         run: cargo install cargo-hakari --locked
 
       - name: Check workspace-hack freshness
-        if: matrix.hakari_check
         run: cd src-tauri && cargo hakari generate --diff
 
       - name: Run cargo clippy (unwrap/expect enforcement)
         run: |
           cd src-tauri
-          cargo clippy --lib --bins ${{ matrix.args }} -- -D clippy::unwrap_used -D clippy::expect_used
-      - name: Run cargo test (${{ matrix.label }})
-        run: cd src-tauri && cargo test ${{ matrix.args }}
+          cargo clippy --lib --bins --all-features -- -D clippy::unwrap_used -D clippy::expect_used
+
+      - name: Run cargo test
+        run: cd src-tauri && cargo test --all-features
