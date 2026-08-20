@@ -105,6 +105,12 @@ impl MarketplaceClient {
             let status = response.status();
             if !status.is_success() {
                 let status_code = status.as_u16();
+                if attempt == 0 {
+                    log::debug!(
+                        "marketplace GET {url} -> {status_code}; headers: {:?}",
+                        response.headers()
+                    );
+                }
                 let err = MarketplaceError::Http {
                     status: status_code,
                     url: url.to_string(),
@@ -148,9 +154,19 @@ impl MarketplaceClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Once;
+
+    static CRYPTO_INIT: Once = Once::new();
+    fn ensure_crypto_provider() {
+        // rustls-no-provider: 构建 reqwest Client 前必须安装 CryptoProvider
+        CRYPTO_INIT.call_once(|| {
+            let _ = rustls::crypto::ring::default_provider().install_default();
+        });
+    }
 
     #[test]
     fn test_url_normalization() {
+        ensure_crypto_provider();
         let c1 = MarketplaceClient::new("https://example.com/registry".into());
         assert_eq!(c1.primary_plugins_url(), "https://example.com/registry/plugins");
         assert_eq!(c1.fallback_plugins_url(), Some("https://example.com/registry/plugins.json".into()));
