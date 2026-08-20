@@ -30,11 +30,11 @@ getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-f
 hmac = { version = "0.12", default-features = false, features = ["reset"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto"] }
-log = { version = "0.4", default-features = false, features = ["kv_unstable", "std"] }
+log = { version = "0.4", default-features = false, features = ["kv", "std"] }
 memchr = { version = "2" }
 mime_guess = { version = "2" }
 miniz_oxide = { version = "0.8", features = ["simd"] }
-num-traits = { version = "0.2", default-features = false, features = ["i128", "std"] }
+num-traits = { version = "0.2", default-features = false, features = ["std"] }
 once_cell = { version = "1" }
 percent-encoding = { version = "2" }
 phf_shared = { version = "0.13" }
@@ -70,7 +70,7 @@ digest = { version = "0.10", features = ["mac", "std"] }
 fastrand = { version = "2" }
 flate2 = { version = "1" }
 form_urlencoded = { version = "1" }
-log = { version = "0.4", default-features = false, features = ["kv_unstable", "std"] }
+log = { version = "0.4", default-features = false, features = ["kv", "std"] }
 memchr = { version = "2" }
 miniz_oxide = { version = "0.8", features = ["simd"] }
 percent-encoding = { version = "2" }
@@ -85,7 +85,8 @@ serde_json = { version = "1", features = ["alloc", "preserve_order", "raw_value"
 simd-adler32 = { version = "0.3" }
 smallvec = { version = "1", default-features = false, features = ["const_new"] }
 stable_deref_trait = { version = "1" }
-syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
+syn-7b89eefb6aaa9bf3 = { package = "syn", version = "3", features = ["extra-traits", "full", "visit-mut"] }
+syn-f595c2ba2a3f28df = { package = "syn", version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 tauri-utils = { version = "2", default-features = false, features = ["build-2", "compression", "resources"] }
 time = { version = "0.3", features = ["formatting", "local-offset", "macros", "parsing"] }
 url = { version = "2", features = ["serde"] }
@@ -97,6 +98,7 @@ getrandom-9fbad63c4bcf4a8f = { package = "getrandom", version = "0.4", default-f
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 windows = { version = "0.58", features = ["Win32_Security", "Win32_System_Console", "Win32_System_JobObjects", "Win32_System_Threading"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Graphics_Dwm", "Win32_Graphics_Gdi", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_Debug", "Win32_System_LibraryLoader", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_Time", "Win32_UI_WindowsAndMessaging"] }
+windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security_Cryptography", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
 windows-sys-d4189bed749088b6 = { package = "windows-sys", version = "0.61", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Globalization", "Win32_Graphics_Gdi", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_IO", "Win32_System_LibraryLoader", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Accessibility", "Win32_UI_Controls", "Win32_UI_HiDpi", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
 
 [target.x86_64-pc-windows-msvc.build-dependencies]

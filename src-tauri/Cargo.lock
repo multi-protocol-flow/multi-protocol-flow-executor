@@ -127,7 +127,7 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "app"
-version = "0.1.1-beta.1"
+version = "0.1.1-beta.2"
 dependencies = [
  "assert_cmd",
  "async-trait",
@@ -2816,9 +2816,6 @@ name = "log"
 version = "0.4.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
-dependencies = [
- "value-bag",
-]
 
 [[package]]
 name = "lzma-rs"
@@ -5780,12 +5777,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "value-bag"
-version = "1.13.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "068e763e8279de7ab94b6afebded2cb701678af094feb1c12ccb061b4783c1be"
-
-[[package]]
 name = "version-compare"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6664,6 +6655,7 @@ dependencies = [
  "smallvec",
  "stable_deref_trait",
  "syn 2.0.119",
+ "syn 3.0.3",
  "tauri-utils",
  "time",
  "tokio",
@@ -6673,6 +6665,7 @@ dependencies = [
  "url",
  "uuid",
  "windows 0.58.0",
+ "windows-sys 0.52.0",
  "windows-sys 0.59.0",
  "windows-sys 0.61.2",
  "zeroize",
