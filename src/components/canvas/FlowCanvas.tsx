@@ -29,12 +29,13 @@ import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
-import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore, selectIsExecuting, selectFlow, selectIsDirty } from '@/stores';
+import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore, selectIsExecuting, selectFlow, selectIsDirty, connectionFor } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
 import { MapIcon, ArrowRightLeft, Search } from 'lucide-react';
 import type { NodeData, NodeType } from '@/types';
 import type { NodeMetadata } from '@/types/nodeRegistry';
 import { getNodeMetadata } from '@/lib/NodeRegistry';
+import { datasourceGetTemplates } from '@/services/tauri/datasource';
 import { getLayoutedPositions, type LayoutDirection } from './layout';
 import {
   convertFlowToReactFlow,
@@ -951,8 +952,57 @@ function FlowCanvasInner() {
 
   // 处理拖放 - 使用鼠标实际位置
   const onDrop = useCallback(
-    (event: React.DragEvent) => {
+    async (event: React.DragEvent) => {
       event.preventDefault();
+
+      // 数据源条目拖拽：经 get_templates 转成节点模板落画布
+      const dsPayload = event.dataTransfer.getData('application/reactflow/datasource');
+      if (dsPayload) {
+        if (!flow) return;
+        let parsed: { datasource_id: string; item_ids: string[] };
+        try {
+          parsed = JSON.parse(dsPayload);
+        } catch {
+          toast.error(ll.datasource.drag_payload_invalid());
+          return;
+        }
+        const conn = connectionFor(parsed.datasource_id);
+        if (!conn) {
+          toast.error(ll.datasource.auth_failed());
+          return;
+        }
+        try {
+          const templates = await datasourceGetTemplates(
+            parsed.datasource_id,
+            parsed.item_ids,
+            conn.config
+          );
+          const position = screenToFlowPosition({
+            x: event.clientX,
+            y: event.clientY,
+          });
+          templates.forEach((tpl, i) => {
+            const defaultData = createDefaultNodeData(tpl.type_id as NodeType);
+            const nodeData = {
+              ...defaultData,
+              ...tpl.data,
+              type: tpl.type_id,
+            };
+            const nodeCount = flow.nodes.length + i + 1;
+            const name = tpl.name || createDefaultNodeName(tpl.type_id as NodeType, nodeCount);
+            addNode({
+              uuid: crypto.randomUUID(),
+              type: tpl.type_id as NodeType,
+              name,
+              position: { x: position.x + i * 40, y: position.y + i * 40 },
+              data: nodeData as unknown as NodeData,
+            });
+          });
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : String(e));
+        }
+        return;
+      }
 
       const nodeType = event.dataTransfer.getData('application/reactflow/nodeType');
       if (!nodeType || !flow) return;

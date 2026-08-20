@@ -1,4 +1,4 @@
-﻿/**
+/**
  * LeftSidebarPanel - 左侧面板容器
  * 管理 VSCode 风格的面板布局：顶部固定 + 底部可折叠面板区
  */
@@ -6,9 +6,10 @@ import { Plus, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
 import { FlowListPanel } from '@/components/sidebar';
+import { DataSourcePanel } from '@/components/sidebar/DataSourcePanel';
 import { useUIStore, useDebugStore } from '@/stores';
 import { selectIsDebugging } from '@/stores/debug';
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { getLL } from '@/i18n/i18n-lazy';
 
 /** 面板标题栏高度 */
@@ -20,11 +21,17 @@ const FLOW_LIST_COLLAPSED_HEIGHT = HEADER_HEIGHT;
 /** 流程列表最小高度（保证不会被完全挤掉） */
 const FLOW_LIST_MIN_HEIGHT = 100;
 
+/** 数据源面板高度（固定；P0 不持久化折叠状态） */
+const DATASOURCE_PANEL_HEIGHT = 280;
+
 export function LeftSidebarPanel() {
   const LL = getLL();
   // UI 状态
   const isFlowListCollapsed = useUIStore((state) => state.isFlowListCollapsed);
-  
+
+  // 数据源面板折叠状态（组件内 useState，P0 不持久化）
+  const [isDatasourceCollapsed, setIsDatasourceCollapsed] = useState(false);
+
   // 调试状态
   const isDebugging = useDebugStore(selectIsDebugging);
   const debugSessionId = useDebugStore((state) => state.sessionId);
@@ -96,6 +103,30 @@ export function LeftSidebarPanel() {
           debugFlowUuid={debugSessionId}
           onCreateFolderTrigger={(fn) => { createFolderTriggerRef.current = fn; }}
         />
+      </CollapsiblePanel>
+
+      {/* ===== 底部：数据源面板（可折叠） ===== */}
+      <CollapsiblePanel
+        title={LL.datasource.title()}
+        isCollapsed={isDatasourceCollapsed}
+        onToggle={() => setIsDatasourceCollapsed((v) => !v)}
+        collapsedHeight={HEADER_HEIGHT}
+        height={
+          isDatasourceCollapsed
+            ? undefined
+            : isFlowListCollapsed
+            ? undefined
+            : DATASOURCE_PANEL_HEIGHT
+        }
+        className={
+          isDatasourceCollapsed
+            ? 'shrink-0'
+            : isFlowListCollapsed
+            ? 'flex-1 min-h-0'
+            : 'shrink-0'
+        }
+      >
+        <DataSourcePanel />
       </CollapsiblePanel>
     </div>
   );
