@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }
 # SSE 使用 reqwest 流式 GET（无需额外 SSE 库）
-reqwest = { version = "0.13", default-features = false, features = ["stream"] }
+reqwest = { version = "0.13", default-features = false, features = ["stream", "rustls-no-provider"] }
 # Workspace 共享依赖
 async-trait = { workspace = true }
 serde = { workspace = true }

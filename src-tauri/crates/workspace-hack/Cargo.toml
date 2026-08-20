@@ -40,7 +40,7 @@ percent-encoding = { version = "2" }
 phf_shared = { version = "0.13" }
 proc-macro2 = { version = "1", features = ["span-locations"] }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa-onepass", "dfa-search", "hybrid", "meta", "nfa-backtrack", "perf-inline", "perf-literal", "std", "unicode"] }
-reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "stream"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "rustls-no-provider", "stream"] }
 rustls = { version = "0.23", default-features = false, features = ["logging", "ring", "std", "tls12"] }
 rustls-pki-types = { version = "1", features = ["std"] }
 rustls-webpki = { version = "0.103", default-features = false, features = ["ring", "std"] }

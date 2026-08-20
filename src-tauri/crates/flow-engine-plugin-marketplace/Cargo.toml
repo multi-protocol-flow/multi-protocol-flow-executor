@@ -8,7 +8,8 @@ description = "Plugin marketplace client + installer shared by the GUI and CLI"
 # Shared plugin wire types come from the standalone public SDK repo (tag
 # pinned); default-features = false keeps tokio out of the host build.
 mpe-plugin-sdk = { git = "https://github.com/multi-protocol-flow/mpe-plugin-sdk.git", tag = "v0.2.2", default-features = false }
-reqwest = { version = "0.13", default-features = false, features = ["json"] }
+# TLS 经 rustls-no-provider（grpc 移除后需显式声明；运行时由 app/mpe-cli 安装 ring CryptoProvider）
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.10"
