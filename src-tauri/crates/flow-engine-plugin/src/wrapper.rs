@@ -434,7 +434,7 @@ pub(crate) fn register_grpc_stream_handler(
 /// gRPC 流式实时链路入口（sidecar execute 调用）：`grpc:*` 节点执行时把
 /// 插件的 `grpc.stream` 通知（backpressure emit，自动带 correlation）
 /// 转成 `DebugEvent::GrpcStreamMessage/Error` 进宿主 debug store
-/// （grpcStreamMessages 按 call_id 累积，报告 viewer iframe 实时消费）。
+/// （grpcStreamMessages 按 `call_id` 累积，报告 viewer iframe 实时消费）。
 ///
 /// 非 grpc 节点返回 None（零开销）；宿主未注入 debug sender 也返回 None。
 /// 返回的 handle 在 execute 返回后 drop 自动退订。

@@ -378,7 +378,7 @@ impl LifecycleEntry {
                     // Activity reset the idle window; keep waiting.
                 }
                 _ = tokio::time::sleep(self.idle_recycle) => {
-                    if self.try_recycle().await {
+                    if self.try_recycle().await && self.shutting_down.load(Ordering::SeqCst) {
                         return;
                     }
                 }

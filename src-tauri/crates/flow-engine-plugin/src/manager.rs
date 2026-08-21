@@ -386,7 +386,7 @@ mod tests {
     use super::*;
     use std::fs;
 
-    /// 坏插件（入口二进制不存在）→ scan_and_describe 失败且 `last_error`
+    /// 坏插件（入口二进制不存在）→ `scan_and_describe` 失败且 `last_error`
     /// 记录可诊断原因（UI `list_installed_plugins` 的 error 字段据此填充）。
     #[tokio::test]
     async fn describe_failure_records_last_error() {
@@ -434,8 +434,7 @@ mod tests {
 
         let registrations = manager.scan_and_describe().await;
         let eolink_reg = registrations.iter().find(|r| r.name == "eolink");
-        assert!(eolink_reg.is_some(), "eolink plugin must describe successfully");
-        let eolink_reg = eolink_reg.unwrap();
+        let eolink_reg = eolink_reg.unwrap_or_else(|| panic!("eolink plugin must describe successfully"));
         assert_eq!(eolink_reg.datasources.len(), 1);
         assert_eq!(eolink_reg.datasources[0].id, "eolink");
 
@@ -448,7 +447,7 @@ mod tests {
         );
     }
 
-    /// 测试通过 manager.datasource_call 调用 Python 插件的 browse
+    /// 测试通过 `manager.datasource_call` 调用 Python 插件的 browse
     #[tokio::test]
     async fn datasource_call_python_plugin_browse() {
         let eolink_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

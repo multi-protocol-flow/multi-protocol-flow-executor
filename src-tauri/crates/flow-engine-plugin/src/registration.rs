@@ -6,28 +6,15 @@
 //! [`flow_engine_core::registry::NodeRegistry::register`], which silently
 //! overwrites.
 //!
-//! [`PluginManager::register_nodes_with`] is the real implementation: it takes
-//! a factory closure so M3 can supply `SidecarPlugin::new(node, manager)`.
-//! [`PluginManager::register_nodes`] (no factory) currently registers a
-//! [`PendingPlugin`] placeholder; M3 swaps in the `SidecarPlugin` factory.
-//!
-//! This module deliberately lives outside `manager.rs` to keep both files
-//! under the workspace 250-pure-LOC ceiling; the methods are inherent impls on
-//! [`PluginManager`] and remain reachable as `manager.register_nodes(...)`.
+//! [`PluginManager::register_nodes_with`] applies the collision policy and
+//! registers nodes using a caller-provided factory (e.g. `SidecarPlugin::new`).
 
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use async_trait::async_trait;
-use flow_engine_core::connection::Connection;
-use flow_engine_core::context::ExecutionContext;
-use flow_engine_core::error::{ErrorDetail, ErrorKind};
-use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{FrontendMetadata, NodePlugin, PortDef};
+use flow_engine_core::plugin::NodePlugin;
 use flow_engine_core::registry::NodeRegistry;
 use mpe_plugin_sdk::protocol::describe::NodeDescription;
-
-use crate::describe::frontend_metadata_from;
 use crate::error::PluginError;
 use crate::manager::{PluginManager, PluginRegistration};
 use crate::reserved::is_reserved_type_id;
@@ -81,99 +68,6 @@ pub fn decide_registration(
     }
 }
 
-/// `NodePlugin` placeholder for nodes registered before M3 builds
-/// `SidecarPlugin`.
-///
-/// [`PluginManager::register_nodes`] wraps every accepted node in this marker
-/// so the plan's M2c call signature works today: metadata (type id, display
-/// name, ports, default config) round-trips from the describe result, but
-/// `execute` always fails with a clear message. M3 replaces the placeholder
-/// factory with `SidecarPlugin::new(node, manager)`.
-pub struct PendingPlugin {
-    node: NodeDescription,
-    frontend: Option<FrontendMetadata>,
-    viewer: Option<FrontendMetadata>,
-}
-
-impl PendingPlugin {
-    /// Wraps one describe-produced node description.
-    ///
-    /// The wire frontend description is converted to the host-side
-    /// [`FrontendMetadata`] once here so [`NodePlugin::frontend`] can hand it
-    /// back by reference (same pattern as `SidecarPlugin`).
-    pub fn new(node: NodeDescription) -> Self {
-        let frontend = node.frontend.as_ref().map(frontend_metadata_from);
-        let viewer = node.viewer.as_ref().map(frontend_metadata_from);
-        Self {
-            node,
-            frontend,
-            viewer,
-        }
-    }
-}
-
-#[async_trait]
-impl NodePlugin for PendingPlugin {
-    fn type_id(&self) -> &str {
-        &self.node.type_id
-    }
-
-    fn display_name(&self) -> &str {
-        &self.node.display_name
-    }
-
-    fn category(&self) -> &str {
-        self.node.category.as_deref().unwrap_or("plugin")
-    }
-
-    fn icon(&self) -> &str {
-        self.node.icon.as_deref().unwrap_or("plugin")
-    }
-
-    fn color(&self) -> &str {
-        self.node.color.as_deref().unwrap_or("#64748b")
-    }
-
-    fn ports(&self) -> Vec<PortDef> {
-        self.node
-            .ports
-            .iter()
-            .map(|p| PortDef {
-                id: p.id.clone(),
-                label: p.label.clone(),
-                position: if p.kind == "in" { "left" } else { "right" }.to_string(),
-            })
-            .collect()
-    }
-
-    fn default_config(&self) -> serde_json::Value {
-        self.node.default_config.clone()
-    }
-
-    fn frontend(&self) -> Option<&FrontendMetadata> {
-        self.frontend.as_ref()
-    }
-
-    fn viewer(&self) -> Option<&FrontendMetadata> {
-        self.viewer.as_ref()
-    }
-
-    async fn execute(
-        &self,
-        _node: &Node,
-        _context: &mut ExecutionContext,
-        _connections: &[Connection],
-        _node_map: &std::collections::HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
-        Err(ErrorDetail::new(
-            ErrorKind::Execution,
-            format!(
-                "plugin node {} is not executable yet: the SidecarPlugin wrapper lands in M3",
-                self.node.type_id
-            ),
-        ))
-    }
-}
 
 impl PluginManager {
     /// Appends a describe-produced registration (from any source) to the
@@ -263,15 +157,4 @@ impl PluginManager {
         self.registrations = registrations;
     }
 
-    /// Registers every registered plugin node into `registry` with the
-    /// collision policy.
-    ///
-    /// TODO(M3): once `sidecar.rs` lands, this will pass the
-    /// `SidecarPlugin::new(desc, manager)` factory to
-    /// [`PluginManager::register_nodes_with`]; until then nodes are wrapped in
-    /// a [`PendingPlugin`] placeholder that fails `execute` with a clear
-    /// message.
-    pub fn register_nodes(&mut self, registry: &mut NodeRegistry) {
-        self.register_nodes_with(registry, |node| Arc::new(PendingPlugin::new(node.clone())));
-    }
 }

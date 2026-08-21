@@ -60,10 +60,19 @@ pub async fn install_plugin(
         .get(&platform)
         .ok_or_else(|| platform_unsupported(plugin))?;
 
-    // 2. Download to memory.
+    // 2. Target directory + AlreadyInstalled gate (checked before download).
+    let target = install_dir.join(&plugin.name);
+    if target.join("plugin.json").exists() && !force {
+        return Err(MarketplaceError::AlreadyInstalled(target.display().to_string()));
+    }
+
+    // Ensure install_dir exists
+    fs::create_dir_all(install_dir)?;
+
+    // 3. Download to memory.
     let bytes = client.get_bytes(&asset.url).await?;
 
-    // 3. Optional sha256 verification.
+    // 4. Optional sha256 verification.
     if let Some(expected) = asset.sha256.as_deref() {
         let digest = hex_encode(&Sha256::digest(&bytes));
         if !digest.eq_ignore_ascii_case(expected.trim()) {
@@ -71,25 +80,28 @@ pub async fn install_plugin(
         }
     }
 
-    // 4. Target directory + AlreadyInstalled gate.
-    let target = install_dir.join(&plugin.name);
-    if target.join("plugin.json").exists() && !force {
-        return Err(MarketplaceError::AlreadyInstalled(target.display().to_string()));
-    }
-    // Start from a clean slate (also removes a partial install from a
-    // previous crash when force is set).
+    // 5. Extract and validate into a temporary directory in install_dir.
+    let temp_dir = tempfile::Builder::new()
+        .prefix(".mpe-install-")
+        .tempdir_in(install_dir)?;
+
+    install_into(&bytes, plugin, temp_dir.path())?;
+
+    // 6. Atomic swap: remove existing target if force, then rename temp_dir into target.
     if target.exists() {
         fs::remove_dir_all(&target)?;
     }
-    fs::create_dir_all(&target)?;
+    let temp_path = temp_dir.keep();
+    fs::rename(&temp_path, &target).map_err(|e| {
+        let _ = fs::remove_dir_all(&temp_path);
+        MarketplaceError::Io(e)
+    })?;
 
-    // 5-8. Extract, validate, chmod. Any failure cleans up the target dir so
-    // no half-install is ever left behind.
-    let result = install_into(&bytes, plugin, &target);
-    if result.is_err() {
-        let _ = fs::remove_dir_all(&target);
-    }
-    result
+    Ok(InstalledPluginInfo {
+        name: plugin.name.clone(),
+        version: plugin.version.clone(),
+        path: target.display().to_string(),
+    })
 }
 
 /// Extract + manifest validation + unix exec-bit fixup into `target`.
@@ -97,7 +109,7 @@ fn install_into(
     bytes: &[u8],
     plugin: &MarketplacePlugin,
     target: &Path,
-) -> Result<InstalledPluginInfo, MarketplaceError> {
+) -> Result<(), MarketplaceError> {
     extract_archive(bytes, target, &plugin.name)?;
 
     let manifest_path = target.join("plugin.json");
@@ -123,11 +135,7 @@ fn install_into(
         }
     }
 
-    Ok(InstalledPluginInfo {
-        name: plugin.name.clone(),
-        version: plugin.version.clone(),
-        path: target.display().to_string(),
-    })
+    Ok(())
 }
 
 /// Extract a zip archive into `target`, rejecting any entry whose path

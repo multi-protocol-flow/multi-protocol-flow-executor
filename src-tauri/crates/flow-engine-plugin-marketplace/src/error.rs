@@ -23,9 +23,6 @@ pub enum MarketplaceError {
         /// Sorted list of platform keys the plugin provides.
         available: Vec<String>,
     },
-    /// A requested plugin does not exist in the marketplace listing.
-    #[error("plugin not found: {0}")]
-    NotFound(String),
     /// The plugin is already installed at the target directory.
     #[error("plugin already installed at {0}")]
     AlreadyInstalled(String),
