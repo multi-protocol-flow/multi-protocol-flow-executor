@@ -73,7 +73,7 @@ export function GuideHighlighter({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999]"
+      className="fixed inset-0 z-[60]"
       onClick={onClick}
       style={{ cursor: onClick ? 'pointer' : 'default' }}
     >

@@ -14,6 +14,7 @@
  * `meta?.frontend` 存在时直接渲染（传 `origin` 由 src 解析）。
  */
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { usePluginIframe } from '@/hooks/usePluginIframe';
 import type { PluginIframeHostApi, PluginIframeNodeSnapshot } from '@/types/plugin-iframe';
 
@@ -92,7 +93,7 @@ export function PluginIframe({
     return (
       <div
         role="alert"
-        className={`border rounded p-4 bg-muted/50 text-sm space-y-2 ${className ?? ''}`}
+        className={cn('border rounded p-4 bg-muted/50 text-sm space-y-2', className)}
       >
         <p className="font-medium text-foreground">Plugin panel failed to load</p>
         <p className="text-xs text-muted-foreground break-all">{error}</p>
@@ -110,7 +111,7 @@ export function PluginIframe({
   }
 
   return (
-    <div className={`relative ${className ?? ''}`}>
+    <div className={cn('relative', className)}>
       <iframe
         ref={iframeRef}
         src={src}

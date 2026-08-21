@@ -41,12 +41,35 @@ import type { Node } from '@/types';
 // 子组件：节点状态列表项
 // ============================================================================
 
+type NodeItemStatus = 'running' | 'success' | 'failed' | 'cancelled' | 'pending';
+
 interface NodeStatusItemProps {
   node: Node;
-  status: 'running' | 'success' | 'failed' | 'cancelled' | 'pending';
+  status: NodeItemStatus;
   isSelected: boolean;
   durationMs: number | null;
   onClick: () => void;
+}
+
+function StatusIcon({ status }: { status: NodeItemStatus }) {
+  switch (status) {
+    case 'running':
+      return (
+        <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin shrink-0" />
+      );
+    case 'success':
+      return (
+        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+      );
+    case 'failed':
+      return <XCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />;
+    case 'cancelled':
+      return <Ban className="w-3.5 h-3.5 text-amber-500 shrink-0" />;
+    default:
+      return (
+        <Circle className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+      );
+  }
 }
 
 const NodeStatusItem = memo(function NodeStatusItem({
@@ -58,27 +81,6 @@ const NodeStatusItem = memo(function NodeStatusItem({
 }: NodeStatusItemProps) {
   const meta = getNodeMeta(node.data.type);
   const nodeTypeLabel = meta?.name ?? node.data.type;
-
-  const StatusIcon = () => {
-    switch (status) {
-      case 'running':
-        return (
-          <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin shrink-0" />
-        );
-      case 'success':
-        return (
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-        );
-      case 'failed':
-        return <XCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />;
-      case 'cancelled':
-        return <Ban className="w-3.5 h-3.5 text-amber-500 shrink-0" />;
-      default:
-        return (
-          <Circle className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
-        );
-    }
-  };
 
   return (
     <button
@@ -93,7 +95,7 @@ const NodeStatusItem = memo(function NodeStatusItem({
         status === 'running' && !isSelected && 'bg-blue-500/5',
       )}
     >
-      <StatusIcon />
+      <StatusIcon status={status} />
       <span
         className={cn(
           'text-xs truncate flex-1 min-w-0',

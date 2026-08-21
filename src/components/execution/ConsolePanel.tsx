@@ -2,7 +2,7 @@
  * 控制台面板组件
  * 显示实时日志，支持级别过滤和自动滚动
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useConsoleStore } from '@/stores/console';
@@ -46,10 +46,27 @@ export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const rawLogs = useConsoleStore(useShallow((state) => state.logs));
   const logs = useThrottledValue(rawLogs);
-  const getFilteredLogs = useConsoleStore((state) => state.getFilteredLogs);
+  const filter = useConsoleStore(useShallow((state) => state.filter));
 
-  const filteredLogs = getFilteredLogs();
-
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      if (filter.level && filter.level !== 'ALL' && log.level !== filter.level) {
+        return false;
+      }
+      if (filter.nodeUuid && filter.nodeUuid !== 'ALL' && log.nodeUuid !== filter.nodeUuid) {
+        return false;
+      }
+      if (filter.searchKeyword) {
+        const searchLower = filter.searchKeyword.toLowerCase();
+        return (
+          log.message.toLowerCase().includes(searchLower) ||
+          (log.nodeName && log.nodeName.toLowerCase().includes(searchLower)) ||
+          false
+        );
+      }
+      return true;
+    });
+  }, [logs, filter]);
   // 自动滚动到底部
   useEffect(() => {
     if (scrollRef.current) {

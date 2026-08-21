@@ -115,7 +115,7 @@ export function StressTestMonitor() {
     return nodeMetrics.filter((n) => selectedTypes.includes(n.nodeType));
   }, [nodeMetrics, selectedTypes]);
 
-  // 仅在运行时或刚完成时渲染，用户手动getLL().flow.stress_monitor_close()后消失
+  // 仅在运行时或刚完成时渲染，用户手动关闭后消失
   if (!isRunning && !isCompleted) {
     return null;
   }
@@ -252,19 +252,26 @@ export function StressTestMonitor() {
                 <table className="w-full min-w-max whitespace-nowrap text-xs">
                   <thead>
                     <tr className="bg-muted/50">
-                      <th className="sticky left-0 z-20 bg-muted text-left py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_node_name()}
+                      <th className="sticky left-0 z-20 bg-muted text-left py-1.5 px-2 font-medium text-muted-foreground">
+                         {getLL().flow.stress_result_node_name()}
                       </th>
-                      <th className="sticky left-[120px] z-10 bg-muted text-left py-1.5 px-2 font-medium text-muted-foreground border-r border-border/50">                         {getLL().flow.stress_result_node_type()}
+                      <th className="sticky left-[120px] z-10 bg-muted text-left py-1.5 px-2 font-medium text-muted-foreground border-r border-border/50">
+                         {getLL().flow.stress_result_node_type()}
                       </th>
-                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_exec_count()}
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
+                         {getLL().flow.stress_result_exec_count()}
                       </th>
-                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_success_rate()}
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
+                         {getLL().flow.stress_result_success_rate()}
                       </th>
-                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_min()}
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
+                         {getLL().flow.stress_result_min()}
                       </th>
-                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_avg()}
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
+                         {getLL().flow.stress_result_avg()}
                       </th>
-                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_max()}
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
+                         {getLL().flow.stress_result_max()}
                       </th>
                       <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
                         P50
@@ -342,7 +349,8 @@ export function StressTestMonitor() {
               onClick={handleStopStressTest}
               className="gap-1.5"
             >
-              <Square className="w-4 h-4" />               {getLL().flow.stress_monitor_stop()}
+              <Square className="w-4 h-4" />
+               {getLL().flow.stress_monitor_stop()}
             </Button>
           ) : (
             <>
@@ -352,7 +360,8 @@ export function StressTestMonitor() {
                 onClick={handleClose}
                 className="gap-1.5"
               >
-                <X className="w-4 h-4" />                {getLL().flow.stress_monitor_close()}
+                <X className="w-4 h-4" />
+                {getLL().flow.stress_monitor_close()}
               </Button>
               {report && (
                 <Button
