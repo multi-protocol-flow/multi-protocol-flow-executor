@@ -308,11 +308,12 @@ function ImportFlowCard({ wc, onImport }: { wc: ReturnType<typeof getLL>['welcom
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
-        className={`flex flex-col items-center gap-2 p-5 rounded-xl border transition-all cursor-pointer w-36 group ${
+        className={cn(
+          'flex flex-col items-center gap-2 p-5 rounded-xl border transition-all cursor-pointer w-36 group',
           isDragOver
             ? 'border-primary bg-primary/5'
             : 'border-dashed border-border hover:border-primary/50 hover:bg-accent/50'
-        }`}
+        )}
       >
         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
           <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -404,6 +405,7 @@ function FlowCanvasInner() {
   const [renamingValue, setRenamingValue] = useState('');
   const [renamingPosition, setRenamingPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const isRenameCancellingRef = useRef(false);
 
   // 转换 Flow 数据为 React Flow 格式
   const initialData = useMemo(() => {
@@ -882,6 +884,7 @@ function FlowCanvasInner() {
       const node = currentFlow.nodes.find((n) => n.uuid === nodeId);
       if (!node) return;
 
+      isRenameCancellingRef.current = false;
       // 使用右键菜单位置作为输入框位置
       setRenamingNodeId(nodeId);
       setRenamingValue(node.name);
@@ -896,6 +899,10 @@ function FlowCanvasInner() {
 
   // 重命名确认
   const handleRenameConfirm = useCallback(() => {
+    if (isRenameCancellingRef.current) {
+      isRenameCancellingRef.current = false;
+      return;
+    }
     if (renamingNodeId && renamingValue.trim()) {
       updateNode(renamingNodeId, { name: renamingValue.trim() });
     }
@@ -905,6 +912,7 @@ function FlowCanvasInner() {
 
   // 重命名取消
   const handleRenameCancel = useCallback(() => {
+    isRenameCancellingRef.current = true;
     setRenamingNodeId(null);
     setRenamingValue('');
   }, []);

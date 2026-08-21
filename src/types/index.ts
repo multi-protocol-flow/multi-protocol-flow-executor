@@ -18,6 +18,8 @@ export type {
   ConditionOperator,
   ExpectedValueType,
   EntryConfig,
+  EndConfig,
+  ProxyConfig,
   HttpConfig,
   ConditionalConfig,
   WsCollectMode,
@@ -66,6 +68,7 @@ export type {
 } from './node';
 export {
   isEntryConfig,
+  isEndConfig,
   isHttpConfig,
   isConditionalConfig,
   isWsConnectConfig,
@@ -90,6 +93,7 @@ export {
   isGraphqlSubscribeConfig,
   isGraphqlIntrospectConfig,
   isGraphqlDisconnectConfig,
+  isProxyConfig,
 } from './node';
 
 

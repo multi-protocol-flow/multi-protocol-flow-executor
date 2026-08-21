@@ -106,15 +106,25 @@ export const useWsStreamStore = create<WsStreamState>((set, _get) => ({
         const stream = state.wsStreams.get(connection_id);
         if (!stream) return {};
 
-        const segments = [...stream.segments];
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment && lastSegment.ended_at === null) {
-          lastSegment.messages.push(message);
-          if (lastSegment.messages.length > lastSegment.max_messages) {
-            lastSegment.dropped_message_count += lastSegment.messages.length - lastSegment.max_messages;
-            lastSegment.messages = lastSegment.messages.slice(-lastSegment.max_messages);
+        const segments = stream.segments.map((s, idx) => {
+          if (idx === stream.segments.length - 1 && s.ended_at === null) {
+            const nextMessages = [...s.messages, message];
+            const max = s.max_messages;
+            if (nextMessages.length > max) {
+              const dropped = s.dropped_message_count + (nextMessages.length - max);
+              return {
+                ...s,
+                messages: nextMessages.slice(-max),
+                dropped_message_count: dropped,
+              };
+            }
+            return {
+              ...s,
+              messages: nextMessages,
+            };
           }
-        }
+          return s;
+        });
 
         const newStreams = new Map(state.wsStreams);
         newStreams.set(connection_id, { ...stream, segments });
@@ -129,15 +139,25 @@ export const useWsStreamStore = create<WsStreamState>((set, _get) => ({
         const stream = state.wsStreams.get(connection_id);
         if (!stream) return {};
 
-        const segments = [...stream.segments];
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment && lastSegment.ended_at === null) {
-          lastSegment.messages.push(message);
-          if (lastSegment.messages.length > lastSegment.max_messages) {
-            lastSegment.dropped_message_count += lastSegment.messages.length - lastSegment.max_messages;
-            lastSegment.messages = lastSegment.messages.slice(-lastSegment.max_messages);
+        const segments = stream.segments.map((s, idx) => {
+          if (idx === stream.segments.length - 1 && s.ended_at === null) {
+            const nextMessages = [...s.messages, message];
+            const max = s.max_messages;
+            if (nextMessages.length > max) {
+              const dropped = s.dropped_message_count + (nextMessages.length - max);
+              return {
+                ...s,
+                messages: nextMessages.slice(-max),
+                dropped_message_count: dropped,
+              };
+            }
+            return {
+              ...s,
+              messages: nextMessages,
+            };
           }
-        }
+          return s;
+        });
 
         const newStreams = new Map(state.wsStreams);
         newStreams.set(connection_id, { ...stream, segments });
@@ -220,11 +240,13 @@ export const useWsStreamStore = create<WsStreamState>((set, _get) => ({
         if (!stream) return {};
 
         // 结束当前活动的 segment
-        const segments = [...stream.segments];
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment && lastSegment.ended_at === null) {
-          lastSegment.ended_at = Date.now();
-        }
+        const now = Date.now();
+        const segments = stream.segments.map((s, idx) => {
+          if (idx === stream.segments.length - 1 && s.ended_at === null) {
+            return { ...s, ended_at: now };
+          }
+          return s;
+        });
 
         const newStreams = new Map(state.wsStreams);
         newStreams.set(connection_id, {

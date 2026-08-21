@@ -6,8 +6,6 @@
 import { getLL } from '@/i18n/i18n-lazy';
 import type { Flow } from '@/types';
 
-const ll = getLL();
-
 /** 恢复结果 */
 export type RestoreResult =
   | { success: true; action: 'restored' | 'overwritten' | 'created_copy'; flow: Flow }
@@ -51,6 +49,7 @@ export async function restoreFlowFromSnapshot(
   snapshot: Flow,
   deps: RestoreDeps,
 ): Promise<RestoreResult> {
+  const ll = getLL();
   const { isDirty, showConfirm, listFlows, saveFlow, setFlow, generateUuid, toast } = deps;
 
   // 1. 脏画布检查

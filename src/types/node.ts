@@ -1039,6 +1039,13 @@ export function isEntryConfig(data: NodeData): data is EntryConfig {
 }
 
 /**
+ * 判断是否为 EndConfig
+ */
+export function isEndConfig(data: NodeData): data is EndConfig {
+  return data.type === 'end';
+}
+
+/**
  * 判断是否为 HttpConfig
  */
 export function isHttpConfig(data: NodeData): data is HttpConfig {

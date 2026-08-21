@@ -78,8 +78,8 @@ export function WelcomeWizard({ children }: WelcomeWizardProps) {
                 <Button variant="ghost" size="sm" onClick={finishWizard}>
                   {welcome.welcome_skip?.() || 'Skip Tutorial'}
                 </Button>
-                <Button size="sm" onClick={finishWizard}>
-                  {welcome.welcome_step2_action?.() || 'Got It'}
+                <Button size="sm" onClick={() => setStep(3)}>
+                  {welcome.welcome_step2_action?.() || 'Next'}
                 </Button>
               </CardFooter>
             </Card>
