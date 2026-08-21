@@ -11,8 +11,9 @@ import { vi } from 'vitest'
  */
 vi.mock('@/i18n/i18n-util', async () => {
   const zhCN = await import('@/i18n/zh-CN/index');
-  const translations = (zhCN.default || zhCN) as Record<string, unknown>;
-
+  const enUS = await import('@/i18n/en-US/index');
+  const zhTranslations = (zhCN.default || zhCN) as Record<string, unknown>;
+  const enTranslations = (enUS.default || enUS) as Record<string, unknown>;
   function buildLLProxy(obj: unknown, seen = new WeakSet()): unknown {
     if (typeof obj === 'string') {
       const text: string = obj;
@@ -50,15 +51,16 @@ vi.mock('@/i18n/i18n-util', async () => {
     });
   }
 
-  const LL = buildLLProxy(translations);
+  const zhLL = buildLLProxy(zhTranslations);
+  const enLL = buildLLProxy(enTranslations);
 
   return {
     baseLocale: 'zh-CN' as const,
     locales: ['zh-CN', 'en-US'],
     isLocale: (l: string) => ['zh-CN', 'en-US'].includes(l),
     detectLocale: () => 'zh-CN' as const,
-    i18nObject: () => LL,
-    i18n: () => ({ 'zh-CN': LL, 'en-US': LL }),
+    i18nObject: (locale?: string) => (locale === 'en-US' ? enLL : zhLL),
+    i18n: () => ({ 'zh-CN': zhLL, 'en-US': enLL }),
     i18nString: () => (s: string) => s,
     extendDictionary: (d: unknown) => d,
     loadedLocales: {},

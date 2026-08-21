@@ -2,8 +2,8 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { DataSourcePanel } from '@/components/sidebar/DataSourcePanel';
 import { useDatasourceStore } from '@/stores/datasource';
+import { switchLocale } from '@/i18n';
 import type { DataItem, DatasourceDescription, DatasourceConnection } from '@/types/datasource';
-
 const { mockDatasource, mockConnection, mockItem } = vi.hoisted(() => {
   const mockDatasource: DatasourceDescription = {
     id: 'eolink',
@@ -46,10 +46,13 @@ vi.mock('@/services/tauri/datasource', () => ({
   saveConnections: vi.fn(),
 }));
 
-import { datasourceBrowse } from '@/services/tauri/datasource';
+import { listDatasources, datasourceBrowse, loadConnections } from '@/services/tauri/datasource';
 
 describe('DataSourcePanel', () => {
   beforeEach(() => {
+    switchLocale('zh-CN');
+    vi.mocked(listDatasources).mockResolvedValue([mockDatasource]);
+    vi.mocked(loadConnections).mockResolvedValue([mockConnection]);
     vi.mocked(datasourceBrowse).mockResolvedValue([mockItem]);
     useDatasourceStore.getState().reset();
     useDatasourceStore.setState({
@@ -118,6 +121,38 @@ describe('DataSourcePanel', () => {
       expect(title).toContain('[POST] 创建订单');
       expect(title).toContain('POST /v3/api/orders');
       expect(title).toContain('创建新订单接口');
+    });
+  });
+
+  it('renders default group in en-US when items have named groups and empty groups', async () => {
+    switchLocale('en-US');
+    const itemsWithEmptyGroup: DataItem[] = [
+      mockItem, // has group '用户模块'
+      {
+        id: 'proj_1:api_1003',
+        name: '未分类接口',
+        protocol: 'http',
+        method: 'GET',
+        path: '/v3/api/misc',
+        summary: '杂项接口',
+        extra: [],
+      },
+    ];
+
+    vi.mocked(datasourceBrowse).mockResolvedValue(itemsWithEmptyGroup);
+    useDatasourceStore.setState({
+      descriptions: [mockDatasource],
+      connections: [mockConnection],
+      browseCache: {
+        'eolink/api/': itemsWithEmptyGroup,
+      },
+    });
+
+    render(<DataSourcePanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Default Group')).toBeInTheDocument();
+      expect(screen.getByText('用户模块')).toBeInTheDocument();
     });
   });
 });
