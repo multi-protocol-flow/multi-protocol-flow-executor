@@ -1347,6 +1347,7 @@ pub struct EndConfig;
 /// 保证向前兼容——反序列化未知节点类型不会报错。
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
+#[allow(clippy::large_enum_variant)]
 pub enum NodeData {
     /// 入口节点配置
     Entry(EntryConfig),

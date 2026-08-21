@@ -11,7 +11,7 @@ Layer 0 leaf crate. Foundation of the entire workspace every other crate depends
 ```
 src/
 ├── lib.rs              # Module declarations + re-exports
-├── node.rs             # NodeType enum (89+ variants), Node struct, Port, PortType
+├── node.rs             # Node struct, Port, PortType, NodePosition
 ├── node_config.rs      # NodeData enum (~14 protocol config structs + Entry/End/Conditional/Script/Assertion/VariableExtractor)
 ├── node_types.rs       # Node type string constants
 ├── flow.rs             # Flow struct (nodes + connections + initial_variables)
@@ -45,7 +45,7 @@ src/
 
 | Task | File |
 |------|------|
-| Add new node type | `node.rs` (NodeType variant) + `node_config.rs` (NodeData variant + config struct) + `node_types.rs` (string constant) + `registry.rs` (register plugin) |
+| Add new node type | `node_config.rs` (NodeData variant + config struct) + `node_types.rs` (string constant) + `registry.rs` (register plugin) |
 | Modify variable replacement | `variable.rs` (VariablePool, template resolution) + `context.rs` (ExecutionContext variable scopes) |
 | Modify error classification | `error.rs` (ErrorKind + ErrorDetail) |
 | Add/modify provider trait | `traits/` — create or edit `<protocol>_provider.rs` |
@@ -63,7 +63,7 @@ src/
 - **ErrorKind** (`error.rs`): Two-tier classification — `Fatal` (stops flow) vs `Recoverable` (continues). Includes typed error codes.
 - **ExecutionContext** (`context.rs`): Runtime variable store with scoped resolution. Holds flow inputs, node outputs, proxy state.
 - **NodeData** (`node_config.rs`): 14-protocol enum with ~120 config struct variants. All protocol-specific configuration.
-- **NodeType** (`node.rs`): `#[serde(rename_all = "snake_case")]` enum with 89+ variants. Serialized with frontend.
+- **node_types** (`node_types.rs`): String constants for built-in and protocol node types.
 
 ## CONVENTIONS
 

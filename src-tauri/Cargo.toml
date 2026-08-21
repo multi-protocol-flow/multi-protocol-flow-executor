@@ -38,7 +38,7 @@ futures-util = "0.3"
 http = "1"
 rustls-pemfile = "2"
 jsonpath-rust = "1.0.4"
-
+tempfile = "3.0"
 # Workspace Lint 配置
 [workspace.lints.rust]
 unsafe_code = "forbid"
@@ -157,8 +157,7 @@ assert_cmd = "2.0"
 predicates = "3"
 proptest = "1.4"
 wiremock = "0.6"
-tempfile = "3.0"
-# WebSocket 依赖测试
+tempfile = { workspace = true }
 tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
 futures-util = { workspace = true }
 rustls = { workspace = true, features = ["ring"] }

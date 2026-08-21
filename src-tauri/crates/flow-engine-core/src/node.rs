@@ -2,90 +2,6 @@
 
 use crate::node_config::NodeData;
 
-/// 节点类型枚举
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum NodeType {
-    /// 入口节点
-    Entry,
-    /// 结束节点
-    #[serde(rename = "end")]
-    End,
-    /// HTTP 请求节点
-    Http,
-    /// 条件分支节点
-    Conditional,
-    /// WebSocket 连接节点
-    #[serde(rename = "ws_connect")]
-    WsConnect,
-    /// WebSocket 发送采集节点
-    #[serde(rename = "ws_send_collect")]
-    WsSendCollect,
-    /// WebSocket 关闭节点
-    #[serde(rename = "ws_close")]
-    WsClose,
-    /// 断言节点
-    #[serde(rename = "assertion")]
-    Assertion,
-    /// 脚本节点
-    #[serde(rename = "script")]
-    Script,
-    /// TCP 连接节点
-    #[serde(rename = "tcp_connect")]
-    TcpConnect,
-    /// TCP 发送节点
-    #[serde(rename = "tcp_send")]
-    TcpSend,
-    /// TCP 关闭节点
-    #[serde(rename = "tcp_close")]
-    TcpClose,
-    /// TCP 接收节点
-    #[serde(rename = "tcp_receive")]
-    TcpReceive,
-    /// UDP 绑定节点
-    #[serde(rename = "udp_bind")]
-    UdpBind,
-    /// UDP 发送节点
-    #[serde(rename = "udp_send_to")]
-    UdpSendTo,
-    /// UDP 接收节点
-    #[serde(rename = "udp_recv_from")]
-    UdpRecvFrom,
-    /// UDP 关闭节点
-    #[serde(rename = "udp_close")]
-    UdpClose,
-    /// SSE 连接节点
-    #[serde(rename = "sse_connect")]
-    SseConnect,
-    /// SSE 监听事件节点
-    #[serde(rename = "sse_listen")]
-    SseListen,
-    /// SSE 断开连接节点
-    #[serde(rename = "sse_disconnect")]
-    SseDisconnect,
-    /// GraphQL 连接节点
-    #[serde(rename = "graphql_connect")]
-    GraphqlConnect,
-    /// GraphQL 查询节点 (Query + Mutation)
-    #[serde(rename = "graphql_query")]
-    GraphqlQuery,
-    /// GraphQL 订阅节点
-    #[serde(rename = "graphql_subscribe")]
-    GraphqlSubscribe,
-    /// GraphQL Schema 探索节点
-    #[serde(rename = "graphql_introspect")]
-    GraphqlIntrospect,
-    /// GraphQL 断开连接节点
-    #[serde(rename = "graphql_disconnect")]
-    GraphqlDisconnect,
-    /// 变量提取节点
-    #[serde(rename = "variable_extractor")]
-    VariableExtractor,
-    /// 代理设置节点
-    #[serde(rename = "proxy")]
-    Proxy,
-}
-
 /// 节点位置结构体
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct NodePosition {
@@ -306,19 +222,4 @@ mod tests {
         assert_eq!(ports_ref[1].id, "port-2");
     }
 
-    #[test]
-    fn test_node_type_enum() {
-        assert_eq!(
-            serde_json::to_string(&NodeType::Entry).unwrap_or_else(|e| panic!("{e}")),
-            r#""entry""#
-        );
-        assert_eq!(
-            serde_json::to_string(&NodeType::Http).unwrap_or_else(|e| panic!("{e}")),
-            r#""http""#
-        );
-        assert_eq!(
-            serde_json::to_string(&NodeType::Conditional).unwrap_or_else(|e| panic!("{e}")),
-            r#""conditional""#
-        );
-    }
 }
