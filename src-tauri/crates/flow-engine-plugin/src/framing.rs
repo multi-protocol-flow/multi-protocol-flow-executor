@@ -68,7 +68,7 @@ impl<R: AsyncRead + Unpin> FrameReader<R> {
             max_line,
             bom_consumed: false,
             eof: false,
-            buf: Vec::new(),
+            buf: Vec::with_capacity(READ_CHUNK * 2),
         }
     }
 
@@ -161,11 +161,19 @@ impl<W: AsyncWrite + Unpin> FrameWriter<W> {
     /// The payload must be pre-serialized and UTF-8-valid; the framing layer
     /// does not re-validate (the writer is the hot path).
     pub async fn write_frame(&mut self, payload: &[u8]) -> io::Result<()> {
-        self.inner.write_all(payload).await?;
-        self.inner.write_all(&[LINE_DELIMITER]).await?;
+        if payload.len() < 4096 {
+            let mut stack_buf = [0u8; 4096];
+            stack_buf[..payload.len()].copy_from_slice(payload);
+            stack_buf[payload.len()] = LINE_DELIMITER;
+            self.inner.write_all(&stack_buf[..payload.len() + 1]).await?;
+        } else {
+            let mut combined = Vec::with_capacity(payload.len() + 1);
+            combined.extend_from_slice(payload);
+            combined.push(LINE_DELIMITER);
+            self.inner.write_all(&combined).await?;
+        }
         self.inner.flush().await
     }
-
     /// Flushes any buffered bytes (no-op after `write_frame`'s flush).
     pub async fn flush(&mut self) -> io::Result<()> {
         self.inner.flush().await

@@ -247,7 +247,7 @@ async fn read_delimited<R: AsyncReadExt + Unpin>(
     delimiter: &[u8],
     max_frame_size: usize,
 ) -> Result<Vec<u8>, String> {
-    let mut buf = Vec::new();
+    let mut buf = Vec::with_capacity(1024.min(max_frame_size));
     let mut byte = [0u8; 1];
 
     loop {
@@ -312,7 +312,7 @@ async fn read_until_timeout<R: AsyncReadExt + Unpin>(
     timeout_ms: u64,
     max_frame_size: usize,
 ) -> Result<Vec<u8>, String> {
-    let mut buf = Vec::new();
+    let mut buf = Vec::with_capacity(4096.min(max_frame_size));
     let mut tmp = [0u8; 4096];
     let start = std::time::Instant::now();
     let total_timeout = std::time::Duration::from_millis(timeout_ms);
