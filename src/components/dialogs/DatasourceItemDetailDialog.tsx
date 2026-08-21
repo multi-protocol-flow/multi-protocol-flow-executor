@@ -148,7 +148,7 @@ export function DatasourceItemDetailDialog({
       toast.success(LL.datasource.copy_success());
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Failed to copy to clipboard');
+      toast.error(LL.datasource.copy_failed());
     }
   }, [rawData, LL]);
 
@@ -291,15 +291,15 @@ export function DatasourceItemDetailDialog({
               <table className="w-full text-xs text-left">
                 <tbody>
                   <tr className="border-b border-border bg-muted/20">
-                    <td className="w-28 px-3 py-2 font-medium text-muted-foreground">条目 ID</td>
+                    <td className="w-28 px-3 py-2 font-medium text-muted-foreground">{LL.datasource.item_id()}</td>
                     <td className="px-3 py-2 font-mono text-foreground select-all">{item.id}</td>
                   </tr>
                   <tr className="border-b border-border">
-                    <td className="px-3 py-2 font-medium text-muted-foreground">接口名称</td>
+                    <td className="px-3 py-2 font-medium text-muted-foreground">{LL.datasource.item_name()}</td>
                     <td className="px-3 py-2 text-foreground font-medium">{detailItem?.name || item.name}</td>
                   </tr>
                   <tr className="border-b border-border bg-muted/20">
-                    <td className="px-3 py-2 font-medium text-muted-foreground">请求方法</td>
+                    <td className="px-3 py-2 font-medium text-muted-foreground">{LL.datasource.method()}</td>
                     <td className="px-3 py-2">
                       <Badge variant="secondary" className="font-mono text-[11px]">
                         {detailItem?.method?.toUpperCase() || item.method?.toUpperCase() || 'N/A'}
@@ -307,18 +307,18 @@ export function DatasourceItemDetailDialog({
                     </td>
                   </tr>
                   <tr className="border-b border-border">
-                    <td className="px-3 py-2 font-medium text-muted-foreground">请求路径</td>
+                    <td className="px-3 py-2 font-medium text-muted-foreground">{LL.datasource.path()}</td>
                     <td className="px-3 py-2 font-mono text-foreground select-all">
                       {detailItem?.path || item.path || 'N/A'}
                     </td>
                   </tr>
                   <tr className="border-b border-border bg-muted/20">
-                    <td className="px-3 py-2 font-medium text-muted-foreground">所属数据源</td>
+                    <td className="px-3 py-2 font-medium text-muted-foreground">{LL.datasource.source_datasource()}</td>
                     <td className="px-3 py-2 text-foreground">{datasource.display_name} ({datasource.id})</td>
                   </tr>
                   {detailItem?.summary && (
                     <tr className="border-b border-border">
-                      <td className="px-3 py-2 font-medium text-muted-foreground">简介描述</td>
+                      <td className="px-3 py-2 font-medium text-muted-foreground">{LL.datasource.description()}</td>
                       <td className="px-3 py-2 text-foreground leading-relaxed">{detailItem.summary}</td>
                     </tr>
                   )}
@@ -329,7 +329,7 @@ export function DatasourceItemDetailDialog({
             {/* 扩展属性 */}
             {(detailItem?.extra ?? item.extra).length > 0 && (
               <div className="space-y-1.5">
-                <span className="text-xs font-semibold text-muted-foreground">平台属性 (Extra)</span>
+                <span className="text-xs font-semibold text-muted-foreground">{LL.datasource.extra_properties()}</span>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {(detailItem?.extra ?? item.extra).map((ext, idx) => (
                     <div key={idx} className="p-2 rounded-md border border-border bg-muted/20 text-xs">
@@ -347,7 +347,7 @@ export function DatasourceItemDetailDialog({
           {/* Tab 3: 转换节点模板预览 */}
           <TabsContent value="template" className="flex-1 p-4 m-0 min-h-0 overflow-y-auto scrollbar-thin space-y-3">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>可落画布节点模板 (NodeTemplate)：</span>
+              <span>{LL.datasource.node_template_label()}</span>
               {template && (
                 <span className="font-mono text-foreground">
                   type_id: <strong>{template.type_id}</strong>

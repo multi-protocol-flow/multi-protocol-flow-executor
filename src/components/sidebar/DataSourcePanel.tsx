@@ -341,13 +341,13 @@ function ResourceLevel({
       if (groupName) {
         hasNamedGroup = true;
       }
-      const key = groupName || '默认分组';
+      const key = groupName || LL.datasource.default_group();
       if (!groups[key]) groups[key] = [];
       groups[key].push(item);
     }
 
     return hasNamedGroup ? groups : null;
-  }, [items, resource.children]);
+  }, [items, resource.children, LL]);
 
   return (
     <div>
