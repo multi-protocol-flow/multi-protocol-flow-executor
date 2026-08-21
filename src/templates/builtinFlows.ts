@@ -539,5 +539,3 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
   // ── 组合模板 ──
 ];
 
-/** 热门模板（前 4 个） */
-export const POPULAR_TEMPLATES = FLOW_TEMPLATES.slice(0, 4);

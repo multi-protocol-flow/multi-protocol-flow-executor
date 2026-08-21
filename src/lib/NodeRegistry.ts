@@ -195,53 +195,6 @@ export function getBadgeClassForType(typeId: string): string {
   return badgeMap[typeId] ?? 'bg-slate-100 text-slate-700';
 }
 
-/**
- * 从元数据构建节点类型 → 颜色映射
- *
- * @param metadata - 节点元数据数组
- * @returns type_id → 十六进制颜色 的映射
- */
-export function buildTypeColorMap(
-  metadata: NodeMetadata[]
-): Record<string, string> {
-  const map: Record<string, string> = {};
-  for (const m of metadata) {
-    map[m.type_id] = m.color;
-  }
-  return map;
-}
-
-/**
- * 从元数据构建节点类型 → 显示名称映射
- *
- * @param metadata - 节点元数据数组
- * @returns type_id → display_name 的映射
- */
-export function buildTypeNameMap(
-  metadata: NodeMetadata[]
-): Record<string, string> {
-  const map: Record<string, string> = {};
-  for (const m of metadata) {
-    map[m.type_id] = m.display_name;
-  }
-  return map;
-}
-
-/**
- * 从元数据构建节点类型 → 默认配置映射
- *
- * @param metadata - 节点元数据数组
- * @returns type_id → default_config 的映射
- */
-export function buildDefaultConfigMap(
-  metadata: NodeMetadata[]
-): Record<string, Record<string, unknown>> {
-  const map: Record<string, Record<string, unknown>> = {};
-  for (const m of metadata) {
-    map[m.type_id] = m.default_config;
-  }
-  return map;
-}
 
 /**
  * 获取分类的排序权重
