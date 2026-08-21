@@ -72,7 +72,7 @@ pub async fn execute(
 
     // 2. 加载流程
     let flow = flow_engine::storage::load_flow(flow_path)
-        .map_err(|e| super::CliError::Execution(format!("Failed to load flow: {}", e)))?;
+        .map_err(|e| super::CliError::execution(format!("Failed to load flow: {}", e)))?;
 
     // 3. 解析变量
     let variables: Option<serde_json::Value> = if vars.is_empty() {

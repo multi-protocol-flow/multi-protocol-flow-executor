@@ -121,7 +121,7 @@ async fn execute_install(
     let plugins = client
         .list_plugins()
         .await
-        .map_err(|e| CliError::Execution(e.to_string()))?;
+        .map_err(|e| CliError::execution(e.to_string()))?;
 
     let plugin = plugins
         .iter()
@@ -129,7 +129,7 @@ async fn execute_install(
             plugin.name == name && version.is_none_or(|v| plugin.version == v)
         })
         .ok_or_else(|| {
-            CliError::Execution(format!(
+            CliError::execution(format!(
                 "plugin {name}{} not found in marketplace",
                 version.map(|v| format!("@{v}")).unwrap_or_default()
             ))
@@ -142,7 +142,7 @@ async fn execute_install(
         force,
     )
     .await
-    .map_err(|e| CliError::Execution(e.to_string()))?;
+    .map_err(|e| CliError::execution(e.to_string()))?;
 
     let output = CliOutput::success(json!({
         "name": info.name,

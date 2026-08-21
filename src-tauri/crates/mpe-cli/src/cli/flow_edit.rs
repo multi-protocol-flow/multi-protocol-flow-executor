@@ -58,14 +58,47 @@ pub async fn execute(_format: &str, command: FlowEditCommands) -> Result<(), Cli
     }
 }
 
-/// Parse string as `NodeType`
+/// Parse string as node type
 fn parse_node_type(type_str: &str) -> Result<String, CliError> {
-    // Validate node type string (via serde deserialization into NodeType)
-    let _node_type: flow_engine::node::NodeType =
-        serde_json::from_value(serde_json::Value::String(type_str.to_string())).map_err(|e| {
-            CliError::InvalidArgs(format!("invalid node type '{}': {}", type_str, e))
-        })?;
-    Ok(type_str.to_string())
+    let is_known = matches!(
+        type_str,
+        node_types::ENTRY
+            | node_types::HTTP
+            | node_types::CONDITIONAL
+            | node_types::END
+            | node_types::WS_CONNECT
+            | node_types::WS_SEND_COLLECT
+            | node_types::WS_CLOSE
+            | node_types::ASSERTION
+            | node_types::SCRIPT
+            | node_types::TCP_CONNECT
+            | node_types::TCP_SEND
+            | node_types::TCP_RECEIVE
+            | node_types::TCP_CLOSE
+            | node_types::UDP_BIND
+            | node_types::UDP_SEND_TO
+            | node_types::UDP_RECV_FROM
+            | node_types::UDP_CLOSE
+            | node_types::SSE_CONNECT
+            | node_types::SSE_LISTEN
+            | node_types::SSE_DISCONNECT
+            | node_types::GRAPHQL_CONNECT
+            | node_types::GRAPHQL_QUERY
+            | node_types::GRAPHQL_SUBSCRIBE
+            | node_types::GRAPHQL_INTROSPECT
+            | node_types::GRAPHQL_DISCONNECT
+            | "proxy"
+            | "variable_extractor"
+    ) || type_str.contains(':');
+
+    if is_known {
+        Ok(type_str.to_string())
+    } else {
+        Err(CliError::InvalidArgs(format!(
+            "invalid node type '{}'",
+            type_str
+        )))
+    }
 }
 
 /// Create `NodeData` from node type and optional config JSON
@@ -92,11 +125,33 @@ fn default_node_data(node_type: &str) -> NodeData {
             flow_engine::node_config::ConditionOperator::Equal,
             serde_json::Value::Null,
         ),
+        node_types::END => NodeData::End(Default::default()),
         node_types::WS_CONNECT => NodeData::ws_connect(""),
         node_types::WS_SEND_COLLECT => NodeData::ws_send_collect("", ""),
         node_types::WS_CLOSE => NodeData::ws_close(""),
         node_types::ASSERTION => NodeData::assertion(),
         node_types::SCRIPT => NodeData::script(""),
+        node_types::TCP_CONNECT => NodeData::TcpConnect(Default::default()),
+        node_types::TCP_SEND => NodeData::TcpSend(Default::default()),
+        node_types::TCP_RECEIVE => NodeData::TcpReceive(Default::default()),
+        node_types::TCP_CLOSE => NodeData::TcpClose(Default::default()),
+        node_types::UDP_BIND => NodeData::UdpBind(Default::default()),
+        node_types::UDP_SEND_TO => NodeData::UdpSendTo(Default::default()),
+        node_types::UDP_RECV_FROM => NodeData::UdpRecvFrom(Default::default()),
+        node_types::UDP_CLOSE => NodeData::UdpClose(Default::default()),
+        node_types::SSE_CONNECT => NodeData::SseConnect(Default::default()),
+        node_types::SSE_LISTEN => NodeData::SseListen(Default::default()),
+        node_types::SSE_DISCONNECT => NodeData::SseDisconnect(Default::default()),
+        node_types::GRAPHQL_CONNECT => NodeData::GraphqlConnect(Default::default()),
+        node_types::GRAPHQL_QUERY => NodeData::GraphqlQuery(Default::default()),
+        node_types::GRAPHQL_SUBSCRIBE => NodeData::GraphqlSubscribe(Default::default()),
+        node_types::GRAPHQL_INTROSPECT => NodeData::GraphqlIntrospect(Default::default()),
+        node_types::GRAPHQL_DISCONNECT => NodeData::GraphqlDisconnect(Default::default()),
+        "proxy" => NodeData::Proxy(Default::default()),
+        "variable_extractor" => NodeData::VariableExtractor(Default::default()),
+        _ if node_type.contains(':') => {
+            NodeData::Plugin(serde_json::json!({ "type": node_type }))
+        }
         _ => NodeData::entry(),
     }
 }
@@ -121,7 +176,7 @@ async fn execute_node_add(
     config_json: Option<&str>,
 ) -> Result<(), CliError> {
     let mut flow =
-        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::execution)?;
 
     let node_type = parse_node_type(type_str)?;
     let data = create_node_data(&node_type, config_json)?;
@@ -139,7 +194,7 @@ async fn execute_node_add(
 
     flow.nodes.push(node);
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -158,7 +213,7 @@ async fn execute_node_remove(
     node_uuid: &str,
 ) -> Result<(), CliError> {
     let mut flow =
-        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::execution)?;
 
     // Check if node exists
     let node_idx = flow
@@ -174,7 +229,7 @@ async fn execute_node_remove(
     flow.connections
         .retain(|c| c.source_node_uuid != node_uuid && c.target_node_uuid != node_uuid);
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -194,7 +249,7 @@ async fn execute_node_update(
     config_json: Option<&str>,
 ) -> Result<(), CliError> {
     let mut flow =
-        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::execution)?;
 
     let node = flow
         .nodes
@@ -210,7 +265,7 @@ async fn execute_node_update(
     }
     // No modification when config is None
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -234,7 +289,7 @@ async fn execute_connection_add(
     target_port: &str,
 ) -> Result<(), CliError> {
     let mut flow =
-        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::execution)?;
 
     // Validate source node exists
     if !flow.nodes.iter().any(|n| n.uuid == source_uuid) {
@@ -262,7 +317,7 @@ async fn execute_connection_add(
 
     flow.connections.push(connection);
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -281,7 +336,7 @@ async fn execute_connection_remove(
     connection_id: &str,
 ) -> Result<(), CliError> {
     let mut flow =
-        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::execution)?;
 
     let before = flow.connections.len();
     flow.connections.retain(|c| c.id != connection_id);
@@ -293,7 +348,7 @@ async fn execute_connection_remove(
         )));
     }
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -315,7 +370,7 @@ async fn execute_variable_set(
     value: &str,
 ) -> Result<(), CliError> {
     let mut flow =
-        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::execution)?;
 
     // Try parsing as JSON value, fallback to string
     let json_value: serde_json::Value =
@@ -330,7 +385,7 @@ async fn execute_variable_set(
         vars.insert(key.to_string(), json_value);
     }
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::execution)?;
 
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
@@ -349,7 +404,7 @@ async fn execute_variable_remove(
     key: &str,
 ) -> Result<(), CliError> {
     let mut flow =
-        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::Execution)?;
+        flow_engine::storage::load_flow_file(flow_uuid, flows_dir).map_err(CliError::execution)?;
 
     match flow.initial_variables {
         Some(ref mut vars) => {
@@ -372,8 +427,7 @@ async fn execute_variable_remove(
         }
     }
 
-    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::Execution)?;
-
+    flow_engine::storage::save_flow_file(&flow, flows_dir).map_err(CliError::execution)?;
     let flow_file = flow_engine::storage::FlowFile {
         _version: 1,
         flow,

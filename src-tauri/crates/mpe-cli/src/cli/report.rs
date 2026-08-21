@@ -15,7 +15,7 @@ pub async fn execute(_format: &str, command: ReportCommands) -> Result<(), CliEr
 async fn execute_list(format: &str) -> Result<(), CliError> {
     let app_config = config::AppConfig::load().map_err(CliError::Config)?;
     let reports = flow_engine::storage::list_reports(&app_config.reports_dir)
-        .map_err(|e| CliError::Execution(format!("Failed to list reports: {}", e)))?;
+        .map_err(|e| CliError::execution(format!("Failed to list reports: {}", e)))?;
 
     if format == "table" {
         let headers = [
@@ -51,7 +51,7 @@ async fn execute_list(format: &str) -> Result<(), CliError> {
 async fn execute_show(uuid: &str) -> Result<(), CliError> {
     let app_config = config::AppConfig::load().map_err(CliError::Config)?;
     let report = flow_engine::storage::load_report(uuid, &app_config.reports_dir)
-        .map_err(|e| CliError::Execution(format!("Failed to load report: {}", e)))?;
+        .map_err(|e| CliError::execution(format!("Failed to load report: {}", e)))?;
     let cli_output = CliOutput::success(&report);
     output::output_json(&cli_output);
     Ok(())
@@ -60,7 +60,7 @@ async fn execute_show(uuid: &str) -> Result<(), CliError> {
 async fn execute_delete(uuid: &str) -> Result<(), CliError> {
     let app_config = config::AppConfig::load().map_err(CliError::Config)?;
     flow_engine::storage::delete_report(uuid, &app_config.reports_dir)
-        .map_err(|e| CliError::Execution(format!("Failed to delete report: {}", e)))?;
+        .map_err(|e| CliError::execution(format!("Failed to delete report: {}", e)))?;
     let cli_output = CliOutput::success(serde_json::json!({"deleted": uuid}));
     output::output_json(&cli_output);
     Ok(())

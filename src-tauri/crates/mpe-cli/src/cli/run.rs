@@ -73,7 +73,7 @@ pub async fn execute(
 
     // Load flow
     let flow = flow_engine::storage::load_flow(flow_path)
-        .map_err(|e| CliError::Execution(format!("Failed to load flow: {}", e)))?;
+        .map_err(|e| CliError::execution(format!("Failed to load flow: {}", e)))?;
 
     // Parse variable overrides
     let variables = if vars.is_empty() {
@@ -135,18 +135,6 @@ pub async fn execute(
         "node_results": node_results,
     });
 
-    let cli_output = if result.success {
-        CliOutput::success(output_data)
-    } else {
-        CliOutput {
-            success: false,
-            data: Some(output_data),
-            error: result.error.clone(),
-        }
-    };
-
-    output::output_json(&cli_output);
-
     // Save report
     if !no_report {
         if let Some(ref flow_report) = result.flow_report {
@@ -158,12 +146,16 @@ pub async fn execute(
     }
 
     if !result.success {
-        return Err(CliError::Execution(
-            result
+        return Err(CliError::Execution {
+            message: result
                 .error
                 .unwrap_or_else(|| "Execution failed".to_string()),
-        ));
+            data: Some(output_data),
+        });
     }
+
+    let cli_output = CliOutput::success(output_data);
+    output::output_json(&cli_output);
 
     Ok(())
 }
@@ -220,5 +212,5 @@ async fn execute_with_streaming(
     // Wait for execution to complete
     handle
         .await
-        .map_err(|e| CliError::Execution(format!("Execution task failed: {}", e)))
+        .map_err(|e| CliError::execution(format!("Execution task failed: {}", e)))
 }

@@ -21,7 +21,7 @@ pub async fn execute(
 
     // Load flow
     let flow = flow_engine::storage::load_flow(flow_path)
-        .map_err(|e| super::CliError::Execution(format!("Failed to load flow: {}", e)))?;
+        .map_err(|e| super::CliError::execution(format!("Failed to load flow: {}", e)))?;
 
     // Validate flow with registry (structural + plugin-level validation).
     // 共享 registry（内置 + 插件）来自 build_shared_registry —— 插件节点
@@ -50,18 +50,13 @@ pub async fn execute(
         } else {
             ""
         };
-        let cli_output = CliOutput {
-            success: false,
-            data: Some(output_data),
-            error: Some(format!(
+        Err(super::CliError::Execution {
+            message: format!(
                 "Validation failed: {} error(s){}",
                 result.errors.len(),
                 hint
-            )),
-        };
-        output::output_json(&cli_output);
-        Err(super::CliError::Execution(
-            "Flow validation failed".to_string(),
-        ))
+            ),
+            data: Some(output_data),
+        })
     }
 }

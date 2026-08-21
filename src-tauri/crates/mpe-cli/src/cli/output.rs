@@ -74,6 +74,15 @@ pub fn output_error(message: impl Into<String>) {
     output_json(&output);
 }
 
+/// Output error JSON with data to stdout
+pub fn output_error_with_data<T: serde::Serialize>(message: impl Into<String>, data: Option<T>) {
+    let output = CliOutput {
+        success: false,
+        data,
+        error: Some(message.into()),
+    };
+    output_json(&output);
+}
 /// Output single-line JSON to stdout with flush (NDJSON mode)
 pub fn output_ndjson<T: serde::Serialize>(value: &T) {
     match serde_json::to_string(value) {

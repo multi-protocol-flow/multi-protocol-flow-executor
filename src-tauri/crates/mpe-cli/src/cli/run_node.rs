@@ -11,9 +11,8 @@ use flow_engine::node::Node;
 use flow_engine::node::NodePosition;
 use flow_engine::node_config::NodeData;
 use serde_json::Value;
-
+use super::output::{self, CliOutput};
 use super::CliError;
-
 // ── Main entrypoint ──────────────────────────────────────────────────
 
 /// Execute a single protocol node
@@ -68,23 +67,16 @@ pub async fn execute(
     });
 
     if result.success {
-        if let Ok(json) = serde_json::to_string_pretty(&output_data) {
-            println!("{}", json);
-        } else {
-            eprintln!("Warning: failed to serialize output data");
-        }
+        let cli_output = CliOutput::success(output_data);
+        output::output_json(&cli_output);
         Ok(())
     } else {
-        if let Ok(json) = serde_json::to_string_pretty(&output_data) {
-            eprintln!("{}", json);
-        } else {
-            eprintln!("Warning: failed to serialize output data");
-        }
-        Err(CliError::Execution(
-            result
+        Err(CliError::Execution {
+            message: result
                 .error
                 .unwrap_or_else(|| "Execution failed".to_string()),
-        ))
+            data: Some(output_data),
+        })
     }
 }
 

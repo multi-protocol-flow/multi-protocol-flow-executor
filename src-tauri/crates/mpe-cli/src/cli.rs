@@ -28,24 +28,46 @@ pub enum CliError {
     /// Configuration error
     Config(String),
     /// Execution error
-    Execution(String),
+    Execution {
+        /// Error message
+        message: String,
+        /// Optional structured error data
+        data: Option<serde_json::Value>,
+    },
     /// Invalid arguments error
     InvalidArgs(String),
     /// I/O error
     Io(String),
 }
 
+impl CliError {
+    /// Create an execution error without structured data
+    pub fn execution(message: impl Into<String>) -> Self {
+        Self::Execution {
+            message: message.into(),
+            data: None,
+        }
+    }
+
+    /// Create an execution error with structured data
+    pub fn execution_with_data(message: impl Into<String>, data: serde_json::Value) -> Self {
+        Self::Execution {
+            message: message.into(),
+            data: Some(data),
+        }
+    }
+}
+
 impl std::fmt::Display for CliError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CliError::Config(msg) => write!(f, "Configuration error: {}", msg),
-            CliError::Execution(msg) => write!(f, "Execution error: {}", msg),
+            CliError::Execution { message, .. } => write!(f, "Execution error: {}", message),
             CliError::InvalidArgs(msg) => write!(f, "Invalid arguments: {}", msg),
             CliError::Io(msg) => write!(f, "I/O error: {}", msg),
         }
     }
 }
-
 impl From<std::io::Error> for CliError {
     fn from(e: std::io::Error) -> Self {
         CliError::Io(e.to_string())
@@ -582,6 +604,10 @@ pub fn run_cli() -> i32 {
         Err(CliError::InvalidArgs(msg)) => {
             output::output_error(msg);
             output::EXIT_INVALID_ARGS
+        }
+        Err(CliError::Execution { message, data }) => {
+            output::output_error_with_data(message, data);
+            output::EXIT_FAILURE
         }
         Err(e) => {
             output::output_error(e.to_string());

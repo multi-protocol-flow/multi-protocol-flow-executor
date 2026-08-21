@@ -57,7 +57,7 @@ async fn execute_run(
 
     // 加载流程文件（使用统一 FlowFile 格式）
     let flow = flow_engine::storage::load_flow(flow_path)
-        .map_err(|e| CliError::Execution(format!("Failed to load flow file: {}", e)))?;
+        .map_err(|e| CliError::execution(format!("Failed to load flow file: {}", e)))?;
 
     // 创建压测配置
     let stress_config = flow_engine::stress_test::StressTestConfig {
@@ -85,7 +85,7 @@ async fn execute_run(
     executor
         .start()
         .await
-        .map_err(|e| CliError::Execution(format!("Failed to start stress test: {}", e)))?;
+        .map_err(|e| CliError::execution(format!("Failed to start stress test: {}", e)))?;
 
     // 流式输出事件 (NDJSON)，同时监听取消信号
     let mut final_report: Option<flow_engine::stress_test::StressTestReport> = None;
@@ -123,7 +123,7 @@ async fn execute_run(
     if let Some(path) = output_path {
         if let Some(report) = final_report {
             let json = serde_json::to_string_pretty(&report)
-                .map_err(|e| CliError::Execution(format!("Failed to serialize report: {}", e)))?;
+                .map_err(|e| CliError::execution(format!("Failed to serialize report: {}", e)))?;
             std::fs::write(path, json)
                 .map_err(|e| CliError::Io(format!("Failed to write report: {}", e)))?;
         }
@@ -139,7 +139,7 @@ async fn execute_report(command: StressReportCommands, format: &str) -> Result<(
             let app_config = config::AppConfig::load().map_err(CliError::Config)?;
             let reports = flow_engine::storage::list_stress_reports(&app_config.reports_dir)
                 .map_err(|e| {
-                    CliError::Execution(format!("Failed to list stress reports: {}", e))
+                    CliError::execution(format!("Failed to list stress reports: {}", e))
                 })?;
 
             if format == "table" {
@@ -161,13 +161,13 @@ async fn execute_report(command: StressReportCommands, format: &str) -> Result<(
         }
         StressReportCommands::Show { file_path } => {
             let report = flow_engine::storage::load_stress_report(&PathBuf::from(&file_path))
-                .map_err(|e| CliError::Execution(format!("Failed to load stress report: {}", e)))?;
+                .map_err(|e| CliError::execution(format!("Failed to load stress report: {}", e)))?;
             output::output_json(&CliOutput::success(&report));
             Ok(())
         }
         StressReportCommands::Delete { file_path } => {
             flow_engine::storage::delete_stress_report(&PathBuf::from(&file_path)).map_err(
-                |e| CliError::Execution(format!("Failed to delete stress report: {}", e)),
+                |e| CliError::execution(format!("Failed to delete stress report: {}", e)),
             )?;
             output::output_json(&CliOutput::success(
                 serde_json::json!({"deleted": file_path}),
