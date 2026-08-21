@@ -389,10 +389,13 @@ impl HttpClient {
             // 处理 Set-Cookie（所有响应包括重定向中间响应都捕获，记录来源域用于 domain 匹配）
             if let Some(ref jar) = self.cookie_jar {
                 if let Ok(mut guard) = jar.lock() {
-                    guard.store_from_response_with_url(&headers, &current_url);
+                    for val in response.headers().get_all(hyper::header::SET_COOKIE) {
+                        if let Ok(val_str) = val.to_str() {
+                            guard.store_set_cookie_value(val_str, &current_url);
+                        }
+                    }
                 }
             }
-
             // 收集响应体
             let body_bytes = response
                 .collect()
@@ -489,130 +492,6 @@ impl HttpClient {
             });
         }
     }
-}
-
-// ============================================================================
-// 向后兼容的旧接口（保留用于 http_executor.rs 过渡）
-// ============================================================================
-
-use crate::http::connector::LegacyConnection;
-use crate::http::request::RequestBuilder;
-use crate::http::response::HttpResponse as LegacyHttpResponse;
-
-/// 旧版 HTTP 客户端（保留用于向后兼容）
-pub struct LegacyHttpClient {
-    connector: Arc<crate::http::connector::HttpConnector>,
-}
-
-impl LegacyHttpClient {
-    /// 创建新的 HTTP 客户端
-    pub fn new(timeout_ms: u64) -> Self {
-        Self {
-            connector: Arc::new(crate::http::connector::HttpConnector::new(timeout_ms)),
-        }
-    }
-
-    /// 执行 HTTP 请求（旧版接口）
-    pub async fn execute_legacy(
-        &self,
-        config: &HttpRequestConfig,
-    ) -> Result<LegacyHttpResult, HttpError> {
-        let mut timing = TimingContext::new();
-
-        // 1. 建立连接
-        let mut connection = self.connector.connect(&config.url, &mut timing).await?;
-
-        // 2. 构建请求
-        let mut builder = RequestBuilder::new(&config.method, &config.url)?;
-
-        // 添加请求头
-        for (key, value) in &config.headers {
-            builder = builder.header(key, value);
-        }
-
-        // 添加请求体
-        match &config.body {
-            BodyType::None => {}
-            BodyType::Raw(data) => {
-                builder = builder.body(data.clone());
-            }
-            BodyType::Urlencoded(fields) => {
-                let encoded = UrlEncoder::encode(fields);
-                builder = builder.body(encoded.into_bytes());
-            }
-            BodyType::Multipart(multipart) => {
-                let boundary = config
-                    .multipart_boundary
-                    .clone()
-                    .unwrap_or_else(MultipartBody::generate_boundary);
-                let encoded = multipart.encode(&boundary);
-                builder = builder.body(encoded);
-            }
-        }
-
-        let request_bytes = builder.build();
-
-        log::debug!("Sending request: {} {}", config.method, config.url);
-
-        // 3. 发送请求
-        use tokio::io::AsyncWriteExt;
-        match &mut connection {
-            LegacyConnection::Http(stream) => {
-                stream
-                    .write_all(&request_bytes)
-                    .await
-                    .map_err(|e| HttpError::WriteFailed(e.to_string()))?;
-                stream
-                    .flush()
-                    .await
-                    .map_err(|e| HttpError::WriteFailed(e.to_string()))?;
-            }
-            LegacyConnection::Https(stream) => {
-                stream
-                    .write_all(&request_bytes)
-                    .await
-                    .map_err(|e| HttpError::WriteFailed(e.to_string()))?;
-                stream
-                    .flush()
-                    .await
-                    .map_err(|e| HttpError::WriteFailed(e.to_string()))?;
-            }
-        }
-
-        log::debug!("Request sent, waiting for response...");
-
-        // 4. 读取响应
-        let response = match &mut connection {
-            LegacyConnection::Http(stream) => {
-                LegacyHttpResponse::from_stream(stream, &mut timing).await?
-            }
-            LegacyConnection::Https(stream) => {
-                LegacyHttpResponse::from_stream(stream, &mut timing).await?
-            }
-        };
-
-        let timing_data = timing.calculate();
-
-        log::debug!(
-            "Response received: Status {}, Size {} bytes",
-            response.status,
-            response.body.len()
-        );
-
-        Ok(LegacyHttpResult {
-            response,
-            timing: timing_data,
-        })
-    }
-}
-
-/// 旧版 HTTP 结果
-#[derive(Debug)]
-pub struct LegacyHttpResult {
-    /// HTTP 响应，包含状态码、响应头和响应体
-    pub response: LegacyHttpResponse,
-    /// 请求各阶段计时信息（DNS/TCP/TLS/TTFB/下载）
-    pub timing: HttpTiming,
 }
 
 #[cfg(test)]

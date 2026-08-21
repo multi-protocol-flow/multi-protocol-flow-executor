@@ -24,12 +24,24 @@ pub struct Cookie {
     /// 是否仅 HTTP（不可 JS 访问）
     pub http_only: bool,
 }
+fn normalize_domain(domain: Option<&str>) -> String {
+    domain
+        .map(|d| {
+            let lower = d.to_lowercase();
+            lower.strip_prefix('.').unwrap_or(&lower).to_string()
+        })
+        .unwrap_or_default()
+}
+
+fn normalize_path(path: Option<&str>) -> String {
+    path.unwrap_or("/").to_string()
+}
 
 /// Cookie Jar（管理请求/响应的 Cookie）
 #[derive(Debug, Clone, Default)]
 pub struct CookieJar {
-    /// Cookie 存储（name -> Cookie）
-    cookies: HashMap<String, Cookie>,
+    /// Cookie 存储（(name, domain, path) -> Cookie）
+    cookies: HashMap<(String, String, String), Cookie>,
 }
 
 impl CookieJar {
@@ -42,8 +54,10 @@ impl CookieJar {
     pub fn from_initial(initial: &[flow_engine_core::node_config::CookieEntry]) -> Self {
         let mut jar = Self::new();
         for entry in initial {
+            let domain_norm = normalize_domain(entry.domain.as_deref());
+            let path_norm = normalize_path(entry.path.as_deref());
             jar.cookies.insert(
-                entry.name.clone(),
+                (entry.name.clone(), domain_norm, path_norm),
                 Cookie {
                     name: entry.name.clone(),
                     value: entry.value.clone(),
@@ -57,16 +71,22 @@ impl CookieJar {
         jar
     }
 
-    /// 为指定 URL 生成 Cookie 头值（按 domain 后缀匹配过滤）
+    /// 为指定 URL 生成 Cookie 头值（按 domain 后缀匹配与 path 匹配过滤）
     pub fn cookie_header(&self, url: &str) -> String {
-        let request_host = Url::parse(url)
-            .ok()
+        let parsed_url = Url::parse(url).ok();
+        let request_host = parsed_url
+            .as_ref()
             .and_then(|u| u.host_str().map(|h| h.to_lowercase()));
+        let request_path = parsed_url
+            .as_ref()
+            .map(|u| u.path())
+            .unwrap_or("/");
 
         self.cookies
             .values()
             .filter(|c| {
-                match (&c.domain, &request_host) {
+                // Domain 匹配
+                let domain_matches = match (&c.domain, &request_host) {
                     // 无 domain 限制 → 总是发送（向后兼容手动配置）
                     (None, _) => true,
                     // 有 domain → 后缀匹配
@@ -79,6 +99,15 @@ impl CookieJar {
                     }
                     // 有 domain 但无法解析 host → 不发送
                     (Some(_), None) => false,
+                };
+                if !domain_matches {
+                    return false;
+                }
+
+                // Path 匹配
+                match &c.path {
+                    Some(cookie_path) => request_path.starts_with(cookie_path),
+                    None => true,
                 }
             })
             .map(|c| format!("{}={}", c.name, c.value))
@@ -91,9 +120,27 @@ impl CookieJar {
         for (key, value) in headers {
             if key.to_lowercase() == "set-cookie" {
                 if let Some(cookie) = Self::parse_set_cookie(value) {
-                    self.cookies.insert(cookie.name.clone(), cookie);
+                    let domain_norm = normalize_domain(cookie.domain.as_deref());
+                    let path_norm = normalize_path(cookie.path.as_deref());
+                    self.cookies.insert((cookie.name.clone(), domain_norm, path_norm), cookie);
                 }
             }
+        }
+    }
+
+    /// 从单条 Set-Cookie 头字符串解析并存入 Jar
+    pub fn store_set_cookie_value(&mut self, header_value: &str, request_url: &str) {
+        let request_host = Url::parse(request_url)
+            .ok()
+            .and_then(|u| u.host_str().map(|h| h.to_string()));
+
+        if let Some(mut cookie) = Self::parse_set_cookie(header_value) {
+            if cookie.domain.is_none() {
+                cookie.domain = request_host;
+            }
+            let domain_norm = normalize_domain(cookie.domain.as_deref());
+            let path_norm = normalize_path(cookie.path.as_deref());
+            self.cookies.insert((cookie.name.clone(), domain_norm, path_norm), cookie);
         }
     }
 
@@ -106,19 +153,9 @@ impl CookieJar {
         headers: &HashMap<String, String>,
         request_url: &str,
     ) {
-        let request_host = Url::parse(request_url)
-            .ok()
-            .and_then(|u| u.host_str().map(|h| h.to_string()));
-
         for (key, value) in headers {
             if key.to_lowercase() == "set-cookie" {
-                if let Some(mut cookie) = Self::parse_set_cookie(value) {
-                    // host-only cookie（无 Domain 属性）→ 用请求主机名作为 domain
-                    if cookie.domain.is_none() {
-                        cookie.domain = request_host.clone();
-                    }
-                    self.cookies.insert(cookie.name.clone(), cookie);
-                }
+                self.store_set_cookie_value(value, request_url);
             }
         }
     }
