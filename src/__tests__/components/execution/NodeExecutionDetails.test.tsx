@@ -81,7 +81,7 @@ describe('NodeExecutionDetails', () => {
 
       // 检查结构化 tab 的激活状态
       const structuredTab = screen.getByRole('button', { name: '结构化' });
-      expect(structuredTab.className).toContain('border-foreground');
+      expect(structuredTab.className).toContain('bg-background');
     });
 
     it('切换到"原始 JSON"Tab', () => {
@@ -96,11 +96,11 @@ describe('NodeExecutionDetails', () => {
 
       // 检查原始 JSON tab 的激活状态
       const rawTab = screen.getByRole('button', { name: '原始 JSON' });
-      expect(rawTab.className).toContain('border-foreground');
+      expect(rawTab.className).toContain('bg-background');
       
       // 结构化 tab 应该不再是激活状态
       const structuredTab = screen.getByRole('button', { name: '结构化' });
-      expect(structuredTab.className).toContain('border-transparent');
+      expect(structuredTab.className).toContain('text-muted-foreground');
     });
 
     it('HTTP 节点结构化视图显示 HTTP 特定内容', () => {
