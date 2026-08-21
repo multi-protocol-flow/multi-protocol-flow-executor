@@ -2,7 +2,7 @@
 //!
 //! 提供 #[`tauri::command`] 包装器，调用 flow-engine 的业务逻辑。
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -16,9 +16,8 @@ use tauri_plugin_store::StoreExt;
 use crate::tauri_adapters::{create_log_sender, TauriDebugEventSender, TauriExecutionEventSender};
 use crate::{NodeRegistryState, RegistrySnapshot};
 use flow_engine::command::{
-    CreateFlowCommandInput, CreateFlowCommandOutput, DeleteNodeCommandInput,
-    DeleteNodeCommandOutput, ExecuteFlowCommandInput, ExecuteFlowCommandOutput,
-    UpdateNodeCommandInput, UpdateNodeCommandOutput,
+    CreateFlowCommandInput, CreateFlowCommandOutput, ExecuteFlowCommandInput,
+    ExecuteFlowCommandOutput,
 };
 use flow_engine::debug::DebugEvent;
 use flow_engine::execution_event::ExecutionEvent;
@@ -39,15 +38,15 @@ use flow_engine::traits::ExecutionEventSender;
 /// 管理当前流程执行会话的取消信号发送端。
 /// 使用 `std::sync::Mutex` 保护，因为锁持有时间极短（仅在存取 sender 时）。
 pub struct ExecutionSessionManager {
-    /// 取消信号发送端（watch channel）
-    cancel_sender: std::sync::Mutex<Option<tokio::sync::watch::Sender<bool>>>,
+    /// 取消信号发送端映射（会话 ID -> watch channel sender）
+    cancel_senders: std::sync::Mutex<HashMap<String, tokio::sync::watch::Sender<bool>>>,
 }
 
 impl ExecutionSessionManager {
     /// 创建新的执行会话管理器
     pub fn new() -> Self {
         Self {
-            cancel_sender: std::sync::Mutex::new(None),
+            cancel_senders: std::sync::Mutex::new(HashMap::new()),
         }
     }
 }
@@ -97,13 +96,13 @@ pub async fn execute_flow(
 ) -> Result<ExecuteFlowCommandOutput, String> {
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
+    let session_id = uuid::Uuid::new_v4().to_string();
 
     // 存储 sender 到会话管理器
     {
-        let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
-        *guard = Some(cancel_tx);
+        let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
+        guard.insert(session_id.clone(), cancel_tx);
     }
-
     // 创建队列日志发送器（调试模式同步，发布模式异步）
     let (log_sender, log_worker) = create_log_sender(on_event);
 
@@ -161,11 +160,11 @@ pub async fn execute_flow(
     };
 
     // execution complete后清理会话（take sender 使其 drop，后续 cancel_flow 调用将返回"没有活跃的执行会话"）
+    // execution complete后清理会话
     {
-        let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
-        *guard = None;
+        let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
+        guard.remove(&session_id);
     }
-    // 通知所有活跃插件：本次执行已结束（fire-and-forget）。
     // 插件据此释放 per-execution 资源（如 Mongo 连接池）。
     // 幂等：仅通知已在运行的插件，不拉起空闲插件。
     #[cfg(feature = "plugin-manager")]
@@ -184,14 +183,15 @@ pub async fn execute_flow(
 /// 幂等操作：第二次调用返回"没有活跃的执行会话"Error。
 #[tauri::command]
 pub fn cancel_flow(state: State<'_, ExecutionSessionManager>) -> Result<(), String> {
-    let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
-    match guard.take() {
-        Some(tx) => {
-            let _ = tx.send(true);
-            Ok(())
-        }
-        None => Err("No active execution session".to_string()),
+    let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
+    let senders: Vec<_> = guard.drain().collect();
+    if senders.is_empty() {
+        return Err("No active execution session".to_string());
     }
+    for (_id, tx) in senders {
+        let _ = tx.send(true);
+    }
+    Ok(())
 }
 
 /// 执行单个节点（连接性验证）
@@ -227,13 +227,13 @@ pub async fn execute_single_node(
 
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
+    let session_id = uuid::Uuid::new_v4().to_string();
 
     // 存储 sender 到会话管理器（允许前端通过 cancel_flow 取消）
     {
-        let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
-        *guard = Some(cancel_tx);
+        let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
+        guard.insert(session_id.clone(), cancel_tx);
     }
-
     let executor = flow_engine::executor::FlowExecutor::new()
         .with_registry(Arc::clone(&snap.registry))
         .with_cancel_receiver(cancel_rx)
@@ -245,10 +245,9 @@ pub async fn execute_single_node(
 
     // execution complete后清理会话
     {
-        let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
-        *guard = None;
+        let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
+        guard.remove(&session_id);
     }
-
     log::info!(
         "[SingleNode] Complete: type={}, success={}",
         type_id,
@@ -260,18 +259,6 @@ pub async fn execute_single_node(
         .into_iter()
         .next()
         .ok_or_else(|| "No execution result".to_string())
-}
-
-/// 更新节点命令（桩实现）
-#[tauri::command]
-pub fn update_node(input: UpdateNodeCommandInput, flow: Flow) -> UpdateNodeCommandOutput {
-    flow_engine::commands::update_node(input, flow)
-}
-
-/// 删除节点命令（桩实现）
-#[tauri::command]
-pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeCommandOutput {
-    flow_engine::commands::delete_node(input, flow)
 }
 
 /// 验证流程
@@ -480,21 +467,19 @@ use flow_engine::dataset_executor::{DatasetEvent, DatasetExecutionConfig};
 /// 数据驱动执行会话管理器
 ///
 /// 管理数据驱动执行的取消信号发送端。
-/// 使用 `Arc<Mutex<>>` 保护，因为锁持有时间极短，且需要在 spawn 中共享。
 pub struct DatasetExecutionSessionManager {
-    /// 取消信号发送端（watch channel）
-    cancel_sender: std::sync::Arc<std::sync::Mutex<Option<tokio::sync::watch::Sender<bool>>>>,
+    /// 取消信号发送端映射（会话 ID -> watch channel sender）
+    cancel_senders: std::sync::Arc<std::sync::Mutex<HashMap<String, tokio::sync::watch::Sender<bool>>>>,
 }
 
 impl DatasetExecutionSessionManager {
     /// 创建新的数据驱动执行会话管理器
     pub fn new() -> Self {
         Self {
-            cancel_sender: std::sync::Arc::new(std::sync::Mutex::new(None)),
+            cancel_senders: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
         }
     }
 }
-
 impl Default for DatasetExecutionSessionManager {
     fn default() -> Self {
         Self::new()
@@ -866,15 +851,6 @@ pub fn get_node_config_schema(
         .registry
         .get(&type_id)
         .and_then(|plugin| plugin.config_schema())
-}
-
-/// 获取所有已注册插件的元数据列表
-///
-/// 与 `get_registered_node_types` 相同，语义上更侧重"插件"概念。
-/// 返回全部插件（含 sidecar 插件节点）的 `NodeMetadata` 列表。
-#[tauri::command]
-pub fn list_registered_plugins(node_registry: State<'_, NodeRegistryState>) -> Vec<NodeMetadata> {
-    node_registry.snapshot().registry.all_metadata()
 }
 
 /// 转发插件配置面板的 `uiCall` 发现查询到插件进程
@@ -1330,13 +1306,13 @@ pub async fn execute_flow_with_dataset(
 
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
+    let session_id = uuid::Uuid::new_v4().to_string();
 
     // 存储 sender 到会话管理器
     {
-        let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
-        *guard = Some(cancel_tx);
+        let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
+        guard.insert(session_id.clone(), cancel_tx);
     }
-
     // 创建事件通道（mpsc → Tauri 全局事件）
     let (event_sender, mut event_receiver) = mpsc::unbounded_channel::<DatasetEvent>();
 
@@ -1351,9 +1327,9 @@ pub async fn execute_flow_with_dataset(
     // 克隆必要数据用于后台任务
     let flow = input.flow;
     let config = input.config;
-    let state_cancel = state.cancel_sender.clone();
+    let state_cancel = state.cancel_senders.clone();
+    let session_id_clone = session_id.clone();
     let registry = Arc::clone(&node_registry.snapshot().registry);
-
     // 在后台启动执行
     tokio::spawn(async move {
         let executor = flow_engine::dataset_executor::DatasetExecutor::new(registry);
@@ -1382,7 +1358,7 @@ pub async fn execute_flow_with_dataset(
 
         // execution complete后清理 cancel sender
         if let Ok(mut guard) = state_cancel.lock() {
-            *guard = None;
+            guard.remove(&session_id_clone);
         }
     });
 
@@ -1397,16 +1373,16 @@ pub async fn execute_flow_with_dataset(
 pub fn cancel_dataset_execution(
     state: State<'_, DatasetExecutionSessionManager>,
 ) -> Result<(), String> {
-    let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
-    match guard.take() {
-        Some(tx) => {
-            let _ = tx.send(true);
-            Ok(())
-        }
-        None => Err("No active data-driven execution session".to_string()),
+    let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
+    let senders: Vec<_> = guard.drain().collect();
+    if senders.is_empty() {
+        return Err("No active data-driven execution session".to_string());
     }
+    for (_id, tx) in senders {
+        let _ = tx.send(true);
+    }
+    Ok(())
 }
-
 /// 列出数据集报告
 ///
 /// 扫描报告目录中所有 dataset_* 子目录，读取 summary.json 返回摘要列表。
@@ -1577,7 +1553,6 @@ mod tests {
     use flow_engine::executor::FlowExecutor;
     use flow_engine::node::{Node, NodePosition};
     use flow_engine::node_config::NodeData;
-    use serde_json::json;
     use uuid::Uuid;
 
     #[test]
@@ -1778,168 +1753,6 @@ mod tests {
     }
 
     #[test]
-    fn test_update_node_not_implemented() {
-        // 创建一个Test Flow
-        let flow_id = Uuid::new_v4().to_string();
-        let start_node = Node {
-            uuid: format!("start-{}", flow_id),
-            node_type: "entry".to_string(),
-            name: "Start".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        };
-
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            name: "Test Flow".to_string(),
-            description: None,
-            nodes: vec![start_node],
-            connections: vec![],
-            initial_variables: None,
-            environments: vec![],
-            active_environment: None,
-            hooks: None,
-        };
-
-        let input = UpdateNodeCommandInput {
-            flow_id: flow_id.clone(),
-            node_id: format!("start-{}", flow_id),
-            data: json!({ "updated": true }),
-        };
-
-        // 更新节点
-        let output = update_node(input, flow);
-
-        // 验证更新Failed（持久化未实现）
-        assert!(!output.success, "update_node should return failure");
-        assert!(output.error.is_some(), "should have error info");
-        let error = output.error.unwrap();
-        assert!(
-            error.find("persistence not yet implemented").is_some(),
-            "error should contain 'persistence not yet implemented', got: {}",
-            error
-        );
-        assert!(
-            error
-                .find("update_node needs to load flow, update node, then save flow")
-                .is_some(),
-            "error should explain the reason"
-        );
-    }
-
-    #[test]
-    fn test_delete_start_node() {
-        // 创建一个Test Flow
-        let flow_id = Uuid::new_v4().to_string();
-        let start_node = Node {
-            uuid: format!("start-{}", flow_id),
-            node_type: "entry".to_string(),
-            name: "Start".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        };
-
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            name: "Test Flow".to_string(),
-            description: None,
-            nodes: vec![start_node],
-            connections: vec![],
-            initial_variables: None,
-            environments: vec![],
-            active_environment: None,
-            hooks: None,
-        };
-
-        let input = DeleteNodeCommandInput {
-            flow_id: flow_id.clone(),
-            node_id: format!("start-{}", flow_id),
-        };
-
-        // 尝试删除开始节点
-        let output = delete_node(input, flow);
-
-        // 验证删除Failed
-        assert!(!output.success, "deleting start node should fail");
-        assert!(output.error.is_some(), "should have error info");
-        let error = output.error.unwrap();
-        assert!(
-            error.find("cannot delete start node").is_some(),
-            "error should contain 'cannot delete start node', got: {}",
-            error
-        );
-    }
-
-    #[test]
-    fn test_delete_node_not_implemented() {
-        // 创建一个Test Flow
-        let flow_id = Uuid::new_v4().to_string();
-        let start_node = Node {
-            uuid: format!("start-{}", flow_id),
-            node_type: "entry".to_string(),
-            name: "Start".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        };
-
-        let http_node = Node {
-            uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
-            name: "HTTP Request".to_string(),
-            position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::http("https://example.com"),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        };
-
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            name: "Test Flow".to_string(),
-            description: None,
-            nodes: vec![start_node, http_node],
-            connections: vec![],
-            initial_variables: None,
-            environments: vec![],
-            active_environment: None,
-            hooks: None,
-        };
-
-        let input = DeleteNodeCommandInput {
-            flow_id: flow_id.clone(),
-            node_id: format!("http-{}", flow_id),
-        };
-
-        // 尝试删除非开始节点
-        let output = delete_node(input, flow);
-
-        // 验证删除Failed（持久化未实现）
-        assert!(!output.success, "delete_node should return failure");
-        assert!(output.error.is_some(), "should have error info");
-        let error = output.error.unwrap();
-        assert!(
-            error.find("persistence not yet implemented").is_some(),
-            "error should contain 'persistence not yet implemented', got: {}",
-            error
-        );
-        assert!(
-            error
-                .find("delete_node needs to load flow, delete node and connections, then save flow")
-                .is_some(),
-            "error should explain the reason"
-        );
-    }
-
-    #[test]
     fn test_create_flow_generates_unique_uuid() {
         let input = CreateFlowCommandInput {
             name: "Test Flow".to_string(),
@@ -2014,88 +1827,6 @@ mod tests {
 
         // 验证使用 conn.source_node_uuid 检查连接
         assert!(result.success, "flow should execute successfully");
-    }
-
-    #[test]
-    fn test_delete_node_uses_node_uuid() {
-        let flow_id = Uuid::new_v4().to_string();
-        let http_node = Node {
-            uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
-            name: "HTTP Request".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::http("https://example.com"),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        };
-
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            name: "Test Flow".to_string(),
-            description: None,
-            nodes: vec![http_node],
-            connections: vec![],
-            initial_variables: None,
-            environments: vec![],
-            active_environment: None,
-            hooks: None,
-        };
-
-        let input = DeleteNodeCommandInput {
-            flow_id: flow_id.clone(),
-            node_id: format!("http-{}", flow_id),
-        };
-
-        // verify delete_node uses node.uuid field to find node
-        let output = delete_node(input, flow);
-
-        // verify node was found (by uuid)
-        assert!(
-            !output.error.unwrap().contains("not found"),
-            "should find node by uuid"
-        );
-    }
-
-    #[test]
-    fn test_delete_node_nonexistent_uuid() {
-        let flow_id = Uuid::new_v4().to_string();
-        let start_node = Node {
-            uuid: format!("start-{}", flow_id),
-            node_type: "entry".to_string(),
-            name: "Start".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        };
-
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            name: "Test Flow".to_string(),
-            description: None,
-            nodes: vec![start_node],
-            connections: vec![],
-            initial_variables: None,
-            environments: vec![],
-            active_environment: None,
-            hooks: None,
-        };
-
-        let input = DeleteNodeCommandInput {
-            flow_id: flow_id.clone(),
-            node_id: "non-existent-uuid".to_string(),
-        };
-
-        let output = delete_node(input, flow);
-
-        // 验证找不到节点（通过 uuid）
-        assert!(!output.success, "deleting non-existent node should fail");
-        assert!(
-            output.error.unwrap().contains("not found"),
-            "error should contain 'not found'"
-        );
     }
 
     #[test]

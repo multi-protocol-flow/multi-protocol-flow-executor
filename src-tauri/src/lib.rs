@@ -40,7 +40,6 @@ pub use tauri_commands::{
     delete_flow_file,
     delete_flow_report,
     delete_folder,
-    delete_node,
     delete_stress_test_report,
     end_debug,
     execute_flow,
@@ -59,7 +58,6 @@ pub use tauri_commands::{
     list_flow_reports,
     // 文件夹管理命令
     list_folders,
-    list_registered_plugins,
     list_stress_test_reports,
     load_dataset_report,
     load_dataset_row_detail,
@@ -80,7 +78,6 @@ pub use tauri_commands::{
     // 压力测试命令
     start_stress_test,
     stop_stress_test,
-    update_node,
     // 数据集执行命令
     validate_dataset_csv,
     validate_flow,
@@ -366,8 +363,6 @@ pub fn run() {
             create_flow,
             execute_flow,
             execute_single_node,
-            update_node,
-            delete_node,
             save_flow_report,
             load_flow_report,
             list_flow_reports,
@@ -418,8 +413,6 @@ pub fn run() {
             // 节点注册表命令
             get_registered_node_types,
             get_node_config_schema,
-            list_registered_plugins,
-            // 插件配置面板 uiCall 转发命令
             #[cfg(feature = "plugin-manager")]
             plugin_ui_call,
             // 数据源插件命令（列表 / browse / get_item / get_templates / validate_config）
