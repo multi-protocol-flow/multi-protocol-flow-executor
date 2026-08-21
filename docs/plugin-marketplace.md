@@ -64,9 +64,9 @@ windows-x64 | windows-arm64 | linux-x64 | linux-arm64 | macos-x64 | macos-arm64
 | `sha256` | string | - | 归档字节的 sha256 十六进制摘要；**提供时宿主强制校验**，不匹配拒绝安装 |
 | `size` | number | - | 归档大小（字节，展示用） |
 
-### 排序约定
+### 插件版本约定
 
-**同名多版本：服务端按 `version` 降序返回**。客户端取第一个匹配项；`mpe plugin install --version <v>` 时精确匹配。
+官方插件注册表（`mpe-plugin-registry`）为每个插件**仅保留单个最新发布版本**。若未来多版本共存，服务端按 `version` 降序返回，客户端取第一个匹配项。
 
 ## 2. 下载物（zip 归档）
 
