@@ -1,11 +1,14 @@
 /**
  * useCurrentLocale - 获取当前 locale 的 hook
  *
- * 从 localStorage 读取用户存储的 locale 设置，无存储时默认 'zh-CN'。
+ * 响应式订阅 useSettingsStore 中的 locale 设置，并回退到 localStorage / 默认 'en-US'。
  * SSR 安全：使用 typeof window !== 'undefined' 守卫。
  */
 
+import { useSettingsStore } from '@/stores/settings';
+
 export function useCurrentLocale(): string {
+  const storeLocale = useSettingsStore((state) => state.locale);
   if (typeof window !== 'undefined') {
     try {
       const saved = localStorage.getItem('locale');
@@ -14,5 +17,5 @@ export function useCurrentLocale(): string {
       // localStorage 不可用时静默降级
     }
   }
-  return 'zh-CN';
+  return storeLocale || 'en-US';
 }
