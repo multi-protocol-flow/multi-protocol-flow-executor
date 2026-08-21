@@ -410,6 +410,7 @@ function ResourceLevel({
               <div key={item.id}>
                 <button
                   type="button"
+                  title={item.extra.length > 0 ? `${item.name}\n${item.extra.map((kv) => `${kv.label}: ${kv.value}`).join(' · ')}` : item.name}
                   className="w-full flex items-center gap-1.5 px-3 py-1 text-left text-sm text-foreground hover:bg-accent font-medium select-none"
                   onClick={() => {
                     const next = !isExpanded;
@@ -434,12 +435,7 @@ function ResourceLevel({
                   ) : (
                     <Folder className="w-3.5 h-3.5 text-primary shrink-0" />
                   )}
-                  <span className="truncate">{item.name}</span>
-                  {item.extra.length > 0 && (
-                    <span className="text-xs text-muted-foreground truncate">
-                      {item.extra.map((kv) => `${kv.label}: ${kv.value}`).join(' · ')}
-                    </span>
-                  )}
+                  <span className="truncate flex-1">{item.name}</span>
                 </button>
                 {isExpanded && (
                   <div className="pl-3">
@@ -475,7 +471,7 @@ function ResourceLevel({
   );
 }
 
-/** 叶子条目行：协议徽标 + method + 名称 + path + extra；可拖拽，点击打开详情弹窗 */
+/** 叶子条目行：协议徽标 + method + 名称；可拖拽，点击打开详情弹窗，鼠标 hover 展示 url 及详细信息 */
 function ItemRow({
   ds,
   item,
@@ -499,12 +495,40 @@ function ItemRow({
     [ds.id, item.id],
   );
 
+  const tooltipText = useMemo(() => {
+    const lines: string[] = [];
+
+    // 第一行：[方法/协议] 名称
+    const typeLabel = item.method || item.protocol.toUpperCase();
+    lines.push(`[${typeLabel}] ${item.name}`);
+
+    // 第二行：URL/Path
+    if (item.path) {
+      lines.push(`${item.method ? `${item.method} ` : ''}${item.path}`);
+    }
+
+    // 摘要
+    if (item.summary) {
+      lines.push(item.summary);
+    }
+
+    // 附加信息（分组、标签等）
+    if (item.extra && item.extra.length > 0) {
+      lines.push(item.extra.map((kv) => `${kv.label}: ${kv.value}`).join(' · '));
+    }
+
+    // 操作提示
+    lines.push(`${LL.datasource.view_detail()} (${LL.datasource.drag_hint()})`);
+
+    return lines.join('\n');
+  }, [item, LL]);
+
   return (
     <div
       draggable
       onDragStart={handleDragStart}
       onClick={() => onSelect(ds, item)}
-      title={`${LL.datasource.view_detail()} (${LL.datasource.drag_hint()})${item.summary ? ` — ${item.summary}` : ''}`}
+      title={tooltipText}
       className="group flex items-center gap-1.5 px-3 py-1 cursor-pointer hover:bg-accent rounded-sm select-none transition-colors"
     >
       <Icon className={cn('w-3.5 h-3.5 shrink-0', PROTOCOL_COLOR_MAP[item.protocol] ?? 'text-slate-500')} />
@@ -514,14 +538,6 @@ function ItemRow({
         </Badge>
       )}
       <span className="min-w-0 truncate text-sm text-foreground flex-1">{item.name}</span>
-      {item.path && (
-        <span className="min-w-0 truncate text-xs text-muted-foreground max-w-[120px]">{item.path}</span>
-      )}
-      {item.extra.length > 0 && (
-        <span className="min-w-0 truncate text-xs text-muted-foreground max-w-[80px]">
-          {item.extra.map((kv) => `${kv.label}: ${kv.value}`).join(' · ')}
-        </span>
-      )}
       <Button
         variant="ghost"
         size="icon"
