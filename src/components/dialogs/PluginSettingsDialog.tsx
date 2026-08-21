@@ -6,7 +6,7 @@
  * - 市场：配置市场地址并拉取插件列表（下载按钮本轮占位，下一轮接线）
  */
 import { useEffect, useState } from 'react';
-import { FolderOpen, Puzzle, Loader2, Package, Globe, Download, RefreshCw } from 'lucide-react';
+import { FolderOpen, Puzzle, Loader2, PackageCheck, Store, Globe, Download, RefreshCw, Package } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -235,9 +235,20 @@ export function PluginSettingsDialog() {
         </div>
 
         <Tabs defaultValue="installed" className="flex min-h-0 flex-1 flex-col px-6">
-          <TabsList className="mt-4 w-fit">
-            <TabsTrigger value="installed">{ll.tab_installed()}</TabsTrigger>
-            <TabsTrigger value="marketplace">{ll.tab_marketplace()}</TabsTrigger>
+          <TabsList className="mt-4 grid w-full grid-cols-2 h-10 p-1 bg-muted/60 rounded-xl border border-border/40">
+            <TabsTrigger value="installed" className="rounded-lg gap-2 text-xs sm:text-sm font-medium">
+              <PackageCheck className="w-4 h-4" />
+              <span>{ll.tab_installed()}</span>
+              {installed.length > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted-foreground/15 text-foreground leading-none">
+                  {installed.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="marketplace" className="rounded-lg gap-2 text-xs sm:text-sm font-medium">
+              <Store className="w-4 h-4" />
+              <span>{ll.tab_marketplace()}</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* ===== 已安装 Tab ===== */}

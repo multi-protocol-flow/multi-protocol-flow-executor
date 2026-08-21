@@ -238,16 +238,16 @@ export function DatasourceItemDetailDialog({
         >
           {/* Tab 导航与操作栏 */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/10">
-            <TabsList className="h-8">
-              <TabsTrigger value="raw" className="text-xs gap-1.5 px-3">
+            <TabsList className="h-8 p-0.5 bg-muted/60 border border-border/40 rounded-lg">
+              <TabsTrigger value="raw" className="text-xs gap-1.5 px-3 h-7 rounded-md">
                 <FileCode className="w-3.5 h-3.5" />
                 {LL.datasource.raw_data()}
               </TabsTrigger>
-              <TabsTrigger value="overview" className="text-xs gap-1.5 px-3">
+              <TabsTrigger value="overview" className="text-xs gap-1.5 px-3 h-7 rounded-md">
                 <Info className="w-3.5 h-3.5" />
                 {LL.datasource.overview()}
               </TabsTrigger>
-              <TabsTrigger value="template" className="text-xs gap-1.5 px-3">
+              <TabsTrigger value="template" className="text-xs gap-1.5 px-3 h-7 rounded-md">
                 <Layers className="w-3.5 h-3.5" />
                 {LL.datasource.template_preview()}
               </TabsTrigger>

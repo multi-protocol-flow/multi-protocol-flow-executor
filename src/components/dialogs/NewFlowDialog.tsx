@@ -22,7 +22,7 @@ import { flowStorage } from '@/services/storage';
 import { FLOW_TEMPLATES, type FlowTemplate, type TemplateCategory } from '@/templates/builtinFlows';
 import type { FolderInfo } from '@/services/storage';
 import type { Flow } from '@/types/flow';
-import { Check, Search } from 'lucide-react';
+import { Check, Search, FilePlus, LayoutTemplate } from 'lucide-react';
 
 /** 分类颜色映射（静态） */
 const CATEGORY_COLORS: Record<string, string> = {
@@ -191,9 +191,15 @@ export function NewFlowDialog() {
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as 'blank' | 'template'); setSelectedTemplate(null); }}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="blank">{W.blank_tab_title?.() || 'Blank'}</TabsTrigger>
-            <TabsTrigger value="template">{W.template_tab_title?.() || 'Templates'}</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 h-10 p-1 bg-muted/60 rounded-xl border border-border/40">
+            <TabsTrigger value="blank" className="rounded-lg gap-2 text-xs sm:text-sm font-medium">
+              <FilePlus className="w-4 h-4" />
+              <span>{W.blank_tab_title?.() || 'Blank'}</span>
+            </TabsTrigger>
+            <TabsTrigger value="template" className="rounded-lg gap-2 text-xs sm:text-sm font-medium">
+              <LayoutTemplate className="w-4 h-4" />
+              <span>{W.template_tab_title?.() || 'Templates'}</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* ── 空白创建 Tab ── */}
