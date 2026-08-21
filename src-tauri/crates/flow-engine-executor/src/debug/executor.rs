@@ -614,8 +614,9 @@ impl DebuggableFlowExecutor {
                 })
                 .collect();
 
-            // 快照执行前的变量状态，用于计算节点执行期间的变量变更
-            let variables_before = context.variables.get_merged_variables();
+            // 记录变量版本号（用于计算节点执行期间的变量变更）
+            context.variables.clear_pending_changes();
+            let var_version_before = context.variables.version();
 
             // 执行节点
             match self
@@ -623,10 +624,12 @@ impl DebuggableFlowExecutor {
                 .await
             {
                 Ok((next_node_ids, output_data)) => {
-                    // 计算变量变更
-                    let variables_after = context.variables.get_merged_variables();
-                    let variable_changes =
-                        compute_variable_changes(&variables_before, &variables_after);
+                    // 计算变量变更：通过版本守卫与增量追踪避免全量深克隆
+                    let variable_changes = if context.variables.version() == var_version_before {
+                        Vec::new()
+                    } else {
+                        context.variables.take_pending_changes()
+                    };
 
                     // 更新堆栈条目
                     let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
@@ -697,9 +700,11 @@ impl DebuggableFlowExecutor {
                 }
                 Err(error) => {
                     // 计算变量变更（节点可能部分修改了变量才出错）
-                    let variables_after = context.variables.get_merged_variables();
-                    let variable_changes =
-                        compute_variable_changes(&variables_before, &variables_after);
+                    let variable_changes = if context.variables.version() == var_version_before {
+                        Vec::new()
+                    } else {
+                        context.variables.take_pending_changes()
+                    };
 
                     // 更新堆栈条目
                     let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
@@ -1298,30 +1303,6 @@ impl DebuggableFlowExecutor {
     }
 }
 
-/// 计算变量变更列表
-///
-/// 对比变量快照前后的差异，生成 `VariableChange` 列表
-fn compute_variable_changes(
-    variables_before: &std::collections::HashMap<String, serde_json::Value>,
-    variables_after: &std::collections::HashMap<String, serde_json::Value>,
-) -> Vec<flow_engine_core::report::VariableChange> {
-    let mut changes = Vec::new();
-
-    // 检测新增和修改的变量
-    for (key, new_value) in variables_after {
-        let old_value = variables_before.get(key).cloned();
-        // 只有值真正变化时才记录
-        if old_value.as_ref() != Some(new_value) {
-            changes.push(flow_engine_core::report::VariableChange {
-                key: key.clone(),
-                old_value,
-                new_value: new_value.clone(),
-            });
-        }
-    }
-
-    changes
-}
 
 #[cfg(test)]
 mod tests {

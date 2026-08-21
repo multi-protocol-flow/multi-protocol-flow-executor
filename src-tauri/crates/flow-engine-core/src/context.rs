@@ -3,7 +3,7 @@
 use crate::execution_event::ExecutionEvent;
 use crate::log_event::LogEvent;
 use crate::node_config::ProxyMode;
-use crate::report::NodeExecutionReport;
+use crate::report::{NodeExecutionReport, VariableChange};
 use crate::traits::{DebugEventSender, ExecutionEventSender, LogSender};
 use crate::variable::Variable;
 use crate::ws_stream::{WsConnectionStream, WsMessage};
@@ -510,6 +510,12 @@ impl ExecutionContext {
 pub struct VariablePool {
     /// 变量列表
     pub variables: Vec<Variable>,
+    /// 版本号，用于快速检测变量池是否发生变更
+    #[serde(default, skip_serializing)]
+    pub version: u64,
+    /// 当前节点执行期间记录的变更
+    #[serde(default, skip_serializing)]
+    pub pending_changes: Vec<VariableChange>,
 }
 
 /// `VariableStorage` 是 `VariablePool` 的类型别名（向后兼容）
@@ -524,7 +530,27 @@ impl VariablePool {
     pub fn new() -> Self {
         Self {
             variables: Vec::new(),
+            version: 0,
+            pending_changes: Vec::new(),
         }
+    }
+
+    /// 获取当前变量池版本号
+    pub fn version(&self) -> u64 {
+        self.version
+    }
+
+    /// 提取并清空当前节点累积的变量变更记录
+    pub fn take_pending_changes(&mut self) -> Vec<VariableChange> {
+        let mut changes = std::mem::take(&mut self.pending_changes);
+        changes.retain(|c| c.old_value.as_ref() != Some(&c.new_value));
+        changes.sort_by(|a, b| a.key.cmp(&b.key));
+        changes
+    }
+
+    /// 清空当前累积的变量变更记录
+    pub fn clear_pending_changes(&mut self) {
+        self.pending_changes.clear();
     }
 
     /// 设置变量（添加或更新）
@@ -537,17 +563,37 @@ impl VariablePool {
     /// * `value` - 变量值
     /// * `source_node_uuid` - 来源节点 UUID
     pub fn set_variable(&mut self, name: String, value: Value, source_node_uuid: String) {
-        // 查找是否已存在同名变量
+        let mut old_val = None;
+        let mut value_changed = true;
+
         if let Some(existing) = self.variables.iter_mut().find(|v| v.name == name) {
-            existing.value = value;
-            existing.source_node_uuid = source_node_uuid;
+            if existing.value == value {
+                value_changed = false;
+            } else {
+                old_val = Some(existing.value.clone());
+                existing.value = value.clone();
+                existing.source_node_uuid = source_node_uuid;
+            }
         } else {
             self.variables.push(Variable {
-                name,
-                value,
+                name: name.clone(),
+                value: value.clone(),
                 source_node_uuid,
                 description: None,
             });
+        }
+
+        if value_changed {
+            self.version = self.version.wrapping_add(1);
+            if let Some(existing_change) = self.pending_changes.iter_mut().find(|c| c.key == name) {
+                existing_change.new_value = value;
+            } else {
+                self.pending_changes.push(VariableChange {
+                    key: name,
+                    old_value: old_val,
+                    new_value: value,
+                });
+            }
         }
     }
 
@@ -592,7 +638,11 @@ impl VariablePool {
     pub fn remove_node_variables(&mut self, node_uuid: &str) -> usize {
         let original_len = self.variables.len();
         self.variables.retain(|v| v.source_node_uuid != node_uuid);
-        original_len - self.variables.len()
+        let removed = original_len - self.variables.len();
+        if removed > 0 {
+            self.version = self.version.wrapping_add(1);
+        }
+        removed
     }
 
     /// 获取合并后的变量（用于变量替换）

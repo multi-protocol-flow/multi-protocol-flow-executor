@@ -11,7 +11,11 @@ use crate::node::Node;
 use async_trait::async_trait;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
+#[allow(clippy::expect_used)]
+static VARIABLE_REGEX: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"\{\{([^}]+)\}\}").expect("valid regex pattern"));
 /// 替换模板中的变量
 ///
 /// # 参数
@@ -27,10 +31,14 @@ use std::collections::HashMap;
 /// - 严格模式：变量不存在时返回Error
 /// - 不支持索引访问（如 `items[0]`）和函数调用
 pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<String, String> {
-    let re = regex::Regex::new(r"\{\{([^}]+)\}\}").map_err(|e| format!("Regex error: {}", e))?;
+    // 快速旁路：无变量占位符直接返回，避免正则扫描与额外分配
+    if !template.contains("{{") {
+        return Ok(template.to_string());
+    }
+
     let mut result = template.to_string();
 
-    for cap in re.captures_iter(template) {
+    for cap in VARIABLE_REGEX.captures_iter(template) {
         let full_match = cap.get(0).ok_or("Regex capture 0 missing")?.as_str();
         let variable_path = cap.get(1).ok_or("Regex capture 1 missing")?.as_str().trim();
 
@@ -47,9 +55,9 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
         // 按点分割路径
         let path_parts: Vec<&str> = variable_path.split('.').collect();
 
-        // 从合并后的变量中获取值
-        let merged_vars = context.variables.get_merged_variables();
-        let mut current_value: Option<&serde_json::Value> = merged_vars.get(path_parts[0]);
+        // 直接借用查找，避免全量 HashMap 克隆
+        let mut current_value: Option<&serde_json::Value> =
+            context.variables.get_variable(path_parts[0]);
         let mut current_path = String::new();
 
         if current_value.is_none() {
@@ -166,4 +174,71 @@ pub trait NodeExecutor: Send + Sync {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_replace_variables_fast_path() {
+        let context = ExecutionContext::new("flow-1".to_string(), 0);
+        let plain = "Hello world without variables";
+        let res = replace_variables(plain, &context).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(res, plain);
+    }
+
+    #[test]
+    fn test_replace_variables_borrowed_lookup() {
+        let mut context = ExecutionContext::new("flow-1".to_string(), 0);
+        context.variables.set_variable(
+            "user".to_string(),
+            json!({"profile": {"name": "Alice", "age": 30}}),
+            "node-1".to_string(),
+        );
+        context.variables.set_variable(
+            "active".to_string(),
+            json!(true),
+            "node-1".to_string(),
+        );
+
+        let template = "User {{user.profile.name}} is {{user.profile.age}} years old, active: {{active}}";
+        let res = replace_variables(template, &context).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(res, "User Alice is 30 years old, active: true");
+    }
+
+    #[test]
+    fn test_replace_variables_error_compat() {
+        let mut context = ExecutionContext::new("flow-1".to_string(), 0);
+        context.variables.set_variable(
+            "user".to_string(),
+            json!({"profile": "not an object"}),
+            "node-1".to_string(),
+        );
+
+        let err1 = replace_variables("{{missing}}", &context)
+            .err()
+            .unwrap_or_else(|| panic!("expected Err"));
+        assert_eq!(err1, "Variable not found: missing");
+
+        let err2 = replace_variables("{{user.missing}}", &context)
+            .err()
+            .unwrap_or_else(|| panic!("expected Err"));
+        assert_eq!(err2, "Variable not found: missing");
+        let err3 = replace_variables("{{user.profile.missing}}", &context)
+            .err()
+            .unwrap_or_else(|| panic!("expected Err"));
+        assert_eq!(err3, "Variable path 'profile.missing' is not an object type");
+
+        let err4 = replace_variables("{{user[0]}}", &context)
+            .err()
+            .unwrap_or_else(|| panic!("expected Err"));
+        assert_eq!(err4, "Index access not supported: user[0]");
+
+        let err5 = replace_variables("{{fn()}}", &context)
+            .err()
+            .unwrap_or_else(|| panic!("expected Err"));
+        assert_eq!(err5, "Function calls not supported: fn()");
+    }
 }

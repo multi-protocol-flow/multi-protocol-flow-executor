@@ -41,37 +41,6 @@ pub struct ExecutionResult {
     pub execution_id: String,
 }
 
-/// 计算变量变更列表
-///
-/// 对比变量快照前后的差异，生成 `VariableChange` 列表
-///
-/// # 参数
-/// - `variables_before`: 变更前的变量快照
-/// - `variables_after`: 变更后的变量快照
-///
-/// # 返回
-/// - `Vec<VariableChange>`: 变量变更列表
-fn compute_variable_changes(
-    variables_before: &HashMap<String, serde_json::Value>,
-    variables_after: &HashMap<String, serde_json::Value>,
-) -> Vec<flow_engine_core::report::VariableChange> {
-    let mut changes = Vec::new();
-
-    // 检测新增和修改的变量
-    for (key, new_value) in variables_after {
-        let old_value = variables_before.get(key).cloned();
-        // 只有值真正变化时才记录
-        if old_value.as_ref() != Some(new_value) {
-            changes.push(flow_engine_core::report::VariableChange {
-                key: key.clone(),
-                old_value,
-                new_value: new_value.clone(),
-            });
-        }
-    }
-
-    changes
-}
 
 /// 根据节点类型构建 `input_data`
 ///
@@ -284,7 +253,6 @@ impl FlowExecutor {
             providers: std::collections::HashMap::new(),
             current_node_plugin_data: None,
         }
-        .with_default_providers()
         .with_default_providers();
 
         // 集成流程验证器
@@ -423,9 +391,9 @@ impl FlowExecutor {
             let node_start_time = tokio::time::Instant::now();
             let node_start_ms = flow_engine_core::utils::unix_timestamp_ms();
 
-            // 快照执行前的变量状态（必须在 execute_node 之前）
-            // 用于计算节点执行期间的变量变更
-            let variables_before = context.variables.get_merged_variables();
+            // 记录变量版本号（用于计算节点执行期间的变量变更）
+            context.variables.clear_pending_changes();
+            let var_version_before = context.variables.version();
 
             // 执行当前节点（支持取消中断 + 超时控制）
             let node_timeout_ms = node
@@ -552,13 +520,12 @@ impl FlowExecutor {
                         context.last_node_output = Some(data.clone());
                     }
 
-                    // 计算变量变更：对比前后的变量差异
-                    // 变量只会通过以下方式设置：
-                    // 1. Entry node的 initial_variables
-                    // 2. HTTP/WebSocket 节点的 output_mappings
-                    let variables_after = context.variables.get_merged_variables();
-                    let variable_changes =
-                        compute_variable_changes(&variables_before, &variables_after);
+                    // 计算变量变更：通过版本守卫与增量追踪避免全量深克隆
+                    let variable_changes = if context.variables.version() == var_version_before {
+                        Vec::new()
+                    } else {
+                        context.variables.take_pending_changes()
+                    };
 
                     // 解析 resolved_config：递归替换节点配置中的变量占位符
                     let raw_config = serde_json::to_value(&node.data).unwrap_or(json!(null));
@@ -1281,7 +1248,6 @@ impl FlowExecutor {
 
         // 2. Build execution context with unique flow id
         let mut context = ExecutionContext::new("_single_node_".to_string(), now_ms)
-            .with_default_providers()
             .with_default_providers();
 
         // 3. Inject variables from JSON object
