@@ -6930,16 +6930,86 @@ type RootTranslation = {
 		 * @param {unknown} field
 		 */
 		required_field: RequiredParams<'field'>
+		/**
+		 * 数​据​源​详​情
+		 */
 		detail_title: string
+		/**
+		 * 原​始​数​据
+		 */
 		raw_data: string
+		/**
+		 * 概​览​信​息
+		 */
 		overview: string
+		/**
+		 * 节​点​预​览
+		 */
 		template_preview: string
+		/**
+		 * 复​制​ ​J​S​O​N
+		 */
 		copy_json: string
+		/**
+		 * 已​复​制​到​剪​贴​板
+		 */
 		copy_success: string
+		/**
+		 * 复​制​到​剪​贴​板​失​败
+		 */
+		copy_failed: string
+		/**
+		 * 添​加​到​画​布
+		 */
 		add_to_canvas: string
+		/**
+		 * 已​成​功​添​加​节​点​到​画​布
+		 */
 		add_success: string
+		/**
+		 * 查​看​详​情
+		 */
 		view_detail: string
+		/**
+		 * 正​在​拉​取​最​新​详​情​.​.​.
+		 */
 		loading_detail: string
+		/**
+		 * 默​认​分​组
+		 */
+		default_group: string
+		/**
+		 * 条​目​ ​I​D
+		 */
+		item_id: string
+		/**
+		 * 接​口​名​称
+		 */
+		item_name: string
+		/**
+		 * 请​求​方​法
+		 */
+		method: string
+		/**
+		 * 请​求​路​径
+		 */
+		path: string
+		/**
+		 * 所​属​数​据​源
+		 */
+		source_datasource: string
+		/**
+		 * 简​介​描​述
+		 */
+		description: string
+		/**
+		 * 平​台​属​性​ ​(​E​x​t​r​a​)
+		 */
+		extra_properties: string
+		/**
+		 * 可​落​画​布​节​点​模​板​ ​(​N​o​d​e​T​e​m​p​l​a​t​e​)​：
+		 */
+		node_template_label: string
 	}
 	flow: {
 		/**
@@ -18253,16 +18323,86 @@ export type TranslationFunctions = {
 		 * 必填字段：{field}
 		 */
 		required_field: (arg: { field: unknown }) => LocalizedString
+		/**
+		 * 数据源详情
+		 */
 		detail_title: () => LocalizedString
+		/**
+		 * 原始数据
+		 */
 		raw_data: () => LocalizedString
+		/**
+		 * 概览信息
+		 */
 		overview: () => LocalizedString
+		/**
+		 * 节点预览
+		 */
 		template_preview: () => LocalizedString
+		/**
+		 * 复制 JSON
+		 */
 		copy_json: () => LocalizedString
+		/**
+		 * 已复制到剪贴板
+		 */
 		copy_success: () => LocalizedString
+		/**
+		 * 复制到剪贴板失败
+		 */
+		copy_failed: () => LocalizedString
+		/**
+		 * 添加到画布
+		 */
 		add_to_canvas: () => LocalizedString
+		/**
+		 * 已成功添加节点到画布
+		 */
 		add_success: () => LocalizedString
+		/**
+		 * 查看详情
+		 */
 		view_detail: () => LocalizedString
+		/**
+		 * 正在拉取最新详情...
+		 */
 		loading_detail: () => LocalizedString
+		/**
+		 * 默认分组
+		 */
+		default_group: () => LocalizedString
+		/**
+		 * 条目 ID
+		 */
+		item_id: () => LocalizedString
+		/**
+		 * 接口名称
+		 */
+		item_name: () => LocalizedString
+		/**
+		 * 请求方法
+		 */
+		method: () => LocalizedString
+		/**
+		 * 请求路径
+		 */
+		path: () => LocalizedString
+		/**
+		 * 所属数据源
+		 */
+		source_datasource: () => LocalizedString
+		/**
+		 * 简介描述
+		 */
+		description: () => LocalizedString
+		/**
+		 * 平台属性 (Extra)
+		 */
+		extra_properties: () => LocalizedString
+		/**
+		 * 可落画布节点模板 (NodeTemplate)：
+		 */
+		node_template_label: () => LocalizedString
 	}
 	flow: {
 		/**

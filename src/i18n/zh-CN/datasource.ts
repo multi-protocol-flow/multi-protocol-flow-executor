@@ -22,10 +22,19 @@ const zh_CN_datasource = {
   template_preview: '节点预览',
   copy_json: '复制 JSON',
   copy_success: '已复制到剪贴板',
+  copy_failed: '复制到剪贴板失败',
   add_to_canvas: '添加到画布',
   add_success: '已成功添加节点到画布',
   view_detail: '查看详情',
   loading_detail: '正在拉取最新详情...',
+  default_group: '默认分组',
+  item_id: '条目 ID',
+  item_name: '接口名称',
+  method: '请求方法',
+  path: '请求路径',
+  source_datasource: '所属数据源',
+  description: '简介描述',
+  extra_properties: '平台属性 (Extra)',
+  node_template_label: '可落画布节点模板 (NodeTemplate)：',
 };
-
 export default zh_CN_datasource;

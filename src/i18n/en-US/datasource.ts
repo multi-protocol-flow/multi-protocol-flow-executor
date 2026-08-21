@@ -22,10 +22,20 @@ const en_US_datasource = {
   template_preview: 'Node Preview',
   copy_json: 'Copy JSON',
   copy_success: 'Copied to clipboard',
+  copy_failed: 'Failed to copy to clipboard',
   add_to_canvas: 'Add to Canvas',
   add_success: 'Node successfully added to canvas',
   view_detail: 'View Details',
   loading_detail: 'Loading details...',
+  default_group: 'Default Group',
+  item_id: 'Item ID',
+  item_name: 'API Name',
+  method: 'Method',
+  path: 'Path',
+  source_datasource: 'Data Source',
+  description: 'Description',
+  extra_properties: 'Extra Properties',
+  node_template_label: 'Canvas Node Template (NodeTemplate):',
 };
 
 export default en_US_datasource;

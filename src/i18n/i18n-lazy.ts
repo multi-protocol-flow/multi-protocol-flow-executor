@@ -1,6 +1,9 @@
 import { i18nObject, baseLocale, isLocale } from './i18n-util';
+import { loadLocale } from './i18n-util.sync';
 import type { Locales, TranslationFunctions } from './i18n-types';
 
+loadLocale('zh-CN');
+loadLocale('en-US');
 let _LL: TranslationFunctions | null = null;
 let _currentLocale: Locales = baseLocale;
 
