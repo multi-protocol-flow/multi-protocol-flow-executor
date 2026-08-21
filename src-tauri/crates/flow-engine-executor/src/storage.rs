@@ -5,12 +5,23 @@ use flow_engine_core::flow::Flow;
 use flow_engine_core::report::{
     ExecutionMode, ExecutionStatus, FlowExecutionReport, ReportMetadata,
 };
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io::{BufReader, Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::{LazyLock, Mutex};
 use std::time::UNIX_EPOCH;
 use tempfile::NamedTempFile;
+
+/// 模块级流程元数据缓存：`(file_path)` -> `(mtime_ms, uuid, name)`
+static FLOW_METADATA_CACHE: LazyLock<Mutex<HashMap<PathBuf, (u64, String, String)>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// 使得指定路径的流程元数据缓存失效
+pub(crate) fn invalidate_flow_metadata_cache(path: &Path) {
+    let mut cache = FLOW_METADATA_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    cache.remove(path);
+}
 
 /// `FlowFile` 默认版本号
 fn default_version() -> u32 {
@@ -170,6 +181,8 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
         .persist(&file_path)
         .map_err(|e| format!("failed to persist file {:?}: {}", file_path, e))?;
 
+    invalidate_flow_metadata_cache(&file_path);
+
     Ok(())
 }
 
@@ -192,16 +205,13 @@ pub fn load_flow(path: &str) -> Result<Flow, String> {
         get_flows_dir()?.join(path)
     };
 
-    // 读取文件内容
-    let mut file = File::open(&file_path)
+    // 流式读取文件内容
+    let file = File::open(&file_path)
         .map_err(|e| format!("Failed to open file {:?}: {}", file_path, e))?;
-
-    let mut content = String::new();
-    file.read_to_string(&mut content)
-        .map_err(|e| format!("Failed to read file {:?}: {}", file_path, e))?;
+    let reader = BufReader::new(file);
 
     // 反序列化为 FlowFile 包装格式（.mpf 文件统一格式）
-    let flow_file: FlowFile = serde_json::from_str(&content)
+    let flow_file: FlowFile = serde_json::from_reader(reader)
         .map_err(|e| format!("Deserialize FlowFile Failed: {} (Flow file must use FlowFile wrapper format with _version and flow keys)", e))?;
     let flow = flow_file.flow;
 
@@ -268,24 +278,21 @@ pub fn save_flow_file_with_meta(
     let json_string = serde_json::to_string_pretty(&flow_file)
         .map_err(|e| format!("Failed to serialize flow: {}", e))?;
 
-    // 检查是否已存在同 UUID 的文件（更新场景）
+    // 检查是否已存在同 UUID 的文件（更新场景，流式轻量解析）
     let mut existing_path: Option<PathBuf> = None;
     let mut mpf_files = Vec::new();
     let _ = collect_mpf_files(flows_dir, &mut mpf_files);
     for path in &mpf_files {
-        let mut content = String::new();
-        if let Ok(mut file) = File::open(path) {
-            if file.read_to_string(&mut content).is_ok() {
-                if let Ok(existing) = serde_json::from_str::<FlowFile>(&content) {
-                    if existing.flow.uuid == flow.uuid {
-                        existing_path = Some(path.clone());
-                        break;
-                    }
+        if let Ok(file) = File::open(path) {
+            let reader = BufReader::new(file);
+            if let Ok(existing) = serde_json::from_reader::<_, FlowFileMeta>(reader) {
+                if existing.flow.uuid == flow.uuid {
+                    existing_path = Some(path.clone());
+                    break;
                 }
             }
         }
     }
-
     // 确定目标目录：保持原有文件夹位置，否则使用根目录
     let target_dir = existing_path
         .as_ref()
@@ -336,8 +343,10 @@ pub fn save_flow_file_with_meta(
     if let Some(ref old_path) = existing_path {
         if *old_path != target_path {
             let _ = fs::remove_file(old_path);
+            invalidate_flow_metadata_cache(old_path);
         }
     }
+    invalidate_flow_metadata_cache(&target_path);
 
     Ok(())
 }
@@ -350,23 +359,16 @@ pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, Stri
     let mut mpf_files = Vec::new();
     collect_mpf_files(flows_dir, &mut mpf_files)?;
 
-    // 第一遍：轻量扫描，只找文件名（不验证完整 Flow 结构）
+    // 第一遍：轻量流式扫描，只找目标 UUID（不验证完整 Flow 结构）
     let target_path = {
         let mut found = None::<PathBuf>;
         for path in &mpf_files {
-            let mut content = String::new();
-            if (|| -> Result<(), String> {
-                let mut file =
-                    File::open(path).map_err(|e| format!("Failed to open file: {}", e))?;
-                file.read_to_string(&mut content)
-                    .map_err(|e| format!("Failed to read file: {}", e))?;
-                Ok(())
-            })()
-            .is_err()
-            {
-                continue;
-            }
-            if let Ok(meta) = serde_json::from_str::<FlowFileMeta>(&content) {
+            let file = match File::open(path) {
+                Ok(f) => f,
+                Err(_) => continue,
+            };
+            let reader = BufReader::new(file);
+            if let Ok(meta) = serde_json::from_reader::<_, FlowFileMeta>(reader) {
                 if meta.flow.uuid == uuid {
                     found = Some(path.clone());
                     break;
@@ -378,13 +380,11 @@ pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, Stri
 
     match target_path {
         Some(path) => {
-            // 第二遍：读取并完整验证该文件
-            let mut content = String::new();
-            let mut file = File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
-            file.read_to_string(&mut content)
-                .map_err(|e| format!("Failed to read file: {}", e))?;
+            // 第二遍：流式读取并完整验证该文件
+            let file = File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
+            let reader = BufReader::new(file);
 
-            let flow_file: FlowFile = serde_json::from_str(&content)
+            let flow_file: FlowFile = serde_json::from_reader(reader)
                 .map_err(|e| format!("Flow file corrupted: {} - {}", path.display(), e))?;
 
             Ok(flow_file)
@@ -413,27 +413,6 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
     let mut metadata_list = Vec::new();
 
     for path in &mpf_files {
-        let mut content = String::new();
-        let read_ok = (|| -> Result<(), String> {
-            let mut file = File::open(path).map_err(|e| format!("Failed to open file: {}", e))?;
-            file.read_to_string(&mut content)
-                .map_err(|e| format!("Failed to read file: {}", e))?;
-            Ok(())
-        })();
-
-        if read_ok.is_err() {
-            continue;
-        }
-
-        // 轻量解析：仅提取 uuid 和 name，不验证完整 Flow 结构
-        let flow_meta: FlowFileMeta = match serde_json::from_str(&content) {
-            Ok(m) => m,
-            Err(e) => {
-                log::warn!("skipping corrupted flow file: {} - {}", path.display(), e);
-                continue;
-            }
-        };
-
         // 从文件系统元数据获取修改时间
         let updated_at = fs::metadata(path)
             .ok()
@@ -441,6 +420,44 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
             .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
             .map(|d| d.as_millis() as u64)
             .unwrap_or(0);
+
+        // 检查元数据缓存
+        let cached = {
+            let cache = FLOW_METADATA_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+            cache.get(path).cloned()
+        };
+
+        let (uuid, name) = match cached {
+            Some((cached_mtime, cached_uuid, cached_name))
+                if cached_mtime == updated_at && updated_at > 0 =>
+            {
+                (cached_uuid, cached_name)
+            }
+            _ => {
+                let file = match File::open(path) {
+                    Ok(f) => f,
+                    Err(e) => {
+                        log::warn!("failed to open flow file: {} - {}", path.display(), e);
+                        continue;
+                    }
+                };
+                let reader = BufReader::new(file);
+                let flow_meta: FlowFileMeta = match serde_json::from_reader(reader) {
+                    Ok(m) => m,
+                    Err(e) => {
+                        log::warn!("skipping corrupted flow file: {} - {}", path.display(), e);
+                        continue;
+                    }
+                };
+                let u = flow_meta.flow.uuid;
+                let n = flow_meta.flow.name;
+                if updated_at > 0 {
+                    let mut cache = FLOW_METADATA_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+                    cache.insert(path.clone(), (updated_at, u.clone(), n.clone()));
+                }
+                (u, n)
+            }
+        };
 
         // 计算相对文件夹路径（统一使用 / 分隔符，确保跨平台前端一致）
         let folder_path = path
@@ -450,8 +467,8 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
             .unwrap_or_default();
 
         metadata_list.push(FlowMetadata {
-            uuid: flow_meta.flow.uuid,
-            name: flow_meta.flow.name,
+            uuid,
+            name,
             file_path: path.to_string_lossy().to_string(),
             updated_at,
             folder_path,
@@ -476,22 +493,16 @@ pub fn delete_flow_file(uuid: &str, flows_dir: &Path) -> Result<(), String> {
     collect_mpf_files(flows_dir, &mut mpf_files)?;
 
     for path in mpf_files {
-        let mut content = String::new();
-        let read_ok = (|| -> Result<(), String> {
-            let mut file = File::open(&path).map_err(|e| format!("Failed to open file: {}", e))?;
-            file.read_to_string(&mut content)
-                .map_err(|e| format!("Failed to read file: {}", e))?;
-            Ok(())
-        })();
-
-        if read_ok.is_err() {
-            continue;
-        }
-
-        if let Ok(meta) = serde_json::from_str::<FlowFileMeta>(&content) {
+        let file = match File::open(&path) {
+            Ok(f) => f,
+            Err(_) => continue,
+        };
+        let reader = BufReader::new(file);
+        if let Ok(meta) = serde_json::from_reader::<_, FlowFileMeta>(reader) {
             if meta.flow.uuid == uuid {
                 fs::remove_file(&path)
                     .map_err(|e| format!("Failed to delete flow file {:?}: {}", path, e))?;
+                invalidate_flow_metadata_cache(&path);
                 return Ok(());
             }
         }
@@ -514,20 +525,11 @@ pub fn copy_flow_file(uuid: &str, flows_dir: &Path) -> Result<Flow, String> {
     let mut mpf_files = Vec::new();
     collect_mpf_files(flows_dir, &mut mpf_files)?;
     for path in &mpf_files {
-        let mut content = String::new();
-        let read_ok = (|| -> Result<(), String> {
-            let mut file = File::open(path).map_err(|e| format!("Failed to open file: {}", e))?;
-            file.read_to_string(&mut content)
-                .map_err(|e| format!("Failed to read file: {}", e))?;
-            Ok(())
-        })();
-
-        if read_ok.is_err() {
-            continue;
-        }
-
-        if let Ok(flow_file) = serde_json::from_str::<FlowFile>(&content) {
-            existing_names.insert(flow_file.flow.name);
+        if let Ok(file) = File::open(path) {
+            let reader = BufReader::new(file);
+            if let Ok(flow_meta) = serde_json::from_reader::<_, FlowFileMeta>(reader) {
+                existing_names.insert(flow_meta.flow.name);
+            }
         }
     }
 
@@ -2297,5 +2299,42 @@ mod tests {
         let list_final = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列出Failed: {e}"));
         assert_eq!(list_final.len(), 1, "多次更新后应仍只有 1 个文件");
         assert_eq!(list_final[0].name, "第三次更新");
+    }
+
+    /// 测试基于 mtime 的元数据缓存一致性与自动刷新
+    #[test]
+    fn test_flow_metadata_cache_consistency() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
+        let flows_dir = temp_dir.path();
+
+        let flow = create_test_flow("cache-001", "缓存测试流程");
+        save_flow_file(&flow, flows_dir).unwrap_or_else(|e| panic!("保存Failed: {e}"));
+
+        // 首次列表（填充缓存）
+        let list1 = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("首次列出Failed: {e}"));
+        assert_eq!(list1.len(), 1);
+        assert_eq!(list1[0].name, "缓存测试流程");
+
+        // 二次列表（命中缓存）
+        let list2 = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("二次列出Failed: {e}"));
+        assert_eq!(list2.len(), 1);
+        assert_eq!(list2[0].name, "缓存测试流程");
+        assert_eq!(list1[0].updated_at, list2[0].updated_at);
+
+        // 更新流程并再次列出
+        let mut updated = flow.clone();
+        updated.name = "缓存更新流程".to_string();
+        save_flow_file(&updated, flows_dir).unwrap_or_else(|e| panic!("更新Failed: {e}"));
+
+        let list3 = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("三次列出Failed: {e}"));
+        assert_eq!(list3.len(), 1);
+        assert_eq!(list3[0].name, "缓存更新流程");
+
+        // 删除流程
+        delete_flow_file("cache-001", flows_dir).unwrap_or_else(|e| panic!("删除Failed: {e}"));
+        let list_empty = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列出Failed: {e}"));
+        assert_eq!(list_empty.len(), 0);
     }
 }
