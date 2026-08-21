@@ -136,7 +136,7 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
     };
 
     // 确保父目录存在（处理 Windows 上的竞态条件）
-    if let Some(parent) = file_path.parent() {
+    let parent_dir = if let Some(parent) = file_path.parent() {
         if !parent
             .try_exists()
             .map_err(|e| format!("failed to check parent directory: {}", e))?
@@ -144,7 +144,10 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
             fs::create_dir_all(parent)
                 .map_err(|e| format!("failed to create parent directory {:?}: {}", parent, e))?;
         }
-    }
+        parent
+    } else {
+        Path::new(".")
+    };
 
     // 包装为 FlowFile 并序列化为 JSON
     let flow_file = FlowFile {
@@ -155,12 +158,17 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
     let json_string = serde_json::to_string_pretty(&flow_file)
         .map_err(|e| format!("failed to serialize flow: {}", e))?;
 
-    // 创建并写入文件
-    let mut file =
-        File::create(&file_path).map_err(|e| format!("failed to create file {:?}: {}", file_path, e))?;
+    // 原子写入：在同目录下创建临时文件并持久化到目标路径
+    let mut temp_file = NamedTempFile::new_in(parent_dir)
+        .map_err(|e| format!("failed to create temporary file in {:?}: {}", parent_dir, e))?;
 
-    file.write_all(json_string.as_bytes())
-        .map_err(|e| format!("failed to write file {:?}: {}", file_path, e))?;
+    temp_file
+        .write_all(json_string.as_bytes())
+        .map_err(|e| format!("failed to write temporary file: {}", e))?;
+
+    temp_file
+        .persist(&file_path)
+        .map_err(|e| format!("failed to persist file {:?}: {}", file_path, e))?;
 
     Ok(())
 }

@@ -27,9 +27,8 @@ src/
 ├── plugin_end.rs                # End node plugin
 ├── plugin_variable_extractor.rs # Variable extractor plugin
 ├── plugin_proxy.rs              # Proxy settings plugin
-├── commands/                    # Business command handlers (6 files)
-│   ├── execute_flow.rs, create_flow.rs, update_node.rs
-│   ├── delete_node.rs, report_commands.rs
+├── commands/                    # Business command handlers (3 files)
+│   ├── execute_flow.rs, create_flow.rs, report_commands.rs
 ├── debug/                       # Debug execution (3 files)
 │   ├── executor.rs, types.rs
 ├── stress_test/                 # Stress testing (7 files)
