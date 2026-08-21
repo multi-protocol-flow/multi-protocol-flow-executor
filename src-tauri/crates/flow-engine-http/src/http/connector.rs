@@ -159,30 +159,45 @@ impl rustls::client::danger::ServerCertVerifier for NoVerifier {
     }
 }
 
-/// 构建标准 TLS 配置
-fn build_standard_tls_config() -> rustls::ClientConfig {
-    ensure_crypto_provider();
-    let root_store =
-        rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-    rustls::ClientConfig::builder()
-        .with_root_certificates(root_store)
-        .with_no_client_auth()
-}
+static DEFAULT_ROOT_STORE: std::sync::LazyLock<rustls::RootCertStore> =
+    std::sync::LazyLock::new(|| {
+        rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned())
+    });
 
-/// 构建自定义 TLS 配置
-fn build_custom_tls_config(options: &TlsOptions) -> Result<rustls::ClientConfig, String> {
-    ensure_crypto_provider();
+static DEFAULT_TLS_CONFIG: std::sync::LazyLock<Arc<rustls::ClientConfig>> =
+    std::sync::LazyLock::new(|| {
+        ensure_crypto_provider();
+        let config = rustls::ClientConfig::builder()
+            .with_root_certificates(DEFAULT_ROOT_STORE.clone())
+            .with_no_client_auth();
+        Arc::new(config)
+    });
 
-    if options.skip_verify {
+static DEFAULT_NO_VERIFY_TLS_CONFIG: std::sync::LazyLock<Arc<rustls::ClientConfig>> =
+    std::sync::LazyLock::new(|| {
+        ensure_crypto_provider();
         let config = rustls::ClientConfig::builder()
             .dangerous()
             .with_custom_certificate_verifier(Arc::new(NoVerifier))
             .with_no_client_auth();
-        return Ok(config);
+        Arc::new(config)
+    });
+
+/// 构建标准 TLS 配置（复用单例）
+#[allow(dead_code)]
+fn build_standard_tls_config() -> Arc<rustls::ClientConfig> {
+    DEFAULT_TLS_CONFIG.clone()
+}
+
+/// 构建自定义 TLS 配置
+fn build_custom_tls_config(options: &TlsOptions) -> Result<Arc<rustls::ClientConfig>, String> {
+    ensure_crypto_provider();
+
+    if options.skip_verify {
+        return Ok(DEFAULT_NO_VERIFY_TLS_CONFIG.clone());
     }
 
-    let mut root_store =
-        rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+    let mut root_store = DEFAULT_ROOT_STORE.clone();
 
     if let Some(ca_path) = &options.ca_cert_path {
         let ca_bytes = std::fs::read(ca_path)
@@ -224,12 +239,14 @@ fn build_custom_tls_config(options: &TlsOptions) -> Result<rustls::ClientConfig,
             .with_root_certificates(root_store)
             .with_client_auth_cert(client_certs, client_key)
             .map_err(|e| format!("Failed to configure client certificate: {}", e))?;
-        Ok(config)
-    } else {
+        Ok(Arc::new(config))
+    } else if options.ca_cert_path.is_some() {
         let config = rustls::ClientConfig::builder()
             .with_root_certificates(root_store)
             .with_no_client_auth();
-        Ok(config)
+        Ok(Arc::new(config))
+    } else {
+        Ok(DEFAULT_TLS_CONFIG.clone())
     }
 }
 
@@ -249,9 +266,8 @@ impl TimingConnector {
     /// - `timeout_ms`: 各阶段超时时间（毫秒）
     /// - `timing`: 计时上下文（Arc<Mutex> 包装以便在 Service 中使用）
     pub fn new(timeout_ms: u64, timing: Arc<std::sync::Mutex<TimingContext>>) -> Self {
-        let config = build_standard_tls_config();
         Self {
-            tls_config: Arc::new(config),
+            tls_config: DEFAULT_TLS_CONFIG.clone(),
             timeout_ms,
             timing,
             proxy_state: None,
@@ -266,7 +282,7 @@ impl TimingConnector {
     ) -> Result<Self, String> {
         let config = build_custom_tls_config(tls_options)?;
         Ok(Self {
-            tls_config: Arc::new(config),
+            tls_config: config,
             timeout_ms,
             timing,
             proxy_state: None,

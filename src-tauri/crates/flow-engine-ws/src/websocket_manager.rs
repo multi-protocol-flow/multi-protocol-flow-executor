@@ -13,7 +13,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json_path::JsonPath;
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 use tokio::time::{timeout, Duration, Instant};
 use tokio_tungstenite::tungstenite::handshake::client::generate_key;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
@@ -84,29 +84,37 @@ fn ensure_crypto_provider() {
     let _ = rustls::crypto::ring::default_provider().install_default();
 }
 
-/// 创建 TLS `ClientConfig`
+static DEFAULT_WS_ROOT_STORE: LazyLock<rustls::RootCertStore> = LazyLock::new(|| {
+    rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned())
+});
+
+static DEFAULT_WS_TLS_CONFIG: LazyLock<Arc<rustls::ClientConfig>> = LazyLock::new(|| {
+    ensure_crypto_provider();
+    let config = rustls::ClientConfig::builder()
+        .with_root_certificates(DEFAULT_WS_ROOT_STORE.clone())
+        .with_no_client_auth();
+    Arc::new(config)
+});
+
+static DEFAULT_WS_NO_VERIFY_TLS_CONFIG: LazyLock<Arc<rustls::ClientConfig>> = LazyLock::new(|| {
+    ensure_crypto_provider();
+    let config = rustls::ClientConfig::builder()
+        .dangerous()
+        .with_custom_certificate_verifier(Arc::new(NoVerifier))
+        .with_no_client_auth();
+    Arc::new(config)
+});
+
+/// 创建 TLS `ClientConfig`（复用单例）
 ///
 /// # 参数
 /// - `skip_verify`: 是否跳过证书验证
 fn create_tls_client_config(skip_verify: bool) -> Result<Arc<rustls::ClientConfig>, String> {
-    ensure_crypto_provider();
-
-    let config = if skip_verify {
-        // 跳过验证：使用自定义 NoVerifier
-        rustls::ClientConfig::builder()
-            .dangerous()
-            .with_custom_certificate_verifier(Arc::new(NoVerifier))
-            .with_no_client_auth()
+    if skip_verify {
+        Ok(DEFAULT_WS_NO_VERIFY_TLS_CONFIG.clone())
     } else {
-        // 标准验证：使用 webpki-roots 根证书
-        let root_store =
-            rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-        rustls::ClientConfig::builder()
-            .with_root_certificates(root_store)
-            .with_no_client_auth()
-    };
-
-    Ok(Arc::new(config))
+        Ok(DEFAULT_WS_TLS_CONFIG.clone())
+    }
 }
 
 /// WebSocket 流类型（支持 TLS）
