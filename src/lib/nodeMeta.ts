@@ -133,6 +133,52 @@ function getStaticDisplayNames(): Record<string, string> {
   };
 }
 
+/**
+ * 获取节点描述说明（支持多语言）
+ *
+ * @param typeId - 节点类型标识
+ * @returns 节点功能描述
+ */
+export function getNodeDescription(typeId: string): string {
+  const LL = getLL();
+  const descMap: Record<string, () => string> = {
+    http: () => LL.nodes.descriptions.http(),
+    conditional: () => LL.nodes.descriptions.conditional(),
+    script: () => LL.nodes.descriptions.script(),
+    assertion: () => LL.nodes.descriptions.assertion(),
+    variable_extractor: () => LL.nodes.descriptions.variable_extractor(),
+    proxy: () => LL.nodes.descriptions.proxy(),
+    end: () => LL.nodes.descriptions.end(),
+    ws_connect: () => LL.nodes.descriptions.ws_connect(),
+    ws_send_collect: () => LL.nodes.descriptions.ws_send_collect(),
+    ws_close: () => LL.nodes.descriptions.ws_close(),
+    sse_connect: () => LL.nodes.descriptions.sse_connect(),
+    sse_listen: () => LL.nodes.descriptions.sse_listen(),
+    sse_disconnect: () => LL.nodes.descriptions.sse_disconnect(),
+    graphql_connect: () => LL.nodes.descriptions.graphql_connect(),
+    graphql_query: () => LL.nodes.descriptions.graphql_query(),
+    graphql_subscribe: () => LL.nodes.descriptions.graphql_subscribe(),
+    graphql_introspect: () => LL.nodes.descriptions.graphql_introspect(),
+    graphql_disconnect: () => LL.nodes.descriptions.graphql_disconnect(),
+    tcp_connect: () => LL.nodes.descriptions.tcp_connect(),
+    tcp_send: () => LL.nodes.descriptions.tcp_send(),
+    tcp_receive: () => LL.nodes.descriptions.tcp_receive(),
+    tcp_close: () => LL.nodes.descriptions.tcp_close(),
+    udp_bind: () => LL.nodes.descriptions.udp_bind(),
+    udp_send_to: () => LL.nodes.descriptions.udp_send_to(),
+    udp_recv_from: () => LL.nodes.descriptions.udp_recv_from(),
+    udp_close: () => LL.nodes.descriptions.udp_close(),
+  };
+
+  const descFn = descMap[typeId];
+  if (descFn) return descFn();
+  if (typeId.includes(':')) {
+    const [proto, action] = typeId.split(':');
+    return LL.nodes.descriptions.plugin_node({ proto: proto.toUpperCase(), action });
+  }
+  return LL.nodes.descriptions.generic_node();
+}
+
 
 
 

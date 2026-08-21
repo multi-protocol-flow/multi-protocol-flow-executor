@@ -376,6 +376,190 @@ type RootTranslation = {
 			 */
 			clear: string
 		}
+		palette: {
+			/**
+			 * 搜​索​节​点​、​插​件​名​称​或​协​议​别​名​ ​(​如​ ​r​e​d​i​s​,​ ​h​t​t​p​,​ ​i​f​)​.​.​.
+			 */
+			search_placeholder: string
+			/**
+			 * 全​部​节​点
+			 */
+			all_nodes: string
+			/**
+			 * 最​近​使​用
+			 */
+			recent_nodes: string
+			/**
+			 * 核​心​逻​辑
+			 */
+			core_logic: string
+			/**
+			 * 网​络​协​议
+			 */
+			core_network: string
+			/**
+			 * {​n​a​m​e​}​ ​插​件
+			 * @param {unknown} name
+			 */
+			plugin_suffix: RequiredParams<'name'>
+			/**
+			 * 插​件​管​理​与​市​场​.​.​.
+			 */
+			plugin_manage: string
+			/**
+			 * 未​找​到​匹​配​的​算​子​节​点
+			 */
+			no_results: string
+			/**
+			 * 放​置
+			 */
+			insert_hint: string
+			/**
+			 * 来​源​:​ ​{​n​a​m​e​}​ ​插​件
+			 * @param {unknown} name
+			 */
+			source_prefix: RequiredParams<'name'>
+			/**
+			 * 端​口​:
+			 */
+			ports_label: string
+			/**
+			 * ↑​↓​ ​移​动​选​择
+			 */
+			key_navigate: string
+			/**
+			 * T​a​b​ ​切​换​分​类
+			 */
+			key_tab: string
+			/**
+			 * ↵​ ​确​认​放​置
+			 */
+			key_insert: string
+			/**
+			 * 拖​拽​亦​可​放​置
+			 */
+			key_drag: string
+			/**
+			 * 按​ ​E​s​c​ ​关​闭
+			 */
+			key_esc: string
+		}
+		descriptions: {
+			/**
+			 * 发​起​ ​H​T​T​P​/​H​T​T​P​S​ ​请​求​，​支​持​ ​R​E​S​T​f​u​l​ ​A​P​I​、​各​种​ ​M​e​t​h​o​d​、​H​e​a​d​e​r​ ​及​ ​B​o​d​y​ ​载​荷
+			 */
+			http: string
+			/**
+			 * 条​件​判​断​与​逻​辑​路​由​，​支​持​多​分​支​判​断​与​比​较​表​达​式
+			 */
+			conditional: string
+			/**
+			 * 执​行​ ​J​a​v​a​S​c​r​i​p​t​ ​/​ ​T​y​p​e​S​c​r​i​p​t​ ​脚​本​进​行​流​程​数​据​变​换​与​自​定​义​逻​辑​处​理
+			 */
+			script: string
+			/**
+			 * 多​字​段​多​条​件​断​言​验​证​（​状​态​码​、​H​e​a​d​e​r​、​J​S​O​N​ ​P​a​t​h​、​文​本​包​含​等​）
+			 */
+			assertion: string
+			/**
+			 * 从​上​游​节​点​响​应​中​按​ ​J​S​O​N​P​a​t​h​ ​或​正​则​提​取​变​量​并​存​入​上​下​文​环​境
+			 */
+			variable_extractor: string
+			/**
+			 * 配​置​全​局​或​局​部​网​络​代​理​服​务​器​、​网​关​转​发​规​则​与​凭​据
+			 */
+			proxy: string
+			/**
+			 * 标​记​工​作​流​正​常​执​行​结​束​与​终​点​输​出
+			 */
+			end: string
+			/**
+			 * 建​立​ ​W​e​b​S​o​c​k​e​t​ ​客​户​端​长​连​接​会​话
+			 */
+			ws_connect: string
+			/**
+			 * 通​过​已​有​ ​W​e​b​S​o​c​k​e​t​ ​发​送​数​据​帧​并​收​集​响​应​消​息
+			 */
+			ws_send_collect: string
+			/**
+			 * 优​雅​关​闭​指​定​的​ ​W​e​b​S​o​c​k​e​t​ ​连​接
+			 */
+			ws_close: string
+			/**
+			 * 建​立​ ​S​e​r​v​e​r​-​S​e​n​t​ ​E​v​e​n​t​s​ ​(​S​S​E​)​ ​事​件​流​连​接
+			 */
+			sse_connect: string
+			/**
+			 * 持​续​监​听​接​收​ ​S​S​E​ ​流​式​事​件​并​触​发​后​续​节​点
+			 */
+			sse_listen: string
+			/**
+			 * 断​开​指​定​ ​S​S​E​ ​事​件​流​通​道
+			 */
+			sse_disconnect: string
+			/**
+			 * 初​始​化​ ​G​r​a​p​h​Q​L​ ​客​户​端​连​接​与​鉴​权​配​置
+			 */
+			graphql_connect: string
+			/**
+			 * 执​行​ ​G​r​a​p​h​Q​L​ ​Q​u​e​r​y​ ​查​询​或​ ​M​u​t​a​t​i​o​n​ ​变​更​操​作
+			 */
+			graphql_query: string
+			/**
+			 * 订​阅​ ​G​r​a​p​h​Q​L​ ​S​u​b​s​c​r​i​p​t​i​o​n​ ​实​时​变​更​流
+			 */
+			graphql_subscribe: string
+			/**
+			 * 查​询​并​内​省​ ​G​r​a​p​h​Q​L​ ​服​务​端​完​整​ ​S​c​h​e​m​a​ ​定​义
+			 */
+			graphql_introspect: string
+			/**
+			 * 释​放​并​关​闭​ ​G​r​a​p​h​Q​L​ ​客​户​端​连​接
+			 */
+			graphql_disconnect: string
+			/**
+			 * 建​立​ ​T​C​P​ ​S​o​c​k​e​t​ ​原​始​套​接​字​连​接
+			 */
+			tcp_connect: string
+			/**
+			 * 向​已​连​接​的​ ​T​C​P​ ​套​接​字​发​送​字​节​流​或​文​本​载​荷
+			 */
+			tcp_send: string
+			/**
+			 * 从​ ​T​C​P​ ​套​接​字​中​读​取​并​等​待​接​收​返​回​数​据
+			 */
+			tcp_receive: string
+			/**
+			 * 关​闭​ ​T​C​P​ ​S​o​c​k​e​t​ ​套​接​字​连​接
+			 */
+			tcp_close: string
+			/**
+			 * 绑​定​并​监​听​本​地​ ​U​D​P​ ​端​口
+			 */
+			udp_bind: string
+			/**
+			 * 向​目​标​主​机​和​端​口​发​送​无​连​接​ ​U​D​P​ ​数​据​报
+			 */
+			udp_send_to: string
+			/**
+			 * 从​绑​定​的​ ​U​D​P​ ​端​口​接​收​数​据​报​文
+			 */
+			udp_recv_from: string
+			/**
+			 * 关​闭​并​释​放​ ​U​D​P​ ​端​口​绑​定
+			 */
+			udp_close: string
+			/**
+			 * [​{​p​r​o​t​o​}​]​ ​插​件​算​子​:​ ​{​a​c​t​i​o​n​}
+			 * @param {unknown} action
+			 * @param {unknown} proto
+			 */
+			plugin_node: RequiredParams<'action' | 'proto'>
+			/**
+			 * 多​协​议​工​作​流​算​子​节​点
+			 */
+			generic_node: string
+		}
 	}
 	panels: {
 		/**
@@ -11840,6 +12024,186 @@ export type TranslationFunctions = {
 			 * 清除
 			 */
 			clear: () => LocalizedString
+		}
+		palette: {
+			/**
+			 * 搜索节点、插件名称或协议别名 (如 redis, http, if)...
+			 */
+			search_placeholder: () => LocalizedString
+			/**
+			 * 全部节点
+			 */
+			all_nodes: () => LocalizedString
+			/**
+			 * 最近使用
+			 */
+			recent_nodes: () => LocalizedString
+			/**
+			 * 核心逻辑
+			 */
+			core_logic: () => LocalizedString
+			/**
+			 * 网络协议
+			 */
+			core_network: () => LocalizedString
+			/**
+			 * {name} 插件
+			 */
+			plugin_suffix: (arg: { name: unknown }) => LocalizedString
+			/**
+			 * 插件管理与市场...
+			 */
+			plugin_manage: () => LocalizedString
+			/**
+			 * 未找到匹配的算子节点
+			 */
+			no_results: () => LocalizedString
+			/**
+			 * 放置
+			 */
+			insert_hint: () => LocalizedString
+			/**
+			 * 来源: {name} 插件
+			 */
+			source_prefix: (arg: { name: unknown }) => LocalizedString
+			/**
+			 * 端口:
+			 */
+			ports_label: () => LocalizedString
+			/**
+			 * ↑↓ 移动选择
+			 */
+			key_navigate: () => LocalizedString
+			/**
+			 * Tab 切换分类
+			 */
+			key_tab: () => LocalizedString
+			/**
+			 * ↵ 确认放置
+			 */
+			key_insert: () => LocalizedString
+			/**
+			 * 拖拽亦可放置
+			 */
+			key_drag: () => LocalizedString
+			/**
+			 * 按 Esc 关闭
+			 */
+			key_esc: () => LocalizedString
+		}
+		descriptions: {
+			/**
+			 * 发起 HTTP/HTTPS 请求，支持 RESTful API、各种 Method、Header 及 Body 载荷
+			 */
+			http: () => LocalizedString
+			/**
+			 * 条件判断与逻辑路由，支持多分支判断与比较表达式
+			 */
+			conditional: () => LocalizedString
+			/**
+			 * 执行 JavaScript / TypeScript 脚本进行流程数据变换与自定义逻辑处理
+			 */
+			script: () => LocalizedString
+			/**
+			 * 多字段多条件断言验证（状态码、Header、JSON Path、文本包含等）
+			 */
+			assertion: () => LocalizedString
+			/**
+			 * 从上游节点响应中按 JSONPath 或正则提取变量并存入上下文环境
+			 */
+			variable_extractor: () => LocalizedString
+			/**
+			 * 配置全局或局部网络代理服务器、网关转发规则与凭据
+			 */
+			proxy: () => LocalizedString
+			/**
+			 * 标记工作流正常执行结束与终点输出
+			 */
+			end: () => LocalizedString
+			/**
+			 * 建立 WebSocket 客户端长连接会话
+			 */
+			ws_connect: () => LocalizedString
+			/**
+			 * 通过已有 WebSocket 发送数据帧并收集响应消息
+			 */
+			ws_send_collect: () => LocalizedString
+			/**
+			 * 优雅关闭指定的 WebSocket 连接
+			 */
+			ws_close: () => LocalizedString
+			/**
+			 * 建立 Server-Sent Events (SSE) 事件流连接
+			 */
+			sse_connect: () => LocalizedString
+			/**
+			 * 持续监听接收 SSE 流式事件并触发后续节点
+			 */
+			sse_listen: () => LocalizedString
+			/**
+			 * 断开指定 SSE 事件流通道
+			 */
+			sse_disconnect: () => LocalizedString
+			/**
+			 * 初始化 GraphQL 客户端连接与鉴权配置
+			 */
+			graphql_connect: () => LocalizedString
+			/**
+			 * 执行 GraphQL Query 查询或 Mutation 变更操作
+			 */
+			graphql_query: () => LocalizedString
+			/**
+			 * 订阅 GraphQL Subscription 实时变更流
+			 */
+			graphql_subscribe: () => LocalizedString
+			/**
+			 * 查询并内省 GraphQL 服务端完整 Schema 定义
+			 */
+			graphql_introspect: () => LocalizedString
+			/**
+			 * 释放并关闭 GraphQL 客户端连接
+			 */
+			graphql_disconnect: () => LocalizedString
+			/**
+			 * 建立 TCP Socket 原始套接字连接
+			 */
+			tcp_connect: () => LocalizedString
+			/**
+			 * 向已连接的 TCP 套接字发送字节流或文本载荷
+			 */
+			tcp_send: () => LocalizedString
+			/**
+			 * 从 TCP 套接字中读取并等待接收返回数据
+			 */
+			tcp_receive: () => LocalizedString
+			/**
+			 * 关闭 TCP Socket 套接字连接
+			 */
+			tcp_close: () => LocalizedString
+			/**
+			 * 绑定并监听本地 UDP 端口
+			 */
+			udp_bind: () => LocalizedString
+			/**
+			 * 向目标主机和端口发送无连接 UDP 数据报
+			 */
+			udp_send_to: () => LocalizedString
+			/**
+			 * 从绑定的 UDP 端口接收数据报文
+			 */
+			udp_recv_from: () => LocalizedString
+			/**
+			 * 关闭并释放 UDP 端口绑定
+			 */
+			udp_close: () => LocalizedString
+			/**
+			 * [{proto}] 插件算子: {action}
+			 */
+			plugin_node: (arg: { action: unknown, proto: unknown }) => LocalizedString
+			/**
+			 * 多协议工作流算子节点
+			 */
+			generic_node: () => LocalizedString
 		}
 	}
 	panels: {
