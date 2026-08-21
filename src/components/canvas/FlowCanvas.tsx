@@ -1055,9 +1055,11 @@ function FlowCanvasInner() {
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
 
-    // 将视口中心转换为流程坐标
-    const position = screenToFlowPosition({ x: centerX, y: centerY });
-
+    // 若由右键在画布某处唤出，则放置在鼠标右键位置；否则放置在视口中心
+    const palettePos = useUIStore.getState().nodePalettePosition;
+    const targetScreenX = palettePos ? palettePos.x : centerX;
+    const targetScreenY = palettePos ? palettePos.y : centerY;
+    const position = screenToFlowPosition({ x: targetScreenX, y: targetScreenY });
     // 获取上游节点（当前选中的节点作为上游推断上下文）
     const { getSelectedNode } = useFlowStore.getState();
     const selectedNode = getSelectedNode();

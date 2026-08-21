@@ -1,507 +1,365 @@
 /**
- * NodePalette - 节点选择器浮动弹窗
+ * NodePalette - 双栏插件化节点选择器
  *
- * 由工具栏按钮或右键画布触发，以浮动弹窗形式展示所有可用节点类型。
- * 支持搜索、超级分类/二级分类 Tab 切换、拖拽/点击添加节点。
- * 动态从后端 NodeRegistry 获取节点分组，回退到静态分组。
+ * 采用双栏布局（左侧插件/内置分类导航，右侧算子列表与详情卡片），
+ * 深度融合插件体系生态，支持全库模糊搜索、协议别名映射、
+ * 键盘上下左右及回车操作、拖拽与点击添加、插件管理快捷跳转等。
  */
-import { type LucideIcon } from 'lucide-react';
 import {
-  Globe,
-  GitBranch,
-  Wifi,
-  Send,
-  Plug,
-  CheckCircle,
-  Database,
-  Code,
-  Wrench,
-  Network,
-  Cable,
   Search,
   X,
+  Settings,
+  Layers,
 } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import { useFlowStore, useUIStore } from '@/stores';
 import type { NodeType } from '@/types';
 import type { NodeMetadata } from '@/types/nodeRegistry';
 import {
   getNodeMetadata,
-  groupByCategory,
-  CATEGORY_NAMES,
-  getCategoryOrder,
-  getNodeTypeOrder,
+  buildCatalogGroups,
+  type CatalogGroup,
+  type CatalogItem,
 } from '@/lib/NodeRegistry';
-import { BACKEND_ICON_MAP as ICON_MAP } from '@/lib/nodeIcons';
-import { ICON_MAP as NODE_TYPE_ICON_MAP, getNodeDisplayName } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
-import { getLL } from '@/i18n/i18n-lazy';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 
 // ============================================================================
-// 导出的类型和常量（供外部引用，不可删除）
+// 常量与尺寸规范
 // ============================================================================
 
-/** 节点条目定义 */
-export interface NodeItem {
-  type: NodeType;
-  name: string;
-  icon: LucideIcon;
-}
-
-/** 节点分组定义 */
-export interface NodeGroup {
-  /** 分组键 */
-  key: string;
-  /** 分组显示名称 */
-  label: string;
-  /** 分组图标 */
-  icon: LucideIcon;
-  /** 分组下的节点条目；仅 1 个条目时为直接按钮，多个时弹出 Popover */
-  items: NodeItem[];
-}
-
-/** 后端 category 对应的图标 */
-export const CATEGORY_ICONS: Record<string, LucideIcon> = {
-  logic: GitBranch,
-  http: Globe,
-  websocket: Wifi,
-  database: Database,
-  tools: Wrench,
-  script: Code,
-  assertion: CheckCircle,
-  grpc: Network,
-  sse: Globe,
-  graphql: Globe,
-  tcp: Cable,
-  udp: Send,
-  MongoDB: Database,
-};
-
-/** 静态回退分组数据 */
-const LL = getLL();
-
-export const FALLBACK_NODE_GROUPS: NodeGroup[] = [
-  {
-    key: 'http',
-    label: 'HTTP',
-    icon: Globe,
-    items: [{ type: 'http', name: LL.nodes.http(), icon: Globe }],
-  },
-  {
-    key: 'websocket',
-    label: 'WS',
-    icon: Wifi,
-    items: [
-      { type: 'ws_connect', name: LL.nodes.ws_connect(), icon: Wifi },
-      { type: 'ws_send_collect', name: LL.nodes.ws_send_collect(), icon: Send },
-      { type: 'ws_close', name: LL.nodes.ws_close(), icon: Plug },
-    ],
-  },
-  {
-    key: 'tools',
-    label: 'Tool',
-    icon: Wrench,
-    items: [
-      { type: 'conditional', name: LL.nodes.conditional(), icon: GitBranch },
-      { type: 'script', name: LL.nodes.script(), icon: Code },
-      { type: 'assertion', name: LL.nodes.assertion(), icon: CheckCircle },
-    ],
-  },
-];
-
-/**
- * 从后端元数据构建分组
- *
- * 将后端 NodeMetadata 转换为 NodePalette 所需的 NodeGroup 结构。
- * logic 分类的节点会合并到 tools 分类。
- */
-export function buildGroupsFromMetadata(metadata: NodeMetadata[]): NodeGroup[] {
-  const grouped = groupByCategory(metadata);
-
-  // 将 logic 分类合并到 tools 分类
-  if (grouped['logic']) {
-    if (!grouped['tools']) grouped['tools'] = [];
-    grouped['tools'] = [...grouped['logic'], ...grouped['tools']];
-    delete grouped['logic'];
-  }
-
-  const groups: NodeGroup[] = Object.entries(grouped)
-    .sort(([a], [b]) => getCategoryOrder(a) - getCategoryOrder(b))
-    .map(([category, items]) => {
-      // 排除 entry 类型（入口节点自动创建，不需要手动添加）
-      const filtered = items.filter((m) => m.type_id !== 'entry');
-
-      if (filtered.length === 0) return null;
-
-      // 分组内排序: 连接 → 调用 → 关闭
-      filtered.sort((a, b) => getNodeTypeOrder(a.type_id) - getNodeTypeOrder(b.type_id));
-
-      return {
-        key: category,
-        label: CATEGORY_NAMES[category] ?? category,
-        icon: CATEGORY_ICONS[category] ?? Wrench,
-        items: filtered.map((m) => ({
-          type: m.type_id as NodeType,
-          // 使用 i18n 翻译名称，回退到后端 display_name
-          name: getNodeDisplayName(m.type_id),
-          // 优先使用 nodeMeta.ts 的 type_id 映射（与画布节点一致），回退到后端 icon 字段映射
-          icon: NODE_TYPE_ICON_MAP[m.type_id]?.icon ?? ICON_MAP[m.icon] ?? Wrench,
-        })),
-      };
-    })
-    .filter((g): g is NodeGroup => g !== null && g.items.length > 0);
-
-  return groups.length > 0 ? groups : FALLBACK_NODE_GROUPS;
-}
+const PALETTE_WIDTH = 580;
+const PALETTE_HEIGHT = 440;
+const USAGE_KEY = 'node-palette-usage';
 
 // ============================================================================
-// 一级超级分类定义
+// 搜索别名映射
 // ============================================================================
 
-/** 超级分类定义 */
-interface SuperCategory {
-  /** 分类键 */
-  key: string;
-  /** 包含的二级分类 key */
-  categories: string[];
-}
-
-/** 将二级分类映射到 5 个一级分类 */
-const SUPER_CATEGORIES: SuperCategory[] = [
-  {
-    key: 'network',
-    categories: ['http', 'websocket', 'sse', 'graphql'],
-  },
-  {
-    key: 'tools',
-    categories: ['tools', 'script', 'assertion'],
-  },
-  {
-    key: 'other',
-    categories: ['database', 'tcp', 'udp', 'MongoDB'],
-  },
-];
-
-// ============================================================================
-// 子组件
-// ============================================================================
-
-/** 节点网格卡片 */
-function NodeCard({
-  item,
-  onDragStart,
-  onClick,
-}: {
-  item: NodeItem;
-  onDragStart: (e: React.DragEvent, type: NodeType) => void;
-  onClick: (type: NodeType) => void;
-}) {
-  const Icon = item.icon;
-  return (
-    <button
-      type="button"
-      draggable
-      onDragStart={(e) => onDragStart(e, item.type)}
-      onClick={() => onClick(item.type)}
-      title={item.name}
-      className={cn(
-        'flex flex-col items-center justify-center gap-1.5',
-        'px-2 py-3 rounded-xl',
-        'text-foreground',
-        'hover:bg-accent hover:scale-[1.03]',
-        'active:scale-95',
-        'transition-all duration-150 cursor-pointer',
-        'select-none',
-        'border border-transparent hover:border-border/50',
-      )}
-    >
-      <Icon className="w-5 h-5 text-muted-foreground shrink-0" />
-      <span className="text-[11px] text-muted-foreground leading-tight text-center line-clamp-2">
-        {item.name}
-      </span>
-    </button>
-  );
-}
-
-/** 获取超级分类标签（通过 i18n） */
-function getSuperCategoryLabel(key: string): string {
-  const ll = getLL();
-  const labels: Record<string, () => string> = {
-    network: () => ll.nodes.superCategory.network(),
-    services: () => ll.nodes.superCategory.services(),
-    messaging: () => ll.nodes.superCategory.messaging(),
-    tools: () => ll.nodes.superCategory.tools(),
-    other: () => ll.nodes.superCategory.other(),
-  };
-  return labels[key]?.() ?? key;
-}
-
-/** 面板宽高常量 */
-const PALETTE_WIDTH = 400;
-const PALETTE_MAX_HEIGHT = 420;
-
-// ============================================================================
-// 搜索增强工具
-// ============================================================================
-
-/** 关键词别名映射 */
 const SEARCH_ALIASES: Record<string, string[]> = {
   rest: ['http'],
-  stream: ['sse_listen'],
+  api: ['http'],
+  post: ['http'],
+  get: ['http'],
+  put: ['http'],
+  delete: ['http'],
+  stream: ['sse_listen', 'ws_send_collect'],
   trigger: ['sse_listen'],
   realtime: ['ws_connect', 'sse_listen'],
-  crud: ['http'],
+  ws: ['ws_connect', 'ws_send_collect', 'ws_close'],
+  socket: ['ws_connect', 'tcp_connect'],
+  pubsub: ['graphql_subscribe', 'sse_listen'],
+  graphql: ['graphql_query', 'graphql_connect', 'graphql_subscribe'],
+  assertion: ['assertion'],
+  assert: ['assertion'],
+  check: ['assertion'],
+  if: ['conditional'],
+  else: ['conditional'],
+  branch: ['conditional'],
+  js: ['script'],
+  ts: ['script'],
+  code: ['script'],
+  extract: ['variable_extractor'],
+  jsonpath: ['variable_extractor'],
+  proxy: ['proxy'],
 };
 
-/** 别名 → 所有展开的节点类型 */
 function expandAliases(query: string): string[] {
   const q = query.toLowerCase().trim();
   return SEARCH_ALIASES[q] ?? [];
 }
 
-/** 简单编辑距离（Levenshtein） */
+/** Levenshtein 编辑距离 */
 function levenshtein(a: string, b: string): number {
-  const m = a.length, n = b.length;
+  const m = a.length;
+  const n = b.length;
   const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
   for (let i = 0; i <= m; i++) dp[i][0] = i;
   for (let j = 0; j <= n; j++) dp[0][j] = j;
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      dp[i][j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
     }
   }
   return dp[m][n];
 }
 
-/** 模糊匹配评分（0=不匹配，值越高越匹配） */
-function fuzzyScore(query: string, target: string): number {
+/** 模糊匹配评分 */
+function calculateMatchScore(query: string, target: string): number {
   const q = query.toLowerCase();
   const t = target.toLowerCase();
-  // 完全包含：最高分
-  if (t.includes(q)) return 100;
-  // 编辑距离 ≤ 2：次高分（距离越小越高）
+  if (t === q) return 100;
+  if (t.startsWith(q)) return 85;
+  if (t.includes(q)) return 70;
   const dist = levenshtein(q, t);
   if (dist <= 2) return 50 - dist * 15;
   return 0;
 }
 
 // ============================================================================
-// 使用频率追踪
+// 使用频率记录
 // ============================================================================
 
-const USAGE_KEY = 'node-palette-usage';
-
-/** 记录节点使用 */
-function recordNodeUsage(type: NodeType) {
+function recordNodeUsage(type: string) {
   try {
     const raw = localStorage.getItem(USAGE_KEY);
     const counts: Record<string, number> = raw ? JSON.parse(raw) : {};
     counts[type] = (counts[type] || 0) + 1;
-    // 只保留最近 50 条，防止无限增长
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 50);
     localStorage.setItem(USAGE_KEY, JSON.stringify(Object.fromEntries(sorted)));
-  } catch { /* ignore */ }
-}
-
-/** 获取使用频率排序（高频在前） */
-function getUsageOrder(type: NodeType): number {
-  try {
-    const raw = localStorage.getItem(USAGE_KEY);
-    if (!raw) return 0;
-    const counts: Record<string, number> = JSON.parse(raw);
-    return -(counts[type] || 0);
   } catch {
-    return 0;
+    // 忽略存储异常
   }
 }
 
-/**
- * 节点选择器浮动弹窗组件
- */
+function getRecentTypeIds(): string[] {
+  try {
+    const raw = localStorage.getItem(USAGE_KEY);
+    if (!raw) return [];
+    const counts: Record<string, number> = JSON.parse(raw);
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([type]) => type)
+      .slice(0, 8);
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================================
+// 主组件
+// ============================================================================
+
 export function NodePalette() {
+  const LL = getLL();
+  const t = LL.nodes.palette;
   const setPendingAddNodeType = useFlowStore((s) => s.setPendingAddNodeType);
   const flow = useFlowStore((s) => s.flow);
   const isOpen = useUIStore((s) => s.isNodePaletteOpen);
   const palettePosition = useUIStore((s) => s.nodePalettePosition);
   const closePalette = useUIStore((s) => s.closeNodePalette);
+  const openPluginSettingsDialog = useUIStore((s) => s.openPluginSettingsDialog);
 
-  // 动态元数据状态
+  // 状态
   const [metadata, setMetadata] = useState<NodeMetadata[]>([]);
-  // 当前激活的超级分类 key，默认 'network'
-  const [activeSuperKey, setActiveSuperKey] = useState<string>('network');
-  // 当前激活的二级分类 Tab key
-  const [activeTabKey, setActiveTabKey] = useState<string | null>(null);
-  // 搜索关键词
-  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('all');
+  const [selectedItemIndex, setSelectedItemIndex] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [hoveredItem, setHoveredItem] = useState<CatalogItem | null>(null);
 
-  // 挂载时获取元数据
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const itemListRef = useRef<HTMLDivElement>(null);
+
+  // 加载元数据
   useEffect(() => {
     getNodeMetadata().then(setMetadata);
-  }, []);
+  }, [isOpen]);
 
-  // 从元数据构建分组（回退到静态）
-  const nodeGroups = useMemo(
-    () => buildGroupsFromMetadata(metadata),
-    [metadata]
+  // 构建目录分组
+  const recentTypeIds = useMemo(() => (isOpen ? getRecentTypeIds() : []), [isOpen]);
+  const catalogGroups = useMemo(
+    () => buildCatalogGroups(metadata, recentTypeIds),
+    [metadata, recentTypeIds]
   );
 
-  // 按超级分类组织分组
-  const groupedBySuper = useMemo(() => {
-    const map: Record<string, NodeGroup[]> = {};
-    for (const sc of SUPER_CATEGORIES) {
-      map[sc.key] = [];
-    }
-    for (const group of nodeGroups) {
-      let matched = false;
-      for (const sc of SUPER_CATEGORIES) {
-        if (sc.categories.includes(group.key)) {
-          map[sc.key].push(group);
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) {
-        map['tools'].push(group);
-      }
-    }
-    return map;
-  }, [nodeGroups]);
+  // 搜索评分与过滤
+  const isSearching = searchQuery.trim().length > 0;
+  const filteredGroups = useMemo(() => {
+    if (!isSearching) return catalogGroups;
 
-  const currentGroups = useMemo(
-    () => (activeSuperKey ? (groupedBySuper[activeSuperKey] ?? []) : []),
-    [activeSuperKey, groupedBySuper]
-  );
+    const query = searchQuery.toLowerCase().trim();
+    const aliasTypes = expandAliases(query);
 
-  // 当切换超级分类时，自动选中第一个 Tab
+    return catalogGroups
+      .map((group) => {
+        if (group.id === 'recent') return null; // 搜索时隐藏最近使用分类，聚焦匹配结果
+
+        const scoredItems = group.items
+          .map((item) => {
+            let score = 0;
+            const nameScore = calculateMatchScore(query, item.name);
+            const typeScore = calculateMatchScore(query, item.typeId);
+            const descScore = calculateMatchScore(query, item.description);
+            const pluginScore = item.pluginName ? calculateMatchScore(query, item.pluginName) : 0;
+
+            score = Math.max(nameScore, typeScore, descScore * 0.7, pluginScore * 0.8);
+
+            if (aliasTypes.includes(item.typeId)) {
+              score = Math.max(score, 90);
+            }
+
+            return { item, score };
+          })
+          .filter((res) => res.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .map((res) => res.item);
+
+        if (scoredItems.length === 0) return null;
+
+        return {
+          ...group,
+          count: scoredItems.length,
+          items: scoredItems,
+        };
+      })
+      .filter((g): g is CatalogGroup => g !== null);
+  }, [catalogGroups, isSearching, searchQuery]);
+
+  // 确保选中的分组有效
   useEffect(() => {
-    if (!activeSuperKey) return;
-    const groups = groupedBySuper[activeSuperKey] ?? [];
-    setActiveTabKey(groups.length > 0 ? groups[0].key : null);
-    setSearchQuery('');
-  }, [activeSuperKey, groupedBySuper]);
+    if (filteredGroups.length > 0) {
+      const exists = filteredGroups.some((g) => g.id === selectedGroupId);
+      if (!exists) {
+        setSelectedGroupId(filteredGroups[0].id);
+      }
+    }
+  }, [filteredGroups, selectedGroupId]);
 
   // 打开时重置状态
   useEffect(() => {
     if (isOpen) {
       setSearchQuery('');
-      setActiveSuperKey('network');
+      setSelectedGroupId('all');
+      setSelectedItemIndex(0);
+      setHoveredItem(null);
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
     }
   }, [isOpen]);
 
-  // 当前 Tab 下的节点
-  const currentTabItems = useMemo(() => {
-    if (!activeTabKey) return [];
-    const group = currentGroups.find((g) => g.key === activeTabKey);
-    return group?.items ?? [];
-  }, [activeTabKey, currentGroups]);
+  // 当前选中分组下的节点列表
+  const currentGroup = useMemo(
+    () => filteredGroups.find((g) => g.id === selectedGroupId) ?? filteredGroups[0],
+    [filteredGroups, selectedGroupId]
+  );
 
-  // 搜索时跨所有分类
-  const allItems = useMemo(() => {
-    const items: NodeItem[] = [];
-    for (const group of nodeGroups) {
-      for (const item of group.items) {
-        items.push(item);
-      }
-    }
-    return items;
-  }, [nodeGroups]);
+  const displayItems = useMemo(() => currentGroup?.items ?? [], [currentGroup]);
 
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const query = searchQuery.toLowerCase().trim();
-    const scored: { item: NodeItem; score: number }[] = [];
+  // 当前高亮/选中的节点
+  const activeItem = useMemo(() => {
+    if (hoveredItem) return hoveredItem;
+    return displayItems[selectedItemIndex] ?? displayItems[0] ?? null;
+  }, [hoveredItem, displayItems, selectedItemIndex]);
 
-    // 1. 别名展开
-    const aliasTypes = expandAliases(query);
-
-    for (const item of allItems) {
-      let bestScore = 0;
-
-      // 2. 精确包含匹配
-      const nameScore = fuzzyScore(query, item.name);
-      const typeScore = fuzzyScore(query, item.type);
-      bestScore = Math.max(nameScore, typeScore);
-
-      // 3. 别名匹配
-      if (aliasTypes.includes(item.type)) {
-        bestScore = Math.max(bestScore, 90);
-      }
-
-      if (bestScore > 0) {
-        scored.push({ item, score: bestScore });
-      }
-    }
-
-    // 4. 按分数排序（同分时按使用频率排序）
-    scored.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return getUsageOrder(a.item.type) - getUsageOrder(b.item.type);
-    });
-
-    return scored.map((s) => s.item);
-  }, [searchQuery, allItems]);
-
-  // 实际展示的节点列表
-  const displayItems = searchQuery.trim() ? searchResults : currentTabItems;
-
-  /** 拖拽开始：设置 dataTransfer，延迟关闭弹窗释放画布 */
-  const handleDragStart = useCallback((e: React.DragEvent, type: NodeType) => {
-    e.dataTransfer.setData('application/reactflow/nodeType', type);
-    e.dataTransfer.effectAllowed = 'move';
-    // 更新使用频率
-    recordNodeUsage(type);
-    // 延迟到下一帧关闭弹窗，确保 dragstart 完成后再移除遮罩
-    requestAnimationFrame(() => {
-      useUIStore.getState().closeNodePalette();
-    });
-  }, []);
-
-  /** 点击添加节点：设置待添加类型，由 FlowCanvas 在视口中心处理 */
-  const handleClick = useCallback((type: NodeType) => {
-    if (!flow) return;
-    recordNodeUsage(type);
-    setPendingAddNodeType(type);
-  }, [flow, setPendingAddNodeType]);
-
-  /** Esc 关闭 */
+  // 保证选中索引在有效范围内
   useEffect(() => {
-    if (!isOpen) return;
+    if (selectedItemIndex >= displayItems.length) {
+      setSelectedItemIndex(Math.max(0, displayItems.length - 1));
+    }
+  }, [displayItems, selectedItemIndex]);
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+  // 添加节点动作
+  const handleSelectNode = useCallback(
+    (typeId: string) => {
+      if (!flow) return;
+      recordNodeUsage(typeId);
+      setPendingAddNodeType(typeId as NodeType);
+      closePalette();
+    },
+    [flow, setPendingAddNodeType, closePalette]
+  );
+
+  // 拖拽动作
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, typeId: string) => {
+      e.dataTransfer.setData('application/reactflow/nodeType', typeId);
+      e.dataTransfer.effectAllowed = 'move';
+      recordNodeUsage(typeId);
+      requestAnimationFrame(() => {
         closePalette();
+      });
+    },
+    [closePalette]
+  );
+
+  // 键盘导航
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (searchQuery) {
+          setSearchQuery('');
+        } else {
+          closePalette();
+        }
+        return;
       }
-    };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, closePalette]);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHoveredItem(null);
+        setSelectedItemIndex((prev) => {
+          const next = prev + 1;
+          return next < displayItems.length ? next : prev;
+        });
+        return;
+      }
 
-  // 是否显示搜索（只在有搜索词时隐藏 Tab）
-  const isSearching = searchQuery.trim().length > 0;
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHoveredItem(null);
+        setSelectedItemIndex((prev) => {
+          const next = prev - 1;
+          return next >= 0 ? next : 0;
+        });
+        return;
+      }
 
-  // 计算弹窗位置：有指定位置则靠右偏移；否则屏幕居中
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        setHoveredItem(null);
+        // Tab 在左侧分组之间切换
+        const currentGroupIdx = filteredGroups.findIndex((g) => g.id === selectedGroupId);
+        if (currentGroupIdx !== -1) {
+          const nextGroupIdx = (currentGroupIdx + 1) % filteredGroups.length;
+          setSelectedGroupId(filteredGroups[nextGroupIdx].id);
+          setSelectedItemIndex(0);
+        }
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (activeItem) {
+          handleSelectNode(activeItem.typeId);
+        }
+      }
+    },
+    [
+      searchQuery,
+      closePalette,
+      displayItems.length,
+      filteredGroups,
+      selectedGroupId,
+      activeItem,
+      handleSelectNode,
+    ]
+  );
+
+  // 计算视口防溢出坐标
   const popupStyle: React.CSSProperties = useMemo(() => {
     if (palettePosition) {
-      // 右键触发：弹窗出现在光标右下，避免溢出视口
-      const left = Math.min(palettePosition.x + 12, window.innerWidth - PALETTE_WIDTH - 20);
-      const top = Math.min(palettePosition.y + 8, window.innerHeight - PALETTE_MAX_HEIGHT - 20);
+      const left = Math.min(palettePosition.x + 8, window.innerWidth - PALETTE_WIDTH - 24);
+      const top = Math.min(palettePosition.y + 8, window.innerHeight - PALETTE_HEIGHT - 24);
       return {
         position: 'fixed',
         left: `${Math.max(left, 20)}px`,
         top: `${Math.max(top, 20)}px`,
         width: `${PALETTE_WIDTH}px`,
+        height: `${PALETTE_HEIGHT}px`,
       };
     }
-    // 工具栏按钮触发：屏幕居中
     return {
       position: 'fixed',
       left: '50%',
       top: '50%',
       transform: 'translate(-50%, -50%)',
       width: `${PALETTE_WIDTH}px`,
+      height: `${PALETTE_HEIGHT}px`,
     };
   }, [palettePosition]);
 
@@ -511,152 +369,250 @@ export function NodePalette() {
     <>
       {/* 半透明遮罩 */}
       <div
-        className="fixed inset-0 z-[60] bg-black/20 cursor-default"
+        className="fixed inset-0 z-[60] bg-black/25 backdrop-blur-[1px] cursor-default"
         onClick={closePalette}
       />
 
-      {/* 弹窗 */}
+      {/* 弹窗面板 */}
       <div
         style={popupStyle}
+        onKeyDown={handleKeyDown}
         className={cn(
-          'z-[70]',
-          'bg-background/98 backdrop-blur-md rounded-2xl',
-          'shadow-2xl border border-border/50',
+          'z-[70] flex flex-col',
+          'bg-background/95 backdrop-blur-md rounded-2xl',
+          'shadow-2xl border border-border/60',
           'animate-in fade-in-0 zoom-in-95 duration-150',
-          'overflow-hidden',
+          'overflow-hidden select-none',
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 标题栏 */}
-        <div className="flex items-center justify-between px-3 pt-3 pb-1">
-          <div className="flex items-center gap-1.5">
-            <Search className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">
-              {getLL().nodes.add_node_title()}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={closePalette}
-            className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            title={getLL().common.CANCEL()}
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* 搜索框 */}
-        <div className="px-3 pt-1 pb-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={LL.flow.search_placeholder()}
-              className={cn(
-                'w-full pl-8 pr-3 py-2 text-sm',
-                'bg-muted/50 rounded-xl',
-                'border border-border/40',
-                'placeholder:text-muted-foreground/60',
-                'focus:outline-none focus:ring-1 focus:ring-ring/40 focus:border-border',
-                'transition-all duration-150',
-              )}
-              autoFocus
-            />
+        {/* 顶部搜索栏 */}
+        <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border/50 bg-muted/20 shrink-0">
+          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setSelectedItemIndex(0);
+            }}
+            placeholder={t.search_placeholder()}
+            className={cn(
+              'flex-1 text-sm bg-transparent border-none outline-none',
+              'text-foreground placeholder:text-muted-foreground/60',
+            )}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                searchInputRef.current?.focus();
+              }}
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <div className="flex items-center gap-1 pl-1 border-l border-border/40 text-[11px] text-muted-foreground/70">
+            <kbd className="px-1.5 py-0.5 rounded bg-muted/60 border border-border/50 font-mono">
+              Esc
+            </kbd>
           </div>
         </div>
 
-        {/* 超级分类 Tab 栏 */}
-        <div className="px-2 py-1">
-          <div className="flex gap-0.5 overflow-x-auto scrollbar-none">
-            {SUPER_CATEGORIES.map((sc) => {
-              const hasGroups = (groupedBySuper[sc.key] ?? []).length > 0;
-              if (!hasGroups) return null;
-              const isActive = activeSuperKey === sc.key;
-              return (
-                <button
-                  key={sc.key}
-                  type="button"
-                  onClick={() => setActiveSuperKey(sc.key)}
-                  className={cn(
-                    'px-2.5 py-1.5 rounded-lg',
-                    'text-xs whitespace-nowrap shrink-0',
-                    'transition-all duration-150 cursor-pointer',
-                    isActive
-                      ? 'bg-accent text-accent-foreground font-medium'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-                  )}
-                >
-                  {getSuperCategoryLabel(sc.key)}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 二级分类 Tab 栏（搜索时隐藏） */}
-        {!isSearching && currentGroups.length > 1 && (
-          <div className="px-2 py-1">
-            <div className="flex gap-0.5 overflow-x-auto scrollbar-none">
-              {currentGroups.map((group) => {
-                const TabIcon = group.icon;
-                const isActive = activeTabKey === group.key;
+        {/* 双栏主体 */}
+        <div className="flex-1 min-h-0 flex">
+          {/* 左栏：分组与插件列表 */}
+          <div className="w-[190px] border-r border-border/40 flex flex-col bg-muted/10 shrink-0">
+            <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 scrollbar-thin">
+              {filteredGroups.map((group) => {
+                const isSelected = group.id === selectedGroupId;
+                const GroupIcon = group.icon;
                 return (
                   <button
-                    key={group.key}
+                    key={group.id}
                     type="button"
-                    onClick={() => setActiveTabKey(group.key)}
+                    onClick={() => {
+                      setSelectedGroupId(group.id);
+                      setSelectedItemIndex(0);
+                      setHoveredItem(null);
+                    }}
                     className={cn(
-                      'flex items-center gap-1 px-2.5 py-1.5 rounded-lg',
-                      'text-xs whitespace-nowrap shrink-0',
-                      'transition-all duration-150 cursor-pointer',
-                      isActive
-                        ? 'bg-accent text-accent-foreground font-medium'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                      'w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-left cursor-pointer',
+                      isSelected
+                        ? 'bg-accent text-accent-foreground font-semibold shadow-xs'
+                        : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
                     )}
                   >
-                    <TabIcon className="w-3 h-3" />
-                    {group.label}
+                    <div className="flex items-center gap-2 truncate">
+                      <GroupIcon
+                        className={cn(
+                          'w-3.5 h-3.5 shrink-0',
+                          isSelected ? 'text-primary' : 'text-muted-foreground',
+                        )}
+                      />
+                      <span className="truncate">{group.name}</span>
+                    </div>
+                    <span
+                      className={cn(
+                        'text-[10px] px-1.5 py-0.2 rounded-full shrink-0 ml-1 font-mono',
+                        isSelected
+                          ? 'bg-primary/15 text-primary font-bold'
+                          : 'bg-muted text-muted-foreground/80',
+                      )}
+                    >
+                      {group.count}
+                    </span>
                   </button>
                 );
               })}
             </div>
+
+            {/* 插件管理快捷入口 */}
+            <div className="p-1.5 border-t border-border/40 bg-muted/20 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  closePalette();
+                  openPluginSettingsDialog();
+                }}
+                className={cn(
+                  'w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs',
+                  'text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors',
+                )}
+              >
+                <Settings className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="truncate">{t.plugin_manage()}</span>
+              </button>
+            </div>
           </div>
-        )}
 
-        {/* 分隔线 */}
-        <div className="mx-3 border-t border-border/30" />
-
-        {/* 节点网格 */}
-        <div className="p-2 max-h-[280px] overflow-y-auto">
-          {displayItems.length > 0 ? (
+          {/* 右栏：节点算子列表 + 下方详情卡片 */}
+          <div className="flex-1 flex flex-col min-w-0 bg-background/50">
+            {/* 上部：节点算子列表 */}
             <div
-              className="grid gap-1"
-              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))' }}
+              ref={itemListRef}
+              className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin min-h-[220px]"
             >
-              {displayItems.map((item) => (
-                <NodeCard
-                  key={item.type}
-                  item={item}
-                  onDragStart={handleDragStart}
-                  onClick={handleClick}
-                />
-              ))}
+              {displayItems.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-10">
+                  <Layers className="w-8 h-8 text-muted-foreground/40 mb-2" />
+                  <p className="text-xs">{t.no_results()}</p>
+                </div>
+              ) : (
+                displayItems.map((item, idx) => {
+                  const isSelected = selectedItemIndex === idx && !hoveredItem;
+                  const isHovered = hoveredItem?.typeId === item.typeId;
+                  const isHighlighted = isSelected || isHovered;
+                  const ItemIcon = item.icon;
+
+                  return (
+                    <div
+                      key={item.typeId}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, item.typeId)}
+                      onClick={() => handleSelectNode(item.typeId)}
+                      onMouseEnter={() => setHoveredItem(item)}
+                      onMouseLeave={() => setHoveredItem(null)}
+                      className={cn(
+                        'flex items-center justify-between px-3 py-2 rounded-xl text-xs cursor-pointer transition-all',
+                        isHighlighted
+                          ? 'bg-primary/10 border-primary/30 text-foreground shadow-xs'
+                          : 'hover:bg-accent/60 text-muted-foreground hover:text-foreground border border-transparent',
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className={cn(
+                            'p-1.5 rounded-lg shrink-0 transition-colors',
+                            isHighlighted ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground',
+                          )}
+                        >
+                          <ItemIcon className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-medium text-foreground truncate text-[12.5px]">
+                            {item.name}
+                          </span>
+                          <span className="text-[10.5px] text-muted-foreground/70 font-mono truncate">
+                            {item.typeId}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {item.isPlugin && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium">
+                            {item.pluginName || 'Plugin'}
+                          </span>
+                        )}
+                        {isHighlighted && (
+                          <span className="text-[10px] text-muted-foreground/60 flex items-center gap-0.5">
+                            ↵ {t.insert_hint()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
-          ) : (
-            <div className="py-6 text-center text-xs text-muted-foreground">
-              {isSearching ? LL.flow.no_matching_nodes() : LL.nodes.no_nodes_available()}
-            </div>
-          )}
+
+            {/* 下部：算子微型详情卡片 */}
+            {activeItem && (
+              <div className="p-3 border-t border-border/40 bg-muted/25 flex flex-col gap-1.5 shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-foreground">
+                      {activeItem.name}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/70 font-mono">
+                      ({activeItem.typeId})
+                    </span>
+                  </div>
+                  {activeItem.pluginName && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {t.source_prefix({ name: activeItem.pluginName })}
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-[11.5px] text-muted-foreground leading-relaxed line-clamp-2">
+                  {activeItem.description}
+                </p>
+
+                {activeItem.ports && activeItem.ports.length > 0 && (
+                  <div className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground/80 pt-0.5">
+                    <span className="text-muted-foreground/60">{t.ports_label()}</span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {activeItem.ports.map((port) => (
+                        <span
+                          key={port.id}
+                          className="px-1.5 py-0.2 rounded bg-background/80 border border-border/50 text-[10px] font-mono"
+                        >
+                          {port.label || port.id}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* 右键提示 */}
-        {!palettePosition && (
-          <div className="px-3 pb-2 pt-0 text-[10px] text-muted-foreground/70 text-center">
-            {LL.flow.right_click_hint()}
+        {/* 底部快捷键与操作栏 */}
+        <div className="px-3.5 py-1.5 border-t border-border/40 bg-muted/30 text-[11px] text-muted-foreground/70 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <span>{t.key_navigate()}</span>
+            <span>{t.key_tab()}</span>
+            <span>{t.key_insert()}</span>
+            <span>{t.key_drag()}</span>
           </div>
-        )}
+          <span>{t.key_esc()}</span>
+        </div>
       </div>
     </>
   );
