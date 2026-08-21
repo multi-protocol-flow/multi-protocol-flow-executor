@@ -383,25 +383,25 @@ return (
       rightPanel={
         <div className="h-full flex flex-col">
           {/* 子标签栏 */}
-          <div className="border-b border-border shrink-0">
+          <div className="border-b border-border shrink-0 px-3 py-1.5 bg-muted/20">
             <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as DetailTab)}>
-              <TabsList className="h-7 p-0.5 bg-transparent">
-<TabsTrigger value="output" className="h-6 px-3 text-xs">
+              <TabsList className="h-7 p-0.5 bg-muted/60 border border-border/40 rounded-lg">
+                <TabsTrigger value="output" className="h-6 px-2.5 text-xs rounded-md">
                    {ll.execution.panel.tab_output()}
-                  </TabsTrigger>
+                </TabsTrigger>
                 {hasWsNodes && (
-                  <TabsTrigger value="ws" className="h-6 px-3 text-xs">
+                  <TabsTrigger value="ws" className="h-6 px-2.5 text-xs rounded-md">
                     {ll.execution.panel.tab_ws()}
                   </TabsTrigger>
                 )}
                 {showDebugTabs && (
                   <>
-<TabsTrigger value="variables" className="h-6 px-3 text-xs">
+                    <TabsTrigger value="variables" className="h-6 px-2.5 text-xs rounded-md">
                        {ll.execution.panel.tab_variables()}
-                      </TabsTrigger>
-<TabsTrigger value="stack" className="h-6 px-3 text-xs">
+                    </TabsTrigger>
+                    <TabsTrigger value="stack" className="h-6 px-2.5 text-xs rounded-md">
                        {ll.execution.panel.tab_stack()}
-                      </TabsTrigger>
+                    </TabsTrigger>
                   </>
                 )}
               </TabsList>

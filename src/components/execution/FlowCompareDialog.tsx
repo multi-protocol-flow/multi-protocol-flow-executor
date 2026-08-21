@@ -10,6 +10,8 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  FileText,
+  Network,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -614,9 +616,15 @@ export function FlowCompareDialog({
             <StatisticsBar diff={diff} ll={ll} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
-              <TabsList className="shrink-0 self-start">
-                <TabsTrigger value="canvas">{ll.execution.compare.tab_canvas()}</TabsTrigger>
-                <TabsTrigger value="field">{ll.execution.compare.tab_field()}</TabsTrigger>
+              <TabsList className="shrink-0 self-start h-9 p-1 bg-muted/60 rounded-xl border border-border/40 mb-3">
+                <TabsTrigger value="canvas" className="gap-1.5 rounded-lg text-xs font-medium">
+                  <Network className="w-3.5 h-3.5" />
+                  <span>{ll.execution.compare.tab_canvas()}</span>
+                </TabsTrigger>
+                <TabsTrigger value="field" className="gap-1.5 rounded-lg text-xs font-medium">
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>{ll.execution.compare.tab_field()}</span>
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="canvas" className="flex-1 min-h-0">

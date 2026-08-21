@@ -195,26 +195,28 @@ export function StressTestResult() {
 
         {/* 统计级别 Tab + 节点类型筛选 */}
         <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="flex rounded-lg border border-border overflow-hidden">
+          <div className="inline-flex h-8 items-center p-0.5 bg-muted/70 rounded-lg border border-border/40">
             <button
               className={cn(
-                'px-3 py-1 text-xs font-medium transition-colors',
+                'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all duration-150 cursor-pointer',
                 statLevel === 'flow'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:bg-accent'
+                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
               onClick={() => setStatLevel('flow')}
-            >               {getLL().flow.stress_result_flow_level()}
+            >
+              {getLL().flow.stress_result_flow_level()}
             </button>
             <button
               className={cn(
-                'px-3 py-1 text-xs font-medium transition-colors border-l border-border',
+                'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all duration-150 cursor-pointer',
                 statLevel === 'node'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:bg-accent'
+                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
               onClick={() => setStatLevel('node')}
-            >               {getLL().flow.stress_result_node_level()}
+            >
+              {getLL().flow.stress_result_node_level()}
             </button>
           </div>
 
@@ -297,7 +299,8 @@ export function StressTestResult() {
                 {/* 响应时间分布 */}
                 <div className="flex flex-col gap-3">
                   <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Timer className="w-4 h-4" />                     {getLL().flow.stress_result_response_dist()}
+                    <Timer className="w-4 h-4" />
+                     {getLL().flow.stress_result_response_dist()}
                   </h3>
                   <div className="grid grid-cols-2 gap-2">
                     <MetricItem label={getLL().flow.stress_result_avg()} value={report.responseTimeDistribution.avgMs} />
@@ -380,23 +383,32 @@ export function StressTestResult() {
                      <table className="w-full min-w-max whitespace-nowrap text-sm">
                        <thead>
                          <tr className="bg-muted/50">
-                           <th className="sticky left-0 z-20 bg-muted text-left py-2 px-3 font-medium text-muted-foreground">                              {getLL().flow.stress_result_node_name()}
+                           <th className="sticky left-0 z-20 bg-muted text-left py-2 px-3 font-medium text-muted-foreground">
+                              {getLL().flow.stress_result_node_name()}
                            </th>
-                           <th className="sticky left-[120px] z-10 bg-muted text-left py-2 px-3 font-medium text-muted-foreground border-r border-border/50">                              {getLL().flow.stress_result_node_type()}
+                           <th className="sticky left-[120px] z-10 bg-muted text-left py-2 px-3 font-medium text-muted-foreground border-r border-border/50">
+                              {getLL().flow.stress_result_node_type()}
                            </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_exec_count()}
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                             {getLL().flow.stress_result_exec_count()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_success()}
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                             {getLL().flow.stress_result_success()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_fail()}
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                             {getLL().flow.stress_result_fail()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_success_rate()}
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                             {getLL().flow.stress_result_success_rate()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_min()}
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                             {getLL().flow.stress_result_min()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_avg()}
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                             {getLL().flow.stress_result_avg()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_max()}
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                             {getLL().flow.stress_result_max()}
                           </th>
                           <th className="text-right py-2 px-3 font-medium text-muted-foreground">
                             P50
@@ -475,21 +487,27 @@ export function StressTestResult() {
                 {report.nodeTypeStatistics && report.nodeTypeStatistics.length > 0 && (
                   <div className="flex flex-col gap-3">
                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4" />                       {getLL().flow.stress_result_node_aggregate()}
+                      <BarChart3 className="w-4 h-4" />
+                       {getLL().flow.stress_result_node_aggregate()}
                     </h3>
                     <div className="rounded-xl border border-border/50 overflow-x-auto">
                       <table className="w-full min-w-max whitespace-nowrap text-sm">
                         <thead>
                           <tr className="bg-muted/50">
-                            <th className="text-left py-2 px-3 font-medium text-muted-foreground">                               {getLL().flow.stress_result_node_type()}
+                            <th className="text-left py-2 px-3 font-medium text-muted-foreground">
+                               {getLL().flow.stress_result_node_type()}
                             </th>
-                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">                               {getLL().flow.stress_result_node_count()}
+                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                               {getLL().flow.stress_result_node_count()}
                             </th>
-                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">                               {getLL().flow.stress_result_total_exec()}
+                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                               {getLL().flow.stress_result_total_exec()}
                             </th>
-                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_success_rate()}
+                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                             {getLL().flow.stress_result_success_rate()}
                             </th>
-                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">                               {getLL().flow.stress_result_avg_response()}
+                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                               {getLL().flow.stress_result_avg_response()}
                             </th>
                           </tr>
                         </thead>

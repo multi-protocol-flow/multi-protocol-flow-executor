@@ -538,8 +538,8 @@ function MessageDetailPanel({ message, onClose, onMount }: MessageDetailPanelPro
       {/* 格式标签页 */}
       <Tabs value={formatTab} onValueChange={(v) => setFormatTab(v as FormatTab)}>
         <div className="px-3 pt-1">
-          <TabsList className="h-7 p-0.5">
-            <TabsTrigger value="text" className="text-[11px] h-6 px-2.5">
+          <TabsList className="h-7 p-0.5 bg-muted/60 border border-border/40 rounded-lg">
+            <TabsTrigger value="text" className="text-[11px] h-6 px-2.5 rounded-md">
               {getLL().execution.viewers.text_label()}
             </TabsTrigger>
             <TabsTrigger

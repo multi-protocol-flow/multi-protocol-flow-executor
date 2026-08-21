@@ -11,6 +11,8 @@ import {
   Clock,
   Copy,
   Check,
+  LayoutList,
+  FileCode,
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -125,35 +127,36 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
       {isExpanded && (
         <div className="border-t border-border/50 bg-muted/20 overflow-hidden">
           {/* Tab 切换栏 */}
-          <div className="flex border-b border-border/50">
-            <button
-              type="button"
-              onClick={() => setActiveTab('structured')}
-              className={cn(
-                'px-4 py-2 text-sm font-medium transition-colors',
-                'border-b-2 -mb-px',
-                activeTab === 'structured'
-                  ? 'border-foreground text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {ll.execution.report.tab_structured()}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('raw')}
-              className={cn(
-                'px-4 py-2 text-sm font-medium transition-colors',
-                'border-b-2 -mb-px',
-                activeTab === 'raw'
-                  ? 'border-foreground text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {ll.execution.report.tab_raw_json()}
-            </button>
+          <div className="flex items-center px-4 pt-3 pb-1 border-b border-border/40 bg-muted/30">
+            <div className="inline-flex h-8 items-center p-0.5 bg-muted/70 rounded-lg border border-border/40">
+              <button
+                type="button"
+                onClick={() => setActiveTab('structured')}
+                className={cn(
+                  'inline-flex items-center justify-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-all duration-150 cursor-pointer',
+                  activeTab === 'structured'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                <span>{ll.execution.report.tab_structured()}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('raw')}
+                className={cn(
+                  'inline-flex items-center justify-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-all duration-150 cursor-pointer',
+                  activeTab === 'raw'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <FileCode className="w-3.5 h-3.5" />
+                <span>{ll.execution.report.tab_raw_json()}</span>
+              </button>
+            </div>
           </div>
-
           {/* Tab 内容区域 */}
           <div className="p-4 text-sm overflow-hidden">
             {activeTab === 'structured' ? (
