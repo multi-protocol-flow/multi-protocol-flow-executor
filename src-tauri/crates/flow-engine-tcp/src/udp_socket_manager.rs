@@ -266,11 +266,13 @@ impl UdpSocketManager {
                 .set_multicast_loop_v4(loopback)
                 .map_err(|e| format!("Failed to set multicast loopback: {}", e))?;
         }
+        std_socket
+            .set_nonblocking(true)
+            .map_err(|e| format!("Failed to set nonblocking mode: {}", e))?;
 
         // 8. 转换为 tokio::net::UdpSocket
         let socket = UdpSocket::from_std(std_socket)
             .map_err(|e| format!("Failed to convert to tokio UdpSocket: {}", e))?;
-
         // 9. 获取实际绑定的地址和端口（端口 0 时自动分配）
         let actual_local_addr = socket
             .local_addr()

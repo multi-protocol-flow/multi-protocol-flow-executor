@@ -306,7 +306,7 @@ async fn read_fixed_length<R: AsyncReadExt + Unpin>(
     Ok(buf)
 }
 
-/// 超时读取（在超时前读取所有可用数据）
+/// 超时读取（在超时前读取所有可用数据，支持空闲超时探测）
 async fn read_until_timeout<R: AsyncReadExt + Unpin>(
     reader: &mut R,
     timeout_ms: u64,
@@ -314,38 +314,44 @@ async fn read_until_timeout<R: AsyncReadExt + Unpin>(
 ) -> Result<Vec<u8>, String> {
     let mut buf = Vec::new();
     let mut tmp = [0u8; 4096];
+    let start = std::time::Instant::now();
+    let total_timeout = std::time::Duration::from_millis(timeout_ms);
+    let idle_timeout = std::time::Duration::from_millis(timeout_ms.min(200));
 
-    let result = tokio::time::timeout(std::time::Duration::from_millis(timeout_ms), async {
-        loop {
-            match reader.read(&mut tmp).await {
-                Ok(0) => break, // EOF
-                Ok(n) => {
-                    buf.extend_from_slice(&tmp[..n]);
-                    if buf.len() > max_frame_size {
-                        return Err(format!(
-                            "Message size {} exceeds maximum frame size {}",
-                            buf.len(),
-                            max_frame_size
-                        ));
-                    }
-                }
-                Err(e) => return Err(format!("Failed to read data: {}", e)),
-            }
+    loop {
+        let elapsed = start.elapsed();
+        if elapsed >= total_timeout {
+            break;
         }
-        Ok(())
-    })
-    .await;
+        let remaining_total = total_timeout - elapsed;
+        let read_timeout = if buf.is_empty() {
+            remaining_total
+        } else {
+            remaining_total.min(idle_timeout)
+        };
 
-    match result {
-        Ok(inner) => inner?,
-        Err(_) => {
-            // 超时，返回已读取的数据（可能为空）
+        match tokio::time::timeout(read_timeout, reader.read(&mut tmp)).await {
+            Ok(Ok(0)) => break, // EOF
+            Ok(Ok(n)) => {
+                buf.extend_from_slice(&tmp[..n]);
+                if buf.len() > max_frame_size {
+                    return Err(format!(
+                        "Message size {} exceeds maximum frame size {}",
+                        buf.len(),
+                        max_frame_size
+                    ));
+                }
+            }
+            Ok(Err(e)) => return Err(format!("Failed to read data: {}", e)),
+            Err(_) => {
+                // 超时：若已读取到部分数据，视为当前批次响应完毕；若尚未读取到数据，为总超时
+                break;
+            }
         }
     }
 
     Ok(buf)
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;

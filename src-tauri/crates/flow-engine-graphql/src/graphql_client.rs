@@ -298,8 +298,8 @@ impl GraphqlClient {
         subscription: &str,
         variables: Option<serde_json::Value>,
         operation_name: Option<String>,
-        _headers: Option<&HashMap<String, String>>,
-        _auth: &GraphqlAuth,
+        headers: Option<&HashMap<String, String>>,
+        auth: &GraphqlAuth,
         max_events: u32,
         timeout_ms: u64,
     ) -> Result<GraphqlSubscriptionResponse, String> {
@@ -312,6 +312,41 @@ impl GraphqlClient {
         let mut request = ws_endpoint
             .into_client_request()
             .map_err(|e| format!("failed to build WebSocket request: {}", e))?;
+
+        // 添加自定义请求头
+        if let Some(hdrs) = headers {
+            for (key, val) in hdrs {
+                if let (Ok(k), Ok(v)) = (
+                    reqwest::header::HeaderName::from_bytes(key.as_bytes()),
+                    reqwest::header::HeaderValue::from_str(val),
+                ) {
+                    request.headers_mut().insert(k, v);
+                }
+            }
+        }
+
+        // 添加认证请求头
+        match auth {
+            GraphqlAuth::None => {}
+            GraphqlAuth::Bearer(token) => {
+                if let Ok(v) = reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)) {
+                    request.headers_mut().insert(reqwest::header::AUTHORIZATION, v);
+                }
+            }
+            GraphqlAuth::ApiKey { name, value } => {
+                if let (Ok(k), Ok(v)) = (
+                    reqwest::header::HeaderName::from_bytes(name.as_bytes()),
+                    reqwest::header::HeaderValue::from_str(value),
+                ) {
+                    request.headers_mut().insert(k, v);
+                }
+            }
+            GraphqlAuth::Cookie(cookie) => {
+                if let Ok(v) = reqwest::header::HeaderValue::from_str(cookie) {
+                    request.headers_mut().insert(reqwest::header::COOKIE, v);
+                }
+            }
+        }
 
         // 添加 graphql-ws 子协议头
         request.headers_mut().insert(
@@ -326,13 +361,41 @@ impl GraphqlClient {
         let (mut write, mut read) = ws_stream.split();
 
         // 3. 发送 connection_init
-        let init_msg = serde_json::json!({"type": "connection_init"});
+        let mut init_payload = serde_json::Map::new();
+        match auth {
+            GraphqlAuth::None => {}
+            GraphqlAuth::Bearer(token) => {
+                init_payload.insert(
+                    "Authorization".to_string(),
+                    serde_json::Value::String(format!("Bearer {}", token)),
+                );
+            }
+            GraphqlAuth::ApiKey { name, value } => {
+                init_payload.insert(
+                    name.clone(),
+                    serde_json::Value::String(value.clone()),
+                );
+            }
+            GraphqlAuth::Cookie(cookie) => {
+                init_payload.insert(
+                    "Cookie".to_string(),
+                    serde_json::Value::String(cookie.clone()),
+                );
+            }
+        }
+
+        let init_msg = if init_payload.is_empty() {
+            serde_json::json!({"type": "connection_init"})
+        } else {
+            serde_json::json!({
+                "type": "connection_init",
+                "payload": init_payload
+            })
+        };
         write
             .send(WsMessage::Text(init_msg.to_string().into()))
             .await
             .map_err(|e| format!("failed to send connection_init: {}", e))?;
-
-        // 4. 等待 connection_ack
         let ack_timeout = Duration::from_secs(10);
         let ack_received = match tokio::time::timeout(ack_timeout, read.next()).await {
             Ok(Some(Ok(WsMessage::Text(text)))) => {

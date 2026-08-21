@@ -121,7 +121,7 @@ impl Default for SseConnectionManager {
 
 impl Drop for SseConnectionManager {
     fn drop(&mut self) {
-        // Drop 时尝试清理所有连接（非阻塞）
+        // Drop 时尝试清理所有连接（非阻塞优先，锁冲突则异步清理）
         if let Ok(mut connections) = self.connections.try_write() {
             for (id, conn) in connections.drain() {
                 conn.cancel_token.cancel();
@@ -130,6 +130,18 @@ impl Drop for SseConnectionManager {
                 }
                 info!("SSE connection {} cleaned up on manager release", id);
             }
+        } else {
+            let connections = Arc::clone(&self.connections);
+            tokio::spawn(async move {
+                let mut conns = connections.write().await;
+                for (id, conn) in conns.drain() {
+                    conn.cancel_token.cancel();
+                    if let Some(handle) = conn.listen_handle {
+                        handle.abort();
+                    }
+                    info!("SSE connection {} cleaned up asynchronously on manager release", id);
+                }
+            });
         }
     }
 }
