@@ -65,7 +65,7 @@ jobs:
 
       - name: Upload artifacts (Windows)
         if: matrix.platform == 'windows-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mpe-${{ matrix.label }}
           path: |
@@ -75,7 +75,7 @@ jobs:
 
       - name: Upload artifacts (Linux)
         if: matrix.platform == 'ubuntu-22.04'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mpe-${{ matrix.label }}
           path: src-tauri/target/release/mpe-cli
@@ -83,7 +83,7 @@ jobs:
 
       - name: Upload artifacts (macOS)
         if: matrix.platform == 'macos-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mpe-${{ matrix.label }}
           path: |
