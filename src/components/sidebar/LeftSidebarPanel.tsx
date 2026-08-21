@@ -29,8 +29,8 @@ export function LeftSidebarPanel() {
   // UI 状态
   const isFlowListCollapsed = useUIStore((state) => state.isFlowListCollapsed);
 
-  // 数据源面板折叠状态（组件内 useState，P0 不持久化）
-  const [isDatasourceCollapsed, setIsDatasourceCollapsed] = useState(false);
+  // 数据源面板折叠状态（默认折叠，组件内 useState，P0 不持久化）
+  const [isDatasourceCollapsed, setIsDatasourceCollapsed] = useState(true);
 
   // 调试状态
   const isDebugging = useDebugStore(selectIsDebugging);
