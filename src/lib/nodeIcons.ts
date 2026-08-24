@@ -46,6 +46,7 @@ import {
   Braces,
   Timer,
   ArrowDownLeft,
+  ArrowUpRight,
   MessageSquare,
   Copy,
   FolderPlus,
@@ -57,6 +58,15 @@ import {
   Hash,
   Box,
   Command,
+  Bot,
+  Brain,
+  Sparkles,
+  Cpu,
+  Zap,
+  Radio,
+  Shield,
+  Square,
+  Activity,
 } from 'lucide-react';
 
 /** 后端 icon 字段到 lucide-react 组件的映射 */
@@ -102,6 +112,8 @@ export const BACKEND_ICON_MAP: Record<string, LucideIcon> = {
   braces: Braces,
   timer: Timer,
   'arrow-down-to-line': ArrowDownLeft,
+  'arrow-down-left': ArrowDownLeft,
+  'arrow-up-right': ArrowUpRight,
   undo: RotateCcw,
   x: Unplug,
   'message-square': MessageSquare,
@@ -118,6 +130,15 @@ export const BACKEND_ICON_MAP: Record<string, LucideIcon> = {
   hash: Hash,
   box: Box,
   command: Command,
+  bot: Bot,
+  brain: Brain,
+  sparkles: Sparkles,
+  cpu: Cpu,
+  zap: Zap,
+  radio: Radio,
+  shield: Shield,
+  square: Square,
+  activity: Activity,
 };
 
 /**

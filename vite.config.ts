@@ -20,8 +20,13 @@ export default defineConfig(({ mode }) => {
       watch: {
         ignored: [
           '**/src-tauri/target/**',
+          '**/plugins/**/target/**',
+          '**/plugins/**/node_modules/**',
+          '**/plugins/**/dist*/**',
           '**/.git/**',
           '**/node_modules/**',
+          '**/website/**',
+          '**/echo/**',
         ],
       },
       fs: {
