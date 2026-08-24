@@ -885,4 +885,103 @@ describe('ExecutionStore', () => {
       expect(state.report).not.toBeNull();
     });
   });
+
+  describe('nodeStreamMap', () => {
+    it('正确处理并累积 pluginEvent stream 事件', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'flow-1', flowName: 'Test', totalNodes: 2 },
+      });
+
+      // 发送 reasoning chunk
+      useExecutionStore.getState().handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'flow-1',
+          nodeUuid: 'node-llm-1',
+          nodeType: 'llm:chat',
+          eventType: 'stream',
+          data: {
+            kind: 'reasoning',
+            delta_reasoning: 'Thinking deeply...',
+          },
+          timestamp: '2026-08-24T00:00:00Z',
+        },
+      });
+
+      // 发送 content chunk
+      useExecutionStore.getState().handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'flow-1',
+          nodeUuid: 'node-llm-1',
+          nodeType: 'llm:chat',
+          eventType: 'stream',
+          data: {
+            kind: 'content',
+            delta_content: 'Hello, world!',
+          },
+          timestamp: '2026-08-24T00:00:01Z',
+        },
+      });
+
+      const streamData = useExecutionStore.getState().nodeStreamMap['node-llm-1'];
+      expect(streamData).toBeDefined();
+      expect(streamData.fullReasoning).toBe('Thinking deeply...');
+      expect(streamData.fullContent).toBe('Hello, world!');
+      expect(streamData.chunks.length).toBe(2);
+
+      // 再发送一个 content chunk
+      useExecutionStore.getState().handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'flow-1',
+          nodeUuid: 'node-llm-1',
+          nodeType: 'llm:chat',
+          eventType: 'stream',
+          data: {
+            kind: 'content',
+            delta_content: ' How can I help you?',
+          },
+          timestamp: '2026-08-24T00:00:02Z',
+        },
+      });
+
+      const updatedStreamData = useExecutionStore.getState().nodeStreamMap['node-llm-1'];
+      expect(updatedStreamData.fullContent).toBe('Hello, world! How can I help you?');
+      expect(updatedStreamData.chunks.length).toBe(3);
+    });
+
+    it('flowStarted 和 clearExecutionState 重置 nodeStreamMap', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'flow-1',
+          nodeUuid: 'node-llm-1',
+          nodeType: 'llm:chat',
+          eventType: 'stream',
+          data: {
+            delta_content: 'Test content',
+          },
+          timestamp: '2026-08-24T00:00:00Z',
+        },
+      });
+      expect(useExecutionStore.getState().nodeStreamMap['node-llm-1']).toBeDefined();
+
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'flow-2', flowName: 'New Flow', totalNodes: 1 },
+      });
+      expect(Object.keys(useExecutionStore.getState().nodeStreamMap).length).toBe(0);
+
+      useExecutionStore.getState().handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'flow-2',
+          nodeUuid: 'node-llm-2',
+          nodeType: 'llm:chat',
+          eventType: 'stream',
+          data: { delta_content: 'More content' },
+          timestamp: '2026-08-24T00:00:00Z',
+        },
+      });
+      expect(useExecutionStore.getState().nodeStreamMap['node-llm-2']).toBeDefined();
+
+      useExecutionStore.getState().clearExecutionState();
+      expect(Object.keys(useExecutionStore.getState().nodeStreamMap).length).toBe(0);
+    });
+  });
 });

@@ -3,7 +3,7 @@
  */
 import { create } from 'zustand';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types';
-import type { ExecutionEvent, PluginEventData } from '@/types/execution_event';
+import type { ExecutionEvent, PluginEventData, NodeStreamData } from '@/types/execution_event';
 import { useWsStreamStore } from './wsStream';
 
 interface ExecutionState {
@@ -31,6 +31,8 @@ interface ExecutionState {
   selectedHistoryReport: FlowExecutionReport | null;
   /** 插件流事件日志（有界，保留最近 N 条；P1 消费者） */
   pluginEvents: PluginEventData[];
+  /** 节点实时流式数据 (nodeUuid -> NodeStreamData) */
+  nodeStreamMap: Record<string, NodeStreamData>;
 
   // ===== Actions =====
   /** 开始执行 */
@@ -84,6 +86,7 @@ const initialState = {
   isReportDialogOpen: false,
   selectedHistoryReport: null as FlowExecutionReport | null,
   pluginEvents: [] as PluginEventData[],
+  nodeStreamMap: {} as Record<string, NodeStreamData>,
 };
 
 export const useExecutionStore = create<ExecutionState>((set, get) => {
@@ -199,6 +202,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           report: null,
           error: null,
           pluginEvents: [],
+          nodeStreamMap: {},
         });
       } else if ('nodeStarted' in event) {
         const { nodeUuid } = event.nodeStarted;
@@ -229,10 +233,65 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
       } else if ('flowCancelled' in event) {
         set({ isExecuting: false });
       } else if ('pluginEvent' in event) {
-        // 插件流式事件：有界追加，P1 消费者消费；P0 仅保证不崩溃且可追溯
-        set((state) => ({
-          pluginEvents: [...state.pluginEvents, event.pluginEvent].slice(-MAX_PLUGIN_EVENTS),
-        }));
+        const pluginEvt = event.pluginEvent;
+        const isStream = pluginEvt.eventType === 'stream';
+        set((state) => {
+          let nextNodeStreamMap = state.nodeStreamMap;
+          if (isStream) {
+            const dataObj =
+              typeof pluginEvt.data === 'object' && pluginEvt.data !== null
+                ? (pluginEvt.data as Record<string, unknown>)
+                : {};
+            const deltaContent = typeof dataObj.delta_content === 'string' ? dataObj.delta_content : '';
+            const deltaReasoning = typeof dataObj.delta_reasoning === 'string' ? dataObj.delta_reasoning : '';
+            const text =
+              typeof dataObj.text === 'string'
+                ? dataObj.text
+                : typeof pluginEvt.data === 'string'
+                  ? pluginEvt.data
+                  : '';
+            const kind =
+              typeof dataObj.kind === 'string'
+                ? dataObj.kind
+                : deltaReasoning
+                  ? 'reasoning'
+                  : 'content';
+
+            const prev = state.nodeStreamMap[pluginEvt.nodeUuid] || {
+              fullContent: '',
+              fullReasoning: '',
+              lastUpdated: Date.now(),
+              chunks: [],
+            };
+
+            const newFullContent = prev.fullContent + (deltaContent || (kind === 'content' ? text : ''));
+            const newFullReasoning =
+              prev.fullReasoning + (deltaReasoning || (kind === 'reasoning' ? text : ''));
+
+            const chunkEntry = {
+              kind,
+              delta_content: deltaContent || undefined,
+              delta_reasoning: deltaReasoning || undefined,
+              text: text || undefined,
+              timestamp: pluginEvt.timestamp || new Date().toISOString(),
+            };
+
+            nextNodeStreamMap = {
+              ...state.nodeStreamMap,
+              [pluginEvt.nodeUuid]: {
+                fullContent: newFullContent,
+                fullReasoning: newFullReasoning,
+                lastUpdated: Date.now(),
+                chunks: [...prev.chunks, chunkEntry].slice(-500),
+              },
+            };
+          }
+
+          return {
+            pluginEvents: [...state.pluginEvents, pluginEvt].slice(-MAX_PLUGIN_EVENTS),
+            nodeStreamMap: nextNodeStreamMap,
+          };
+        });
       }
     },
 
@@ -246,6 +305,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         report: null,
         error: null,
         pluginEvents: [],
+        nodeStreamMap: {},
       });
     },
 
@@ -347,3 +407,11 @@ export const selectNodeReportByUuid = (uuid: string) => (state: ExecutionState) 
   state.nodeReportsMap[uuid];
 /** 选择插件流事件日志 */
 export const selectPluginEvents = (state: ExecutionState) => state.pluginEvents;
+/** 选择节点实时流式数据映射表 */
+export const selectNodeStreamMap = (state: ExecutionState) => state.nodeStreamMap;
+/** 按 UUID 选择特定节点的实时流式数据 */
+export const selectNodeStream = (state: ExecutionState, nodeUuid?: string | null) =>
+  nodeUuid ? state.nodeStreamMap[nodeUuid] : undefined;
+/** 工厂选择器：选择特定节点的实时流式数据 */
+export const selectNodeStreamByUuid = (nodeUuid: string) => (state: ExecutionState) =>
+  state.nodeStreamMap[nodeUuid];

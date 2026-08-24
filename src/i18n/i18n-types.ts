@@ -5226,6 +5226,23 @@ type RootTranslation = {
 			 */
 			no_output_data: string
 			/**
+			 * 实​时​流​式​输​出
+			 */
+			realtime_stream: string
+			/**
+			 * 深​度​思​考​过​程
+			 */
+			thinking_process: string
+			/**
+			 * 流​式​输​出​内​容
+			 */
+			stream_content: string
+			/**
+			 * {​c​o​u​n​t​}​ ​字​符
+			 * @param {unknown} count
+			 */
+			chars_count: RequiredParams<'count'>
+			/**
 			 * 请​求​配​置
 			 */
 			request_config: string
@@ -16830,6 +16847,22 @@ export type TranslationFunctions = {
 			 * 无输出数据
 			 */
 			no_output_data: () => LocalizedString
+			/**
+			 * 实时流式输出
+			 */
+			realtime_stream: () => LocalizedString
+			/**
+			 * 深度思考过程
+			 */
+			thinking_process: () => LocalizedString
+			/**
+			 * 流式输出内容
+			 */
+			stream_content: () => LocalizedString
+			/**
+			 * {count} 字符
+			 */
+			chars_count: (arg: { count: unknown }) => LocalizedString
 			/**
 			 * 请求配置
 			 */

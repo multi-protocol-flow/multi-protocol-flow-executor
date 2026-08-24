@@ -122,7 +122,7 @@ export type {
 } from './report';
 
 // 执行事件类型
-export type { ExecutionEvent, PluginEventData } from './execution_event';
+export type { ExecutionEvent, PluginEventData, NodeStreamChunk, NodeStreamData } from './execution_event';
 
 // IPC 类型
 export type {

@@ -25,6 +25,23 @@ export interface PluginEventData {
   timestamp: string;
 }
 
+/** 单个流式分块数据 */
+export interface NodeStreamChunk {
+  kind?: 'content' | 'reasoning' | 'data' | string;
+  delta_content?: string;
+  delta_reasoning?: string;
+  text?: string;
+  timestamp: string;
+}
+
+/** 节点实时流式输出聚合数据 */
+export interface NodeStreamData {
+  fullContent: string;
+  fullReasoning: string;
+  lastUpdated: number;
+  chunks: NodeStreamChunk[];
+}
+
 /**
  * 执行事件（正常模式）
  *
