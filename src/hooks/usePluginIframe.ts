@@ -239,9 +239,17 @@ export function usePluginIframe(options: UsePluginIframeOptions): UsePluginIfram
   // 协议未约定插件必须同步监听，宿主作为协议拥有方周期重发直至 ready。
   useEffect(() => {
     if (!loaded || readyRef.current) return;
+    let retryCount = 0;
+    const maxRetries = 25; // ~7.5s
     const timer = window.setInterval(() => {
       if (readyRef.current) {
         window.clearInterval(timer);
+        return;
+      }
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        window.clearInterval(timer);
+        setError('Plugin panel initialization timed out (no ready signal received)');
         return;
       }
       const {

@@ -8,6 +8,8 @@ import {
   ChevronRight,
   CheckCircle2,
   XCircle,
+  Loader2,
+  Ban,
   Clock,
   Copy,
   Check,
@@ -26,6 +28,7 @@ import { ErrorSection } from './viewers/ErrorSection';
 
 interface NodeExecutionDetailsProps {
   report: NodeExecutionReport;
+  defaultExpanded?: boolean;
 }
 
 /**
@@ -47,9 +50,9 @@ function NodeViewerSelector({ report }: NodeExecutionDetailsProps) {
 }
 
 
-export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
+export function NodeExecutionDetails({ report, defaultExpanded = false }: NodeExecutionDetailsProps) {
   const ll = getLL();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [activeTab, setActiveTab] = useState<'structured' | 'raw'>('structured');
   const [copied, setCopied] = useState(false);
 
@@ -64,7 +67,10 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
     }
   };
 
-  const isSuccess = report.status === 'success';
+  const status = report.status;
+  const isRunning = (status as string) === 'running';
+  const isSuccess = status === 'success';
+  const isCancelled = status === 'cancelled';
   const nodeTypeLabel = NODE_TYPE_NAMES[report.node_type] || report.node_type;
   const nodeTypeColor = NODE_TYPE_COLORS[report.node_type] || '';
 
@@ -72,9 +78,13 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
     <div
       className={cn(
         'border rounded-xl overflow-hidden transition-all duration-200 min-w-0',
-        isSuccess
-          ? 'border-emerald-200/60'
-          : 'border-red-200/60'
+        isRunning
+          ? 'border-blue-300 dark:border-blue-700 shadow-xs'
+          : isSuccess
+            ? 'border-emerald-200/60 dark:border-emerald-800/60'
+            : isCancelled
+              ? 'border-amber-200/60 dark:border-amber-800/60'
+              : 'border-red-200/60 dark:border-red-800/60'
       )}
     >
       {/* 标题栏 */}
@@ -98,8 +108,12 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
           </div>
 
           {/* 状态图标 */}
-          {isSuccess ? (
+          {isRunning ? (
+            <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+          ) : isSuccess ? (
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          ) : isCancelled ? (
+            <Ban className="w-4 h-4 text-amber-500" />
           ) : (
             <XCircle className="w-4 h-4 text-red-500" />
           )}

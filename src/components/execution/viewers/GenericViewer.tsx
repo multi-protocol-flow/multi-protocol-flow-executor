@@ -10,11 +10,14 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Layers,
+  Sparkles,
+  Terminal,
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
+import { useExecutionStore } from '@/stores';
 
 interface GenericViewerProps {
   /** 节点执行报告 */
@@ -77,9 +80,55 @@ function DataSection({ data, emptyText }: DataSectionProps) {
 export const GenericViewer = memo(function GenericViewer({ report }: GenericViewerProps) {
   const ll = getLL();
   const { node_name, node_type, resolved_config, output_data, variable_changes } = report;
-
+  const nodeStreamData = useExecutionStore((s) => s.nodeStreamMap[report.node_uuid]);
+  const hasStreamData =
+    nodeStreamData &&
+    (Boolean(nodeStreamData.fullContent) ||
+      Boolean(nodeStreamData.fullReasoning) ||
+      nodeStreamData.chunks.length > 0);
+  const isRunning = (report.status as string) === 'running';
   return (
     <div className="space-y-3">
+      {hasStreamData && (
+        <CollapsibleSection
+          title={ll.execution.viewers.realtime_stream()}
+          icon={<Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />}
+          defaultOpen={true}
+        >
+          <div className="space-y-3">
+            {nodeStreamData.fullReasoning ? (
+              <div className="bg-muted/40 border border-border/60 rounded-md p-3">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                  <Terminal className="w-3.5 h-3.5 text-purple-500" />
+                  <span>{ll.execution.viewers.thinking_process()}</span>
+                </div>
+                <div className="text-xs text-muted-foreground/90 font-mono whitespace-pre-wrap leading-relaxed">
+                  {nodeStreamData.fullReasoning}
+                  {isRunning && !nodeStreamData.fullContent && (
+                    <span className="inline-block w-1.5 h-3.5 bg-purple-500 ml-1 animate-pulse align-middle" />
+                  )}
+                </div>
+              </div>
+            ) : null}
+            {nodeStreamData.fullContent ? (
+              <div className="bg-background border border-border rounded-md p-3">
+                <div className="text-xs font-semibold text-foreground/80 mb-1.5 flex items-center justify-between">
+                  <span>{ll.execution.viewers.stream_content()}</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {ll.execution.viewers.chars_count({ count: nodeStreamData.fullContent.length })}
+                  </span>
+                </div>
+                <div className="text-xs text-foreground font-sans whitespace-pre-wrap leading-relaxed">
+                  {nodeStreamData.fullContent}
+                  {isRunning && (
+                    <span className="inline-block w-1.5 h-3.5 bg-blue-500 ml-1 animate-pulse align-middle" />
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </CollapsibleSection>
+      )}
       <CollapsibleSection
         title={ll.execution.viewers.node_info()}
         icon={<Layers className="w-4 h-4" />}

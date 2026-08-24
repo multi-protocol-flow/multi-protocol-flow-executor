@@ -2,7 +2,7 @@
  * 节点执行列表项组件
  * 用于在执行报告列表中显示单个节点的执行信息
  */
-import { CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Loader2, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getNodeMeta } from '@/lib/nodeMeta';
 import type { NodeExecutionReport } from '@/types';
@@ -17,7 +17,10 @@ interface NodeListItemProps {
 }
 
 export function NodeListItem({ report, isSelected, onClick }: NodeListItemProps) {
-  const isSuccess = report.status === 'success';
+  const status = report.status;
+  const isRunning = (status as string) === 'running';
+  const isSuccess = status === 'success';
+  const isCancelled = status === 'cancelled';
   const meta = getNodeMeta(report.node_type);
   const nodeTypeLabel = meta?.name ?? report.node_type;
 
@@ -31,8 +34,12 @@ export function NodeListItem({ report, isSelected, onClick }: NodeListItemProps)
       )}
     >
       {/* 状态图标 */}
-      {isSuccess ? (
+      {isRunning ? (
+        <Loader2 className="w-4 h-4 text-blue-500 animate-spin shrink-0" />
+      ) : isSuccess ? (
         <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+      ) : isCancelled ? (
+        <Ban className="w-4 h-4 text-amber-500 shrink-0" />
       ) : (
         <XCircle className="w-4 h-4 text-red-500 shrink-0" />
       )}

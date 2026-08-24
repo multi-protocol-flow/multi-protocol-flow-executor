@@ -9,21 +9,65 @@
  *
  * 未声明 viewer 的插件节点回退到最小实现：`plugin_data` 格式化 JSON。
  */
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+} from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
+import { GenericViewer } from './GenericViewer';
 import { RawJsonViewer } from './RawJsonViewer';
-import { getLL } from '@/i18n/i18n-lazy';
+import { VariableChangesCard } from './VariableChangesCard';
 import { useDebugStore } from '@/stores/debug';
+import { useExecutionStore } from '@/stores';
+import { useCurrentLocale } from '@/hooks/useLocale';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
-
+import { getLL } from '@/i18n/i18n-lazy';
 interface PluginIframeViewerProps {
   /** 节点执行报告 */
   report: NodeExecutionReport;
 }
 
+interface CollapsibleSectionProps {
+  title: string;
+  icon: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}
+
+function CollapsibleSection({ title, icon, defaultOpen = false, children }: CollapsibleSectionProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+          {icon}
+          <span>{title}</span>
+        </div>
+        <div className="text-muted-foreground">
+          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </div>
+      </button>
+      {isOpen && (
+        <div className="p-3 border-t border-border bg-background">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const PluginIframeViewer = memo(function PluginIframeViewer({ report }: PluginIframeViewerProps) {
   const ll = getLL();
-  const { plugin_data } = report;
+  const { resolved_config, input_data, output_data, variable_changes } = report;
+  const inputPayload = resolved_config ?? input_data;
 
   // 节点元数据 viewer 页（插件 describe 的 `viewer` 前端，宿主归一化生成 URL）
   const viewerUrl = useMemo(
@@ -32,38 +76,60 @@ export const PluginIframeViewer = memo(function PluginIframeViewer({ report }: P
   );
 
   if (!viewerUrl) {
-    return (
-      <div className="space-y-3">
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="p-3 bg-muted/30 text-sm font-medium text-foreground">
-            {ll.execution.viewers.plugin_data()}
-          </div>
-          <div className="p-3 border-t border-border bg-background">
-            {plugin_data === undefined ? (
-              <p className="text-sm text-muted-foreground italic">{ll.execution.viewers.no_data()}</p>
-            ) : (
-              <div className="bg-muted rounded p-2">
-                <RawJsonViewer data={plugin_data} />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+    return <GenericViewer report={report} />;
   }
 
-  return <PluginReportIframe report={report} src={viewerUrl} />;
+  return (
+    <div className="space-y-3">
+      {/* 1. 插件专属视图 */}
+      <PluginReportIframe key={`${report.node_uuid}-${viewerUrl}`} report={report} src={viewerUrl} />
+
+      {/* 2. 输入数据（折叠展示，保持全节点一致性） */}
+      {inputPayload !== undefined && (
+        <CollapsibleSection
+          title={ll.execution.viewers.input_data()}
+          icon={<ArrowUpFromLine className="w-4 h-4" />}
+          defaultOpen={false}
+        >
+          <div className="bg-muted rounded p-2">
+            <RawJsonViewer data={inputPayload} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 3. 输出数据（折叠展示） */}
+      {output_data !== undefined && output_data !== null && (
+        <CollapsibleSection
+          title={ll.execution.viewers.output_data()}
+          icon={<ArrowDownToLine className="w-4 h-4" />}
+          defaultOpen={false}
+        >
+          <div className="bg-muted rounded p-2">
+            <RawJsonViewer data={output_data} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 4. 变量变更 */}
+      <VariableChangesCard changes={variable_changes} defaultOpen={false} />
+    </div>
+  );
 });
 
 /** 报告 iframe：init 携带 node_report，转发实时 stream 消息。 */
 function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [ready, setReady] = useState(false);
+  const iframeReadyRef = useRef(false);
+  const locale = useCurrentLocale();
 
   const grpcStreamMessages = useDebugStore((s) => s.grpcStreamMessages);
   const grpcStreamErrors = useDebugStore((s) => s.grpcStreamErrors);
   const nodeUuid = report.node_uuid;
-
+  const nodeStreamData = useExecutionStore((s) => s.nodeStreamMap[nodeUuid]);
+  const lastSentChunkIndexRef = useRef(0);
+  const lastSentGrpcIndexRef = useRef(0);
+  const isRunning = (report.status as string) === 'running';
   // 与当前节点相关的实时流消息（GrpcViewer 同款过滤：按 node_uuid）
   const realtimeMessages = useMemo(() => {
     const messages: Array<{
@@ -91,10 +157,9 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
     return null;
   }, [grpcStreamErrors, nodeUuid]);
 
-  // init 载荷（viewer 页协议：node_report + nodeType + locale）
-  useEffect(() => {
-    if (!ready || !iframeRef.current) return;
-    iframeRef.current.contentWindow?.postMessage(
+  const sendInit = useCallback(() => {
+    if (!iframeRef.current?.contentWindow) return;
+    iframeRef.current.contentWindow.postMessage(
       {
         type: 'init',
         payload: {
@@ -102,32 +167,111 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
           variables: {},
           host_api: {},
           nodeType: report.node_type,
-          locale: 'en-US',
+          locale,
           node_report: report,
+          outputData: report.output_data,
+          reportData: report.plugin_data || report.output_data,
         },
       },
       '*'
     );
-  }, [ready, report]);
+  }, [report, locale]);
+
+  // 监听来自 iframe 的握手消息 (ready / requestInit)
+  useEffect(() => {
+    const handleWindowMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'ready' || data.type === 'requestInit') {
+        iframeReadyRef.current = true;
+        setReady(true);
+        sendInit();
+      }
+    };
+    window.addEventListener('message', handleWindowMessage);
+    return () => window.removeEventListener('message', handleWindowMessage);
+  }, [sendInit]);
+
+  // 初始加载及重试机制：解决 WebKit/Chromium 中 onLoad 触发早于 iframe 内部 JS 监听器绑定的竞态
+  useEffect(() => {
+    iframeReadyRef.current = false;
+    sendInit();
+
+    let retryCount = 0;
+    const maxRetries = 20; // 2 秒内重试
+    const timer = window.setInterval(() => {
+      if (iframeReadyRef.current) {
+        window.clearInterval(timer);
+        return;
+      }
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        window.clearInterval(timer);
+        return;
+      }
+      sendInit();
+    }, 100);
+
+    return () => window.clearInterval(timer);
+  }, [sendInit]);
+
+  // 重置 chunk 索引（当 nodeUuid 变更时）
+  useEffect(() => {
+    lastSentChunkIndexRef.current = 0;
+    lastSentGrpcIndexRef.current = 0;
+  }, [nodeUuid]);
+  // 通用插件流消息转发：`{type:"stream", payload:{kind, delta_content, delta_reasoning, text, fullContent, fullReasoning, timestamp}}`
+  // 通用插件流消息转发：仅在节点处于 running 状态时转发
+  useEffect(() => {
+    if (!ready || !iframeRef.current || !nodeStreamData || !isRunning) return;
+    const target = iframeRef.current.contentWindow;
+    if (!target) return;
+    const chunks = nodeStreamData.chunks;
+    const startIdx = lastSentChunkIndexRef.current;
+    for (let i = startIdx; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      target.postMessage(
+        {
+          type: 'stream',
+          payload: {
+            kind: chunk.kind,
+            delta_content: chunk.delta_content,
+            delta_reasoning: chunk.delta_reasoning,
+            text: chunk.text,
+            fullContent: nodeStreamData.fullContent,
+            fullReasoning: nodeStreamData.fullReasoning,
+            timestamp: chunk.timestamp,
+          },
+        },
+        '*'
+      );
+    }
+    lastSentChunkIndexRef.current = chunks.length;
+  }, [ready, nodeStreamData, isRunning]);
 
   // 实时流消息转发：`{type:"stream", payload:{call_id, kind, data}}`
   useEffect(() => {
     if (!ready || !iframeRef.current) return;
     const target = iframeRef.current.contentWindow;
-    for (const m of realtimeMessages) {
+    if (!target) return;
+    const startIdx = lastSentGrpcIndexRef.current;
+    for (let i = startIdx; i < realtimeMessages.length; i++) {
+      const m = realtimeMessages[i];
       let data: unknown = null;
       try {
         data = JSON.parse(m.data);
       } catch {
         data = m.data;
       }
-      target?.postMessage(
+      target.postMessage(
         { type: 'stream', payload: { call_id: m.call_id, kind: 'message', data } },
         '*'
       );
     }
+    lastSentGrpcIndexRef.current = realtimeMessages.length;
     if (realtimeError) {
-      target?.postMessage(
+      target.postMessage(
         {
           type: 'stream',
           payload: { call_id: realtimeError.call_id, kind: 'error', data: { message: realtimeError.message } },

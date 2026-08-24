@@ -35,7 +35,7 @@ import { sendDebugCommand } from '@/services/tauri';
 import { toast } from 'sonner';
 import { getLL } from '@/i18n/i18n-lazy';
 import { ResizablePanel } from '@/components/ui/ResizablePanel';
-import type { Node } from '@/types';
+import type { Node, NodeExecutionReport, ExecutionStatus } from '@/types';
 
 // ============================================================================
 // 子组件：节点状态列表项
@@ -257,6 +257,31 @@ export function ExecutionPanel() {
     ? getNodeExecutionReport(selectedNodeUuid)
     : null;
 
+  // ===== 选中节点对象与运行中报告 =====
+  const selectedNode = useMemo(
+    () => nodes.find((n) => n.uuid === selectedNodeUuid) || null,
+    [nodes, selectedNodeUuid]
+  );
+  const effectiveReport = useMemo((): NodeExecutionReport | null => {
+    if (selectedReport) return selectedReport;
+    if (selectedStatus === 'running' && selectedNode) {
+      const nodeType = selectedNode.type || (selectedNode.data as { type?: string })?.type || 'unknown';
+      return {
+        node_uuid: selectedNode.uuid,
+        node_name: selectedNode.name,
+        node_type: nodeType,
+        status: 'running' as unknown as ExecutionStatus,
+        start_time: Date.now(),
+        end_time: Date.now(),
+        duration_ms: 0,
+        used_port_id: 'out',
+        output_data: null,
+        error: undefined,
+      };
+    }
+    return null;
+  }, [selectedReport, selectedStatus, selectedNode]);
+
   // ===== 选中节点的 WS 流 =====
   const selectedWsStreams = useMemo(() => {
     if (!selectedNodeUuid) return [];
@@ -428,24 +453,24 @@ return (
 
               {selectedNodeUuid && selectedStatus === 'running' && (
                 <div className="h-full flex flex-col overflow-hidden">
-                  <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0">
+                  <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0 bg-blue-500/5">
                     <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
-                    <span className="text-xs text-muted-foreground">{ll.execution.panel.executing()}</span>
+                    <span className="text-xs text-blue-500 font-medium">{ll.execution.panel.executing()}</span>
                   </div>
-                  {selectedReport && (
+                  {effectiveReport && (
                     <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3">
-                      <NodeExecutionDetails report={selectedReport} />
+                      <NodeExecutionDetails report={effectiveReport} defaultExpanded={true} />
                     </div>
                   )}
                 </div>
               )}
 
               {selectedNodeUuid &&
-                (selectedStatus === 'success' || selectedStatus === 'failed') && (
+                (selectedStatus === 'success' || selectedStatus === 'failed' || selectedStatus === 'cancelled') && (
                   <div className="h-full overflow-y-auto scrollbar-thin">
                     <div className="p-3">
                       {selectedReport && (
-                        <NodeExecutionDetails report={selectedReport} />
+                        <NodeExecutionDetails report={selectedReport} defaultExpanded={true} />
                       )}
                     </div>
                   </div>
