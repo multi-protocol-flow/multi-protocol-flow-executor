@@ -462,3 +462,74 @@ pub(crate) fn register_grpc_stream_if_needed(
         sender,
     ))
 }
+
+/// Registers a generic plugin `stream` (and `llm.stream` for backward compatibility)
+/// notification subscription on `conn` that forwards plugin-side streaming events into
+/// the host execution event sender as `ExecutionEvent::PluginEvent`.
+///
+/// The `CorrelationFilter` restricts delivery to notifications from `execution_id`.
+/// The returned `SubscriptionHandle`s unsubscribe when dropped (execute done).
+pub(crate) fn register_plugin_stream_handler(
+    conn: &crate::transport::PluginConnection,
+    execution_id: String,
+    flow_uuid: String,
+    node_uuid: String,
+    node_type: String,
+    sender: Arc<dyn flow_engine_core::traits::ExecutionEventSender>,
+) -> Vec<crate::transport::SubscriptionHandle> {
+    use flow_engine_core::execution_event::ExecutionEvent;
+    use mpe_plugin_sdk::protocol::notification::Notification;
+
+    let methods = ["stream", "llm.stream"];
+    let mut handles = Vec::with_capacity(methods.len());
+
+    for method in methods {
+        let sender = Arc::clone(&sender);
+        let flow_uuid = flow_uuid.clone();
+        let node_uuid = node_uuid.clone();
+        let node_type = node_type.clone();
+
+        let handle = conn.register_notification_handler(
+            method,
+            crate::transport::CorrelationFilter {
+                execution_id: Some(execution_id.clone()),
+                node_instance_id: None,
+            },
+            move |notification: &Notification| {
+                let _ = sender.send_event(ExecutionEvent::PluginEvent {
+                    flow_uuid: flow_uuid.clone(),
+                    node_uuid: node_uuid.clone(),
+                    node_type: node_type.clone(),
+                    event_type: "stream".to_string(),
+                    data: notification.params.clone(),
+                    timestamp: chrono::Utc::now().to_rfc3339(),
+                });
+            },
+        );
+        handles.push(handle);
+    }
+
+    handles
+}
+
+/// Generic plugin stream real-time event subscription entry point.
+///
+/// Subscribes to `stream` notifications on `conn` if an `execution_event_sender` is
+/// provided in the context, forwarding them as `ExecutionEvent::PluginEvent`.
+/// The returned subscription handles unsubscribe automatically when dropped after `execute`.
+pub(crate) fn register_plugin_stream_if_needed(
+    node_type_id: &str,
+    conn: &crate::transport::PluginConnection,
+    context: &ExecutionContext,
+    node: &Node,
+) -> Option<Vec<crate::transport::SubscriptionHandle>> {
+    let sender = context.execution_event_sender.clone()?;
+    Some(register_plugin_stream_handler(
+        conn,
+        context.execution_id.clone(),
+        context.flow_uuid.clone(),
+        node.uuid.clone(),
+        node_type_id.to_string(),
+        sender,
+    ))
+}

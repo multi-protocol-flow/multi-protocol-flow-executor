@@ -1539,6 +1539,7 @@ name = "flow-engine-plugin"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "flow-engine-core",
  "log",
  "mpe-plugin-sdk",

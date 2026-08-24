@@ -217,6 +217,15 @@ impl NodePlugin for SidecarPlugin {
             &resolved_config,
         );
 
+        // 6.6 通用插件流式实时链路：当 context 提供了 execution_event_sender 时，
+        // 订阅插件的 stream 通知并实时转发为 ExecutionEvent::PluginEvent。
+        let _plugin_stream_subscription = crate::wrapper::register_plugin_stream_if_needed(
+            self.node.type_id.as_str(),
+            conn.as_ref(),
+            context,
+            node,
+        );
+
         let params = serde_json::json!({
             "config": resolved_config,
             "providers": providers,

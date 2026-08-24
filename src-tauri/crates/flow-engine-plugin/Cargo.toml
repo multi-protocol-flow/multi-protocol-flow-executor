@@ -21,6 +21,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 log = { workspace = true }
+chrono = { workspace = true }
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 # used in M1 process.rs for Job Object (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
