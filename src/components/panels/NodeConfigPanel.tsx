@@ -349,21 +349,13 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                 // 插件声明了自定义前端 iframe（meta.frontend.url）→ 渲染 PluginIframe 桥
                 const frontendUrl = meta?.frontend?.url;
                 if (frontendUrl) {
-                  // 同插件节点快照（connection 下拉等跨节点引用）：
-                  // 按类型前缀过滤（如 `mcp:` 下全部节点），config 携带完整 data
-                  const pluginPrefix = nodeType.includes(':')
-                    ? nodeType.slice(0, nodeType.indexOf(':'))
-                    : null;
-                  const nodes = pluginPrefix
-                    ? allFlowNodes
-                        .filter((n) => n.type.startsWith(`${pluginPrefix}:`))
-                        .map((n) => ({
-                          uuid: n.uuid,
-                          label: n.name,
-                          type: n.type,
-                          config: n.data as unknown as Record<string, unknown>,
-                        }))
-                    : undefined;
+                  // 流程节点快照（供 connection 下拉、跨节点引用等使用；插件按需自行过滤）
+                  const nodes = allFlowNodes.map((n) => ({
+                    uuid: n.uuid,
+                    label: n.name,
+                    type: n.type,
+                    config: n.data as unknown as Record<string, unknown>,
+                  }));
                   return (
                     <PluginIframe
                       // 按节点 uuid 键控：同一插件下所有节点共享同一 iframe URL
