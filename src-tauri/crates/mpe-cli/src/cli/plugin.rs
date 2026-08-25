@@ -69,21 +69,31 @@ async fn execute_list() -> Result<(), CliError> {
     let entries = flow_engine::PluginScan::scan_with_errors(&dir, &host_version);
     let list: Vec<serde_json::Value> = entries
         .into_iter()
-        .map(|entry| match entry {
-            flow_engine::ScanEntry::Discovered(plugin) => json!({
+        .filter_map(|entry| match entry {
+            flow_engine::ScanEntry::Discovered(plugin) => Some(json!({
                 "name": plugin.name,
                 "version": plugin.version,
                 "description": plugin.manifest.description,
                 "path": plugin.dir,
                 "error": null,
-            }),
-            flow_engine::ScanEntry::Skipped { dir, reason } => json!({
-                "name": dir.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
-                "version": null,
-                "description": null,
-                "path": dir,
-                "error": format!("{reason:?}"),
-            }),
+            })),
+            flow_engine::ScanEntry::Skipped { dir, reason } => {
+                if matches!(
+                    reason,
+                    flow_engine::ScanSkipReason::MissingManifest
+                        | flow_engine::ScanSkipReason::NotADirectory
+                ) {
+                    None
+                } else {
+                    Some(json!({
+                        "name": dir.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
+                        "version": null,
+                        "description": null,
+                        "path": dir,
+                        "error": format!("{reason:?}"),
+                    }))
+                }
+            }
         })
         .collect();
     let output = CliOutput::success(list);
