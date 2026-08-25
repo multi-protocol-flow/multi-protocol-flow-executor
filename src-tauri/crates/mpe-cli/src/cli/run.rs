@@ -168,13 +168,21 @@ async fn execute_simple(
     registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<flow_engine::executor::ExecutionResult, CliError> {
-    let executor = flow_engine::executor::FlowExecutor::new()
+    let default_timeout = std::env::var("MPE_DEFAULT_TIMEOUT_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .filter(|&ms| ms > 0)
+        .map(std::time::Duration::from_millis);
+    let mut executor = flow_engine::executor::FlowExecutor::new()
         .with_registry(registry)
         .with_flow_file_path(path)
         .with_hook_executor(Arc::new(
             flow_engine::hook_runner::DefaultHookExecutor::new(),
         ))
         .with_cancel_receiver(cancel_rx);
+    if let Some(timeout) = default_timeout {
+        executor = executor.with_fallback_timeout(timeout);
+    }
     Ok(executor.execute_flow(flow, variables, None, None).await)
 }
 
@@ -190,7 +198,12 @@ async fn execute_with_streaming(
 
     let sender: Arc<dyn ExecutionEventSender> = Arc::new(CliExecutionEventSender { tx: event_tx });
 
-    let executor = flow_engine::executor::FlowExecutor::new()
+    let default_timeout = std::env::var("MPE_DEFAULT_TIMEOUT_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .filter(|&ms| ms > 0)
+        .map(std::time::Duration::from_millis);
+    let mut executor = flow_engine::executor::FlowExecutor::new()
         .with_registry(registry)
         .with_flow_file_path(path)
         .with_execution_event_sender(sender)
@@ -198,7 +211,9 @@ async fn execute_with_streaming(
             flow_engine::hook_runner::DefaultHookExecutor::new(),
         ))
         .with_cancel_receiver(cancel_rx);
-
+    if let Some(timeout) = default_timeout {
+        executor = executor.with_fallback_timeout(timeout);
+    }
     // Start execution in background, consume event stream simultaneously
     let flow = flow.clone();
     let handle =

@@ -189,6 +189,23 @@ fn resolve_plugin_dir(app: &tauri::AppHandle) -> (PathBuf, crate::tauri_commands
         .unwrap_or_else(|| PathBuf::from("plugins"));
     (dir, PluginDirSource::Default)
 }
+/// 解析默认执行超时时间：`MPE_DEFAULT_TIMEOUT_MS` 环境变量优先，否则设置文件 `defaultExecutionTimeoutMs`，
+/// 缺省回退到 30 秒。
+pub(crate) fn resolve_default_execution_timeout(app: &tauri::AppHandle) -> std::time::Duration {
+    std::env::var("MPE_DEFAULT_TIMEOUT_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .filter(|&ms| ms > 0)
+        .or_else(|| {
+            app.store("store/settings.bin")
+                .ok()
+                .and_then(|store| store.get("defaultExecutionTimeoutMs").and_then(|v| v.as_u64()))
+                .filter(|&ms| ms > 0)
+        })
+        .map(std::time::Duration::from_millis)
+        .unwrap_or(std::time::Duration::from_secs(30))
+}
+
 
 /// 构建共享节点注册表状态
 ///
@@ -203,8 +220,10 @@ fn build_node_registry_state(app: &tauri::AppHandle, host_locale: Option<String>
     #[cfg(feature = "plugin-manager")]
     {
         let (plugins_dir, _source) = resolve_plugin_dir(app);
+        let default_timeout = resolve_default_execution_timeout(app);
         let mut manager = flow_engine::PluginManager::new(plugins_dir.clone())
-            .with_host_locale(host_locale);
+            .with_host_locale(host_locale)
+            .with_default_execution_timeout(default_timeout);
         let _ = tauri::async_runtime::block_on(manager.scan_and_describe());
         let manager = Arc::new(manager);
         let registry = Arc::new(flow_engine::default_registry_with_plugins(&manager));

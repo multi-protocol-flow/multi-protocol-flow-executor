@@ -561,7 +561,15 @@ async fn build_shared_registry() -> (
         use flow_engine::default_registry_with_plugins;
         use flow_engine::PluginManager;
 
+        let default_timeout = std::env::var("MPE_DEFAULT_TIMEOUT_MS")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .filter(|&ms| ms > 0)
+            .map(std::time::Duration::from_millis);
         let mut manager = PluginManager::new(plugins_dir());
+        if let Some(timeout) = default_timeout {
+            manager = manager.with_default_execution_timeout(timeout);
+        }
         let _ = manager.scan_and_describe().await;
         let manager = Arc::new(manager);
         let registry = Arc::new(default_registry_with_plugins(&manager));

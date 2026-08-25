@@ -86,6 +86,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
 /// - execution complete后自动清理 sender
 #[tauri::command]
 pub async fn execute_flow(
+    app: tauri::AppHandle,
     input: ExecuteFlowCommandInput,
     flow: Flow,
     on_event: Channel<LogEvent>,
@@ -123,8 +124,10 @@ pub async fn execute_flow(
     let input_variables = input.variables.clone();
     let snap = node_registry.snapshot();
 
+    let default_timeout = crate::resolve_default_execution_timeout(&app);
     let mut executor = flow_engine::executor::FlowExecutor::new()
-        .with_registry(Arc::clone(&snap.registry));
+        .with_registry(Arc::clone(&snap.registry))
+        .with_fallback_timeout(default_timeout);
     if let Some(sender) = execution_event_sender {
         executor = executor.with_execution_event_sender(sender);
     }
@@ -201,6 +204,7 @@ pub fn cancel_flow(state: State<'_, ExecutionSessionManager>) -> Result<(), Stri
 /// 插件 capabilities.single_node），无独立清单。执行超时时间为 30 秒。
 #[tauri::command]
 pub async fn execute_single_node(
+    app: tauri::AppHandle,
     node: Node,
     variables: Option<serde_json::Value>,
     state: State<'_, ExecutionSessionManager>,
@@ -234,8 +238,10 @@ pub async fn execute_single_node(
         let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
         guard.insert(session_id.clone(), cancel_tx);
     }
+    let default_timeout = crate::resolve_default_execution_timeout(&app);
     let executor = flow_engine::executor::FlowExecutor::new()
         .with_registry(Arc::clone(&snap.registry))
+        .with_fallback_timeout(default_timeout)
         .with_cancel_receiver(cancel_rx)
         .with_hook_executor(std::sync::Arc::new(
             flow_engine::hook_runner::DefaultHookExecutor::new(),
@@ -1102,8 +1108,10 @@ pub async fn reload_plugins(
         .and_then(|store| store.get("locale").and_then(|v| v.as_str().map(String::from)));
 
     // 新目录 → 新管理器 → describe → 新注册表
+    let default_timeout = crate::resolve_default_execution_timeout(&app);
     let mut manager = flow_engine::PluginManager::new(PathBuf::from(&dir))
-        .with_host_locale(host_locale);
+        .with_host_locale(host_locale)
+        .with_default_execution_timeout(default_timeout);
     manager.scan_and_describe().await;
 
     // 瞬时 spawn 失败容错：安装完成后立刻热重载时，刚解压的二进制可能
@@ -1185,8 +1193,8 @@ pub fn list_installed_plugins(app: tauri::AppHandle) -> Vec<InstalledPlugin> {
         .collect();
     flow_engine::PluginScan::scan_with_errors(&snap.plugins_dir, &host_version)
         .into_iter()
-        .map(|entry| match entry {
-            flow_engine::ScanEntry::Discovered(plugin) => InstalledPlugin {
+        .filter_map(|entry| match entry {
+            flow_engine::ScanEntry::Discovered(plugin) => Some(InstalledPlugin {
                 name: plugin.name.clone(),
                 version: plugin.version.clone(),
                 description: plugin.manifest.description.clone(),
@@ -1203,18 +1211,28 @@ pub fn list_installed_plugins(app: tauri::AppHandle) -> Vec<InstalledPlugin> {
                 } else {
                     snap.manager.last_error(&plugin.name)
                 },
-            },
-            flow_engine::ScanEntry::Skipped { dir, reason } => InstalledPlugin {
-                name: dir
-                    .file_name()
-                    .map(|n| n.to_string_lossy().into_owned())
-                    .unwrap_or_default(),
-                version: String::new(),
-                description: None,
-                path: dir.display().to_string(),
-                status: "error".to_string(),
-                error: Some(format!("{reason:?}")),
-            },
+            }),
+            flow_engine::ScanEntry::Skipped { dir, reason } => {
+                if matches!(
+                    reason,
+                    flow_engine::ScanSkipReason::MissingManifest
+                        | flow_engine::ScanSkipReason::NotADirectory
+                ) {
+                    None
+                } else {
+                    Some(InstalledPlugin {
+                        name: dir
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default(),
+                        version: String::new(),
+                        description: None,
+                        path: dir.display().to_string(),
+                        status: "error".to_string(),
+                        error: Some(format!("{reason:?}")),
+                    })
+                }
+            }
         })
         .collect()
 }
