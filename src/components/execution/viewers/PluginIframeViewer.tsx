@@ -120,6 +120,7 @@ export const PluginIframeViewer = memo(function PluginIframeViewer({ report }: P
 function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [ready, setReady] = useState(false);
+  const [iframeHeight, setIframeHeight] = useState<number>(360);
   const iframeReadyRef = useRef(false);
   const locale = useCurrentLocale();
 
@@ -177,7 +178,7 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
     );
   }, [report, locale]);
 
-  // 监听来自 iframe 的握手消息 (ready / requestInit)
+  // 监听来自 iframe 的握手消息 (ready / requestInit / resize)
   useEffect(() => {
     const handleWindowMessage = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
@@ -187,6 +188,16 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
         iframeReadyRef.current = true;
         setReady(true);
         sendInit();
+      } else if (data.type === 'resize' && data.payload && typeof data.payload === 'object') {
+        const reportedHeight = (data.payload as { height?: unknown }).height;
+        if (typeof reportedHeight === 'number' && Number.isFinite(reportedHeight) && reportedHeight > 0) {
+          setIframeHeight((prev) => {
+            if (Math.abs(prev - reportedHeight) >= 4) {
+              return reportedHeight;
+            }
+            return prev;
+          });
+        }
       }
     };
     window.addEventListener('message', handleWindowMessage);
@@ -289,7 +300,8 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
         title="Plugin report viewer"
         sandbox="allow-scripts"
         onLoad={() => setReady(true)}
-        className="w-full min-h-[320px] bg-background"
+        style={{ height: iframeHeight }}
+        className="w-full min-h-[320px] bg-background block transition-[height] duration-150"
       />
     </div>
   );
