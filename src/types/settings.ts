@@ -32,6 +32,8 @@ export interface Settings {
   pluginDir?: string;
   /** 插件市场地址（可选；未配置时 GUI 市场 Tab 显示引导文案） */
   pluginRegistryUrl?: string;
+  /** 节点默认执行超时时间（毫秒，未设置时兜底 30000） */
+  defaultExecutionTimeoutMs?: number;
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -56,6 +58,8 @@ export interface SettingsState {
   pluginDir?: string;
   /** 插件市场地址（可选） */
   pluginRegistryUrl?: string;
+  /** 节点默认执行超时时间（毫秒） */
+  defaultExecutionTimeoutMs?: number;
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -90,6 +94,8 @@ export interface SettingsActions {
   setTheme: (theme: ThemeMode) => Promise<void>;
   /** 设置语言区域 */
   setLocale: (locale: Locale) => Promise<void>;
+  /** 设置节点默认执行超时时间（毫秒） */
+  setDefaultExecutionTimeoutMs: (ms: number) => Promise<void>;
   /** 打开报告目录 */
   openReportDir: () => Promise<void>;
   /** 打开日志目录 */

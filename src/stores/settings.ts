@@ -32,11 +32,11 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   flowsDir: '',
   pluginDir: undefined,
   pluginRegistryUrl: undefined,
+  defaultExecutionTimeoutMs: undefined,
   theme: 'system' as ThemeMode,
   locale: 'en-US' as Locale,
   isLoading: true,
   error: null,
-
   loadSettings: async () => {
     set({ isLoading: true, error: null });
     try {
@@ -48,6 +48,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         flowsDir: settings.flowsDir,
         pluginDir: settings.pluginDir,
         pluginRegistryUrl: settings.pluginRegistryUrl,
+        defaultExecutionTimeoutMs: settings.defaultExecutionTimeoutMs,
         theme: settings.theme,
         locale: settings.locale,
         isLoading: false,
@@ -130,6 +131,16 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set({ error: formatErrorMessage(e) });
     }
   },
+  setDefaultExecutionTimeoutMs: async (ms: number) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ defaultExecutionTimeoutMs: ms });
+      set({ defaultExecutionTimeoutMs: ms });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
 
   openReportDir: async () => {
     try {

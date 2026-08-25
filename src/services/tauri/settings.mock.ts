@@ -32,6 +32,7 @@ export async function loadSettings(): Promise<Settings> {
     reportDir: stored.reportDir ?? DEFAULT_REPORT_DIR,
     logDir: stored.logDir ?? DEFAULT_LOG_DIR,
     flowsDir: stored.flowsDir ?? DEFAULT_FLOWS_DIR,
+    defaultExecutionTimeoutMs: stored.defaultExecutionTimeoutMs,
     theme: stored.theme ?? DEFAULT_THEME,
     locale: stored.locale ?? 'en-US',
   };

@@ -67,6 +67,7 @@ describe('Settings types', () => {
       openLogDir: async () => {},
       openFlowsDir: async () => {},
       setLocale: async (_locale: 'zh-CN' | 'en-US') => {},
+      setDefaultExecutionTimeoutMs: async (_ms: number) => {},
     };
 
     expect(typeof actions.loadSettings).toBe('function');
@@ -101,6 +102,7 @@ describe('Settings types', () => {
       openLogDir: async () => {},
       openFlowsDir: async () => {},
       setLocale: async (_locale: 'zh-CN' | 'en-US') => {},
+      setDefaultExecutionTimeoutMs: async (_ms: number) => {},
     };
 
     expect(store.reportDir).toBe('/path/to/reports');

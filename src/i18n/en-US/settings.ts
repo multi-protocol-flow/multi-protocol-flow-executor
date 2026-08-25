@@ -17,6 +17,8 @@ const en_US_settings = {
   not_set: 'Not Set',
   select_dir: 'Select Directory',
   open_dir: 'Open Directory',
+  default_timeout: 'Default Node Execution Timeout (ms)',
+  default_timeout_tip: 'Fallback timeout duration when a node, plugin, or datasource does not specify its own timeout (default 30000ms).',
 };
 
 export default en_US_settings;

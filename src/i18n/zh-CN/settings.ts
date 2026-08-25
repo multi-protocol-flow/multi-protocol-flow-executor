@@ -19,6 +19,8 @@ const zh_CN_settings: BaseTranslation = {
   not_set: '未设置',
   select_dir: '选择目录',
   open_dir: '打开目录',
+  default_timeout: '节点默认执行超时 (ms)',
+  default_timeout_tip: '当节点、插件或数据源自身未显式指定超时时间时，统一采用此全局时长作为超时兜底（默认 30000ms）。',
 };
 
 export default zh_CN_settings;

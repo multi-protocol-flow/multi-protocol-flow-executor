@@ -3,8 +3,9 @@
  * 复用 NodeConfigPanel 的布局样式，提供配置文件存储位置提示
  */
 import { useEffect, useState } from 'react';
-import { Settings2, FolderOpen, FolderCog, FolderInput, Info, Sun, Moon, Monitor, Globe } from 'lucide-react';
+import { Settings2, FolderOpen, FolderCog, FolderInput, Info, Sun, Moon, Monitor, Globe, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -31,6 +32,7 @@ export function SettingsPanel() {
     flowsDir,
     theme,
     locale,
+    defaultExecutionTimeoutMs,
     isLoading,
     loadSettings,
     setReportDir,
@@ -38,6 +40,7 @@ export function SettingsPanel() {
     setFlowsDir,
     setTheme,
     setLocale,
+    setDefaultExecutionTimeoutMs,
     openReportDir,
     openLogDir,
     openFlowsDir,
@@ -48,7 +51,16 @@ export function SettingsPanel() {
 
   // 配置文件存储路径
   const [configFilePath, setConfigFilePath] = useState<string>('');
+  const [timeoutInput, setTimeoutInput] = useState<string>(
+    defaultExecutionTimeoutMs !== undefined ? String(defaultExecutionTimeoutMs) : '30000'
+  );
 
+  // 当 store 中的 timeout 变化时同步到本地输入状态
+  useEffect(() => {
+    if (defaultExecutionTimeoutMs !== undefined) {
+      setTimeoutInput(String(defaultExecutionTimeoutMs));
+    }
+  }, [defaultExecutionTimeoutMs]);
   // 面板打开时加载设置
   useEffect(() => {
     loadSettings();
@@ -172,6 +184,48 @@ export function SettingsPanel() {
                 </SelectContent>
               </Select>
             </div>
+            {/* 默认节点执行超时 */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Timer className="h-4 w-4 text-muted-foreground" />
+                {ll?.settings?.default_timeout() ?? 'Default Node Execution Timeout (ms)'}
+              </Label>
+              <Input
+                type="number"
+                min={1000}
+                max={3600000}
+                step={1000}
+                value={timeoutInput}
+                onChange={(e) => {
+                  const text = e.target.value;
+                  setTimeoutInput(text);
+                  if (text !== '') {
+                    const val = Number(text);
+                    if (!isNaN(val) && val >= 1000 && val <= 3600000) {
+                      setDefaultExecutionTimeoutMs(val);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  const val = Number(timeoutInput);
+                  if (timeoutInput === '' || isNaN(val) || val < 1000) {
+                    const fallback = 30000;
+                    setTimeoutInput(String(fallback));
+                    setDefaultExecutionTimeoutMs(fallback);
+                  } else if (val > 3600000) {
+                    const clamped = 3600000;
+                    setTimeoutInput(String(clamped));
+                    setDefaultExecutionTimeoutMs(clamped);
+                  }
+                }}
+                placeholder="30000"
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {ll?.settings?.default_timeout_tip() ?? 'Fallback timeout duration when a node, plugin, or datasource does not specify its own timeout (default 30000ms).'}
+              </p>
+            </div>
+
 
             {/* 流程保存目录 */}
             <div className="space-y-2">

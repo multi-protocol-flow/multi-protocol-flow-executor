@@ -6955,6 +6955,14 @@ type RootTranslation = {
 		 * 打​开​目​录
 		 */
 		open_dir: string
+		/**
+		 * 节​点​默​认​执​行​超​时​ ​(​m​s​)
+		 */
+		default_timeout: string
+		/**
+		 * 当​节​点​、​插​件​或​数​据​源​自​身​未​显​式​指​定​超​时​时​间​时​，​统​一​采​用​此​全​局​时​长​作​为​超​时​兜​底​（​默​认​ ​3​0​0​0​0​m​s​）​。
+		 */
+		default_timeout_tip: string
 	}
 	plugins: {
 		/**
@@ -18548,6 +18556,14 @@ export type TranslationFunctions = {
 		 * 打开目录
 		 */
 		open_dir: () => LocalizedString
+		/**
+		 * 节点默认执行超时 (ms)
+		 */
+		default_timeout: () => LocalizedString
+		/**
+		 * 当节点、插件或数据源自身未显式指定超时时间时，统一采用此全局时长作为超时兜底（默认 30000ms）。
+		 */
+		default_timeout_tip: () => LocalizedString
 	}
 	plugins: {
 		/**
