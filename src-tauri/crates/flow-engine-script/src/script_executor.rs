@@ -108,6 +108,13 @@ impl NodeExecutor for ScriptNodeExecutor {
         let (initial_vars, response_data, request_data) = self.prepare_context_data(node, context);
 
         // 3. 准备执行所需的数据（在主线程提取，避免跨线程问题）
+        struct InterruptGuard(Arc<AtomicBool>);
+        impl Drop for InterruptGuard {
+            fn drop(&mut self) {
+                self.0.store(true, Ordering::Relaxed);
+            }
+        }
+
         let script = config.script.clone();
         let timeout_ms = config.timeout_ms;
         let memory_limit_mb = config.memory_limit_mb;
@@ -115,6 +122,8 @@ impl NodeExecutor for ScriptNodeExecutor {
         // 超时中断标志（在外部创建，以便超时/取消时能设置）
         let timeout_flag = Arc::new(AtomicBool::new(false));
         let timeout_flag_for_interrupt = timeout_flag.clone();
+
+        let _interrupt_guard = InterruptGuard(timeout_flag.clone());
 
         // 取消信号监听器：收到取消信号时设置 timeout_flag，触发 JS 中断
         let cancel_handle = context.cancel_receiver.as_ref().map(|rx| {

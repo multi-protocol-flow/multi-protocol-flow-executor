@@ -432,21 +432,21 @@ impl PluginConnection {
         }
     }
 
-    /// Sends a request and awaits its response (or timeout).
+    /// Sends a request and awaits its response (or dynamic timeout).
     ///
     /// The request holds an inflight permit for its whole lifetime. Every
     /// blocking step — permit acquisition, queue enqueue, response wait — is
-    /// bounded by the request timeout, so a stuck-but-alive plugin can never
+    /// bounded by the supplied timeout, so a stuck-but-alive plugin can never
     /// wedge a caller forever. On timeout the pending entry is removed and a
     /// best-effort `cancel` notification is fired; `Err(Timeout)` is
     /// returned.
-    pub async fn request(
+    pub async fn request_with_timeout(
         &self,
         method: &str,
         params: serde_json::Value,
+        timeout: Duration,
     ) -> Result<serde_json::Value, PluginError> {
         self.shared.check_alive()?;
-        let timeout = self.config.request_timeout;
 
         // Bounded inflight acquisition (never blocks forever).
         let _permit = tokio::time::timeout(timeout, self.shared.backpressure.acquire())
@@ -509,6 +509,16 @@ impl PluginConnection {
                 Err(PluginError::Timeout(timeout))
             }
         }
+    }
+
+    /// Sends a request and awaits its response with the configured default timeout.
+    pub async fn request(
+        &self,
+        method: &str,
+        params: serde_json::Value,
+    ) -> Result<serde_json::Value, PluginError> {
+        self.request_with_timeout(method, params, self.config.request_timeout)
+            .await
     }
 
     /// Sends a fire-and-forget notification (host → plugin).

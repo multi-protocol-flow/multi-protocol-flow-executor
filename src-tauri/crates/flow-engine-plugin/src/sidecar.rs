@@ -187,8 +187,8 @@ impl NodePlugin for SidecarPlugin {
         // 3. Host-side variable resolution — the plugin receives FINAL values.
         let resolved_config = resolve_variables_in_json(&raw_config, context);
 
-        // 4. Wrapper-owned timeout (the executor provides none for plugins).
-        let timeout = execution_timeout(&resolved_config);
+        // 4. Wrapper-owned timeout using the manager's configured fallback
+        let timeout = execution_timeout(&resolved_config, self.manager.default_execution_timeout());
 
         // 5. JSON-serializable providers (typed providers cannot be encoded).
         let mut providers = serde_json::Map::new();
@@ -238,7 +238,7 @@ impl NodePlugin for SidecarPlugin {
 
         // 7. Execute RPC under the wrapper-owned timeout + cancellation.
         let response = match run_with_timeout_and_cancel(
-            conn.request(EXECUTE_METHOD, params),
+            conn.request_with_timeout(EXECUTE_METHOD, params, timeout),
             context,
             timeout,
         )

@@ -231,15 +231,17 @@ fn collect_referenced_variables(value: &Value, out: &mut Vec<String>) {
 /// Reads the wrapper-owned execution timeout from the node config.
 ///
 /// Honors a `timeout_ms` or `execution_timeout_ms` number field; anything
-/// missing / zero / non-numeric falls back to [`DEFAULT_EXECUTION_TIMEOUT`].
-pub(crate) fn execution_timeout(config: &Value) -> Duration {
+/// missing / zero / non-numeric falls back to `fallback_timeout`.
+pub(crate) fn execution_timeout(config: &Value, fallback_timeout: Duration) -> Duration {
     let ms = config
-        .get("timeout_ms")
+        .get("override_timeout_ms")
         .and_then(Value::as_u64)
+        .or_else(|| config.get("timeout_ms").and_then(Value::as_u64))
         .or_else(|| config.get("execution_timeout_ms").and_then(Value::as_u64))
+        .or_else(|| config.get("provider").and_then(|p| p.get("timeout_ms")).and_then(Value::as_u64))
         .unwrap_or(0);
     if ms == 0 {
-        DEFAULT_EXECUTION_TIMEOUT
+        fallback_timeout
     } else {
         Duration::from_millis(ms)
     }
@@ -532,4 +534,36 @@ pub(crate) fn register_plugin_stream_if_needed(
         node_type_id.to_string(),
         sender,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_execution_timeout_precedence() {
+        // Default fallback
+        assert_eq!(execution_timeout(&json!({}), DEFAULT_EXECUTION_TIMEOUT), DEFAULT_EXECUTION_TIMEOUT);
+        assert_eq!(execution_timeout(&json!({}), Duration::from_secs(60)), Duration::from_secs(60));
+
+        // timeout_ms
+        assert_eq!(execution_timeout(&json!({ "timeout_ms": 45000 }), DEFAULT_EXECUTION_TIMEOUT), Duration::from_millis(45000));
+
+        // execution_timeout_ms
+        assert_eq!(execution_timeout(&json!({ "execution_timeout_ms": 50000 }), DEFAULT_EXECUTION_TIMEOUT), Duration::from_millis(50000));
+
+        // provider.timeout_ms
+        assert_eq!(execution_timeout(&json!({ "provider": { "timeout_ms": 60000 } }), DEFAULT_EXECUTION_TIMEOUT), Duration::from_millis(60000));
+
+        // override_timeout_ms takes precedence
+        assert_eq!(
+            execution_timeout(&json!({
+                "override_timeout_ms": 90000,
+                "timeout_ms": 45000,
+                "provider": { "timeout_ms": 60000 }
+            }), DEFAULT_EXECUTION_TIMEOUT),
+            Duration::from_millis(90000)
+        );
+    }
 }

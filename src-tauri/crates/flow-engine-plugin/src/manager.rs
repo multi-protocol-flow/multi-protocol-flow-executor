@@ -102,6 +102,9 @@ pub struct PluginManager {
     /// is killed and the failure counts toward the quarantine policy
     /// (defaults to [`DESCRIBE_TIMEOUT`]).
     describe_timeout: Duration,
+    /// Default execution timeout when a plugin node config specifies none
+    /// (defaults to [`crate::wrapper::DEFAULT_EXECUTION_TIMEOUT`]).
+    default_execution_timeout: Duration,
     /// The host's current UI language (BCP-47, e.g. `en-US`), injected as
     /// `MPE_LOCALE` into plugin processes at spawn when it matches the
     /// plugin's declared `locales` (falling back to `default_locale`).
@@ -132,6 +135,7 @@ impl PluginManager {
             datasource_index: HashMap::new(),
             datasource_descriptions: HashMap::new(),
             describe_timeout: DESCRIBE_TIMEOUT,
+            default_execution_timeout: crate::wrapper::DEFAULT_EXECUTION_TIMEOUT,
             host_locale: None,
             last_errors: Mutex::new(HashMap::new()),
         }
@@ -167,6 +171,23 @@ impl PluginManager {
         self.lifecycle_config = config;
         self
     }
+    /// Overrides the default execution timeout when a plugin node config specifies none.
+    ///
+    /// Also ensures the underlying connection's request timeout is at least this duration,
+    /// preventing transport cutoff before the execution timeout fires.
+    pub fn with_default_execution_timeout(mut self, timeout: Duration) -> Self {
+        self.default_execution_timeout = timeout;
+        if self.connection_config.request_timeout < timeout {
+            self.connection_config.request_timeout = timeout;
+        }
+        self
+    }
+
+    /// Returns the default execution timeout for plugin nodes.
+    pub fn default_execution_timeout(&self) -> Duration {
+        self.default_execution_timeout
+    }
+
 
     /// Registers a plugin with the lifecycle manager, creating an entry whose
     /// residency mode comes from `manifest.capabilities.streaming`

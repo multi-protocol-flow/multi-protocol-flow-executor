@@ -119,8 +119,9 @@ pub struct FlowExecutor {
     registry: Arc<NodeRegistry>,
     /// 钩子执行器（流程完成时触发预定义动作）
     hook_executor: Option<Arc<dyn flow_engine_core::traits::HookExecutor>>,
+    /// 节点无配置超时时的兜底超时（默认 30s）
+    fallback_timeout: std::time::Duration,
 }
-
 impl Default for FlowExecutor {
     fn default() -> Self {
         Self::new()
@@ -137,7 +138,19 @@ impl FlowExecutor {
             cancel_receiver: None,
             registry: Arc::new(crate::default_registry::default_registry()),
             hook_executor: None,
+            fallback_timeout: std::time::Duration::from_millis(FALLBACK_TIMEOUT_MS),
         }
+    }
+
+    /// 设置节点无配置超时时的兜底超时
+    pub fn with_fallback_timeout(mut self, timeout: std::time::Duration) -> Self {
+        self.fallback_timeout = timeout;
+        self
+    }
+
+    /// 获取兜底超时时长
+    pub fn fallback_timeout(&self) -> std::time::Duration {
+        self.fallback_timeout
     }
 
     /// Set flow file path (used for CLI relative path resolution)
@@ -1304,7 +1317,7 @@ impl FlowExecutor {
             .data
             .execution_timeout_ms()
             .map(|ms| std::time::Duration::from_millis(std::cmp::min(ms, 3600000)))
-            .unwrap_or(std::time::Duration::from_millis(FALLBACK_TIMEOUT_MS));
+            .unwrap_or(self.fallback_timeout);
         let timeout_ms = timeout_duration.as_millis();
 
         let result = tokio::time::timeout(timeout_duration, execute_future).await;
