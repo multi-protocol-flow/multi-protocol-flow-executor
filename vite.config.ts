@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => {
           '**/node_modules/**',
           '**/website/**',
           '**/echo/**',
+          '**/**.mpf',
         ],
       },
       fs: {
