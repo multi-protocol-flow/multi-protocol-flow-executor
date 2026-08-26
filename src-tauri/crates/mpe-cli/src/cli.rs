@@ -6,6 +6,7 @@ pub mod config;
 pub mod debug_cmd;
 pub mod flow;
 pub mod flow_edit;
+pub mod junit;
 pub mod output;
 #[cfg(feature = "plugin-manager")]
 pub mod plugin;
@@ -118,6 +119,12 @@ pub enum Commands {
         /// Do not save execution report
         #[arg(long)]
         no_report: bool,
+        /// Report output format (json | junit)
+        #[arg(long, default_value = "json")]
+        report_format: String,
+        /// Export execution report to this file path
+        #[arg(long)]
+        report_file: Option<std::path::PathBuf>,
     },
     /// Validate a flow
     Validate {
@@ -479,6 +486,8 @@ async fn async_main() -> Result<(), CliError> {
             var,
             stream,
             no_report,
+            report_format,
+            report_file,
         } => {
             let (registry, plugin_manager) = build_shared_registry().await;
             run::execute(
@@ -487,6 +496,8 @@ async fn async_main() -> Result<(), CliError> {
                 &var,
                 stream,
                 no_report,
+                &report_format,
+                report_file.as_deref(),
                 registry,
                 plugin_manager,
                 cancel_rx,

@@ -51,11 +51,13 @@ impl ExecutionEventSender for CliExecutionEventSender {
 
 /// Execute flow
 pub async fn execute(
-    _format: &str,
+    format: &str,
     flow_path: &str,
     vars: &[String],
     stream: bool,
     no_report: bool,
+    report_format: &str,
+    report_file: Option<&std::path::Path>,
     registry: Arc<flow_engine::registry::NodeRegistry>,
     plugin_manager: super::PluginManagerHandle,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
@@ -135,6 +137,50 @@ pub async fn execute(
         "node_results": node_results,
     });
 
+    // Export report file (--report-file): junit → JUnit XML, json → full report JSON
+    if let Some(report_path) = report_file {
+        if let Some(parent) = report_path.parent() {
+            if !parent.as_os_str().is_empty() {
+                std::fs::create_dir_all(parent).map_err(|e| {
+                    CliError::Io(format!(
+                        "Failed to create report directory {}: {}",
+                        parent.display(),
+                        e
+                    ))
+                })?;
+            }
+        }
+        let content = match report_format {
+            "junit" => {
+                let report = result.flow_report.as_ref().ok_or_else(|| {
+                    CliError::execution("No flow report available for JUnit export".to_string())
+                })?;
+                super::junit::format_junit_xml(report)
+            }
+            "json" => match &result.flow_report {
+                Some(report) => serde_json::to_string_pretty(report).map_err(|e| {
+                    CliError::execution(format!("Failed to serialize report: {}", e))
+                })?,
+                None => serde_json::to_string_pretty(&output_data).map_err(|e| {
+                    CliError::execution(format!("Failed to serialize report: {}", e))
+                })?,
+            },
+            other => {
+                return Err(CliError::InvalidArgs(format!(
+                    "Unsupported --report-format: {} (expected json or junit)",
+                    other
+                )));
+            }
+        };
+        std::fs::write(report_path, content).map_err(|e| {
+            CliError::Io(format!(
+                "Failed to write report file {}: {}",
+                report_path.display(),
+                e
+            ))
+        })?;
+    }
+
     // Save report
     if !no_report {
         if let Some(ref flow_report) = result.flow_report {
@@ -145,17 +191,81 @@ pub async fn execute(
         }
     }
 
+    if report_format == "junit" && report_file.is_none() {
+        if let Some(ref flow_report) = result.flow_report {
+            print!("{}", super::junit::format_junit_xml(flow_report));
+        }
+    } else if format == "table" {
+        let status_str = if result.success {
+            "✔ SUCCESS"
+        } else {
+            "✖ FAILED"
+        };
+        let flow_name = result
+            .flow_report
+            .as_ref()
+            .map(|r| r.flow_name.as_str())
+            .unwrap_or(flow.name.as_str());
+        println!(
+            "\nFlow: {} | Status: {} | Duration: {}ms | Executed: {} nodes\n",
+            flow_name, status_str, total_time_ms, result.executed_count
+        );
+
+        let headers = ["Status", "Node Name", "Type", "Duration", "Port", "Error / Details"];
+        let rows: Vec<Vec<String>> = result
+            .node_reports
+            .iter()
+            .map(|r| {
+                let status_icon = match r.status {
+                    flow_engine::report::ExecutionStatus::Success => "✔ PASSED",
+                    flow_engine::report::ExecutionStatus::Failed => "✖ FAILED",
+                    flow_engine::report::ExecutionStatus::Skipped => "- SKIPPED",
+                    flow_engine::report::ExecutionStatus::Cancelled => "■ CANCELLED",
+                };
+                let port = r.used_port_id.as_deref().unwrap_or("-");
+                let detail = if let Some(ref err) = r.error {
+                    err.message.clone()
+                } else if r.node_type == "assertion" {
+                    if let Some(ref out) = r.output_data {
+                        if let (Some(passed), Some(total)) = (
+                            out.get("passed_count").and_then(|v| v.as_u64()),
+                            out.get("total").and_then(|v| v.as_u64()),
+                        ) {
+                            format!("{}/{} assertions passed", passed, total)
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    String::new()
+                };
+
+                vec![
+                    status_icon.to_string(),
+                    r.node_name.clone(),
+                    r.node_type.clone(),
+                    format!("{}ms", r.duration_ms),
+                    port.to_string(),
+                    detail,
+                ]
+            })
+            .collect();
+        print!("{}", output::format_table(&headers, &rows));
+    } else {
+        let cli_output = CliOutput::success(output_data.clone());
+        output::output_json(&cli_output);
+    }
+
     if !result.success {
         return Err(CliError::Execution {
             message: result
                 .error
                 .unwrap_or_else(|| "Execution failed".to_string()),
-            data: Some(output_data),
+            data: if format == "table" { None } else { Some(output_data) },
         });
     }
-
-    let cli_output = CliOutput::success(output_data);
-    output::output_json(&cli_output);
 
     Ok(())
 }
