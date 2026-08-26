@@ -1,0 +1,110 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "demo-http-testing",
+    "name": "HTTP Node Example Flow",
+    "initial_variables": {},
+    "nodes": [
+      {
+        "uuid": "entry-001",
+        "type": "entry",
+        "name": "Entry",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "data": {
+          "type": "entry"
+        },
+        "ports": null,
+        "has_breakpoint": null
+      },
+      {
+        "uuid": "http-get-001",
+        "type": "http",
+        "name": "HTTP GET Example",
+        "position": {
+          "x": 250.0,
+          "y": 0.0
+        },
+        "data": {
+          "type": "http",
+          "url": "https://httpbin.org/get",
+          "method": "get",
+          "headers": null,
+          "body_type": "none",
+          "content_type": "json",
+          "body": null
+        },
+        "ports": null,
+        "has_breakpoint": null
+      },
+      {
+        "uuid": "conditional-001",
+        "type": "conditional",
+        "name": "Check Status Code",
+        "position": {
+          "x": 500.0,
+          "y": 0.0
+        },
+        "data": {
+          "type": "conditional",
+          "condition_type": "simple",
+          "field_path": "status",
+          "operator": "equal",
+          "expected_value": 200,
+          "advanced_expression": null
+        },
+        "ports": null,
+        "has_breakpoint": null
+      },
+      {
+        "uuid": "http-post-001",
+        "type": "http",
+        "name": "HTTP POST Example",
+        "position": {
+          "x": 750.0,
+          "y": 0.0
+        },
+        "data": {
+          "type": "http",
+          "url": "https://httpbin.org/post",
+          "method": "post",
+          "headers": null,
+          "body_type": "body",
+          "content_type": "json",
+          "body": "{\"success\":true}"
+        },
+        "ports": null,
+        "has_breakpoint": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-1",
+        "source_node_uuid": "entry-001",
+        "target_node_uuid": "http-get-001",
+        "source_port_id": "out",
+        "target_port_id": "in"
+      },
+      {
+        "id": "conn-2",
+        "source_node_uuid": "http-get-001",
+        "target_node_uuid": "conditional-001",
+        "source_port_id": "true",
+        "target_port_id": "in"
+      },
+      {
+        "id": "conn-3",
+        "source_node_uuid": "conditional-001",
+        "target_node_uuid": "http-post-001",
+        "source_port_id": "true",
+        "target_port_id": "in"
+      }
+    ]
+  },
+  "_meta": {
+    "version": 5,
+    "isBuiltin": true
+  }
+}

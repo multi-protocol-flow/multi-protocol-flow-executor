@@ -1,0 +1,113 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "demo-ws-testing",
+    "name": "WebSocket Node Example Flow",
+    "initial_variables": {},
+    "nodes": [
+      {
+        "uuid": "entry-ws-001",
+        "type": "entry",
+        "name": "Entry",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "data": {
+          "type": "entry"
+        },
+        "ports": null,
+        "has_breakpoint": null
+      },
+      {
+        "uuid": "ws-connect-001",
+        "type": "ws_connect",
+        "name": "Connect WebSocket",
+        "position": {
+          "x": 250.0,
+          "y": 0.0
+        },
+        "data": {
+          "type": "ws_connect",
+          "url": "wss://echo.websocket.org",
+          "headers": [],
+          "subprotocols": [],
+          "connect_timeout_ms": 10000,
+          "collect_message": false,
+          "collect_mode": "first_match",
+          "collect_timeout_ms": 5000,
+          "use_tls": false,
+          "tls_skip_verify": false
+        },
+        "ports": null,
+        "has_breakpoint": null
+      },
+      {
+        "uuid": "ws-send-collect-001",
+        "type": "ws_send_collect",
+        "name": "Send and Collect Response",
+        "position": {
+          "x": 500.0,
+          "y": 0.0
+        },
+        "data": {
+          "type": "ws_send_collect",
+          "connection_id": "ws-connect-001",
+          "message": "{\"action\":\"ping\",\"data\":\"Hello WebSocket!\"}",
+          "message_type": "text",
+          "send_timeout_ms": 5000,
+          "collect_response": true,
+          "collect_mode": "first_match",
+          "collect_timeout_ms": 5000
+        },
+        "ports": null,
+        "has_breakpoint": null
+      },
+      {
+        "uuid": "ws-close-001",
+        "type": "ws_close",
+        "name": "Close Connection",
+        "position": {
+          "x": 750.0,
+          "y": 0.0
+        },
+        "data": {
+          "type": "ws_close",
+          "connection_id": "ws-connect-001",
+          "close_code": 1000,
+          "close_reason": "Normal closure",
+          "close_timeout_ms": 5000
+        },
+        "ports": null,
+        "has_breakpoint": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-ws-1",
+        "source_node_uuid": "entry-ws-001",
+        "target_node_uuid": "ws-connect-001",
+        "source_port_id": "out",
+        "target_port_id": "in"
+      },
+      {
+        "id": "conn-ws-2",
+        "source_node_uuid": "ws-connect-001",
+        "target_node_uuid": "ws-send-collect-001",
+        "source_port_id": "true",
+        "target_port_id": "in"
+      },
+      {
+        "id": "conn-ws-3",
+        "source_node_uuid": "ws-send-collect-001",
+        "target_node_uuid": "ws-close-001",
+        "source_port_id": "true",
+        "target_port_id": "in"
+      }
+    ]
+  },
+  "_meta": {
+    "version": 5,
+    "isBuiltin": true
+  }
+}
