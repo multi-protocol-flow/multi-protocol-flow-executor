@@ -32,6 +32,8 @@ export interface NodeStreamChunk {
   delta_reasoning?: string;
   text?: string;
   timestamp: string;
+  raw?: unknown;
+  [key: string]: unknown;
 }
 
 /** 节点实时流式输出聚合数据 */

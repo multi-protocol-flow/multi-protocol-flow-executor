@@ -25,6 +25,7 @@ import { useExecutionStore } from '@/stores';
 import { useCurrentLocale } from '@/hooks/useLocale';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import { getLL } from '@/i18n/i18n-lazy';
+import { createPluginRequestHandler } from '@/lib/pluginRequestActions';
 interface PluginIframeViewerProps {
   /** 节点执行报告 */
   report: NodeExecutionReport;
@@ -123,14 +124,17 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
   const [iframeHeight, setIframeHeight] = useState<number>(360);
   const iframeReadyRef = useRef(false);
   const locale = useCurrentLocale();
-
+  const requestHandler = useMemo(
+    () => createPluginRequestHandler(report.plugin_data || report.output_data, report.node_type),
+    [report.plugin_data, report.output_data, report.node_type]
+  );
   const grpcStreamMessages = useDebugStore((s) => s.grpcStreamMessages);
   const grpcStreamErrors = useDebugStore((s) => s.grpcStreamErrors);
   const nodeUuid = report.node_uuid;
   const nodeStreamData = useExecutionStore((s) => s.nodeStreamMap[nodeUuid]);
+  const currentExecutionId = useExecutionStore((s) => s.report?.uuid);
   const lastSentChunkIndexRef = useRef(0);
   const lastSentGrpcIndexRef = useRef(0);
-  const isRunning = (report.status as string) === 'running';
   // 与当前节点相关的实时流消息（GrpcViewer 同款过滤：按 node_uuid）
   const realtimeMessages = useMemo(() => {
     const messages: Array<{
@@ -160,6 +164,10 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
 
   const sendInit = useCallback(() => {
     if (!iframeRef.current?.contentWindow) return;
+    const execId =
+      (report as unknown as { execution_id?: string }).execution_id ||
+      currentExecutionId ||
+      report.node_uuid;
     iframeRef.current.contentWindow.postMessage(
       {
         type: 'init',
@@ -169,14 +177,17 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
           host_api: {},
           nodeType: report.node_type,
           locale,
-          node_report: report,
+          node_report: {
+            ...report,
+            execution_id: execId,
+          },
           outputData: report.output_data,
           reportData: report.plugin_data || report.output_data,
         },
       },
       '*'
     );
-  }, [report, locale]);
+  }, [report, locale, currentExecutionId]);
 
   // 监听来自 iframe 的握手消息 (ready / requestInit / resize)
   useEffect(() => {
@@ -198,6 +209,32 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
             return prev;
           });
         }
+      } else if (data.type === 'requestAction' && data.payload && typeof data.payload === 'object') {
+        const { requestId, action, params } = data.payload as {
+          requestId: string;
+          action: string;
+          params?: unknown;
+        };
+        requestHandler(action, params)
+          .then((result) => {
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: 'actionResult', payload: { requestId, success: true, result } },
+              '*'
+            );
+          })
+          .catch((err) => {
+            iframeRef.current?.contentWindow?.postMessage(
+              {
+                type: 'actionResult',
+                payload: {
+                  requestId,
+                  success: false,
+                  error: err instanceof Error ? err.message : String(err),
+                },
+              },
+              '*'
+            );
+          });
       }
     };
     window.addEventListener('message', handleWindowMessage);
@@ -232,20 +269,24 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
     lastSentChunkIndexRef.current = 0;
     lastSentGrpcIndexRef.current = 0;
   }, [nodeUuid]);
-  // 通用插件流消息转发：`{type:"stream", payload:{kind, delta_content, delta_reasoning, text, fullContent, fullReasoning, timestamp}}`
-  // 通用插件流消息转发：仅在节点处于 running 状态时转发
+  // 通用插件流消息转发：`{type:"stream", payload:{...}}`
   useEffect(() => {
-    if (!ready || !iframeRef.current || !nodeStreamData || !isRunning) return;
+    if (!ready || !iframeRef.current || !nodeStreamData) return;
     const target = iframeRef.current.contentWindow;
     if (!target) return;
     const chunks = nodeStreamData.chunks;
     const startIdx = lastSentChunkIndexRef.current;
     for (let i = startIdx; i < chunks.length; i++) {
       const chunk = chunks[i];
+      const rawData =
+        typeof chunk.raw === 'object' && chunk.raw !== null
+          ? (chunk.raw as Record<string, unknown>)
+          : {};
       target.postMessage(
         {
           type: 'stream',
           payload: {
+            ...rawData,
             kind: chunk.kind,
             delta_content: chunk.delta_content,
             delta_reasoning: chunk.delta_reasoning,
@@ -259,7 +300,7 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
       );
     }
     lastSentChunkIndexRef.current = chunks.length;
-  }, [ready, nodeStreamData, isRunning]);
+  }, [ready, nodeStreamData]);
 
   // 实时流消息转发：`{type:"stream", payload:{call_id, kind, data}}`
   useEffect(() => {

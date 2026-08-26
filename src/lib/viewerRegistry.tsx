@@ -16,6 +16,7 @@ import { TcpUdpViewer } from '@/components/execution/viewers/TcpUdpViewer';
 import { SseViewer } from '@/components/execution/viewers/SseViewer';
 import { GraphqlViewer } from '@/components/execution/viewers/GraphqlViewer';
 import { PluginIframeViewer } from '@/components/execution/viewers/PluginIframeViewer';
+import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 
 interface ViewerProps {
   report: NodeExecutionReport;
@@ -85,7 +86,11 @@ export function getViewerComponent(
 ): ComponentType<ViewerProps> {
   const registered = viewerRegistry[nodeType];
   if (registered) return registered;
-  // 插件分支：仅对未注册类型生效 —— 内置 70+ 类型解析路径不变
+  // 插件分支：如果插件声明了 viewer 前端，或者 report 携带 plugin_data，使用 PluginIframeViewer
+  const meta = getCachedNodeMeta(nodeType) || (report?.node_type ? getCachedNodeMeta(report.node_type) : null);
+  if (meta?.viewer) {
+    return PluginIframeViewer;
+  }
   if (report && report.plugin_data !== undefined) {
     return PluginIframeViewer;
   }

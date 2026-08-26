@@ -3,7 +3,7 @@
  */
 import { create } from 'zustand';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types';
-import type { ExecutionEvent, PluginEventData, NodeStreamData } from '@/types/execution_event';
+import type { ExecutionEvent, PluginEventData, NodeStreamData, NodeStreamChunk } from '@/types/execution_event';
 import { useWsStreamStore } from './wsStream';
 
 interface ExecutionState {
@@ -268,14 +268,15 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
             const newFullReasoning =
               prev.fullReasoning + (deltaReasoning || (kind === 'reasoning' ? text : ''));
 
-            const chunkEntry = {
+            const chunkEntry: NodeStreamChunk = {
+              ...dataObj,
               kind,
               delta_content: deltaContent || undefined,
               delta_reasoning: deltaReasoning || undefined,
               text: text || undefined,
               timestamp: pluginEvt.timestamp || new Date().toISOString(),
+              raw: pluginEvt.data,
             };
-
             nextNodeStreamMap = {
               ...state.nodeStreamMap,
               [pluginEvt.nodeUuid]: {
