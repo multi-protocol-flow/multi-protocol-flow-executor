@@ -433,7 +433,7 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
       expect(mockSetBottomPanelHeight).toHaveBeenCalledWith(100);
     });
 
-    it('底部面板高度不能大于最大值 500px', () => {
+    it('底部面板高度支持向上拖拽扩大', () => {
       (useUIStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
         const state = { ...defaultUIState, isBottomPanelExpanded: true, bottomPanelHeight: 208 };
         return selector ? selector(state) : state;
@@ -445,10 +445,10 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
       expect(handle).toBeDefined();
       
       fireEvent.mouseDown(handle, { clientY: 300 });
-      // delta = 300 - (-250) = 550 → new height = 208 + 550 = 758 → clamped to 500
+      // delta = 300 - (-250) = 550 → new height = 208 + 550 = 758 → clamped to max (700 in jsdom window)
       fireEvent.mouseMove(document, { clientY: -250 });
       
-      expect(mockSetBottomPanelHeight).toHaveBeenCalledWith(500);
+      expect(mockSetBottomPanelHeight).toHaveBeenCalledWith(700);
     });
   });
 

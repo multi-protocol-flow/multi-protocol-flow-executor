@@ -229,13 +229,16 @@ export function MainLayout() {
   const [bottomPanelContentReady, setBottomPanelContentReady] = useState(isBottomPanelExpanded);
   const bottomPanelTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 拖拽调整面板大小
+  // 拖拽调整面板大小（底部面板最高可拉至接近顶部，方便查看全屏日志和 Agent 报告）
+  const maxBottomHeight = typeof window !== 'undefined' ? Math.max(700, window.innerHeight - 80) : 1600;
   const bottomDrag = usePanelDrag({
-    axis: 'vertical', min: 100, max: 500, sign: 1,
+    axis: 'vertical',
+    min: 100,
+    max: maxBottomHeight,
+    sign: 1,
     initialSize: bottomPanelHeight,
     onResize: setBottomPanelHeight,
   });
-
   const rightDrag = usePanelDrag({
     axis: 'horizontal', min: 250, max: 500,
     initialSize: configPanelWidth,

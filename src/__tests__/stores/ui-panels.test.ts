@@ -390,9 +390,9 @@ describe('UIStore - 布局', () => {
       expect(useUIStore.getState().bottomPanelHeight).toBe(100);
     });
 
-    it('高度有最大值限制（700）', () => {
-      useUIStore.getState().setBottomPanelHeight(800);
-      expect(useUIStore.getState().bottomPanelHeight).toBe(700);
+    it('高度有最大值限制（2400）', () => {
+      useUIStore.getState().setBottomPanelHeight(2500);
+      expect(useUIStore.getState().bottomPanelHeight).toBe(2400);
     });
 
     it('高度在有效范围内正常设置', () => {
