@@ -808,6 +808,8 @@ impl FlowExecutor {
                             &context,
                         ));
 
+                    let plugin_data = context.current_node_plugin_data.take();
+                    let node_output_data = error_detail.context.clone().or_else(|| plugin_data.clone());
                     let node_report = flow_engine_core::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
                         node_type: node.node_type.clone(),
@@ -817,7 +819,7 @@ impl FlowExecutor {
                         duration_ms: node_duration,
                         status: flow_engine_core::report::ExecutionStatus::Failed,
                         input_data: Some(json!(context.variables.get_merged_variables())),
-                        output_data: None,
+                        output_data: node_output_data,
                         used_port_id,
                         error: Some(error_detail.clone()),
                         // 新增字段（Task 13）
@@ -825,7 +827,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
-                        plugin_data: context.current_node_plugin_data.take(),
+                        plugin_data,
                     };
                     let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
