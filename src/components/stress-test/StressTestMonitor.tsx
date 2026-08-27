@@ -212,9 +212,9 @@ export function StressTestMonitor() {
         </div>
 
         {/* 实时图表 */}
-        {progressHistory.length > 0 && (
+        {(progressHistory.length > 0 || (isCompleted && report && report.statistics.totalIterations > 0)) && (
           <div className="mb-4">
-            <StressTestCharts progressHistory={progressHistory} />
+            <StressTestCharts progressHistory={progressHistory} report={report} />
           </div>
         )}
 

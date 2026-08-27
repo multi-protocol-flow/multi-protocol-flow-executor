@@ -28,9 +28,10 @@ import {
   selectStressTestProgressHistory,
 } from '@/stores/stressTest';
 import { StressTestCharts } from './StressTestCharts';
+import { ErrorSampleDialog } from './ErrorSampleDialog';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
-
+import type { ErrorSample } from '@/types/stressTest';
 /** 统计卡片组件 */
 function StatCard({
   icon: Icon,
@@ -91,6 +92,16 @@ export function StressTestResult() {
   const [statLevel, setStatLevel] = useState<'flow' | 'node'>('flow');
   const [selectedNodeTypes, setSelectedNodeTypes] = useState<string[]>([]);
 
+  // 错误采样弹窗状态
+  const [sampleDialogOpen, setSampleDialogOpen] = useState(false);
+  const [selectedSampleErrorKind, setSelectedSampleErrorKind] = useState('');
+  const [selectedSamples, setSelectedSamples] = useState<ErrorSample[]>([]);
+
+  const handleOpenSamples = useCallback((kind: string, samples: ErrorSample[]) => {
+    setSelectedSampleErrorKind(kind);
+    setSelectedSamples(samples);
+    setSampleDialogOpen(true);
+  }, []);
   // 所有节点类型（从报告中提取）
   const allNodeTypes = useMemo(() => {
     if (!report?.nodeStatistics) return [];
@@ -277,7 +288,9 @@ export function StressTestResult() {
                     iconColor="text-blue-500"
                     valueColor="text-blue-600"
                     extra={selectedNodeTypes.length > 0 ? (
-                      <Badge variant="secondary" className="text-[10px] ml-1">筛选后</Badge>
+                      <Badge variant="secondary" className="text-[10px] ml-1">
+                        {getLL().flow.stress_result_after_filter()}
+                      </Badge>
                     ) : undefined}
                   />
                   <StatCard
@@ -314,13 +327,16 @@ export function StressTestResult() {
                 </div>
 
                 {/* RPS 实时曲线 & 响应时间分布图表 */}
-                {(progressHistory.length > 0 || (report.progressHistory && report.progressHistory.length > 0)) && (
+                {(progressHistory.length > 0 || (report.progressHistory && report.progressHistory.length > 0) || report.statistics.totalIterations > 0) && (
                   <div className="flex flex-col gap-3">
                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <BarChart3 className="w-4 h-4" />
-                      压测图表
+                      {getLL().flow.stress_result_charts()}
                     </h3>
-                    <StressTestCharts progressHistory={progressHistory.length > 0 ? progressHistory : report.progressHistory!} />
+                    <StressTestCharts
+                      progressHistory={progressHistory.length > 0 ? progressHistory : (report.progressHistory ?? [])}
+                      report={report}
+                    />
                   </div>
                 )}
 
@@ -329,17 +345,20 @@ export function StressTestResult() {
                   <div className="flex flex-col gap-3">
                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-red-500" />
-                      错误统计
+                      {getLL().flow.stress_result_error_stats()}
                     </h3>
                     <div className="rounded-xl border border-border/50 overflow-x-auto">
                       <table className="w-full min-w-max whitespace-nowrap text-sm">
                         <thead>
                           <tr className="bg-muted/50">
                             <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                              错误类型
+                              {getLL().flow.stress_result_error_type()}
                             </th>
                             <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                              数量
+                              {getLL().flow.stress_result_error_count()}
+                            </th>
+                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                              {getLL().flow.stress_result_error_samples()}
                             </th>
                           </tr>
                         </thead>
@@ -349,11 +368,25 @@ export function StressTestResult() {
                               key={`${error.errorKind}-${index}`}
                               className="border-t border-border/50"
                             >
-                              <td className="py-2 px-3 text-red-600">
+                              <td className="py-2 px-3 text-red-600 font-mono text-xs">
                                 {error.errorKind}
                               </td>
                               <td className="py-2 px-3 text-right tabular-nums font-medium">
                                 {error.count}
+                              </td>
+                              <td className="py-2 px-3 text-right">
+                                {error.samples && error.samples.length > 0 ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs text-red-600 dark:text-red-400 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer"
+                                    onClick={() => handleOpenSamples(error.errorKind, error.samples)}
+                                  >
+                                    {getLL().flow.stress_result_error_samples_count({ count: error.samples.length })}
+                                  </Button>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">-</span>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -443,7 +476,20 @@ export function StressTestResult() {
                               {node.successfulExecutions}
                             </td>
                             <td className="py-2 px-3 text-right tabular-nums text-red-600">
-                              {node.failedExecutions}
+                              {node.failedExecutions > 0 && node.errorStatistics && node.errorStatistics.some((e) => e.samples && e.samples.length > 0) ? (
+                                <button
+                                  type="button"
+                                  className="underline decoration-dotted underline-offset-2 hover:text-red-700 cursor-pointer font-medium"
+                                  onClick={() => {
+                                    const allNodeSamples = node.errorStatistics?.flatMap((e) => e.samples ?? []) ?? [];
+                                    handleOpenSamples(node.nodeName, allNodeSamples);
+                                  }}
+                                >
+                                  {node.failedExecutions}
+                                </button>
+                              ) : (
+                                node.failedExecutions
+                              )}
                             </td>
                             <td className={cn(
                               'py-2 px-3 text-right tabular-nums',
@@ -556,6 +602,14 @@ export function StressTestResult() {
           </div>
         </ScrollArea>
       </DialogContent>
+
+      {/* 错误采样快照弹窗 */}
+      <ErrorSampleDialog
+        open={sampleDialogOpen}
+        onOpenChange={setSampleDialogOpen}
+        errorKind={selectedSampleErrorKind}
+        samples={selectedSamples}
+      />
     </Dialog>
   );
 }

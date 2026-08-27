@@ -14,7 +14,7 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import type { StressTestProgress } from '@/types/stressTest';
+import type { StressTestProgress, StressTestReport } from '@/types/stressTest';
 import { getLL } from '@/i18n/i18n-lazy';
 
 // ============================================================================
@@ -24,6 +24,8 @@ import { getLL } from '@/i18n/i18n-lazy';
 interface StressTestChartsProps {
   /** 进度历史数据 - 从父组件传入 */
   progressHistory: StressTestProgress[];
+  /** 压测报告（可选，用于在采样未捕获到最终完成点时补充完整指标） */
+  report?: StressTestReport | null;
 }
 
 interface RpsChartDataPoint {
@@ -61,8 +63,35 @@ const LATENCY_BUCKETS: Array<{ max: number; label: string; color: string }> = [
  * 将进度历史转换为 RPS 图表数据
  * 限制为最近 60 个数据点
  */
-function prepareRpsChartData(history: StressTestProgress[]): RpsChartDataPoint[] {
-  const sliced = history.slice(-MAX_DATA_POINTS);
+function prepareRpsChartData(
+  history: StressTestProgress[],
+  report?: StressTestReport | null
+): RpsChartDataPoint[] {
+  const baseHistory = [...history];
+
+  // 如果已有完成报告，且历史点未包含最终完成时的非零迭代状态，则补充最终点
+  if (report && report.statistics.totalIterations > 0) {
+    const lastPoint = baseHistory[baseHistory.length - 1];
+    const finalElapsed = Math.round(report.durationMs / 1000) || 1;
+    if (
+      !lastPoint ||
+      lastPoint.totalIterations < report.statistics.totalIterations ||
+      lastPoint.elapsedSeconds < finalElapsed
+    ) {
+      baseHistory.push({
+        status: 'stopped',
+        elapsedSeconds: finalElapsed,
+        totalIterations: report.statistics.totalIterations,
+        successfulIterations: report.statistics.successful,
+        failedIterations: report.statistics.failed,
+        currentRps: report.statistics.rps,
+        avgLatencyMs: report.responseTimeDistribution.avgMs,
+        nodeMetrics: [],
+      });
+    }
+  }
+
+  const sliced = baseHistory.slice(-MAX_DATA_POINTS);
   return sliced.map((progress) => ({
     time: progress.elapsedSeconds,
     rps: progress.currentRps,
@@ -71,14 +100,21 @@ function prepareRpsChartData(history: StressTestProgress[]): RpsChartDataPoint[]
 
 /**
  * 根据延迟值计算延迟分布桶
- * 注意：由于只有 avgLatencyMs，这是按采样点（每秒一次）统计的分布，非请求级别分布
+ * 结合进度历史与最终报告统计
  */
-function prepareLatencyBuckets(history: StressTestProgress[]): LatencyBucketData[] {
+function prepareLatencyBuckets(
+  history: StressTestProgress[],
+  report?: StressTestReport | null
+): LatencyBucketData[] {
   // 初始化桶计数
   const bucketCounts = LATENCY_BUCKETS.map(() => 0);
 
-  // 遍历历史数据，将每个数据点的 avgLatencyMs 分配到桶中
+  // 1. 优先统计历史进度采样点
   history.forEach((progress) => {
+    // 过滤掉尚未产生任何完成请求或 avgLatencyMs <= 0 的无效采样点
+    if (progress.totalIterations === 0 || progress.avgLatencyMs <= 0) {
+      return;
+    }
     const latency = progress.avgLatencyMs;
     for (let i = 0; i < LATENCY_BUCKETS.length; i++) {
       if (latency < LATENCY_BUCKETS[i].max) {
@@ -88,6 +124,20 @@ function prepareLatencyBuckets(history: StressTestProgress[]): LatencyBucketData
     }
   });
 
+  // 2. 如果历史中全为未完成的 0ms 采样（无有效点），但最终报告中有真实耗时，使用报告整体指标保底
+  const hasValidSample = bucketCounts.some((count) => count > 0);
+  if (!hasValidSample && report && report.statistics.totalIterations > 0) {
+    const latency = report.responseTimeDistribution.avgMs;
+    if (latency > 0) {
+      for (let i = 0; i < LATENCY_BUCKETS.length; i++) {
+        if (latency < LATENCY_BUCKETS[i].max) {
+          bucketCounts[i] = Math.max(1, report.statistics.totalIterations);
+          break;
+        }
+      }
+    }
+  }
+
   // 构建图表数据
   return LATENCY_BUCKETS.map((bucket, index) => ({
     name: bucket.label,
@@ -95,7 +145,6 @@ function prepareLatencyBuckets(history: StressTestProgress[]): LatencyBucketData
     fill: bucket.color,
   }));
 }
-
 /**
  * 格式化 RPS 值
  */
@@ -155,23 +204,24 @@ function LatencyTooltip({ active, payload }: LatencyTooltipProps) {
 // Component
 // ============================================================================
 
-export function StressTestCharts({ progressHistory }: StressTestChartsProps) {
+export function StressTestCharts({ progressHistory, report }: StressTestChartsProps) {
   // 准备 RPS 图表数据
   const rpsChartData = useMemo(
-    () => prepareRpsChartData(progressHistory),
-    [progressHistory]
+    () => prepareRpsChartData(progressHistory, report),
+    [progressHistory, report]
   );
 
   // 准备延迟分布数据
   const latencyBucketData = useMemo(
-    () => prepareLatencyBuckets(progressHistory),
-    [progressHistory]
+    () => prepareLatencyBuckets(progressHistory, report),
+    [progressHistory, report]
   );
 
   // 如果没有数据，显示占位符
-  if (progressHistory.length === 0) {
+  if (progressHistory.length === 0 && (!report || report.statistics.totalIterations === 0)) {
     return (
-      <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">        {getLL().flow.stress_chart_no_data()}
+      <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+        {getLL().flow.stress_chart_no_data()}
       </div>
     );
   }
@@ -202,7 +252,8 @@ export function StressTestCharts({ progressHistory }: StressTestChartsProps) {
                 }}
               />
               <YAxis
-                tick={{ fontSize: 11, fill: 'oklch(0.556 0 0)' }}
+                domain={[0, 'auto']}
+                allowDecimals={true}
                 tickLine={{ stroke: 'oklch(0.88 0 0)' }}
                 axisLine={{ stroke: 'oklch(0.88 0 0)' }}
                 label={{
@@ -220,7 +271,8 @@ export function StressTestCharts({ progressHistory }: StressTestChartsProps) {
                 dataKey="rps"
                 stroke="#3b82f6"
                 strokeWidth={2}
-                dot={false}
+                dot={rpsChartData.length <= 15 ? { r: 3, fill: '#3b82f6' } : false}
+                activeDot={{ r: 5 }}
                 isAnimationActive={false}
               />
             </LineChart>
