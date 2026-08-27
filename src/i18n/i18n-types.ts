@@ -8483,6 +8483,60 @@ type RootTranslation = {
 		 */
 		stress_result_no_node_stats: string
 		/**
+		 * 错​误​采​样
+		 */
+		stress_result_error_samples: string
+		/**
+		 * 查​看​采​样​ ​(​{​c​o​u​n​t​}​)
+		 * @param {unknown} count
+		 */
+		stress_result_error_samples_count: RequiredParams<'count'>
+		/**
+		 * 查​看​采​样
+		 */
+		stress_result_view_sample: string
+		/**
+		 * 错​误​采​样​详​情
+		 */
+		stress_result_sample_dialog_title: string
+		/**
+		 * 迭​代​ ​#​{​i​t​e​r​a​t​i​o​n​}
+		 * @param {unknown} iteration
+		 */
+		stress_result_sample_iteration: RequiredParams<'iteration'>
+		/**
+		 * 节​点
+		 */
+		stress_result_sample_node: string
+		/**
+		 * 时​间
+		 */
+		stress_result_sample_time: string
+		/**
+		 * 耗​时
+		 */
+		stress_result_sample_duration: string
+		/**
+		 * 错​误​信​息
+		 */
+		stress_result_sample_error_info: string
+		/**
+		 * 请​求​配​置
+		 */
+		stress_result_sample_config: string
+		/**
+		 * 输​入​数​据
+		 */
+		stress_result_sample_input: string
+		/**
+		 * 输​出​数​据
+		 */
+		stress_result_sample_output: string
+		/**
+		 * 暂​无​采​样​数​据
+		 */
+		stress_result_no_samples: string
+		/**
 		 * R​P​S​ ​实​时​曲​线
 		 */
 		stress_chart_rps: string
@@ -20058,6 +20112,58 @@ export type TranslationFunctions = {
 		 * 暂无节点级别统计数据
 		 */
 		stress_result_no_node_stats: () => LocalizedString
+		/**
+		 * 错误采样
+		 */
+		stress_result_error_samples: () => LocalizedString
+		/**
+		 * 查看采样 ({count})
+		 */
+		stress_result_error_samples_count: (arg: { count: unknown }) => LocalizedString
+		/**
+		 * 查看采样
+		 */
+		stress_result_view_sample: () => LocalizedString
+		/**
+		 * 错误采样详情
+		 */
+		stress_result_sample_dialog_title: () => LocalizedString
+		/**
+		 * 迭代 #{iteration}
+		 */
+		stress_result_sample_iteration: (arg: { iteration: unknown }) => LocalizedString
+		/**
+		 * 节点
+		 */
+		stress_result_sample_node: () => LocalizedString
+		/**
+		 * 时间
+		 */
+		stress_result_sample_time: () => LocalizedString
+		/**
+		 * 耗时
+		 */
+		stress_result_sample_duration: () => LocalizedString
+		/**
+		 * 错误信息
+		 */
+		stress_result_sample_error_info: () => LocalizedString
+		/**
+		 * 请求配置
+		 */
+		stress_result_sample_config: () => LocalizedString
+		/**
+		 * 输入数据
+		 */
+		stress_result_sample_input: () => LocalizedString
+		/**
+		 * 输出数据
+		 */
+		stress_result_sample_output: () => LocalizedString
+		/**
+		 * 暂无采样数据
+		 */
+		stress_result_no_samples: () => LocalizedString
 		/**
 		 * RPS 实时曲线
 		 */
