@@ -716,12 +716,7 @@ mod tests {
     fn test_record_failure() {
         let collector = MetricsCollector::new();
 
-        let sample = ErrorSample {
-            iteration: 1,
-            node_uuid: "node-001".to_string(),
-            node_name: "HTTP Request".to_string(),
-            error_message: "Connection timeout".to_string(),
-        };
+        let sample = ErrorSample::new(1, "node-001", "HTTP Request", "Connection timeout");
 
         collector.record_failure("Timeout".to_string(), sample);
 
@@ -741,19 +736,8 @@ mod tests {
     fn test_record_multiple_error_kinds() {
         let collector = MetricsCollector::new();
 
-        let sample1 = ErrorSample {
-            iteration: 1,
-            node_uuid: "node-001".to_string(),
-            node_name: "HTTP".to_string(),
-            error_message: "Timeout".to_string(),
-        };
-
-        let sample2 = ErrorSample {
-            iteration: 2,
-            node_uuid: "node-002".to_string(),
-            node_name: "HTTP".to_string(),
-            error_message: "Connection refused".to_string(),
-        };
+        let sample1 = ErrorSample::new(1, "node-001", "HTTP", "Timeout");
+        let sample2 = ErrorSample::new(2, "node-002", "HTTP", "Connection refused");
 
         collector.record_failure("Timeout".to_string(), sample1.clone());
         collector.record_failure("ConnectionError".to_string(), sample2);
@@ -787,12 +771,7 @@ mod tests {
 
         // 添加超过限制数量的Error样本
         for i in 0..(MAX_ERROR_SAMPLES + 5) {
-            let sample = ErrorSample {
-                iteration: i as u64,
-                node_uuid: format!("node-{:03}", i),
-                node_name: "HTTP".to_string(),
-                error_message: format!("Error {}", i),
-            };
+            let sample = ErrorSample::new(i as u64, format!("node-{:03}", i), "HTTP", format!("Error {}", i));
             collector.record_failure("Timeout".to_string(), sample);
         }
 
@@ -888,12 +867,7 @@ mod tests {
             collector.record_success(100);
         }
 
-        let sample = ErrorSample {
-            iteration: 0,
-            node_uuid: "node".to_string(),
-            node_name: "HTTP".to_string(),
-            error_message: "Error".to_string(),
-        };
+        let sample = ErrorSample::new(0, "node", "HTTP", "Error");
 
         for _ in 0..20 {
             collector.record_failure("Error".to_string(), sample.clone());
@@ -910,12 +884,7 @@ mod tests {
         collector.record_success(100);
         collector.record_success(200);
 
-        let sample = ErrorSample {
-            iteration: 0,
-            node_uuid: "node".to_string(),
-            node_name: "HTTP".to_string(),
-            error_message: "Error".to_string(),
-        };
+        let sample = ErrorSample::new(0, "node", "HTTP", "Error");
         collector.record_failure("Error".to_string(), sample);
 
         collector.reset();
@@ -951,12 +920,7 @@ mod tests {
         for _ in 0..5 {
             let c = Arc::clone(&collector);
             handles.push(thread::spawn(move || {
-                let sample = ErrorSample {
-                    iteration: 0,
-                    node_uuid: "node".to_string(),
-                    node_name: "HTTP".to_string(),
-                    error_message: "Error".to_string(),
-                };
+                let sample = ErrorSample::new(0, "node", "HTTP", "Error");
                 for _ in 0..20 {
                     c.record_failure("Timeout".to_string(), sample.clone());
                 }

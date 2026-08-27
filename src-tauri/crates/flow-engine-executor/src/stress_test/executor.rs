@@ -53,6 +53,10 @@ pub fn calculate_current_concurrency(
     ramp_up_seconds: u32,
     elapsed_seconds: u64,
 ) -> u32 {
+    if target_concurrency == 0 {
+        return 0;
+    }
+
     // 边界情况：预热时长为 0，立即达到目标并发
     if ramp_up_seconds == 0 {
         return target_concurrency;
@@ -69,7 +73,9 @@ pub fn calculate_current_concurrency(
     let elapsed = elapsed_seconds;
     let ramp_up = ramp_up_seconds as u64;
 
-    ((target * elapsed) / ramp_up) as u32
+    let computed = (target * elapsed) / ramp_up;
+    // 保证至少有 1 个并发用户在运行，避免预热阶段完全空转
+    (computed.max(1) as u32).min(target_concurrency)
 }
 
 /// 压力测试执行器内部状态
@@ -452,9 +458,28 @@ impl StressTestExecutor {
             state_guard.active_tasks.clear();
         }
 
+        // 捕获任务结束时的最终进度快照
+        {
+            let state_guard = state.read().await;
+            let elapsed_secs = start_time.elapsed().as_secs();
+            let statistics = state_guard.metrics.get_statistics();
+            let response_time = state_guard.metrics.get_response_time_distribution();
+
+            let final_progress = StressTestProgress {
+                status: StressTestStatus::Stopped,
+                elapsed_seconds: elapsed_secs,
+                total_iterations: statistics.total_iterations,
+                successful_iterations: statistics.successful,
+                failed_iterations: statistics.failed,
+                current_rps: statistics.rps,
+                avg_latency_ms: response_time.avg_ms,
+                node_metrics: state_guard.metrics.get_node_metrics(),
+            };
+            progress_history.push(final_progress);
+        }
+
         // 生成最终报告
         let report = Self::generate_report(&flow, &config, &metrics, start_time, &progress_history);
-
         // 更新最终状态并存储报告
         {
             let mut state_guard = state.write().await;
@@ -524,21 +549,73 @@ impl StressTestExecutor {
             let latency_ms = iteration_start.elapsed().as_millis() as u64;
 
             // 记录结果
+            let (top_error_kind, top_error_sample) = if !execution_result.success {
+                let first_failed_node = execution_result.node_reports.iter().find(|n| {
+                    let s = format!("{:?}", n.status);
+                    !s.contains("Success") && !s.contains("Skipped")
+                });
+
+                let (error_kind, sample) = if let Some(nr) = first_failed_node {
+                    let kind = if let Some(err) = &nr.error {
+                        serde_json::to_string(&err.error_kind)
+                            .unwrap_or_else(|_| format!("{:?}", err.error_kind))
+                            .trim_matches('"')
+                            .to_string()
+                    } else {
+                        "NodeFailed".to_string()
+                    };
+                    let err_msg = nr
+                        .error
+                        .as_ref()
+                        .map(|e| e.message.clone())
+                        .unwrap_or_else(|| "unknown node error".to_string());
+                    (
+                        kind,
+                        ErrorSample {
+                            iteration: metrics.get_statistics().total_iterations,
+                            timestamp: nr.start_time,
+                            node_uuid: nr.node_uuid.clone(),
+                            node_name: nr.node_name.clone(),
+                            node_type: Some(nr.node_type.clone()),
+                            error_message: err_msg,
+                            error_detail: nr.error.clone(),
+                            duration_ms: Some(nr.duration_ms),
+                            input_data: nr.input_data.clone(),
+                            output_data: nr.output_data.clone(),
+                            resolved_config: nr.resolved_config.clone(),
+                        },
+                    )
+                } else {
+                    let error_msg = execution_result
+                        .error
+                        .clone()
+                        .unwrap_or_else(|| "unknown error".to_string());
+                    (
+                        "ExecutionFailed".to_string(),
+                        ErrorSample {
+                            iteration: metrics.get_statistics().total_iterations,
+                            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+                            node_uuid: String::new(),
+                            node_name: String::new(),
+                            node_type: None,
+                            error_message: error_msg,
+                            error_detail: None,
+                            duration_ms: Some(latency_ms),
+                            input_data: None,
+                            output_data: None,
+                            resolved_config: None,
+                        },
+                    )
+                };
+                (Some(error_kind), Some(sample))
+            } else {
+                (None, None)
+            };
+
             if execution_result.success {
                 metrics.record_success(latency_ms);
-            } else {
-                // execution complete但Failed
-                let error_msg = execution_result
-                    .error
-                    .clone()
-                    .unwrap_or_else(|| "unknown error".to_string());
-                let sample = ErrorSample {
-                    iteration: metrics.get_statistics().total_iterations,
-                    node_uuid: String::new(),
-                    node_name: String::new(),
-                    error_message: error_msg.clone(),
-                };
-                metrics.record_failure("ExecutionFailed".to_string(), sample);
+            } else if let (Some(kind), Some(sample)) = (top_error_kind, top_error_sample) {
+                metrics.record_failure(kind, sample);
             }
 
             // 记录每个节点的执行结果
@@ -554,22 +631,33 @@ impl StressTestExecutor {
                         node_latency,
                     );
                 } else {
-                    let node_error = node_report
-                        .error
-                        .as_ref()
-                        .map(|e| format!("{:?}", e))
-                        .unwrap_or_else(|| "unknown node error".to_string());
+                    let (error_kind, error_msg) = if let Some(err) = &node_report.error {
+                        let kind = serde_json::to_string(&err.error_kind)
+                            .unwrap_or_else(|_| format!("{:?}", err.error_kind))
+                            .trim_matches('"')
+                            .to_string();
+                        (kind, err.message.clone())
+                    } else {
+                        ("NodeFailed".to_string(), "unknown node error".to_string())
+                    };
                     let node_sample = ErrorSample {
                         iteration: metrics.get_statistics().total_iterations,
+                        timestamp: node_report.start_time,
                         node_uuid: node_report.node_uuid.clone(),
                         node_name: node_report.node_name.clone(),
-                        error_message: node_error.clone(),
+                        node_type: Some(node_report.node_type.clone()),
+                        error_message: error_msg,
+                        error_detail: node_report.error.clone(),
+                        duration_ms: Some(node_latency),
+                        input_data: node_report.input_data.clone(),
+                        output_data: node_report.output_data.clone(),
+                        resolved_config: node_report.resolved_config.clone(),
                     };
                     metrics.record_node_failure(
                         &node_report.node_uuid,
                         &node_report.node_name,
                         &node_report.node_type,
-                        "NodeFailed".to_string(),
+                        error_kind,
                         node_sample,
                     );
                 }
@@ -643,7 +731,7 @@ mod tests {
     #[test]
     fn test_ramp_up_basic_calculation() {
         // 目标 100 用户，预热 10 秒
-        assert_eq!(calculate_current_concurrency(100, 10, 0), 0); // 0%
+        assert_eq!(calculate_current_concurrency(100, 10, 0), 1); // 0 秒保底 1 用户
         assert_eq!(calculate_current_concurrency(100, 10, 1), 10); // 10%
         assert_eq!(calculate_current_concurrency(100, 10, 2), 20); // 20%
         assert_eq!(calculate_current_concurrency(100, 10, 5), 50); // 50%
@@ -681,12 +769,11 @@ mod tests {
     }
 
     /// 测试目标并发为 1 的边界情况
-    #[test]
     fn test_ramp_up_target_one() {
-        // 目标 1 用户，预热 10 秒
-        assert_eq!(calculate_current_concurrency(1, 10, 0), 0);
-        assert_eq!(calculate_current_concurrency(1, 10, 5), 0); // 0.5 取整为 0
-        assert_eq!(calculate_current_concurrency(1, 10, 9), 0); // 0.9 取整为 0
+        // 目标 1 用户，预热 10 秒（保底 1 用户）
+        assert_eq!(calculate_current_concurrency(1, 10, 0), 1);
+        assert_eq!(calculate_current_concurrency(1, 10, 5), 1);
+        assert_eq!(calculate_current_concurrency(1, 10, 9), 1);
         assert_eq!(calculate_current_concurrency(1, 10, 10), 1);
     }
 
@@ -694,7 +781,7 @@ mod tests {
     #[test]
     fn test_ramp_up_high_concurrency() {
         // 目标 10000 用户，预热 60 秒
-        assert_eq!(calculate_current_concurrency(10000, 60, 0), 0);
+        assert_eq!(calculate_current_concurrency(10000, 60, 0), 1);
         assert_eq!(calculate_current_concurrency(10000, 60, 30), 5000); // 50%
         assert_eq!(calculate_current_concurrency(10000, 60, 45), 7500); // 75%
         assert_eq!(calculate_current_concurrency(10000, 60, 60), 10000);
@@ -705,7 +792,7 @@ mod tests {
     #[test]
     fn test_ramp_up_long_duration() {
         // 目标 100 用户，预热 300 秒
-        assert_eq!(calculate_current_concurrency(100, 300, 0), 0);
+        assert_eq!(calculate_current_concurrency(100, 300, 0), 1);
         assert_eq!(calculate_current_concurrency(100, 300, 150), 50); // 50%
         assert_eq!(calculate_current_concurrency(100, 300, 300), 100);
     }
@@ -714,7 +801,7 @@ mod tests {
     #[test]
     fn test_ramp_up_one_second() {
         // 预热时长为 1 秒
-        assert_eq!(calculate_current_concurrency(100, 1, 0), 0);
+        assert_eq!(calculate_current_concurrency(100, 1, 0), 1);
         assert_eq!(calculate_current_concurrency(100, 1, 1), 100);
         assert_eq!(calculate_current_concurrency(100, 1, 2), 100);
     }

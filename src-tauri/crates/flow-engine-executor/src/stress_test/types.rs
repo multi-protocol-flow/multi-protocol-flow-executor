@@ -115,19 +115,63 @@ pub struct ResponseTimeDistribution {
 }
 
 /// Error样本
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorSample {
     /// 迭代序号
     pub iteration: u64,
+    /// 发生时间戳（毫秒）
+    #[serde(default)]
+    pub timestamp: u64,
     /// 节点 UUID
     pub node_uuid: String,
     /// 节点名称
     pub node_name: String,
+    /// 节点类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub node_type: Option<String>,
     /// Error消息
     pub error_message: String,
+    /// 结构化Error详情
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_detail: Option<flow_engine_core::error::ErrorDetail>,
+    /// 执行耗时（毫秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<u64>,
+    /// 输入数据（完整存储）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_data: Option<serde_json::Value>,
+    /// 输出数据（完整存储）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_data: Option<serde_json::Value>,
+    /// 解析后的配置
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_config: Option<serde_json::Value>,
 }
 
+impl ErrorSample {
+    /// 创建简易错误样本（测试与基础场景）
+    pub fn new(
+        iteration: u64,
+        node_uuid: impl Into<String>,
+        node_name: impl Into<String>,
+        error_message: impl Into<String>,
+    ) -> Self {
+        Self {
+            iteration,
+            timestamp: flow_engine_core::utils::unix_timestamp_ms(),
+            node_uuid: node_uuid.into(),
+            node_name: node_name.into(),
+            node_type: None,
+            error_message: error_message.into(),
+            error_detail: None,
+            duration_ms: None,
+            input_data: None,
+            output_data: None,
+            resolved_config: None,
+        }
+    }
+}
 /// Error统计
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -367,12 +411,7 @@ mod tests {
 
     #[test]
     fn test_error_sample_serialization() {
-        let sample = ErrorSample {
-            iteration: 1,
-            node_uuid: "node-001".to_string(),
-            node_name: "HTTP Request".to_string(),
-            error_message: "Connection timeout".to_string(),
-        };
+        let sample = ErrorSample::new(1, "node-001", "HTTP Request", "Connection timeout");
 
         let json = serde_json::to_string(&sample).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("iteration"));
@@ -471,12 +510,7 @@ mod tests {
             error_statistics: vec![ErrorStatistics {
                 error_kind: "Timeout".to_string(),
                 count: 5,
-                samples: vec![ErrorSample {
-                    iteration: 10,
-                    node_uuid: "node-001".to_string(),
-                    node_name: "HTTP Request".to_string(),
-                    error_message: "Request timeout".to_string(),
-                }],
+                samples: vec![ErrorSample::new(10, "node-001", "HTTP Request", "Request timeout")],
             }],
             node_statistics: vec![],
             node_type_statistics: vec![],

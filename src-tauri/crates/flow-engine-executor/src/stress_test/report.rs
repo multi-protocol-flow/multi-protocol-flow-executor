@@ -228,12 +228,7 @@ mod tests {
         metrics.record_success(100);
         metrics.record_success(100);
 
-        let error_sample = ErrorSample {
-            iteration: 1,
-            node_uuid: "node-001".to_string(),
-            node_name: "HTTP Request".to_string(),
-            error_message: "Connection timeout".to_string(),
-        };
+        let error_sample = ErrorSample::new(1, "node-001", "HTTP Request", "Connection timeout");
         metrics.record_failure("Timeout".to_string(), error_sample);
 
         let start_time = Instant::now();
@@ -273,22 +268,12 @@ mod tests {
 
         // 记录多种Error
         for i in 0..3 {
-            let sample = ErrorSample {
-                iteration: i,
-                node_uuid: format!("node-{}", i),
-                node_name: "HTTP".to_string(),
-                error_message: format!("Timeout {}", i),
-            };
+            let sample = ErrorSample::new(i, format!("node-{}", i), "HTTP", format!("Timeout {}", i));
             metrics.record_failure("Timeout".to_string(), sample);
         }
 
         for i in 0..2 {
-            let sample = ErrorSample {
-                iteration: i,
-                node_uuid: format!("node-{}", i),
-                node_name: "HTTP".to_string(),
-                error_message: format!("Connection refused {}", i),
-            };
+            let sample = ErrorSample::new(i, format!("node-{}", i), "HTTP", format!("Connection refused {}", i));
             metrics.record_failure("ConnectionRefused".to_string(), sample);
         }
 
