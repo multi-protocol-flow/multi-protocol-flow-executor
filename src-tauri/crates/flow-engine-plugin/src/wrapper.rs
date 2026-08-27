@@ -180,7 +180,12 @@ pub(crate) fn map_execute_response(
         if let Some(code) = code {
             detail = detail.with_i18n_arg("code", code.to_string());
         }
-        if let Some(outputs) = obj.get("outputs").or_else(|| obj.get("data")) {
+        if let Some(outputs) = obj
+            .get("output_data")
+            .or_else(|| obj.get("report_data"))
+            .or_else(|| obj.get("outputs"))
+            .or_else(|| obj.get("data"))
+        {
             detail = detail.with_context(outputs.clone());
         }
         Err(detail)
