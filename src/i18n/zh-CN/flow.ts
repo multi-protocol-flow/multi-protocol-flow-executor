@@ -355,6 +355,7 @@ const zh_CN_flow: BaseTranslation = {
   stress_result_sample_input: '输入数据',
   stress_result_sample_output: '输出数据',
   stress_result_no_samples: '暂无采样数据',
+  stress_result_no_output_data: '无响应输出（请求在连接/调用阶段直接报错或未产生响应体）',
   
   // 压力测试图表
   stress_chart_rps: 'RPS 实时曲线',

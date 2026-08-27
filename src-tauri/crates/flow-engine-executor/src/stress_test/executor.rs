@@ -581,7 +581,7 @@ impl StressTestExecutor {
                             error_detail: nr.error.clone(),
                             duration_ms: Some(nr.duration_ms),
                             input_data: nr.input_data.clone(),
-                            output_data: nr.output_data.clone(),
+                            output_data: nr.output_data.clone().or_else(|| nr.error.as_ref().and_then(|e| e.context.clone())),
                             resolved_config: nr.resolved_config.clone(),
                         },
                     )
@@ -650,7 +650,7 @@ impl StressTestExecutor {
                         error_detail: node_report.error.clone(),
                         duration_ms: Some(node_latency),
                         input_data: node_report.input_data.clone(),
-                        output_data: node_report.output_data.clone(),
+                        output_data: node_report.output_data.clone().or_else(|| node_report.error.as_ref().and_then(|e| e.context.clone())),
                         resolved_config: node_report.resolved_config.clone(),
                     };
                     metrics.record_node_failure(

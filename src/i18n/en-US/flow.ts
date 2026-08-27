@@ -354,6 +354,7 @@ const en_US_flow = {
   stress_result_sample_input: 'Input Data',
   stress_result_sample_output: 'Output Data',
   stress_result_no_samples: 'No sample data available',
+  stress_result_no_output_data: 'No response output (Request failed before receiving a response body)',
 
   // Charts
   stress_chart_rps: 'RPS Over Time',

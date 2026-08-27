@@ -8537,6 +8537,10 @@ type RootTranslation = {
 		 */
 		stress_result_no_samples: string
 		/**
+		 * 无​响​应​输​出​（​请​求​在​连​接​/​调​用​阶​段​直​接​报​错​或​未​产​生​响​应​体​）
+		 */
+		stress_result_no_output_data: string
+		/**
 		 * R​P​S​ ​实​时​曲​线
 		 */
 		stress_chart_rps: string
@@ -20164,6 +20168,10 @@ export type TranslationFunctions = {
 		 * 暂无采样数据
 		 */
 		stress_result_no_samples: () => LocalizedString
+		/**
+		 * 无响应输出（请求在连接/调用阶段直接报错或未产生响应体）
+		 */
+		stress_result_no_output_data: () => LocalizedString
 		/**
 		 * RPS 实时曲线
 		 */

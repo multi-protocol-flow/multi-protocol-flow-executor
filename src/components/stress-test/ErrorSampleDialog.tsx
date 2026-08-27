@@ -241,17 +241,33 @@ export function ErrorSampleDialog({
                     )}
 
                     {/* 响应 / 输出数据 */}
-                    {currentSample.outputData !== undefined && currentSample.outputData !== null && (
-                      <div className="space-y-1.5">
-                        <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                          <CornerDownRight className="w-3.5 h-3.5 text-violet-500" />
-                          <span>{getLL().flow.stress_result_sample_output()}</span>
+                    {(() => {
+                      const outputData = currentSample.outputData ?? currentSample.errorDetail?.context;
+                      if (outputData !== undefined && outputData !== null) {
+                        return (
+                          <div className="space-y-1.5">
+                            <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                              <CornerDownRight className="w-3.5 h-3.5 text-violet-500" />
+                              <span>{getLL().flow.stress_result_sample_output()}</span>
+                            </div>
+                            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 overflow-hidden">
+                              <RawJsonViewer data={outputData} />
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="space-y-1.5">
+                          <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                            <CornerDownRight className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span>{getLL().flow.stress_result_sample_output()}</span>
+                          </div>
+                          <div className="rounded-lg border border-border/40 bg-muted/10 p-3 text-xs text-muted-foreground italic">
+                            {getLL().flow.stress_result_no_output_data()}
+                          </div>
                         </div>
-                        <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 overflow-hidden">
-                          <RawJsonViewer data={currentSample.outputData} />
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 </ScrollArea>
               </div>
