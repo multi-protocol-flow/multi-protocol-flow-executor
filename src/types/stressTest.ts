@@ -4,6 +4,7 @@
  */
 
 import type { Flow } from './flow';
+import type { ErrorDetail } from './error';
 
 // ============================================================================
 // 数据集策略
@@ -127,14 +128,27 @@ export interface ResponseTimeDistribution {
 export interface ErrorSample {
   /** 迭代序号 */
   iteration: number;
+  /** 发生时间戳（毫秒） */
+  timestamp?: number;
   /** 节点 UUID */
   nodeUuid: string;
   /** 节点名称 */
   nodeName: string;
+  /** 节点类型 */
+  nodeType?: string;
   /** 错误消息 */
   errorMessage: string;
+  /** 结构化错误详情 */
+  errorDetail?: ErrorDetail;
+  /** 执行耗时（毫秒） */
+  durationMs?: number;
+  /** 输入数据（完整存储） */
+  inputData?: unknown;
+  /** 输出数据（完整存储） */
+  outputData?: unknown;
+  /** 解析后的配置 */
+  resolvedConfig?: unknown;
 }
-
 // ============================================================================
 // 错误统计
 // ============================================================================
