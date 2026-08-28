@@ -34,8 +34,8 @@ use crate::describe::frontend_metadata_from;
 use crate::manager::PluginManager;
 // (grpc.stream 通知 handler 在 wrapper.rs)
 use crate::wrapper::{
-    execution_timeout, extract_referenced_variables, map_execute_response, map_plugin_error,
-    run_with_timeout_and_cancel,
+    execution_timeout_with_node_map, extract_referenced_variables, map_execute_response,
+    map_plugin_error, run_with_timeout_and_cancel,
 };
 
 /// Wire method name of the execute RPC.
@@ -168,7 +168,7 @@ impl NodePlugin for SidecarPlugin {
         node: &Node,
         context: &mut ExecutionContext,
         connections: &[Connection],
-        _node_map: &HashMap<String, &Node>,
+        node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<Value>), ErrorDetail> {
         // 1. Extract the plugin config from the node data.
         let raw_config = match &node.data {
@@ -187,9 +187,12 @@ impl NodePlugin for SidecarPlugin {
         // 3. Host-side variable resolution — the plugin receives FINAL values.
         let resolved_config = resolve_variables_in_json(&raw_config, context);
 
-        // 4. Wrapper-owned timeout using the manager's configured fallback
-        let timeout = execution_timeout(&resolved_config, self.manager.default_execution_timeout());
-
+        // 4. Wrapper-owned timeout using the manager's configured fallback (inherits from referenced provider/connect node)
+        let timeout = execution_timeout_with_node_map(
+            &resolved_config,
+            node_map,
+            self.manager.default_execution_timeout(),
+        );
         // 5. JSON-serializable providers (typed providers cannot be encoded).
         let mut providers = serde_json::Map::new();
         for (key, provider) in &context.providers {

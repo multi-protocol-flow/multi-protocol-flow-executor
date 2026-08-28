@@ -7,6 +7,7 @@
 //! flat-key `variable_updates`, `provider_updates`).
 
 use std::any::Any;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -14,6 +15,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::error::{ErrorCode, ErrorDetail, ErrorKind};
 use flow_engine_core::node::Node;
+use flow_engine_core::node_config::NodeData;
 use flow_engine_core::plugin::PortDef;
 use serde_json::Value;
 
@@ -236,23 +238,85 @@ fn collect_referenced_variables(value: &Value, out: &mut Vec<String>) {
     }
 }
 
-/// Reads the wrapper-owned execution timeout from the node config.
+/// Reads the wrapper-owned execution timeout from the node config and referenced upstream connection/provider nodes.
 ///
-/// Honors a `timeout_ms` or `execution_timeout_ms` number field; anything
-/// missing / zero / non-numeric falls back to `fallback_timeout`.
-pub(crate) fn execution_timeout(config: &Value, fallback_timeout: Duration) -> Duration {
-    let ms = config
+/// Honors:
+/// 1. `override_timeout_ms` (explicit override on this node);
+/// 2. Referenced upstream provider/connection node timeout from `node_map` (via `provider_uuid` or `connection_id`);
+/// 3. `timeout_ms` or `execution_timeout_ms` on this node;
+/// 4. Inline `provider.timeout_ms` (only when `provider_uuid` is absent/empty);
+/// 5. `fallback_timeout`.
+pub(crate) fn execution_timeout_with_node_map(
+    config: &Value,
+    node_map: &HashMap<String, &Node>,
+    fallback_timeout: Duration,
+) -> Duration {
+    // 1. Explicit override on this node always takes precedence
+    if let Some(ms) = config
         .get("override_timeout_ms")
         .and_then(Value::as_u64)
-        .or_else(|| config.get("timeout_ms").and_then(Value::as_u64))
-        .or_else(|| config.get("execution_timeout_ms").and_then(Value::as_u64))
-        .or_else(|| config.get("provider").and_then(|p| p.get("timeout_ms")).and_then(Value::as_u64))
-        .unwrap_or(0);
-    if ms == 0 {
-        fallback_timeout
-    } else {
-        Duration::from_millis(ms)
+        .filter(|&t| t > 0)
+    {
+        return Duration::from_millis(ms);
     }
+
+    // 2. Inherit from referenced upstream provider or connect node in node_map
+    let referenced_id = config
+        .get("provider_uuid")
+        .and_then(Value::as_str)
+        .filter(|s| !s.trim().is_empty())
+        .or_else(|| {
+            config
+                .get("connection_id")
+                .and_then(Value::as_str)
+                .filter(|s| !s.trim().is_empty())
+        });
+
+    if let Some(target_uuid) = referenced_id {
+        if let Some(target_node) = node_map.get(target_uuid) {
+            if let NodeData::Plugin(prov_cfg) = &target_node.data {
+                if let Some(ms) = prov_cfg
+                    .get("timeout_ms")
+                    .or_else(|| prov_cfg.get("execution_timeout_ms"))
+                    .and_then(Value::as_u64)
+                    .filter(|&t| t > 0)
+                {
+                    return Duration::from_millis(ms);
+                }
+            }
+        }
+    }
+
+    // 3. Node's direct timeout_ms or execution_timeout_ms
+    if let Some(ms) = config
+        .get("timeout_ms")
+        .or_else(|| config.get("execution_timeout_ms"))
+        .and_then(Value::as_u64)
+        .filter(|&t| t > 0)
+    {
+        return Duration::from_millis(ms);
+    }
+
+    // 4. Inline provider.timeout_ms (only if provider_uuid was not referenced)
+    if referenced_id.is_none() {
+        if let Some(ms) = config
+            .get("provider")
+            .and_then(|p| p.get("timeout_ms"))
+            .and_then(Value::as_u64)
+            .filter(|&t| t > 0)
+        {
+            return Duration::from_millis(ms);
+        }
+    }
+
+    // 5. Fallback
+    fallback_timeout
+}
+
+/// Reads the wrapper-owned execution timeout from the node config without node map context (used in tests).
+#[cfg(test)]
+pub(crate) fn execution_timeout(config: &Value, fallback_timeout: Duration) -> Duration {
+    execution_timeout_with_node_map(config, &HashMap::new(), fallback_timeout)
 }
 
 /// Runs `future` under the wrapper-owned timeout, honouring the context's
@@ -572,6 +636,78 @@ mod tests {
                 "provider": { "timeout_ms": 60000 }
             }), DEFAULT_EXECUTION_TIMEOUT),
             Duration::from_millis(90000)
+        );
+    }
+
+    #[test]
+    fn test_execution_timeout_with_provider_uuid_inheritance() {
+        let provider_node = Node {
+            uuid: "prov-uuid-1".to_string(),
+            node_type: "llm:provider".to_string(),
+            name: "My Provider".to_string(),
+            data: NodeData::Plugin(json!({
+                "base_url": "http://api.example.com",
+                "model": "gpt-5",
+                "timeout_ms": 300000
+            })),
+            ..Default::default()
+        };
+
+        let mut node_map = HashMap::new();
+        node_map.insert("prov-uuid-1".to_string(), &provider_node);
+
+        // Node references provider_uuid, has stale inline provider.timeout_ms = 60000.
+        // It MUST inherit 300000ms from the referenced provider node!
+        let chat_config = json!({
+            "provider_uuid": "prov-uuid-1",
+            "provider": {
+                "timeout_ms": 60000
+            },
+            "messages": []
+        });
+
+        assert_eq!(
+            execution_timeout_with_node_map(&chat_config, &node_map, DEFAULT_EXECUTION_TIMEOUT),
+            Duration::from_millis(300000)
+        );
+
+        // If override_timeout_ms is explicitly specified on the chat node, it overrides the provider
+        let chat_with_override = json!({
+            "provider_uuid": "prov-uuid-1",
+            "override_timeout_ms": 120000,
+            "provider": {
+                "timeout_ms": 60000
+            }
+        });
+        assert_eq!(
+            execution_timeout_with_node_map(&chat_with_override, &node_map, DEFAULT_EXECUTION_TIMEOUT),
+            Duration::from_millis(120000)
+        );
+    }
+
+    #[test]
+    fn test_execution_timeout_with_connection_id_inheritance() {
+        let db_connect_node = Node {
+            uuid: "db-conn-1".to_string(),
+            node_type: "db:connect".to_string(),
+            name: "MySQL Conn".to_string(),
+            data: NodeData::Plugin(json!({
+                "timeout_ms": 150000
+            })),
+            ..Default::default()
+        };
+
+        let mut node_map = HashMap::new();
+        node_map.insert("db-conn-1".to_string(), &db_connect_node);
+
+        let query_config = json!({
+            "connection_id": "db-conn-1",
+            "sql": "SELECT 1"
+        });
+
+        assert_eq!(
+            execution_timeout_with_node_map(&query_config, &node_map, DEFAULT_EXECUTION_TIMEOUT),
+            Duration::from_millis(150000)
         );
     }
 }
