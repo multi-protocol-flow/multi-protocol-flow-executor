@@ -171,6 +171,12 @@ impl PluginManager {
         self.lifecycle_config = config;
         self
     }
+    /// Overrides the connection configuration for subsequently spawned plugins.
+    pub fn with_connection_config(mut self, config: ConnectionConfig) -> Self {
+        self.connection_config = config.clone();
+        self.lifecycle_config = self.lifecycle_config.with_connection_config(config);
+        self
+    }
     /// Overrides the default execution timeout when a plugin node config specifies none.
     ///
     /// Also ensures the underlying connection's request timeout is at least this duration,

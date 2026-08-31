@@ -1109,8 +1109,10 @@ pub async fn reload_plugins(
 
     // 新目录 → 新管理器 → describe → 新注册表
     let default_timeout = crate::resolve_default_execution_timeout(&app);
+    let conn_config = crate::resolve_plugin_connection_config(&app);
     let mut manager = flow_engine::PluginManager::new(PathBuf::from(&dir))
         .with_host_locale(host_locale)
+        .with_connection_config(conn_config)
         .with_default_execution_timeout(default_timeout);
     manager.scan_and_describe().await;
 

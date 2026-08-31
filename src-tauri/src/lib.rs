@@ -206,6 +206,46 @@ pub(crate) fn resolve_default_execution_timeout(app: &tauri::AppHandle) -> std::
         .unwrap_or(std::time::Duration::from_secs(30))
 }
 
+/// 解析插件连接配置（并发上限、队列深度、默认超时时间）
+pub(crate) fn resolve_plugin_connection_config(app: &tauri::AppHandle) -> flow_engine::ConnectionConfig {
+    let mut config = flow_engine::ConnectionConfig::default();
+
+    if let Some(concurrency) = std::env::var("MPE_PLUGIN_MAX_CONCURRENCY")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .filter(|&c| c > 0)
+        .or_else(|| {
+            app.store("store/settings.bin")
+                .ok()
+                .and_then(|store| store.get("pluginMaxConcurrency").and_then(|v| v.as_u64().map(|n| n as usize)))
+                .filter(|&c| c > 0)
+        })
+    {
+        config.max_concurrent_requests = concurrency;
+    }
+
+    if let Some(queue_cap) = std::env::var("MPE_PLUGIN_QUEUE_CAPACITY")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .filter(|&q| q > 0)
+        .or_else(|| {
+            app.store("store/settings.bin")
+                .ok()
+                .and_then(|store| store.get("pluginQueueCapacity").and_then(|v| v.as_u64().map(|n| n as usize)))
+                .filter(|&q| q > 0)
+        })
+    {
+        config.queue_capacity = queue_cap;
+    }
+
+    let default_timeout = resolve_default_execution_timeout(app);
+    if config.request_timeout < default_timeout {
+        config.request_timeout = default_timeout;
+    }
+
+    config
+}
+
 
 /// 构建共享节点注册表状态
 ///
@@ -221,8 +261,10 @@ fn build_node_registry_state(app: &tauri::AppHandle, host_locale: Option<String>
     {
         let (plugins_dir, _source) = resolve_plugin_dir(app);
         let default_timeout = resolve_default_execution_timeout(app);
+        let conn_config = resolve_plugin_connection_config(app);
         let mut manager = flow_engine::PluginManager::new(plugins_dir.clone())
             .with_host_locale(host_locale)
+            .with_connection_config(conn_config)
             .with_default_execution_timeout(default_timeout);
         let _ = tauri::async_runtime::block_on(manager.scan_and_describe());
         let manager = Arc::new(manager);

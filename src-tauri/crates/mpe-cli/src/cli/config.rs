@@ -24,6 +24,20 @@ struct ConfigFile {
     /// Storage-related configuration
     #[serde(default)]
     storage: StorageConfig,
+    /// Plugin-related configuration
+    #[serde(default)]
+    plugins: PluginConfig,
+}
+
+/// Plugin configuration from config file
+#[derive(Debug, Default, Deserialize)]
+struct PluginConfig {
+    /// Max concurrent requests per plugin process
+    #[serde(default)]
+    max_concurrency: Option<usize>,
+    /// Queue capacity
+    #[serde(default)]
+    queue_capacity: Option<usize>,
 }
 
 /// Storage configuration from config file
@@ -53,6 +67,8 @@ pub struct AppConfig {
     pub reports_dir: PathBuf,
     /// Plugin directory
     pub plugins_dir: PathBuf,
+    /// Plugin connection configuration
+    pub plugin_connection_config: flow_engine::ConnectionConfig,
 }
 
 impl AppConfig {
@@ -97,10 +113,29 @@ impl AppConfig {
             },
         )?;
 
+        let mut plugin_connection_config = flow_engine::ConnectionConfig::default();
+        if let Some(concurrency) = std::env::var("MPE_PLUGIN_MAX_CONCURRENCY")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .filter(|&c| c > 0)
+            .or_else(|| config_file.as_ref().and_then(|c| c.plugins.max_concurrency).filter(|&c| c > 0))
+        {
+            plugin_connection_config.max_concurrent_requests = concurrency;
+        }
+        if let Some(queue_cap) = std::env::var("MPE_PLUGIN_QUEUE_CAPACITY")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .filter(|&q| q > 0)
+            .or_else(|| config_file.as_ref().and_then(|c| c.plugins.queue_capacity).filter(|&q| q > 0))
+        {
+            plugin_connection_config.queue_capacity = queue_cap;
+        }
+
         Ok(AppConfig {
             flows_dir,
             reports_dir,
             plugins_dir,
+            plugin_connection_config,
         })
     }
 

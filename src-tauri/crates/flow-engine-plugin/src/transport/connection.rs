@@ -38,11 +38,40 @@ pub struct ConnectionConfig {
     pub max_malformed_lines: u32,
 }
 
+impl ConnectionConfig {
+    /// Sets the maximum number of concurrent requests.
+    pub fn with_max_concurrent_requests(mut self, max: usize) -> Self {
+        self.max_concurrent_requests = max;
+        self
+    }
+
+    /// Sets the bounded writer queue capacity.
+    pub fn with_queue_capacity(mut self, cap: usize) -> Self {
+        self.queue_capacity = cap;
+        self
+    }
+
+    /// Sets the per-request default timeout.
+    pub fn with_request_timeout(mut self, timeout: Duration) -> Self {
+        self.request_timeout = timeout;
+        self
+    }
+}
+
 impl Default for ConnectionConfig {
     fn default() -> Self {
+        let max_concurrent_requests = std::env::var("MPE_PLUGIN_MAX_CONCURRENCY")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(256);
+        let queue_capacity = std::env::var("MPE_PLUGIN_QUEUE_CAPACITY")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(2048);
+
         Self {
-            max_concurrent_requests: 32,
-            queue_capacity: 256,
+            max_concurrent_requests,
+            queue_capacity,
             request_timeout: Duration::from_secs(30),
             max_malformed_lines: 10,
         }
@@ -100,6 +129,8 @@ pub struct TransportMetrics {
     pub slow_consumer: u64,
     /// Responses for unknown/duplicate ids.
     pub unknown_ids: u64,
+    /// Responses received after the request timed out or was cancelled.
+    pub late_responses: u64,
     /// Requests that timed out.
     pub timeouts: u64,
     /// Total requests dispatched.
@@ -121,6 +152,8 @@ struct NotificationSub {
 pub(crate) struct ConnectionShared {
     pub config: ConnectionConfig,
     pending: Mutex<HashMap<u64, oneshot::Sender<Result<serde_json::Value, PluginError>>>>,
+    /// Ring buffer of recently cancelled or timed out request IDs.
+    recent_cancelled_or_timed_out: Mutex<std::collections::VecDeque<u64>>,
     next_id: AtomicU64,
     pub backpressure: Arc<Backpressure>,
     metrics: Mutex<TransportMetrics>,
@@ -143,6 +176,7 @@ impl ConnectionShared {
         Self {
             config,
             pending: Mutex::new(HashMap::new()),
+            recent_cancelled_or_timed_out: Mutex::new(std::collections::VecDeque::with_capacity(4096)),
             next_id: AtomicU64::new(1), // 0 is reserved for notifications
             backpressure,
             metrics: Mutex::new(TransportMetrics::default()),
@@ -190,13 +224,40 @@ impl ConnectionShared {
                 let _ = tx.send(result);
             }
             None => {
-                self.metrics
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .unknown_ids += 1;
-                log::warn!("response for unknown/unmatched request id {id}");
+                let is_recent_timed_out = {
+                    let history = self
+                        .recent_cancelled_or_timed_out
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
+                    history.contains(&id)
+                };
+                if is_recent_timed_out {
+                    self.metrics
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .late_responses += 1;
+                    log::debug!("late response for timed-out/cancelled request id {id}");
+                } else {
+                    self.metrics
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .unknown_ids += 1;
+                    log::warn!("response for unknown/unmatched request id {id}");
+                }
             }
         }
+    }
+
+    /// Records a request id that timed out or was cancelled.
+    pub(crate) fn record_timed_out_or_cancelled(&self, id: u64) {
+        let mut history = self
+            .recent_cancelled_or_timed_out
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if history.len() >= 4096 {
+            history.pop_front();
+        }
+        history.push_back(id);
     }
 
     /// Demuxes a notification to matching subscriptions (before any pending
@@ -292,6 +353,7 @@ impl ConnectionShared {
             malformed_lines: metrics.malformed_lines,
             slow_consumer: self.backpressure.slow_consumer_count(),
             unknown_ids: metrics.unknown_ids,
+            late_responses: metrics.late_responses,
             timeouts: metrics.timeouts,
             requests_total: metrics.requests_total,
             available_inflight: self.backpressure.available(),
@@ -316,6 +378,7 @@ impl Drop for PendingGuard<'_> {
                 .lock()
                 .unwrap_or_else(|e| e.into_inner())
                 .remove(&self.id);
+            self.shared.record_timed_out_or_cancelled(self.id);
         }
     }
 }
@@ -448,10 +511,14 @@ impl PluginConnection {
     ) -> Result<serde_json::Value, PluginError> {
         self.shared.check_alive()?;
 
+        let deadline = tokio::time::Instant::now() + timeout;
+
         // Bounded inflight acquisition (never blocks forever).
-        let _permit = tokio::time::timeout(timeout, self.shared.backpressure.acquire())
-            .await
-            .map_err(|_| PluginError::Timeout(timeout))??;
+        let _permit = match tokio::time::timeout_at(deadline, self.shared.backpressure.acquire()).await {
+            Ok(Ok(permit)) => permit,
+            Ok(Err(e)) => return Err(e),
+            Err(_) => return Err(PluginError::Timeout(timeout)),
+        };
 
         let id = self.shared.next_id.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = oneshot::channel();
@@ -472,10 +539,10 @@ impl PluginConnection {
             .map_err(|e| PluginError::ProtocolError(format!("serialize request: {e}")))?;
 
         // Bounded enqueue: if the writer queue is wedged (plugin not reading
-        // its stdin), the caller waits up to the request timeout, then gives
+        // its stdin), the caller waits up to the deadline, then gives
         // up — never rejected, but never blocked forever either.
         let enqueued =
-            tokio::time::timeout(timeout, self.enqueue(OutboundFrame { id, bytes })).await;
+            tokio::time::timeout_at(deadline, self.enqueue(OutboundFrame { id, bytes })).await;
         match enqueued {
             Ok(Ok(())) => {}
             Ok(Err(e)) => return Err(e), // guard + permit released on return
@@ -485,6 +552,7 @@ impl PluginConnection {
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
                     .timeouts += 1;
+                self.shared.record_timed_out_or_cancelled(id);
                 return Err(PluginError::Timeout(timeout));
             }
         }
@@ -500,9 +568,10 @@ impl PluginConnection {
                 drop(_permit);
                 result.map_err(|_| PluginError::PluginCrashed("pending response channel dropped".to_string()))?
             }
-            _ = tokio::time::sleep(timeout) => {
+            _ = tokio::time::sleep_until(deadline) => {
                 guard.armed = false;
                 self.shared.pending.lock().unwrap_or_else(|e| e.into_inner()).remove(&id);
+                self.shared.record_timed_out_or_cancelled(id);
                 self.shared.metrics.lock().unwrap_or_else(|e| e.into_inner()).timeouts += 1;
                 drop(_permit);
                 self.fire_cancel(id);

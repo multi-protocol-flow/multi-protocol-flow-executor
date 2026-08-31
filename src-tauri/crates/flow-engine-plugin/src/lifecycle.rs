@@ -71,7 +71,13 @@ impl LifecycleConfig {
     /// Sets the host UI language used for `MPE_LOCALE` injection at spawn.
     pub fn with_host_locale(mut self, locale: Option<String>) -> Self {
         self.host_locale = locale;
-        self.connector = build_connector(self.host_locale.clone());
+        self.connector = build_connector(self.host_locale.clone(), ConnectionConfig::default());
+        self
+    }
+
+    /// Sets the connection configuration used when spawning plugin processes.
+    pub fn with_connection_config(mut self, config: ConnectionConfig) -> Self {
+        self.connector = build_connector(self.host_locale.clone(), config);
         self
     }
 }
@@ -83,19 +89,22 @@ impl Default for LifecycleConfig {
             restart_min_interval: Duration::from_secs(1),
             shutdown_grace: Duration::from_secs(5),
             host_locale: None,
-            connector: build_connector(None),
+            connector: build_connector(None, ConnectionConfig::default()),
         }
     }
 }
 
 /// Builds the production connector, injecting the host UI language as
 /// `MPE_LOCALE` into the plugin process environment at spawn.
-fn build_connector(host_locale: Option<String>) -> Connector {
+pub fn build_connector(
+    host_locale: Option<String>,
+    connection_config: ConnectionConfig,
+) -> Connector {
     Arc::new(move |manifest: &PluginManifest| {
         let mut env = manifest.env.clone();
         inject_locale(&mut env, manifest, host_locale.as_deref());
         let process = process::spawn_plugin(&manifest.entry, &env)?;
-        PluginConnection::spawn(process, ConnectionConfig::default())
+        PluginConnection::spawn(process, connection_config.clone())
     })
 }
 

@@ -577,11 +577,15 @@ async fn build_shared_registry() -> (
             .and_then(|v| v.parse::<u64>().ok())
             .filter(|&ms| ms > 0)
             .map(std::time::Duration::from_millis);
-        let mut manager = PluginManager::new(plugins_dir());
+        let app_config = crate::cli::config::AppConfig::load().ok();
+        let conn_config = app_config
+            .map(|c| c.plugin_connection_config)
+            .unwrap_or_default();
+        let mut manager = PluginManager::new(plugins_dir())
+            .with_connection_config(conn_config);
         if let Some(timeout) = default_timeout {
             manager = manager.with_default_execution_timeout(timeout);
         }
-        let _ = manager.scan_and_describe().await;
         let manager = Arc::new(manager);
         let registry = Arc::new(default_registry_with_plugins(&manager));
         (registry, Some(manager))
