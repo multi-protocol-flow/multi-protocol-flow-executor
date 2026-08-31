@@ -359,14 +359,17 @@ const zh_CN_flow: BaseTranslation = {
   
   // 压力测试图表
   stress_chart_rps: 'RPS 实时曲线',
-  stress_chart_rps_x: '时间（秒）',
+  stress_chart_rps_x: '时间',
+  stress_chart_range_all: '全部',
+  stress_chart_range_1m: '近 1 分钟',
+  stress_chart_range_5m: '近 5 分钟',
+  stress_chart_range_15m: '近 15 分钟',
   stress_chart_response_dist: '响应时间分布',
-  stress_chart_response_note: '· 每秒采样一次平均延迟，统计各延迟区间对应的采样秒数',
+  stress_chart_response_note: '每秒采样一次平均延迟，统计各延迟区间对应的采样秒数',
   stress_chart_latency_y: '采样秒数',
   stress_chart_no_data: '暂无数据',
   stress_chart_tooltip_time: '时间: ',
   stress_chart_tooltip_seconds: '秒',
-
   // 变量选择器
   variable_selector_label: '变量',
   variable_selector_search: '搜索变量...',

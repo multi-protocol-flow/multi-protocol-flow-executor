@@ -358,14 +358,17 @@ const en_US_flow = {
 
   // Charts
   stress_chart_rps: 'RPS Over Time',
-  stress_chart_rps_x: 'Time (s)',
+  stress_chart_rps_x: 'Time',
+  stress_chart_range_all: 'All',
+  stress_chart_range_1m: 'Last 1m',
+  stress_chart_range_5m: 'Last 5m',
+  stress_chart_range_15m: 'Last 15m',
   stress_chart_response_dist: 'Response Time Distribution',
-  stress_chart_response_note: '· Sampled once per second, showing seconds per latency bucket',
+  stress_chart_response_note: 'Sampled once per second, showing seconds per latency bucket',
   stress_chart_latency_y: 'Sampled Seconds',
   stress_chart_no_data: 'No data',
   stress_chart_tooltip_time: 'Time: ',
   stress_chart_tooltip_seconds: 's',
-
   // Variable selector
   variable_selector_label: 'Variables',
   variable_selector_search: 'Search variables...',

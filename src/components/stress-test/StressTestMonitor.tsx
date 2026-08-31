@@ -28,6 +28,7 @@ function MetricCard({
   icon: Icon,
   label,
   value,
+  unit,
   subValue,
   iconColor,
   className,
@@ -35,21 +36,35 @@ function MetricCard({
   icon: React.ElementType;
   label: string;
   value: string | number;
+  unit?: string;
   subValue?: string;
   iconColor?: string;
   className?: string;
 }) {
   return (
-    <Card className={cn('border-border/50 bg-gradient-to-br from-background to-muted/30', className)}>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Icon className={cn('w-4 h-4', iconColor || 'text-muted-foreground')} />
-          <span className="text-xs text-muted-foreground">{label}</span>
+    <Card className={cn('border-border/50 bg-gradient-to-br from-background to-muted/30 flex flex-col justify-between', className)}>
+      <CardContent className="p-3.5 flex flex-col justify-between flex-1">
+        <div>
+          <div className="flex items-center gap-1.5 mb-1.5 min-w-0">
+            <Icon className={cn('w-4 h-4 shrink-0', iconColor || 'text-muted-foreground')} />
+            <span className="text-xs text-muted-foreground truncate" title={label}>{label}</span>
+          </div>
+          <div className="flex items-baseline gap-1 min-w-0">
+            <p className="text-lg sm:text-xl font-bold tabular-nums tracking-tight truncate" title={String(value)}>
+              {value}
+            </p>
+            {unit && (
+              <span className="text-xs text-muted-foreground font-normal shrink-0">{unit}</span>
+            )}
+          </div>
         </div>
-        <p className="text-xl font-bold tabular-nums">{value}</p>
-        {subValue && (
-          <p className="text-xs text-muted-foreground mt-1">{subValue}</p>
-        )}
+        <div className="h-4 mt-1.5 flex items-center min-w-0">
+          {subValue ? (
+            <p className="text-[11px] text-muted-foreground truncate" title={subValue}>{subValue}</p>
+          ) : (
+            <span className="text-[11px] text-muted-foreground/0 select-none">-</span>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -163,7 +178,7 @@ export function StressTestMonitor() {
   };
 
   return (
-    <Card className="fixed top-16 right-16 w-[420px] max-h-[calc(100vh-140px)] flex flex-col overflow-hidden z-50 shadow-xl">
+    <Card className="fixed top-16 right-16 w-[580px] max-w-[calc(100vw-4rem)] max-h-[calc(100vh-140px)] flex flex-col overflow-hidden z-50 shadow-xl border-border/80 bg-background/95 backdrop-blur-sm">
       <CardContent className="p-4 flex-1 min-h-0 flex flex-col">
         {/* 头部：状态和时间 */}
         <div className="flex items-center justify-between mb-4 shrink-0">
@@ -186,9 +201,9 @@ export function StressTestMonitor() {
         </div>
 
         {/* 可滚动内容区域 */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0 pr-2">
         {/* 指标卡片网格 */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className="grid grid-cols-3 gap-2.5 mb-4">
           <MetricCard
             icon={Activity}
             label={getLL().flow.stress_monitor_exec_count()}
@@ -200,17 +215,17 @@ export function StressTestMonitor() {
             icon={Gauge}
             label={getLL().flow.stress_monitor_current_rps()}
             value={displayRps}
+            unit="req/s"
             iconColor="text-violet-500"
           />
           <MetricCard
             icon={Timer}
             label={getLL().flow.stress_monitor_avg_response()}
             value={displayAvgLatency}
-            subValue="ms"
+            unit="ms"
             iconColor="text-emerald-500"
           />
         </div>
-
         {/* 实时图表 */}
         {(progressHistory.length > 0 || (isCompleted && report && report.statistics.totalIterations > 0)) && (
           <div className="mb-4">

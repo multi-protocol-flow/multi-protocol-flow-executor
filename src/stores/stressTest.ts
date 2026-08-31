@@ -205,11 +205,13 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
         error: null,
       });
     } else if (event.type === 'progress') {
-      // 进度更新事件：更新状态和进度信息，累积历史数据
+      // 进度更新事件：更新状态和进度信息，累积完整历史数据（安全上限 36000 点/10小时）
       set((state) => ({
         status: event.progress.status,
         progress: event.progress,
-        progressHistory: [...state.progressHistory, event.progress].slice(-200),
+        progressHistory: state.progressHistory.length >= 36000
+          ? [...state.progressHistory.slice(1), event.progress]
+          : [...state.progressHistory, event.progress],
       }));
     } else if (event.type === 'ended') {
       // 压测结束事件：设置状态为已停止，存储报告

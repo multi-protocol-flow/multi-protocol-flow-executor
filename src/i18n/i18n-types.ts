@@ -6963,6 +6963,22 @@ type RootTranslation = {
 		 * 当​节​点​、​插​件​或​数​据​源​自​身​未​显​式​指​定​超​时​时​间​时​，​统​一​采​用​此​全​局​时​长​作​为​超​时​兜​底​（​默​认​ ​3​0​0​0​0​m​s​）​。
 		 */
 		default_timeout_tip: string
+		/**
+		 * 插​件​最​大​并​发​数
+		 */
+		plugin_max_concurrency: string
+		/**
+		 * 单​个​插​件​子​进​程​同​时​处​理​的​最​大​请​求​数​（​信​号​量​配​额​，​默​认​ ​2​5​6​，​高​并​发​压​测​可​调​大​至​ ​1​0​2​4​+​）​。
+		 */
+		plugin_max_concurrency_tip: string
+		/**
+		 * 插​件​通​信​队​列​容​量
+		 */
+		plugin_queue_capacity: string
+		/**
+		 * 宿​主​与​插​件​标​准​输​入​输​出​通​信​帧​队​列​深​度​（​默​认​ ​2​0​4​8​）​。
+		 */
+		plugin_queue_capacity_tip: string
 	}
 	plugins: {
 		/**
@@ -8545,15 +8561,31 @@ type RootTranslation = {
 		 */
 		stress_chart_rps: string
 		/**
-		 * 时​间​（​秒​）
+		 * 时​间
 		 */
 		stress_chart_rps_x: string
+		/**
+		 * 全​部
+		 */
+		stress_chart_range_all: string
+		/**
+		 * 近​ ​1​ ​分​钟
+		 */
+		stress_chart_range_1m: string
+		/**
+		 * 近​ ​5​ ​分​钟
+		 */
+		stress_chart_range_5m: string
+		/**
+		 * 近​ ​1​5​ ​分​钟
+		 */
+		stress_chart_range_15m: string
 		/**
 		 * 响​应​时​间​分​布
 		 */
 		stress_chart_response_dist: string
 		/**
-		 * ·​ ​每​秒​采​样​一​次​平​均​延​迟​，​统​计​各​延​迟​区​间​对​应​的​采​样​秒​数
+		 * 每​秒​采​样​一​次​平​均​延​迟​，​统​计​各​延​迟​区​间​对​应​的​采​样​秒​数
 		 */
 		stress_chart_response_note: string
 		/**
@@ -18622,6 +18654,22 @@ export type TranslationFunctions = {
 		 * 当节点、插件或数据源自身未显式指定超时时间时，统一采用此全局时长作为超时兜底（默认 30000ms）。
 		 */
 		default_timeout_tip: () => LocalizedString
+		/**
+		 * 插件最大并发数
+		 */
+		plugin_max_concurrency: () => LocalizedString
+		/**
+		 * 单个插件子进程同时处理的最大请求数（信号量配额，默认 256，高并发压测可调大至 1024+）。
+		 */
+		plugin_max_concurrency_tip: () => LocalizedString
+		/**
+		 * 插件通信队列容量
+		 */
+		plugin_queue_capacity: () => LocalizedString
+		/**
+		 * 宿主与插件标准输入输出通信帧队列深度（默认 2048）。
+		 */
+		plugin_queue_capacity_tip: () => LocalizedString
 	}
 	plugins: {
 		/**
@@ -20177,15 +20225,31 @@ export type TranslationFunctions = {
 		 */
 		stress_chart_rps: () => LocalizedString
 		/**
-		 * 时间（秒）
+		 * 时间
 		 */
 		stress_chart_rps_x: () => LocalizedString
+		/**
+		 * 全部
+		 */
+		stress_chart_range_all: () => LocalizedString
+		/**
+		 * 近 1 分钟
+		 */
+		stress_chart_range_1m: () => LocalizedString
+		/**
+		 * 近 5 分钟
+		 */
+		stress_chart_range_5m: () => LocalizedString
+		/**
+		 * 近 15 分钟
+		 */
+		stress_chart_range_15m: () => LocalizedString
 		/**
 		 * 响应时间分布
 		 */
 		stress_chart_response_dist: () => LocalizedString
 		/**
-		 * · 每秒采样一次平均延迟，统计各延迟区间对应的采样秒数
+		 * 每秒采样一次平均延迟，统计各延迟区间对应的采样秒数
 		 */
 		stress_chart_response_note: () => LocalizedString
 		/**
