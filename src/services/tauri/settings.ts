@@ -37,6 +37,8 @@ export async function loadSettings(): Promise<Settings> {
     const pluginDir = await store.get<string>('pluginDir');
     const pluginRegistryUrl = await store.get<string>('pluginRegistryUrl');
     const defaultExecutionTimeoutMs = await store.get<number>('defaultExecutionTimeoutMs');
+    const pluginMaxConcurrency = await store.get<number>('pluginMaxConcurrency');
+    const pluginQueueCapacity = await store.get<number>('pluginQueueCapacity');
     const theme = await store.get<string>('theme');
     const locale = await store.get<string>('locale');
     return {
@@ -46,6 +48,8 @@ export async function loadSettings(): Promise<Settings> {
       pluginDir,
       pluginRegistryUrl,
       defaultExecutionTimeoutMs,
+      pluginMaxConcurrency,
+      pluginQueueCapacity,
       theme: (theme as ThemeMode) ?? 'system',
       locale: (locale as Locale) ?? 'en-US',
     };
@@ -81,6 +85,12 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
     }
     if (settings.defaultExecutionTimeoutMs !== undefined) {
       await store.set('defaultExecutionTimeoutMs', settings.defaultExecutionTimeoutMs);
+    }
+    if (settings.pluginMaxConcurrency !== undefined) {
+      await store.set('pluginMaxConcurrency', settings.pluginMaxConcurrency);
+    }
+    if (settings.pluginQueueCapacity !== undefined) {
+      await store.set('pluginQueueCapacity', settings.pluginQueueCapacity);
     }
     if (settings.theme !== undefined) {
       await store.set('theme', settings.theme);

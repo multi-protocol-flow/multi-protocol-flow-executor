@@ -68,6 +68,8 @@ describe('Settings types', () => {
       openFlowsDir: async () => {},
       setLocale: async (_locale: 'zh-CN' | 'en-US') => {},
       setDefaultExecutionTimeoutMs: async (_ms: number) => {},
+      setPluginMaxConcurrency: async (_c: number) => {},
+      setPluginQueueCapacity: async (_q: number) => {},
     };
 
     expect(typeof actions.loadSettings).toBe('function');
@@ -103,6 +105,8 @@ describe('Settings types', () => {
       openFlowsDir: async () => {},
       setLocale: async (_locale: 'zh-CN' | 'en-US') => {},
       setDefaultExecutionTimeoutMs: async (_ms: number) => {},
+      setPluginMaxConcurrency: async (_c: number) => {},
+      setPluginQueueCapacity: async (_q: number) => {},
     };
 
     expect(store.reportDir).toBe('/path/to/reports');

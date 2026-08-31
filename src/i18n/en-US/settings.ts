@@ -19,6 +19,10 @@ const en_US_settings = {
   open_dir: 'Open Directory',
   default_timeout: 'Default Node Execution Timeout (ms)',
   default_timeout_tip: 'Fallback timeout duration when a node, plugin, or datasource does not specify its own timeout (default 30000ms).',
+  plugin_max_concurrency: 'Max Plugin Concurrency',
+  plugin_max_concurrency_tip: 'Max in-flight concurrent requests per plugin process (default 256, increase to 1024+ for heavy stress testing).',
+  plugin_queue_capacity: 'Plugin Queue Capacity',
+  plugin_queue_capacity_tip: 'Communication frame queue depth between host and plugin process (default 2048).',
 };
 
 export default en_US_settings;

@@ -33,6 +33,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   pluginDir: undefined,
   pluginRegistryUrl: undefined,
   defaultExecutionTimeoutMs: undefined,
+  pluginMaxConcurrency: undefined,
+  pluginQueueCapacity: undefined,
   theme: 'system' as ThemeMode,
   locale: 'en-US' as Locale,
   isLoading: true,
@@ -49,6 +51,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         pluginDir: settings.pluginDir,
         pluginRegistryUrl: settings.pluginRegistryUrl,
         defaultExecutionTimeoutMs: settings.defaultExecutionTimeoutMs,
+        pluginMaxConcurrency: settings.pluginMaxConcurrency,
+        pluginQueueCapacity: settings.pluginQueueCapacity,
         theme: settings.theme,
         locale: settings.locale,
         isLoading: false,
@@ -141,6 +145,25 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     }
   },
 
+  setPluginMaxConcurrency: async (concurrency: number) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ pluginMaxConcurrency: concurrency });
+      set({ pluginMaxConcurrency: concurrency });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setPluginQueueCapacity: async (capacity: number) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ pluginQueueCapacity: capacity });
+      set({ pluginQueueCapacity: capacity });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
 
   openReportDir: async () => {
     try {

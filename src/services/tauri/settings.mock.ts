@@ -33,6 +33,8 @@ export async function loadSettings(): Promise<Settings> {
     logDir: stored.logDir ?? DEFAULT_LOG_DIR,
     flowsDir: stored.flowsDir ?? DEFAULT_FLOWS_DIR,
     defaultExecutionTimeoutMs: stored.defaultExecutionTimeoutMs,
+    pluginMaxConcurrency: stored.pluginMaxConcurrency,
+    pluginQueueCapacity: stored.pluginQueueCapacity,
     theme: stored.theme ?? DEFAULT_THEME,
     locale: stored.locale ?? 'en-US',
   };

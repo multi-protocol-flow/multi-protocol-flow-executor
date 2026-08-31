@@ -3,7 +3,7 @@
  * 复用 NodeConfigPanel 的布局样式，提供配置文件存储位置提示
  */
 import { useEffect, useState } from 'react';
-import { Settings2, FolderOpen, FolderCog, FolderInput, Info, Sun, Moon, Monitor, Globe, Timer } from 'lucide-react';
+import { Settings2, FolderOpen, FolderCog, FolderInput, Info, Sun, Moon, Monitor, Globe, Timer, Cpu, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,6 +33,8 @@ export function SettingsPanel() {
     theme,
     locale,
     defaultExecutionTimeoutMs,
+    pluginMaxConcurrency,
+    pluginQueueCapacity,
     isLoading,
     loadSettings,
     setReportDir,
@@ -41,6 +43,8 @@ export function SettingsPanel() {
     setTheme,
     setLocale,
     setDefaultExecutionTimeoutMs,
+    setPluginMaxConcurrency,
+    setPluginQueueCapacity,
     openReportDir,
     openLogDir,
     openFlowsDir,
@@ -54,13 +58,29 @@ export function SettingsPanel() {
   const [timeoutInput, setTimeoutInput] = useState<string>(
     defaultExecutionTimeoutMs !== undefined ? String(defaultExecutionTimeoutMs) : '30000'
   );
+  const [concurrencyInput, setConcurrencyInput] = useState<string>(
+    pluginMaxConcurrency !== undefined ? String(pluginMaxConcurrency) : '256'
+  );
+  const [queueCapInput, setQueueCapInput] = useState<string>(
+    pluginQueueCapacity !== undefined ? String(pluginQueueCapacity) : '2048'
+  );
 
-  // 当 store 中的 timeout 变化时同步到本地输入状态
+  // 当 store 中的值变化时同步到本地输入状态
   useEffect(() => {
     if (defaultExecutionTimeoutMs !== undefined) {
       setTimeoutInput(String(defaultExecutionTimeoutMs));
     }
   }, [defaultExecutionTimeoutMs]);
+  useEffect(() => {
+    if (pluginMaxConcurrency !== undefined) {
+      setConcurrencyInput(String(pluginMaxConcurrency));
+    }
+  }, [pluginMaxConcurrency]);
+  useEffect(() => {
+    if (pluginQueueCapacity !== undefined) {
+      setQueueCapInput(String(pluginQueueCapacity));
+    }
+  }, [pluginQueueCapacity]);
   // 面板打开时加载设置
   useEffect(() => {
     loadSettings();
@@ -223,6 +243,90 @@ export function SettingsPanel() {
               />
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {ll?.settings?.default_timeout_tip() ?? 'Fallback timeout duration when a node, plugin, or datasource does not specify its own timeout (default 30000ms).'}
+              </p>
+            </div>
+
+            {/* 插件最大并发数 */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Cpu className="h-4 w-4 text-muted-foreground" />
+                {ll?.settings?.plugin_max_concurrency() ?? 'Max Plugin Concurrency'}
+              </Label>
+              <Input
+                type="number"
+                min={1}
+                max={8192}
+                step={32}
+                value={concurrencyInput}
+                onChange={(e) => {
+                  const text = e.target.value;
+                  setConcurrencyInput(text);
+                  if (text !== '') {
+                    const val = Number(text);
+                    if (!isNaN(val) && val >= 1 && val <= 8192) {
+                      setPluginMaxConcurrency(val);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  const val = Number(concurrencyInput);
+                  if (concurrencyInput === '' || isNaN(val) || val < 1) {
+                    const fallback = 256;
+                    setConcurrencyInput(String(fallback));
+                    setPluginMaxConcurrency(fallback);
+                  } else if (val > 8192) {
+                    const clamped = 8192;
+                    setConcurrencyInput(String(clamped));
+                    setPluginMaxConcurrency(clamped);
+                  }
+                }}
+                placeholder="256"
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {ll?.settings?.plugin_max_concurrency_tip() ?? 'Max in-flight concurrent requests per plugin process (default 256, increase to 1024+ for heavy stress testing).'}
+              </p>
+            </div>
+
+            {/* 插件通信队列深度 */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Layers className="h-4 w-4 text-muted-foreground" />
+                {ll?.settings?.plugin_queue_capacity() ?? 'Plugin Queue Capacity'}
+              </Label>
+              <Input
+                type="number"
+                min={16}
+                max={65536}
+                step={256}
+                value={queueCapInput}
+                onChange={(e) => {
+                  const text = e.target.value;
+                  setQueueCapInput(text);
+                  if (text !== '') {
+                    const val = Number(text);
+                    if (!isNaN(val) && val >= 16 && val <= 65536) {
+                      setPluginQueueCapacity(val);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  const val = Number(queueCapInput);
+                  if (queueCapInput === '' || isNaN(val) || val < 16) {
+                    const fallback = 2048;
+                    setQueueCapInput(String(fallback));
+                    setPluginQueueCapacity(fallback);
+                  } else if (val > 65536) {
+                    const clamped = 65536;
+                    setQueueCapInput(String(clamped));
+                    setPluginQueueCapacity(clamped);
+                  }
+                }}
+                placeholder="2048"
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {ll?.settings?.plugin_queue_capacity_tip() ?? 'Communication frame queue depth between host and plugin process (default 2048).'}
               </p>
             </div>
 

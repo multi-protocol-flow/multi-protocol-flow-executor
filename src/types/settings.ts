@@ -34,6 +34,10 @@ export interface Settings {
   pluginRegistryUrl?: string;
   /** 节点默认执行超时时间（毫秒，未设置时兜底 30000） */
   defaultExecutionTimeoutMs?: number;
+  /** 插件最大并发请求数（未设置时兜底 256） */
+  pluginMaxConcurrency?: number;
+  /** 插件通信队列深度（未设置时兜底 2048） */
+  pluginQueueCapacity?: number;
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -60,6 +64,10 @@ export interface SettingsState {
   pluginRegistryUrl?: string;
   /** 节点默认执行超时时间（毫秒） */
   defaultExecutionTimeoutMs?: number;
+  /** 插件最大并发请求数 */
+  pluginMaxConcurrency?: number;
+  /** 插件通信队列深度 */
+  pluginQueueCapacity?: number;
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -96,6 +104,10 @@ export interface SettingsActions {
   setLocale: (locale: Locale) => Promise<void>;
   /** 设置节点默认执行超时时间（毫秒） */
   setDefaultExecutionTimeoutMs: (ms: number) => Promise<void>;
+  /** 设置插件最大并发请求数 */
+  setPluginMaxConcurrency: (concurrency: number) => Promise<void>;
+  /** 设置插件通信队列深度 */
+  setPluginQueueCapacity: (capacity: number) => Promise<void>;
   /** 打开报告目录 */
   openReportDir: () => Promise<void>;
   /** 打开日志目录 */
