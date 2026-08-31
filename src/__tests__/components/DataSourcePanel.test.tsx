@@ -50,6 +50,7 @@ import { listDatasources, datasourceBrowse, loadConnections } from '@/services/t
 
 describe('DataSourcePanel', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     switchLocale('zh-CN');
     vi.mocked(listDatasources).mockResolvedValue([mockDatasource]);
     vi.mocked(loadConnections).mockResolvedValue([mockConnection]);
@@ -153,6 +154,251 @@ describe('DataSourcePanel', () => {
     await waitFor(() => {
       expect(screen.getByText('Default Group')).toBeInTheDocument();
       expect(screen.getByText('用户模块')).toBeInTheDocument();
+    });
+  });
+
+  it('renders multi-level nested groups recursively', async () => {
+    switchLocale('zh-CN');
+    const nestedItems: DataItem[] = [
+      {
+        id: 'proj_1:api_2001',
+        name: 'OAuth登录',
+        protocol: 'http',
+        method: 'POST',
+        path: '/oauth/token',
+        summary: 'OAuth 登录接口',
+        extra: [{ label: '分组', value: '用户中心/OAuth认证/Token管理' }],
+      },
+      {
+        id: 'proj_1:api_2002',
+        name: '查看个人资料',
+        protocol: 'http',
+        method: 'GET',
+        path: '/users/info',
+        summary: '用户资料',
+        extra: [{ label: '分组', value: '用户中心/个人资料' }],
+      },
+    ];
+    vi.mocked(listDatasources).mockResolvedValue([mockDatasource]);
+    vi.mocked(loadConnections).mockResolvedValue([mockConnection]);
+    vi.mocked(datasourceBrowse).mockResolvedValue(nestedItems);
+    useDatasourceStore.setState({
+      descriptions: [mockDatasource],
+      connections: [mockConnection],
+      browseCache: {
+        'eolink/api/': nestedItems,
+      },
+    });
+    render(<DataSourcePanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText('已连接')).toBeInTheDocument();
+      expect(screen.getByText('用户中心')).toBeInTheDocument();
+      expect(screen.getByText('用户中心').parentElement).toHaveTextContent('(2)');
+    });
+
+    expect(screen.queryByText('OAuth认证')).not.toBeInTheDocument();
+    expect(screen.queryByText('个人资料')).not.toBeInTheDocument();
+
+    // Expand Level 1: "用户中心"
+    fireEvent.click(screen.getByText('用户中心'));
+
+    // Level 2 subfolders become visible
+    await waitFor(() => {
+      expect(screen.getByText('OAuth认证')).toBeInTheDocument();
+      expect(screen.getByText('个人资料')).toBeInTheDocument();
+    });
+
+    // Expand "OAuth认证" -> Level 3 "Token管理" appears
+    fireEvent.click(screen.getByText('OAuth认证'));
+    await waitFor(() => {
+      expect(screen.getByText('Token管理')).toBeInTheDocument();
+    });
+
+    // Expand "Token管理" -> "OAuth登录" item appears
+    fireEvent.click(screen.getByText('Token管理'));
+    await waitFor(() => {
+      expect(screen.getByText('OAuth登录')).toBeInTheDocument();
+      expect(screen.getByText('POST')).toBeInTheDocument();
+    });
+
+    // Expand "个人资料" -> "查看个人资料" item appears
+    fireEvent.click(screen.getByText('个人资料'));
+    await waitFor(() => {
+      expect(screen.getByText('查看个人资料')).toBeInTheDocument();
+      expect(screen.getByText('GET')).toBeInTheDocument();
+    });
+  });
+
+  it('supports alternative path separators like > and \\\\ in group paths', async () => {
+    switchLocale('zh-CN');
+    const sepItems: DataItem[] = [
+      {
+        id: 'proj_1:api_3001',
+        name: '订单支付',
+        protocol: 'http',
+        method: 'POST',
+        path: '/pay',
+        extra: [{ label: '分组', value: '商城系统 > 支付模块 > 微信支付' }],
+      },
+      {
+        id: 'proj_1:api_3002',
+        name: '订单退款',
+        protocol: 'http',
+        method: 'POST',
+        extra: [{ label: '分组', value: '商城系统\\售后模块\\退款' }],
+      },
+    ];
+    vi.mocked(listDatasources).mockResolvedValue([mockDatasource]);
+    vi.mocked(loadConnections).mockResolvedValue([mockConnection]);
+    vi.mocked(datasourceBrowse).mockResolvedValue(sepItems);
+    useDatasourceStore.setState({
+      descriptions: [mockDatasource],
+      connections: [mockConnection],
+      browseCache: {
+        'eolink/api/': sepItems,
+      },
+    });
+
+    render(<DataSourcePanel />);
+    await waitFor(() => {
+      expect(screen.getByText('已连接')).toBeInTheDocument();
+      expect(screen.getByText('商城系统')).toBeInTheDocument();
+      expect(screen.getByText('商城系统').parentElement).toHaveTextContent('(2)');
+    });
+    fireEvent.click(screen.getByText('商城系统'));
+
+    await waitFor(() => {
+      expect(screen.getByText('支付模块')).toBeInTheDocument();
+      expect(screen.getByText('售后模块')).toBeInTheDocument();
+    });
+  });
+
+  it('resolves numeric group_path ID chains ("1906207,1906234,1906268") into readable nested hierarchy', async () => {
+    switchLocale('zh-CN');
+    const eolinkIdItems: DataItem[] = [
+      {
+        id: 'proj_1:api_4001',
+        name: '系统设置接口',
+        protocol: 'http',
+        method: 'GET',
+        path: '/sys/setting',
+        extra: [],
+        raw: {
+          group_id: 1906207,
+          group_name: '系统管理',
+        },
+      },
+      {
+        id: 'proj_1:api_4002',
+        name: '用户列表接口',
+        protocol: 'http',
+        method: 'GET',
+        path: '/users',
+        extra: [],
+        raw: {
+          group_id: 1906234,
+          group_name: '用户管理',
+          group_path: '1906207,1906234',
+        },
+      },
+      {
+        id: 'proj_1:api_4003',
+        name: '获取租户列表',
+        protocol: 'http',
+        method: 'GET',
+        path: '/tenants',
+        extra: [],
+        raw: {
+          group_id: 1906268,
+          group_name: '租户管理（系统管理员）',
+          group_path: '1906207,1906234,1906268',
+        },
+      },
+    ];
+
+    vi.mocked(listDatasources).mockResolvedValue([mockDatasource]);
+    vi.mocked(loadConnections).mockResolvedValue([mockConnection]);
+    vi.mocked(datasourceBrowse).mockResolvedValue(eolinkIdItems);
+    useDatasourceStore.setState({
+      descriptions: [mockDatasource],
+      connections: [mockConnection],
+      browseCache: {
+        'eolink/api/': eolinkIdItems,
+      },
+    });
+
+    render(<DataSourcePanel />);
+
+    // Level 1: "系统管理" folder appears, not raw ID "1906207"
+    await waitFor(() => {
+      expect(screen.getByText('系统管理')).toBeInTheDocument();
+      expect(screen.queryByText('1906207')).not.toBeInTheDocument();
+      expect(screen.queryByText('1906207,1906234,1906268')).not.toBeInTheDocument();
+    });
+
+    // Expand Level 1: "系统管理" -> Level 2 "用户管理" & "系统设置接口" appear
+    fireEvent.click(screen.getByText('系统管理'));
+    await waitFor(() => {
+      expect(screen.getByText('用户管理')).toBeInTheDocument();
+      expect(screen.getByText('系统设置接口')).toBeInTheDocument();
+    });
+
+    // Expand Level 2: "用户管理" -> Level 3 "租户管理（系统管理员）" & "用户列表接口" appear
+    fireEvent.click(screen.getByText('用户管理'));
+    await waitFor(() => {
+      expect(screen.getByText('租户管理（系统管理员）')).toBeInTheDocument();
+      expect(screen.getByText('用户列表接口')).toBeInTheDocument();
+    });
+
+    // Expand Level 3: "租户管理（系统管理员）" -> "获取租户列表" appears
+    fireEvent.click(screen.getByText('租户管理（系统管理员）'));
+    await waitFor(() => {
+      expect(screen.getByText('获取租户列表')).toBeInTheDocument();
+    });
+  });
+
+  it('falls back to group_name when numeric group_path IDs cannot be resolved, never showing raw numbers', async () => {
+    switchLocale('zh-CN');
+    const unresolvedItems: DataItem[] = [
+      {
+        id: 'proj_1:api_5001',
+        name: '未关联父组接口',
+        protocol: 'http',
+        method: 'GET',
+        path: '/unknown',
+        extra: [{ label: '分组', value: '9999991,9999992,9999993' }],
+        raw: {
+          group_id: 9999993,
+          group_name: '特殊功能模块',
+          group_path: '9999991,9999992,9999993',
+        },
+      },
+    ];
+
+    vi.mocked(listDatasources).mockResolvedValue([mockDatasource]);
+    vi.mocked(loadConnections).mockResolvedValue([mockConnection]);
+    vi.mocked(datasourceBrowse).mockResolvedValue(unresolvedItems);
+    useDatasourceStore.setState({
+      descriptions: [mockDatasource],
+      connections: [mockConnection],
+      browseCache: {
+        'eolink/api/': unresolvedItems,
+      },
+    });
+
+    render(<DataSourcePanel />);
+
+    // Displays group_name "特殊功能模块", NEVER raw number "9999991" or "9999991,9999992,9999993"
+    await waitFor(() => {
+      expect(screen.getByText('特殊功能模块')).toBeInTheDocument();
+      expect(screen.queryByText('9999991')).not.toBeInTheDocument();
+      expect(screen.queryByText('9999991,9999992,9999993')).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('特殊功能模块'));
+    await waitFor(() => {
+      expect(screen.getByText('未关联父组接口')).toBeInTheDocument();
     });
   });
 });

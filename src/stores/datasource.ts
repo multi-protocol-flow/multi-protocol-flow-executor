@@ -10,6 +10,7 @@
 import { create } from 'zustand';
 import {
   datasourceBrowse,
+  listDatasources,
   loadConnections,
   saveConnections,
 } from '@/services/tauri/datasource';
@@ -77,7 +78,6 @@ export const useDatasourceStore = create<DatasourceState>((set, get) => ({
   loadDescriptions: async () => {
     set({ loading: true, error: null });
     try {
-      const { listDatasources } = await import('@/services/tauri/datasource');
       const descriptions = await listDatasources();
       set({ descriptions, loading: false });
     } catch (e) {

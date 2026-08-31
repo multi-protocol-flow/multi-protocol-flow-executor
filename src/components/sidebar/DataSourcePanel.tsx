@@ -289,6 +289,275 @@ function DatasourceEntry({
  * `children`，条目是可展开的分组，展开后 browse(children, item.id) 渲染子级
  * 条目（leaf）。`parentId` 为 null 表示顶层。
  */
+/** 嵌套分组树节点 */
+export interface GroupTreeNode {
+  id: string;
+  name: string;
+  fullPath: string;
+  children: GroupTreeNode[];
+  items: DataItem[];
+  totalCount: number;
+}
+
+/** 分隔路径为层级段落（支持 /、\、>、->） */
+export function splitGroupPath(pathStr: string): string[] {
+  return pathStr
+    .split(/\/|\\|\s*->\s*|\s*>\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** 提取数据项的分组层级路径 */
+export function extractItemGroupPath(
+  item: DataItem,
+  idToName?: Map<string, string>,
+): string[] | null {
+  const extraGroup = item.extra?.find(
+    (e) => e.label === '分组' || e.label === 'group' || e.label === 'Group',
+  )?.value;
+
+  const raw = item.raw as Record<string, unknown> | undefined;
+  const rawGroupName =
+    typeof raw?.group_name === 'string'
+      ? raw.group_name.trim()
+      : typeof raw?.groupName === 'string'
+        ? raw.groupName.trim()
+        : '';
+
+  // 1. 优先从 extra 中提取
+  if (extraGroup && typeof extraGroup === 'string' && extraGroup.trim()) {
+    const trimmed = extraGroup.trim();
+    const commaSegments = trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+    const isAllNumeric =
+      commaSegments.length > 0 && commaSegments.every((s) => /^\d+$/.test(s));
+
+    if (isAllNumeric) {
+      if (idToName) {
+        const resolved: string[] = [];
+        for (let i = 0; i < commaSegments.length; i++) {
+          const gid = commaSegments[i];
+          if (idToName.has(gid)) {
+            resolved.push(idToName.get(gid)!);
+          } else if (i === commaSegments.length - 1 && rawGroupName) {
+            resolved.push(rawGroupName);
+          }
+        }
+        if (resolved.length > 0) return resolved;
+      }
+      if (rawGroupName) return splitGroupPath(rawGroupName);
+    } else {
+      const segments = splitGroupPath(trimmed);
+      const cleanSegments = segments.filter((s) => !/^\d+$/.test(s));
+      if (cleanSegments.length > 0) return cleanSegments;
+      if (rawGroupName) return splitGroupPath(rawGroupName);
+    }
+  }
+
+  // 2. 检查 raw?.group_path
+  const rawPath = raw?.group_path || raw?.group_name_path || raw?.groupPath;
+  if (rawPath != null) {
+    let pathSegments: string[] = [];
+    if (Array.isArray(rawPath)) {
+      pathSegments = rawPath.map((s) => String(s).trim()).filter(Boolean);
+    } else if (typeof rawPath === 'string' && rawPath.trim()) {
+      pathSegments = rawPath.includes(',')
+        ? rawPath.split(',').map((s) => s.trim()).filter(Boolean)
+        : splitGroupPath(rawPath);
+    }
+
+    const isAllNumeric =
+      pathSegments.length > 0 && pathSegments.every((s) => /^\d+$/.test(s));
+    if (isAllNumeric) {
+      if (idToName) {
+        const resolved: string[] = [];
+        for (let i = 0; i < pathSegments.length; i++) {
+          const gid = pathSegments[i];
+          if (idToName.has(gid)) {
+            resolved.push(idToName.get(gid)!);
+          } else if (i === pathSegments.length - 1 && rawGroupName) {
+            resolved.push(rawGroupName);
+          }
+        }
+        if (resolved.length > 0) return resolved;
+      }
+      if (rawGroupName) return splitGroupPath(rawGroupName);
+    } else {
+      const cleanSegments = pathSegments.filter((s) => !/^\d+$/.test(s));
+      if (cleanSegments.length > 0) return cleanSegments;
+    }
+  }
+
+  // 3. 最后使用 raw.group_name 兜底
+  if (rawGroupName) {
+    return splitGroupPath(rawGroupName);
+  }
+
+  return null;
+}
+
+/** 根据 items 构建多级嵌套分组树 */
+export function buildGroupTree(
+  items: DataItem[],
+  defaultGroupName: string,
+): GroupTreeNode[] | null {
+  // 预扫描所有 items 构建 group_id -> group_name 字典
+  const idToName = new Map<string, string>();
+  for (const item of items) {
+    const raw = item.raw as Record<string, unknown> | undefined;
+    if (raw) {
+      const gid = raw.group_id ?? raw.groupID ?? raw.api_group_id;
+      const gname = raw.group_name ?? raw.groupName;
+      if (gid != null && typeof gname === 'string' && gname.trim()) {
+        idToName.set(String(gid), gname.trim());
+      }
+    }
+  }
+
+  let hasAnyGroup = false;
+  for (const item of items) {
+    if (extractItemGroupPath(item, idToName) != null) {
+      hasAnyGroup = true;
+      break;
+    }
+  }
+
+  if (!hasAnyGroup) return null;
+
+  interface MutableNode {
+    id: string;
+    name: string;
+    fullPath: string;
+    childrenMap: Map<string, MutableNode>;
+    items: DataItem[];
+  }
+
+  const rootChildrenMap = new Map<string, MutableNode>();
+  const ungroupedItems: DataItem[] = [];
+
+  for (const item of items) {
+    const pathSegments = extractItemGroupPath(item, idToName);
+    if (!pathSegments || pathSegments.length === 0) {
+      ungroupedItems.push(item);
+      continue;
+    }
+
+    let currentMap = rootChildrenMap;
+    let currentPath = '';
+    let currentNode: MutableNode | null = null;
+    for (let i = 0; i < pathSegments.length; i++) {
+      const segName = pathSegments[i];
+      currentPath = currentPath ? `${currentPath}/${segName}` : segName;
+
+      let nextNode = currentMap.get(segName);
+      if (!nextNode) {
+        nextNode = {
+          id: `group:${currentPath}`,
+          name: segName,
+          fullPath: currentPath,
+          childrenMap: new Map(),
+          items: [],
+        };
+        currentMap.set(segName, nextNode);
+      }
+      currentNode = nextNode;
+      currentMap = nextNode.childrenMap;
+    }
+
+    if (currentNode) {
+      currentNode.items.push(item);
+    }
+  }
+
+  function finalizeNode(node: MutableNode): GroupTreeNode {
+    const children = Array.from(node.childrenMap.values()).map(finalizeNode);
+    const childrenCount = children.reduce((sum, c) => sum + c.totalCount, 0);
+    return {
+      id: node.id,
+      name: node.name,
+      fullPath: node.fullPath,
+      children,
+      items: node.items,
+      totalCount: node.items.length + childrenCount,
+    };
+  }
+
+  const result: GroupTreeNode[] = Array.from(rootChildrenMap.values()).map(finalizeNode);
+
+  if (ungroupedItems.length > 0) {
+    result.push({
+      id: `group:${defaultGroupName}`,
+      name: defaultGroupName,
+      fullPath: defaultGroupName,
+      children: [],
+      items: ungroupedItems,
+      totalCount: ungroupedItems.length,
+    });
+  }
+
+  return result;
+}
+
+/** 递归渲染分组目录项 */
+function GroupFolderItem({
+  node,
+  ds,
+  depth,
+  expanded,
+  onToggle,
+  onSelectItem,
+}: {
+  node: GroupTreeNode;
+  ds: DatasourceDescription;
+  depth: number;
+  expanded: Record<string, boolean>;
+  onToggle: (path: string) => void;
+  onSelectItem: (ds: DatasourceDescription, item: DataItem) => void;
+}) {
+  const isOpen = expanded[node.fullPath] ?? false;
+
+  return (
+    <div>
+      <button
+        type="button"
+        className="w-full flex items-center gap-1.5 px-3 py-1 text-left text-xs text-foreground hover:bg-accent font-medium select-none"
+        onClick={() => onToggle(node.fullPath)}
+      >
+        {isOpen ? (
+          <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
+        )}
+        {isOpen ? (
+          <FolderOpen className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+        ) : (
+          <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+        )}
+        <span className="truncate flex-1">{node.name}</span>
+        <span className="text-[10px] text-muted-foreground font-mono">
+          {`(${node.totalCount})`}
+        </span>
+      </button>
+      {isOpen && (
+        <div className="pl-3">
+          {node.children.map((child) => (
+            <GroupFolderItem
+              key={child.id}
+              node={child}
+              ds={ds}
+              depth={depth + 1}
+              expanded={expanded}
+              onToggle={onToggle}
+              onSelectItem={onSelectItem}
+            />
+          ))}
+          {node.items.map((item) => (
+            <ItemRow key={item.id} ds={ds} item={item} onSelect={onSelectItem} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 function ResourceLevel({
   ds,
   resource,
@@ -322,32 +591,18 @@ function ResourceLevel({
 
   const items = cached ?? [];
 
-  // 自动根据 item 中的 group_name / extra 提取二级分组
-  const groupedLeafItems = useMemo(() => {
+  // 自动根据 item 中的 group_name / extra 提取多级嵌套分组树
+  const groupTree = useMemo(() => {
     if (resource.children != null) return null;
-    const groups: Record<string, DataItem[]> = {};
-    let hasNamedGroup = false;
-
-    for (const item of items) {
-      const extraGroup = item.extra.find(
-        (e) => e.label === '分组' || e.label === 'group' || e.label === 'Group',
-      )?.value;
-      const rawGroup = (item.raw as Record<string, unknown> | undefined)?.group_name;
-      const groupName =
-        extraGroup ||
-        (typeof rawGroup === 'string' ? rawGroup : '') ||
-        '';
-
-      if (groupName) {
-        hasNamedGroup = true;
-      }
-      const key = groupName || LL.datasource.default_group();
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(item);
-    }
-
-    return hasNamedGroup ? groups : null;
+    return buildGroupTree(items, LL.datasource.default_group());
   }, [items, resource.children, LL]);
+
+  const handleToggleGroup = useCallback((groupPath: string) => {
+    setGroupExpanded((prev) => ({
+      ...prev,
+      [groupPath]: !prev[groupPath],
+    }));
+  }, []);
 
   return (
     <div>
@@ -359,47 +614,19 @@ function ResourceLevel({
         </div>
       )}
 
-      {/* 叶子节点按分组展示 */}
-      {groupedLeafItems ? (
-        Object.entries(groupedLeafItems).map(([groupName, groupItems]) => {
-          const isGroupOpen = groupExpanded[groupName] ?? false;
-          return (
-            <div key={groupName}>
-              <button
-                type="button"
-                className="w-full flex items-center gap-1.5 px-3 py-1 text-left text-xs text-foreground hover:bg-accent font-medium select-none"
-                onClick={() =>
-                  setGroupExpanded((prev) => ({
-                    ...prev,
-                    [groupName]: !isGroupOpen,
-                  }))
-                }
-              >
-                {isGroupOpen ? (
-                  <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
-                ) : (
-                  <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                )}
-                {isGroupOpen ? (
-                  <FolderOpen className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                ) : (
-                  <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                )}
-                <span className="truncate flex-1">{groupName}</span>
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  ({groupItems.length})
-                </span>
-              </button>
-              {isGroupOpen && (
-                <div className="pl-3">
-                  {groupItems.map((item) => (
-                    <ItemRow key={item.id} ds={ds} item={item} onSelect={onSelectItem} />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })
+      {/* 叶子节点按多级嵌套分组展示 */}
+      {groupTree ? (
+        groupTree.map((node) => (
+          <GroupFolderItem
+            key={node.id}
+            node={node}
+            ds={ds}
+            depth={0}
+            expanded={groupExpanded}
+            onToggle={handleToggleGroup}
+            onSelectItem={onSelectItem}
+          />
+        ))
       ) : (
         items.map((item) => {
           const hasChildren = resource.children != null;
