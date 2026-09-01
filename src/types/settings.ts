@@ -1,3 +1,5 @@
+import type { AIProviderConfig } from './ai';
+
 /**
  * 设置相关类型定义
  */
@@ -42,6 +44,16 @@ export interface Settings {
   theme: ThemeMode;
   /** 语言区域 */
   locale?: Locale;
+  /** AI Provider 配置列表 */
+  aiProviders?: AIProviderConfig[];
+  /** 当前选中的激活 AI Provider ID */
+  activeAiProviderId?: string | null;
+  /** AI 助手全局启用开关 */
+  aiEnabled?: boolean;
+  /** AI 窗口模式 */
+  aiWindowMode?: 'dock' | 'spotlight';
+  /** 自定义全局 System Prompt */
+  aiCustomSystemPrompt?: string;
 }
 
 // ============================================================================
@@ -72,6 +84,16 @@ export interface SettingsState {
   theme: ThemeMode;
   /** 语言区域 */
   locale?: Locale;
+  /** AI Provider 配置列表 */
+  aiProviders: AIProviderConfig[];
+  /** 当前选中的激活 AI Provider ID */
+  activeAiProviderId: string | null;
+  /** AI 助手全局启用开关 */
+  aiEnabled: boolean;
+  /** AI 窗口模式 */
+  aiWindowMode: 'dock' | 'spotlight';
+  /** 自定义全局 System Prompt */
+  aiCustomSystemPrompt?: string;
   /** 是否正在加载 */
   isLoading: boolean;
   /** 错误信息 */
@@ -114,6 +136,16 @@ export interface SettingsActions {
   openLogDir: () => Promise<void>;
   /** 打开流程保存目录 */
   openFlowsDir: () => Promise<void>;
+  /** 设置 AI Providers */
+  setAiProviders: (providers: AIProviderConfig[]) => Promise<void>;
+  /** 设置当前激活的 AI Provider ID */
+  setActiveAiProviderId: (id: string | null) => Promise<void>;
+  /** 设置 AI 助手启用状态 */
+  setAiEnabled: (enabled: boolean) => Promise<void>;
+  /** 设置 AI 窗口展示模式 */
+  setAiWindowMode: (mode: 'dock' | 'spotlight') => Promise<void>;
+  /** 设置自定义全局 System Prompt */
+  setAiCustomSystemPrompt: (prompt: string | undefined) => Promise<void>;
 }
 
 /**

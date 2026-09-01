@@ -33,6 +33,10 @@ describe('Settings types', () => {
       theme: 'system',
       isLoading: false,
       error: null,
+      aiProviders: [],
+      activeAiProviderId: null,
+      aiEnabled: true,
+      aiWindowMode: 'dock',
     };
 
     expect(state.isLoading).toBe(false);
@@ -48,6 +52,10 @@ describe('Settings types', () => {
       theme: 'dark',
       isLoading: true,
       error: 'Failed to load settings',
+      aiProviders: [],
+      activeAiProviderId: null,
+      aiEnabled: true,
+      aiWindowMode: 'dock',
     };
 
     expect(state.error).toBe('Failed to load settings');
@@ -70,6 +78,11 @@ describe('Settings types', () => {
       setDefaultExecutionTimeoutMs: async (_ms: number) => {},
       setPluginMaxConcurrency: async (_c: number) => {},
       setPluginQueueCapacity: async (_q: number) => {},
+      setAiProviders: async () => {},
+      setActiveAiProviderId: async () => {},
+      setAiEnabled: async () => {},
+      setAiWindowMode: async () => {},
+      setAiCustomSystemPrompt: async () => {},
     };
 
     expect(typeof actions.loadSettings).toBe('function');
@@ -107,6 +120,15 @@ describe('Settings types', () => {
       setDefaultExecutionTimeoutMs: async (_ms: number) => {},
       setPluginMaxConcurrency: async (_c: number) => {},
       setPluginQueueCapacity: async (_q: number) => {},
+      aiProviders: [],
+      activeAiProviderId: null,
+      aiEnabled: true,
+      aiWindowMode: 'dock',
+      setAiProviders: async () => {},
+      setActiveAiProviderId: async () => {},
+      setAiEnabled: async () => {},
+      setAiWindowMode: async () => {},
+      setAiCustomSystemPrompt: async () => {},
     };
 
     expect(store.reportDir).toBe('/path/to/reports');

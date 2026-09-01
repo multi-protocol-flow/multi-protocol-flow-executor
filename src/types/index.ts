@@ -65,6 +65,7 @@ export type {
   AnyNodeData,
   AnyNode,
   PluginNodeData,
+  ExecutionErrorStrategy,
 } from './node';
 export {
   isEntryConfig,
@@ -246,6 +247,23 @@ export type {
   PluginIframePluginMessage,
   PluginIframeMessage,
 } from './plugin-iframe';
+
+// AI 助手类型
+export type {
+  AIProviderConfig,
+  AIFunctionCall,
+  AIToolCall,
+  AIMessageRole,
+  AIMessageStatus,
+  AIMessage,
+  AIToolDefinition,
+  AIPendingActionStatus,
+  AIPendingAction,
+  AIAgentStatus,
+  AIState,
+  AISessionMetadata,
+  AISession,
+} from './ai';
 export {
   isPluginIframeMessage,
   createInitMessage,

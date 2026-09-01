@@ -5,6 +5,8 @@
 
 import { isTauriEnv } from '@/lib/platform';
 import type { Settings, ThemeMode, Locale } from '@/types/settings';
+import type { AIProviderConfig } from '@/types/ai';
+
 
 const SETTINGS_FILE = 'settings.bin';
 
@@ -41,6 +43,11 @@ export async function loadSettings(): Promise<Settings> {
     const pluginQueueCapacity = await store.get<number>('pluginQueueCapacity');
     const theme = await store.get<string>('theme');
     const locale = await store.get<string>('locale');
+    const aiProviders = await store.get<AIProviderConfig[]>('aiProviders');
+    const activeAiProviderId = await store.get<string | null>('activeAiProviderId');
+    const aiEnabled = await store.get<boolean>('aiEnabled');
+    const aiWindowMode = await store.get<'dock' | 'spotlight'>('aiWindowMode');
+    const aiCustomSystemPrompt = await store.get<string>('aiCustomSystemPrompt');
     return {
       reportDir: reportDir ?? `${appDataDir}/reports/`,
       logDir: logDir ?? `${appDataDir}/logs/`,
@@ -52,6 +59,11 @@ export async function loadSettings(): Promise<Settings> {
       pluginQueueCapacity,
       theme: (theme as ThemeMode) ?? 'system',
       locale: (locale as Locale) ?? 'en-US',
+      aiProviders: aiProviders ?? [],
+      activeAiProviderId: activeAiProviderId ?? null,
+      aiEnabled: aiEnabled ?? true,
+      aiWindowMode: aiWindowMode ?? 'dock',
+      aiCustomSystemPrompt: aiCustomSystemPrompt ?? undefined,
     };
   }
   const { loadSettings: loadSettingsImpl } = await import('./settings.mock');
@@ -97,6 +109,21 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
     }
     if (settings.locale !== undefined) {
       await store.set('locale', settings.locale);
+    }
+    if (settings.aiProviders !== undefined) {
+      await store.set('aiProviders', settings.aiProviders);
+    }
+    if (settings.activeAiProviderId !== undefined) {
+      await store.set('activeAiProviderId', settings.activeAiProviderId);
+    }
+    if (settings.aiEnabled !== undefined) {
+      await store.set('aiEnabled', settings.aiEnabled);
+    }
+    if (settings.aiWindowMode !== undefined) {
+      await store.set('aiWindowMode', settings.aiWindowMode);
+    }
+    if (settings.aiCustomSystemPrompt !== undefined) {
+      await store.set('aiCustomSystemPrompt', settings.aiCustomSystemPrompt);
     }
     await store.save();
     return;

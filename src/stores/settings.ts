@@ -37,6 +37,11 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   pluginQueueCapacity: undefined,
   theme: 'system' as ThemeMode,
   locale: 'en-US' as Locale,
+  aiProviders: [],
+  activeAiProviderId: null,
+  aiEnabled: true,
+  aiWindowMode: 'dock',
+  aiCustomSystemPrompt: undefined,
   isLoading: true,
   error: null,
   loadSettings: async () => {
@@ -55,6 +60,11 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         pluginQueueCapacity: settings.pluginQueueCapacity,
         theme: settings.theme,
         locale: settings.locale,
+        aiProviders: settings.aiProviders ?? [],
+        activeAiProviderId: settings.activeAiProviderId ?? null,
+        aiEnabled: settings.aiEnabled ?? true,
+        aiWindowMode: settings.aiWindowMode ?? 'dock',
+        aiCustomSystemPrompt: settings.aiCustomSystemPrompt,
         isLoading: false,
       });
     } catch (e) {
@@ -187,6 +197,56 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     try {
       const service = await getSettingsService();
       await service.openDirectory(get().flowsDir);
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setAiProviders: async (providers) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ aiProviders: providers });
+      set({ aiProviders: providers });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setActiveAiProviderId: async (id) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ activeAiProviderId: id });
+      set({ activeAiProviderId: id });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setAiEnabled: async (enabled) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ aiEnabled: enabled });
+      set({ aiEnabled: enabled });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setAiWindowMode: async (mode) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ aiWindowMode: mode });
+      set({ aiWindowMode: mode });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setAiCustomSystemPrompt: async (prompt) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ aiCustomSystemPrompt: prompt });
+      set({ aiCustomSystemPrompt: prompt });
     } catch (e) {
       set({ error: formatErrorMessage(e) });
     }

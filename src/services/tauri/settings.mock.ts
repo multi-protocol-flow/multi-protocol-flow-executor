@@ -37,6 +37,11 @@ export async function loadSettings(): Promise<Settings> {
     pluginQueueCapacity: stored.pluginQueueCapacity,
     theme: stored.theme ?? DEFAULT_THEME,
     locale: stored.locale ?? 'en-US',
+    aiProviders: stored.aiProviders ?? [],
+    activeAiProviderId: stored.activeAiProviderId ?? null,
+    aiEnabled: stored.aiEnabled ?? true,
+    aiWindowMode: stored.aiWindowMode ?? 'dock',
+    aiCustomSystemPrompt: stored.aiCustomSystemPrompt,
   };
 }
 
