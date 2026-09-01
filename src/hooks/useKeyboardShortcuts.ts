@@ -4,7 +4,7 @@
  */
 import { useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { useFlowStore, useUIStore } from '@/stores';
+import { useFlowStore, useUIStore, useAIStore } from '@/stores';
 import { flowStorage } from '@/services/storage';
 import { useZoomStore } from '@/stores/zoom';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -89,10 +89,22 @@ export function useKeyboardShortcuts() {
           selectNode(null);
         }
       }
+      // Ctrl/Cmd + K: 切换 AI Spotlight 快捷指令弹窗
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        useAIStore.getState().toggleSpotlight();
+        return;
+      }
+
+      // Ctrl/Cmd + I: 切换 AI Copilot 侧边栏
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'i' || e.key === 'I')) {
+        e.preventDefault();
+        useAIStore.getState().toggleCopilot();
+        return;
+      }
 
       // 快捷键：面板切换（仅在非输入状态）
       if (isInputting) return;
-
       // Ctrl/Cmd + Shift + Z / Ctrl/Cmd + Y: 重做
       if ((e.ctrlKey || e.metaKey) && (e.key === 'Z' || e.key === 'z') && e.shiftKey) {
         e.preventDefault();

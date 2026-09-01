@@ -1,0 +1,761 @@
+/**
+ * AI Copilot 侧边栏面板组件 - 会话管理与多模态图片增强版
+ */
+
+import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Sparkles,
+  X,
+  Trash2,
+  Send,
+  Square,
+  Bot,
+  User,
+  Lightbulb,
+  Brain,
+  ChevronDown,
+  ChevronRight,
+  Settings,
+  ArrowRight,
+  Loader2,
+  Plus,
+  History,
+  Image as ImageIcon,
+  Edit2,
+  Check,
+  GripVertical,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { MarkdownViewer } from '@/components/ui/MarkdownViewer';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { useAIStore } from '@/stores/ai';
+import { useSettingsStore } from '@/stores/settings';
+import { useUIStore } from '@/stores/ui';
+import { AIToolCallItem } from './AIToolCallItem';
+import { AIConfirmCard } from './AIConfirmCard';
+import {
+  compressAndConvertToBase64,
+  extractImagesFromClipboard,
+  extractImagesFromDrop,
+} from '@/lib/imageUtils';
+import { getLL } from '@/i18n/i18n-lazy';
+import type { AIMessage } from '@/types/ai';
+
+export function AICopilotPanel() {
+  const ll = getLL();
+  const {
+    sessions,
+    currentSessionId,
+    messages,
+    agentStatus,
+    activeStreamingMessageId,
+    pendingActions,
+    isCopilotOpen,
+    panelWidth,
+    setPanelWidth,
+    setCopilotOpen,
+    initSessions,
+    createNewSession,
+    switchSession,
+    renameSession,
+    deleteSession,
+    sendMessage,
+    stopGeneration,
+    clearMessages,
+  } = useAIStore();
+
+  const { aiProviders, activeAiProviderId } = useSettingsStore();
+  const openSettingsDialog = useUIStore((s) => s.openSettingsDialog);
+
+  const [inputPrompt, setInputPrompt] = useState('');
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [openThoughts, setOpenThoughts] = useState<Record<string, boolean>>({});
+
+  // 历史会话下拉弹层状态
+  const [showSessionMenu, setShowSessionMenu] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editTitleInput, setEditTitleInput] = useState('');
+
+  // 大图查看弹窗状态
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+
+  // 拖拽拉伸宽度状态
+  const [isResizing, setIsResizing] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const activeProvider = aiProviders.find((p) => p.id === activeAiProviderId);
+  const currentSession = sessions.find((s) => s.id === currentSessionId);
+  const isGenerating =
+    agentStatus === 'thinking' ||
+    agentStatus === 'executing_tools' ||
+    agentStatus === 'waiting_confirmation';
+
+  // 初始化会话列表
+  useEffect(() => {
+    if (isCopilotOpen) {
+      initSessions();
+    }
+  }, [isCopilotOpen, initSessions]);
+
+  // 自动滚动到底部
+  useEffect(() => {
+    if (isCopilotOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isCopilotOpen]);
+
+  // 打开面板时自动聚焦输入框
+  useEffect(() => {
+    if (isCopilotOpen) {
+      setTimeout(() => textareaRef.current?.focus(), 150);
+    }
+  }, [isCopilotOpen, currentSessionId]);
+
+  // 点击外部关闭历史会话菜单
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as HTMLElement)) {
+        setShowSessionMenu(false);
+        setEditingSessionId(null);
+      }
+    };
+    if (showSessionMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSessionMenu]);
+
+  // 处理拖拽拉伸宽度
+  const handleMouseDownResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+
+    const startX = e.clientX;
+    const startWidth = useAIStore.getState().panelWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = startX - moveEvent.clientX;
+      const newWidth = Math.max(320, Math.min(750, startWidth + deltaX));
+      setPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [setPanelWidth]);
+
+  if (!isCopilotOpen) return null;
+
+  const handleSend = () => {
+    const text = inputPrompt.trim();
+    if ((!text && attachedImages.length === 0) || isGenerating) return;
+
+    const imgs = attachedImages.length > 0 ? [...attachedImages] : undefined;
+    setInputPrompt('');
+    setAttachedImages([]);
+    sendMessage(text, imgs);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const images = await extractImagesFromClipboard(e.clipboardData);
+    if (images.length > 0) {
+      e.preventDefault();
+      setAttachedImages((prev) => [...prev, ...images]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const images = await extractImagesFromDrop(e.dataTransfer);
+    if (images.length > 0) {
+      setAttachedImages((prev) => [...prev, ...images]);
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const newImages: string[] = [];
+    for (const file of files) {
+      if (file.type.startsWith('image/')) {
+        try {
+          const base64 = await compressAndConvertToBase64(file);
+          newImages.push(base64);
+        } catch {
+          // 忽略
+        }
+      }
+    }
+    if (newImages.length > 0) {
+      setAttachedImages((prev) => [...prev, ...newImages]);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setAttachedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUsePrompt = (promptText: string) => {
+    sendMessage(promptText);
+  };
+
+  const toggleThought = (msgId: string) => {
+    setOpenThoughts((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
+  };
+
+  const handleSaveRename = (sessionId: string) => {
+    if (editTitleInput.trim()) {
+      renameSession(sessionId, editTitleInput.trim());
+    }
+    setEditingSessionId(null);
+  };
+
+  return (
+    <>
+      <aside
+        className="fixed right-0 top-14 bottom-0 bg-background/95 backdrop-blur-sm border-l border-border z-30 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
+        style={{ width: `${panelWidth}px` }}
+        aria-label="AI Copilot Panel"
+      >
+        {/* 左侧可拖拽拉伸边条 */}
+        <div
+          onMouseDown={handleMouseDownResize}
+          className={`absolute left-0 top-0 bottom-0 w-1.5 -ml-1 cursor-col-resize z-40 hover:bg-primary/50 transition-colors flex items-center justify-center ${
+            isResizing ? 'bg-primary' : 'bg-transparent'
+          }`}
+          title={ll.ai.copilot.drag_resize()}
+        >
+          <GripVertical className="h-3 w-3 text-muted-foreground/40 opacity-0 hover:opacity-100" />
+        </div>
+
+        {/* 头部导航栏 */}
+        <header className="h-11 border-b border-border/70 px-3 flex items-center justify-between bg-muted/20 shrink-0 relative">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
+              <Sparkles className="h-3.5 w-3.5" />
+            </div>
+
+            {/* 会话选择器与下拉抽屉触发器 */}
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                className="flex items-center gap-1 text-xs font-semibold text-foreground hover:bg-muted/60 px-1.5 py-1 rounded-md transition-colors max-w-[170px]"
+                onClick={() => setShowSessionMenu(!showSessionMenu)}
+                title={ll.ai.copilot.sessions_title()}
+              >
+                <span className="truncate">
+                  {currentSession?.title || ll.ai.copilot.title()}
+                </span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+              </button>
+
+              {/* 历史会话浮动列表 Popover */}
+              {showSessionMenu && (
+                <div className="absolute left-0 top-8 w-64 rounded-lg border border-border bg-popover text-popover-foreground shadow-xl z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="flex items-center justify-between px-2 py-1 border-b border-border/50 text-[11px] font-medium text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <History className="h-3 w-3" />
+                      <span>{ll.ai.copilot.sessions_title()}</span>
+                    </span>
+                    <button
+                      type="button"
+                      className="text-primary hover:underline flex items-center gap-0.5"
+                      onClick={async () => {
+                        setShowSessionMenu(false);
+                        await createNewSession();
+                      }}
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>{ll.ai.copilot.new_session()}</span>
+                    </button>
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto space-y-0.5">
+                    {sessions.map((sess) => {
+                      const isCurrent = sess.id === currentSessionId;
+                      const isEditing = editingSessionId === sess.id;
+
+                      return (
+                        <div
+                          key={sess.id}
+                          className={`group flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-colors ${
+                            isCurrent
+                              ? 'bg-primary/10 text-primary font-medium'
+                              : 'hover:bg-muted/70 text-foreground'
+                          }`}
+                        >
+                          {isEditing ? (
+                            <div className="flex items-center gap-1 w-full">
+                              <Input
+                                value={editTitleInput}
+                                onChange={(e) => setEditTitleInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveRename(sess.id);
+                                  if (e.key === 'Escape') setEditingSessionId(null);
+                                }}
+                                autoFocus
+                                className="h-6 text-xs px-1.5 py-0"
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5 p-0"
+                                onClick={() => handleSaveRename(sess.id)}
+                              >
+                                <Check className="h-3 w-3 text-emerald-500" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="flex-1 text-left truncate min-w-0 pr-1.5"
+                                onClick={() => {
+                                  switchSession(sess.id);
+                                  setShowSessionMenu(false);
+                                }}
+                              >
+                                <div className="truncate">{sess.title}</div>
+                                <div className="text-[10px] text-muted-foreground font-normal">
+                                  {new Date(sess.updatedAt).toLocaleDateString()}{' '}
+                                  · {ll.ai.copilot.messages_count({ count: sess.messageCount })}
+                                </div>
+                              </button>
+
+                              <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 transition-opacity">
+                                <button
+                                  type="button"
+                                  className="p-1 text-muted-foreground hover:text-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingSessionId(sess.id);
+                                    setEditTitleInput(sess.title);
+                                  }}
+                                  title={ll.ai.copilot.rename_session()}
+                                >
+                                  <Edit2 className="h-2.5 w-2.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="p-1 text-muted-foreground hover:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteSession(sess.id);
+                                  }}
+                                  title={ll.ai.copilot.delete_session()}
+                                >
+                                  <Trash2 className="h-2.5 w-2.5" />
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {activeProvider && (
+              <span className="truncate text-[10px] px-1.5 py-0.5 rounded font-mono bg-muted text-muted-foreground max-w-[90px] hidden sm:inline-block">
+                {activeProvider.name}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-0.5">
+            {/* 新建对话按钮 */}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={() => createNewSession()}
+              title={ll.ai.copilot.new_session()}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+
+            {messages.length > 0 && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={clearMessages}
+                title={ll.ai.copilot.clear_history()}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={() => setCopilotOpen(false)}
+              title={ll.ai.copilot.close()}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </header>
+
+        {/* 消息列表区域 */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-4 text-xs">
+          {/* 未配置 Provider 提示 */}
+          {!activeProvider && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-center space-y-3">
+              <Sparkles className="mx-auto h-7 w-7 text-amber-500" />
+              <div className="space-y-1">
+                <p className="font-medium text-xs text-foreground">
+                  {ll.ai.copilot.no_active_provider()}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {ll.ai.copilot.no_active_provider_desc()}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white mx-auto"
+                onClick={openSettingsDialog}
+              >
+                <Settings className="mr-1.5 h-3.5 w-3.5" />
+                {ll.ai.copilot.configure_provider()}
+              </Button>
+            </div>
+          )}
+
+          {/* 空消息时的推荐快捷提示词 */}
+          {activeProvider && messages.length === 0 && (
+            <div className="py-6 px-2 space-y-5 text-center">
+              <div className="space-y-1.5">
+                <div className="inline-flex p-2.5 rounded-full bg-primary/10 text-primary">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <h3 className="font-semibold text-sm text-foreground">
+                  {ll.ai.copilot.welcome_title()}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {ll.ai.copilot.welcome_desc()}
+                </p>
+              </div>
+
+              <div className="space-y-1.5 text-left pt-2">
+                <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 px-1">
+                  <Lightbulb className="h-3 w-3 text-amber-500" />
+                  <span>{ll.ai.copilot.suggested_prompts()}</span>
+                </p>
+                {[
+                  ll.ai.copilot.prompt_sample_1(),
+                  ll.ai.copilot.prompt_sample_2(),
+                  ll.ai.copilot.prompt_sample_3(),
+                  ll.ai.copilot.prompt_sample_4(),
+                ].map((prompt, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className="w-full text-left p-2 rounded-md border border-border/50 bg-muted/30 hover:bg-primary/5 hover:border-primary/40 transition-all group flex items-center justify-between"
+                    onClick={() => handleUsePrompt(prompt)}
+                  >
+                    <span className="text-xs text-foreground/85 line-clamp-2">
+                      {prompt}
+                    </span>
+                    <ArrowRight className="h-3 w-3 text-muted-foreground group-hover:text-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ml-1.5" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 消息对话气泡 */}
+          {messages.map((msg: AIMessage) => {
+            if (msg.role === 'system') return null;
+
+            if (msg.role === 'user') {
+              return (
+                <div key={msg.id} className="flex justify-end gap-2 pl-6">
+                  <div className="max-w-[88%] space-y-1.5">
+                    {/* 用户附加的图片展示 */}
+                    {msg.images && msg.images.length > 0 && (
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        {msg.images.map((imgSrc, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            className="overflow-hidden rounded-lg border border-primary/30 max-w-[180px] max-h-[140px] hover:opacity-90 transition-opacity cursor-zoom-in"
+                            onClick={() => setPreviewImageUrl(imgSrc)}
+                          >
+                            <img
+                              src={imgSrc}
+                              alt={`Upload ${idx + 1}`}
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {msg.content && (
+                      <div className="rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2 text-primary-foreground text-xs shadow-xs break-words whitespace-pre-wrap">
+                        {msg.content}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary mt-0.5">
+                    <User className="h-3.5 w-3.5" />
+                  </div>
+                </div>
+              );
+            }
+
+            if (msg.role === 'assistant') {
+              const isStreamingThis = activeStreamingMessageId === msg.id;
+              const thoughtOpen =
+                openThoughts[msg.id] !== undefined
+                  ? openThoughts[msg.id]
+                  : isStreamingThis;
+
+              return (
+                <div key={msg.id} className="flex justify-start gap-2 pr-4">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary mt-0.5">
+                    <Bot className="h-3.5 w-3.5" />
+                  </div>
+
+                  <div className="flex-1 space-y-2 min-w-0">
+                    {/* 深度思考过程展示 (DeepSeek R1 / Reasoning) */}
+                    {msg.thought && (
+                      <div className="rounded border border-border/60 bg-muted/30 text-xs overflow-hidden">
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                          onClick={() => toggleThought(msg.id)}
+                        >
+                          <Brain className="h-3 w-3 text-indigo-500 shrink-0" />
+                          <span className="font-medium text-[11px]">
+                            {ll.ai.copilot.thought_process()}
+                          </span>
+                          {thoughtOpen ? (
+                            <ChevronDown className="h-3 w-3 ml-auto shrink-0" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3 ml-auto shrink-0" />
+                          )}
+                        </button>
+                        {thoughtOpen && (
+                          <div className="border-t border-border/40 p-2 text-[11px] font-mono text-muted-foreground/90 whitespace-pre-wrap break-words bg-background/40 max-h-48 overflow-y-auto">
+                            {msg.thought}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 工具调用项展示 */}
+                    {msg.tool_calls && msg.tool_calls.length > 0 && (
+                      <div className="space-y-1">
+                        {msg.tool_calls.map((tc) => (
+                          <AIToolCallItem
+                            key={tc.id}
+                            toolCall={tc}
+                            isExecuted={!isStreamingThis}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 正文内容渲染 */}
+                    {msg.content ? (
+                      <div className="rounded-2xl rounded-tl-sm bg-muted/40 p-3 border border-border/40 text-foreground text-xs leading-relaxed break-words">
+                        <MarkdownViewer content={msg.content} compact />
+                      </div>
+                    ) : isStreamingThis && !msg.thought && (!msg.tool_calls || msg.tool_calls.length === 0) ? (
+                      <div className="flex items-center gap-1.5 text-muted-foreground py-1">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                        <span className="text-xs">{ll.ai.copilot.thinking()}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            }
+
+            return null;
+          })}
+
+          {/* 高风险待确认卡片 */}
+          {pendingActions
+            .filter((act) => act.status === 'pending')
+            .map((act) => (
+              <AIConfirmCard key={act.id} action={act} />
+            ))}
+
+          {/* 状态加载指示器 */}
+          {isGenerating && agentStatus === 'executing_tools' && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground px-2 py-1 bg-primary/5 rounded border border-primary/10">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
+              <span>{ll.ai.copilot.executing_tools()}</span>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* 底部输入框区 */}
+        <footer
+          className="p-3 border-t border-border bg-background shrink-0 space-y-2"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {/* 图片附件待发预览条 */}
+          {attachedImages.length > 0 && (
+            <div className="flex flex-wrap gap-2 p-1.5 bg-muted/30 rounded-lg border border-border/50">
+              {attachedImages.map((imgSrc, idx) => (
+                <div key={idx} className="relative group">
+                  <img
+                    src={imgSrc}
+                    alt={`Preview ${idx + 1}`}
+                    className="h-12 w-12 object-cover rounded-md border border-border"
+                  />
+                  <button
+                    type="button"
+                    className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px] shadow-sm hover:scale-110 transition-transform"
+                    onClick={() => handleRemoveImage(idx)}
+                    title={ll.ai.copilot.remove_image()}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div
+            className={`relative rounded-lg border bg-background transition-all ${
+              isDragOver
+                ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
+                : 'border-border focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30'
+            }`}
+          >
+            <textarea
+              ref={textareaRef}
+              value={inputPrompt}
+              onChange={(e) => setInputPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              placeholder={
+                activeProvider
+                  ? isDragOver
+                    ? ll.ai.copilot.drop_image_here()
+                    : ll.ai.copilot.input_placeholder()
+                  : ll.ai.copilot.input_disabled_placeholder()
+              }
+              disabled={!activeProvider}
+              rows={2}
+              className="w-full resize-none border-0 bg-transparent p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[50px] max-h-32 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+
+            {/* 隐藏的图片文件选择器 */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+
+            <div className="flex items-center justify-between px-2.5 pb-2">
+              <div className="flex items-center gap-1">
+                {/* 附加图片按钮 */}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!activeProvider}
+                  title={ll.ai.copilot.attach_image()}
+                >
+                  <ImageIcon className="h-3.5 w-3.5" />
+                </Button>
+                <span className="text-[10px] text-muted-foreground">
+                  {attachedImages.length > 0
+                    ? ll.ai.copilot.image_attached({ count: attachedImages.length })
+                    : ll.ai.copilot.image_support()}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {isGenerating ? (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-6 px-2 text-[11px] rounded-md gap-1"
+                    onClick={stopGeneration}
+                  >
+                    <Square className="h-3 w-3 fill-current" />
+                    {ll.ai.copilot.stop()}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="h-6 w-6 p-0 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground"
+                    onClick={handleSend}
+                    disabled={(!inputPrompt.trim() && attachedImages.length === 0) || !activeProvider}
+                    title={ll.ai.copilot.send()}
+                  >
+                    <Send className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </footer>
+      </aside>
+
+      {/* 图片放大预览灯箱弹窗 */}
+      {previewImageUrl && (
+        <Dialog open={!!previewImageUrl} onOpenChange={() => setPreviewImageUrl(null)}>
+          <DialogContent className="max-w-3xl p-2 bg-background/95 backdrop-blur-md border-border/80">
+            <DialogTitle className="sr-only">{ll.ai.copilot.image_preview()}</DialogTitle>
+            <div className="relative flex items-center justify-center p-2">
+              <img
+                src={previewImageUrl}
+                alt="Preview"
+                className="max-h-[80vh] w-auto object-contain rounded-lg shadow-lg"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
+  );
+}

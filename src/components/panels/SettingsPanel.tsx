@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSettingsStore } from '@/stores/settings';
 import type { ThemeMode, Locale } from '@/types/settings';
 import { getLL } from '@/i18n/i18n-lazy';
+import { AIProviderSettingsCard } from '@/components/ai/AIProviderSettingsCard';
 
 import { isTauriEnv } from '@/lib/platform';
 
@@ -329,6 +330,9 @@ export function SettingsPanel() {
                 {ll?.settings?.plugin_queue_capacity_tip() ?? 'Communication frame queue depth between host and plugin process (default 2048).'}
               </p>
             </div>
+
+            {/* AI Copilot & LLM Provider 配置 */}
+            <AIProviderSettingsCard />
 
 
             {/* 流程保存目录 */}

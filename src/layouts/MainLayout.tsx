@@ -24,12 +24,14 @@ import {
   DatasetRowDetail,
   DatasetReportDialog,
 } from '@/components/reports';
+import { AICopilotPanel, AISpotlightDialog } from '@/components/ai';
+import { useAIStore } from '@/stores/ai';
 
 import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
 import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, Puzzle, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, Puzzle, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -385,6 +387,20 @@ export function MainLayout() {
             <Puzzle className="h-5 w-5" />
           </Button>
 
+          {/* AI Copilot 助手按钮 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => useAIStore.getState().toggleCopilot()}
+            title={`${getLL().ai.copilot.title()} (Ctrl+I)`}
+            className={cn(
+              'hidden sm:inline-flex relative',
+              useAIStore((s) => s.isCopilotOpen) && 'text-primary bg-primary/10'
+            )}
+          >
+            <Sparkles className="h-5 w-5" />
+          </Button>
+
           {/* 设置按钮 */}
           <Button
             variant="ghost"
@@ -737,6 +753,10 @@ export function MainLayout() {
       <PluginSettingsDialog />
 
       {/* ===== 全流程搜索面板 ===== */}
+
+      {/* ===== AI 助手侧边栏与 Spotlight 弹窗 ===== */}
+      <AICopilotPanel />
+      <AISpotlightDialog />
       <SearchOverlayHandler />
     </div>
   );
