@@ -12,6 +12,7 @@ import welcome from './welcome';
 import shortcuts from './shortcuts';
 import viewer from './viewer';
 import errors from './errors';
+import ai from './ai';
 
 const zh_CN = {
   common,
@@ -27,6 +28,7 @@ const zh_CN = {
   shortcuts,
   viewer,
   errors,
+  ai,
 } as BaseTranslation;
 
 export default zh_CN;

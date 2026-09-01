@@ -12,6 +12,7 @@ import welcome from './welcome';
 import shortcuts from './shortcuts';
 import viewer from './viewer';
 import errors from './errors';
+import ai from './ai';
 
 const en_US: Translation = {
   common,
@@ -27,6 +28,7 @@ const en_US: Translation = {
   shortcuts,
   viewer,
   errors,
+  ai,
 } as Translation;
 
 export default en_US;

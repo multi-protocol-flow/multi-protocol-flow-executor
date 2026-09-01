@@ -11778,6 +11778,363 @@ type RootTranslation = {
 		 */
 		clipboard_save_failed: string
 	}
+	ai: {
+		settings: {
+			/**
+			 * A​I​ ​助​手​ ​&​ ​L​L​M​ ​P​r​o​v​i​d​e​r​ ​配​置
+			 */
+			title: string
+			/**
+			 * 已​启​用
+			 */
+			enabled: string
+			/**
+			 * 已​禁​用
+			 */
+			disabled: string
+			/**
+			 * 配​置​兼​容​ ​O​p​e​n​A​I​ ​协​议​的​大​模​型​服​务​（​支​持​ ​D​e​e​p​S​e​e​k​、​O​p​e​n​A​I​、​O​l​l​a​m​a​、​C​l​a​u​d​e​ ​等​）​，​赋​能​智​能​工​作​流​构​建​。
+			 */
+			description: string
+			/**
+			 * 已​配​置​的​ ​P​r​o​v​i​d​e​r​ ​列​表
+			 */
+			providers_list: string
+			/**
+			 * 添​加​ ​P​r​o​v​i​d​e​r
+			 */
+			add_provider: string
+			/**
+			 * 尚​未​配​置​任​何​ ​A​I​ ​P​r​o​v​i​d​e​r
+			 */
+			no_providers: string
+			/**
+			 * 请​添​加​一​个​ ​O​p​e​n​A​I​ ​兼​容​服​务​，​或​从​以​下​常​用​预​设​中​快​速​创​建​：
+			 */
+			no_providers_desc: string
+			/**
+			 * 当​前​生​效​的​ ​P​r​o​v​i​d​e​r
+			 */
+			active_provider: string
+			/**
+			 * 设​为​生​效​ ​P​r​o​v​i​d​e​r
+			 */
+			set_active: string
+			/**
+			 * 当​前​激​活
+			 */
+			active_badge: string
+			/**
+			 * 测​试​连​接
+			 */
+			test_connection: string
+			/**
+			 * 连​接​成​功
+			 */
+			test_success: string
+			/**
+			 * 连​接​失​败
+			 */
+			test_failed: string
+			/**
+			 * 编​辑
+			 */
+			edit: string
+			/**
+			 * 删​除
+			 */
+			'delete': string
+			/**
+			 * 取​消
+			 */
+			cancel: string
+			/**
+			 * 保​存​配​置
+			 */
+			save: string
+			/**
+			 * 添​加​新​ ​A​I​ ​P​r​o​v​i​d​e​r
+			 */
+			form_create_title: string
+			/**
+			 * 编​辑​ ​A​I​ ​P​r​o​v​i​d​e​r
+			 */
+			form_edit_title: string
+			/**
+			 * P​r​o​v​i​d​e​r​ ​显​示​名​称
+			 */
+			name_label: string
+			/**
+			 * A​P​I​ ​B​a​s​e​ ​U​R​L
+			 */
+			base_url_label: string
+			/**
+			 * A​P​I​ ​K​e​y
+			 */
+			api_key_label: string
+			/**
+			 * 显​示
+			 */
+			show: string
+			/**
+			 * 隐​藏
+			 */
+			hide: string
+			/**
+			 * 模​型​名​称​ ​(​M​o​d​e​l​)
+			 */
+			model_label: string
+			/**
+			 * 获​取​模​型​列​表
+			 */
+			fetch_models: string
+			/**
+			 * 自​定​义​全​局​ ​S​y​s​t​e​m​ ​P​r​o​m​p​t
+			 */
+			custom_system_prompt_label: string
+			/**
+			 * 输​入​附​加​的​系​统​指​令​，​例​如​：​偏​好​的​代​码​风​格​、​特​定​的​业​务​命​名​规​范​等​.​.​.
+			 */
+			custom_system_prompt_placeholder: string
+			/**
+			 * 此​提​示​词​将​在​每​次​向​大​模​型​发​送​请​求​时​附​加​在​ ​M​P​E​ ​基​础​系​统​指​令​之​后​生​效​。
+			 */
+			custom_system_prompt_tip: string
+		}
+		confirm_card: {
+			/**
+			 * 高​风​险​操​作​确​认
+			 */
+			title: string
+			/**
+			 * 取​消​执​行
+			 */
+			reject: string
+			/**
+			 * 确​认​执​行
+			 */
+			approve: string
+			/**
+			 * 用​户​已​批​准​执​行
+			 */
+			status_approved: string
+			/**
+			 * 用​户​已​拒​绝​执​行
+			 */
+			status_rejected: string
+			/**
+			 * 清​空​当​前​流​程​画​布​中​的​所​有​节​点​与​连​线
+			 */
+			clear_canvas_desc: string
+			/**
+			 * 当​前​画​布​共​有​ ​{​n​o​d​e​s​}​ ​个​节​点​和​ ​{​c​o​n​n​e​c​t​i​o​n​s​}​ ​条​连​线​将​被​全​部​移​除​。
+			 * @param {unknown} connections
+			 * @param {unknown} nodes
+			 */
+			clear_canvas_diff: RequiredParams<'connections' | 'nodes'>
+			/**
+			 * 删​除​ ​{​c​o​u​n​t​}​ ​个​节​点
+			 * @param {unknown} count
+			 */
+			delete_nodes_desc: RequiredParams<'count'>
+			/**
+			 * 将​删​除​节​点​:​ ​[​{​n​a​m​e​s​}​]
+			 * @param {unknown} names
+			 */
+			delete_nodes_diff: RequiredParams<'names'>
+			/**
+			 * 从​插​件​市​场​下​载​并​安​装​插​件​ ​"​{​n​a​m​e​}​"
+			 * @param {unknown} name
+			 */
+			install_plugin_desc: RequiredParams<'name'>
+			/**
+			 * 版​本​:​ ​{​v​e​r​s​i​o​n​}​,​ ​来​源​:​ ​{​u​r​l​}
+			 * @param {unknown} url
+			 * @param {unknown} version
+			 */
+			install_plugin_diff: RequiredParams<'url' | 'version'>
+		}
+		tool_call: {
+			/**
+			 * 执​行​成​功
+			 */
+			done: string
+			/**
+			 * 正​在​执​行​.​.​.
+			 */
+			running: string
+		}
+		copilot: {
+			/**
+			 * M​P​E​ ​全​域​ ​A​I​ ​助​手
+			 */
+			title: string
+			/**
+			 * 清​空​对​话​历​史
+			 */
+			clear_history: string
+			/**
+			 * 收​起​侧​边​栏
+			 */
+			close: string
+			/**
+			 * 未​配​置​生​效​的​ ​A​I​ ​P​r​o​v​i​d​e​r
+			 */
+			no_active_provider: string
+			/**
+			 * 请​先​前​往​系​统​设​置​添​加​并​激​活​一​个​ ​O​p​e​n​A​I​ ​兼​容​模​型​服​务​。
+			 */
+			no_active_provider_desc: string
+			/**
+			 * 前​往​配​置​ ​P​r​o​v​i​d​e​r
+			 */
+			configure_provider: string
+			/**
+			 * 你​好​，​我​是​ ​M​P​E​ ​流​程​编​排​架​构​师
+			 */
+			welcome_title: string
+			/**
+			 * 我​可​以​感​知​当​前​项​目​的​全​量​上​下​文​，​为​你​自​动​编​排​多​协​议​工​作​流​、​编​写​脚​本​、​排​版​连​线​或​执​行​调​试​。
+			 */
+			welcome_desc: string
+			/**
+			 * 快​捷​指​令​推​荐
+			 */
+			suggested_prompts: string
+			/**
+			 * 创​建​一​个​登​录​认​证​并​提​取​ ​T​o​k​e​n​ ​传​递​给​下​游​查​询​的​流​程
+			 */
+			prompt_sample_1: string
+			/**
+			 * 编​写​一​段​ ​J​a​v​a​S​c​r​i​p​t​ ​脚​本​对​上​一​步​ ​i​t​e​m​s​ ​数​组​按​ ​p​r​i​c​e​ ​升​序​排​序
+			 */
+			prompt_sample_2: string
+			/**
+			 * 将​画​布​上​的​所​有​节​点​重​新​进​行​水​平​ ​D​A​G​ ​自​动​布​局​排​版
+			 */
+			prompt_sample_3: string
+			/**
+			 * 运​行​当​前​流​程​并​在​控​制​台​中​排​查​报​错​原​因
+			 */
+			prompt_sample_4: string
+			/**
+			 * 思​考​过​程​ ​(​R​e​a​s​o​n​i​n​g​)
+			 */
+			thought_process: string
+			/**
+			 * 正​在​思​考​.​.​.
+			 */
+			thinking: string
+			/**
+			 * 正​在​执​行​工​具​联​动​画​布​.​.​.
+			 */
+			executing_tools: string
+			/**
+			 * 给​ ​A​I​ ​助​手​发​送​指​令​.​.​.​ ​(​E​n​t​e​r​ ​发​送​,​ ​S​h​i​f​t​+​E​n​t​e​r​ ​换​行​)
+			 */
+			input_placeholder: string
+			/**
+			 * 请​先​配​置​激​活​ ​A​I​ ​P​r​o​v​i​d​e​r​ ​后​开​启​对​话​.​.​.
+			 */
+			input_disabled_placeholder: string
+			/**
+			 * 快​捷​键​:​ ​C​t​r​l​/​C​m​d​ ​+​ ​I​ ​折​叠​侧​边​栏​,​ ​C​t​r​l​/​C​m​d​ ​+​ ​K​ ​快​速​指​令
+			 */
+			shortcut_tip: string
+			/**
+			 * 发​送
+			 */
+			send: string
+			/**
+			 * 停​止​生​成
+			 */
+			stop: string
+			/**
+			 * 历​史​会​话
+			 */
+			sessions_title: string
+			/**
+			 * 新​建​对​话
+			 */
+			new_session: string
+			/**
+			 * 新​对​话
+			 */
+			new_session_title: string
+			/**
+			 * 未​命​名​对​话
+			 */
+			unnamed_session: string
+			/**
+			 * 重​命​名
+			 */
+			rename_session: string
+			/**
+			 * 删​除​会​话
+			 */
+			delete_session: string
+			/**
+			 * 暂​无​历​史​会​话
+			 */
+			empty_sessions: string
+			/**
+			 * 附​加​图​片​ ​/​ ​截​图
+			 */
+			attach_image: string
+			/**
+			 * 释​放​图​片​以​添​加​附​件​.​.​.
+			 */
+			drop_image_here: string
+			/**
+			 * 已​附​ ​{​c​o​u​n​t​}​ ​图
+			 * @param {unknown} count
+			 */
+			image_attached: RequiredParams<'count'>
+			/**
+			 * 支​持​粘​贴​/​拖​拽​图​片
+			 */
+			image_support: string
+			/**
+			 * 图​片​预​览
+			 */
+			image_preview: string
+			/**
+			 * 移​除​图​片
+			 */
+			remove_image: string
+			/**
+			 * 拖​拽​调​整​侧​边​栏​宽​度
+			 */
+			drag_resize: string
+			/**
+			 * {​c​o​u​n​t​}​ ​条​消​息
+			 * @param {unknown} count
+			 */
+			messages_count: RequiredParams<'count'>
+		}
+		spotlight: {
+			/**
+			 * A​I​ ​快​捷​指​令
+			 */
+			title: string
+			/**
+			 * 输​入​自​然​语​言​指​令​驱​动​ ​M​P​E​ ​工​作​流​.​.​.
+			 */
+			input_placeholder: string
+			/**
+			 * 固​定​展​开​至​右​侧​侧​边​栏
+			 */
+			dock_to_sidebar: string
+			/**
+			 * C​t​r​l​/​C​m​d​ ​+​ ​K​ ​唤​起​快​捷​指​令
+			 */
+			shortcut_hint: string
+			/**
+			 * 按​ ​E​s​c​ ​关​闭
+			 */
+			esc_to_close: string
+		}
+	}
 }
 
 export type TranslationFunctions = {
@@ -23340,6 +23697,354 @@ export type TranslationFunctions = {
 		 * 节点配置保存到剪贴板失败
 		 */
 		clipboard_save_failed: () => LocalizedString
+	}
+	ai: {
+		settings: {
+			/**
+			 * AI 助手 & LLM Provider 配置
+			 */
+			title: () => LocalizedString
+			/**
+			 * 已启用
+			 */
+			enabled: () => LocalizedString
+			/**
+			 * 已禁用
+			 */
+			disabled: () => LocalizedString
+			/**
+			 * 配置兼容 OpenAI 协议的大模型服务（支持 DeepSeek、OpenAI、Ollama、Claude 等），赋能智能工作流构建。
+			 */
+			description: () => LocalizedString
+			/**
+			 * 已配置的 Provider 列表
+			 */
+			providers_list: () => LocalizedString
+			/**
+			 * 添加 Provider
+			 */
+			add_provider: () => LocalizedString
+			/**
+			 * 尚未配置任何 AI Provider
+			 */
+			no_providers: () => LocalizedString
+			/**
+			 * 请添加一个 OpenAI 兼容服务，或从以下常用预设中快速创建：
+			 */
+			no_providers_desc: () => LocalizedString
+			/**
+			 * 当前生效的 Provider
+			 */
+			active_provider: () => LocalizedString
+			/**
+			 * 设为生效 Provider
+			 */
+			set_active: () => LocalizedString
+			/**
+			 * 当前激活
+			 */
+			active_badge: () => LocalizedString
+			/**
+			 * 测试连接
+			 */
+			test_connection: () => LocalizedString
+			/**
+			 * 连接成功
+			 */
+			test_success: () => LocalizedString
+			/**
+			 * 连接失败
+			 */
+			test_failed: () => LocalizedString
+			/**
+			 * 编辑
+			 */
+			edit: () => LocalizedString
+			/**
+			 * 删除
+			 */
+			'delete': () => LocalizedString
+			/**
+			 * 取消
+			 */
+			cancel: () => LocalizedString
+			/**
+			 * 保存配置
+			 */
+			save: () => LocalizedString
+			/**
+			 * 添加新 AI Provider
+			 */
+			form_create_title: () => LocalizedString
+			/**
+			 * 编辑 AI Provider
+			 */
+			form_edit_title: () => LocalizedString
+			/**
+			 * Provider 显示名称
+			 */
+			name_label: () => LocalizedString
+			/**
+			 * API Base URL
+			 */
+			base_url_label: () => LocalizedString
+			/**
+			 * API Key
+			 */
+			api_key_label: () => LocalizedString
+			/**
+			 * 显示
+			 */
+			show: () => LocalizedString
+			/**
+			 * 隐藏
+			 */
+			hide: () => LocalizedString
+			/**
+			 * 模型名称 (Model)
+			 */
+			model_label: () => LocalizedString
+			/**
+			 * 获取模型列表
+			 */
+			fetch_models: () => LocalizedString
+			/**
+			 * 自定义全局 System Prompt
+			 */
+			custom_system_prompt_label: () => LocalizedString
+			/**
+			 * 输入附加的系统指令，例如：偏好的代码风格、特定的业务命名规范等...
+			 */
+			custom_system_prompt_placeholder: () => LocalizedString
+			/**
+			 * 此提示词将在每次向大模型发送请求时附加在 MPE 基础系统指令之后生效。
+			 */
+			custom_system_prompt_tip: () => LocalizedString
+		}
+		confirm_card: {
+			/**
+			 * 高风险操作确认
+			 */
+			title: () => LocalizedString
+			/**
+			 * 取消执行
+			 */
+			reject: () => LocalizedString
+			/**
+			 * 确认执行
+			 */
+			approve: () => LocalizedString
+			/**
+			 * 用户已批准执行
+			 */
+			status_approved: () => LocalizedString
+			/**
+			 * 用户已拒绝执行
+			 */
+			status_rejected: () => LocalizedString
+			/**
+			 * 清空当前流程画布中的所有节点与连线
+			 */
+			clear_canvas_desc: () => LocalizedString
+			/**
+			 * 当前画布共有 {nodes} 个节点和 {connections} 条连线将被全部移除。
+			 */
+			clear_canvas_diff: (arg: { connections: unknown, nodes: unknown }) => LocalizedString
+			/**
+			 * 删除 {count} 个节点
+			 */
+			delete_nodes_desc: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 将删除节点: [{names}]
+			 */
+			delete_nodes_diff: (arg: { names: unknown }) => LocalizedString
+			/**
+			 * 从插件市场下载并安装插件 "{name}"
+			 */
+			install_plugin_desc: (arg: { name: unknown }) => LocalizedString
+			/**
+			 * 版本: {version}, 来源: {url}
+			 */
+			install_plugin_diff: (arg: { url: unknown, version: unknown }) => LocalizedString
+		}
+		tool_call: {
+			/**
+			 * 执行成功
+			 */
+			done: () => LocalizedString
+			/**
+			 * 正在执行...
+			 */
+			running: () => LocalizedString
+		}
+		copilot: {
+			/**
+			 * MPE 全域 AI 助手
+			 */
+			title: () => LocalizedString
+			/**
+			 * 清空对话历史
+			 */
+			clear_history: () => LocalizedString
+			/**
+			 * 收起侧边栏
+			 */
+			close: () => LocalizedString
+			/**
+			 * 未配置生效的 AI Provider
+			 */
+			no_active_provider: () => LocalizedString
+			/**
+			 * 请先前往系统设置添加并激活一个 OpenAI 兼容模型服务。
+			 */
+			no_active_provider_desc: () => LocalizedString
+			/**
+			 * 前往配置 Provider
+			 */
+			configure_provider: () => LocalizedString
+			/**
+			 * 你好，我是 MPE 流程编排架构师
+			 */
+			welcome_title: () => LocalizedString
+			/**
+			 * 我可以感知当前项目的全量上下文，为你自动编排多协议工作流、编写脚本、排版连线或执行调试。
+			 */
+			welcome_desc: () => LocalizedString
+			/**
+			 * 快捷指令推荐
+			 */
+			suggested_prompts: () => LocalizedString
+			/**
+			 * 创建一个登录认证并提取 Token 传递给下游查询的流程
+			 */
+			prompt_sample_1: () => LocalizedString
+			/**
+			 * 编写一段 JavaScript 脚本对上一步 items 数组按 price 升序排序
+			 */
+			prompt_sample_2: () => LocalizedString
+			/**
+			 * 将画布上的所有节点重新进行水平 DAG 自动布局排版
+			 */
+			prompt_sample_3: () => LocalizedString
+			/**
+			 * 运行当前流程并在控制台中排查报错原因
+			 */
+			prompt_sample_4: () => LocalizedString
+			/**
+			 * 思考过程 (Reasoning)
+			 */
+			thought_process: () => LocalizedString
+			/**
+			 * 正在思考...
+			 */
+			thinking: () => LocalizedString
+			/**
+			 * 正在执行工具联动画布...
+			 */
+			executing_tools: () => LocalizedString
+			/**
+			 * 给 AI 助手发送指令... (Enter 发送, Shift+Enter 换行)
+			 */
+			input_placeholder: () => LocalizedString
+			/**
+			 * 请先配置激活 AI Provider 后开启对话...
+			 */
+			input_disabled_placeholder: () => LocalizedString
+			/**
+			 * 快捷键: Ctrl/Cmd + I 折叠侧边栏, Ctrl/Cmd + K 快速指令
+			 */
+			shortcut_tip: () => LocalizedString
+			/**
+			 * 发送
+			 */
+			send: () => LocalizedString
+			/**
+			 * 停止生成
+			 */
+			stop: () => LocalizedString
+			/**
+			 * 历史会话
+			 */
+			sessions_title: () => LocalizedString
+			/**
+			 * 新建对话
+			 */
+			new_session: () => LocalizedString
+			/**
+			 * 新对话
+			 */
+			new_session_title: () => LocalizedString
+			/**
+			 * 未命名对话
+			 */
+			unnamed_session: () => LocalizedString
+			/**
+			 * 重命名
+			 */
+			rename_session: () => LocalizedString
+			/**
+			 * 删除会话
+			 */
+			delete_session: () => LocalizedString
+			/**
+			 * 暂无历史会话
+			 */
+			empty_sessions: () => LocalizedString
+			/**
+			 * 附加图片 / 截图
+			 */
+			attach_image: () => LocalizedString
+			/**
+			 * 释放图片以添加附件...
+			 */
+			drop_image_here: () => LocalizedString
+			/**
+			 * 已附 {count} 图
+			 */
+			image_attached: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 支持粘贴/拖拽图片
+			 */
+			image_support: () => LocalizedString
+			/**
+			 * 图片预览
+			 */
+			image_preview: () => LocalizedString
+			/**
+			 * 移除图片
+			 */
+			remove_image: () => LocalizedString
+			/**
+			 * 拖拽调整侧边栏宽度
+			 */
+			drag_resize: () => LocalizedString
+			/**
+			 * {count} 条消息
+			 */
+			messages_count: (arg: { count: unknown }) => LocalizedString
+		}
+		spotlight: {
+			/**
+			 * AI 快捷指令
+			 */
+			title: () => LocalizedString
+			/**
+			 * 输入自然语言指令驱动 MPE 工作流...
+			 */
+			input_placeholder: () => LocalizedString
+			/**
+			 * 固定展开至右侧侧边栏
+			 */
+			dock_to_sidebar: () => LocalizedString
+			/**
+			 * Ctrl/Cmd + K 唤起快捷指令
+			 */
+			shortcut_hint: () => LocalizedString
+			/**
+			 * 按 Esc 关闭
+			 */
+			esc_to_close: () => LocalizedString
+		}
 	}
 }
 
