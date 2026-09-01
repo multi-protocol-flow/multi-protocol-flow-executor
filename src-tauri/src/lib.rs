@@ -30,6 +30,9 @@ pub use flow_engine::storage::{
 
 // 导出 Tauri 命令供 main.rs 使用
 pub use tauri_commands::{
+    ai_chat_stream,
+    ai_fetch_models,
+    ai_test_connection,
     cancel_dataset_execution,
     // 执行会话管理
     cancel_flow,
@@ -509,6 +512,10 @@ pub fn run() {
             load_dataset_report,
             load_dataset_row_detail,
             delete_dataset_report,
+            // AI Copilot 命令
+            ai_test_connection,
+            ai_fetch_models,
+            ai_chat_stream,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| eprintln!("Tauri application error: {e}"));

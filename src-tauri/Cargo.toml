@@ -38,6 +38,7 @@ futures-util = "0.3"
 http = "1"
 rustls-pemfile = "2"
 jsonpath-rust = "1.0.4"
+reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "rustls-no-provider"] }
 tempfile = "3.0"
 # Workspace Lint 配置
 [workspace.lints.rust]
@@ -116,6 +117,8 @@ log = "0.4"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 async-trait = "0.1"
 tokio = { workspace = true, features = ["signal"] }
+reqwest = { workspace = true }
+futures-util = { workspace = true }
 
 # CLI 日志
 fern = { version = "0.7", default-features = false }

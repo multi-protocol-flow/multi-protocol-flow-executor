@@ -141,6 +141,7 @@ dependencies = [
  "mpe-cli",
  "predicates",
  "proptest",
+ "reqwest",
  "rustls",
  "serde",
  "serde_json",

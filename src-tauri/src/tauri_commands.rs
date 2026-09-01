@@ -1562,6 +1562,183 @@ pub fn save_dataset_report(
 }
 
 // ============================================================================
+// AI Copilot IPC 命令
+// ============================================================================
+
+/// AI 连通性测试结果
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AiTestConnectionResult {
+    /// 是否连接成功
+    pub success: bool,
+    /// 响应延迟毫秒数
+    pub latency_ms: u64,
+    /// 错误信息（如果失败）
+    pub error: Option<String>,
+}
+
+fn normalize_ai_base_url(url: &str) -> String {
+    let mut cleaned = url.trim().trim_end_matches('/').to_string();
+    if cleaned.ends_with("/chat/completions") {
+        cleaned = cleaned[..cleaned.len() - "/chat/completions".len()].to_string();
+    }
+    if !cleaned.ends_with("/v1") && !cleaned.contains("/v1/") && !cleaned.ends_with("/api") {
+        if let Some(pos) = cleaned.find("://") {
+            let rest = &cleaned[pos + 3..];
+            if !rest.contains('/') {
+                cleaned = format!("{}/v1", cleaned);
+            }
+        }
+    }
+    cleaned
+}
+
+fn build_ai_reqwest_client() -> reqwest::Client {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(60))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new())
+}
+
+/// 测试 AI Provider 连通性
+#[tauri::command]
+pub async fn ai_test_connection(
+    base_url: String,
+    api_key: String,
+    model: String,
+    custom_headers: Option<HashMap<String, String>>,
+) -> Result<AiTestConnectionResult, String> {
+    let start_time = std::time::Instant::now();
+    let cleaned_base = normalize_ai_base_url(&base_url);
+    let endpoint = format!("{}/chat/completions", cleaned_base);
+
+    let client = build_ai_reqwest_client();
+    let mut req = client.post(&endpoint).json(&serde_json::json!({
+        "model": model,
+        "messages": [{"role": "user", "content": "hi"}],
+        "max_tokens": 5
+    }));
+
+    if !api_key.trim().is_empty() {
+        req = req.header("Authorization", format!("Bearer {}", api_key.trim()));
+    }
+    if let Some(headers) = custom_headers {
+        for (k, v) in headers {
+            req = req.header(k, v);
+        }
+    }
+
+    match req.send().await {
+        Ok(resp) => {
+            let latency_ms = start_time.elapsed().as_millis() as u64;
+            if resp.status().is_success() {
+                Ok(AiTestConnectionResult {
+                    success: true,
+                    latency_ms,
+                    error: None,
+                })
+            } else {
+                let status = resp.status();
+                let err_body = resp.text().await.unwrap_or_default();
+                Ok(AiTestConnectionResult {
+                    success: false,
+                    latency_ms,
+                    error: Some(format!("HTTP {}: {}", status, err_body)),
+                })
+            }
+        }
+        Err(e) => {
+            let latency_ms = start_time.elapsed().as_millis() as u64;
+            Ok(AiTestConnectionResult {
+                success: false,
+                latency_ms,
+                error: Some(e.to_string()),
+            })
+        }
+    }
+}
+
+/// 拉取 AI 模型列表
+#[tauri::command]
+pub async fn ai_fetch_models(
+    base_url: String,
+    api_key: String,
+    custom_headers: Option<HashMap<String, String>>,
+) -> Result<Vec<String>, String> {
+    let cleaned_base = normalize_ai_base_url(&base_url);
+    let endpoint = format!("{}/models", cleaned_base);
+
+    let client = build_ai_reqwest_client();
+    let mut req = client.get(&endpoint);
+
+    if !api_key.trim().is_empty() {
+        req = req.header("Authorization", format!("Bearer {}", api_key.trim()));
+    }
+    if let Some(headers) = custom_headers {
+        for (k, v) in headers {
+            req = req.header(k, v);
+        }
+    }
+
+    let resp = req.send().await.map_err(|e| e.to_string())?;
+    if !resp.status().is_success() {
+        return Err(format!("HTTP {}", resp.status()));
+    }
+
+    let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    let mut models = Vec::new();
+    if let Some(data) = json.get("data").and_then(|d| d.as_array()) {
+        for item in data {
+            if let Some(id) = item.get("id").and_then(|i| i.as_str()) {
+                models.push(id.to_string());
+            }
+        }
+    }
+
+    Ok(models)
+}
+
+/// 流式 AI 对话请求 (通过 Channel 实时推送 SSE 数据块)
+#[tauri::command]
+pub async fn ai_chat_stream(
+    base_url: String,
+    api_key: String,
+    request_body: serde_json::Value,
+    custom_headers: Option<HashMap<String, String>>,
+    on_chunk: Channel<String>,
+) -> Result<(), String> {
+
+    let cleaned_base = normalize_ai_base_url(&base_url);
+    let endpoint = format!("{}/chat/completions", cleaned_base);
+
+    let client = build_ai_reqwest_client();
+    let mut req = client.post(&endpoint).json(&request_body);
+
+    if !api_key.trim().is_empty() {
+        req = req.header("Authorization", format!("Bearer {}", api_key.trim()));
+    }
+    if let Some(headers) = custom_headers {
+        for (k, v) in headers {
+            req = req.header(k, v);
+        }
+    }
+
+    let mut resp = req.send().await.map_err(|e| e.to_string())?;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let err_body = resp.text().await.unwrap_or_default();
+        return Err(format!("HTTP {}: {}", status, err_body));
+    }
+
+    while let Some(chunk_result) = resp.chunk().await.map_err(|e| e.to_string())? {
+        let text = String::from_utf8_lossy(&chunk_result).to_string();
+        let _ = on_chunk.send(text);
+    }
+
+    Ok(())
+}
+
+// ============================================================================
 // 单元测试
 // ============================================================================
 

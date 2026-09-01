@@ -28,7 +28,7 @@
         "default-src": "'self'",
         "script-src": "'self'",
         "style-src": "'self' 'unsafe-inline'",
-        "connect-src": "'self' tauri:",
+        "connect-src": "'self' tauri: http: https: ws: wss: data: blob:",
         "img-src": "'self' data:",
         "frame-src": "mpe-plugin: http://mpe-plugin.localhost http://*.mpe-plugin.localhost"
       }
