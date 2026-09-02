@@ -23,7 +23,7 @@ components/
 │   ├── NodeConfigPanel.tsx 按 nodeType 分发到具体面板
 │   ├── Http/Mcp/Tcp/Udp/Mqtt/Kafka/Sse/Graphql/Amqp/Imap/Smtp/Redis/Db
 │   ├── Assertion/Conditional/Script/Entry/End/Proxy/VariableExtractor
-│   ├── SettingsPanel / EnvironmentManager / SchemaConfigPanel
+│   ├── EnvironmentManager / SchemaConfigPanel
 │   ├── schemas.ts        ~1700 行 Zod schema
 │   └── shared/           OutputMappingsEditor, ImapShared
 ├── execution/ (19)       执行结果

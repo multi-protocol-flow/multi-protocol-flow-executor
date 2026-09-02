@@ -447,7 +447,7 @@ export function AICopilotPanel() {
               <Button
                 size="sm"
                 className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white mx-auto"
-                onClick={openSettingsDialog}
+                onClick={() => openSettingsDialog('ai')}
               >
                 <Settings className="mr-1.5 h-3.5 w-3.5" />
                 {ll.ai.copilot.configure_provider()}

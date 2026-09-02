@@ -7,13 +7,14 @@ import { SandboxBanner } from '@/components/common/SandboxBanner';
 
 import { LeftSidebarPanel } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
-import { NodeConfigPanel, SettingsPanel } from '@/components/panels';
+import { NodeConfigPanel } from '@/components/panels';
 import { ExecutionReport, ExecutionHistory, ConsolePanel, ExecutionPanel } from '@/components/execution';
 import { FlowCompareDialog } from '@/components/execution/FlowCompareDialog';
 import { StressTestResult } from '@/components/stress-test/StressTestResult';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { PluginSettingsDialog } from '@/components/dialogs/PluginSettingsDialog';
+import { SettingsDialog } from '@/components/settings';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { ShortcutsDialog } from '@/components/dialogs/ShortcutsDialog';
 import { SearchOverlay } from '@/components/dialogs/SearchOverlay';
@@ -103,7 +104,6 @@ export function MainLayout() {
   const isFlowListPanelOpen = useUIStore((state) => state.isFlowListPanelOpen);
   const isBottomPanelExpanded = useUIStore((state) => state.isBottomPanelExpanded);
   const isConfigPanelOpen = useUIStore((state) => state.isConfigPanelOpen);
-  const configPanelMode = useUIStore((state) => state.configPanelMode);
   const bottomPanelTab = useUIStore((state) => state.bottomPanelTab);
   const bottomPanelHeight = useUIStore((state) => state.bottomPanelHeight);
   const configPanelWidth = useUIStore((state) => state.configPanelWidth);
@@ -405,7 +405,7 @@ export function MainLayout() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={openSettingsDialog}
+            onClick={() => openSettingsDialog()}
             title={getLL().common.settings_label()}
           >
             <Settings className="h-5 w-5" />
@@ -678,11 +678,7 @@ export function MainLayout() {
           )}
           {isConfigPanelOpen && (
             <div className="h-full min-w-0 overflow-hidden pl-2" style={{ width: configPanelWidth }}>
-              {configPanelMode === 'settings' ? (
-                <SettingsPanel />
-              ) : (
-                <NodeConfigPanel readOnly={isRightPanelReadOnly} />
-              )}
+              <NodeConfigPanel readOnly={isRightPanelReadOnly} />
             </div>
           )}
         </aside>
@@ -752,6 +748,8 @@ export function MainLayout() {
       {/* ===== 插件设置对话框 ===== */}
       <PluginSettingsDialog />
 
+      {/* ===== 全局设置对话框 ===== */}
+      <SettingsDialog />
       {/* ===== 全流程搜索面板 ===== */}
 
       {/* ===== AI 助手侧边栏与 Spotlight 弹窗 ===== */}
