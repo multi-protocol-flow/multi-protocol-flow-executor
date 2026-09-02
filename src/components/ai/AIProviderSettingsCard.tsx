@@ -24,11 +24,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings';
 import { testConnection, fetchModels } from '@/services/ai/openaiClient';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { AIProviderConfig } from '@/types/ai';
-
 const PRESETS: Array<{
   name: string;
   baseUrl: string;
@@ -61,7 +61,7 @@ const PRESETS: Array<{
   },
 ];
 
-export function AIProviderSettingsCard() {
+export function AIProviderSettingsCard({ className }: { className?: string } = {}) {
   const ll = getLL();
   const settings = useSettingsStore();
 
@@ -164,7 +164,7 @@ export function AIProviderSettingsCard() {
   };
 
   return (
-    <div className="space-y-4 pt-2 border-t border-border/60">
+    <div className={cn('space-y-4', className)}>
       {/* 模块头部 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
