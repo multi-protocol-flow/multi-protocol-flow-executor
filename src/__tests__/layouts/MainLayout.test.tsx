@@ -32,7 +32,6 @@ vi.mock('@/components/canvas', () => ({
 
 vi.mock('@/components/panels', () => ({
   NodeConfigPanel: () => <div data-testid="node-config-panel">NodeConfig</div>,
-  SettingsPanel: () => <div data-testid="settings-panel">Settings</div>,
   DebugPanel: () => <div data-testid="debug-panel">Debug</div>,
 }));
 
