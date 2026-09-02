@@ -6979,6 +6979,106 @@ type RootTranslation = {
 		 * 宿​主​与​插​件​标​准​输​入​输​出​通​信​帧​队​列​深​度​（​默​认​ ​2​0​4​8​）​。
 		 */
 		plugin_queue_capacity_tip: string
+		/**
+		 * 常​规​与​外​观
+		 */
+		tab_general: string
+		/**
+		 * 存​储​与​路​径
+		 */
+		tab_storage: string
+		/**
+		 * A​I​ ​助​手​模​型
+		 */
+		tab_ai: string
+		/**
+		 * 引​擎​与​性​能
+		 */
+		tab_engine: string
+		/**
+		 * 全​局​设​置
+		 */
+		dialog_title: string
+		/**
+		 * 管​理​外​观​主​题​、​本​地​存​储​路​径​、​A​I​ ​助​手​服​务​商​及​底​层​引​擎​性​能​参​数
+		 */
+		dialog_desc: string
+		/**
+		 * 持​久​化​存​储​全​局​首​选​项​、​A​I​ ​服​务​商​密​钥​与​核​心​配​置​参​数
+		 */
+		config_file_desc: string
+		/**
+		 * 本​地​流​程​ ​(​.​m​p​f​ ​/​ ​J​S​O​N​)​ ​文​件​的​默​认​持​久​化​目​录
+		 */
+		flows_dir_desc: string
+		/**
+		 * 流​程​执​行​历​史​与​性​能​压​测​报​告​存​储​目​录
+		 */
+		reports_dir_desc: string
+		/**
+		 * 应​用​程​序​运​行​日​志​与​插​件​子​进​程​通​信​日​志​目​录
+		 */
+		logs_dir_desc: string
+		/**
+		 * 打​开​文​件
+		 */
+		open_file: string
+		/**
+		 * 打​开​所​在​目​录
+		 */
+		open_in_folder: string
+		/**
+		 * 复​制​路​径
+		 */
+		copy_path: string
+		/**
+		 * 路​径​已​复​制​到​剪​贴​板
+		 */
+		path_copied: string
+		/**
+		 * 复​制​失​败
+		 */
+		copy_failed: string
+		/**
+		 * 当​前​处​于​网​页​环​境​，​无​法​调​起​系​统​资​源​管​理​器
+		 */
+		cannot_open_in_browser: string
+		/**
+		 * 外​观​主​题
+		 */
+		appearance: string
+		/**
+		 * 选​择​明​暗​模​式​或​跟​随​操​作​系​统​自​动​调​整
+		 */
+		appearance_desc: string
+		/**
+		 * 选​择​应​用​程​序​界​面​显​示​的​系​统​语​言
+		 */
+		language_desc: string
+		/**
+		 * 快​捷​预​设
+		 */
+		timeout_presets: string
+		/**
+		 * 配​置​流​程​节​点​执​行​策​略​与​后​台​插​件​子​进​程​的​工​作​载​荷
+		 */
+		engine_desc: string
+		/**
+		 * 日​常​运​行​推​荐​ ​2​5​6​；​大​规​模​压​测​建​议​调​至​ ​1​0​2​4​ ​以​上
+		 */
+		concurrency_recommended: string
+		/**
+		 * 通​信​帧​通​道​队​列​深​度​，​高​频​交​互​场​景​可​调​大
+		 */
+		queue_capacity_recommended: string
+		/**
+		 * 打​开​插​件​管​理
+		 */
+		plugins_manager_link: string
+		/**
+		 * 已​自​动​同​步
+		 */
+		saved_badge: string
 	}
 	plugins: {
 		/**
@@ -19027,6 +19127,106 @@ export type TranslationFunctions = {
 		 * 宿主与插件标准输入输出通信帧队列深度（默认 2048）。
 		 */
 		plugin_queue_capacity_tip: () => LocalizedString
+		/**
+		 * 常规与外观
+		 */
+		tab_general: () => LocalizedString
+		/**
+		 * 存储与路径
+		 */
+		tab_storage: () => LocalizedString
+		/**
+		 * AI 助手模型
+		 */
+		tab_ai: () => LocalizedString
+		/**
+		 * 引擎与性能
+		 */
+		tab_engine: () => LocalizedString
+		/**
+		 * 全局设置
+		 */
+		dialog_title: () => LocalizedString
+		/**
+		 * 管理外观主题、本地存储路径、AI 助手服务商及底层引擎性能参数
+		 */
+		dialog_desc: () => LocalizedString
+		/**
+		 * 持久化存储全局首选项、AI 服务商密钥与核心配置参数
+		 */
+		config_file_desc: () => LocalizedString
+		/**
+		 * 本地流程 (.mpf / JSON) 文件的默认持久化目录
+		 */
+		flows_dir_desc: () => LocalizedString
+		/**
+		 * 流程执行历史与性能压测报告存储目录
+		 */
+		reports_dir_desc: () => LocalizedString
+		/**
+		 * 应用程序运行日志与插件子进程通信日志目录
+		 */
+		logs_dir_desc: () => LocalizedString
+		/**
+		 * 打开文件
+		 */
+		open_file: () => LocalizedString
+		/**
+		 * 打开所在目录
+		 */
+		open_in_folder: () => LocalizedString
+		/**
+		 * 复制路径
+		 */
+		copy_path: () => LocalizedString
+		/**
+		 * 路径已复制到剪贴板
+		 */
+		path_copied: () => LocalizedString
+		/**
+		 * 复制失败
+		 */
+		copy_failed: () => LocalizedString
+		/**
+		 * 当前处于网页环境，无法调起系统资源管理器
+		 */
+		cannot_open_in_browser: () => LocalizedString
+		/**
+		 * 外观主题
+		 */
+		appearance: () => LocalizedString
+		/**
+		 * 选择明暗模式或跟随操作系统自动调整
+		 */
+		appearance_desc: () => LocalizedString
+		/**
+		 * 选择应用程序界面显示的系统语言
+		 */
+		language_desc: () => LocalizedString
+		/**
+		 * 快捷预设
+		 */
+		timeout_presets: () => LocalizedString
+		/**
+		 * 配置流程节点执行策略与后台插件子进程的工作载荷
+		 */
+		engine_desc: () => LocalizedString
+		/**
+		 * 日常运行推荐 256；大规模压测建议调至 1024 以上
+		 */
+		concurrency_recommended: () => LocalizedString
+		/**
+		 * 通信帧通道队列深度，高频交互场景可调大
+		 */
+		queue_capacity_recommended: () => LocalizedString
+		/**
+		 * 打开插件管理
+		 */
+		plugins_manager_link: () => LocalizedString
+		/**
+		 * 已自动同步
+		 */
+		saved_badge: () => LocalizedString
 	}
 	plugins: {
 		/**
