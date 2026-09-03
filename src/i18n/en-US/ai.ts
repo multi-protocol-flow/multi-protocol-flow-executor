@@ -23,6 +23,7 @@ const ai = {
     save: 'Save Provider',
     form_create_title: 'Add New AI Provider',
     form_edit_title: 'Edit AI Provider',
+    quick_fill_presets: 'Quick Fill Presets:',
     name_label: 'Provider Display Name',
     base_url_label: 'API Base URL',
     api_key_label: 'API Key',

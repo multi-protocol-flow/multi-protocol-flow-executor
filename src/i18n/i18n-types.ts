@@ -7382,6 +7382,86 @@ type RootTranslation = {
 		 */
 		all_nodes: string
 		/**
+		 * 全​部​来​源
+		 */
+		log_source_all: string
+		/**
+		 * 流​程​执​行
+		 */
+		log_source_flow: string
+		/**
+		 * 系​统​操​作
+		 */
+		log_source_system: string
+		/**
+		 * 复​制​日​志
+		 */
+		copy_logs: string
+		/**
+		 * 日​志​已​复​制​到​剪​贴​板
+		 */
+		logs_copied: string
+		/**
+		 * 复​制​日​志​失​败
+		 */
+		copy_logs_failed: string
+		/**
+		 * 复​制​详​情
+		 */
+		copy_details: string
+		/**
+		 * 错​误​详​情​已​复​制​到​剪​贴​板
+		 */
+		details_copied: string
+		/**
+		 * 前​端​运​行​时​异​常
+		 */
+		runtime_error: string
+		/**
+		 * 未​处​理​的​异​步​异​常
+		 */
+		unhandled_rejection: string
+		/**
+		 * 保​存​流​程​文​件​失​败
+		 */
+		save_flow_failed: string
+		/**
+		 * 加​载​流​程​文​件​失​败
+		 */
+		load_flow_failed: string
+		/**
+		 * 删​除​流​程​文​件​失​败
+		 */
+		delete_flow_failed: string
+		/**
+		 * 复​制​流​程​文​件​失​败
+		 */
+		copy_flow_failed: string
+		/**
+		 * 创​建​文​件​夹​失​败
+		 */
+		create_folder_failed: string
+		/**
+		 * 删​除​文​件​夹​失​败
+		 */
+		delete_folder_failed: string
+		/**
+		 * 重​命​名​文​件​夹​失​败
+		 */
+		rename_folder_failed: string
+		/**
+		 * 移​动​流​程​失​败
+		 */
+		move_flow_failed: string
+		/**
+		 * 移​动​文​件​夹​失​败
+		 */
+		move_folder_failed: string
+		/**
+		 * 测​试​节​点​执​行​失​败
+		 */
+		test_node_failed: string
+		/**
 		 * 清​空​日​志
 		 */
 		clear_logs: string
@@ -7393,10 +7473,6 @@ type RootTranslation = {
 		 * 确​定​要​清​空​所​有​日​志​吗​？​清​空​后​无​法​恢​复​。
 		 */
 		clear_logs_confirm_desc: string
-		/**
-		 * 底​部​面​板
-		 */
-		bottom_panel: string
 		/**
 		 * 收​起​面​板
 		 */
@@ -11960,6 +12036,10 @@ type RootTranslation = {
 			 * 编​辑​ ​A​I​ ​P​r​o​v​i​d​e​r
 			 */
 			form_edit_title: string
+			/**
+			 * 快​速​填​充​预​设​:
+			 */
+			quick_fill_presets: string
 			/**
 			 * P​r​o​v​i​d​e​r​ ​显​示​名​称
 			 */
@@ -19526,6 +19606,86 @@ export type TranslationFunctions = {
 		 */
 		all_nodes: () => LocalizedString
 		/**
+		 * 全部来源
+		 */
+		log_source_all: () => LocalizedString
+		/**
+		 * 流程执行
+		 */
+		log_source_flow: () => LocalizedString
+		/**
+		 * 系统操作
+		 */
+		log_source_system: () => LocalizedString
+		/**
+		 * 复制日志
+		 */
+		copy_logs: () => LocalizedString
+		/**
+		 * 日志已复制到剪贴板
+		 */
+		logs_copied: () => LocalizedString
+		/**
+		 * 复制日志失败
+		 */
+		copy_logs_failed: () => LocalizedString
+		/**
+		 * 复制详情
+		 */
+		copy_details: () => LocalizedString
+		/**
+		 * 错误详情已复制到剪贴板
+		 */
+		details_copied: () => LocalizedString
+		/**
+		 * 前端运行时异常
+		 */
+		runtime_error: () => LocalizedString
+		/**
+		 * 未处理的异步异常
+		 */
+		unhandled_rejection: () => LocalizedString
+		/**
+		 * 保存流程文件失败
+		 */
+		save_flow_failed: () => LocalizedString
+		/**
+		 * 加载流程文件失败
+		 */
+		load_flow_failed: () => LocalizedString
+		/**
+		 * 删除流程文件失败
+		 */
+		delete_flow_failed: () => LocalizedString
+		/**
+		 * 复制流程文件失败
+		 */
+		copy_flow_failed: () => LocalizedString
+		/**
+		 * 创建文件夹失败
+		 */
+		create_folder_failed: () => LocalizedString
+		/**
+		 * 删除文件夹失败
+		 */
+		delete_folder_failed: () => LocalizedString
+		/**
+		 * 重命名文件夹失败
+		 */
+		rename_folder_failed: () => LocalizedString
+		/**
+		 * 移动流程失败
+		 */
+		move_flow_failed: () => LocalizedString
+		/**
+		 * 移动文件夹失败
+		 */
+		move_folder_failed: () => LocalizedString
+		/**
+		 * 测试节点执行失败
+		 */
+		test_node_failed: () => LocalizedString
+		/**
 		 * 清空日志
 		 */
 		clear_logs: () => LocalizedString
@@ -19537,10 +19697,6 @@ export type TranslationFunctions = {
 		 * 确定要清空所有日志吗？清空后无法恢复。
 		 */
 		clear_logs_confirm_desc: () => LocalizedString
-		/**
-		 * 底部面板
-		 */
-		bottom_panel: () => LocalizedString
 		/**
 		 * 收起面板
 		 */
@@ -23980,6 +24136,10 @@ export type TranslationFunctions = {
 			 * 编辑 AI Provider
 			 */
 			form_edit_title: () => LocalizedString
+			/**
+			 * 快速填充预设:
+			 */
+			quick_fill_presets: () => LocalizedString
 			/**
 			 * Provider 显示名称
 			 */

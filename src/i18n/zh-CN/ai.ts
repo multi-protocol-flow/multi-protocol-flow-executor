@@ -23,6 +23,7 @@ const ai = {
     save: '保存配置',
     form_create_title: '添加新 AI Provider',
     form_edit_title: '编辑 AI Provider',
+    quick_fill_presets: '快速填充预设:',
     name_label: 'Provider 显示名称',
     base_url_label: 'API Base URL',
     api_key_label: 'API Key',
