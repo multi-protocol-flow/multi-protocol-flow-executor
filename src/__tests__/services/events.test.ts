@@ -24,14 +24,7 @@ const createTestFlow = (hasConnection = false): Flow => ({
 describe('executeFlowWithChannel (Mock)', () => {
   beforeEach(() => {
     // 重置 Console Store
-    useConsoleStore.setState({
-      logs: [],
-      filter: {
-        level: 'ALL',
-        nodeUuid: 'ALL',
-        searchKeyword: '',
-      },
-    });
+    useConsoleStore.getState().reset();
   });
 
   describe('执行流程', () => {

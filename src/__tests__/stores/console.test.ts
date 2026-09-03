@@ -19,14 +19,7 @@ describe('ConsoleStore', () => {
 
   beforeEach(() => {
     // 重置 store 到初始状态
-    useConsoleStore.setState({
-      logs: [],
-      filter: {
-        level: 'ALL',
-        nodeUuid: 'ALL',
-        searchKeyword: '',
-      },
-    });
+    useConsoleStore.getState().reset();
   });
 
   describe('初始状态', () => {
@@ -38,6 +31,7 @@ describe('ConsoleStore', () => {
       const { filter } = useConsoleStore.getState();
       expect(filter.level).toBe('ALL');
       expect(filter.nodeUuid).toBe('ALL');
+      expect(filter.source).toBe('ALL');
       expect(filter.searchKeyword).toBe('');
     });
   });
@@ -101,6 +95,38 @@ describe('ConsoleStore', () => {
       expect(logs.map((l) => l.level)).toEqual(levels);
     });
   });
+  describe('addSystemLog', () => {
+    it('添加系统日志并自动生成 category 标签', () => {
+      useConsoleStore.getState().addSystemLog({
+        level: 'ERROR',
+        message: '保存流程失败: 权限不足',
+        category: 'FlowStorage',
+        details: { code: 'E_PERM' },
+      });
+
+      const logs = useConsoleStore.getState().logs;
+      expect(logs.length).toBe(1);
+      expect(logs[0].level).toBe('ERROR');
+      expect(logs[0].message).toBe('保存流程失败: 权限不足');
+      expect(logs[0].source).toBe('system');
+      expect(logs[0].nodeName).toBe('[FlowStorage]');
+      expect(logs[0].nodeUuid).toBe('system:flowstorage');
+      expect(logs[0].details).toEqual({ code: 'E_PERM' });
+    });
+
+    it('未指定 category 时使用默认的 [System]', () => {
+      useConsoleStore.getState().addSystemLog({
+        level: 'INFO',
+        message: '系统初始化完成',
+      });
+
+      const logs = useConsoleStore.getState().logs;
+      expect(logs.length).toBe(1);
+      expect(logs[0].nodeName).toBe('[System]');
+      expect(logs[0].nodeUuid).toBe('system');
+    });
+  });
+
 
   describe('clearLogs', () => {
     it('清空所有日志', () => {
@@ -287,6 +313,22 @@ describe('ConsoleStore', () => {
       });
       const filtered = useConsoleStore.getState().getFilteredLogs();
       expect(filtered).toHaveLength(0);
+    });
+
+    it('按日志来源 source 过滤 (ALL / flow / system)', () => {
+      useConsoleStore.getState().addLog(createTestLog({ message: '流程执行' }));
+      useConsoleStore.getState().addSystemLog({ level: 'INFO', message: '系统操作', category: 'IPC' });
+
+      expect(useConsoleStore.getState().getFilteredLogs().length).toBe(6);
+
+      useConsoleStore.getState().setFilter({ source: 'flow' });
+      const flowLogs = useConsoleStore.getState().getFilteredLogs();
+      expect(flowLogs.length).toBe(5);
+
+      useConsoleStore.getState().setFilter({ source: 'system' });
+      const systemLogs = useConsoleStore.getState().getFilteredLogs();
+      expect(systemLogs.length).toBe(1);
+      expect(systemLogs[0].message).toBe('系统操作');
     });
   });
 

@@ -11,8 +11,8 @@ import { useThrottledValue } from '@/hooks/useThrottledValue';
 import { Terminal, Info, AlertTriangle, Bug, XCircle } from 'lucide-react';
 import type { LogLevel } from '@/types/events';
 import { useCurrentLocale } from '@/hooks/useLocale';
-
-// 日志级别颜色映射
+import { cn } from '@/lib/utils';
+import { safeStringify } from '@/lib/clipboard';
 const levelColors: Record<LogLevel, string> = {
   INFO: 'text-blue-500',
   DEBUG: 'text-muted-foreground',
@@ -50,6 +50,13 @@ export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
+      // 来源过滤 (ALL / flow / system)
+      if (filter.source && filter.source !== 'ALL') {
+        const logSource = log.source ?? 'flow';
+        if (logSource !== filter.source) {
+          return false;
+        }
+      }
       if (filter.level && filter.level !== 'ALL' && log.level !== filter.level) {
         return false;
       }
@@ -91,18 +98,36 @@ export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
           return (
             <div
               key={log.id}
-              className="flex items-start gap-2 px-1 py-0.5 hover:bg-muted/50 rounded"
+              className="flex flex-col gap-0.5 px-1 py-0.5 hover:bg-muted/50 rounded group"
             >
-              <span className="text-muted-foreground shrink-0">
-                {formatTimestamp(log.timestamp)}
-              </span>
-              <Icon
-                className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${levelColors[log.level]}`}
-              />
-              {log.nodeName && (
-                <span className="text-purple-500 shrink-0">[{log.nodeName}]</span>
-              )}
-              <span className="break-all">{log.message}</span>
+              <div className="flex items-start gap-2">
+                <span className="text-muted-foreground shrink-0">
+                  {formatTimestamp(log.timestamp)}
+                </span>
+                <Icon
+                  className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${levelColors[log.level]}`}
+                />
+                {log.nodeName && (
+                  <span
+                    className={cn(
+                      'shrink-0 font-medium',
+                      log.source === 'system'
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-purple-600 dark:text-purple-400'
+                    )}
+                  >
+                    {log.nodeName.startsWith('[') ? log.nodeName : `[${log.nodeName}]`}
+                  </span>
+                )}
+                <span className="break-all flex-1">{log.message}</span>
+              </div>
+              {log.details ? (
+                <div className="ml-16 mt-0.5 px-2 py-1 bg-muted/40 rounded border border-border/50 text-[11px] text-muted-foreground overflow-x-auto whitespace-pre-wrap">
+                  {typeof log.details === 'object'
+                    ? safeStringify(log.details, 2)
+                    : String(log.details)}
+                </div>
+              ) : null}
             </div>
           );
         })}

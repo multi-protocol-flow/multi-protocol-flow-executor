@@ -4,8 +4,6 @@
 import { create } from 'zustand';
 import type { Flow, Node, NodeData, Connection, EnvironmentSet, AnyNodeType } from '@/types';
 import { useExecutionStore } from './execution';
-import { useConsoleStore } from './console';
-
 /** 深度比较两个值是否相等（属性顺序无关，undefined 值视为缺失） */
 function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
@@ -183,7 +181,6 @@ export const useFlowStore = create<FlowState>((set, get) => {
     setFlow: (flow) => {
       // 切换流程时清空上次执行的运行状态，避免底部面板残留旧流程的节点记录
       useExecutionStore.getState().clearExecutionState();
-      useConsoleStore.getState().clearLogs();
       return set({ flow, selectedNodeId: null, isDirty: false, past: [], future: [] });
     },
 

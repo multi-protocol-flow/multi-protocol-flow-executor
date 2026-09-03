@@ -32,9 +32,8 @@ import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDeb
 import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, Puzzle, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, Puzzle, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard, Sparkles, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -46,7 +45,7 @@ import { stressTestStorage } from '@/services/storage/stressTestStorage';
 import { flowStorage } from '@/services/storage/flowStorage';
 import type { Flow } from '@/types';
 import { getLL } from '@/i18n/i18n-lazy';
-
+import { copyToClipboard, safeStringify } from '@/lib/clipboard';
 /**
  * 确认对话框处理器组件
  * 从 store 读取状态并渲染 ConfirmDialog
@@ -127,11 +126,8 @@ export function MainLayout() {
   const navigateToDatasetRowDetail = useUIStore((state) => state.navigateToDatasetRowDetail);
 
   // 缩放状态
-  const zoom = useZoomStore((state) => state.zoom);
   const zoomIn = useZoomStore((state) => state.zoomIn);
   const zoomOut = useZoomStore((state) => state.zoomOut);
-  const resetZoom = useZoomStore((state) => state.resetZoom);
-
   const isDirty = useFlowStore((state) => state.isDirty);
   const flow = useFlowStore((state) => state.flow);
 
@@ -163,6 +159,30 @@ export function MainLayout() {
       },
     });
   }, [clearLogs, showConfirm]);
+
+  // 复制控制台日志
+  const handleCopyConsoleLogs = useCallback(async () => {
+    const logs = useConsoleStore.getState().getFilteredLogs();
+    if (logs.length === 0) {
+      toast.info(getLL().viewer.console.no_logs());
+      return;
+    }
+    const text = logs
+      .map((l) => {
+        const time = new Date(l.timestamp).toISOString();
+        const tag = l.nodeName ? ` ${l.nodeName}` : '';
+        const details = l.details ? `\n  Details: ${safeStringify(l.details, 2)}` : '';
+        return `[${time}] [${l.level}]${tag} ${l.message}${details}`;
+      })
+      .join('\n');
+
+    const copied = await copyToClipboard(text);
+    if (copied) {
+      toast.success(getLL().flow.logs_copied());
+    } else {
+      toast.error(getLL().flow.copy_logs_failed?.() ?? 'Failed to copy logs');
+    }
+  }, []);
 
   // 底部面板 Tab 点击：点击相同 tab 收起并取消选中，不同 tab 切换并展开
   const handleTabClick = useCallback((tab: 'console' | 'history' | 'running') => {
@@ -346,16 +366,6 @@ export function MainLayout() {
             </Button>
             <Button
               variant="ghost"
-              size="sm"
-              onClick={resetZoom}
-              className="h-7 min-w-[3.5rem] px-1 text-xs text-muted-foreground"
-              title={getLL().common.zoom_reset()}
-            >
-              {Math.round(zoom * 100)}%
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
               onClick={zoomIn}
               className="h-7 w-7"
               title={getLL().common.zoom_in()}
@@ -596,6 +606,18 @@ export function MainLayout() {
                     <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
                       {/* 过滤控件 */}
                       <div className="flex items-center gap-2 px-2 py-1.5 border-b border-border shrink-0">
+                        {/* 来源过滤 */}
+                        <Select value={filter.source} onValueChange={(v) => setFilter({ source: v as 'ALL' | 'flow' | 'system' })}>
+                          <SelectTrigger className="w-24 h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ALL">{getLL().flow.log_source_all()}</SelectItem>
+                            <SelectItem value="flow">{getLL().flow.log_source_flow()}</SelectItem>
+                            <SelectItem value="system">{getLL().flow.log_source_system()}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {/* 级别过滤 */}
                         <Select value={filter.level} onValueChange={(v) => setFilter({ level: v as 'ALL' | 'INFO' | 'DEBUG' | 'WARN' | 'ERROR' })}>
                           <SelectTrigger className="w-20 h-7 text-xs">
                             <SelectValue placeholder={getLL().flow.level()} />
@@ -608,6 +630,7 @@ export function MainLayout() {
                             <SelectItem value="ERROR">ERROR</SelectItem>
                           </SelectContent>
                         </Select>
+                        {/* 节点/分类过滤 */}
                         <Select value={filter.nodeUuid} onValueChange={(v) => setFilter({ nodeUuid: v })}>
                           <SelectTrigger className="w-28 h-7 text-xs">
                             <SelectValue placeholder={getLL().flow.node()} />
@@ -627,6 +650,16 @@ export function MainLayout() {
                           onChange={(e) => setSearchKeyword(e.target.value)}
                           className="h-7 w-32 text-xs"
                         />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCopyConsoleLogs}
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-accent-foreground"
+                          title={getLL().flow.copy_logs()}
+                        >
+                          <Copy className="w-3.5 h-3.5 mr-1" />
+                          {getLL().flow.copy_logs()}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"

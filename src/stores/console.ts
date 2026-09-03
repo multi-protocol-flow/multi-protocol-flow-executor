@@ -7,11 +7,26 @@ import type { LogEvent, LogLevel } from '@/types/events';
 
 export interface LogEntry extends LogEvent {
   id: string; // 唯一标识符，用于 React key
+  /** 日志来源：flow 为流程执行，system 为系统/操作日志 */
+  source?: 'flow' | 'system';
+  /** 额外详情数据（对象、错误堆栈等） */
+  details?: unknown;
+}
+
+export type LogSourceFilter = 'ALL' | 'flow' | 'system';
+
+export interface SystemLogInput {
+  level: LogLevel;
+  message: string;
+  category?: string; // e.g. 'FlowStorage', 'Plugin', 'Settings', 'IPC', 'Execution'
+  flowUuid?: string;
+  details?: unknown;
 }
 
 interface LogFilter {
   level: LogLevel | 'ALL';
   nodeUuid: string | 'ALL';
+  source: LogSourceFilter;
   searchKeyword: string;
 }
 
@@ -23,11 +38,13 @@ interface ConsoleState {
   MAX_LOGS: number;
 
   // Actions
-  addLog: (log: LogEvent) => void;
+  addLog: (log: LogEvent & { source?: 'flow' | 'system'; details?: unknown }) => void;
+  addSystemLog: (input: SystemLogInput) => void;
   clearLogs: () => void;
   setFilter: (filter: Partial<LogFilter>) => void;
   setSearchKeyword: (keyword: string) => void;
   setSelectedNode: (nodeUuid: string | 'ALL') => void;
+  reset: () => void;
 
   // Selectors (computed)
   getFilteredLogs: () => LogEntry[];
@@ -43,6 +60,7 @@ const initialState = {
   filter: {
     level: 'ALL' as const,
     nodeUuid: 'ALL' as const,
+    source: 'ALL' as const,
     searchKeyword: '',
   },
 };
@@ -54,15 +72,44 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   MAX_LOGS: 1000,
 
   // 添加日志
+  // 添加流程执行日志
   addLog: (log) =>
     set((state) => {
-      const newLogs = [...state.logs, { ...log, id: generateId() }];
+      const newLogs = [
+        ...state.logs,
+        { ...log, id: generateId(), source: log.source ?? 'flow' },
+      ];
       // 超出上限时丢弃最早的日志
       if (newLogs.length > state.MAX_LOGS) {
         return { logs: newLogs.slice(newLogs.length - state.MAX_LOGS) };
       }
       return { logs: newLogs };
     }),
+
+  // 添加系统/操作日志
+  addSystemLog: (input) =>
+    set((state) => {
+      const category = input.category ? input.category.trim() : undefined;
+      const newEntry: LogEntry = {
+        id: generateId(),
+        level: input.level,
+        message: input.message,
+        timestamp: Date.now(),
+        nodeUuid: category ? `system:${category.toLowerCase()}` : 'system',
+        nodeName: category ? `[${category}]` : '[System]',
+        flowUuid: input.flowUuid ?? 'system',
+        source: 'system',
+        details: input.details,
+      };
+      const newLogs = [...state.logs, newEntry];
+      if (newLogs.length > state.MAX_LOGS) {
+        return { logs: newLogs.slice(newLogs.length - state.MAX_LOGS) };
+      }
+      return { logs: newLogs };
+    }),
+
+  // 重置状态
+  reset: () => set({ ...initialState, logs: [] }),
 
   // 清空日志
   clearLogs: () => set({ logs: [] }),
@@ -89,6 +136,13 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
   getFilteredLogs: () => {
     const { logs, filter } = get();
     return logs.filter((log) => {
+      // 来源过滤 (ALL / flow / system)
+      if (filter.source !== 'ALL') {
+        const logSource = log.source ?? 'flow';
+        if (logSource !== filter.source) {
+          return false;
+        }
+      }
       // 级别过滤
       if (filter.level !== 'ALL' && log.level !== filter.level) {
         return false;
