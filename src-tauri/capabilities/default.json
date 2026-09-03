@@ -21,6 +21,7 @@
       ]
     },
     "store:default",
-    "process:default"
+    "process:default",
+    "log:default"
   ]
 }

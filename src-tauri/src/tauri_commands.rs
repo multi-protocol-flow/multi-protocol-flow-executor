@@ -99,6 +99,14 @@ pub async fn execute_flow(
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
     let session_id = uuid::Uuid::new_v4().to_string();
 
+    log::info!(
+        "[IPC::execute_flow] Start: uuid={}, name='{}', nodes={}, session={}",
+        flow.uuid,
+        flow.name,
+        flow.nodes.len(),
+        session_id
+    );
+
     // 存储 sender 到会话管理器
     {
         let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
@@ -176,6 +184,20 @@ pub async fn execute_flow(
             .notify_flow_ended(&result.execution_id)
             .await;
     }
+    if output.success {
+        log::info!(
+            "[IPC::execute_flow] Succeeded: uuid={}, duration={}ms",
+            output.flow_report.as_ref().map(|r| r.flow_uuid.as_str()).unwrap_or(""),
+            execution_time
+        );
+    } else {
+        log::warn!(
+            "[IPC::execute_flow] Failed: uuid={}, duration={}ms, error={:?}",
+            output.flow_report.as_ref().map(|r| r.flow_uuid.as_str()).unwrap_or(""),
+            execution_time,
+            output.error
+        );
+    }
 
     Ok(output)
 }
@@ -189,8 +211,10 @@ pub fn cancel_flow(state: State<'_, ExecutionSessionManager>) -> Result<(), Stri
     let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
     let senders: Vec<_> = guard.drain().collect();
     if senders.is_empty() {
+        log::warn!("[IPC::cancel_flow] No active execution session to cancel");
         return Err("No active execution session".to_string());
     }
+    log::info!("[IPC::cancel_flow] Sending cancel signal to {} session(s)", senders.len());
     for (_id, tx) in senders {
         let _ = tx.send(true);
     }
@@ -307,27 +331,46 @@ pub async fn validate_flow(
 /// 保存流程执行报告
 #[tauri::command]
 pub fn save_flow_report(report: FlowExecutionReport, reports_dir: String) -> Result<(), String> {
-    flow_engine::commands::save_flow_report(report, &reports_dir)
+    log::info!("[IPC::save_flow_report] uuid={}, dir={}", report.uuid, reports_dir);
+    let res = flow_engine::commands::save_flow_report(report, &reports_dir);
+    if let Err(ref e) = res {
+        log::error!("[IPC::save_flow_report] FAILED: {}", e);
+    }
+    res
 }
 
 /// 加载流程执行报告
 #[tauri::command]
 pub fn load_flow_report(uuid: String, reports_dir: String) -> Result<FlowExecutionReport, String> {
-    flow_engine::commands::load_flow_report(&uuid, &reports_dir)
+    log::debug!("[IPC::load_flow_report] uuid={}, dir={}", uuid, reports_dir);
+    let res = flow_engine::commands::load_flow_report(&uuid, &reports_dir);
+    if let Err(ref e) = res {
+        log::error!("[IPC::load_flow_report] FAILED: uuid={}, error={}", uuid, e);
+    }
+    res
 }
 
 /// 列出所有报告元数据
 #[tauri::command]
 pub fn list_flow_reports(reports_dir: String) -> Result<Vec<ReportMetadata>, String> {
-    flow_engine::commands::list_flow_reports(&reports_dir)
+    log::debug!("[IPC::list_flow_reports] dir={}", reports_dir);
+    let res = flow_engine::commands::list_flow_reports(&reports_dir);
+    if let Err(ref e) = res {
+        log::error!("[IPC::list_flow_reports] FAILED: dir={}, error={}", reports_dir, e);
+    }
+    res
 }
 
 /// 删除流程执行报告
 #[tauri::command]
 pub fn delete_flow_report(uuid: String, reports_dir: String) -> Result<(), String> {
-    flow_engine::commands::delete_flow_report(&uuid, &reports_dir)
+    log::info!("[IPC::delete_flow_report] uuid={}, dir={}", uuid, reports_dir);
+    let res = flow_engine::commands::delete_flow_report(&uuid, &reports_dir);
+    if let Err(ref e) = res {
+        log::error!("[IPC::delete_flow_report] FAILED: uuid={}, error={}", uuid, e);
+    }
+    res
 }
-
 // ============================================================================
 // SSE 连接测试命令
 // ============================================================================
@@ -737,7 +780,12 @@ pub fn delete_stress_test_report(file_path: String) -> Result<(), String> {
 pub fn list_flow_files(
     flows_dir: String,
 ) -> Result<Vec<flow_engine::storage::FlowMetadata>, String> {
-    flow_engine::storage::list_flow_files(std::path::Path::new(&flows_dir))
+    log::debug!("[IPC::list_flow_files] flows_dir={}", flows_dir);
+    let res = flow_engine::storage::list_flow_files(std::path::Path::new(&flows_dir));
+    if let Err(ref e) = res {
+        log::error!("[IPC::list_flow_files] FAILED: dir={}, error={}", flows_dir, e);
+    }
+    res
 }
 
 /// 加载流程文件（包含 _meta 元数据）
@@ -746,7 +794,12 @@ pub fn load_flow_file(
     uuid: String,
     flows_dir: String,
 ) -> Result<flow_engine::storage::FlowFile, String> {
-    flow_engine::storage::load_flow_file_raw(&uuid, std::path::Path::new(&flows_dir))
+    log::debug!("[IPC::load_flow_file] uuid={}, flows_dir={}", uuid, flows_dir);
+    let res = flow_engine::storage::load_flow_file_raw(&uuid, std::path::Path::new(&flows_dir));
+    if let Err(ref e) = res {
+        log::error!("[IPC::load_flow_file] FAILED: uuid={}, error={}", uuid, e);
+    }
+    res
 }
 
 /// 保存流程文件（可选携带 _meta 元数据）
@@ -756,19 +809,39 @@ pub fn save_flow_file(
     flows_dir: String,
     meta: Option<serde_json::Value>,
 ) -> Result<(), String> {
-    flow_engine::storage::save_flow_file_with_meta(&flow, std::path::Path::new(&flows_dir), meta)
+    log::info!(
+        "[IPC::save_flow_file] uuid={}, name='{}', flows_dir={}",
+        flow.uuid,
+        flow.name,
+        flows_dir
+    );
+    let res = flow_engine::storage::save_flow_file_with_meta(&flow, std::path::Path::new(&flows_dir), meta);
+    if let Err(ref e) = res {
+        log::error!("[IPC::save_flow_file] FAILED: uuid={}, error={}", flow.uuid, e);
+    }
+    res
 }
 
 /// 删除流程文件
 #[tauri::command]
 pub fn delete_flow_file(uuid: String, flows_dir: String) -> Result<(), String> {
-    flow_engine::storage::delete_flow_file(&uuid, std::path::Path::new(&flows_dir))
+    log::info!("[IPC::delete_flow_file] uuid={}, flows_dir={}", uuid, flows_dir);
+    let res = flow_engine::storage::delete_flow_file(&uuid, std::path::Path::new(&flows_dir));
+    if let Err(ref e) = res {
+        log::error!("[IPC::delete_flow_file] FAILED: uuid={}, error={}", uuid, e);
+    }
+    res
 }
 
 /// 复制流程文件
 #[tauri::command]
 pub fn copy_flow_file(uuid: String, flows_dir: String) -> Result<Flow, String> {
-    flow_engine::storage::copy_flow_file(&uuid, std::path::Path::new(&flows_dir))
+    log::info!("[IPC::copy_flow_file] uuid={}, flows_dir={}", uuid, flows_dir);
+    let res = flow_engine::storage::copy_flow_file(&uuid, std::path::Path::new(&flows_dir));
+    if let Err(ref e) = res {
+        log::error!("[IPC::copy_flow_file] FAILED: uuid={}, error={}", uuid, e);
+    }
+    res
 }
 
 // ============================================================================
@@ -778,7 +851,12 @@ pub fn copy_flow_file(uuid: String, flows_dir: String) -> Result<Flow, String> {
 /// 列出所有文件夹
 #[tauri::command]
 pub fn list_folders(flows_dir: String) -> Result<Vec<flow_engine::storage::FolderInfo>, String> {
-    flow_engine::storage::list_folders(std::path::Path::new(&flows_dir))
+    log::debug!("[IPC::list_folders] flows_dir={}", flows_dir);
+    let res = flow_engine::storage::list_folders(std::path::Path::new(&flows_dir));
+    if let Err(ref e) = res {
+        log::error!("[IPC::list_folders] FAILED: dir={}, error={}", flows_dir, e);
+    }
+    res
 }
 
 /// 创建文件夹
@@ -787,13 +865,23 @@ pub fn create_folder(
     flows_dir: String,
     folder_path: String,
 ) -> Result<flow_engine::storage::FolderInfo, String> {
-    flow_engine::storage::create_folder(std::path::Path::new(&flows_dir), &folder_path)
+    log::info!("[IPC::create_folder] path={}, flows_dir={}", folder_path, flows_dir);
+    let res = flow_engine::storage::create_folder(std::path::Path::new(&flows_dir), &folder_path);
+    if let Err(ref e) = res {
+        log::error!("[IPC::create_folder] FAILED: path={}, error={}", folder_path, e);
+    }
+    res
 }
 
 /// 删除文件夹
 #[tauri::command]
 pub fn delete_folder(flows_dir: String, folder_path: String) -> Result<(), String> {
-    flow_engine::storage::delete_folder(std::path::Path::new(&flows_dir), &folder_path)
+    log::info!("[IPC::delete_folder] path={}, flows_dir={}", folder_path, flows_dir);
+    let res = flow_engine::storage::delete_folder(std::path::Path::new(&flows_dir), &folder_path);
+    if let Err(ref e) = res {
+        log::error!("[IPC::delete_folder] FAILED: path={}, error={}", folder_path, e);
+    }
+    res
 }
 
 /// 重命名文件夹
@@ -803,7 +891,17 @@ pub fn rename_folder(
     folder_path: String,
     new_name: String,
 ) -> Result<flow_engine::storage::FolderInfo, String> {
-    flow_engine::storage::rename_folder(std::path::Path::new(&flows_dir), &folder_path, &new_name)
+    log::info!(
+        "[IPC::rename_folder] path={}, new_name={}, flows_dir={}",
+        folder_path,
+        new_name,
+        flows_dir
+    );
+    let res = flow_engine::storage::rename_folder(std::path::Path::new(&flows_dir), &folder_path, &new_name);
+    if let Err(ref e) = res {
+        log::error!("[IPC::rename_folder] FAILED: path={}, error={}", folder_path, e);
+    }
+    res
 }
 
 /// 移动流程到指定文件夹
@@ -813,11 +911,21 @@ pub fn move_flow_to_folder(
     flows_dir: String,
     target_folder_path: String,
 ) -> Result<(), String> {
-    flow_engine::storage::move_flow_to_folder(
+    log::info!(
+        "[IPC::move_flow_to_folder] uuid={}, target={}, flows_dir={}",
+        uuid,
+        target_folder_path,
+        flows_dir
+    );
+    let res = flow_engine::storage::move_flow_to_folder(
         &uuid,
         std::path::Path::new(&flows_dir),
         &target_folder_path,
-    )
+    );
+    if let Err(ref e) = res {
+        log::error!("[IPC::move_flow_to_folder] FAILED: uuid={}, error={}", uuid, e);
+    }
+    res
 }
 
 /// 移动文件夹到另一个文件夹（或根目录）
@@ -1101,7 +1209,7 @@ pub async fn reload_plugins(
     app: tauri::AppHandle,
     dir: String,
 ) -> Result<ReloadPluginsResult, String> {
-    // 读取宿主当前 UI 语言，注入新插件进程（与启动时行为一致）
+    log::info!("[IPC::reload_plugins] Start reload from dir: {}", dir);
     let host_locale = app
         .store("store/settings.bin")
         .ok()
@@ -1169,6 +1277,11 @@ pub async fn reload_plugins(
     let stress = app.state::<Arc<StressTestSessionManager>>();
     stress.set_registry(registry);
 
+    log::info!(
+        "[IPC::reload_plugins] Succeeded: plugins_registered={}, node_types={}",
+        plugins_registered,
+        node_types
+    );
     Ok(ReloadPluginsResult {
         plugins_registered,
         node_types,
@@ -1265,6 +1378,13 @@ pub async fn install_marketplace_plugin(
     version: Option<String>,
     force: bool,
 ) -> Result<flow_engine::flow_engine_plugin_marketplace::InstalledPluginInfo, String> {
+    log::info!(
+        "[IPC::install_marketplace_plugin] Installing plugin '{}', version={:?}, force={}, url={}",
+        name,
+        version,
+        force,
+        url
+    );
     let install_dir = crate::resolve_plugin_dir(&app).0;
     let client = flow_engine::flow_engine_plugin_marketplace::MarketplaceClient::new(url);
     let plugins = client
@@ -1280,9 +1400,22 @@ pub async fn install_marketplace_plugin(
                 version.map(|v| format!("@{v}")).unwrap_or_default()
             )
         })?;
-    flow_engine::flow_engine_plugin_marketplace::install_plugin(&client, plugin, &install_dir, force)
+    let res = flow_engine::flow_engine_plugin_marketplace::install_plugin(&client, plugin, &install_dir, force)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string());
+    match &res {
+        Ok(info) => log::info!(
+            "[IPC::install_marketplace_plugin] Succeeded: name={}, path={:?}",
+            info.name,
+            info.path
+        ),
+        Err(e) => log::error!(
+            "[IPC::install_marketplace_plugin] FAILED: name={}, error={}",
+            name,
+            e
+        ),
+    }
+    res
 }
 
 // ============================================================================
@@ -1611,7 +1744,12 @@ pub async fn ai_test_connection(
     let start_time = std::time::Instant::now();
     let cleaned_base = normalize_ai_base_url(&base_url);
     let endpoint = format!("{}/chat/completions", cleaned_base);
-
+    log::info!(
+        "[IPC::ai_test_connection] Testing AI provider: endpoint={}, model={}, has_key={}",
+        endpoint,
+        model,
+        !api_key.trim().is_empty()
+    );
     let client = build_ai_reqwest_client();
     let mut req = client.post(&endpoint).json(&serde_json::json!({
         "model": model,
@@ -1632,6 +1770,7 @@ pub async fn ai_test_connection(
         Ok(resp) => {
             let latency_ms = start_time.elapsed().as_millis() as u64;
             if resp.status().is_success() {
+                log::info!("[IPC::ai_test_connection] Succeeded in {}ms", latency_ms);
                 Ok(AiTestConnectionResult {
                     success: true,
                     latency_ms,
@@ -1640,19 +1779,31 @@ pub async fn ai_test_connection(
             } else {
                 let status = resp.status();
                 let err_body = resp.text().await.unwrap_or_default();
+                let err_msg = format!("HTTP {}: {}", status, err_body);
+                log::warn!(
+                    "[IPC::ai_test_connection] Failed in {}ms: {}",
+                    latency_ms,
+                    err_msg
+                );
                 Ok(AiTestConnectionResult {
                     success: false,
                     latency_ms,
-                    error: Some(format!("HTTP {}: {}", status, err_body)),
+                    error: Some(err_msg),
                 })
             }
         }
         Err(e) => {
             let latency_ms = start_time.elapsed().as_millis() as u64;
+            let err_msg = e.to_string();
+            log::error!(
+                "[IPC::ai_test_connection] Network error in {}ms: {}",
+                latency_ms,
+                err_msg
+            );
             Ok(AiTestConnectionResult {
                 success: false,
                 latency_ms,
-                error: Some(e.to_string()),
+                error: Some(err_msg),
             })
         }
     }
@@ -1667,10 +1818,13 @@ pub async fn ai_fetch_models(
 ) -> Result<Vec<String>, String> {
     let cleaned_base = normalize_ai_base_url(&base_url);
     let endpoint = format!("{}/models", cleaned_base);
-
+    log::info!(
+        "[IPC::ai_fetch_models] Fetching models from: {}, has_key={}",
+        endpoint,
+        !api_key.trim().is_empty()
+    );
     let client = build_ai_reqwest_client();
     let mut req = client.get(&endpoint);
-
     if !api_key.trim().is_empty() {
         req = req.header("Authorization", format!("Bearer {}", api_key.trim()));
     }
@@ -1680,12 +1834,23 @@ pub async fn ai_fetch_models(
         }
     }
 
-    let resp = req.send().await.map_err(|e| e.to_string())?;
+    let resp = match req.send().await {
+        Ok(r) => r,
+        Err(e) => {
+            log::error!("[IPC::ai_fetch_models] Network request failed: {}", e);
+            return Err(e.to_string());
+        }
+    };
     if !resp.status().is_success() {
-        return Err(format!("HTTP {}", resp.status()));
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        log::warn!("[IPC::ai_fetch_models] Non-success response: HTTP {} - {}", status, body);
+        return Err(format!("HTTP {}: {}", status, body));
     }
-
-    let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    let json: serde_json::Value = resp.json().await.map_err(|e| {
+        log::error!("[IPC::ai_fetch_models] JSON decode error: {}", e);
+        e.to_string()
+    })?;
     let mut models = Vec::new();
     if let Some(data) = json.get("data").and_then(|d| d.as_array()) {
         for item in data {
