@@ -62,24 +62,28 @@ export function CollapsiblePanel({
 }: CollapsiblePanelProps) {
   const LL = getLL();
   const [isDragging, setIsDragging] = useState(false);
+  const isMouseDownRef = useRef(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
   const didDragRef = useRef(false);
   const headerRef = useRef<HTMLDivElement>(null);
 
-  // 开始拖拽（在标题栏上按下鼠标）
+  // 开始拖拽（在标题栏或顶边缘按下鼠标）
   const handleHeaderMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => {
     if (!resizable || isCollapsed) return;
     
-    // 记录起始状态
+    isMouseDownRef.current = true;
     startYRef.current = e.clientY;
-    startHeightRef.current = height ?? minHeight;
+    const currentHeight = typeof height === 'number'
+      ? height
+      : (headerRef.current?.parentElement?.clientHeight ?? minHeight);
+    startHeightRef.current = currentHeight;
     didDragRef.current = false;
   }, [resizable, isCollapsed, height, minHeight]);
 
   // 全局鼠标移动
   const handleMouseMove = useCallback((e: globalThis.MouseEvent) => {
-    if (startYRef.current === 0 || !onHeightChange) return;
+    if (!isMouseDownRef.current || !onHeightChange) return;
     
     const deltaY = startYRef.current - e.clientY;
     
@@ -99,14 +103,19 @@ export function CollapsiblePanel({
 
   // 全局鼠标释放
   const handleMouseUp = useCallback(() => {
-    if (startYRef.current === 0) return;
+    if (!isMouseDownRef.current) return;
     
+    isMouseDownRef.current = false;
     startYRef.current = 0;
     
     if (didDragRef.current) {
       setIsDragging(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      // 延迟重置 didDragRef，确保随后的 click 事件不会误触折叠
+      requestAnimationFrame(() => {
+        didDragRef.current = false;
+      });
     }
   }, []);
 
@@ -147,13 +156,24 @@ export function CollapsiblePanel({
   return (
     <div
       className={cn(
-        'flex flex-col bg-background overflow-hidden',
+        'relative flex flex-col bg-background overflow-hidden',
         isCollapsed ? 'shrink-0' : 'min-h-0',
         isDragging && 'select-none',
         className
       )}
       style={panelStyle}
     >
+      {/* 顶部拖拽手柄指示条 */}
+      {resizable && !isCollapsed && (
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          className="absolute -top-1 left-0 right-0 h-2 cursor-row-resize z-20 group"
+          onMouseDown={handleHeaderMouseDown}
+        >
+          <div className="w-full h-0.5 group-hover:bg-primary/50 transition-colors" />
+        </div>
+      )}
       {/* 标题栏 - 点击折叠，上边缘拖拽调整高度 */}
       <div
         ref={headerRef}
@@ -186,6 +206,7 @@ export function CollapsiblePanel({
             role="presentation"
             className="flex items-center gap-1"
             onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             {headerRight}
           </div>

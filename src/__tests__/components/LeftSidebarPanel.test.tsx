@@ -54,4 +54,48 @@ describe('LeftSidebarPanel', () => {
       expect(screen.getByText('无已安装的数据源插件')).toBeInTheDocument();
     });
   });
+
+  it('places collapsed data-source panel at bottom with mt-auto', () => {
+    render(<LeftSidebarPanel />);
+
+    const datasourcePanelHeader = screen.getByText('数据源');
+    const panelContainer = datasourcePanelHeader.closest('.flex-col');
+    expect(panelContainer).toHaveClass('mt-auto');
+  });
+
+  it('keeps flow list collapsed when closing data-source while flow list was collapsed, docking data-source to bottom', async () => {
+    render(<LeftSidebarPanel />);
+
+    const flowListHeader = screen.getByText('流程列表');
+    const datasourceHeader = screen.getByText('数据源');
+
+    // 展开数据源
+    fireEvent.click(datasourceHeader);
+    expect(datasourceHeader.closest('[role="button"]')).toHaveAttribute('aria-expanded', 'true');
+
+    // 折叠流程列表（数据源置顶）
+    fireEvent.click(flowListHeader);
+    expect(useUIStore.getState().isFlowListCollapsed).toBe(true);
+
+    // 关闭数据源：流程列表应保持关闭状态（不自动打开），数据源置底 (mt-auto)
+    fireEvent.click(datasourceHeader);
+    expect(datasourceHeader.closest('[role="button"]')).toHaveAttribute('aria-expanded', 'false');
+    expect(useUIStore.getState().isFlowListCollapsed).toBe(true);
+    expect(datasourceHeader.closest('.flex-col')).toHaveClass('mt-auto');
+  });
+
+  it('renders top resize handle when both panels are expanded', async () => {
+    render(<LeftSidebarPanel />);
+
+    const datasourceHeader = screen.getByText('数据源');
+    // 默认折叠，不应有 resize handle
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+
+    // 展开数据源（此时流程列表也展开）
+    fireEvent.click(datasourceHeader);
+    expect(screen.getByRole('separator')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('无已安装的数据源插件')).toBeInTheDocument();
+    });
+  });
 });
