@@ -139,8 +139,11 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       } else {
         setFlows(flowMetas.map(mapMetadata));
 
-        // 检查内置模板是否需要更新
+        // 检查内置模板是否需要更新（仅当流程列表中存在该模板时才检查）
         const updateBuiltinFlow = async (flow: Flow) => {
+          if (!flowMetas.some((m) => m.uuid === flow.uuid)) {
+            return;
+          }
           try {
             const existingFlow = await flowStorage.loadFlow(flow.uuid);
             if (existingFlow) {

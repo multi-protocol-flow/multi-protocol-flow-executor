@@ -9,12 +9,12 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { Button } from '@/components/ui/button';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
+import { notifyError, notifyWarning } from '@/lib/notify';
 import { useSettingsStore } from '@/stores/settings';
 import { useWsStreamStore } from '@/stores/wsStream';
 import { executeFlowWithChannel, saveFlowReport } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
-
 export function ExecuteButton() {
   const ll = getLL();
   const [isExecuting, setIsExecuting] = useState(false);
@@ -68,12 +68,12 @@ export function ExecuteButton() {
         try {
           await saveFlowReport(result.flow_report, reportDir);
         } catch (saveError) {
-          // 保存失败不影响 UI 显示，但提示用户
-          console.error('保存报告失败:', saveError);
-          toast.warning(ll.execution.toast.report_save_failed(), {
-            description: `${(saveError as Error).message}，${ll.execution.toast.report_local_only()}`,
-            duration: 8000,
-          });
+          // 保存失败不影响 UI 显示，但提示用户并记录日志
+          notifyWarning(
+            ll.execution.toast.report_save_failed(),
+            `${(saveError as Error).message}，${ll.execution.toast.report_local_only()}`,
+            { category: 'Report', flowUuid: flow?.uuid }
+          );
         }
 
         const report = result.flow_report;
@@ -99,10 +99,11 @@ export function ExecuteButton() {
         });
       }
     } catch (error) {
-      setError((error as Error).message);
-      toast.error(ll.execution.toast.flow_failed(), {
-        description: (error as Error).message,
-        duration: 10000,
+      const errorMsg = (error as Error).message;
+      setError(errorMsg);
+      notifyError(ll.execution.toast.flow_failed(), error, {
+        category: 'Execution',
+        flowUuid: flow?.uuid,
       });
     } finally {
       setIsExecuting(false);

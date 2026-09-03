@@ -7,10 +7,14 @@
 
 import { create } from 'zustand';
 import { isTauriEnv } from '@/lib/platform';
-import type { PluginDirInfo, InstalledPlugin, MarketplacePlugin } from '@/types/plugins';
-
-// 动态加载服务（Tauri 环境用真实 IPC，否则用 mock）
-async function getPluginsService() {
+import type {
+  PluginDirInfo,
+  InstalledPlugin,
+  MarketplacePlugin,
+} from '@/types/plugins';
+import { notifyError, notifySuccess } from '@/lib/notify';
+import { getLL } from '@/i18n/i18n-lazy';
+function getPluginsService() {
   if (isTauriEnv()) {
     return import('@/services/tauri/plugins');
   }
@@ -101,8 +105,11 @@ export const usePluginsStore = create<PluginsState>((set) => ({
         service.getPluginDirInfo(),
       ]);
       set({ installed, pluginDirInfo, loading: false });
+      notifySuccess(getLL().plugins.reload_success(), undefined, { category: 'Plugin' });
     } catch (e) {
-      set({ error: formatErrorMessage(e), loading: false });
+      const msg = formatErrorMessage(e);
+      set({ error: msg, loading: false });
+      notifyError(getLL().plugins.reload_failed(), e, { category: 'Plugin' });
       throw e;
     }
   },
@@ -140,8 +147,11 @@ export const usePluginsStore = create<PluginsState>((set) => ({
         service.getPluginDirInfo(),
       ]);
       set({ installed, pluginDirInfo, loading: false });
+      notifySuccess(getLL().plugins.install_success({ name }), undefined, { category: 'Plugin' });
     } catch (e) {
-      set({ error: formatErrorMessage(e), loading: false });
+      const msg = formatErrorMessage(e);
+      set({ error: msg, loading: false });
+      notifyError(getLL().plugins.install_failed({ name }), e, { category: 'Plugin' });
       throw e;
     }
   },

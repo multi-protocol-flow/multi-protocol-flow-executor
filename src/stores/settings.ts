@@ -6,8 +6,9 @@
 import { create } from 'zustand';
 import type { SettingsStore, ThemeMode, Locale } from '@/types/settings';
 import { switchLocale } from '@/i18n';
-
 import { isTauriEnv } from '@/lib/platform';
+import { notifyError } from '@/lib/notify';
+import { getLL } from '@/i18n/i18n-lazy';
 
 // 检测是否在 Tauri 环境中
 
@@ -181,6 +182,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       await service.openDirectory(get().reportDir);
     } catch (e) {
       set({ error: formatErrorMessage(e) });
+      notifyError(getLL().execution.toast.open_dir_failed(), e, { category: 'Settings' });
     }
   },
 
@@ -190,6 +192,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       await service.openDirectory(get().logDir);
     } catch (e) {
       set({ error: formatErrorMessage(e) });
+      notifyError(getLL().execution.toast.open_dir_failed(), e, { category: 'Settings' });
     }
   },
 
@@ -199,9 +202,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       await service.openDirectory(get().flowsDir);
     } catch (e) {
       set({ error: formatErrorMessage(e) });
+      notifyError(getLL().execution.toast.open_dir_failed(), e, { category: 'Settings' });
     }
   },
-
   setAiProviders: async (providers) => {
     try {
       const service = await getSettingsService();

@@ -7,6 +7,7 @@ import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2,
 import { toast } from 'sonner';
 import * as Popover from '@radix-ui/react-popover';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging, selectCanUndo, selectCanRedo, selectFlow, selectNodes } from '@/stores';
+import { notifyError, notifyWarning } from '@/lib/notify';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
 import { useWsStreamStore } from '@/stores/wsStream';
@@ -120,14 +121,13 @@ export function CanvasToolbar() {
         try {
           await saveFlowReport(result.flow_report, reportDir);
         } catch (saveError) {
-          // 保存失败不影响 UI 显示，但提示用户
-          console.error('保存报告失败:', saveError);
-          toast.warning(ll.execution.toast.report_save_failed(), {
-            description: `${(saveError as Error).message}，${ll.execution.toast.report_local_only()}`,
-            duration: 8000,
-          });
+          // 保存失败不影响 UI 显示，但提示用户并记录日志
+          notifyWarning(
+            ll.execution.toast.report_save_failed(),
+            `${(saveError as Error).message}，${ll.execution.toast.report_local_only()}`,
+            { category: 'Report', flowUuid: flow?.uuid }
+          );
         }
-
         const report = result.flow_report;
         if (result.success) {
           toast.success(ll.execution.toast.flow_completed(), {
@@ -157,9 +157,11 @@ export function CanvasToolbar() {
         });
       }
     } catch (error) {
-      setError((error as Error).message);
-      toast.error(ll.execution.toast.flow_exception(), {
-        description: (error as Error).message,
+      const errorMsg = (error as Error).message;
+      setError(errorMsg);
+      notifyError(ll.execution.toast.flow_exception(), error, {
+        category: 'Execution',
+        flowUuid: flow?.uuid,
       });
     } finally {
       setIsExecuting(false);

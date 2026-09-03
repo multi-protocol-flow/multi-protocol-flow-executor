@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import { executeSingleNode } from '@/services/tauri/flow';
+import { notifyError } from '@/lib/notify';
 import { useFlowStore, useExecutionStore } from '@/stores';
 import { getActiveVariables } from '@/types/flow';
 import type { FlowExecutionReport } from '@/types';
@@ -79,8 +80,8 @@ export function NodeContextMenu({
 
   const handleTestNode = async () => {
     setTesting(true);
+    const flow = useFlowStore.getState().flow;
     try {
-      const flow = useFlowStore.getState().flow;
       if (!flow) {
         toast.error('No flow loaded');
         return;
@@ -121,8 +122,7 @@ export function NodeContextMenu({
       useExecutionStore.getState().setReport(flowReport);
       useExecutionStore.getState().openReportDialog(flowReport);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      toast.error(`Test failed: ${msg}`);
+      notifyError(LL.flow.test_node_failed?.() ?? 'Failed to test node', error, { category: 'NodeExecution', flowUuid: flow?.uuid });
     } finally {
       setTesting(false);
       onClose();
