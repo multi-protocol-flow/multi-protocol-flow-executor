@@ -36,6 +36,8 @@ const en_US_datasource = {
   description: 'Description',
   extra_properties: 'Extra Properties',
   node_template_label: 'Canvas Node Template (NodeTemplate):',
+  search_placeholder: 'Search directory, name or path...',
+  no_search_results: 'No matching items found',
 };
 
 export default en_US_datasource;

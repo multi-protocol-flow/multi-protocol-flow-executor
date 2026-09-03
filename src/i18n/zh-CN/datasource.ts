@@ -36,5 +36,7 @@ const zh_CN_datasource = {
   description: '简介描述',
   extra_properties: '平台属性 (Extra)',
   node_template_label: '可落画布节点模板 (NodeTemplate)：',
+  search_placeholder: '搜索目录、名称或路径...',
+  no_search_results: '未找到匹配的数据项',
 };
 export default zh_CN_datasource;

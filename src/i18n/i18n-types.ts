@@ -7335,6 +7335,14 @@ type RootTranslation = {
 		 * 可​落​画​布​节​点​模​板​ ​(​N​o​d​e​T​e​m​p​l​a​t​e​)​：
 		 */
 		node_template_label: string
+		/**
+		 * 搜​索​目​录​、​名​称​或​路​径​.​.​.
+		 */
+		search_placeholder: string
+		/**
+		 * 未​找​到​匹​配​的​数​据​项
+		 */
+		no_search_results: string
 	}
 	flow: {
 		/**
@@ -19559,6 +19567,14 @@ export type TranslationFunctions = {
 		 * 可落画布节点模板 (NodeTemplate)：
 		 */
 		node_template_label: () => LocalizedString
+		/**
+		 * 搜索目录、名称或路径...
+		 */
+		search_placeholder: () => LocalizedString
+		/**
+		 * 未找到匹配的数据项
+		 */
+		no_search_results: () => LocalizedString
 	}
 	flow: {
 		/**
