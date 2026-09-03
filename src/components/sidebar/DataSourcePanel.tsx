@@ -25,6 +25,8 @@ import {
   RefreshCw,
   Loader2,
   Eye,
+  Search,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -89,10 +91,12 @@ function DatasourceEntry({
   ds,
   refreshToken,
   onSelectItem,
+  searchKeyword,
 }: {
   ds: DatasourceDescription;
   refreshToken: number;
   onSelectItem: (ds: DatasourceDescription, item: DataItem) => void;
+  searchKeyword?: string;
 }) {
   const LL = getLL();
   const connections = useDatasourceStore((s) => s.connections);
@@ -275,6 +279,7 @@ function DatasourceEntry({
                 parentId={null}
                 refreshToken={refreshToken}
                 onSelectItem={onSelectItem}
+                searchKeyword={searchKeyword}
               />
             ));
           })()}
@@ -497,6 +502,122 @@ export function buildGroupTree(
   return result;
 }
 
+/**
+ * 检查数据项是否匹配搜索词
+ * 支持匹配：名称(name)、路径(path)、目录/分组(folderPath)、HTTP方法(method)、描述(summary)、extra 属性
+ */
+export function matchItem(
+  item: DataItem,
+  query: string,
+  folderPath?: string,
+): boolean {
+  if (!query) return true;
+  const kw = query.toLowerCase().trim();
+  if (!kw) return true;
+
+  // 1. 名字 (name)
+  if (item.name.toLowerCase().includes(kw)) return true;
+
+  // 2. 路径 / 端点 (path)
+  if (item.path && item.path.toLowerCase().includes(kw)) return true;
+
+  // 3. 目录 / 分组路径 (folderPath)
+  if (folderPath && folderPath.toLowerCase().includes(kw)) return true;
+
+  // 4. HTTP 方法 (method)
+  if (item.method && item.method.toLowerCase().includes(kw)) return true;
+
+  // 5. 简介描述 (summary)
+  if (item.summary && item.summary.toLowerCase().includes(kw)) return true;
+
+  // 6. 额外属性 (extra)
+  if (
+    item.extra &&
+    item.extra.some(
+      (e) =>
+        e.label.toLowerCase().includes(kw) ||
+        e.value.toLowerCase().includes(kw),
+    )
+  ) {
+    return true;
+  }
+
+  // 7. raw 中的 group 信息兜底
+  const raw = item.raw as Record<string, unknown> | undefined;
+  if (raw) {
+    const rawGroupName = raw.group_name ?? raw.groupName;
+    if (
+      typeof rawGroupName === 'string' &&
+      rawGroupName.toLowerCase().includes(kw)
+    ) {
+      return true;
+    }
+    const rawGroupPath = raw.group_path ?? raw.groupPath ?? raw.group_name_path;
+    if (Array.isArray(rawGroupPath)) {
+      if (rawGroupPath.some((s) => String(s).toLowerCase().includes(kw))) {
+        return true;
+      }
+    } else if (
+      typeof rawGroupPath === 'string' &&
+      rawGroupPath.toLowerCase().includes(kw)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * 根据搜索词递归过滤分组树
+ * - 若目录/分组名匹配，则保留该目录及其下全部子目录与条目
+ * - 若目录名不匹配，则递归过滤子项，仅保留命中的子目录与条目，并更新 totalCount
+ */
+export function filterGroupTree(
+  nodes: GroupTreeNode[],
+  query: string,
+): GroupTreeNode[] {
+  const kw = query.toLowerCase().trim();
+  if (!kw) return nodes;
+
+  const filtered: GroupTreeNode[] = [];
+
+  for (const node of nodes) {
+    const isFolderMatch =
+      node.name.toLowerCase().includes(kw) ||
+      node.fullPath.toLowerCase().includes(kw);
+
+    if (isFolderMatch) {
+      // 目录本身匹配，保留该目录下所有子目录及条目
+      filtered.push(node);
+      continue;
+    }
+
+    // 递归过滤子目录
+    const matchingChildren = filterGroupTree(node.children, kw);
+
+    // 过滤当前目录中的条目
+    const matchingItems = node.items.filter((item) =>
+      matchItem(item, kw, node.fullPath),
+    );
+
+    if (matchingChildren.length > 0 || matchingItems.length > 0) {
+      const childrenCount = matchingChildren.reduce(
+        (sum, c) => sum + c.totalCount,
+        0,
+      );
+      filtered.push({
+        ...node,
+        children: matchingChildren,
+        items: matchingItems,
+        totalCount: matchingItems.length + childrenCount,
+      });
+    }
+  }
+
+  return filtered;
+}
+
 /** 递归渲染分组目录项 */
 function GroupFolderItem({
   node,
@@ -505,6 +626,7 @@ function GroupFolderItem({
   expanded,
   onToggle,
   onSelectItem,
+  isSearching,
 }: {
   node: GroupTreeNode;
   ds: DatasourceDescription;
@@ -512,9 +634,14 @@ function GroupFolderItem({
   expanded: Record<string, boolean>;
   onToggle: (path: string) => void;
   onSelectItem: (ds: DatasourceDescription, item: DataItem) => void;
+  isSearching?: boolean;
 }) {
-  const isOpen = expanded[node.fullPath] ?? false;
-
+  const isOpen =
+    expanded[node.fullPath] !== undefined
+      ? expanded[node.fullPath]
+      : isSearching
+      ? true
+      : false;
   return (
     <div>
       <button
@@ -548,6 +675,7 @@ function GroupFolderItem({
               expanded={expanded}
               onToggle={onToggle}
               onSelectItem={onSelectItem}
+              isSearching={isSearching}
             />
           ))}
           {node.items.map((item) => (
@@ -564,16 +692,19 @@ function ResourceLevel({
   parentId,
   refreshToken,
   onSelectItem,
+  searchKeyword,
 }: {
   ds: DatasourceDescription;
   resource: DatasourceResource;
   parentId: string | null;
   refreshToken: number;
   onSelectItem: (ds: DatasourceDescription, item: DataItem) => void;
+  searchKeyword?: string;
 }) {
   const LL = getLL();
   const cacheKey = `${ds.id}/${resource.id}/${parentId ?? ''}`;
   const cached = useDatasourceStore((s) => s.browseCache[cacheKey]);
+  const browseCache = useDatasourceStore((s) => s.browseCache);
   const loading = useDatasourceStore((s) => s.loading);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [groupExpanded, setGroupExpanded] = useState<Record<string, boolean>>({});
@@ -590,6 +721,7 @@ function ResourceLevel({
   }, [ds.id, resource.id, parentId, refreshToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const items = cached ?? [];
+  const isSearching = Boolean(searchKeyword?.trim());
 
   // 自动根据 item 中的 group_name / extra 提取多级嵌套分组树
   const groupTree = useMemo(() => {
@@ -597,12 +729,26 @@ function ResourceLevel({
     return buildGroupTree(items, LL.datasource.default_group());
   }, [items, resource.children, LL]);
 
+  // 根据搜索关键字过滤分组树
+  const displayedGroupTree = useMemo(() => {
+    if (!groupTree) return null;
+    if (!isSearching) return groupTree;
+    return filterGroupTree(groupTree, searchKeyword!);
+  }, [groupTree, isSearching, searchKeyword]);
+
+  // 平铺项搜索过滤
+  const displayedFlatItems = useMemo(() => {
+    if (groupTree != null || resource.children != null) return items;
+    if (!isSearching) return items;
+    return items.filter((item) => matchItem(item, searchKeyword!));
+  }, [items, groupTree, resource.children, isSearching, searchKeyword]);
+
   const handleToggleGroup = useCallback((groupPath: string) => {
     setGroupExpanded((prev) => ({
       ...prev,
-      [groupPath]: !prev[groupPath],
+      [groupPath]: !(prev[groupPath] !== undefined ? prev[groupPath] : isSearching ? true : false),
     }));
-  }, []);
+  }, [isSearching]);
 
   return (
     <div>
@@ -615,8 +761,8 @@ function ResourceLevel({
       )}
 
       {/* 叶子节点按多级嵌套分组展示 */}
-      {groupTree ? (
-        groupTree.map((node) => (
+      {displayedGroupTree ? (
+        displayedGroupTree.map((node) => (
           <GroupFolderItem
             key={node.id}
             node={node}
@@ -625,74 +771,101 @@ function ResourceLevel({
             expanded={groupExpanded}
             onToggle={handleToggleGroup}
             onSelectItem={onSelectItem}
+            isSearching={isSearching}
           />
         ))
-      ) : (
+      ) : resource.children != null ? (
         items.map((item) => {
-          const hasChildren = resource.children != null;
-          if (hasChildren) {
-            // 分组条目：点击展开 → 浏览子资源
-            const isExpanded = expanded[item.id] ?? false;
-            return (
-              <div key={item.id}>
-                <button
-                  type="button"
-                  title={item.extra.length > 0 ? `${item.name}\n${item.extra.map((kv) => `${kv.label}: ${kv.value}`).join(' · ')}` : item.name}
-                  className="w-full flex items-center gap-1.5 px-3 py-1 text-left text-sm text-foreground hover:bg-accent font-medium select-none"
-                  onClick={() => {
-                    const next = !isExpanded;
-                    setExpanded((prev) => ({ ...prev, [item.id]: next }));
-                    if (next) {
-                      useDatasourceStore
-                        .getState()
-                        .browse(ds.id, resource.children!, item.id)
-                        .catch(() => {
-                          /* 错误已写入 store.error */
-                        });
-                    }
-                  }}
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  )}
-                  {isExpanded ? (
-                    <FolderOpen className="w-3.5 h-3.5 text-primary shrink-0" />
-                  ) : (
-                    <Folder className="w-3.5 h-3.5 text-primary shrink-0" />
-                  )}
-                  <span className="truncate flex-1">{item.name}</span>
-                </button>
-                {isExpanded && (
-                  <div className="pl-3">
-                    <ResourceLevel
-                      ds={ds}
-                      resource={
-                        ds.resources.find((r) => r.id === resource.children) ?? {
-                          id: resource.children!,
-                          label: '',
-                          children: null,
-                          leaf: true,
-                        }
-                      }
-                      parentId={item.id}
-                      refreshToken={refreshToken}
-                      onSelectItem={onSelectItem}
-                    />
-                  </div>
+          const childCacheKey = `${ds.id}/${resource.children}/${item.id}`;
+          const cachedChildren = browseCache[childCacheKey];
+          const hasMatchingChildren = cachedChildren?.some((child) =>
+            matchItem(child, searchKeyword ?? '', item.name),
+          );
+          const isItemMatch =
+            !isSearching ||
+            matchItem(item, searchKeyword ?? '') ||
+            Boolean(hasMatchingChildren);
+          if (!isItemMatch) return null;
+
+          const isExpanded =
+            expanded[item.id] !== undefined
+              ? expanded[item.id]
+              : isSearching
+              ? true
+              : false;
+          return (
+            <div key={item.id}>
+              <button
+                type="button"
+                title={item.extra.length > 0 ? `${item.name}\n${item.extra.map((kv) => `${kv.label}: ${kv.value}`).join(' · ')}` : item.name}
+                className="w-full flex items-center gap-1.5 px-3 py-1 text-left text-sm text-foreground hover:bg-accent font-medium select-none"
+                onClick={() => {
+                  const next = !isExpanded;
+                  setExpanded((prev) => ({ ...prev, [item.id]: next }));
+                  if (next) {
+                    useDatasourceStore
+                      .getState()
+                      .browse(ds.id, resource.children!, item.id)
+                      .catch(() => {
+                        /* 错误已写入 store.error */
+                      });
+                  }
+                }}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 )}
-              </div>
-            );
-          }
-          return <ItemRow key={item.id} ds={ds} item={item} onSelect={onSelectItem} />;
+                {isExpanded ? (
+                  <FolderOpen className="w-3.5 h-3.5 text-primary shrink-0" />
+                ) : (
+                  <Folder className="w-3.5 h-3.5 text-primary shrink-0" />
+                )}
+                <span className="truncate flex-1">{item.name}</span>
+              </button>
+              {isExpanded && (
+                <div className="pl-3">
+                  <ResourceLevel
+                    ds={ds}
+                    resource={
+                      ds.resources.find((r) => r.id === resource.children) ?? {
+                        id: resource.children!,
+                        label: '',
+                        children: null,
+                        leaf: true,
+                      }
+                    }
+                    parentId={item.id}
+                    refreshToken={refreshToken}
+                    onSelectItem={onSelectItem}
+                    searchKeyword={searchKeyword}
+                  />
+                </div>
+              )}
+            </div>
+          );
         })
+      ) : (
+        displayedFlatItems.map((item) => (
+          <ItemRow key={item.id} ds={ds} item={item} onSelect={onSelectItem} />
+        ))
       )}
 
-      {!loading && cached && items.length === 0 && (
-        <div className="px-3 py-1 text-xs text-muted-foreground">
-          {LL.datasource.empty()}
-        </div>
+      {!loading && cached && (
+        isSearching ? (
+          (displayedGroupTree ? displayedGroupTree.length === 0 : displayedFlatItems.length === 0) && (
+            <div className="px-3 py-2 text-xs text-muted-foreground">
+              {LL.datasource.no_search_results()}
+            </div>
+          )
+        ) : (
+          items.length === 0 && (
+            <div className="px-3 py-1 text-xs text-muted-foreground">
+              {LL.datasource.empty()}
+            </div>
+          )
+        )
       )}
     </div>
   );
@@ -787,6 +960,7 @@ export function DataSourcePanel() {
   const error = useDatasourceStore((s) => s.error);
   const loading = useDatasourceStore((s) => s.loading);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [searchKeyword, setSearchKeyword] = useState('');
 
   // 弹窗状态：选中的数据源与条目
   const [selectedItemState, setSelectedItemState] = useState<{
@@ -812,18 +986,43 @@ export function DataSourcePanel() {
 
   return (
     <div className="flex flex-col h-full min-h-0" data-testid="datasource-panel">
-      {/* 面板工具栏（折叠面板标题下的内容头） */}
-      <div className="flex items-center justify-between px-3 py-1 border-b border-border">
-        <span className="text-xs text-muted-foreground">{LL.datasource.drag_hint()}</span>
+      {/* 搜索栏 + 刷新按钮 */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            placeholder={LL.datasource.search_placeholder()}
+            className="w-full h-7 pl-7 pr-6 text-xs rounded-md border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            data-testid="datasource-search-input"
+          />
+          {searchKeyword && (
+            <button
+              onClick={() => setSearchKeyword('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground rounded"
+              title="Clear"
+              data-testid="datasource-search-clear"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 rounded-md hover:bg-accent"
+          className="h-7 w-7 rounded-md hover:bg-accent shrink-0 text-muted-foreground hover:text-foreground"
           title={LL.datasource.refresh()}
           onClick={handleRefresh}
         >
           <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
         </Button>
+      </div>
+
+      {/* 提示条（拖拽提示） */}
+      <div className="px-3 py-1 border-b border-border flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>{LL.datasource.drag_hint()}</span>
       </div>
 
       {/* 错误横幅（browse/validate 失败；认证失效提示重新配置） */}
@@ -847,11 +1046,10 @@ export function DataSourcePanel() {
             ds={ds}
             refreshToken={refreshToken}
             onSelectItem={handleSelectItem}
+            searchKeyword={searchKeyword}
           />
         ))}
       </div>
-
-      {/* 条目原始数据与转换详情弹窗 */}
       <DatasourceItemDetailDialog
         open={Boolean(selectedItemState)}
         onOpenChange={(open) => {

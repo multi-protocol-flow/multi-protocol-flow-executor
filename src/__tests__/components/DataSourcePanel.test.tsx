@@ -401,4 +401,119 @@ describe('DataSourcePanel', () => {
       expect(screen.getByText('未关联父组接口')).toBeInTheDocument();
     });
   });
+
+  it('supports searching items by name, path, and directory with auto-expansion', async () => {
+    switchLocale('zh-CN');
+    const searchTestItems: DataItem[] = [
+      {
+        id: 'api_1',
+        name: '获取用户信息',
+        protocol: 'http',
+        method: 'GET',
+        path: '/v1/users/profile',
+        summary: '查询用户个人信息',
+        extra: [{ label: '分组', value: '用户模块' }],
+        raw: { group_name: '用户模块' },
+      },
+      {
+        id: 'api_2',
+        name: '提交订单',
+        protocol: 'http',
+        method: 'POST',
+        path: '/v1/orders/create',
+        summary: '创建新订单',
+        extra: [{ label: '分组', value: '交易系统' }],
+        raw: { group_name: '交易系统' },
+      },
+    ];
+
+    vi.mocked(listDatasources).mockResolvedValue([mockDatasource]);
+    vi.mocked(loadConnections).mockResolvedValue([mockConnection]);
+    vi.mocked(datasourceBrowse).mockResolvedValue(searchTestItems);
+    useDatasourceStore.setState({
+      descriptions: [mockDatasource],
+      connections: [mockConnection],
+      browseCache: {
+        'eolink/api/': searchTestItems,
+      },
+    });
+
+    render(<DataSourcePanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText('用户模块')).toBeInTheDocument();
+      expect(screen.getByText('交易系统')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByTestId('datasource-search-input');
+    expect(searchInput).toBeInTheDocument();
+
+    // 1. 按名称检索：输入“用户”，匹配“获取用户信息”，自动展开“用户模块”，过滤掉“交易系统”
+    fireEvent.change(searchInput, { target: { value: '用户' } });
+    await waitFor(() => {
+      expect(screen.getByText('获取用户信息')).toBeInTheDocument();
+      expect(screen.queryByText('交易系统')).not.toBeInTheDocument();
+    });
+
+    // 2. 按路径检索：输入“/orders/create”，匹配“提交订单”，自动展开“交易系统”
+    fireEvent.change(searchInput, { target: { value: '/orders/create' } });
+    await waitFor(() => {
+      expect(screen.getByText('提交订单')).toBeInTheDocument();
+      expect(screen.queryByText('获取用户信息')).not.toBeInTheDocument();
+    });
+
+    // 3. 按目录检索：输入“交易”，整个“交易系统”目录及其条目展示
+    fireEvent.change(searchInput, { target: { value: '交易' } });
+    await waitFor(() => {
+      expect(screen.getByText('交易系统')).toBeInTheDocument();
+      expect(screen.getByText('提交订单')).toBeInTheDocument();
+      expect(screen.queryByText('用户模块')).not.toBeInTheDocument();
+    });
+
+    // 4. 清空检索：点击清空按钮，恢复所有目录
+    const clearBtn = screen.getByTestId('datasource-search-clear');
+    fireEvent.click(clearBtn);
+    await waitFor(() => {
+      expect(screen.getByText('用户模块')).toBeInTheDocument();
+      expect(screen.getByText('交易系统')).toBeInTheDocument();
+    });
+  });
+
+  it('shows no_search_results when search matches nothing', async () => {
+    switchLocale('zh-CN');
+    const searchTestItems: DataItem[] = [
+      {
+        id: 'api_1',
+        name: '获取用户信息',
+        protocol: 'http',
+        method: 'GET',
+        path: '/v1/users',
+        summary: '查询用户',
+        extra: [{ label: '分组', value: '用户' }],
+        raw: { group_name: '用户' },
+      },
+    ];
+
+    useDatasourceStore.setState({
+      descriptions: [mockDatasource],
+      connections: [mockConnection],
+      browseCache: {
+        'eolink/api/': searchTestItems,
+      },
+    });
+
+    render(<DataSourcePanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText('用户')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByTestId('datasource-search-input');
+    fireEvent.change(searchInput, { target: { value: 'non_existent_keyword_xyz' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('未找到匹配的数据项')).toBeInTheDocument();
+      expect(screen.queryByText('获取用户信息')).not.toBeInTheDocument();
+    });
+  });
 });
