@@ -364,7 +364,11 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
               >
                 {ll.ai.settings.cancel()}
               </Button>
-              <Button size="sm" className="h-6 px-2.5 text-xs bg-primary text-primary-foreground" onClick={handleSaveProvider}>
+              <Button
+                size="sm"
+                className="h-6 px-2.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                onClick={handleSaveProvider}
+              >
                 {ll.ai.settings.save()}
               </Button>
             </div>
@@ -373,7 +377,7 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
           {/* 预设快速填充 */}
           {isCreating && (
             <div className="space-y-1">
-              <span className="text-[11px] text-muted-foreground">快速填充预设:</span>
+              <span className="text-[11px] text-muted-foreground">{ll.ai.settings.quick_fill_presets()}</span>
               <div className="flex flex-wrap gap-1">
                 {PRESETS.map((p) => (
                   <button

@@ -57,6 +57,25 @@ vi.mock('@/i18n/i18n-lazy', () => ({
         enabled: () => '已启用',
         disabled: () => '已禁用',
         providers_list: () => '服务商列表',
+        add_provider: () => '添加 Provider',
+        no_providers: () => '尚未配置任何 AI Provider',
+        no_providers_desc: () => '请添加一个 OpenAI 兼容服务',
+        form_create_title: () => '添加新 AI Provider',
+        form_edit_title: () => '编辑 AI Provider',
+        quick_fill_presets: () => '快速填充预设:',
+        cancel: () => '取消',
+        save: () => '保存配置',
+        name_label: () => 'Provider 显示名称',
+        base_url_label: () => 'API Base URL',
+        api_key_label: () => 'API Key',
+        model_label: () => '模型名称',
+        show: () => '显示',
+        hide: () => '隐藏',
+        fetch_models: () => '获取模型列表',
+        test_connection: () => '测试连接',
+        custom_system_prompt_label: () => '自定义全局 System Prompt',
+        custom_system_prompt_placeholder: () => '输入附加的系统指令...',
+        custom_system_prompt_tip: () => '提示词说明',
       },
     },
     plugins: {
@@ -190,5 +209,27 @@ describe('SettingsDialog', () => {
     expect(screen.getByText('插件最大并发数')).toBeInTheDocument();
     expect(screen.getByText('插件通信队列容量')).toBeInTheDocument();
     expect(screen.getByText('10s')).toBeInTheDocument();
+  });
+
+  it('切换到 AI Tab 时展示 AI Provider 配置，点击添加 Provider 后展示快速填充预设与正确样式的保存按钮', () => {
+    render(<SettingsDialog />);
+
+    const aiTabBtn = screen.getByText('AI 助手模型');
+    fireEvent.click(aiTabBtn);
+
+    expect(screen.getByText('AI Provider 配置')).toBeInTheDocument();
+    expect(screen.getByText('服务商列表')).toBeInTheDocument();
+
+    const addBtn = screen.getByText('添加 Provider');
+    fireEvent.click(addBtn);
+
+    // 验证快速填充预设多语言文案显示
+    expect(screen.getByText('快速填充预设:')).toBeInTheDocument();
+
+    // 验证保存按钮存在且包含 hover:bg-primary/90 防止变白
+    const saveBtn = screen.getByText('保存配置');
+    expect(saveBtn).toBeInTheDocument();
+    expect(saveBtn.className).toContain('bg-primary');
+    expect(saveBtn.className).toContain('hover:bg-primary/90');
   });
 });
