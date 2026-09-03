@@ -46,6 +46,10 @@ const ALL_HANDLERS: Record<
   string,
   (args: Record<string, unknown>) => Promise<unknown>
 > = {
+  batch_create_pipeline: (args) =>
+    canvasToolHandlers.batch_create_pipeline(
+      args as Parameters<typeof canvasToolHandlers.batch_create_pipeline>[0],
+    ),
   add_node: (args) =>
     canvasToolHandlers.add_node(
       args as Parameters<typeof canvasToolHandlers.add_node>[0],
