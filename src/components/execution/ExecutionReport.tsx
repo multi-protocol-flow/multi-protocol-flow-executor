@@ -21,6 +21,7 @@ import {
   Wifi,
   ChevronDown,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import {
   Dialog,
@@ -32,6 +33,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ResizablePanel } from '@/components/ui/ResizablePanel';
 import { useExecutionStore } from '@/stores';
+import { useAIStore } from '@/stores/ai';
 import { NodeExecutionDetails } from './NodeExecutionDetails';
 import { NodeListItem } from './NodeListItem';
 import { WsMessageTimeline } from './WsMessageTimeline';
@@ -105,6 +107,21 @@ export function ExecutionReport() {
       ? ((displayReport.statistics.success_count / displayReport.total_nodes) * 100).toFixed(0)
       : 0;
 
+  const handleDiagnoseWithAI = () => {
+    useAIStore.getState().setCopilotOpen(true);
+    const failedNodes = (displayReport?.node_reports || [])
+      .filter((nr) => nr.status === 'failed')
+      .map(
+        (nr) =>
+          `【${nr.node_name}】(${nr.node_type}: ${nr.error?.message || 'failed'})`,
+      );
+    const prompt =
+      failedNodes.length > 0
+        ? `当前流程执行失败了，失败节点包括：${failedNodes.join('；')}。请帮我深度诊断报错原因，向我提供修复方向选项并询问我，确认后帮我修复流程。`
+        : `当前流程执行报错了（状态：failed）。请帮我诊断流程中的问题，向我询问修复方向，并在确认后帮我修复。`;
+    useAIStore.getState().sendMessage(prompt);
+  };
+
   return (
     <Dialog open={isReportDialogOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
@@ -155,8 +172,22 @@ export function ExecutionReport() {
               {isSuccess ? ll.execution.status.success() : ll.execution.status.failed()}
             </Badge>
 
+            {/* AI 诊断与修复按钮 */}
+            {!isSuccess && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs border-red-300 dark:border-red-800 bg-red-50/80 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60 ml-2"
+                onClick={handleDiagnoseWithAI}
+                title={ll.ai.copilot.diagnose_and_fix_flow()}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+                <span>{ll.ai.copilot.diagnose_and_fix_flow()}</span>
+              </Button>
+            )}
+
             {/* 视图模式切换 */}
-            <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5 ml-auto">
+            <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5 ml-2">
               <button
                 type="button"
                 onClick={() => setViewMode('list')}

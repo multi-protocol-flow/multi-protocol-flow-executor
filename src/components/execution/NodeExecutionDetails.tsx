@@ -177,7 +177,12 @@ export function NodeExecutionDetails({ report, defaultExpanded = false }: NodeEx
               <div className="space-y-3">
                 {/* 节点级错误展示（在 viewer 上方，覆盖所有节点类型） */}
                 {report.error && report.status === 'failed' && (
-                  <ErrorSection error={report.error} />
+                  <ErrorSection
+                    error={report.error}
+                    nodeName={report.node_name}
+                    nodeType={report.node_type}
+                    nodeUuid={report.node_uuid}
+                  />
                 )}
                 <NodeViewerSelector report={report} />
               </div>
