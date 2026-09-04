@@ -3,6 +3,7 @@ import { useFlowStore } from '@/stores/flow';
 import {
   resolveDefaultPorts,
   buildDefaultNodeData,
+  normalizeJsonPath,
   canvasToolHandlers,
 } from '@/services/ai/tools/canvasTools';
 import { buildSystemPrompt } from '@/services/ai/contextBuilder';
@@ -91,18 +92,30 @@ describe('buildDefaultNodeData 格式规范化与容错', () => {
     expect(simpleData.expected_value).toBe(200);
   });
 
-  it('VariableExtractor 节点：extractions 自动纠偏为 output_mappings', () => {
+  it('VariableExtractor 节点：extractions 自动纠偏为 output_mappings 并补齐 $. 前缀', () => {
     const data = buildDefaultNodeData('variable_extractor', {
       extractions: [
         { field: 'body.data.token', name: 'auth_token' },
+        { field: '$.status', name: 'http_status' },
       ],
     }) as unknown as Record<string, unknown>;
 
     expect(data.type).toBe('variable_extractor');
     const mappings = data.output_mappings as Array<{ source: string; target: string }>;
-    expect(mappings).toHaveLength(1);
-    expect(mappings[0].source).toBe('body.data.token');
+    expect(mappings).toHaveLength(2);
+    expect(mappings[0].source).toBe('$.body.data.token');
     expect(mappings[0].target).toBe('auth_token');
+    expect(mappings[1].source).toBe('$.status');
+    expect(mappings[1].target).toBe('http_status');
+  });
+
+  it('normalizeJsonPath: 正确为省略 $. 前缀的路径补齐前缀', () => {
+    expect(normalizeJsonPath('')).toBe('');
+    expect(normalizeJsonPath('$.body.data')).toBe('$.body.data');
+    expect(normalizeJsonPath('body.data.provider.id')).toBe('$.body.data.provider.id');
+    expect(normalizeJsonPath('status')).toBe('$.status');
+    expect(normalizeJsonPath('[0].id')).toBe('$[0].id');
+    expect(normalizeJsonPath('.body.id')).toBe('$.body.id');
   });
 });
 

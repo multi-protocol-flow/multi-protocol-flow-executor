@@ -54,8 +54,18 @@ export function resolveDefaultPorts(
 }
 
 /**
- * 构造并规范化 NodeData，兼容并纠正大模型生成的参数格式
+ * 规范化 JSONPath 路径
+ * 如果未包含 `$` 前缀（如 `body.data.token` 或 `status`），自动补齐 `$.` 前缀
  */
+export function normalizeJsonPath(path: string): string {
+  const trimmed = path.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.startsWith('$')) return trimmed;
+  if (trimmed.startsWith('[')) return `$${trimmed}`;
+  if (trimmed.startsWith('.')) return `$${trimmed}`;
+  return `$.${trimmed}`;
+}
+
 export function buildDefaultNodeData(type: string, config?: Record<string, unknown>): NodeData {
   const defaults = createDefaultNodeData(type as AnyNodeType);
   const rawConfig: Record<string, unknown> = {
@@ -63,7 +73,6 @@ export function buildDefaultNodeData(type: string, config?: Record<string, unkno
     ...(config || {}),
     type,
   };
-
   switch (type) {
     case 'http': {
       let method = String(rawConfig.method || 'get').toLowerCase();
@@ -92,6 +101,15 @@ export function buildDefaultNodeData(type: string, config?: Record<string, unkno
         body_type: bodyType,
         body,
         timeout_ms: typeof rawConfig.timeout_ms === 'number' ? rawConfig.timeout_ms : 30000,
+        ...(Array.isArray(rawConfig.output_mappings)
+          ? {
+              output_mappings: (rawConfig.output_mappings as Array<Record<string, unknown>>).map((item) => ({
+                source: normalizeJsonPath(String(item.source || item.field || item.path || '')),
+                target: String(item.target || item.name || item.var_name || ''),
+                description: item.description ? String(item.description) : undefined,
+              })),
+            }
+          : {}),
       } as unknown as NodeData;
     }
 
@@ -176,7 +194,7 @@ export function buildDefaultNodeData(type: string, config?: Record<string, unkno
       }
 
       const outputMappings = (rawMappings as Array<Record<string, unknown>>).map((item) => ({
-        source: String(item.source || item.field || item.path || ''),
+        source: normalizeJsonPath(String(item.source || item.field || item.path || '')),
         target: String(item.target || item.name || item.var_name || ''),
         description: item.description ? String(item.description) : undefined,
       }));
@@ -607,7 +625,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       output_mappings: {
         type: 'array',
         items: {
-          source: { type: 'string', required: true, description: 'JSONPath from preceding response, e.g. body.data.token' },
+          source: { type: 'string', required: true, description: 'RFC 9535 JSONPath starting with $., e.g. $.body.data.token, $.status' },
           target: { type: 'string', required: true, description: 'Target variable name, e.g. auth_token' },
           description: { type: 'string' },
           enabled: { type: 'boolean', default: true },
@@ -616,7 +634,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
     },
     example: {
       output_mappings: [
-        { source: 'body.data.token', target: 'auth_token', description: 'User session token' },
+        { source: '$.body.data.token', target: 'auth_token', description: 'User session token' },
       ],
     },
   },
