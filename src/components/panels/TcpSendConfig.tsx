@@ -11,12 +11,13 @@ import {
 } from './schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { VariableTextarea } from '@/components/ui/VariableTextarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Info, BookOpen } from 'lucide-react';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { TcpSendConfig as TcpSendConfigType, TcpFramingMode } from '@/types';
 import { useFlowStore } from '@/stores';
+import { useFlowVariables } from '@/hooks';
 import { isTcpConnectConfig } from '@/types/node';
 
 interface ProtocolTemplate {
@@ -158,6 +159,8 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
     mode: 'onBlur',
   });
 
+  // 获取流程变量用于变量选择
+  const { variables, nodeLabels } = useFlowVariables();
   // 获取 flow 并提取 tcp_connect 节点
   const flow = useFlowStore((state) => state.flow);
 
@@ -470,8 +473,10 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
         <Label htmlFor="data" className="text-sm font-medium text-foreground">
           {getLL().panels.tcpSend.dataInput()}
         </Label>
-        <Textarea
+        <VariableTextarea
           id="data"
+          variables={variables}
+          nodeLabels={nodeLabels}
           {...register('data')}
           placeholder={
             watch('data_encoding') === 'hex'

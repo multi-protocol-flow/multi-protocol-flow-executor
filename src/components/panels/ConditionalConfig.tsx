@@ -15,7 +15,7 @@ import { VariableInput } from "@/components/ui/VariableInput";
 import { VariableValidationWarning } from "@/components/ui/VariableValidationWarning";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableNodeSelect } from "@/components/ui/SearchableNodeSelect";
-import { Textarea } from "@/components/ui/textarea";
+import { VariableTextarea } from "@/components/ui/VariableTextarea";
 import { Code2, Split } from "lucide-react";
 import type { ConditionalConfig as ConditionalConfigType, ConditionOperator } from "@/types";
 import { useFlowVariables } from "@/hooks";
@@ -398,8 +398,10 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
           <Label htmlFor="advanced_expression" className="text-sm font-medium text-foreground">
             {ll.advancedExpression()}
           </Label>
-          <Textarea
+          <VariableTextarea
             id="advanced_expression"
+            variables={variables}
+            nodeLabels={nodeLabels}
             {...register("advanced_expression")}
             placeholder={ll.advancedPlaceholder()}
             className="min-h-[120px] resize-y font-mono text-sm"

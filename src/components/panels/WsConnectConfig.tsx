@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
+import { VariableTextarea } from '@/components/ui/VariableTextarea';
 import { Plus, Trash2, Wifi, Info, AlertTriangle } from 'lucide-react';
 import type { WsConnectConfig as WsConnectConfigType, FormField } from '@/types';
 import { useFlowVariables } from '@/hooks';
@@ -519,8 +519,10 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                   <Label htmlFor="collect_condition.expression" className="text-xs text-muted-foreground">
                     {getLL().panels.wsConnect.matchExpression()} <span className="text-rose-500">*</span>
                   </Label>
-                  <Textarea
+                  <VariableTextarea
                     id="collect_condition.expression"
+                    variables={variables}
+                    nodeLabels={nodeLabels}
                     {...register('collect_condition.expression', { required: getLL().panels.wsConnect.matchExpressionRequired() })}
                     placeholder={watch('collect_condition.match_type') === 'expression' ? 'msg == "authenticated"' : watch('collect_condition.match_type') === 'regex' ? 'authenticated|success' : '$.msg'}
                     className={`min-h-[80px] resize-y font-mono text-xs ${

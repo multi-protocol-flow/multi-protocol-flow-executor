@@ -18,6 +18,7 @@ import { Clock, Database, BookOpen } from 'lucide-react';
 import type { ScriptNodeConfig } from '@/types/node';
 import { ScriptHelpDialog } from '@/components/dialogs/ScriptHelpDialog';
 import { getLL } from '@/i18n/i18n-lazy';
+import { DYNAMIC_VARIABLES } from '@/types/dynamicVariable';
 
 interface ScriptConfigProps {
   /** 当前节点数据 */
@@ -83,6 +84,7 @@ function fnApiCompletions(context: CompletionContext) {
       { label: 'fn.variables.unset', type: 'function', detail: '(key: string) => void', info: ll.variablesUnset() },
       { label: 'fn.variables.clear', type: 'function', detail: '() => void', info: ll.variablesClear() },
       { label: 'fn.variables.all', type: 'function', detail: '() => string', info: ll.variablesAll() },
+      { label: 'fn.variables.replaceIn', type: 'function', detail: '(template: string) => string', info: getLL().flow.fn_replace_in() },
 
       // fn.response - 响应数据（只读）
       { label: 'fn.response.code', type: 'property', detail: 'number', info: ll.responseCode() },
@@ -176,6 +178,24 @@ function fnApiCompletions(context: CompletionContext) {
       // fn.expect - 链式断言
       { label: 'fn.expect', type: 'function', detail: '(value: any) => ExpectChain', info: ll.expect() },
     ],
+  };
+}
+
+/**
+ * 动态变量补全源（输入 $ 时补全动态变量，如 $guid, $timestamp）
+ */
+function dynamicVariableCompletions(context: CompletionContext) {
+  const word = context.matchBefore(/(\{\{)?\$[a-zA-Z_0-9]*/);
+  if (!word) return null;
+
+  return {
+    from: word.from,
+    options: DYNAMIC_VARIABLES.map((v) => ({
+      label: v.name,
+      type: 'variable',
+      detail: v.example,
+      info: v.name,
+    })),
   };
 }
 
@@ -288,7 +308,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
   // CodeMirror 扩展（memoized，避免不必要的重渲染）
   const editorExtensions = useMemo(() => [
     javascript(),
-    autocompletion({ override: [fnApiCompletions] }),
+    autocompletion({ override: [fnApiCompletions, dynamicVariableCompletions] }),
   ], []);
 
   return (

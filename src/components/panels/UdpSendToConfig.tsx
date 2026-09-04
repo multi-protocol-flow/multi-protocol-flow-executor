@@ -10,13 +10,15 @@ import {
   type UdpSendToConfigFormData,
 } from './schemas';
 import { Input } from '@/components/ui/input';
+import { VariableInput } from '@/components/ui/VariableInput';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { VariableTextarea } from '@/components/ui/VariableTextarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Info } from 'lucide-react';
 import type { UdpSendToConfig as UdpSendToConfigType } from '@/types';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useFlowStore } from '@/stores';
+import { useFlowVariables } from '@/hooks';
 import { isUdpBindConfig } from '@/types/node';
 
 interface UdpSendToConfigProps {
@@ -80,6 +82,9 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
     defaultValues: toFormData(data),
     mode: 'onBlur',
   });
+
+  // 获取流程变量
+  const { variables, nodeLabels } = useFlowVariables();
 
   // 获取 flow 并提取 udp_bind 节点
   const flow = useFlowStore((state) => state.flow);
@@ -217,9 +222,15 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
             </SelectContent>
           </Select>
         ) : (
-          <Input
+          <VariableInput
             id="connection_id"
-            {...register('connection_id')}
+            variables={variables}
+            nodeLabels={nodeLabels}
+            value={watch('connection_id') || ''}
+            onValueChange={(val) => {
+              setValue('connection_id', val, { shouldDirty: true });
+              safeSetTimeout(saveData, 100);
+            }}
             placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
@@ -241,9 +252,15 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
         </Label>
         <div className="relative">
           <Send className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
-          <Input
+          <VariableInput
             id="target_addr"
-            {...register('target_addr')}
+            variables={variables}
+            nodeLabels={nodeLabels}
+            value={watch('target_addr') || ''}
+            onValueChange={(val) => {
+              setValue('target_addr', val, { shouldDirty: true });
+              safeSetTimeout(saveData, 100);
+            }}
             placeholder={getLL().panels.hostExample()}
             className="pl-9 font-mono text-sm"
           />
@@ -306,8 +323,10 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
         <Label htmlFor="data" className="text-sm font-medium text-foreground">
           {getLL().panels.udpSendTo.dataInput()}
         </Label>
-        <Textarea
+        <VariableTextarea
           id="data"
+          variables={variables}
+          nodeLabels={nodeLabels}
           {...register('data')}
           placeholder={
             watch('data_encoding') === 'hex'

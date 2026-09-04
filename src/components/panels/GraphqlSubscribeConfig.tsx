@@ -12,11 +12,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { VariableTextarea } from '@/components/ui/VariableTextarea';
 import { Activity, Info } from 'lucide-react';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { GraphqlSubscribeConfig as GraphqlSubscribeConfigType, GraphqlConnectConfig as GraphqlConnectConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
+import { useFlowVariables } from '@/hooks';
 import { isGraphqlConnectConfig } from '@/types/node';
 import { buildOperationFieldTrees } from '@/lib/graphqlSchema';
 import type { FieldNode } from '@/lib/graphqlSchema';
@@ -83,6 +84,9 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
     defaultValues: toFormData(data),
     mode: 'onBlur',
   });
+  // 获取流程变量用于变量选择
+  const { variables: flowVariables, nodeLabels } = useFlowVariables();
+
 
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
@@ -291,8 +295,10 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
         <Label htmlFor="subscription" className="text-sm font-medium text-foreground">
           {getLL().panels.graphqlSubscribe.subscription()} <span className="text-indigo-500">*</span>
         </Label>
-        <Textarea
+        <VariableTextarea
           id="subscription"
+          variables={flowVariables}
+          nodeLabels={nodeLabels}
           {...register('subscription')}
           placeholder={`subscription OnMessage($roomId: ID!) {\n  messageAdded(roomId: $roomId) {\n    id\n    text\n    sender\n  }\n}`}
           className="min-h-[160px] font-mono text-sm resize-y"
@@ -308,8 +314,10 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
         <Label htmlFor="variables" className="text-sm font-medium text-foreground">
           {getLL().panels.graphqlQuery.variables()}
         </Label>
-        <Textarea
+        <VariableTextarea
           id="variables"
+          variables={flowVariables}
+          nodeLabels={nodeLabels}
           {...register('variables')}
           onBlur={handleVariablesBlur}
           placeholder={'{\n  "roomId": "room-123"\n}'}

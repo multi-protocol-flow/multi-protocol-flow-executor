@@ -10,6 +10,7 @@ import {
   type TcpConnectConfigFormData,
 } from './schemas';
 import { Input } from '@/components/ui/input';
+import { VariableInput } from '@/components/ui/VariableInput';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Cable, Info, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { TcpConnectConfig as TcpConnectConfigType, TcpFramingMode } from '@/types';
+import { useFlowVariables } from '@/hooks';
 
 interface TcpConnectConfigProps {
   /** 当前节点数据 */
@@ -101,6 +103,9 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
     defaultValues: toFormData(data),
     mode: 'onBlur',
   });
+  // 获取流程变量用于变量选择
+  const { variables, nodeLabels } = useFlowVariables();
+
 
   // 监听表单值变化
   const useTls = watch('use_tls');
@@ -256,9 +261,15 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
         </Label>
         <div className="relative">
           <Cable className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
-          <Input
+          <VariableInput
             id="host"
-            {...register('host')}
+            variables={variables}
+            nodeLabels={nodeLabels}
+            value={watch('host') || ''}
+            onValueChange={(val) => {
+              setValue('host', val, { shouldDirty: true });
+              safeSetTimeout(saveData, 100);
+            }}
             placeholder={getLL().panels.tcpConnect.hostPlaceholder()}
             className="pl-9 font-mono text-sm"
           />

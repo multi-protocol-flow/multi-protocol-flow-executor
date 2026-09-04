@@ -20,7 +20,7 @@ import { VariableValidationWarning } from '@/components/ui/VariableValidationWar
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
+import { VariableTextarea } from '@/components/ui/VariableTextarea';
 import { Send, Info, FolderOpen } from 'lucide-react';
 import type { WsSendCollectConfig as WsSendCollectConfigType } from '@/types';
 import { useFlowVariables } from '@/hooks';
@@ -390,8 +390,10 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
           </div>
         )}
 
-        <Textarea
+        <VariableTextarea
           id="message"
+          variables={variables}
+          nodeLabels={nodeLabels}
           {...register('message')}
           placeholder={messageType === 'binary' ? binaryPlaceholder : '{"type": "ping", "data": "hello"}'}
           className="min-h-[100px] resize-y font-mono text-sm"
@@ -540,8 +542,10 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
                   <Label htmlFor="collect_condition.expression" className="text-xs text-muted-foreground">
                     {getLL().panels.wsSendCollect.matchExpression_label()} <span className="text-rose-500">*</span>
                   </Label>
-                  <Textarea
+                  <VariableTextarea
                     id="collect_condition.expression"
+                    variables={variables}
+                    nodeLabels={nodeLabels}
                     {...register('collect_condition.expression', { required: getLL().panels.wsSendCollect.matchExpression_required() })}
                     placeholder={watch('collect_condition.match_type') === 'expression' ? 'msg == "authenticated"' : watch('collect_condition.match_type') === 'regex' ? 'authenticated|success' : '$.msg'}
                     className={`min-h-[80px] resize-y font-mono text-xs ${

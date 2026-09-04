@@ -10,6 +10,7 @@ import {
   type SseConnectConfigFormData,
 } from './schemas';
 import { Input } from '@/components/ui/input';
+import { VariableInput } from '@/components/ui/VariableInput';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,6 +19,7 @@ import { Radio, Plus, Trash2, ChevronDown, Shield, Info, Loader2 } from 'lucide-
 import { getLL } from '@/i18n/i18n-lazy';
 import type { SseConnectConfig as SseConnectConfigType } from '@/types';
 import { cn } from '@/lib/utils';
+import { useFlowVariables } from '@/hooks';
 import { testSseConnection } from '@/services/tauri/sse';
 
 interface SseConnectConfigProps {
@@ -76,6 +78,9 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
     defaultValues: toFormData(data),
     mode: 'onBlur',
   });
+  // 获取流程变量用于变量选择
+  const { variables, nodeLabels } = useFlowVariables();
+
 
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
@@ -245,9 +250,15 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
         </Label>
         <div className="relative">
           <Radio className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
-          <Input
+          <VariableInput
             id="url"
-            {...register('url')}
+            variables={variables}
+            nodeLabels={nodeLabels}
+            value={watch('url') || ''}
+            onValueChange={(val) => {
+              setValue('url', val, { shouldDirty: true });
+              safeSetTimeout(saveData, 100);
+            }}
             placeholder={getLL().panels.sseConnect.urlPlaceholder()}
             className="pl-9 font-mono text-sm"
           />
@@ -287,10 +298,14 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
                   placeholder="Header Name"
                   className="h-8 flex-1 font-mono text-xs"
                 />
-                <Input
+                <VariableInput
+                  variables={variables}
+                  nodeLabels={nodeLabels}
                   value={entry.value}
-                  onChange={(e) => handleHeaderChange(index, 'value', e.target.value)}
-                  onBlur={() => safeSetTimeout(saveData, 100)}
+                  onValueChange={(val) => {
+                    handleHeaderChange(index, 'value', val);
+                    safeSetTimeout(saveData, 100);
+                  }}
                   placeholder="Value"
                   className="h-8 flex-1 font-mono text-xs"
                 />
@@ -314,9 +329,15 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
         <Label htmlFor="last_event_id" className="text-sm font-medium text-foreground">
           {getLL().panels.sseConnect.lastEventId()}
         </Label>
-        <Input
+        <VariableInput
           id="last_event_id"
-          {...register('last_event_id')}
+          variables={variables}
+          nodeLabels={nodeLabels}
+          value={watch('last_event_id') || ''}
+          onValueChange={(val) => {
+            setValue('last_event_id', val, { shouldDirty: true });
+            safeSetTimeout(saveData, 100);
+          }}
           placeholder={getLL().panels.sseConnect.lastEventIdPlaceholder()}
           className="font-mono text-sm"
         />

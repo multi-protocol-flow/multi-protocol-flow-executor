@@ -13,11 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { VariableTextarea } from '@/components/ui/VariableTextarea';
 import { Plus, Trash2, Info, Send } from 'lucide-react';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { GraphqlQueryConfig as GraphqlQueryConfigType, GraphqlConnectConfig as GraphqlConnectConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
+import { useFlowVariables } from '@/hooks';
 import { isGraphqlConnectConfig } from '@/types/node';
 import { buildOperationFieldTrees } from '@/lib/graphqlSchema';
 import type { FieldNode } from '@/lib/graphqlSchema';
@@ -88,6 +89,9 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
     defaultValues: toFormData(data),
     mode: 'onBlur',
   });
+  // 获取流程变量用于变量选择
+  const { variables: flowVariables, nodeLabels } = useFlowVariables();
+
 
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
@@ -340,8 +344,10 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
         <Label htmlFor="query" className="text-sm font-medium text-foreground">
           {getLL().panels.graphqlQuery.query()} <span className="text-indigo-500">*</span>
         </Label>
-        <Textarea
+        <VariableTextarea
           id="query"
+          variables={flowVariables}
+          nodeLabels={nodeLabels}
           {...register('query')}
           placeholder={`query GetUsers($limit: Int) {\n  users(limit: $limit) {\n    id\n    name\n    email\n  }\n}`}
           className="min-h-[160px] font-mono text-sm resize-y"
@@ -357,8 +363,10 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
         <Label htmlFor="variables" className="text-sm font-medium text-foreground">
           {getLL().panels.graphqlQuery.variables()}
         </Label>
-        <Textarea
+        <VariableTextarea
           id="variables"
+          variables={flowVariables}
+          nodeLabels={nodeLabels}
           {...register('variables')}
           onBlur={handleVariablesBlur}
           placeholder={'{\n  "limit": 10\n}'}

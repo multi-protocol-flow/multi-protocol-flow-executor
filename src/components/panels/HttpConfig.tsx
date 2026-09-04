@@ -8,6 +8,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { httpConfigSchema, type HttpConfigFormData, type HeaderEntry, type HttpBodyType } from './schemas';
 import { Input } from '@/components/ui/input';
 import { VariableInput } from '@/components/ui/VariableInput';
+import { VariableTextarea } from '@/components/ui/VariableTextarea';
 import { VariableValidationWarning } from '@/components/ui/VariableValidationWarning';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -869,8 +870,10 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           <Label htmlFor="body" className="text-sm font-medium text-foreground">
             {getBodyTypeLabel(watchedContentType)}
           </Label>
-          <Textarea
+          <VariableTextarea
             id="body"
+            variables={variables}
+            nodeLabels={nodeLabels}
             {...register('body')}
             placeholder={getBodyPlaceholder(watchedContentType)}
             className="min-h-[120px] resize-y font-mono text-sm"

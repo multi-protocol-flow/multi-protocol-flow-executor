@@ -4,11 +4,14 @@
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
+import { VariableInput } from '@/components/ui/VariableInput';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { VariableTextarea } from '@/components/ui/VariableTextarea';
 import { useFlowStore, selectNodes } from '@/stores/flow';
+import { useFlowVariables } from '@/hooks';
 import { getLL } from '@/i18n/i18n-lazy';
 
 interface SchemaConfigPanelProps {
@@ -74,6 +77,9 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
 
   // 获取当前流程中的节点列表（用于 x-node-selector 字段筛选）
   const nodes = useFlowStore(selectNodes);
+  // 获取流程变量用于动态变量和流程变量选择
+  const { variables, nodeLabels } = useFlowVariables();
+
 
   // 用受控状态跟踪表单值
   const [formValues, setFormValues] = useState<Record<string, unknown>>(() => {
@@ -271,10 +277,12 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
       return (
         <div key={key} className="space-y-2">
           {renderLabel(key, prop)}
-          <Textarea
+          <VariableTextarea
             id={`schema-field-${key}`}
+            variables={variables}
+            nodeLabels={nodeLabels}
             value={(value as string) ?? ''}
-            onChange={(e) => handleFieldChange(key, e.target.value)}
+            onValueChange={(val) => handleFieldChange(key, val)}
             placeholder={prop.description || ''}
             className="min-h-[120px] resize-y font-mono text-xs"
             rows={6}
@@ -298,10 +306,12 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
       return (
         <div key={key} className="space-y-2">
           {renderLabel(key, prop)}
-          <Textarea
+          <VariableTextarea
             id={`schema-field-${key}`}
+            variables={variables}
+            nodeLabels={nodeLabels}
             value={rawValue}
-            onChange={(e) => handleFieldChange(key, e.target.value)}
+            onValueChange={(val) => handleFieldChange(key, val)}
             placeholder={ll.jsonPlaceholder()}
             className={`min-h-[120px] resize-y font-mono text-xs${jsonInvalid ? ' border-rose-500 focus-visible:border-rose-500' : ''}`}
             rows={6}
@@ -321,11 +331,12 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
       return (
         <div key={key} className="space-y-2">
           {renderLabel(key, prop)}
-          <Input
+          <VariableInput
             id={`schema-field-${key}`}
-            type="text"
+            variables={variables}
+            nodeLabels={nodeLabels}
             value={(value as string) ?? ''}
-            onChange={(e) => handleFieldChange(key, e.target.value)}
+            onValueChange={(val) => handleFieldChange(key, val)}
             placeholder={prop.description || ''}
           />
           {prop.description && (
