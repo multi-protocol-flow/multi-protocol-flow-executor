@@ -108,7 +108,10 @@ export function AISpotlightDialog() {
           />
 
           {activeProvider && (
-            <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-muted text-muted-foreground shrink-0">
+            <span
+              className="text-[10px] px-2 py-0.5 rounded font-mono bg-muted text-muted-foreground shrink-0 max-w-[120px] truncate"
+              title={activeProvider.name}
+            >
               {activeProvider.name}
             </span>
           )}
@@ -164,7 +167,7 @@ export function AISpotlightDialog() {
               if (msg.role === 'user') {
                 return (
                   <div key={msg.id} className="flex justify-end gap-2">
-                    <div className="rounded-xl bg-primary px-3 py-1.5 text-primary-foreground text-xs shadow-xs max-w-[85%] break-words">
+                    <div className="rounded-xl bg-primary px-3 py-1.5 text-primary-foreground text-xs shadow-xs max-w-[85%] break-words whitespace-pre-wrap overflow-hidden">
                       {msg.content}
                     </div>
                     <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary mt-0.5">
@@ -176,6 +179,13 @@ export function AISpotlightDialog() {
 
               if (msg.role === 'assistant') {
                 const isStreaming = activeStreamingMessageId === msg.id;
+                const hasContent = Boolean(msg.content && msg.content.trim().length > 0);
+                const hasThought = Boolean(msg.thought && msg.thought.trim().length > 0);
+                const hasToolCalls = Boolean(msg.tool_calls && msg.tool_calls.length > 0);
+
+                if (!hasContent && !hasThought && !hasToolCalls && !isStreaming) {
+                  return null;
+                }
 
                 return (
                   <div key={msg.id} className="flex justify-start gap-2">

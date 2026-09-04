@@ -43,7 +43,10 @@ export function AIConfirmCard({ action }: AIConfirmCardProps) {
       <div className="flex items-center gap-2 font-medium text-amber-600 dark:text-amber-400">
         <ShieldAlert className="h-4 w-4 shrink-0 text-amber-500" />
         <span>{ll.ai.confirm_card.title()}</span>
-        <span className="ml-auto text-xs px-2 py-0.5 rounded font-mono font-normal bg-amber-500/20 text-amber-700 dark:text-amber-300">
+        <span
+          className="ml-auto text-xs px-2 py-0.5 rounded font-mono font-normal bg-amber-500/20 text-amber-700 dark:text-amber-300 truncate max-w-[140px] shrink-0"
+          title={action.toolName}
+        >
           {action.toolName}
         </span>
       </div>
@@ -53,13 +56,13 @@ export function AIConfirmCard({ action }: AIConfirmCardProps) {
       </div>
 
       {action.diffSummary && (
-        <div className="mt-1.5 rounded bg-background/60 p-2 text-xs text-muted-foreground font-mono border border-border/50 break-words whitespace-pre-wrap">
+        <div className="mt-1.5 rounded bg-background/60 p-2 text-xs text-muted-foreground font-mono border border-border/50 break-all whitespace-pre-wrap max-h-40 overflow-y-auto">
           {action.diffSummary}
         </div>
       )}
 
       {isPending ? (
-        <div className="mt-3 flex items-center justify-end gap-2">
+        <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
           <Button
             size="sm"
             variant="outline"

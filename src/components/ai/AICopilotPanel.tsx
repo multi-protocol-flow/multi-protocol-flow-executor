@@ -24,6 +24,10 @@ import {
   Edit2,
   Check,
   GripVertical,
+  GripHorizontal,
+  ArrowRightToLine,
+  ExternalLink,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +36,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useAIStore } from '@/stores/ai';
 import { useSettingsStore } from '@/stores/settings';
 import { useUIStore } from '@/stores/ui';
+import { useExecutionStore } from '@/stores/execution';
 import { AIToolCallItem } from './AIToolCallItem';
 import { AIConfirmCard } from './AIConfirmCard';
 import {
@@ -53,7 +58,13 @@ export function AICopilotPanel() {
     pendingActions,
     isCopilotOpen,
     panelWidth,
+    isFloating,
+    floatingPosition,
+    autoExecuteToGoal,
     setPanelWidth,
+    setFloating,
+    setFloatingPosition,
+    toggleAutoExecuteToGoal,
     setCopilotOpen,
     initSessions,
     createNewSession,
@@ -64,7 +75,6 @@ export function AICopilotPanel() {
     stopGeneration,
     clearMessages,
   } = useAIStore();
-
   const { aiProviders, activeAiProviderId } = useSettingsStore();
   const openSettingsDialog = useUIStore((s) => s.openSettingsDialog);
 
@@ -106,7 +116,7 @@ export function AICopilotPanel() {
   // 自动滚动到底部
   useEffect(() => {
     if (isCopilotOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
     }
   }, [messages, isCopilotOpen]);
 
@@ -150,17 +160,120 @@ export function AICopilotPanel() {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }, [setPanelWidth]);
 
+  // 停靠模式下：拖动头部离开右侧吸附
+  const handleMouseDownDockedDrag = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('input') || target.closest('textarea')) {
+      return;
+    }
+    e.preventDefault();
+
+    const startX = e.clientX;
+    let hasDetached = false;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = startX - moveEvent.clientX;
+      if (!hasDetached && deltaX > 15) {
+        hasDetached = true;
+        const currentPanelWidth = useAIStore.getState().panelWidth;
+        const initialWidth = Math.max(360, currentPanelWidth);
+        const initialHeight = Math.max(450, window.innerHeight - 120);
+        const initialX = Math.max(20, Math.min(window.innerWidth - initialWidth - 20, moveEvent.clientX - initialWidth / 2));
+        const initialY = Math.max(60, Math.min(window.innerHeight - initialHeight - 20, moveEvent.clientY - 20));
+
+        setFloatingPosition({
+          x: initialX,
+          y: initialY,
+          width: initialWidth,
+          height: initialHeight,
+        });
+        setFloating(true);
+      }
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [setFloating, setFloatingPosition]);
+
+  // 浮动模式下：按住头部拖拽移动窗口
+  const handleMouseDownFloatingHeader = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('input') || target.closest('textarea')) {
+      return;
+    }
+    e.preventDefault();
+
+    const currentPos = useAIStore.getState().floatingPosition;
+    const startMouseX = e.clientX;
+    const startMouseY = e.clientY;
+    const startPosX = currentPos.x;
+    const startPosY = currentPos.y;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startMouseX;
+      const deltaY = moveEvent.clientY - startMouseY;
+      const newX = Math.max(0, Math.min(window.innerWidth - currentPos.width, startPosX + deltaX));
+      const newY = Math.max(50, Math.min(window.innerHeight - 60, startPosY + deltaY));
+
+      setFloatingPosition({ x: newX, y: newY });
+    };
+
+    const handleMouseUp = (upEvent: MouseEvent) => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+
+      // 如果释放位置贴近屏幕右边缘 (30px 以内)，自动吸附至右侧
+      if (upEvent.clientX >= window.innerWidth - 30) {
+        setFloating(false);
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [setFloating, setFloatingPosition]);
+
+  // 浮动模式下：右下角拖拽调整窗口大小
+  const handleMouseDownFloatingResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const currentPos = useAIStore.getState().floatingPosition;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startW = currentPos.width;
+    const startH = currentPos.height;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+      const newW = Math.max(340, Math.min(window.innerWidth - currentPos.x - 10, startW + deltaX));
+      const newH = Math.max(350, Math.min(window.innerHeight - currentPos.y - 10, startH + deltaY));
+
+      setFloatingPosition({ width: newW, height: newH });
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [setFloatingPosition]);
   if (!isCopilotOpen) return null;
 
   const handleSend = () => {
     const text = inputPrompt.trim();
-    if ((!text && attachedImages.length === 0) || isGenerating) return;
-
+    if (!text && attachedImages.length === 0) return;
     const imgs = attachedImages.length > 0 ? [...attachedImages] : undefined;
     setInputPrompt('');
     setAttachedImages([]);
@@ -242,34 +355,66 @@ export function AICopilotPanel() {
 
   return (
     <>
-      <aside
-        className="fixed right-0 top-14 bottom-0 bg-background/95 backdrop-blur-sm border-l border-border z-30 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
-        style={{ width: `${panelWidth}px` }}
-        aria-label="AI Copilot Panel"
-      >
-        {/* 左侧可拖拽拉伸边条 */}
-        <div
-          onMouseDown={handleMouseDownResize}
-          className={`absolute left-0 top-0 bottom-0 w-1.5 -ml-1 cursor-col-resize z-40 hover:bg-primary/50 transition-colors flex items-center justify-center ${
-            isResizing ? 'bg-primary' : 'bg-transparent'
-          }`}
-          title={ll.ai.copilot.drag_resize()}
-        >
-          <GripVertical className="h-3 w-3 text-muted-foreground/40 opacity-0 hover:opacity-100" />
-        </div>
+      {/* AI 面板容器：支持右侧吸附与浮动窗口两种形态 */}
+      {(() => {
+        const Container = isFloating ? 'div' : 'aside';
+        const containerClasses = isFloating
+          ? 'fixed bg-background border border-border rounded-xl z-50 flex flex-col shadow-2xl animate-in fade-in-50 zoom-in-95 duration-150 overflow-hidden'
+          : 'fixed right-0 top-14 bottom-0 bg-background border-l border-border z-30 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200';
+        const containerStyle = isFloating
+          ? {
+              left: `${floatingPosition.x}px`,
+              top: `${floatingPosition.y}px`,
+              width: `${floatingPosition.width}px`,
+              height: `${floatingPosition.height}px`,
+            }
+          : { width: `${panelWidth}px` };
 
-        {/* 头部导航栏 */}
-        <header className="h-11 border-b border-border/70 px-3 flex items-center justify-between bg-muted/20 shrink-0 relative">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
-              <Sparkles className="h-3.5 w-3.5" />
-            </div>
+        return (
+          <Container
+            className={containerClasses}
+            style={containerStyle}
+            aria-label={isFloating ? 'AI Copilot Floating Panel' : 'AI Copilot Panel'}
+          >
+            {/* 停靠模式下：左侧可拖拽拉伸边条 */}
+            {!isFloating && (
+              <div
+                onMouseDown={handleMouseDownResize}
+                className={`absolute left-0 top-0 bottom-0 w-1.5 -ml-1 cursor-col-resize z-40 hover:bg-primary/50 transition-colors flex items-center justify-center ${
+                  isResizing ? 'bg-primary' : 'bg-transparent'
+                }`}
+                title={ll.ai.copilot.drag_resize()}
+              >
+                <GripVertical className="h-3 w-3 text-muted-foreground/40 opacity-0 hover:opacity-100" />
+              </div>
+            )}
+
+            {/* 头部导航栏 */}
+            <header
+              className={`h-11 border-b border-border/70 px-3 flex items-center justify-between bg-muted/20 shrink-0 relative select-none ${
+                isFloating ? 'cursor-move' : ''
+              }`}
+              onMouseDown={isFloating ? handleMouseDownFloatingHeader : handleMouseDownDockedDrag}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                {/* 拖拽移动把手 */}
+                <div
+                  className="flex items-center justify-center p-1 rounded hover:bg-muted/70 text-muted-foreground transition-colors shrink-0 cursor-grab active:cursor-grabbing"
+                  title={ll.ai.copilot.drag_to_move()}
+                  onMouseDown={isFloating ? handleMouseDownFloatingHeader : handleMouseDownDockedDrag}
+                >
+                  <GripHorizontal className="h-3.5 w-3.5" />
+                </div>
+
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
+                  <Sparkles className="h-3.5 w-3.5" />
+                </div>
 
             {/* 会话选择器与下拉抽屉触发器 */}
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
-                className="flex items-center gap-1 text-xs font-semibold text-foreground hover:bg-muted/60 px-1.5 py-1 rounded-md transition-colors max-w-[170px]"
+                className="flex items-center gap-1 text-xs font-semibold text-foreground hover:bg-muted/60 px-1.5 py-1 rounded-md transition-colors min-w-0 max-w-[130px] sm:max-w-[170px]"
                 onClick={() => setShowSessionMenu(!showSessionMenu)}
                 title={ll.ai.copilot.sessions_title()}
               >
@@ -394,7 +539,45 @@ export function AICopilotPanel() {
             )}
           </div>
 
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1 shrink-0">
+            {/* 执行到底模式切换开关 */}
+            <button
+              type="button"
+              onClick={toggleAutoExecuteToGoal}
+              title={ll.ai.copilot.auto_execute_tip()}
+              className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${
+                autoExecuteToGoal
+                  ? 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/15'
+                  : 'bg-muted/40 border-border/60 text-muted-foreground hover:bg-muted/70'
+              }`}
+            >
+              <Zap className={`h-3 w-3 ${autoExecuteToGoal ? 'fill-primary text-primary' : ''}`} />
+              <span className="hidden sm:inline">{ll.ai.copilot.auto_execute()}</span>
+            </button>
+
+            {/* 停靠 / 脱离浮动切换按钮 */}
+            {isFloating ? (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={() => setFloating(false)}
+                title={ll.ai.copilot.dock_to_right()}
+              >
+                <ArrowRightToLine className="h-3.5 w-3.5" />
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={() => setFloating(true)}
+                title={ll.ai.copilot.undock_panel()}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            )}
+
             {/* 新建对话按钮 */}
             <Button
               size="icon"
@@ -430,8 +613,8 @@ export function AICopilotPanel() {
           </div>
         </header>
 
-        {/* 消息列表区域 */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-4 text-xs">
+        {/* 消息列表区域 (不透明背景) */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-4 text-xs bg-background">
           {/* 未配置 Provider 提示 */}
           {!activeProvider && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-center space-y-3">
@@ -476,6 +659,9 @@ export function AICopilotPanel() {
                   <span>{ll.ai.copilot.suggested_prompts()}</span>
                 </p>
                 {[
+                  ...(useExecutionStore.getState().report?.status === 'failed'
+                    ? [ll.ai.copilot.prompt_diagnose_flow()]
+                    : []),
                   ll.ai.copilot.prompt_sample_1(),
                   ll.ai.copilot.prompt_sample_2(),
                   ll.ai.copilot.prompt_sample_3(),
@@ -524,9 +710,15 @@ export function AICopilotPanel() {
                         ))}
                       </div>
                     )}
+                    {msg.isCorrection && (
+                      <div className="flex items-center justify-end gap-1 text-[10px] text-amber-500 font-medium pb-0.5">
+                        <Zap className="h-2.5 w-2.5 fill-current" />
+                        <span>{ll.ai.copilot.steer_badge()}</span>
+                      </div>
+                    )}
 
                     {msg.content && (
-                      <div className="rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2 text-primary-foreground text-xs shadow-xs break-words whitespace-pre-wrap">
+                      <div className="rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2 text-primary-foreground text-xs shadow-xs break-words whitespace-pre-wrap overflow-hidden max-w-full">
                         {msg.content}
                       </div>
                     )}
@@ -540,6 +732,15 @@ export function AICopilotPanel() {
 
             if (msg.role === 'assistant') {
               const isStreamingThis = activeStreamingMessageId === msg.id;
+              const hasContent = Boolean(msg.content && msg.content.trim().length > 0);
+              const hasThought = Boolean(msg.thought && msg.thought.trim().length > 0);
+              const hasToolCalls = Boolean(msg.tool_calls && msg.tool_calls.length > 0);
+
+              // 既无正文、又无思考、又无工具调用，且当前没有处于流式中：绝对不渲染多余的空白头像！
+              if (!hasContent && !hasThought && !hasToolCalls && !isStreamingThis) {
+                return null;
+              }
+
               const thoughtOpen =
                 openThoughts[msg.id] !== undefined
                   ? openThoughts[msg.id]
@@ -561,7 +762,7 @@ export function AICopilotPanel() {
                           onClick={() => toggleThought(msg.id)}
                         >
                           <Brain className="h-3 w-3 text-indigo-500 shrink-0" />
-                          <span className="font-medium text-[11px]">
+                          <span className="font-medium text-[11px] truncate min-w-0 flex-1">
                             {ll.ai.copilot.thought_process()}
                           </span>
                           {thoughtOpen ? (
@@ -675,10 +876,11 @@ export function AICopilotPanel() {
                 activeProvider
                   ? isDragOver
                     ? ll.ai.copilot.drop_image_here()
-                    : ll.ai.copilot.input_placeholder()
+                    : isGenerating
+                      ? ll.ai.copilot.input_midway_placeholder()
+                      : ll.ai.copilot.input_placeholder()
                   : ll.ai.copilot.input_disabled_placeholder()
               }
-              disabled={!activeProvider}
               rows={2}
               className="w-full resize-none border-0 bg-transparent p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[50px] max-h-32 disabled:cursor-not-allowed disabled:opacity-50"
             />
@@ -713,17 +915,31 @@ export function AICopilotPanel() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {isGenerating ? (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="h-6 px-2 text-[11px] rounded-md gap-1"
-                    onClick={stopGeneration}
-                  >
-                    <Square className="h-3 w-3 fill-current" />
-                    {ll.ai.copilot.stop()}
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-6 px-2 text-[11px] rounded-md gap-1"
+                      onClick={stopGeneration}
+                      title={ll.ai.copilot.stop()}
+                    >
+                      <Square className="h-3 w-3 fill-current" />
+                      {ll.ai.copilot.stop()}
+                    </Button>
+                    {Boolean(inputPrompt.trim() || attachedImages.length > 0) && (
+                      <Button
+                        size="sm"
+                        className="h-6 px-2 text-[11px] rounded-md bg-amber-600 hover:bg-amber-700 text-white gap-1 animate-in fade-in duration-100"
+                        onClick={handleSend}
+                        title={ll.ai.copilot.send_correction_tip()}
+                      >
+                        <Send className="h-3 w-3" />
+                        <span>{ll.ai.copilot.send_correction()}</span>
+                      </Button>
+                    )}
+                  </>
                 ) : (
                   <Button
                     size="sm"
@@ -739,12 +955,28 @@ export function AICopilotPanel() {
             </div>
           </div>
         </footer>
-      </aside>
+
+        {/* 浮动模式下：右下角拉伸调整手柄 */}
+        {isFloating && (
+          <div
+            onMouseDown={handleMouseDownFloatingResize}
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 flex items-end justify-end p-0.5 text-muted-foreground/40 hover:text-foreground transition-colors select-none"
+            title={ll.ai.copilot.drag_resize()}
+          >
+            <svg className="w-2.5 h-2.5" viewBox="0 0 6 6" fill="currentColor">
+              <path d="M5 1v4H1" stroke="currentColor" strokeWidth="1.2" fill="none" />
+              <path d="M5 3.5v1.5H3.5" stroke="currentColor" strokeWidth="1.2" fill="none" />
+            </svg>
+          </div>
+        )}
+      </Container>
+    );
+  })()}
 
       {/* 图片放大预览灯箱弹窗 */}
       {previewImageUrl && (
         <Dialog open={!!previewImageUrl} onOpenChange={() => setPreviewImageUrl(null)}>
-          <DialogContent className="max-w-3xl p-2 bg-background/95 backdrop-blur-md border-border/80">
+          <DialogContent className="max-w-3xl p-2 bg-background border-border/80">
             <DialogTitle className="sr-only">{ll.ai.copilot.image_preview()}</DialogTitle>
             <div className="relative flex items-center justify-center p-2">
               <img
