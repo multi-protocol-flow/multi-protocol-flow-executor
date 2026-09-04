@@ -33,6 +33,10 @@ describe('toolDispatcher', () => {
     expect(names).toContain('auto_layout');
     expect(names).toContain('delete_nodes');
     expect(names).toContain('clear_canvas');
+    expect(names).toContain('get_node_detail');
+    expect(names).toContain('get_node_type_schema');
+    expect(names).toContain('get_flow_nodes_config');
+    expect(names).toContain('diagnose_flow_errors');
   });
 
   it('正确识别高风险操作', () => {
@@ -77,5 +81,22 @@ describe('toolDispatcher', () => {
     const currentFlow = useFlowStore.getState().flow;
     expect(currentFlow?.nodes).toHaveLength(2);
     expect(currentFlow?.connections).toHaveLength(1);
+  });
+
+  it('分发并执行 get_node_type_schema 与 diagnose_flow_errors', async () => {
+    const schemaRes = (await dispatchToolCall('get_node_type_schema', {
+      node_type: 'http',
+    })) as { success: boolean; node_type: string; builtin_schema: unknown };
+    expect(schemaRes.success).toBe(true);
+    expect(schemaRes.node_type).toBe('http');
+    expect(schemaRes.builtin_schema).toBeDefined();
+
+    const diagRes = (await dispatchToolCall('diagnose_flow_errors', {})) as {
+      success: boolean;
+      has_execution_report: boolean;
+      instruction_for_assistant: string;
+    };
+    expect(diagRes.success).toBe(true);
+    expect(diagRes.instruction_for_assistant).toContain('propose the suggested repair directions');
   });
 });

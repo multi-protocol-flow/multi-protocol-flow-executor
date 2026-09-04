@@ -3,6 +3,8 @@
  */
 
 import { useFlowStore } from '@/stores/flow';
+import { useExecutionStore } from '@/stores/execution';
+import { getCachedDefaultConfig } from '@/lib/NodeRegistry';
 import { getLayoutedPositions } from '@/components/canvas/layout';
 import { createDefaultNodeData } from '@/components/canvas/utils';
 import type { Node, Connection, NodeType, NodeData, AnyNodeType, ExecutionErrorStrategy } from '@/types';
@@ -435,7 +437,364 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_node_detail',
+      description:
+        'Get complete detailed configuration, port definitions, incoming/outgoing connections, and latest execution error/report for a specific node in the current workflow. Use this whenever you need to inspect, understand, or debug a node.',
+      parameters: {
+        type: 'object',
+        properties: {
+          node_uuid: {
+            type: 'string',
+            description:
+              'UUID of the node to inspect. If omitted, checks node_name or falls back to the currently selected node on canvas.',
+          },
+          node_name: {
+            type: 'string',
+            description: 'Human-readable name of the node to inspect.',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_node_type_schema',
+      description:
+        'Query the complete configuration schema, allowable parameter names, data types, descriptions, default values, and usage examples for any node type (including built-in protocols and plugins like http, assertion, conditional, script, variable_extractor, ws_*, tcp_*, sse_*, graphql_*, redis:*, db:*, kafka:*, etc.).',
+      parameters: {
+        type: 'object',
+        properties: {
+          node_type: {
+            type: 'string',
+            description:
+              "The node type identifier, e.g. 'http', 'assertion', 'conditional', 'script', 'variable_extractor', 'ws_connect', 'tcp_connect', 'redis:command', 'db:query'.",
+          },
+        },
+        required: ['node_type'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_flow_nodes_config',
+      description:
+        'Get complete configuration dictionaries for all nodes (or a specified subset) in the current flow. Useful for inspecting variable dependencies, mapping chains, and cross-node consistency.',
+      parameters: {
+        type: 'object',
+        properties: {
+          node_uuids: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional list of node UUIDs to filter. If omitted, returns all nodes.',
+          },
+        },
+      },
+    },
+  },
 ];
+
+/**
+ * 内置节点类型标准配置规范定义，用于向 LLM 呈现权威完整的字段与参数说明
+ */
+export const BUILTIN_SCHEMAS: Record<string, unknown> = {
+  http: {
+    display_name: 'HTTP Request',
+    category: 'http',
+    description: 'Send HTTP/REST requests (GET, POST, PUT, DELETE, PATCH, etc.)',
+    ports: {
+      input: ['in'],
+      output: ['true (success)', 'false (failure/error)'],
+    },
+    fields: {
+      url: { type: 'string', required: true, description: 'Target URL, supports {{variables.xxx}} or {{env.XXX}}' },
+      method: { type: 'string', enum: ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'], default: 'get', required: true },
+      headers: { type: 'object', description: 'Key-value map of HTTP headers, e.g. {"Authorization": "Bearer {{variables.token}}"}' },
+      query_params: { type: 'object', description: 'Key-value map of URL query parameters' },
+      body_type: { type: 'string', enum: ['none', 'body', 'form-data', 'x-www-form-urlencoded', 'binary'], default: 'none' },
+      body: { type: 'string', description: 'Raw request body (JSON string, text, etc.)' },
+      timeout_ms: { type: 'number', default: 30000, description: 'Request timeout in milliseconds' },
+      auth: {
+        type: 'object',
+        properties: {
+          auth_type: { type: 'string', enum: ['none', 'bearer', 'basic', 'api_key_header', 'api_key_query'] },
+          token: { type: 'string' },
+          username: { type: 'string' },
+          password: { type: 'string' },
+        },
+      },
+      follow_redirects: { type: 'boolean', default: true },
+      tls_skip_verify: { type: 'boolean', default: false },
+      retry_count: { type: 'number', default: 0 },
+      retry_delay_ms: { type: 'number', default: 1000 },
+    },
+    example: {
+      method: 'post',
+      url: 'https://api.example.com/v1/auth/login',
+      headers: { 'Content-Type': 'application/json' },
+      body_type: 'body',
+      body: '{"username": "{{env.USERNAME}}", "password": "{{env.PASSWORD}}"}',
+      timeout_ms: 30000,
+    },
+  },
+  assertion: {
+    display_name: 'Assertion',
+    category: 'tools',
+    description: 'Verify and assert conditions on upstream response, variables, or status codes',
+    ports: {
+      input: ['in'],
+      output: ['true (assertions passed)', 'false (assertions failed)'],
+    },
+    fields: {
+      mode: { type: 'string', enum: ['all', 'any'], default: 'all', description: 'Whether all or any assertions must pass' },
+      on_failure: { type: 'string', enum: ['route_false', 'throw'], default: 'route_false' },
+      continue_on_failure: { type: 'boolean', default: false },
+      assertions: {
+        type: 'array',
+        items: {
+          id: { type: 'string', required: true },
+          target: { type: 'string', required: true, description: 'e.g. status_code, response_time_ms, body.code, headers.content-type' },
+          operator: { type: 'string', enum: ['equal', 'not_equal', 'greater_than', 'less_than', 'greater_equal', 'less_equal', 'contains', 'not_contains', 'is_null', 'is_not_null', 'regex_match'], required: true },
+          expected: { type: 'any', required: true },
+          enabled: { type: 'boolean', default: true },
+        },
+      },
+    },
+    example: {
+      mode: 'all',
+      on_failure: 'route_false',
+      assertions: [
+        { id: 'assert_1', target: 'status_code', operator: 'equal', expected: 200, enabled: true },
+        { id: 'assert_2', target: 'body.success', operator: 'equal', expected: true, enabled: true },
+      ],
+    },
+  },
+  conditional: {
+    display_name: 'Conditional Branch',
+    category: 'tools',
+    description: 'Branch execution path based on simple condition or JavaScript-like expression',
+    ports: {
+      input: ['in'],
+      output: ['true (condition matched)', 'false (condition not matched)'],
+    },
+    fields: {
+      condition_type: { type: 'string', enum: ['simple', 'advanced'], default: 'simple' },
+      field_path: { type: 'string', description: 'Used in simple mode, e.g. status, body.code' },
+      operator: { type: 'string', enum: ['equal', 'not_equal', 'greater_than', 'less_than', 'contains'], default: 'equal' },
+      expected_value: { type: 'any', description: 'Used in simple mode' },
+      advanced_expression: { type: 'string', description: 'Used in advanced mode, e.g. {{context.steps.node1.response.status}} == 200' },
+    },
+    example: {
+      condition_type: 'simple',
+      field_path: 'status',
+      operator: 'equal',
+      expected_value: 200,
+    },
+  },
+  variable_extractor: {
+    display_name: 'Variable Extractor',
+    category: 'tools',
+    description: 'Extract values from preceding node response using JSONPath and save into workflow variable pool',
+    ports: {
+      input: ['in'],
+      output: ['out'],
+    },
+    fields: {
+      output_mappings: {
+        type: 'array',
+        items: {
+          source: { type: 'string', required: true, description: 'JSONPath from preceding response, e.g. body.data.token' },
+          target: { type: 'string', required: true, description: 'Target variable name, e.g. auth_token' },
+          description: { type: 'string' },
+          enabled: { type: 'boolean', default: true },
+        },
+      },
+    },
+    example: {
+      output_mappings: [
+        { source: 'body.data.token', target: 'auth_token', description: 'User session token' },
+      ],
+    },
+  },
+  script: {
+    display_name: 'Script',
+    category: 'script',
+    description: 'Execute JavaScript code in a sandboxed runtime to transform data, set variables, or assert',
+    ports: {
+      input: ['in'],
+      output: ['true (script succeeded)', 'false (script threw error or abort)'],
+    },
+    fields: {
+      script: { type: 'string', required: true, description: 'JavaScript source code' },
+    },
+    example: {
+      script: 'const res = context.steps.prev_step.response.body;\ncontext.variables.set("totalCount", res.items.length);\n',
+    },
+  },
+  ws_connect: {
+    display_name: 'WebSocket Connect',
+    category: 'websocket',
+    description: 'Establish WebSocket connection',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      url: { type: 'string', required: true, description: 'WebSocket URL, e.g. wss://echo.websocket.org' },
+      headers: { type: 'object' },
+    },
+  },
+  ws_send_collect: {
+    display_name: 'WebSocket Send & Collect',
+    category: 'websocket',
+    description: 'Send message over WebSocket and collect responses',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      message: { type: 'string', required: true },
+      collect_response: { type: 'boolean', default: true },
+      timeout_ms: { type: 'number', default: 10000 },
+    },
+  },
+  ws_close: {
+    display_name: 'WebSocket Close',
+    category: 'websocket',
+    description: 'Close WebSocket connection',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {},
+  },
+  tcp_connect: {
+    display_name: 'TCP Connect',
+    category: 'tcp',
+    description: 'Establish TCP socket connection',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      host: { type: 'string', required: true, default: '127.0.0.1' },
+      port: { type: 'number', required: true },
+      timeout_ms: { type: 'number', default: 5000 },
+    },
+  },
+  tcp_send: {
+    display_name: 'TCP Send',
+    category: 'tcp',
+    description: 'Send raw data over TCP socket',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      data: { type: 'string', required: true },
+    },
+  },
+  tcp_receive: {
+    display_name: 'TCP Receive',
+    category: 'tcp',
+    description: 'Receive data from TCP socket',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      max_bytes: { type: 'number', default: 4096 },
+      timeout_ms: { type: 'number', default: 10000 },
+    },
+  },
+  tcp_close: {
+    display_name: 'TCP Close',
+    category: 'tcp',
+    description: 'Close TCP socket connection',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {},
+  },
+  udp_bind: {
+    display_name: 'UDP Bind',
+    category: 'udp',
+    description: 'Bind local UDP socket',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      local_port: { type: 'number', required: true },
+    },
+  },
+  udp_send_to: {
+    display_name: 'UDP Send To',
+    category: 'udp',
+    description: 'Send UDP datagram to target address',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      target_addr: { type: 'string', required: true },
+      target_port: { type: 'number', required: true },
+      data: { type: 'string', required: true },
+    },
+  },
+  udp_recv_from: {
+    display_name: 'UDP Receive From',
+    category: 'udp',
+    description: 'Receive UDP datagram',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      timeout_ms: { type: 'number', default: 5000 },
+    },
+  },
+  udp_close: {
+    display_name: 'UDP Close',
+    category: 'udp',
+    description: 'Close UDP socket',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {},
+  },
+  sse_connect: {
+    display_name: 'SSE Connect',
+    category: 'sse',
+    description: 'Connect to Server-Sent Events stream',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      url: { type: 'string', required: true },
+      headers: { type: 'object' },
+    },
+  },
+  sse_listen: {
+    display_name: 'SSE Listen',
+    category: 'sse',
+    description: 'Listen for SSE event',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      event: { type: 'string', default: 'message' },
+      timeout_ms: { type: 'number', default: 15000 },
+    },
+  },
+  sse_disconnect: {
+    display_name: 'SSE Disconnect',
+    category: 'sse',
+    description: 'Disconnect SSE stream',
+    ports: { input: ['in'], output: ['out'] },
+    fields: {},
+  },
+  graphql_connect: {
+    display_name: 'GraphQL Connect',
+    category: 'graphql',
+    description: 'Initialize GraphQL endpoint connection',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      endpoint: { type: 'string', required: true },
+      headers: { type: 'object' },
+    },
+  },
+  graphql_query: {
+    display_name: 'GraphQL Query / Mutation',
+    category: 'graphql',
+    description: 'Execute GraphQL query or mutation',
+    ports: { input: ['in'], output: ['true', 'false'] },
+    fields: {
+      query: { type: 'string', required: true },
+      variables: { type: 'object' },
+    },
+  },
+  proxy: {
+    display_name: 'Proxy',
+    category: 'tools',
+    description: 'Configure HTTP/SOCKS5 proxy settings for downstream network calls',
+    ports: { input: ['in'], output: ['out'] },
+    fields: {
+      mode: { type: 'string', enum: ['http', 'socks5', 'clear'], default: 'http' },
+      http_proxy: { type: 'string' },
+      socks_proxy: { type: 'string' },
+    },
+  },
+};
 
 /**
  * Canvas 工具执行实现
@@ -776,6 +1135,132 @@ export const canvasToolHandlers = {
     return {
       success: true,
       cleared_nodes: nodeCount,
+    };
+  },
+
+  async get_node_detail(args?: { node_uuid?: string; node_name?: string }) {
+    const flowState = useFlowStore.getState();
+    const execStore = useExecutionStore.getState();
+    const currentFlow = flowState.flow;
+    if (!currentFlow) {
+      throw new Error('No active flow.');
+    }
+
+    let targetNode = null;
+    if (args?.node_uuid) {
+      targetNode = currentFlow.nodes.find((n) => n.uuid === args.node_uuid);
+    } else if (args?.node_name) {
+      targetNode = currentFlow.nodes.find(
+        (n) => n.name.toLowerCase() === args.node_name!.toLowerCase(),
+      );
+    } else if (flowState.selectedNodeId) {
+      targetNode = currentFlow.nodes.find((n) => n.uuid === flowState.selectedNodeId);
+    }
+
+    if (!targetNode) {
+      throw new Error(
+        `Node not found. Available nodes: ${currentFlow.nodes.map((n) => `"${n.name}" (${n.uuid})`).join(', ')}`,
+      );
+    }
+
+    // 上游连接 (连入本节点)
+    const incomingConnections = currentFlow.connections
+      .filter((c) => c.target_node_uuid === targetNode.uuid)
+      .map((c) => {
+        const src = currentFlow.nodes.find((n) => n.uuid === c.source_node_uuid);
+        return {
+          source_node_uuid: c.source_node_uuid,
+          source_node_name: src?.name,
+          source_port: c.source_port_id,
+          target_port: c.target_port_id,
+        };
+      });
+
+    // 下游连接 (由本节点连出)
+    const outgoingConnections = currentFlow.connections
+      .filter((c) => c.source_node_uuid === targetNode.uuid)
+      .map((c) => {
+        const tgt = currentFlow.nodes.find((n) => n.uuid === c.target_node_uuid);
+        return {
+          target_node_uuid: c.target_node_uuid,
+          target_node_name: tgt?.name,
+          source_port: c.source_port_id,
+          target_port: c.target_port_id,
+        };
+      });
+
+    // 最近一次执行报告
+    const nodeReport =
+      execStore.report?.node_reports?.find((nr) => nr.node_uuid === targetNode.uuid) ||
+      execStore.nodeReportsMap[targetNode.uuid];
+
+    return {
+      success: true,
+      node: {
+        uuid: targetNode.uuid,
+        name: targetNode.name,
+        type: targetNode.type,
+        on_error: targetNode.on_error ?? 'route_to_false',
+        position: targetNode.position,
+        config: targetNode.data,
+      },
+      connections: {
+        incoming: incomingConnections,
+        outgoing: outgoingConnections,
+      },
+      last_execution: nodeReport
+        ? {
+            status: nodeReport.status,
+            duration_ms: nodeReport.duration_ms,
+            error: nodeReport.error,
+            resolved_config: nodeReport.resolved_config,
+            output_data: nodeReport.output_data,
+            input_data: nodeReport.input_data,
+          }
+        : null,
+    };
+  },
+
+  async get_node_type_schema(args: { node_type: string }) {
+    const nodeType = args.node_type;
+    const builtin = BUILTIN_SCHEMAS[nodeType];
+    const defaultConfig =
+      getCachedDefaultConfig(nodeType) || createDefaultNodeData(nodeType as AnyNodeType);
+
+    return {
+      success: true,
+      node_type: nodeType,
+      builtin_schema: builtin || null,
+      default_config: defaultConfig,
+      hint: builtin
+        ? undefined
+        : 'This may be a plugin or custom node type. Inspect default_config for available fields.',
+    };
+  },
+
+  async get_flow_nodes_config(args?: { node_uuids?: string[] }) {
+    const flowState = useFlowStore.getState();
+    const currentFlow = flowState.flow;
+    if (!currentFlow) {
+      throw new Error('No active flow.');
+    }
+
+    let nodes = currentFlow.nodes;
+    if (args?.node_uuids && args.node_uuids.length > 0) {
+      nodes = nodes.filter((n) => args.node_uuids!.includes(n.uuid));
+    }
+
+    return {
+      success: true,
+      total_flow_nodes: currentFlow.nodes.length,
+      matched_nodes_count: nodes.length,
+      nodes: nodes.map((n) => ({
+        uuid: n.uuid,
+        name: n.name,
+        type: n.type,
+        on_error: n.on_error ?? 'route_to_false',
+        data: n.data,
+      })),
     };
   },
 };

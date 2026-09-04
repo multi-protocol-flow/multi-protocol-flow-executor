@@ -200,6 +200,44 @@ describe('canvasToolHandlers 集成测试', () => {
     expect(c4.source_port_id).toBe('out');
     expect(c4.target_port_id).toBe('in');
   });
+
+  it('get_node_detail: 获取指定节点的完整配置、连接和执行报告', async () => {
+    const httpRes = await canvasToolHandlers.add_node({
+      type: 'http',
+      name: 'Get User',
+      config: { url: 'https://api.example.com/user', method: 'get' },
+    });
+
+    await canvasToolHandlers.connect_nodes({
+      source_node_uuid: 'entry-1',
+      target_node_uuid: httpRes.node_uuid,
+    });
+
+    const res = await canvasToolHandlers.get_node_detail({ node_uuid: httpRes.node_uuid });
+    expect(res.success).toBe(true);
+    expect(res.node.uuid).toBe(httpRes.node_uuid);
+    expect(res.node.name).toBe('Get User');
+    expect(res.node.config).toBeDefined();
+    expect(res.connections.incoming).toHaveLength(1);
+    expect(res.connections.incoming[0].source_node_uuid).toBe('entry-1');
+  });
+
+  it('get_node_type_schema: 获取内置节点与未知节点的 Schema', async () => {
+    const httpSchema = await canvasToolHandlers.get_node_type_schema({ node_type: 'http' });
+    expect(httpSchema.success).toBe(true);
+    expect(httpSchema.builtin_schema).toBeDefined();
+    expect(httpSchema.default_config).toBeDefined();
+
+    const customSchema = await canvasToolHandlers.get_node_type_schema({ node_type: 'redis:command' });
+    expect(customSchema.success).toBe(true);
+    expect(customSchema.hint).toBeDefined();
+  });
+
+  it('get_flow_nodes_config: 批量获取节点完整配置', async () => {
+    const allConfigs = await canvasToolHandlers.get_flow_nodes_config();
+    expect(allConfigs.success).toBe(true);
+    expect(allConfigs.nodes.length).toBeGreaterThan(0);
+  });
 });
 
 describe('buildSystemPrompt', () => {

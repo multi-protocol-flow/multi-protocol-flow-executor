@@ -75,7 +75,18 @@ const ALL_HANDLERS: Record<
       args as Parameters<typeof canvasToolHandlers.delete_nodes>[0],
     ),
   clear_canvas: () => canvasToolHandlers.clear_canvas(),
-
+  get_node_detail: (args) =>
+    canvasToolHandlers.get_node_detail(
+      args as Parameters<typeof canvasToolHandlers.get_node_detail>[0],
+    ),
+  get_node_type_schema: (args) =>
+    canvasToolHandlers.get_node_type_schema(
+      args as Parameters<typeof canvasToolHandlers.get_node_type_schema>[0],
+    ),
+  get_flow_nodes_config: (args) =>
+    canvasToolHandlers.get_flow_nodes_config(
+      args as Parameters<typeof canvasToolHandlers.get_flow_nodes_config>[0],
+    ),
   generate_or_update_script: (args) =>
     scriptToolHandlers.generate_or_update_script(
       args as Parameters<typeof scriptToolHandlers.generate_or_update_script>[0],
@@ -127,8 +138,11 @@ const ALL_HANDLERS: Record<
   cancel_flow_execution: () => executionToolHandlers.cancel_flow_execution(),
   get_last_execution_report: () =>
     executionToolHandlers.get_last_execution_report(),
+  diagnose_flow_errors: (args) =>
+    executionToolHandlers.diagnose_flow_errors(
+      args as Parameters<typeof executionToolHandlers.diagnose_flow_errors>[0],
+    ),
 };
-
 /**
  * 判断是否为高风险操作（需 UI 拦截确认）
  */
