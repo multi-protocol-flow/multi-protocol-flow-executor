@@ -103,7 +103,7 @@ function formatValue(value: unknown): string {
  */
 function FailedAssertionCard({ result, index }: { result: AssertionResult; index: number }) {
   const [showDetails, setShowDetails] = useState(false);
-
+  const ll = getLL();
   return (
     <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 overflow-hidden">
       {/* 失败头部 */}
@@ -115,7 +115,7 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
         <div className="flex items-center gap-2">
           <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
           <span className="font-medium text-red-700 dark:text-red-300 text-sm">
-            {result.description || `断言 #${index + 1}`}
+            {result.description || ll.execution.viewers.assertion_item({ index: index + 1 })}
           </span>
           <div className="ml-auto text-muted-foreground">
             {showDetails ? (
@@ -178,6 +178,7 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
 }
 
 export const AssertionViewer = memo(function AssertionViewer({ report }: AssertionViewerProps) {
+  const ll = getLL();
   // 从 output_data 提取 Assertion 数据
   const outputData = report.output_data as AssertionOutput | undefined;
   
@@ -267,13 +268,19 @@ export const AssertionViewer = memo(function AssertionViewer({ report }: Asserti
           }
         >
           <div className="space-y-2">
-            {failed_assertions.map((result, index) => (
-              <FailedAssertionCard
-                key={result.id || `failed-${index}`}
-                result={result}
-                index={results.indexOf(result)}
-              />
-            ))}
+            {failed_assertions.map((result, index) => {
+              const matchedIndex = results?.findIndex(
+                (r) => (result.id && r.id === result.id) || r === result
+              );
+              const resolvedIndex = matchedIndex !== undefined && matchedIndex >= 0 ? matchedIndex : index;
+              return (
+                <FailedAssertionCard
+                  key={result.id || `failed-${index}`}
+                  result={result}
+                  index={resolvedIndex}
+                />
+              );
+            })}
           </div>
         </CollapsibleSection>
       )}
@@ -307,7 +314,7 @@ export const AssertionViewer = memo(function AssertionViewer({ report }: Asserti
                   <XCircle className="w-4 h-4 shrink-0" />
                 )}
                 <span className="truncate flex-1">
-                  {result.description || `断言 #${index + 1}`}
+                  {result.description || ll.execution.viewers.assertion_item({ index: index + 1 })}
                 </span>
                 <code className="font-mono text-xs opacity-70">
                   {result.target}
