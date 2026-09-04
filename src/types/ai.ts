@@ -47,6 +47,8 @@ export interface AIToolCall {
   id: string;
   type: 'function';
   function: AIFunctionCall;
+  /** 工具执行返回结果 (可选，执行完成后由 Agent 填充) */
+  output?: string;
 }
 
 /**

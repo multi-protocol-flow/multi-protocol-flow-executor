@@ -224,7 +224,14 @@ export async function streamChatCompletion(
       content,
     };
     if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
-      formatted.tool_calls = msg.tool_calls;
+      formatted.tool_calls = msg.tool_calls.map((tc) => ({
+        id: tc.id,
+        type: tc.type,
+        function: {
+          name: tc.function.name,
+          arguments: tc.function.arguments,
+        },
+      }));
     }
     if (msg.role === 'tool' && msg.tool_call_id) {
       formatted.tool_call_id = msg.tool_call_id;
