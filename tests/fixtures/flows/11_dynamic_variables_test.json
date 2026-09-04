@@ -1,0 +1,96 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "dynamic-vars-e2e-flow",
+    "name": "Dynamic Variables E2E Test Flow",
+    "initial_variables": {},
+    "nodes": [
+      {
+        "uuid": "start-1",
+        "type": "entry",
+        "name": "Start",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "type": "entry"
+        },
+        "ports": null
+      },
+      {
+        "uuid": "script-dynamic-1",
+        "type": "script",
+        "name": "Evaluate Dynamic Variables",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "data": {
+          "type": "script",
+          "script": "const guid = fn.variables.get('$guid');\nconst ts = fn.variables.get('$timestamp');\nconst interpolated = fn.variables.replaceIn('UUID={{$guid}}&TS={{$timestamp}}&EMAIL={{$randomEmail}}');\n\nif (!guid || guid.length !== 36) {\n  throw new Error('Invalid GUID: ' + guid);\n}\nif (!ts || ts.length < 10) {\n  throw new Error('Invalid timestamp: ' + ts);\n}\nif (!interpolated.includes('UUID=') || !interpolated.includes('&TS=') || !interpolated.includes('@')) {\n  throw new Error('Invalid interpolation: ' + interpolated);\n}\n\nfn.variables.set('test_guid', guid);\nfn.variables.set('test_ts', ts);\nfn.variables.set('test_interpolated', interpolated);\ntrue;",
+          "timeout_ms": 5000,
+          "memory_limit_mb": 10,
+          "execution_phase": "standalone",
+          "on_error": "recoverable",
+          "on_assertion_fail": "route_false"
+        },
+        "ports": null
+      },
+      {
+        "uuid": "cond-1",
+        "type": "conditional",
+        "name": "Verify Variables Set",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "data": {
+          "type": "conditional",
+          "condition_type": "simple",
+          "field_path": "test_guid",
+          "operator": "exists",
+          "expected_value": null
+        },
+        "ports": null
+      },
+      {
+        "uuid": "end-1",
+        "type": "end",
+        "name": "End",
+        "position": {
+          "x": 600,
+          "y": 0
+        },
+        "data": {
+          "type": "end"
+        },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-1",
+        "source_node_uuid": "start-1",
+        "target_node_uuid": "script-dynamic-1",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-2",
+        "source_node_uuid": "script-dynamic-1",
+        "target_node_uuid": "cond-1",
+        "source_port_id": "true",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-3",
+        "source_node_uuid": "cond-1",
+        "target_node_uuid": "end-1",
+        "source_port_id": "true",
+        "target_port_id": "input"
+      }
+    ]
+  },
+  "_meta": null
+}

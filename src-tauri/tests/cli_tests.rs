@@ -537,6 +537,21 @@ fn test_flow_with_connections() {
 }
 
 #[test]
+fn test_dynamic_variables_flow_execution() {
+    let file = NamedTempFile::new().expect("failed to create temp file for flow");
+    let flow_content = include_str!("../../tests/fixtures/flows/11_dynamic_variables_test.json");
+    fs::write(file.path(), flow_content).expect("failed to write dynamic variables flow");
+
+    let mut cmd = cargo::cargo_bin_cmd!("mpe");
+    cmd.arg("run")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(r#""success": true"#));
+}
+
+#[test]
 #[ignore = "requires echo Docker service (cd echo && docker compose up -d)"]
 fn test_execution_time_reasonable() {
     let file = create_valid_flow_file();
