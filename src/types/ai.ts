@@ -83,6 +83,8 @@ export interface AIMessage {
   timestamp: number;
   /** 消息状态 */
   status?: AIMessageStatus;
+  /** 是否为中途补充要求/调整指令 */
+  isCorrection?: boolean;
   /** 错误信息 */
   error?: string;
 }
@@ -211,6 +213,12 @@ export interface AIState {
   isSpotlightOpen: boolean;
   /** 侧边栏自定义宽度 (像素，默认 380) */
   panelWidth: number;
+  /** 面板是否处于浮动/脱离吸附状态 */
+  isFloating: boolean;
+  /** 浮动窗口坐标与尺寸 { x, y, width, height } */
+  floatingPosition: { x: number; y: number; width: number; height: number };
+  /** 是否开启自主执行到底模式 (目标达成或中断前持续推进) */
+  autoExecuteToGoal: boolean;
   /** 错误信息 */
   error: string | null;
 }

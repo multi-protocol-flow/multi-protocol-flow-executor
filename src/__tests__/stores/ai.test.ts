@@ -109,4 +109,90 @@ describe('aiStore', () => {
     store.setPanelWidth(1000);
     expect(useAIStore.getState().panelWidth).toBe(700);
   });
+
+  it('浮动窗口状态切换与位置更新', () => {
+    const store = useAIStore.getState();
+    expect(store.isFloating).toBe(false);
+
+    store.setFloating(true);
+    expect(useAIStore.getState().isFloating).toBe(true);
+
+    store.toggleFloating();
+    expect(useAIStore.getState().isFloating).toBe(false);
+
+    store.setFloatingPosition({ x: 200, y: 150, width: 500, height: 600 });
+    const pos = useAIStore.getState().floatingPosition;
+    expect(pos.x).toBe(200);
+    expect(pos.y).toBe(150);
+    expect(pos.width).toBe(500);
+    expect(pos.height).toBe(600);
+
+    // 验证最小宽度和高度限制 (>= 340, >= 300)
+    store.setFloatingPosition({ width: 100, height: 100 });
+    const clampedPos = useAIStore.getState().floatingPosition;
+    expect(clampedPos.width).toBe(340);
+    expect(clampedPos.height).toBe(300);
+  });
+
+  it('自主执行到底模式状态切换', () => {
+    const store = useAIStore.getState();
+    // 默认开启自主执行到底模式
+    expect(store.autoExecuteToGoal).toBe(true);
+
+    store.setAutoExecuteToGoal(false);
+    expect(useAIStore.getState().autoExecuteToGoal).toBe(false);
+
+    store.toggleAutoExecuteToGoal();
+    expect(useAIStore.getState().autoExecuteToGoal).toBe(true);
+  });
+
+  it('中途纠偏 steerGeneration 正常插入纠偏消息并重置待确认高风险状态', async () => {
+    useAIStore.setState({
+      agentStatus: 'thinking',
+      pendingActions: [
+        {
+          id: 'act-1',
+          toolCallId: 'call-1',
+          toolName: 'clear_canvas',
+          args: {},
+          description: '清空画布',
+          status: 'pending',
+          createdAt: Date.now(),
+        },
+      ],
+    });
+
+    await useAIStore.getState().steerGeneration('请不要清空，改用重命名');
+
+    const state = useAIStore.getState();
+    const lastMsg = state.messages[state.messages.length - 1];
+    expect(lastMsg.role).toBe('user');
+    expect(lastMsg.content).toBe('请不要清空，改用重命名');
+    expect(lastMsg.isCorrection).toBe(true);
+    expect(state.pendingActions[0].status).toBe('rejected');
+  });
+
+  it('正在生成中调用 sendMessage 自动委托给 steerGeneration', async () => {
+    useAIStore.setState({
+      agentStatus: 'executing_tools',
+      currentSessionId: 'sess-1',
+      sessions: [
+        {
+          id: 'sess-1',
+          title: '会话 1',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          messageCount: 0,
+        },
+      ],
+    });
+
+    await useAIStore.getState().sendMessage('中途追加要求：超时设为 5000ms');
+
+    const messages = useAIStore.getState().messages;
+    const steerMsg = messages.find((m) => m.content.includes('超时设为 5000ms'));
+    expect(steerMsg).toBeDefined();
+    expect(steerMsg?.role).toBe('user');
+    expect(steerMsg?.isCorrection).toBe(true);
+  });
 });

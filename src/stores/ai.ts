@@ -11,7 +11,7 @@ import type {
 import { getLL } from '@/i18n/i18n-lazy';
 import { useSettingsStore } from './settings';
 import { aiSessionStorage } from '@/services/storage/aiSessionStorage';
-import { streamChatCompletion } from '@/services/ai/openaiClient';
+import { streamChatCompletion, type ChatCompletionResult } from '@/services/ai/openaiClient';
 import {
   buildSystemPrompt,
   buildActiveStateSummary,
@@ -25,6 +25,9 @@ import {
 
 const PANEL_WIDTH_KEY = 'mpe-ai-panel-width';
 const DEFAULT_PANEL_WIDTH = 380;
+const PANEL_FLOATING_KEY = 'mpe-ai-panel-floating';
+const PANEL_FLOATING_POS_KEY = 'mpe-ai-panel-floating-pos';
+const AUTO_EXECUTE_KEY = 'mpe-ai-auto-execute-to-goal';
 
 function getStoredPanelWidth(): number {
   try {
@@ -35,9 +38,52 @@ function getStoredPanelWidth(): number {
   }
 }
 
-// 用于控制中止请求的 AbortController
-let currentAbortController: AbortController | null = null;
+function getStoredFloating(): boolean {
+  try {
+    return localStorage.getItem(PANEL_FLOATING_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
 
+function getStoredFloatingPos(): { x: number; y: number; width: number; height: number } {
+  try {
+    const val = localStorage.getItem(PANEL_FLOATING_POS_KEY);
+    if (val) {
+      const parsed = JSON.parse(val);
+      if (
+        typeof parsed.x === 'number' &&
+        typeof parsed.y === 'number' &&
+        typeof parsed.width === 'number' &&
+        typeof parsed.height === 'number'
+      ) {
+        return parsed;
+      }
+    }
+  } catch {
+    // 忽略
+  }
+  const defaultWidth = 420;
+  const defaultHeight = typeof window !== 'undefined' ? Math.max(450, window.innerHeight - 120) : 620;
+  const defaultX = typeof window !== 'undefined' ? Math.max(50, window.innerWidth - defaultWidth - 30) : 300;
+  const defaultY = 70;
+  return { x: defaultX, y: defaultY, width: defaultWidth, height: defaultHeight };
+}
+
+function getStoredAutoExecute(): boolean {
+  try {
+    const val = localStorage.getItem(AUTO_EXECUTE_KEY);
+    return val === null ? true : val === 'true';
+  } catch {
+    return true;
+  }
+}
+
+// 用于控制整个会话任务生命周期的 AbortController (用户显式点击"停止生成"时触发)
+let sessionAbortController: AbortController | null = null;
+
+// 用于控制当前单次 LLM streamChatCompletion 调用的 AbortController (中途插话纠偏时可中止单轮并进入下一轮)
+let currentIterationAbortController: AbortController | null = null;
 // 用于挂起等待用户确认高风险操作的 Promise 回调映射
 const pendingResolvers = new Map<string, (approved: boolean) => void>();
 
@@ -52,7 +98,16 @@ export interface AIActions {
   toggleSpotlight: () => void;
   /** 设置侧边栏宽度 */
   setPanelWidth: (width: number) => void;
-
+  /** 设置面板浮动状态 */
+  setFloating: (floating: boolean) => void;
+  /** 切换面板浮动/吸附状态 */
+  toggleFloating: () => void;
+  /** 更新浮动面板位置与尺寸 */
+  setFloatingPosition: (pos: Partial<{ x: number; y: number; width: number; height: number }>) => void;
+  /** 设置是否开启自主执行到底模式 */
+  setAutoExecuteToGoal: (auto: boolean) => void;
+  /** 切换自主执行到底模式 */
+  toggleAutoExecuteToGoal: () => void;
   // ===== 会话管理 =====
   /** 初始化加载所有历史会话列表 */
   initSessions: () => Promise<void>;
@@ -71,6 +126,8 @@ export interface AIActions {
   stopGeneration: () => void;
   /** 发送用户消息并触发 ReAct Agent 循环 (支持附加图片) */
   sendMessage: (prompt: string, images?: string[]) => Promise<void>;
+  /** 发送中途纠偏/补充指令 (正在生成时插话纠正，无需中断整个任务) */
+  steerGeneration: (prompt: string, images?: string[]) => Promise<void>;
   /** 响应高风险操作确认或拒绝 */
   resolvePendingAction: (actionId: string, approved: boolean) => Promise<void>;
   /** 重置（测试隔离） */
@@ -89,6 +146,9 @@ const initialState: AIState = {
   isCopilotOpen: false,
   isSpotlightOpen: false,
   panelWidth: getStoredPanelWidth(),
+  isFloating: getStoredFloating(),
+  floatingPosition: getStoredFloatingPos(),
+  autoExecuteToGoal: getStoredAutoExecute(),
   error: null,
 };
 
@@ -120,6 +180,60 @@ export const useAIStore = create<AIStore>((set, get) => ({
       // 忽略
     }
     set({ panelWidth: clamped });
+  },
+
+  setFloating: (floating: boolean) => {
+    try {
+      localStorage.setItem(PANEL_FLOATING_KEY, String(floating));
+    } catch {
+      // 忽略
+    }
+    set({ isFloating: floating });
+  },
+
+  toggleFloating: () => {
+    const next = !get().isFloating;
+    try {
+      localStorage.setItem(PANEL_FLOATING_KEY, String(next));
+    } catch {
+      // 忽略
+    }
+    set({ isFloating: next });
+  },
+
+  setFloatingPosition: (pos) => {
+    const current = get().floatingPosition;
+    const updated = {
+      x: pos.x !== undefined ? pos.x : current.x,
+      y: pos.y !== undefined ? pos.y : current.y,
+      width: pos.width !== undefined ? Math.max(340, pos.width) : current.width,
+      height: pos.height !== undefined ? Math.max(300, pos.height) : current.height,
+    };
+    try {
+      localStorage.setItem(PANEL_FLOATING_POS_KEY, JSON.stringify(updated));
+    } catch {
+      // 忽略
+    }
+    set({ floatingPosition: updated });
+  },
+
+  setAutoExecuteToGoal: (auto: boolean) => {
+    try {
+      localStorage.setItem(AUTO_EXECUTE_KEY, String(auto));
+    } catch {
+      // 忽略
+    }
+    set({ autoExecuteToGoal: auto });
+  },
+
+  toggleAutoExecuteToGoal: () => {
+    const next = !get().autoExecuteToGoal;
+    try {
+      localStorage.setItem(AUTO_EXECUTE_KEY, String(next));
+    } catch {
+      // 忽略
+    }
+    set({ autoExecuteToGoal: next });
   },
 
   initSessions: async () => {
@@ -248,19 +362,88 @@ export const useAIStore = create<AIStore>((set, get) => ({
   },
 
   stopGeneration: () => {
-    if (currentAbortController) {
-      currentAbortController.abort();
-      currentAbortController = null;
+    if (sessionAbortController) {
+      sessionAbortController.abort();
+      sessionAbortController = null;
+    }
+    if (currentIterationAbortController) {
+      currentIterationAbortController.abort();
+      currentIterationAbortController = null;
     }
     for (const resolver of pendingResolvers.values()) {
       resolver(false);
     }
     pendingResolvers.clear();
 
-    set({
+    set((s) => ({
       agentStatus: 'idle',
       activeStreamingMessageId: null,
-    });
+      messages: s.messages.filter(
+        (m) =>
+          !(
+            m.status === 'streaming' &&
+            !m.content?.trim() &&
+            !m.thought?.trim() &&
+            (!m.tool_calls || m.tool_calls.length === 0)
+          ),
+      ),
+    }));
+  },
+
+  steerGeneration: async (prompt: string, images?: string[]) => {
+    const trimmedPrompt = prompt.trim();
+    if (!trimmedPrompt && (!images || images.length === 0)) return;
+
+    // 挂起确认的高风险操作标记为被纠偏取消
+    for (const resolver of pendingResolvers.values()) {
+      resolver(false);
+    }
+    pendingResolvers.clear();
+
+    const userMessage: AIMessage = {
+      id: `msg_${Date.now()}_user_steer`,
+      role: 'user',
+      content: trimmedPrompt,
+      isCorrection: true,
+      images,
+      timestamp: Date.now(),
+    };
+    set((s) => ({
+      messages: [...s.messages, userMessage],
+      pendingActions: s.pendingActions.map((act) =>
+        act.status === 'pending' ? { ...act, status: 'rejected' } : act,
+      ),
+      agentStatus: 'thinking',
+    }));
+
+    const sessId = get().currentSessionId;
+    if (sessId) {
+      const currentMeta = get().sessions.find((s) => s.id === sessId);
+      const sessionObj: AISession = {
+        id: sessId,
+        title: currentMeta ? currentMeta.title : getLL().ai.copilot.new_session_title(),
+        createdAt: currentMeta ? currentMeta.createdAt : Date.now(),
+        updatedAt: Date.now(),
+        messages: get().messages.filter((m) => {
+          if (m.role === 'assistant') {
+            const hasContent = Boolean(m.content && m.content.trim().length > 0);
+            const hasThought = Boolean(m.thought && m.thought.trim().length > 0);
+            const hasToolCalls = Boolean(m.tool_calls && m.tool_calls.length > 0);
+            return hasContent || hasThought || hasToolCalls;
+          }
+          return true;
+        }),
+      };
+      await aiSessionStorage.saveSession(sessionObj);
+      const updatedList = await aiSessionStorage.listSessions();
+      set({ sessions: updatedList });
+    }
+
+    // 中断当前正在思考或流式输出的单轮，让 ReAct 循环带着新纠偏指令进入下一轮
+    if (currentIterationAbortController) {
+      currentIterationAbortController.abort();
+      currentIterationAbortController = null;
+    }
   },
 
   resolvePendingAction: async (actionId: string, approved: boolean) => {
@@ -283,6 +466,16 @@ export const useAIStore = create<AIStore>((set, get) => ({
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt && (!images || images.length === 0)) return;
 
+    const isGenerating =
+      get().agentStatus === 'thinking' ||
+      get().agentStatus === 'executing_tools' ||
+      get().agentStatus === 'waiting_confirmation';
+
+    // 若当前 Agent 正在生成中，直接转入中途插话纠偏逻辑，不重置对话与上下文！
+    if (isGenerating && (!sessionAbortController || !sessionAbortController.signal.aborted)) {
+      await get().steerGeneration(prompt, images);
+      return;
+    }
     const settings = useSettingsStore.getState();
     const activeProvider = settings.aiProviders.find(
       (p) => p.id === settings.activeAiProviderId,
@@ -322,8 +515,8 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
     get().stopGeneration();
 
-    currentAbortController = new AbortController();
-    const abortSignal = currentAbortController.signal;
+    sessionAbortController = new AbortController();
+    const sessionSignal = sessionAbortController.signal;
 
     // 1. 添加 User 消息
     const userMessage: AIMessage = {
@@ -358,7 +551,15 @@ export const useAIStore = create<AIStore>((set, get) => ({
         title: currentMeta ? currentMeta.title : getLL().ai.copilot.new_session_title(),
         createdAt: currentMeta ? currentMeta.createdAt : Date.now(),
         updatedAt: Date.now(),
-        messages: get().messages,
+        messages: get().messages.filter((m) => {
+          if (m.role === 'assistant') {
+            const hasContent = Boolean(m.content && m.content.trim().length > 0);
+            const hasThought = Boolean(m.thought && m.thought.trim().length > 0);
+            const hasToolCalls = Boolean(m.tool_calls && m.tool_calls.length > 0);
+            return hasContent || hasThought || hasToolCalls;
+          }
+          return true;
+        }),
       };
       await aiSessionStorage.saveSession(sessionObj);
       const updatedList = await aiSessionStorage.listSessions();
@@ -367,17 +568,24 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
     await persistCurrentSession();
 
+    const autoExecute = get().autoExecuteToGoal;
     const tools = getAllAIToolDefinitions();
-    const MAX_REACT_ITERATIONS = 10;
+    const MAX_REACT_ITERATIONS = autoExecute ? 30 : 12;
     let iteration = 0;
+
+    const ACTION_KEYWORDS_REGEX = /(创建|新建|添加|生成|构建|排版|布局|执行|运行|测试|调试|修复|修改|更新|删除|配置|连线|连接|清理|清空|编排|流程|节点|create|build|add|generate|layout|run|execute|test|debug|fix|update|modify|delete|clear|connect|pipeline|flow)/i;
+    const isActionPrompt = ACTION_KEYWORDS_REGEX.test(trimmedPrompt);
 
     try {
       while (iteration < MAX_REACT_ITERATIONS) {
-        if (abortSignal.aborted) break;
+        if (sessionSignal.aborted) break;
         iteration++;
 
+        currentIterationAbortController = new AbortController();
+        const iterationSignal = currentIterationAbortController.signal;
+
         // 构建最新的全局 System Prompt + 运行时动态快照
-        const systemPromptText = `${buildSystemPrompt(settings.aiCustomSystemPrompt)}\n\n${buildActiveStateSummary()}`;
+        const systemPromptText = `${buildSystemPrompt(settings.aiCustomSystemPrompt, autoExecute)}\n\n${buildActiveStateSummary()}`;
         const systemMessage: AIMessage = {
           id: `sys_${Date.now()}`,
           role: 'system',
@@ -386,7 +594,17 @@ export const useAIStore = create<AIStore>((set, get) => ({
         };
 
         const currentHistory = get().messages;
-        const messagesToSend: AIMessage[] = [systemMessage, ...currentHistory];
+        const steerPrefix = getLL().ai.copilot.steer_prefix();
+        const formattedHistory: AIMessage[] = currentHistory.map((m) => {
+          if (m.role === 'user' && m.isCorrection) {
+            return {
+              ...m,
+              content: `${steerPrefix} ${m.content}`,
+            };
+          }
+          return m;
+        });
+        const messagesToSend: AIMessage[] = [systemMessage, ...formattedHistory];
 
         // 占位 Assistant 消息
         const assistantMsgId = `msg_${Date.now()}_assistant_${iteration}`;
@@ -404,60 +622,129 @@ export const useAIStore = create<AIStore>((set, get) => ({
           agentStatus: 'thinking',
         }));
 
-        const result = await streamChatCompletion(
-          activeProvider,
-          messagesToSend,
-          tools,
-          {
-            onContentChunk: (chunk) => {
-              set((s) => ({
-                messages: s.messages.map((m) =>
-                  m.id === assistantMsgId
-                    ? { ...m, content: m.content + chunk }
-                    : m,
-                ),
-              }));
-            },
-            onThoughtChunk: (chunk) => {
-              set((s) => ({
-                messages: s.messages.map((m) =>
-                  m.id === assistantMsgId
-                    ? { ...m, thought: (m.thought || '') + chunk }
-                    : m,
-                ),
-              }));
-            },
-            onToolCallsUpdate: (toolCalls) => {
-              set((s) => ({
-                messages: s.messages.map((m) =>
-                  m.id === assistantMsgId ? { ...m, tool_calls: toolCalls } : m,
-                ),
-              }));
-            },
-          },
-          abortSignal,
-        );
+        let result: ChatCompletionResult | null = null;
+        let iterationInterrupted = false;
 
-        // 固化 Assistant 消息
-        set((s) => ({
-          messages: s.messages.map((m) =>
-            m.id === assistantMsgId
-              ? {
-                  ...m,
-                  content: result.content,
-                  thought: result.thought,
-                  tool_calls: result.tool_calls,
-                  status: 'done',
-                }
-              : m,
-          ),
-          activeStreamingMessageId: null,
-        }));
+        try {
+          result = await streamChatCompletion(
+            activeProvider,
+            messagesToSend,
+            tools,
+            {
+              onContentChunk: (chunk) => {
+                set((s) => ({
+                  messages: s.messages.map((m) =>
+                    m.id === assistantMsgId
+                      ? { ...m, content: m.content + chunk }
+                      : m,
+                  ),
+                }));
+              },
+              onThoughtChunk: (chunk) => {
+                set((s) => ({
+                  messages: s.messages.map((m) =>
+                    m.id === assistantMsgId
+                      ? { ...m, thought: (m.thought || '') + chunk }
+                      : m,
+                  ),
+                }));
+              },
+              onToolCallsUpdate: (toolCalls) => {
+                set((s) => ({
+                  messages: s.messages.map((m) =>
+                    m.id === assistantMsgId ? { ...m, tool_calls: toolCalls } : m,
+                  ),
+                }));
+              },
+            },
+            iterationSignal,
+          );
+        } catch (err: unknown) {
+          if (sessionSignal.aborted) {
+            break;
+          }
+          if (iterationSignal.aborted) {
+            iterationInterrupted = true;
+          } else {
+            throw err;
+          }
+        } finally {
+          currentIterationAbortController = null;
+        }
 
+        if (sessionSignal.aborted) break;
+
+        // 如果单轮被用户中途插话打断，保留已有内容或清理空消息，并立即进入下一轮思考新指令
+        if (iterationInterrupted || !result) {
+          set((s) => {
+            const existing = s.messages.find((m) => m.id === assistantMsgId);
+            if (
+              !existing ||
+              (!existing.content?.trim() &&
+                !existing.thought?.trim() &&
+                (!existing.tool_calls || existing.tool_calls.length === 0))
+            ) {
+              return {
+                messages: s.messages.filter((m) => m.id !== assistantMsgId),
+                activeStreamingMessageId: null,
+              };
+            }
+            return {
+              messages: s.messages.map((m) =>
+                m.id === assistantMsgId ? { ...m, status: 'done' as const } : m,
+              ),
+              activeStreamingMessageId: null,
+            };
+          });
+          await persistCurrentSession();
+          continue;
+        }
+        // 固化 Assistant 消息 (如果完全无内容无工具，则清除占位消息，避免多出空白头像)
+        const hasContent = Boolean(result.content && result.content.trim().length > 0);
+        const hasThought = Boolean(result.thought && result.thought.trim().length > 0);
+        const hasToolCalls = Boolean(result.tool_calls && result.tool_calls.length > 0);
+
+        if (!hasContent && !hasThought && !hasToolCalls) {
+          set((s) => ({
+            messages: s.messages.filter((m) => m.id !== assistantMsgId),
+            activeStreamingMessageId: null,
+          }));
+        } else {
+          set((s) => ({
+            messages: s.messages.map((m) =>
+              m.id === assistantMsgId
+                ? {
+                    ...m,
+                    content: result.content,
+                    thought: result.thought,
+                    tool_calls: result.tool_calls,
+                    status: 'done',
+                  }
+                : m,
+            ),
+            activeStreamingMessageId: null,
+          }));
+        }
         await persistCurrentSession();
 
-        // 如果没有触发 Tool Calls，则 ReAct 循环结束
+        // 如果没有触发 Tool Calls
         if (!result.tool_calls || result.tool_calls.length === 0) {
+          // 如果开启了"执行到底"模式，且首轮用户明确要求执行操作，而模型仅返回了文本规划而未调用工具：
+          if (autoExecute && isActionPrompt && iteration === 1) {
+            const nudgeMessage: AIMessage = {
+              id: `msg_${Date.now()}_system_nudge`,
+              role: 'user',
+              content:
+                '[System Directive: "执行到底"模式已开启。检测到你仅输出了方案说明，尚未实际调用工具。请直接调用相关工具（如 batch_create_pipeline, add_node, connect_nodes, auto_layout, execute_flow 等）将该任务执行到底，无需等待二次确认。]',
+              timestamp: Date.now(),
+            };
+            set((s) => ({
+              messages: [...s.messages, nudgeMessage],
+            }));
+            await persistCurrentSession();
+            continue;
+          }
+
           set({ agentStatus: 'idle' });
           break;
         }
@@ -466,8 +753,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
         set({ agentStatus: 'executing_tools' });
 
         for (const tc of result.tool_calls) {
-          if (abortSignal.aborted) break;
-
+          if (sessionSignal.aborted) break;
           let parsedArgs: Record<string, unknown> = {};
           try {
             parsedArgs = tc.function.arguments
@@ -550,13 +836,21 @@ export const useAIStore = create<AIStore>((set, get) => ({
         // 继续下一轮 ReAct 循环，让 LLM 观察工具执行结果
       }
     } catch (err: unknown) {
-      if (!abortSignal.aborted) {
+      if (!sessionSignal.aborted) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         set((s) => ({
           error: errorMsg,
           agentStatus: 'error',
           messages: [
-            ...s.messages,
+            ...s.messages.filter(
+              (m) =>
+                !(
+                  m.status === 'streaming' &&
+                  !m.content?.trim() &&
+                  !m.thought?.trim() &&
+                  (!m.tool_calls || m.tool_calls.length === 0)
+                ),
+            ),
             {
               id: `msg_${Date.now()}_error`,
               role: 'assistant',
@@ -570,7 +864,8 @@ export const useAIStore = create<AIStore>((set, get) => ({
         await persistCurrentSession();
       }
     } finally {
-      currentAbortController = null;
+      sessionAbortController = null;
+      currentIterationAbortController = null;
       if (get().agentStatus !== 'waiting_confirmation') {
         set({ agentStatus: 'idle', activeStreamingMessageId: null });
       }
@@ -579,6 +874,11 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
   reset: () => {
     get().stopGeneration();
-    set(initialState);
+    set({
+      ...initialState,
+      isFloating: getStoredFloating(),
+      floatingPosition: getStoredFloatingPos(),
+      autoExecuteToGoal: getStoredAutoExecute(),
+    });
   },
 }));
