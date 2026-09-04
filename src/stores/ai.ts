@@ -130,6 +130,8 @@ export interface AIActions {
   steerGeneration: (prompt: string, images?: string[]) => Promise<void>;
   /** 响应高风险操作确认或拒绝 */
   resolvePendingAction: (actionId: string, approved: boolean) => Promise<void>;
+  /** 重试上一条发送失败的消息 (清理错误状态并重新触发 ReAct 循环) */
+  retryLastMessage: () => Promise<void>;
   /** 重置（测试隔离） */
   reset: () => void;
 }
@@ -595,15 +597,17 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
         const currentHistory = get().messages;
         const steerPrefix = getLL().ai.copilot.steer_prefix();
-        const formattedHistory: AIMessage[] = currentHistory.map((m) => {
-          if (m.role === 'user' && m.isCorrection) {
-            return {
-              ...m,
-              content: `${steerPrefix} ${m.content}`,
-            };
-          }
-          return m;
-        });
+        const formattedHistory: AIMessage[] = currentHistory
+          .filter((m) => m.status !== 'error')
+          .map((m) => {
+            if (m.role === 'user' && m.isCorrection) {
+              return {
+                ...m,
+                content: `${steerPrefix} ${m.content}`,
+              };
+            }
+            return m;
+          });
         const messagesToSend: AIMessage[] = [systemMessage, ...formattedHistory];
 
         // 占位 Assistant 消息
@@ -827,7 +831,19 @@ export const useAIStore = create<AIStore>((set, get) => ({
           };
 
           set((s) => ({
-            messages: [...s.messages, toolResultMessage],
+            messages: [
+              ...s.messages.map((m) =>
+                m.id === assistantMsgId && m.tool_calls
+                  ? {
+                      ...m,
+                      tool_calls: m.tool_calls.map((c) =>
+                        c.id === tc.id ? { ...c, output: toolOutputStr } : c,
+                      ),
+                    }
+                  : m,
+              ),
+              toolResultMessage,
+            ],
           }));
 
           await persistCurrentSession();
@@ -842,19 +858,21 @@ export const useAIStore = create<AIStore>((set, get) => ({
           error: errorMsg,
           agentStatus: 'error',
           messages: [
-            ...s.messages.filter(
-              (m) =>
-                !(
-                  m.status === 'streaming' &&
-                  !m.content?.trim() &&
-                  !m.thought?.trim() &&
-                  (!m.tool_calls || m.tool_calls.length === 0)
-                ),
-            ),
+            ...s.messages
+              .filter(
+                (m) =>
+                  !(
+                    m.status === 'streaming' &&
+                    !m.content?.trim() &&
+                    !m.thought?.trim() &&
+                    (!m.tool_calls || m.tool_calls.length === 0)
+                  ),
+              )
+              .map((m) => (m.status === 'streaming' ? { ...m, status: 'done' as const } : m)),
             {
               id: `msg_${Date.now()}_error`,
               role: 'assistant',
-              content: `Error: ${errorMsg}`,
+              content: errorMsg,
               status: 'error',
               error: errorMsg,
               timestamp: Date.now(),
@@ -870,6 +888,30 @@ export const useAIStore = create<AIStore>((set, get) => ({
         set({ agentStatus: 'idle', activeStreamingMessageId: null });
       }
     }
+  },
+  retryLastMessage: async () => {
+    const isGenerating =
+      get().agentStatus === 'thinking' ||
+      get().agentStatus === 'executing_tools' ||
+      get().agentStatus === 'waiting_confirmation';
+    if (isGenerating) return;
+
+    const messages = get().messages;
+    let lastUserIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        lastUserIdx = i;
+        break;
+      }
+    }
+    if (lastUserIdx === -1) return;
+    const lastUserMsg = messages[lastUserIdx];
+    // 移除最后一条用户消息及其后续所有消息（包含报错消息）
+    const cleaned = messages.slice(0, lastUserIdx);
+    set({ messages: cleaned, error: null });
+
+    // 重新触发发送
+    await get().sendMessage(lastUserMsg.content, lastUserMsg.images);
   },
 
   reset: () => {

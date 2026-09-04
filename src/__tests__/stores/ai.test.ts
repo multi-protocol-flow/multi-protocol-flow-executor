@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAIStore } from '@/stores/ai';
 import { useSettingsStore } from '@/stores/settings';
 import { useFlowStore } from '@/stores/flow';
@@ -194,5 +194,25 @@ describe('aiStore', () => {
     expect(steerMsg).toBeDefined();
     expect(steerMsg?.role).toBe('user');
     expect(steerMsg?.isCorrection).toBe(true);
+  });
+  it('retryLastMessage 移除错误消息并重新触发最后一条用户消息发送', async () => {
+    const sendSpy = vi.spyOn(useAIStore.getState(), 'sendMessage').mockResolvedValue();
+
+    useAIStore.setState({
+      messages: [
+        { id: '1', role: 'user', content: '创建工作流', timestamp: 1 },
+        { id: '2', role: 'assistant', content: '网络错误', status: 'error', timestamp: 2 },
+      ],
+      error: '网络错误',
+      agentStatus: 'idle',
+    });
+
+    await useAIStore.getState().retryLastMessage();
+
+    // 验证旧错误与原用户消息已被清出，并以原内容调用 sendMessage
+    expect(useAIStore.getState().error).toBeNull();
+    expect(sendSpy).toHaveBeenCalledWith('创建工作流', undefined);
+
+    sendSpy.mockRestore();
   });
 });
