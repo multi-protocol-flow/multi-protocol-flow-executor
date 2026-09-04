@@ -52,10 +52,44 @@ const ai = {
 
   tool_call: {
     done: '执行成功',
+    failed: '执行失败',
     running: '正在执行...',
     copy_arguments: '复制参数',
+    copy_result: '复制结果',
     copied: '已复制',
     call_args: '调用参数',
+    execution_result: '执行结果',
+    no_result: '暂无执行结果返回',
+  },
+  tool_names: {
+    update_node_config: '修改节点',
+    add_node: '新增节点',
+    batch_create_pipeline: '批量编排',
+    connect_nodes: '连接节点',
+    disconnect_nodes: '断开连线',
+    delete_nodes: '删除节点',
+    clear_canvas: '清空画布',
+    auto_layout: '自动排版',
+    get_node_detail: '查看节点',
+    get_node_type_schema: '节点规范',
+    get_flow_nodes_config: '全流程配置',
+    generate_or_update_script: '编写脚本',
+    browse_datasource: '查询数据源',
+    import_datasource_item_to_flow: '导入接口',
+    list_datasource_plugins: '数据源列表',
+    create_flow: '新建流程',
+    open_flow: '打开流程',
+    save_current_flow: '保存流程',
+    list_flows: '流程列表',
+    run_flow_debug: '调试运行',
+    cancel_flow_execution: '终止流程',
+    get_last_execution_report: '查看报告',
+    diagnose_flow_errors: '诊断报错',
+    set_environment_variable: '环境变量',
+    switch_active_environment: '切换环境',
+    list_environments: '环境列表',
+    install_marketplace_plugin: '安装插件',
+    list_plugins: '插件列表',
   },
   code: {
     copy: '复制代码',
@@ -112,6 +146,24 @@ const ai = {
     drag_to_move: '按住拖拽移动窗口 (拖动至右侧可重新吸附)',
     auto_execute: '执行到底',
     auto_execute_tip: '开启后 AI 将自主连续调用工具直至任务目标达成或手动中止',
+    error_title: 'AI 请求异常',
+    error_retry: '重试',
+    error_retrying: '正在重试...',
+    error_copy: '复制详细报错',
+    error_copied: '已复制',
+    error_details: '技术错误详情',
+    error_diag_stream_interrupted:
+      '请求已发出，但流式数据在回传中途断开。常见于网络瞬断、本地代理/VPN 节点波动或大模型首字思考耗时较长导致连接重置。若服务商后台显示请求正常，说明服务端已成功接收处理，但响应中途未完整送达客户端。可直接点击重试。',
+    error_diag_connect_failed:
+      '无法连接到 AI 供应商服务器。请检查本地网络连接、代理软件（如 TUN 模式或代理端口）或 API Base URL 是否填写正确。',
+    error_diag_timeout:
+      '请求等待超时。AI 供应商当前响应过慢、排队时间过长或网络延迟过大。可稍后重试。',
+    error_diag_unauthorized:
+      'API Key 无效或未授权，请前往设置检查 Provider 的 API Key 是否填写正确。',
+    error_diag_rate_limit:
+      '请求超出频率限制或账户额度耗尽 (Rate Limit / Quota Exceeded)。',
+    error_diag_general:
+      '与 AI 供应商通信过程中发生异常，可点击重试或查看下方技术详情。',
   },
 
   spotlight: {

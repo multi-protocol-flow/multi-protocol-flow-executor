@@ -52,10 +52,44 @@ const ai = {
 
   tool_call: {
     done: 'Executed successfully',
+    failed: 'Execution failed',
     running: 'Executing tool...',
     copy_arguments: 'Copy arguments',
+    copy_result: 'Copy result',
     copied: 'Copied',
     call_args: 'Arguments',
+    execution_result: 'Execution Result',
+    no_result: 'No execution result returned',
+  },
+  tool_names: {
+    update_node_config: 'Update Node',
+    add_node: 'Add Node',
+    batch_create_pipeline: 'Batch Pipeline',
+    connect_nodes: 'Connect Nodes',
+    disconnect_nodes: 'Disconnect',
+    delete_nodes: 'Delete Nodes',
+    clear_canvas: 'Clear Canvas',
+    auto_layout: 'Auto Layout',
+    get_node_detail: 'Inspect Node',
+    get_node_type_schema: 'Node Schema',
+    get_flow_nodes_config: 'Read Flow Config',
+    generate_or_update_script: 'Edit Script',
+    browse_datasource: 'Browse Datasource',
+    import_datasource_item_to_flow: 'Import API Item',
+    list_datasource_plugins: 'Datasource List',
+    create_flow: 'Create Flow',
+    open_flow: 'Open Flow',
+    save_current_flow: 'Save Flow',
+    list_flows: 'Flow List',
+    run_flow_debug: 'Debug Flow',
+    cancel_flow_execution: 'Cancel Flow',
+    get_last_execution_report: 'Execution Report',
+    diagnose_flow_errors: 'Diagnose Errors',
+    set_environment_variable: 'Set Env Var',
+    switch_active_environment: 'Switch Env',
+    list_environments: 'List Environments',
+    install_marketplace_plugin: 'Install Plugin',
+    list_plugins: 'List Plugins',
   },
   code: {
     copy: 'Copy code',
@@ -112,6 +146,24 @@ const ai = {
     drag_to_move: 'Drag header to move (drag to right edge to dock)',
     auto_execute: 'Run to End',
     auto_execute_tip: 'When enabled, AI autonomously chains tool calls until goal is achieved or manually stopped',
+    error_title: 'AI Request Failed',
+    error_retry: 'Retry',
+    error_retrying: 'Retrying...',
+    error_copy: 'Copy Error Details',
+    error_copied: 'Copied',
+    error_details: 'Technical Details',
+    error_diag_stream_interrupted:
+      'Request was sent, but the stream was interrupted mid-transfer. Commonly caused by network fluctuations, proxy/VPN reconnects, or connection resets. If your provider shows the request as normal, the server processed it but the response did not reach the client. You can safely retry.',
+    error_diag_connect_failed:
+      'Unable to connect to AI provider. Please check your network, proxy settings, or API Base URL.',
+    error_diag_timeout:
+      'Request timed out. The AI provider may be experiencing high load or long queues. Please try again.',
+    error_diag_unauthorized:
+      'Invalid or unauthorized API Key. Please check the API Key in Provider Settings.',
+    error_diag_rate_limit:
+      'Rate limit exceeded or insufficient quota.',
+    error_diag_general:
+      'An error occurred while communicating with the AI provider. You can retry or inspect technical details below.',
   },
 
   spotlight: {

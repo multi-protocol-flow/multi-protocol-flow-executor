@@ -12417,6 +12417,10 @@ type RootTranslation = {
 			 */
 			done: string
 			/**
+			 * 执​行​失​败
+			 */
+			failed: string
+			/**
 			 * 正​在​执​行​.​.​.
 			 */
 			running: string
@@ -12425,6 +12429,10 @@ type RootTranslation = {
 			 */
 			copy_arguments: string
 			/**
+			 * 复​制​结​果
+			 */
+			copy_result: string
+			/**
 			 * 已​复​制
 			 */
 			copied: string
@@ -12432,6 +12440,128 @@ type RootTranslation = {
 			 * 调​用​参​数
 			 */
 			call_args: string
+			/**
+			 * 执​行​结​果
+			 */
+			execution_result: string
+			/**
+			 * 暂​无​执​行​结​果​返​回
+			 */
+			no_result: string
+		}
+		tool_names: {
+			/**
+			 * 修​改​节​点
+			 */
+			update_node_config: string
+			/**
+			 * 新​增​节​点
+			 */
+			add_node: string
+			/**
+			 * 批​量​编​排
+			 */
+			batch_create_pipeline: string
+			/**
+			 * 连​接​节​点
+			 */
+			connect_nodes: string
+			/**
+			 * 断​开​连​线
+			 */
+			disconnect_nodes: string
+			/**
+			 * 删​除​节​点
+			 */
+			delete_nodes: string
+			/**
+			 * 清​空​画​布
+			 */
+			clear_canvas: string
+			/**
+			 * 自​动​排​版
+			 */
+			auto_layout: string
+			/**
+			 * 查​看​节​点
+			 */
+			get_node_detail: string
+			/**
+			 * 节​点​规​范
+			 */
+			get_node_type_schema: string
+			/**
+			 * 全​流​程​配​置
+			 */
+			get_flow_nodes_config: string
+			/**
+			 * 编​写​脚​本
+			 */
+			generate_or_update_script: string
+			/**
+			 * 查​询​数​据​源
+			 */
+			browse_datasource: string
+			/**
+			 * 导​入​接​口
+			 */
+			import_datasource_item_to_flow: string
+			/**
+			 * 数​据​源​列​表
+			 */
+			list_datasource_plugins: string
+			/**
+			 * 新​建​流​程
+			 */
+			create_flow: string
+			/**
+			 * 打​开​流​程
+			 */
+			open_flow: string
+			/**
+			 * 保​存​流​程
+			 */
+			save_current_flow: string
+			/**
+			 * 流​程​列​表
+			 */
+			list_flows: string
+			/**
+			 * 调​试​运​行
+			 */
+			run_flow_debug: string
+			/**
+			 * 终​止​流​程
+			 */
+			cancel_flow_execution: string
+			/**
+			 * 查​看​报​告
+			 */
+			get_last_execution_report: string
+			/**
+			 * 诊​断​报​错
+			 */
+			diagnose_flow_errors: string
+			/**
+			 * 环​境​变​量
+			 */
+			set_environment_variable: string
+			/**
+			 * 切​换​环​境
+			 */
+			switch_active_environment: string
+			/**
+			 * 环​境​列​表
+			 */
+			list_environments: string
+			/**
+			 * 安​装​插​件
+			 */
+			install_marketplace_plugin: string
+			/**
+			 * 插​件​列​表
+			 */
+			list_plugins: string
 		}
 		code: {
 			/**
@@ -12642,6 +12772,54 @@ type RootTranslation = {
 			 * 开​启​后​ ​A​I​ ​将​自​主​连​续​调​用​工​具​直​至​任​务​目​标​达​成​或​手​动​中​止
 			 */
 			auto_execute_tip: string
+			/**
+			 * A​I​ ​请​求​异​常
+			 */
+			error_title: string
+			/**
+			 * 重​试
+			 */
+			error_retry: string
+			/**
+			 * 正​在​重​试​.​.​.
+			 */
+			error_retrying: string
+			/**
+			 * 复​制​详​细​报​错
+			 */
+			error_copy: string
+			/**
+			 * 已​复​制
+			 */
+			error_copied: string
+			/**
+			 * 技​术​错​误​详​情
+			 */
+			error_details: string
+			/**
+			 * 请​求​已​发​出​，​但​流​式​数​据​在​回​传​中​途​断​开​。​常​见​于​网​络​瞬​断​、​本​地​代​理​/​V​P​N​ ​节​点​波​动​或​大​模​型​首​字​思​考​耗​时​较​长​导​致​连​接​重​置​。​若​服​务​商​后​台​显​示​请​求​正​常​，​说​明​服​务​端​已​成​功​接​收​处​理​，​但​响​应​中​途​未​完​整​送​达​客​户​端​。​可​直​接​点​击​重​试​。
+			 */
+			error_diag_stream_interrupted: string
+			/**
+			 * 无​法​连​接​到​ ​A​I​ ​供​应​商​服​务​器​。​请​检​查​本​地​网​络​连​接​、​代​理​软​件​（​如​ ​T​U​N​ ​模​式​或​代​理​端​口​）​或​ ​A​P​I​ ​B​a​s​e​ ​U​R​L​ ​是​否​填​写​正​确​。
+			 */
+			error_diag_connect_failed: string
+			/**
+			 * 请​求​等​待​超​时​。​A​I​ ​供​应​商​当​前​响​应​过​慢​、​排​队​时​间​过​长​或​网​络​延​迟​过​大​。​可​稍​后​重​试​。
+			 */
+			error_diag_timeout: string
+			/**
+			 * A​P​I​ ​K​e​y​ ​无​效​或​未​授​权​，​请​前​往​设​置​检​查​ ​P​r​o​v​i​d​e​r​ ​的​ ​A​P​I​ ​K​e​y​ ​是​否​填​写​正​确​。
+			 */
+			error_diag_unauthorized: string
+			/**
+			 * 请​求​超​出​频​率​限​制​或​账​户​额​度​耗​尽​ ​(​R​a​t​e​ ​L​i​m​i​t​ ​/​ ​Q​u​o​t​a​ ​E​x​c​e​e​d​e​d​)​。
+			 */
+			error_diag_rate_limit: string
+			/**
+			 * 与​ ​A​I​ ​供​应​商​通​信​过​程​中​发​生​异​常​，​可​点​击​重​试​或​查​看​下​方​技​术​详​情​。
+			 */
+			error_diag_general: string
 		}
 		spotlight: {
 			/**
@@ -24860,6 +25038,10 @@ export type TranslationFunctions = {
 			 */
 			done: () => LocalizedString
 			/**
+			 * 执行失败
+			 */
+			failed: () => LocalizedString
+			/**
 			 * 正在执行...
 			 */
 			running: () => LocalizedString
@@ -24868,6 +25050,10 @@ export type TranslationFunctions = {
 			 */
 			copy_arguments: () => LocalizedString
 			/**
+			 * 复制结果
+			 */
+			copy_result: () => LocalizedString
+			/**
 			 * 已复制
 			 */
 			copied: () => LocalizedString
@@ -24875,6 +25061,128 @@ export type TranslationFunctions = {
 			 * 调用参数
 			 */
 			call_args: () => LocalizedString
+			/**
+			 * 执行结果
+			 */
+			execution_result: () => LocalizedString
+			/**
+			 * 暂无执行结果返回
+			 */
+			no_result: () => LocalizedString
+		}
+		tool_names: {
+			/**
+			 * 修改节点
+			 */
+			update_node_config: () => LocalizedString
+			/**
+			 * 新增节点
+			 */
+			add_node: () => LocalizedString
+			/**
+			 * 批量编排
+			 */
+			batch_create_pipeline: () => LocalizedString
+			/**
+			 * 连接节点
+			 */
+			connect_nodes: () => LocalizedString
+			/**
+			 * 断开连线
+			 */
+			disconnect_nodes: () => LocalizedString
+			/**
+			 * 删除节点
+			 */
+			delete_nodes: () => LocalizedString
+			/**
+			 * 清空画布
+			 */
+			clear_canvas: () => LocalizedString
+			/**
+			 * 自动排版
+			 */
+			auto_layout: () => LocalizedString
+			/**
+			 * 查看节点
+			 */
+			get_node_detail: () => LocalizedString
+			/**
+			 * 节点规范
+			 */
+			get_node_type_schema: () => LocalizedString
+			/**
+			 * 全流程配置
+			 */
+			get_flow_nodes_config: () => LocalizedString
+			/**
+			 * 编写脚本
+			 */
+			generate_or_update_script: () => LocalizedString
+			/**
+			 * 查询数据源
+			 */
+			browse_datasource: () => LocalizedString
+			/**
+			 * 导入接口
+			 */
+			import_datasource_item_to_flow: () => LocalizedString
+			/**
+			 * 数据源列表
+			 */
+			list_datasource_plugins: () => LocalizedString
+			/**
+			 * 新建流程
+			 */
+			create_flow: () => LocalizedString
+			/**
+			 * 打开流程
+			 */
+			open_flow: () => LocalizedString
+			/**
+			 * 保存流程
+			 */
+			save_current_flow: () => LocalizedString
+			/**
+			 * 流程列表
+			 */
+			list_flows: () => LocalizedString
+			/**
+			 * 调试运行
+			 */
+			run_flow_debug: () => LocalizedString
+			/**
+			 * 终止流程
+			 */
+			cancel_flow_execution: () => LocalizedString
+			/**
+			 * 查看报告
+			 */
+			get_last_execution_report: () => LocalizedString
+			/**
+			 * 诊断报错
+			 */
+			diagnose_flow_errors: () => LocalizedString
+			/**
+			 * 环境变量
+			 */
+			set_environment_variable: () => LocalizedString
+			/**
+			 * 切换环境
+			 */
+			switch_active_environment: () => LocalizedString
+			/**
+			 * 环境列表
+			 */
+			list_environments: () => LocalizedString
+			/**
+			 * 安装插件
+			 */
+			install_marketplace_plugin: () => LocalizedString
+			/**
+			 * 插件列表
+			 */
+			list_plugins: () => LocalizedString
 		}
 		code: {
 			/**
@@ -25083,6 +25391,54 @@ export type TranslationFunctions = {
 			 * 开启后 AI 将自主连续调用工具直至任务目标达成或手动中止
 			 */
 			auto_execute_tip: () => LocalizedString
+			/**
+			 * AI 请求异常
+			 */
+			error_title: () => LocalizedString
+			/**
+			 * 重试
+			 */
+			error_retry: () => LocalizedString
+			/**
+			 * 正在重试...
+			 */
+			error_retrying: () => LocalizedString
+			/**
+			 * 复制详细报错
+			 */
+			error_copy: () => LocalizedString
+			/**
+			 * 已复制
+			 */
+			error_copied: () => LocalizedString
+			/**
+			 * 技术错误详情
+			 */
+			error_details: () => LocalizedString
+			/**
+			 * 请求已发出，但流式数据在回传中途断开。常见于网络瞬断、本地代理/VPN 节点波动或大模型首字思考耗时较长导致连接重置。若服务商后台显示请求正常，说明服务端已成功接收处理，但响应中途未完整送达客户端。可直接点击重试。
+			 */
+			error_diag_stream_interrupted: () => LocalizedString
+			/**
+			 * 无法连接到 AI 供应商服务器。请检查本地网络连接、代理软件（如 TUN 模式或代理端口）或 API Base URL 是否填写正确。
+			 */
+			error_diag_connect_failed: () => LocalizedString
+			/**
+			 * 请求等待超时。AI 供应商当前响应过慢、排队时间过长或网络延迟过大。可稍后重试。
+			 */
+			error_diag_timeout: () => LocalizedString
+			/**
+			 * API Key 无效或未授权，请前往设置检查 Provider 的 API Key 是否填写正确。
+			 */
+			error_diag_unauthorized: () => LocalizedString
+			/**
+			 * 请求超出频率限制或账户额度耗尽 (Rate Limit / Quota Exceeded)。
+			 */
+			error_diag_rate_limit: () => LocalizedString
+			/**
+			 * 与 AI 供应商通信过程中发生异常，可点击重试或查看下方技术详情。
+			 */
+			error_diag_general: () => LocalizedString
 		}
 		spotlight: {
 			/**
