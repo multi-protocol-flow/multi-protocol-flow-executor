@@ -1728,7 +1728,17 @@ fn normalize_ai_base_url(url: &str) -> String {
 fn build_ai_reqwest_client() -> reqwest::Client {
     let _ = rustls::crypto::ring::default_provider().install_default();
     reqwest::Client::builder()
-        .timeout(Duration::from_secs(60))
+        .timeout(Duration::from_secs(30))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new())
+}
+
+fn build_ai_streaming_client() -> reqwest::Client {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(30))
+        .read_timeout(Duration::from_secs(180))
+        .tcp_keepalive(Some(Duration::from_secs(15)))
         .build()
         .unwrap_or_else(|_| reqwest::Client::new())
 }
@@ -1876,7 +1886,7 @@ pub async fn ai_chat_stream(
     let cleaned_base = normalize_ai_base_url(&base_url);
     let endpoint = format!("{}/chat/completions", cleaned_base);
 
-    let client = build_ai_reqwest_client();
+    let client = build_ai_streaming_client();
     let mut req = client.post(&endpoint).json(&request_body);
 
     if !api_key.trim().is_empty() {
@@ -1897,9 +1907,11 @@ pub async fn ai_chat_stream(
 
     while let Some(chunk_result) = resp.chunk().await.map_err(|e| e.to_string())? {
         let text = String::from_utf8_lossy(&chunk_result).to_string();
-        let _ = on_chunk.send(text);
+        if on_chunk.send(text).is_err() {
+            // 前端监听通道已断开 (如用户手动中断或组件卸载)，主动退出流式读取
+            break;
+        }
     }
-
     Ok(())
 }
 
