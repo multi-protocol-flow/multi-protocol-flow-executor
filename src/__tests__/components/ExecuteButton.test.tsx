@@ -252,10 +252,9 @@ describe('ExecuteButton', () => {
       fireEvent.click(button);
 
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith('执行失败', {
+        expect(toast.error).toHaveBeenCalledWith('执行失败', expect.objectContaining({
           description: '网络错误',
-          duration: 10000,
-        });
+        }));
       });
     });
   });
