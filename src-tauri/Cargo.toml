@@ -40,6 +40,7 @@ rustls-pemfile = "2"
 jsonpath-rust = "1.0.4"
 reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "rustls-no-provider"] }
 tempfile = "3.0"
+rand = "0.8"
 # Workspace Lint 配置
 [workspace.lints.rust]
 unsafe_code = "forbid"

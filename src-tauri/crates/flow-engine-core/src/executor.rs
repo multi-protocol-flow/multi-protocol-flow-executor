@@ -61,6 +61,16 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
         let mut current_path = String::new();
 
         if current_value.is_none() {
+            if variable_path.starts_with('$') {
+                if let Some(dyn_val) =
+                    crate::dynamic_variable::resolve_dynamic_variable(variable_path)
+                {
+                    result = result.replacen(full_match, &dyn_val, 1);
+                    continue;
+                } else {
+                    return Err(format!("Unknown dynamic variable: {}", variable_path));
+                }
+            }
             return Err(format!("Variable not found: {}", variable_path));
         }
 
@@ -104,7 +114,7 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
             }
         };
 
-        result = result.replace(full_match, &replacement);
+        result = result.replacen(full_match, &replacement, 1);
     }
 
     Ok(result)
@@ -240,5 +250,78 @@ mod tests {
             .err()
             .unwrap_or_else(|| panic!("expected Err"));
         assert_eq!(err5, "Function calls not supported: fn()");
+    }
+
+    #[test]
+    fn test_replace_variables_dynamic_guid() {
+        let context = ExecutionContext::new("flow-1".to_string(), 0);
+        let template = "Bearer {{$guid}}";
+        let res = replace_variables(template, &context).unwrap_or_else(|e| panic!("{e}"));
+        assert!(res.starts_with("Bearer "));
+        let guid = &res["Bearer ".len()..];
+        assert_eq!(guid.len(), 36);
+        assert!(uuid::Uuid::parse_str(guid).is_ok());
+    }
+
+    #[test]
+    fn test_replace_variables_dynamic_timestamp() {
+        let context = ExecutionContext::new("flow-1".to_string(), 0);
+        let template = "timestamp={{$timestamp}}";
+        let res = replace_variables(template, &context).unwrap_or_else(|e| panic!("{e}"));
+        assert!(res.starts_with("timestamp="));
+        let ts_str = &res["timestamp=".len()..];
+        let ts: i64 = ts_str.parse().unwrap_or_else(|e| panic!("{e}"));
+        assert!(ts > 1700000000);
+    }
+
+    #[test]
+    fn test_replace_variables_dynamic_unknown() {
+        let context = ExecutionContext::new("flow-1".to_string(), 0);
+        let err = replace_variables("{{$notExist}}", &context)
+            .err()
+            .unwrap_or_else(|| panic!("expected Err"));
+        assert_eq!(err, "Unknown dynamic variable: $notExist");
+    }
+
+    #[test]
+    fn test_replace_variables_user_override_dynamic() {
+        let mut context = ExecutionContext::new("flow-1".to_string(), 0);
+        context.variables.set_variable(
+            "$guid".to_string(),
+            json!("custom-override-id"),
+            "node-1".to_string(),
+        );
+        let res = replace_variables("id={{$guid}}", &context).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(res, "id=custom-override-id");
+    }
+
+    #[test]
+    fn test_replace_variables_multiple_dynamic_distinct() {
+        let context = ExecutionContext::new("flow-1".to_string(), 0);
+        let template = "{{$guid}}|{{$guid}}";
+        let res = replace_variables(template, &context).unwrap_or_else(|e| panic!("{e}"));
+        let parts: Vec<&str> = res.split('|').collect();
+        assert_eq!(parts.len(), 2);
+        assert_ne!(parts[0], parts[1], "Multiple dynamic evaluations should generate distinct values");
+    }
+
+    #[test]
+    fn test_resolve_variables_in_json_dynamic() {
+        let context = ExecutionContext::new("flow-1".to_string(), 0);
+        let json_data = json!({
+            "id": "{{$guid}}",
+            "time": "{{$timestamp}}",
+            "nested": {
+                "email": "{{$randomEmail}}",
+                "static": 123
+            }
+        });
+        let resolved = resolve_variables_in_json(&json_data, &context);
+        let id_str = resolved["id"].as_str().unwrap_or("");
+        assert_eq!(id_str.len(), 36);
+        assert!(uuid::Uuid::parse_str(id_str).is_ok());
+        let email_str = resolved["nested"]["email"].as_str().unwrap_or("");
+        assert!(email_str.contains('@'));
+        assert_eq!(resolved["nested"]["static"], 123);
     }
 }

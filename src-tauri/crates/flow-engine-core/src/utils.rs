@@ -14,7 +14,7 @@ pub fn unix_timestamp_ms() -> u64 {
         .as_millis() as u64
 }
 
-/// 规范化 JSONPath 路径
+/// 规范化 `JSONPath` 路径
 ///
 /// 兼容用户或客户端传入未以 `$` 开头的路径（例如 `body.data.token` 或 `status`），
 /// 自动容错补全为 `$.` 前缀（`$.body.data.token`）。

@@ -12,6 +12,8 @@ pub mod context;
 pub mod dataset;
 /// 调试模式相关类型，支持断点、单步执行和执行栈追踪
 pub mod debug_types;
+/// 动态变量系统，提供类似 Postman 的随机数、时间戳、UUID 等变量即时生成
+pub mod dynamic_variable;
 /// `OAuth2` + SASL 认证工具模块（服务商预设配置、SASL 字符串构建）
 /// Error类型定义，区分致命Error和可恢复Error
 pub mod error;
