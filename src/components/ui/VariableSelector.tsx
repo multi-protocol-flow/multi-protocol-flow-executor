@@ -8,7 +8,12 @@ import { Variable } from "@/types/variable";
 import { cn } from "@/lib/utils";
 import { Input } from "./input";
 import { ScrollArea } from "./scroll-area";
-import { Braces, Search, X } from "lucide-react";
+import { Braces, Search, X, Sparkles, BookOpen, ChevronDown } from "lucide-react";
+import {
+  DYNAMIC_VARIABLES,
+  type DynamicVariableItem,
+} from "@/types/dynamicVariable";
+import { DynamicVariablesHelpDialog } from "@/components/dialogs/DynamicVariablesHelpDialog";
 import { getLL } from '@/i18n/i18n-lazy';
 
 const LL = getLL();
@@ -97,6 +102,7 @@ export function VariableSelector({
   // 搜索状态
   const [searchQuery, setSearchQuery] = React.useState("");
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
+  const [helpDialogOpen, setHelpDialogOpen] = React.useState(false);
   
   // 支持受控和非受控模式
   const open = controlledOpen ?? uncontrolledOpen;
@@ -128,6 +134,17 @@ export function VariableSelector({
     return groups;
   }, [filteredVariables]);
 
+  // 过滤动态变量
+  const filteredDynamicVariables = React.useMemo(() => {
+    if (!searchQuery.trim()) return DYNAMIC_VARIABLES;
+    const query = searchQuery.toLowerCase();
+    return DYNAMIC_VARIABLES.filter(
+      (v) =>
+        v.name.toLowerCase().includes(query) ||
+        v.category.toLowerCase().includes(query)
+    );
+  }, [searchQuery]);
+
   // 处理变量选择
   const handleSelect = React.useCallback(
     (variableName: string) => {
@@ -144,7 +161,8 @@ export function VariableSelector({
   }, []);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         {triggerChildren ? (
           <button
@@ -203,7 +221,17 @@ export function VariableSelector({
 
         {/* 变量列表 */}
         <ScrollArea className="h-64">
-          {groupedVariables.size === 0 ? (
+          {groupedVariables.size === 0 && !searchQuery.trim() ? (
+            <>
+              <div className="flex items-center justify-center h-16 text-xs text-muted-foreground">
+                {emptyText}
+              </div>
+              <DynamicVariableGroup
+                variables={filteredDynamicVariables}
+                onSelect={handleSelect}
+              />
+            </>
+          ) : groupedVariables.size === 0 && filteredDynamicVariables.length === 0 ? (
             <div className="flex items-center justify-center h-20 text-xs text-muted-foreground">
               {emptyText}
             </div>
@@ -218,9 +246,31 @@ export function VariableSelector({
                   onSelect={handleSelect}
                 />
               ))}
+              <DynamicVariableGroup
+                variables={filteredDynamicVariables}
+                onSelect={handleSelect}
+              />
             </div>
           )}
         </ScrollArea>
+
+        {/* 动态变量参考手册入口 */}
+        <div className="px-3 py-2 border-t border-border bg-emerald-50/40 dark:bg-emerald-950/20 flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground truncate mr-2">
+            {LL.flow.dynamic_variables_selector_hint()}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setHelpDialogOpen(true);
+            }}
+            className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium hover:underline flex items-center gap-1 shrink-0"
+          >
+            <BookOpen className="h-3 w-3" />
+            <span>{LL.flow.dynamic_variables_open_handbook()}</span>
+          </button>
+        </div>
 
         {/* 底部提示 */}
         <div className="px-3 py-2 border-t border-border bg-muted/50">
@@ -229,7 +279,12 @@ export function VariableSelector({
           </p>
         </div>
       </PopoverContent>
-    </Popover>
+      </Popover>
+      <DynamicVariablesHelpDialog
+        open={helpDialogOpen}
+        onOpenChange={setHelpDialogOpen}
+      />
+    </>
   );
 }
 
@@ -311,4 +366,78 @@ function VariableItem({ variable, onSelect }: VariableItemProps) {
   );
 }
 
+
+// ============================================================================
+// 子组件: 动态变量分组
+// ============================================================================
+
+interface DynamicVariableGroupProps {
+  variables: DynamicVariableItem[];
+  onSelect: (variableName: string) => void;
+}
+
+function DynamicVariableGroup({ variables, onSelect }: DynamicVariableGroupProps) {
+  const LL = getLL();
+  const [collapsed, setCollapsed] = React.useState(false);
+
+  if (variables.length === 0) return null;
+
+  return (
+    <div className="px-1 mt-1 pt-1 border-t border-border">
+      <button
+        type="button"
+        onClick={() => setCollapsed(!collapsed)}
+        className={cn(
+          "w-full flex items-center justify-between px-2 py-1",
+          "text-[11px] font-semibold text-emerald-700 dark:text-emerald-400",
+          "hover:bg-accent rounded-sm transition-colors",
+          "focus:outline-none"
+        )}
+      >
+        <span className="flex items-center gap-1.5">
+          <Sparkles className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span>{LL.flow.dynamic_variables_group()}</span>
+          <span className="text-[10px] text-muted-foreground font-normal">
+            ({variables.length})
+          </span>
+        </span>
+        <ChevronDown
+          className={cn(
+            "h-3 w-3 text-muted-foreground transition-transform duration-150",
+            collapsed && "-rotate-90"
+          )}
+        />
+      </button>
+
+      {!collapsed && (
+        <ul className="mt-0.5 space-y-0.5">
+          {variables.map((item) => (
+            <li key={item.name}>
+              <button
+                type="button"
+                onClick={() => onSelect(item.name)}
+                className={cn(
+                  "w-full text-left px-2 py-1.5 rounded-sm",
+                  "text-xs font-mono",
+                  "hover:bg-accent focus:bg-accent focus:outline-none",
+                  "transition-colors duration-100",
+                  "group"
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                    {item.name}
+                  </span>
+                  <span className="text-muted-foreground text-[10px] truncate max-w-[120px]">
+                    {item.example}
+                  </span>
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 export default VariableSelector;

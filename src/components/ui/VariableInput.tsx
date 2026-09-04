@@ -6,6 +6,7 @@
  */
 import * as React from "react";
 import { Variable } from "@/types/variable";
+import { isDynamicVariable } from "@/types/dynamicVariable";
 import { cn } from "@/lib/utils";
 import { Input } from "./input";
 import { VariableSelector } from "./VariableSelector";
@@ -35,6 +36,8 @@ export interface VariableInputProps
   variableButtonClassName?: string;
   /** 输入框容器类名 */
   containerClassName?: string;
+  /** 是否支持动态变量（默认 true，若为 false 则仅当有 flow 变量时启用选择器） */
+  enableDynamicVariables?: boolean;
 }
 
 // ============================================================================
@@ -76,6 +79,7 @@ export const VariableInput = React.forwardRef<
       onValueChange,
       placeholder,
       disableVariableSelector = false,
+      enableDynamicVariables = true,
       variableButtonClassName,
       containerClassName,
       className,
@@ -105,6 +109,9 @@ export const VariableInput = React.forwardRef<
     const [uncontrolledValue, setUncontrolledValue] =
       React.useState(defaultValue);
 
+    // 变量选择器受控开关状态
+    const [selectorOpen, setSelectorOpen] = React.useState(false);
+
     // 当前值（受控/非受控）
     const value = controlledValue ?? uncontrolledValue;
 
@@ -122,9 +129,30 @@ export const VariableInput = React.forwardRef<
     // 处理输入变更
     const handleInputChange = React.useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
-        updateValue(e.target.value);
+        const newVal = e.target.value;
+        const cursor = e.target.selectionStart;
+        updateValue(newVal);
+
+        // 检测光标前刚好输入了 {{ 时主动唤起变量选择
+        if (cursor !== null && newVal.slice(0, cursor).endsWith("{{")) {
+          setSelectorOpen(true);
+        }
       },
       [updateValue]
+    );
+
+    // 键盘快捷键监听：Ctrl+I 或 Cmd+I 主动唤起/收起变量选择
+    const handleKeyDown = React.useCallback(
+      (e: React.KeyboardEvent<HTMLInputElement>) => {
+        props.onKeyDown?.(e);
+        if (e.defaultPrevented) return;
+
+        if ((e.ctrlKey || e.metaKey) && (e.key === "i" || e.key === "I")) {
+          e.preventDefault();
+          setSelectorOpen((prev) => !prev);
+        }
+      },
+      [props]
     );
 
     // 处理变量选择 - 插入到光标位置
@@ -135,20 +163,29 @@ export const VariableInput = React.forwardRef<
           // 如果没有 input 引用，直接追加到末尾
           const insertion = `{{${variableName}}}`;
           updateValue(value + insertion);
+          setSelectorOpen(false);
           return;
         }
+        let start = input.selectionStart ?? value.length;
+        let end = input.selectionEnd ?? value.length;
+        if (start === 0 && end === 0 && value.endsWith("{{")) {
+          start = value.length;
+          end = value.length;
+        }
+        const beforeCursor = value.slice(0, start);
+        let replaceStart = start;
+        if (beforeCursor.endsWith("{{")) {
+          replaceStart = start - 2;
+        }
 
-        const start = input.selectionStart ?? value.length;
-        const end = input.selectionEnd ?? value.length;
         const insertion = `{{${variableName}}}`;
-
-        // 构建新值：光标前 + 插入内容 + 光标后
-        const newValue = value.slice(0, start) + insertion + value.slice(end);
+        const newValue = value.slice(0, replaceStart) + insertion + value.slice(end);
         updateValue(newValue);
+        setSelectorOpen(false);
 
         // 延迟设置光标位置（等待 DOM 更新）
         requestAnimationFrame(() => {
-          const newCursorPos = start + insertion.length;
+          const newCursorPos = replaceStart + insertion.length;
           input.setSelectionRange(newCursorPos, newCursorPos);
           input.focus();
         });
@@ -156,9 +193,11 @@ export const VariableInput = React.forwardRef<
       [value, updateValue]
     );
 
-    // 变量选择器是否可用
+    // 变量选择器是否可用：若启用了动态变量，即使流程尚未定义自定义变量也保持可用
     const isVariableSelectorEnabled =
-      !disableVariableSelector && variables.length > 0 && !disabled;
+      !disableVariableSelector &&
+      !disabled &&
+      (enableDynamicVariables ? true : variables.length > 0);
 
     // 渲染变量引用高亮预览（将 {{var}} 替换为紫色标记）
     const varHighlightPreview = React.useMemo(() => {
@@ -178,16 +217,21 @@ export const VariableInput = React.forwardRef<
             </span>
           );
         }
-        const varPath = match[1];
-        const isValid = variables.some((v) => v.name === varPath);
+        const varPath = match[1].trim();
+        const isDynamic = isDynamicVariable(varPath);
+        const isValid = isDynamic || variables.some((v) => v.name === varPath);
+
+        let colorClass = "text-red-500 dark:text-red-400 line-through";
+        if (isDynamic) {
+          colorClass = "text-emerald-600 dark:text-emerald-400 font-medium";
+        } else if (isValid) {
+          colorClass = "text-violet-600 dark:text-violet-400 font-medium";
+        }
+
         parts.push(
           <span
             key={`v-${match.index}`}
-            className={
-              isValid
-                ? "text-violet-600 dark:text-violet-400 font-medium"
-                : "text-red-500 dark:text-red-400 line-through"
-            }
+            className={colorClass}
           >
             {match[0]}
           </span>
@@ -217,6 +261,7 @@ export const VariableInput = React.forwardRef<
             type={props.type ?? "text"}
             value={value}
             onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}
             className={cn(
@@ -229,6 +274,8 @@ export const VariableInput = React.forwardRef<
           {/* 变量选择按钮 */}
           {isVariableSelectorEnabled && (
             <VariableSelector
+              open={selectorOpen}
+              onOpenChange={setSelectorOpen}
               variables={variables}
               nodeLabels={nodeLabels}
               onSelect={handleVariableSelect}

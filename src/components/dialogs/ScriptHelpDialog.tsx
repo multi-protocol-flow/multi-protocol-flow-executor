@@ -22,7 +22,9 @@ import {
   Info,
   Wrench,
   CheckCheck,
+  Sparkles,
 } from 'lucide-react';
+import { DynamicVariablesHelpDialog } from './DynamicVariablesHelpDialog';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -162,6 +164,7 @@ function UtilSubCategory({ title, items }: { title: string; items: string[] }) {
 }
 
 export function ScriptHelpDialog({ open, onOpenChange }: ScriptHelpDialogProps) {
+  const [dynamicHelpOpen, setDynamicHelpOpen] = useState(false);
   const sections: SectionData[] = [
     {
       id: 'overview',
@@ -188,15 +191,30 @@ export function ScriptHelpDialog({ open, onOpenChange }: ScriptHelpDialogProps) 
             { method: 'get(key)', description: getLL().flow.fn_get_value() },
             { method: 'set(key, value)', description: getLL().flow.fn_set_value() },
             { method: 'setAll(obj)', description: getLL().flow.fn_set_all() },
+            { method: 'replaceIn(template)', description: getLL().flow.fn_replace_in() },
             { method: 'has(key)', description: getLL().flow.fn_has() },
             { method: 'unset(key)', description: getLL().flow.fn_unset() },
             { method: 'clear()', description: getLL().flow.fn_clear() },
             { method: 'all()', description: getLL().flow.fn_get_all() },
           ]} />
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs text-muted-foreground">
+              支持动态变量如 <code className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">fn.variables.get('$guid')</code>
+            </span>
+            <button
+              type="button"
+              onClick={() => setDynamicHelpOpen(true)}
+              className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:underline transition-colors"
+            >
+              <Sparkles className="h-3 w-3" />
+              {getLL().flow.script_help_dynamic_vars_link()}
+            </button>
+          </div>
           <CodeBlock code={`fn.variables.set('token', 'abc123');
-fn.variables.setAll({ token: 'abc123', userId: 'user-001' });
 const token = fn.variables.get('token');
-if (fn.variables.has('token')) { fn.console.log('exists'); }
+// 动态变量与模板插值
+const guid = fn.variables.get('$guid');
+const authHeader = fn.variables.replaceIn('Bearer {{$guid}}');
 const allVars = JSON.parse(fn.variables.all());`} />
         </>
       ),
@@ -373,7 +391,8 @@ fn.expect(result).to.eql({ status: 'ok' });`} />
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-[680px] h-[85vh] flex flex-col overflow-hidden p-0 gap-0"
         hideCloseButton
@@ -435,5 +454,10 @@ fn.expect(result).to.eql({ status: 'ok' });`} />
         </div>
       </DialogContent>
     </Dialog>
-  );
+    <DynamicVariablesHelpDialog
+      open={dynamicHelpOpen}
+      onOpenChange={setDynamicHelpOpen}
+    />
+  </>
+);
 }

@@ -5,6 +5,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { AlertCircle } from "lucide-react";
+import { isDynamicVariable } from "@/types/dynamicVariable";
 import { getLL } from '@/i18n/i18n-lazy';
 
 // ============================================================================
@@ -40,7 +41,7 @@ export function findInvalidRefs(
   refs: string[],
   availableVariables: string[]
 ): string[] {
-  return refs.filter((ref) => !availableVariables.includes(ref));
+  return refs.filter((ref) => !availableVariables.includes(ref) && !isDynamicVariable(ref));
 }
 
 // ============================================================================
