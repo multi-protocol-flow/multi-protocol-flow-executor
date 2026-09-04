@@ -148,7 +148,8 @@ impl ScriptExecutionContext {
     /// 注册 `fn.variables.*` API 到 `QuickJS` 上下文
     ///
     /// # 注册的方法
-    /// - `fn.variables.get(key)` - 获取变量值（返回字符串或 null）
+    /// - `fn.variables.get(key)` - 获取变量值（支持普通变量与动态变量如 $guid，返回字符串或 null）
+    /// - `fn.variables.replaceIn(template)` - 替换模板字符串中的变量与动态变量
     /// - `fn.variables.set(key, value)` - 设置变量（字符串值）
     /// - `fn.variables.setAll(obj)` - 批量设置变量
     /// - `fn.variables.has(key)` - 检查变量是否存在
@@ -159,15 +160,47 @@ impl ScriptExecutionContext {
         let fn_obj = Object::new(ctx.clone())?;
         let vars_obj = Object::new(ctx.clone())?;
 
-        // get(key) - 获取变量
+        // get(key) - 获取变量（支持普通变量与动态变量）
         let vars_get = self.variables.clone();
         vars_obj.set(
             "get",
             Func::from(move |key: String| -> Option<String> {
-                vars_get
+                let user_val = vars_get
                     .borrow()
                     .get(&key)
-                    .and_then(|v| v.as_str().map(|s| s.to_string()))
+                    .and_then(|v| match v {
+                        serde_json::Value::String(s) => Some(s.clone()),
+                        serde_json::Value::Number(n) => Some(n.to_string()),
+                        serde_json::Value::Bool(b) => Some(b.to_string()),
+                        _ => v.as_str().map(|s| s.to_string()),
+                    });
+                if user_val.is_some() {
+                    return user_val;
+                }
+                if key.starts_with('$') {
+                    return flow_engine_core::dynamic_variable::resolve_dynamic_variable(&key);
+                }
+                None
+            }),
+        )?;
+
+        // replaceIn(template) - 替换模板字符串中的普通变量与动态变量
+        let vars_replace = self.variables.clone();
+        vars_obj.set(
+            "replaceIn",
+            Func::from(move |template: String| -> String {
+                if !template.contains("{{") {
+                    return template;
+                }
+                let mut exec_ctx =
+                    flow_engine_core::context::ExecutionContext::new("script-eval".to_string(), 0);
+                for (k, v) in vars_replace.borrow().iter() {
+                    exec_ctx
+                        .variables
+                        .set_variable(k.clone(), v.clone(), "script".to_string());
+                }
+                flow_engine_core::executor::replace_variables(&template, &exec_ctx)
+                    .unwrap_or(template)
             }),
         )?;
 
@@ -184,11 +217,15 @@ impl ScriptExecutionContext {
             }),
         )?;
 
-        // has(key) - 检查变量是否存在
+        // has(key) - 检查变量是否存在（支持普通变量与动态变量）
         let vars_has = self.variables.clone();
         vars_obj.set(
             "has",
-            Func::from(move |key: String| -> bool { vars_has.borrow().contains_key(&key) }),
+            Func::from(move |key: String| -> bool {
+                vars_has.borrow().contains_key(&key)
+                    || (key.starts_with('$')
+                        && flow_engine_core::dynamic_variable::is_dynamic_variable(&key))
+            }),
         )?;
 
         // unset(key) - 删除变量
@@ -3332,6 +3369,60 @@ mod tests {
                 .unwrap_or_else(|e| panic!("{e}"));
             assert_eq!(results.len(), 3);
             assert!(results.iter().all(|r| r.passed));
+        });
+    }
+
+    #[test]
+    fn test_fn_variables_get_dynamic_guid() {
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
+        let script_ctx = ScriptExecutionContext::new();
+
+        ctx.with(|ctx| {
+            script_ctx
+                .register_variables_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let guid: String = ctx
+                .eval("fn.variables.get('$guid')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(guid.len(), 36);
+            assert!(uuid::Uuid::parse_str(&guid).is_ok());
+
+            let has_guid: bool = ctx
+                .eval("fn.variables.has('$guid')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert!(has_guid);
+        });
+    }
+
+    #[test]
+    fn test_fn_variables_replace_in() {
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
+        let script_ctx = ScriptExecutionContext::new();
+
+        ctx.with(|ctx| {
+            script_ctx
+                .register_variables_api(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let _: () = ctx
+                .eval("fn.variables.set('token', 'secret123')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            let res: String = ctx
+                .eval("fn.variables.replaceIn('Bearer {{token}}')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(res, "Bearer secret123");
+
+            let dynamic_res: String = ctx
+                .eval("fn.variables.replaceIn('ID: {{$guid}}')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert!(dynamic_res.starts_with("ID: "));
+            assert_eq!(dynamic_res.len(), 4 + 36);
         });
     }
 }
