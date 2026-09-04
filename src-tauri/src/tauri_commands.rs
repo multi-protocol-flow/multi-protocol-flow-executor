@@ -1739,8 +1739,46 @@ fn build_ai_streaming_client() -> reqwest::Client {
         .connect_timeout(Duration::from_secs(30))
         .read_timeout(Duration::from_secs(180))
         .tcp_keepalive(Some(Duration::from_secs(15)))
+        .tcp_nodelay(true)
         .build()
         .unwrap_or_else(|_| reqwest::Client::new())
+}
+
+fn format_reqwest_error(e: &reqwest::Error) -> String {
+    use std::error::Error;
+    let mut messages = Vec::new();
+    let mut current: Option<&dyn Error> = Some(e);
+    while let Some(err) = current {
+        let msg = err.to_string();
+        if !messages.iter().any(|m: &String| m == &msg || msg.contains(m.as_str())) {
+            messages.push(msg);
+        }
+        current = err.source();
+    }
+    let detail = messages.join(" -> ");
+    let lower = detail.to_lowercase();
+
+    let hint = if e.is_timeout() || lower.contains("timed out") || lower.contains("timeout") {
+        "Request timed out"
+    } else if lower.contains("connection reset")
+        || lower.contains("connection closed")
+        || lower.contains("broken pipe")
+        || e.is_body()
+    {
+        "Data stream interrupted (connection broken or reset by remote server or proxy)"
+    } else if e.is_connect()
+        || lower.contains("dns")
+        || lower.contains("connection refused")
+        || lower.contains("proxy")
+    {
+        "Failed to connect to host (check network, DNS, or proxy settings)"
+    } else if e.is_decode() {
+        "Response decoding error"
+    } else {
+        "Network request failed"
+    };
+
+    format!("[{}] {}", hint, detail)
 }
 
 /// 测试 AI Provider 连通性
@@ -1804,7 +1842,7 @@ pub async fn ai_test_connection(
         }
         Err(e) => {
             let latency_ms = start_time.elapsed().as_millis() as u64;
-            let err_msg = e.to_string();
+            let err_msg = format_reqwest_error(&e);
             log::error!(
                 "[IPC::ai_test_connection] Network error in {}ms: {}",
                 latency_ms,
@@ -1847,8 +1885,9 @@ pub async fn ai_fetch_models(
     let resp = match req.send().await {
         Ok(r) => r,
         Err(e) => {
-            log::error!("[IPC::ai_fetch_models] Network request failed: {}", e);
-            return Err(e.to_string());
+            let err_msg = format_reqwest_error(&e);
+            log::error!("[IPC::ai_fetch_models] Network request failed: {}", err_msg);
+            return Err(err_msg);
         }
     };
     if !resp.status().is_success() {
@@ -1898,17 +1937,29 @@ pub async fn ai_chat_stream(
         }
     }
 
-    let mut resp = req.send().await.map_err(|e| e.to_string())?;
+    let mut resp = match req.send().await {
+        Ok(r) => r,
+        Err(e) => {
+            let err_msg = format_reqwest_error(&e);
+            log::error!("[IPC::ai_chat_stream] Failed to send request: {}", err_msg);
+            return Err(err_msg);
+        }
+    };
     if !resp.status().is_success() {
         let status = resp.status();
         let err_body = resp.text().await.unwrap_or_default();
+        log::warn!("[IPC::ai_chat_stream] HTTP non-success: {} - {}", status, err_body);
         return Err(format!("HTTP {}: {}", status, err_body));
     }
 
-    while let Some(chunk_result) = resp.chunk().await.map_err(|e| e.to_string())? {
+    while let Some(chunk_result) = resp.chunk().await.map_err(|e| {
+        let err_msg = format_reqwest_error(&e);
+        log::error!("[IPC::ai_chat_stream] Stream chunk error: {}", err_msg);
+        err_msg
+    })? {
         let text = String::from_utf8_lossy(&chunk_result).to_string();
         if on_chunk.send(text).is_err() {
-            // 前端监听通道已断开 (如用户手动中断或组件卸载)，主动退出流式读取
+            // Frontend listener channel disconnected, stop streaming
             break;
         }
     }
