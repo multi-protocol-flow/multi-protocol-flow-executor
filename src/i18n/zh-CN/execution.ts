@@ -297,6 +297,7 @@ const zh_CN_execution: BaseTranslation = {
     assertion_mode_all: '全部满足',
     assertion_mode_any: '任一满足',
     no_assertion_data: '无断言执行数据',
+    assertion_item: '断言 #{index}',
     execution_failed: '执行失败',
     stack_trace: '堆栈跟踪',
     eval_value: '评估值',

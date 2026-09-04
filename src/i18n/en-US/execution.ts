@@ -295,6 +295,7 @@ const en_US_execution = {
     assertion_mode_all: 'All Must Satisfy',
     assertion_mode_any: 'Any Must Satisfy',
     no_assertion_data: 'No assertion execution data',
+    assertion_item: 'Assertion #{index}',
     execution_failed: 'Execution Failed',
     stack_trace: 'Stack Trace',
     eval_value: 'Evaluation Value',

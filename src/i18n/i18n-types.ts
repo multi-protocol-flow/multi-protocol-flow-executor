@@ -5625,6 +5625,11 @@ type RootTranslation = {
 			 */
 			no_assertion_data: string
 			/**
+			 * 断​言​ ​#​{​i​n​d​e​x​}
+			 * @param {unknown} index
+			 */
+			assertion_item: RequiredParams<'index'>
+			/**
 			 * 执​行​失​败
 			 */
 			execution_failed: string
@@ -17950,6 +17955,10 @@ export type TranslationFunctions = {
 			 * 无断言执行数据
 			 */
 			no_assertion_data: () => LocalizedString
+			/**
+			 * 断言 #{index}
+			 */
+			assertion_item: (arg: { index: unknown }) => LocalizedString
 			/**
 			 * 执行失败
 			 */
