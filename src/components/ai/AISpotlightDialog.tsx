@@ -12,6 +12,7 @@ import {
   PanelRightClose,
   Loader2,
   X,
+  AlertCircle,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { useAIStore } from '@/stores/ai';
 import { useSettingsStore } from '@/stores/settings';
 import { AIToolCallItem } from './AIToolCallItem';
 import { AIConfirmCard } from './AIConfirmCard';
+import { AIErrorMessageCard } from './AIErrorMessageCard';
 import { getLL } from '@/i18n/i18n-lazy';
 
 export function AISpotlightDialog() {
@@ -178,6 +180,19 @@ export function AISpotlightDialog() {
               }
 
               if (msg.role === 'assistant') {
+                if (msg.status === 'error') {
+                  return (
+                    <div key={msg.id} className="flex justify-start gap-2">
+                      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive mt-0.5">
+                        <AlertCircle className="h-3 w-3" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <AIErrorMessageCard message={msg} compact />
+                      </div>
+                    </div>
+                  );
+                }
+
                 const isStreaming = activeStreamingMessageId === msg.id;
                 const hasContent = Boolean(msg.content && msg.content.trim().length > 0);
                 const hasThought = Boolean(msg.thought && msg.thought.trim().length > 0);
@@ -186,7 +201,6 @@ export function AISpotlightDialog() {
                 if (!hasContent && !hasThought && !hasToolCalls && !isStreaming) {
                   return null;
                 }
-
                 return (
                   <div key={msg.id} className="flex justify-start gap-2">
                     <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary mt-0.5">
@@ -195,13 +209,20 @@ export function AISpotlightDialog() {
                     <div className="flex-1 space-y-1.5 min-w-0">
                       {msg.tool_calls && msg.tool_calls.length > 0 && (
                         <div className="space-y-1">
-                          {msg.tool_calls.map((tc) => (
-                            <AIToolCallItem
-                              key={tc.id}
-                              toolCall={tc}
-                              isExecuted={!isStreaming}
-                            />
-                          ))}
+                          {msg.tool_calls.map((tc) => {
+                            const toolMsg = recentMessages.find(
+                              (m) => m.role === 'tool' && m.tool_call_id === tc.id,
+                            );
+                            const resultStr = tc.output ?? toolMsg?.content;
+                            return (
+                              <AIToolCallItem
+                                key={tc.id}
+                                toolCall={tc}
+                                result={resultStr}
+                                isExecuted={!isStreaming && resultStr !== undefined}
+                              />
+                            );
+                          })}
                         </div>
                       )}
 

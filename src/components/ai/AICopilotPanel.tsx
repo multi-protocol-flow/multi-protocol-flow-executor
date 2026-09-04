@@ -28,6 +28,7 @@ import {
   ArrowRightToLine,
   ExternalLink,
   Zap,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,8 @@ import { useUIStore } from '@/stores/ui';
 import { useExecutionStore } from '@/stores/execution';
 import { AIToolCallItem } from './AIToolCallItem';
 import { AIConfirmCard } from './AIConfirmCard';
+import { AIErrorMessageCard } from './AIErrorMessageCard';
+import { formatToolTitle } from '@/services/ai/toolTitleFormatter';
 import {
   compressAndConvertToBase64,
   extractImagesFromClipboard,
@@ -391,12 +394,12 @@ export function AICopilotPanel() {
 
             {/* 头部导航栏 */}
             <header
-              className={`h-11 border-b border-border/70 px-3 flex items-center justify-between bg-muted/20 shrink-0 relative select-none ${
+              className={`h-11 border-b border-border/70 px-2.5 flex items-center justify-between bg-muted/20 shrink-0 relative select-none gap-2 ${
                 isFloating ? 'cursor-move' : ''
               }`}
               onMouseDown={isFloating ? handleMouseDownFloatingHeader : handleMouseDownDockedDrag}
             >
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden mr-1">
                 {/* 拖拽移动把手 */}
                 <div
                   className="flex items-center justify-center p-1 rounded hover:bg-muted/70 text-muted-foreground transition-colors shrink-0 cursor-grab active:cursor-grabbing"
@@ -410,19 +413,19 @@ export function AICopilotPanel() {
                   <Sparkles className="h-3.5 w-3.5" />
                 </div>
 
-            {/* 会话选择器与下拉抽屉触发器 */}
-            <div className="relative" ref={menuRef}>
-              <button
-                type="button"
-                className="flex items-center gap-1 text-xs font-semibold text-foreground hover:bg-muted/60 px-1.5 py-1 rounded-md transition-colors min-w-0 max-w-[130px] sm:max-w-[170px]"
-                onClick={() => setShowSessionMenu(!showSessionMenu)}
-                title={ll.ai.copilot.sessions_title()}
-              >
-                <span className="truncate">
-                  {currentSession?.title || ll.ai.copilot.title()}
-                </span>
-                <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-              </button>
+                {/* 会话选择器与下拉抽屉触发器 */}
+                <div className="relative min-w-0 flex-1 max-w-[200px]" ref={menuRef}>
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-xs font-semibold text-foreground hover:bg-muted/60 px-1.5 py-1 rounded-md transition-colors w-full min-w-0"
+                    onClick={() => setShowSessionMenu(!showSessionMenu)}
+                    title={ll.ai.copilot.sessions_title()}
+                  >
+                    <span className="truncate flex-1 min-w-0 text-left">
+                      {currentSession?.title || ll.ai.copilot.title()}
+                    </span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                  </button>
 
               {/* 历史会话浮动列表 Popover */}
               {showSessionMenu && (
@@ -532,29 +535,28 @@ export function AICopilotPanel() {
               )}
             </div>
 
-            {activeProvider && (
-              <span className="truncate text-[10px] px-1.5 py-0.5 rounded font-mono bg-muted text-muted-foreground max-w-[90px] hidden sm:inline-block">
+            {activeProvider && panelWidth >= 440 && (
+              <span className="truncate text-[10px] px-1.5 py-0.5 rounded font-mono bg-muted text-muted-foreground max-w-[90px] shrink-0">
                 {activeProvider.name}
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0">
             {/* 执行到底模式切换开关 */}
             <button
               type="button"
               onClick={toggleAutoExecuteToGoal}
               title={ll.ai.copilot.auto_execute_tip()}
-              className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${
+              className={`flex items-center justify-center h-7 px-1.5 rounded-md text-[11px] font-medium border transition-colors ${
                 autoExecuteToGoal
                   ? 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/15'
                   : 'bg-muted/40 border-border/60 text-muted-foreground hover:bg-muted/70'
               }`}
             >
-              <Zap className={`h-3 w-3 ${autoExecuteToGoal ? 'fill-primary text-primary' : ''}`} />
-              <span className="hidden sm:inline">{ll.ai.copilot.auto_execute()}</span>
+              <Zap className={`h-3.5 w-3.5 ${autoExecuteToGoal ? 'fill-primary text-primary' : ''}`} />
+              <span className={panelWidth < 420 ? 'sr-only' : 'hidden sm:inline'}>{ll.ai.copilot.auto_execute()}</span>
             </button>
-
             {/* 停靠 / 脱离浮动切换按钮 */}
             {isFloating ? (
               <Button
@@ -731,6 +733,19 @@ export function AICopilotPanel() {
             }
 
             if (msg.role === 'assistant') {
+              if (msg.status === 'error') {
+                return (
+                  <div key={msg.id} className="flex justify-start gap-2 pr-4">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive mt-0.5">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <AIErrorMessageCard message={msg} />
+                    </div>
+                  </div>
+                );
+              }
+
               const isStreamingThis = activeStreamingMessageId === msg.id;
               const hasContent = Boolean(msg.content && msg.content.trim().length > 0);
               const hasThought = Boolean(msg.thought && msg.thought.trim().length > 0);
@@ -782,13 +797,20 @@ export function AICopilotPanel() {
                     {/* 工具调用项展示 */}
                     {msg.tool_calls && msg.tool_calls.length > 0 && (
                       <div className="space-y-1">
-                        {msg.tool_calls.map((tc) => (
-                          <AIToolCallItem
-                            key={tc.id}
-                            toolCall={tc}
-                            isExecuted={!isStreamingThis}
-                          />
-                        ))}
+                        {msg.tool_calls.map((tc) => {
+                          const toolMsg = messages.find(
+                            (m) => m.role === 'tool' && m.tool_call_id === tc.id,
+                          );
+                          const resultStr = tc.output ?? toolMsg?.content;
+                          return (
+                            <AIToolCallItem
+                              key={tc.id}
+                              toolCall={tc}
+                              result={resultStr}
+                              isExecuted={!isStreamingThis && resultStr !== undefined}
+                            />
+                          );
+                        })}
                       </div>
                     )}
 
@@ -819,12 +841,24 @@ export function AICopilotPanel() {
             ))}
 
           {/* 状态加载指示器 */}
-          {isGenerating && agentStatus === 'executing_tools' && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground px-2 py-1 bg-primary/5 rounded border border-primary/10">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
-              <span>{ll.ai.copilot.executing_tools()}</span>
-            </div>
-          )}
+          {isGenerating && agentStatus === 'executing_tools' && (() => {
+            const lastMsg = messages[messages.length - 1];
+            const activeTool = lastMsg?.tool_calls?.find(
+              (tc) => !messages.some((m) => m.role === 'tool' && m.tool_call_id === tc.id),
+            );
+            const activeToolTitle = activeTool
+              ? formatToolTitle(activeTool.function.name, activeTool.function.arguments).fullTitle
+              : null;
+
+            return (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground px-2.5 py-1.5 bg-primary/5 rounded-lg border border-primary/15 animate-in fade-in duration-150">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
+                <span className="truncate">
+                  {activeToolTitle ? `正在执行: ${activeToolTitle}...` : ll.ai.copilot.executing_tools()}
+                </span>
+              </div>
+            );
+          })()}
 
           <div ref={messagesEndRef} />
         </div>
