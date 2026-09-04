@@ -270,3 +270,14 @@ export {
   createConfigUpdatedMessage,
   createActionResultMessage,
 } from './plugin-iframe';
+
+// 动态变量类型
+export type {
+  DynamicVariableCategory,
+  DynamicVariableItem,
+} from './dynamicVariable';
+export {
+  DYNAMIC_VARIABLES,
+  isDynamicVariable,
+  getDynamicVariablesByCategory,
+} from './dynamicVariable';

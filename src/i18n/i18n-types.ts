@@ -8046,6 +8046,10 @@ type RootTranslation = {
 		 */
 		script_help_close: string
 		/**
+		 * 查​看​动​态​变​量​手​册
+		 */
+		script_help_dynamic_vars_link: string
+		/**
 		 * 概​述
 		 */
 		script_section_overview: string
@@ -8177,6 +8181,10 @@ type RootTranslation = {
 		 * 获​取​所​有​变​量​（​J​S​O​N​ ​字​符​串​）
 		 */
 		fn_get_all: string
+		/**
+		 * 替​换​模​板​字​符​串​中​的​普​通​变​量​与​动​态​变​量
+		 */
+		fn_replace_in: string
 		/**
 		 * H​T​T​P​ ​状​态​码​（​非​ ​H​T​T​P​ ​节​点​为​ ​0​）
 		 */
@@ -8882,6 +8890,262 @@ type RootTranslation = {
 		 * 无​法​加​载​该​流​程​文​件​，​文​件​格​式​可​能​已​损​坏
 		 */
 		file_corrupted_desc: string
+		/**
+		 * 动​态​变​量​参​考​手​册
+		 */
+		dynamic_variables_help_title: string
+		/**
+		 * 开​箱​即​用​的​随​机​数​、​时​间​戳​、​U​U​I​D​ ​等​ ​4​0​+​ ​动​态​生​成​变​量
+		 */
+		dynamic_variables_help_subtitle: string
+		/**
+		 * 搜​索​动​态​变​量​（​如​ ​$​g​u​i​d​,​ ​$​t​i​m​e​s​t​a​m​p​）​.​.​.
+		 */
+		dynamic_variables_search_placeholder: string
+		/**
+		 * 点​击​可​快​速​复​制​变​量​标​签
+		 */
+		dynamic_variables_copy_hint: string
+		/**
+		 * 已​复​制​到​剪​贴​板
+		 */
+		dynamic_variables_copied: string
+		/**
+		 * 刷​新​示​例
+		 */
+		dynamic_variables_refresh_samples: string
+		/**
+		 * 变​量​名
+		 */
+		dynamic_variables_col_name: string
+		/**
+		 * 说​明
+		 */
+		dynamic_variables_col_desc: string
+		/**
+		 * 实​时​示​例​值
+		 */
+		dynamic_variables_col_sample: string
+		/**
+		 * 可​在​所​有​协​议​节​点​的​ ​U​R​L​、​H​e​a​d​e​r​s​、​B​o​d​y​、​参​数​及​脚​本​中​直​接​使​用​。
+		 */
+		dynamic_variables_footer_note: string
+		/**
+		 * 动​态​变​量
+		 */
+		dynamic_variables_group: string
+		/**
+		 * 需​要​随​机​测​试​数​据​或​动​态​时​间​戳​？
+		 */
+		dynamic_variables_selector_hint: string
+		/**
+		 * 查​看​动​态​变​量​手​册
+		 */
+		dynamic_variables_open_handbook: string
+		/**
+		 * 通​用​标​识​ ​(​C​o​m​m​o​n​)
+		 */
+		dynamic_cat_common: string
+		/**
+		 * 日​期​时​间​ ​(​D​a​t​e​ ​&​ ​T​i​m​e​)
+		 */
+		dynamic_cat_datetime: string
+		/**
+		 * 数​值​与​格​式​ ​(​N​u​m​e​r​i​c​ ​&​ ​F​o​r​m​a​t​)
+		 */
+		dynamic_cat_numeric: string
+		/**
+		 * 网​络​通​信​ ​(​N​e​t​w​o​r​k​)
+		 */
+		dynamic_cat_network: string
+		/**
+		 * 人​员​身​份​ ​(​I​d​e​n​t​i​t​y​)
+		 */
+		dynamic_cat_identity: string
+		/**
+		 * 联​系​方​式​ ​(​C​o​n​t​a​c​t​)
+		 */
+		dynamic_cat_contact: string
+		/**
+		 * 文​本​数​据​ ​(​T​e​x​t​)
+		 */
+		dynamic_cat_text: string
+		/**
+		 * 地​理​商​业​ ​(​L​o​c​a​t​i​o​n​ ​&​ ​B​u​s​i​n​e​s​s​)
+		 */
+		dynamic_cat_location: string
+		/**
+		 * v​4​ ​U​U​I​D​ ​/​ ​G​U​I​D​ ​唯​一​标​识
+		 */
+		dynamic_var_guid: string
+		/**
+		 * v​4​ ​U​U​I​D​ ​唯​一​标​识
+		 */
+		dynamic_var_uuid: string
+		/**
+		 * 随​机​ ​v​4​ ​U​U​I​D
+		 */
+		dynamic_var_randomUUID: string
+		/**
+		 * 当​前​ ​U​n​i​x​ ​时​间​戳​（​秒​）
+		 */
+		dynamic_var_timestamp: string
+		/**
+		 * 当​前​ ​U​n​i​x​ ​时​间​戳​（​毫​秒​）
+		 */
+		dynamic_var_timestampMs: string
+		/**
+		 * 当​前​ ​I​S​O​ ​8​6​0​1​ ​U​T​C​ ​时​间
+		 */
+		dynamic_var_isoTimestamp: string
+		/**
+		 * 过​去​一​年​内​随​机​日​期​时​间
+		 */
+		dynamic_var_randomDatePast: string
+		/**
+		 * 未​来​一​年​内​随​机​日​期​时​间
+		 */
+		dynamic_var_randomDateFuture: string
+		/**
+		 * 最​近​ ​3​0​ ​天​内​随​机​日​期​时​间
+		 */
+		dynamic_var_randomDateRecent: string
+		/**
+		 * 0​ ​到​ ​1​0​0​0​ ​之​间​的​随​机​整​数
+		 */
+		dynamic_var_randomInt: string
+		/**
+		 * 随​机​价​格​数​值​（​1​.​0​0​ ​到​ ​9​9​9​.​9​9​）
+		 */
+		dynamic_var_randomPrice: string
+		/**
+		 * 随​机​布​尔​值​（​t​r​u​e​ ​或​ ​f​a​l​s​e​）
+		 */
+		dynamic_var_randomBoolean: string
+		/**
+		 * 8​ ​位​随​机​字​母​数​字​字​符​串
+		 */
+		dynamic_var_randomAlphaNumeric: string
+		/**
+		 * 8​ ​位​随​机​小​写​字​母​字​符​串
+		 */
+		dynamic_var_randomString: string
+		/**
+		 * 随​机​ ​1​6​ ​进​制​颜​色​代​码​（​如​ ​#​3​b​8​2​f​6​）
+		 */
+		dynamic_var_randomHexColor: string
+		/**
+		 * 随​机​颜​色​英​文​名​称
+		 */
+		dynamic_var_randomColor: string
+		/**
+		 * 随​机​语​义​化​版​本​号​（​如​ ​1​.​4​.​1​2​）
+		 */
+		dynamic_var_randomSemver: string
+		/**
+		 * 随​机​ ​I​P​v​4​ ​地​址
+		 */
+		dynamic_var_randomIP: string
+		/**
+		 * 随​机​ ​I​P​v​6​ ​地​址
+		 */
+		dynamic_var_randomIPV6: string
+		/**
+		 * 随​机​ ​M​A​C​ ​地​址
+		 */
+		dynamic_var_randomMACAddress: string
+		/**
+		 * 随​机​网​络​端​口​（​1​0​2​4​ ​到​ ​6​5​5​3​5​）
+		 */
+		dynamic_var_randomPort: string
+		/**
+		 * 随​机​ ​H​T​T​P​S​ ​U​R​L​ ​地​址
+		 */
+		dynamic_var_randomUrl: string
+		/**
+		 * 随​机​域​名
+		 */
+		dynamic_var_randomDomainName: string
+		/**
+		 * 随​机​英​文​名​（​名​）
+		 */
+		dynamic_var_randomFirstName: string
+		/**
+		 * 随​机​英​文​姓​（​姓​）
+		 */
+		dynamic_var_randomLastName: string
+		/**
+		 * 随​机​全​名
+		 */
+		dynamic_var_randomFullName: string
+		/**
+		 * 随​机​用​户​名
+		 */
+		dynamic_var_randomUserName: string
+		/**
+		 * 随​机​职​业​职​位
+		 */
+		dynamic_var_randomJobTitle: string
+		/**
+		 * 随​机​邮​箱​地​址
+		 */
+		dynamic_var_randomEmail: string
+		/**
+		 * 随​机​ ​e​x​a​m​p​l​e​.​c​o​m​ ​邮​箱​地​址
+		 */
+		dynamic_var_randomExampleEmail: string
+		/**
+		 * 随​机​电​话​号​码​格​式
+		 */
+		dynamic_var_randomPhoneNumber: string
+		/**
+		 * 随​机​电​话​号​码
+		 */
+		dynamic_var_randomPhone: string
+		/**
+		 * 随​机​单​词
+		 */
+		dynamic_var_randomWord: string
+		/**
+		 * 随​机​词​组​（​3​-​5​ ​个​单​词​）
+		 */
+		dynamic_var_randomWords: string
+		/**
+		 * 随​机​城​市​名
+		 */
+		dynamic_var_randomCity: string
+		/**
+		 * 随​机​国​家​名
+		 */
+		dynamic_var_randomCountry: string
+		/**
+		 * 随​机​二​位​国​家​代​码​（​I​S​O​）
+		 */
+		dynamic_var_randomCountryCode: string
+		/**
+		 * 随​机​纬​度​数​值
+		 */
+		dynamic_var_randomLatitude: string
+		/**
+		 * 随​机​经​度​数​值
+		 */
+		dynamic_var_randomLongitude: string
+		/**
+		 * 随​机​三​位​货​币​代​码
+		 */
+		dynamic_var_randomCurrencyCode: string
+		/**
+		 * 随​机​公​司​名​称
+		 */
+		dynamic_var_randomCompanyName: string
+		/**
+		 * 随​机​街​道​地​址
+		 */
+		dynamic_var_randomStreetAddress: string
+		/**
+		 * 随​机​五​位​邮​政​编​码
+		 */
+		dynamic_var_randomPostalCode: string
 	}
 	validation: {
 		/**
@@ -20349,6 +20613,10 @@ export type TranslationFunctions = {
 		 */
 		script_help_close: () => LocalizedString
 		/**
+		 * 查看动态变量手册
+		 */
+		script_help_dynamic_vars_link: () => LocalizedString
+		/**
 		 * 概述
 		 */
 		script_section_overview: () => LocalizedString
@@ -20480,6 +20748,10 @@ export type TranslationFunctions = {
 		 * 获取所有变量（JSON 字符串）
 		 */
 		fn_get_all: () => LocalizedString
+		/**
+		 * 替换模板字符串中的普通变量与动态变量
+		 */
+		fn_replace_in: () => LocalizedString
 		/**
 		 * HTTP 状态码（非 HTTP 节点为 0）
 		 */
@@ -21168,6 +21440,262 @@ export type TranslationFunctions = {
 		 * 无法加载该流程文件，文件格式可能已损坏
 		 */
 		file_corrupted_desc: () => LocalizedString
+		/**
+		 * 动态变量参考手册
+		 */
+		dynamic_variables_help_title: () => LocalizedString
+		/**
+		 * 开箱即用的随机数、时间戳、UUID 等 40+ 动态生成变量
+		 */
+		dynamic_variables_help_subtitle: () => LocalizedString
+		/**
+		 * 搜索动态变量（如 $guid, $timestamp）...
+		 */
+		dynamic_variables_search_placeholder: () => LocalizedString
+		/**
+		 * 点击可快速复制变量标签
+		 */
+		dynamic_variables_copy_hint: () => LocalizedString
+		/**
+		 * 已复制到剪贴板
+		 */
+		dynamic_variables_copied: () => LocalizedString
+		/**
+		 * 刷新示例
+		 */
+		dynamic_variables_refresh_samples: () => LocalizedString
+		/**
+		 * 变量名
+		 */
+		dynamic_variables_col_name: () => LocalizedString
+		/**
+		 * 说明
+		 */
+		dynamic_variables_col_desc: () => LocalizedString
+		/**
+		 * 实时示例值
+		 */
+		dynamic_variables_col_sample: () => LocalizedString
+		/**
+		 * 可在所有协议节点的 URL、Headers、Body、参数及脚本中直接使用。
+		 */
+		dynamic_variables_footer_note: () => LocalizedString
+		/**
+		 * 动态变量
+		 */
+		dynamic_variables_group: () => LocalizedString
+		/**
+		 * 需要随机测试数据或动态时间戳？
+		 */
+		dynamic_variables_selector_hint: () => LocalizedString
+		/**
+		 * 查看动态变量手册
+		 */
+		dynamic_variables_open_handbook: () => LocalizedString
+		/**
+		 * 通用标识 (Common)
+		 */
+		dynamic_cat_common: () => LocalizedString
+		/**
+		 * 日期时间 (Date & Time)
+		 */
+		dynamic_cat_datetime: () => LocalizedString
+		/**
+		 * 数值与格式 (Numeric & Format)
+		 */
+		dynamic_cat_numeric: () => LocalizedString
+		/**
+		 * 网络通信 (Network)
+		 */
+		dynamic_cat_network: () => LocalizedString
+		/**
+		 * 人员身份 (Identity)
+		 */
+		dynamic_cat_identity: () => LocalizedString
+		/**
+		 * 联系方式 (Contact)
+		 */
+		dynamic_cat_contact: () => LocalizedString
+		/**
+		 * 文本数据 (Text)
+		 */
+		dynamic_cat_text: () => LocalizedString
+		/**
+		 * 地理商业 (Location & Business)
+		 */
+		dynamic_cat_location: () => LocalizedString
+		/**
+		 * v4 UUID / GUID 唯一标识
+		 */
+		dynamic_var_guid: () => LocalizedString
+		/**
+		 * v4 UUID 唯一标识
+		 */
+		dynamic_var_uuid: () => LocalizedString
+		/**
+		 * 随机 v4 UUID
+		 */
+		dynamic_var_randomUUID: () => LocalizedString
+		/**
+		 * 当前 Unix 时间戳（秒）
+		 */
+		dynamic_var_timestamp: () => LocalizedString
+		/**
+		 * 当前 Unix 时间戳（毫秒）
+		 */
+		dynamic_var_timestampMs: () => LocalizedString
+		/**
+		 * 当前 ISO 8601 UTC 时间
+		 */
+		dynamic_var_isoTimestamp: () => LocalizedString
+		/**
+		 * 过去一年内随机日期时间
+		 */
+		dynamic_var_randomDatePast: () => LocalizedString
+		/**
+		 * 未来一年内随机日期时间
+		 */
+		dynamic_var_randomDateFuture: () => LocalizedString
+		/**
+		 * 最近 30 天内随机日期时间
+		 */
+		dynamic_var_randomDateRecent: () => LocalizedString
+		/**
+		 * 0 到 1000 之间的随机整数
+		 */
+		dynamic_var_randomInt: () => LocalizedString
+		/**
+		 * 随机价格数值（1.00 到 999.99）
+		 */
+		dynamic_var_randomPrice: () => LocalizedString
+		/**
+		 * 随机布尔值（true 或 false）
+		 */
+		dynamic_var_randomBoolean: () => LocalizedString
+		/**
+		 * 8 位随机字母数字字符串
+		 */
+		dynamic_var_randomAlphaNumeric: () => LocalizedString
+		/**
+		 * 8 位随机小写字母字符串
+		 */
+		dynamic_var_randomString: () => LocalizedString
+		/**
+		 * 随机 16 进制颜色代码（如 #3b82f6）
+		 */
+		dynamic_var_randomHexColor: () => LocalizedString
+		/**
+		 * 随机颜色英文名称
+		 */
+		dynamic_var_randomColor: () => LocalizedString
+		/**
+		 * 随机语义化版本号（如 1.4.12）
+		 */
+		dynamic_var_randomSemver: () => LocalizedString
+		/**
+		 * 随机 IPv4 地址
+		 */
+		dynamic_var_randomIP: () => LocalizedString
+		/**
+		 * 随机 IPv6 地址
+		 */
+		dynamic_var_randomIPV6: () => LocalizedString
+		/**
+		 * 随机 MAC 地址
+		 */
+		dynamic_var_randomMACAddress: () => LocalizedString
+		/**
+		 * 随机网络端口（1024 到 65535）
+		 */
+		dynamic_var_randomPort: () => LocalizedString
+		/**
+		 * 随机 HTTPS URL 地址
+		 */
+		dynamic_var_randomUrl: () => LocalizedString
+		/**
+		 * 随机域名
+		 */
+		dynamic_var_randomDomainName: () => LocalizedString
+		/**
+		 * 随机英文名（名）
+		 */
+		dynamic_var_randomFirstName: () => LocalizedString
+		/**
+		 * 随机英文姓（姓）
+		 */
+		dynamic_var_randomLastName: () => LocalizedString
+		/**
+		 * 随机全名
+		 */
+		dynamic_var_randomFullName: () => LocalizedString
+		/**
+		 * 随机用户名
+		 */
+		dynamic_var_randomUserName: () => LocalizedString
+		/**
+		 * 随机职业职位
+		 */
+		dynamic_var_randomJobTitle: () => LocalizedString
+		/**
+		 * 随机邮箱地址
+		 */
+		dynamic_var_randomEmail: () => LocalizedString
+		/**
+		 * 随机 example.com 邮箱地址
+		 */
+		dynamic_var_randomExampleEmail: () => LocalizedString
+		/**
+		 * 随机电话号码格式
+		 */
+		dynamic_var_randomPhoneNumber: () => LocalizedString
+		/**
+		 * 随机电话号码
+		 */
+		dynamic_var_randomPhone: () => LocalizedString
+		/**
+		 * 随机单词
+		 */
+		dynamic_var_randomWord: () => LocalizedString
+		/**
+		 * 随机词组（3-5 个单词）
+		 */
+		dynamic_var_randomWords: () => LocalizedString
+		/**
+		 * 随机城市名
+		 */
+		dynamic_var_randomCity: () => LocalizedString
+		/**
+		 * 随机国家名
+		 */
+		dynamic_var_randomCountry: () => LocalizedString
+		/**
+		 * 随机二位国家代码（ISO）
+		 */
+		dynamic_var_randomCountryCode: () => LocalizedString
+		/**
+		 * 随机纬度数值
+		 */
+		dynamic_var_randomLatitude: () => LocalizedString
+		/**
+		 * 随机经度数值
+		 */
+		dynamic_var_randomLongitude: () => LocalizedString
+		/**
+		 * 随机三位货币代码
+		 */
+		dynamic_var_randomCurrencyCode: () => LocalizedString
+		/**
+		 * 随机公司名称
+		 */
+		dynamic_var_randomCompanyName: () => LocalizedString
+		/**
+		 * 随机街道地址
+		 */
+		dynamic_var_randomStreetAddress: () => LocalizedString
+		/**
+		 * 随机五位邮政编码
+		 */
+		dynamic_var_randomPostalCode: () => LocalizedString
 	}
 	validation: {
 		/**
