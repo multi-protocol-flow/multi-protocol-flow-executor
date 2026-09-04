@@ -25,6 +25,8 @@ describe('VariableValidationWarning', () => {
       expect(findInvalidRefs(['status'], available)).toEqual([]);
       expect(findInvalidRefs(['unknown'], available)).toEqual(['unknown']);
       expect(findInvalidRefs(['status', 'unknown'], available)).toEqual(['unknown']);
+      expect(findInvalidRefs(['$guid', '$timestamp', '$randomInt'], available)).toEqual([]);
+      expect(findInvalidRefs(['$guid', 'unknown'], available)).toEqual(['unknown']);
     });
   });
 
@@ -34,6 +36,16 @@ describe('VariableValidationWarning', () => {
         <VariableValidationWarning
           value="{{status}}"
           availableVariables={['status', 'body']}
+        />
+      );
+      expect(container.firstChild).toBeNull();
+    });
+
+    it('动态变量不应该触发警告渲染', () => {
+      const { container } = render(
+        <VariableValidationWarning
+          value="{{$guid}} - {{$timestamp}}"
+          availableVariables={['status']}
         />
       );
       expect(container.firstChild).toBeNull();

@@ -2,7 +2,7 @@
  * VariableInput 组件测试
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { VariableInput } from '@/components/ui/VariableInput';
 import type { Variable } from '@/types/variable';
@@ -67,7 +67,20 @@ describe('VariableInput', () => {
     expect(trigger).toBeInTheDocument();
   });
 
-  it('hides variable selector button when no variables', () => {
+  it('hides variable selector button when no variables and enableDynamicVariables is false', () => {
+    render(
+      <VariableInput
+        variables={[]}
+        value=""
+        onValueChange={mockOnValueChange}
+        enableDynamicVariables={false}
+      />
+    );
+    const trigger = document.querySelector('[aria-haspopup="dialog"]');
+    expect(trigger).not.toBeInTheDocument();
+  });
+
+  it('shows variable selector button when flow variables are empty because dynamic variables are enabled', () => {
     render(
       <VariableInput
         variables={[]}
@@ -76,7 +89,7 @@ describe('VariableInput', () => {
       />
     );
     const trigger = document.querySelector('[aria-haspopup="dialog"]');
-    expect(trigger).not.toBeInTheDocument();
+    expect(trigger).toBeInTheDocument();
   });
 
   it('hides variable selector when disableVariableSelector is true', () => {
@@ -280,7 +293,8 @@ describe('VariableInput', () => {
   it('does not add right padding when variable selector is hidden', () => {
     render(
       <VariableInput
-        variables={[]}
+        variables={mockVariables}
+        disableVariableSelector={true}
         value=""
         onValueChange={mockOnValueChange}
       />
@@ -433,5 +447,82 @@ describe('VariableInput', () => {
       expect(trigger.className).toContain('right-1');
       expect(trigger.className).toContain('top-1/2');
     }
+  });
+
+  it('renders dynamic variables with emerald highlight and no strikethrough', () => {
+    const { container } = render(
+      <VariableInput
+        variables={mockVariables}
+        value="ID: {{$guid}}"
+        onValueChange={mockOnValueChange}
+      />
+    );
+    const highlighted = container.querySelector('.text-emerald-600');
+    expect(highlighted).toBeInTheDocument();
+    expect(highlighted?.textContent).toBe('{{$guid}}');
+    expect(highlighted?.className).not.toContain('line-through');
+  });
+
+  it('renders invalid variables with red strikethrough', () => {
+    const { container } = render(
+      <VariableInput
+        variables={mockVariables}
+        value="Missing: {{unknownVar}}"
+        onValueChange={mockOnValueChange}
+      />
+    );
+    const highlighted = container.querySelector('.text-red-500');
+    expect(highlighted).toBeInTheDocument();
+    expect(highlighted?.textContent).toBe('{{unknownVar}}');
+    expect(highlighted?.className).toContain('line-through');
+  });
+
+  it('actively opens variable selector on typing {{', () => {
+    render(
+      <VariableInput
+        variables={mockVariables}
+        value=""
+        onValueChange={mockOnValueChange}
+      />
+    );
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'prefix-{{', selectionStart: 9 } });
+    expect(screen.getByText('api_base')).toBeInTheDocument();
+  });
+
+  it('actively opens variable selector on Ctrl+I shortcut', () => {
+    render(
+      <VariableInput
+        variables={mockVariables}
+        value=""
+        onValueChange={mockOnValueChange}
+      />
+    );
+    const input = screen.getByRole('textbox');
+    fireEvent.keyDown(input, { key: 'i', ctrlKey: true });
+    expect(screen.getByText('api_base')).toBeInTheDocument();
+  });
+
+  it('replaces trailing {{ when selecting variable without duplicating braces', async () => {
+    const user = userEvent.setup();
+    let curVal = 'Hello {{';
+    render(
+      <VariableInput
+        variables={mockVariables}
+        value={curVal}
+        onValueChange={(val) => {
+          curVal = val;
+          mockOnValueChange(val);
+        }}
+      />
+    );
+    // Click trigger to open selector
+    const trigger = document.querySelector('[aria-haspopup="dialog"]') as HTMLElement;
+    await user.click(trigger);
+    // Click on api_base
+    const varItem = screen.getByText('api_base');
+    await user.click(varItem);
+
+    expect(mockOnValueChange).toHaveBeenCalledWith('Hello {{api_base}}');
   });
 });
