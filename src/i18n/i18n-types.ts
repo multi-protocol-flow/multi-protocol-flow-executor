@@ -12527,9 +12527,9 @@ type RootTranslation = {
 			 */
 			list_flows: string
 			/**
-			 * 调​试​运​行
+			 * 执​行​流​程
 			 */
-			run_flow_debug: string
+			run_flow: string
 			/**
 			 * 终​止​流​程
 			 */
@@ -25148,9 +25148,9 @@ export type TranslationFunctions = {
 			 */
 			list_flows: () => LocalizedString
 			/**
-			 * 调试运行
+			 * 执行流程
 			 */
-			run_flow_debug: () => LocalizedString
+			run_flow: () => LocalizedString
 			/**
 			 * 终止流程
 			 */

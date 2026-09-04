@@ -135,7 +135,6 @@ const ALL_HANDLERS: Record<
     ),
 
   run_flow: () => executionToolHandlers.run_flow(),
-  run_flow_debug: () => executionToolHandlers.run_flow_debug(),
   cancel_flow_execution: () => executionToolHandlers.cancel_flow_execution(),
   get_last_execution_report: () =>
     executionToolHandlers.get_last_execution_report(),

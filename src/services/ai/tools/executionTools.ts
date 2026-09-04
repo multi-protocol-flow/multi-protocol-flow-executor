@@ -162,11 +162,6 @@ export const executionToolHandlers = {
       };
     }
   },
-  // 向后兼容历史 Prompt 别名
-  async run_flow_debug() {
-    return this.run_flow();
-  },
-
   async cancel_flow_execution() {
     const execStore = useExecutionStore.getState();
     await execStore.cancelExecution();

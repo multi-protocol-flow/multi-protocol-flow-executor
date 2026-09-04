@@ -293,9 +293,14 @@ export function formatToolTitle(
 
     case 'save_current_flow':
     case 'run_flow':
-    case 'run_flow_debug':
-    case 'cancel_flow_execution':
+    case 'cancel_flow_execution': {
+      const name =
+        cleanName(args.name) ||
+        cleanName(args.flow_name) ||
+        cleanName(useFlowStore.getState().flow?.name);
+      if (name) target = `"${name}"`;
       break;
+    }
 
     case 'diagnose_flow_errors': {
       const nodeId = String(args.failed_node_id || '');

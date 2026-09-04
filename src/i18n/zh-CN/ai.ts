@@ -81,7 +81,7 @@ const ai = {
     open_flow: '打开流程',
     save_current_flow: '保存流程',
     list_flows: '流程列表',
-    run_flow_debug: '调试运行',
+    run_flow: '执行流程',
     cancel_flow_execution: '终止流程',
     get_last_execution_report: '查看报告',
     diagnose_flow_errors: '诊断报错',

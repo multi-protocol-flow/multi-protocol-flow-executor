@@ -81,7 +81,7 @@ const ai = {
     open_flow: 'Open Flow',
     save_current_flow: 'Save Flow',
     list_flows: 'Flow List',
-    run_flow_debug: 'Debug Flow',
+    run_flow: 'Run Flow',
     cancel_flow_execution: 'Cancel Flow',
     get_last_execution_report: 'Execution Report',
     diagnose_flow_errors: 'Diagnose Errors',

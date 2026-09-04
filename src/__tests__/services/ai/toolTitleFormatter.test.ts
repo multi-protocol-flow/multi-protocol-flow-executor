@@ -126,5 +126,38 @@ describe('toolTitleFormatter', () => {
       expect(info.target).toBe('"GET /api/v1/users"');
       expect(info.fullTitle).toBe('导入接口: "GET /api/v1/users"');
     });
+
+    it('正确格式化 run_flow，从当前 flowStore 获取流程名称作为 target', () => {
+      const info = formatToolTitle('run_flow');
+      expect(info.rawName).toBe('run_flow');
+      expect(info.toolDisplayName).toBe('执行流程');
+      expect(info.target).toBe('"Test Flow"');
+      expect(info.fullTitle).toBe('执行流程: "Test Flow"');
+    });
+
+    it('当 args 传入 flow_name 时优先使用入参名称', () => {
+      const info = formatToolTitle('run_flow', { flow_name: '自定义执行流程' });
+      expect(info.toolDisplayName).toBe('执行流程');
+      expect(info.target).toBe('"自定义执行流程"');
+      expect(info.fullTitle).toBe('执行流程: "自定义执行流程"');
+    });
+
+    it('当 store 无激活流程且未传参时，不展示 target 仅展示工具名', () => {
+      useFlowStore.getState().reset();
+      const info = formatToolTitle('run_flow');
+      expect(info.toolDisplayName).toBe('执行流程');
+      expect(info.target).toBeUndefined();
+      expect(info.fullTitle).toBe('执行流程');
+    });
+
+    it('正确格式化 save_current_flow 与 cancel_flow_execution', () => {
+      const saveInfo = formatToolTitle('save_current_flow', { name: '支付流程' });
+      expect(saveInfo.toolDisplayName).toBe('保存流程');
+      expect(saveInfo.target).toBe('"支付流程"');
+      expect(saveInfo.fullTitle).toBe('保存流程: "支付流程"');
+
+      const cancelInfo = formatToolTitle('cancel_flow_execution');
+      expect(cancelInfo.toolDisplayName).toBe('终止流程');
+    });
   });
 });
