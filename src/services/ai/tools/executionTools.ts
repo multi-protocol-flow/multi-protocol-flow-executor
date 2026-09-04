@@ -17,8 +17,8 @@ export const executionToolDefinitions: AIToolDefinition[] = [
   {
     type: 'function',
     function: {
-      name: 'run_flow_debug',
-      description: 'Trigger full execution of the currently active flow in debug/run mode and record node status.',
+      name: 'run_flow',
+      description: 'Trigger full execution of the currently active flow and record node status.',
       parameters: {
         type: 'object',
         properties: {},
@@ -68,7 +68,7 @@ export const executionToolDefinitions: AIToolDefinition[] = [
 ];
 
 export const executionToolHandlers = {
-  async run_flow_debug() {
+  async run_flow() {
     const flowState = useFlowStore.getState();
     const execStore = useExecutionStore.getState();
     const currentFlow = flowState.flow;
@@ -161,6 +161,10 @@ export const executionToolHandlers = {
         error: message,
       };
     }
+  },
+  // 向后兼容历史 Prompt 别名
+  async run_flow_debug() {
+    return this.run_flow();
   },
 
   async cancel_flow_execution() {

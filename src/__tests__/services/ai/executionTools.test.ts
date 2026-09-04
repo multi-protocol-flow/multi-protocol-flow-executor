@@ -15,7 +15,7 @@ describe('executionTools', () => {
 
   it('定义了完整的执行与调试工具，包含 diagnose_flow_errors', () => {
     const names = executionToolDefinitions.map((t) => t.function.name);
-    expect(names).toContain('run_flow_debug');
+    expect(names).toContain('run_flow');
     expect(names).toContain('cancel_flow_execution');
     expect(names).toContain('get_last_execution_report');
     expect(names).toContain('diagnose_flow_errors');

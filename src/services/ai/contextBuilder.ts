@@ -183,7 +183,7 @@ When a flow execution fails or the user reports errors/issues:
 3. **EXECUTE THE REPAIR**:
    - Use \`update_node_config\`, \`connect_nodes\`, \`add_node\`, or other tools to apply the agreed-upon corrections.
 4. **VERIFY THE FIX**:
-   - Offer to re-run the flow via \`run_flow_debug\` to confirm the error is eliminated.
+   - Offer to re-run the flow via \`run_flow\` to confirm the error is eliminated.
 
 ### 6. Autonomous End-to-End Execution Protocol ("执行到底"核心原则):
 - **DEEP INTENT COMPREHENSION**: Understand the complete end-to-end user goal before taking action. Break down multi-step tasks (e.g. authentication -> token extraction -> business query -> assertion -> auto layout -> test run) and execute the complete pipeline.
