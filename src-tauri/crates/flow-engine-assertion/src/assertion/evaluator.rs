@@ -41,20 +41,22 @@ impl AssertionEvaluator {
     /// - `$.body.items[?(@.price < 100)]` - 过滤器
     #[allow(clippy::result_large_err)]
     pub fn extract_target(input: &Value, path: &str) -> Result<Value, ErrorDetail> {
+        let trimmed = path.trim();
         // 空路径返回 null
-        if path.is_empty() {
+        if trimmed.is_empty() {
             return Ok(Value::Null);
         }
 
+        let normalized = flow_engine_core::utils::normalize_jsonpath(trimmed);
+
         // 使用 JsonPath trait 的 query 方法
         // JsonPath trait 为 serde_json::Value 实现了 query 方法
-        let result = input.query(path).map_err(|e| {
+        let result = input.query(&normalized).map_err(|e| {
             ErrorDetail::new(
                 ErrorKind::ConditionSyntax,
                 format!("Invalid JSONPath syntax '{}': {}", path, e),
             )
         })?;
-
         // 如果结果是数组且只有一个元素，返回该元素
         // 如果结果是数组且有多个元素，返回数组
         // 如果结果是空数组，返回 null
@@ -240,6 +242,32 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), json!(200));
     }
+    #[test]
+    fn test_extract_target_compatibility_without_dollar() {
+        let input = json!({
+            "status": 200,
+            "body": {
+                "data": {
+                    "token": "token_val",
+                    "user": {"name": "alice"}
+                }
+            }
+        });
+
+        // 兼容省略 $. 前缀的 target
+        let r1 = AssertionEvaluator::extract_target(&input, "status");
+        assert!(r1.is_ok());
+        assert_eq!(r1.unwrap_or_else(|e| panic!("{e}")), json!(200));
+
+        let r2 = AssertionEvaluator::extract_target(&input, "body.data.token");
+        assert!(r2.is_ok());
+        assert_eq!(r2.unwrap_or_else(|e| panic!("{e}")), json!("token_val"));
+
+        let r3 = AssertionEvaluator::extract_target(&input, "body.data.user.name");
+        assert!(r3.is_ok());
+        assert_eq!(r3.unwrap_or_else(|e| panic!("{e}")), json!("alice"));
+    }
+
 
     #[test]
     fn test_extract_target_nested_field() {

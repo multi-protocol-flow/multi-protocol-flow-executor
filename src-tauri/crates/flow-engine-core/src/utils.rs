@@ -14,23 +14,49 @@ pub fn unix_timestamp_ms() -> u64 {
         .as_millis() as u64
 }
 
+/// 规范化 JSONPath 路径
+///
+/// 兼容用户或客户端传入未以 `$` 开头的路径（例如 `body.data.token` 或 `status`），
+/// 自动容错补全为 `$.` 前缀（`$.body.data.token`）。
+pub fn normalize_jsonpath(path: &str) -> std::borrow::Cow<'_, str> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return std::borrow::Cow::Borrowed(path);
+    }
+    if trimmed.starts_with('$') {
+        std::borrow::Cow::Borrowed(trimmed)
+    } else if trimmed.starts_with('[') {
+        std::borrow::Cow::Owned(format!("${trimmed}"))
+    } else if let Some(stripped) = trimmed.strip_prefix('.') {
+        std::borrow::Cow::Owned(format!("$.{stripped}"))
+    } else {
+        std::borrow::Cow::Owned(format!("$.{trimmed}"))
+    }
+}
+
 /// 按 `JSONPath` 从 JSON 中提取值
 ///
-/// 支持的路径格式：
-/// - `$.status` - 根字段
-/// - `$.body.data.token` - 嵌套对象
-/// - `$.body.items[0]` - 数组索引
-/// - `$.body.items[-1]` - 负索引（从末尾）
+/// 支持标准 RFC 9535 语法及省略 `$` 前缀的容错语法：
+/// - `$.status` 或 `status` - 根字段
+/// - `$.body.data.token` 或 `body.data.token` - 嵌套对象
+/// - `$.body.items[0]` 或 `body.items[0]` - 数组索引
+/// - `$.body.items[-1]` 或 `body.items[-1]` - 负索引（从末尾）
 pub fn extract_value_by_path(value: &serde_json::Value, path: &str) -> Option<serde_json::Value> {
-    if path.is_empty() {
+    if path.trim().is_empty() {
         return None;
     }
 
+    let normalized = normalize_jsonpath(path);
+
     // 解析 JSONPath
-    let json_path = match JsonPath::parse(path) {
+    let json_path = match JsonPath::parse(&normalized) {
         Ok(p) => p,
         Err(_) => {
-            log::warn!("invalid JSONPath syntax: {}", path);
+            log::warn!(
+                "invalid JSONPath syntax: {} (normalized: {})",
+                path,
+                normalized
+            );
             return None;
         }
     };
@@ -183,6 +209,52 @@ mod tests {
         assert_eq!(extract_value_by_path(&data, "invalid["), None);
         assert_eq!(extract_value_by_path(&data, "$..[["), None);
     }
+    #[test]
+    fn test_extract_value_by_jsonpath_compatibility() {
+        let data = json!({
+            "status": 200,
+            "body": {
+                "data": {
+                    "provider": {
+                        "id": "provider-uuid-123",
+                        "name": "TestProvider"
+                    }
+                },
+                "items": [
+                    {"id": 101, "name": "Item A"}
+                ]
+            }
+        });
+
+        // 未写 $. 前缀的路径兼容性验证（用户或 AI 生成 body.data.provider.id）
+        assert_eq!(
+            extract_value_by_path(&data, "body.data.provider.id"),
+            Some(json!("provider-uuid-123"))
+        );
+        assert_eq!(
+            extract_value_by_path(&data, "body.data.provider.name"),
+            Some(json!("TestProvider"))
+        );
+        assert_eq!(extract_value_by_path(&data, "status"), Some(json!(200)));
+        assert_eq!(
+            extract_value_by_path(&data, "body.items[0].id"),
+            Some(json!(101))
+        );
+        assert_eq!(
+            extract_value_by_path(&data, ".body.data.provider.id"),
+            Some(json!("provider-uuid-123"))
+        );
+
+        // normalize_jsonpath 独立逻辑验证
+        assert_eq!(normalize_jsonpath(""), "");
+        assert_eq!(normalize_jsonpath("$.status"), "$.status");
+        assert_eq!(normalize_jsonpath("$[0]"), "$[0]");
+        assert_eq!(normalize_jsonpath("status"), "$.status");
+        assert_eq!(normalize_jsonpath("body.data.token"), "$.body.data.token");
+        assert_eq!(normalize_jsonpath("[0].id"), "$[0].id");
+        assert_eq!(normalize_jsonpath(".status"), "$.status");
+    }
+
 
     #[test]
     fn test_apply_output_mappings_basic() {
