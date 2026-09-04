@@ -7543,6 +7543,22 @@ type RootTranslation = {
 		 */
 		duplicate_flow: string
 		/**
+		 * 复​制​流​程​的​文​件​绝​对​路​径
+		 */
+		copy_file_path: string
+		/**
+		 * 已​复​制​流​程​文​件​绝​对​路​径
+		 */
+		copy_file_path_success: string
+		/**
+		 * 复​制​文​件​路​径​失​败
+		 */
+		copy_file_path_failed: string
+		/**
+		 * 未​找​到​流​程​文​件​路​径
+		 */
+		copy_file_path_not_found: string
+		/**
 		 * 移​动​到​.​.​.
 		 */
 		move_to: string
@@ -20294,6 +20310,22 @@ export type TranslationFunctions = {
 		 * 复制流程
 		 */
 		duplicate_flow: () => LocalizedString
+		/**
+		 * 复制流程的文件绝对路径
+		 */
+		copy_file_path: () => LocalizedString
+		/**
+		 * 已复制流程文件绝对路径
+		 */
+		copy_file_path_success: () => LocalizedString
+		/**
+		 * 复制文件路径失败
+		 */
+		copy_file_path_failed: () => LocalizedString
+		/**
+		 * 未找到流程文件路径
+		 */
+		copy_file_path_not_found: () => LocalizedString
 		/**
 		 * 移动到...
 		 */

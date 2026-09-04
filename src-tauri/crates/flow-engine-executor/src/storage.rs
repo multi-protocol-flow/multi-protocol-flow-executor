@@ -466,10 +466,16 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
             .map(|rel| rel.to_string_lossy().replace('\\', "/"))
             .unwrap_or_default();
 
+        let abs_path = if path.is_absolute() {
+            path.clone()
+        } else {
+            std::path::absolute(path).unwrap_or_else(|_| path.clone())
+        };
+
         metadata_list.push(FlowMetadata {
             uuid,
             name,
-            file_path: path.to_string_lossy().to_string(),
+            file_path: abs_path.to_string_lossy().to_string(),
             updated_at,
             folder_path,
         });

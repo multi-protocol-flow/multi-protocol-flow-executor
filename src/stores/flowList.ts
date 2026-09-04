@@ -15,6 +15,8 @@ export interface FlowMetadata {
   node_count?: number;
   /** 所属文件夹相对路径（空字符串表示根目录） */
   folder_path: string;
+  /** 流程文件绝对路径（可选） */
+  file_path?: string;
 }
 
 interface FlowListState {

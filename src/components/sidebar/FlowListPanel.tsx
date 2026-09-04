@@ -7,8 +7,10 @@ import { createPortal } from 'react-dom';
 import {
   Plus, FileJson, MoreVertical, Copy, Trash2, Pencil, Bug, RefreshCw,
   FolderPlus, Folder, FolderOpen, ChevronDown, ChevronRight, Move,
-  Search, ArrowUpDown, Check,
+  Search, ArrowUpDown, Check, ClipboardCopy,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { copyToClipboard } from '@/lib/clipboard';
 import { Button } from '@/components/ui/button';
 import { useFlowListStore, useFlowStore, useUIStore } from '@/stores';
 import { useSettingsStore } from '@/stores/settings';
@@ -67,11 +69,12 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const renameFolderInputRef = useRef<HTMLInputElement>(null);
 
   /** 将 flowStorage 元数据映射为 FlowListStore 元数据 */
-  const mapMetadata = useCallback((meta: { uuid: string; name: string; updatedAt: number; folderPath: string }) => ({
+  const mapMetadata = useCallback((meta: { uuid: string; name: string; updatedAt: number; folderPath: string; filePath?: string }) => ({
     uuid: meta.uuid,
     name: meta.name,
     updated_at: meta.updatedAt,
     folder_path: meta.folderPath ?? '',
+    file_path: meta.filePath,
   }), []);
 
   /** 加载文件夹列表 */
@@ -536,10 +539,39 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
         updated_at: Date.now(),
         folder_path: folderPath,
       });
+      await refreshAll();
       // 切换到复制后的流程
       setFlow(duplicatedFlow);
     } catch (err) {
       console.error('[FlowListPanel] 复制流程失败:', err);
+    }
+  };
+
+  const handleCopyFilePath = async (uuid: string) => {
+    setOpenMenuUuid(null);
+    try {
+      let targetPath = flows.find((f) => f.uuid === uuid)?.file_path;
+      if (!targetPath) {
+        const flowMetas = await flowStorage.listFlows();
+        const found = flowMetas.find((f) => f.uuid === uuid);
+        if (found?.filePath) {
+          targetPath = found.filePath;
+          useFlowListStore.getState().updateFlow(uuid, { file_path: found.filePath });
+        }
+      }
+      if (!targetPath) {
+        toast.error(getLL().flow.copy_file_path_not_found());
+        return;
+      }
+      const success = await copyToClipboard(targetPath);
+      if (success) {
+        toast.success(getLL().flow.copy_file_path_success());
+      } else {
+        toast.error(getLL().flow.copy_file_path_failed());
+      }
+    } catch (err) {
+      console.error('[FlowListPanel] 复制流程文件路径失败:', err);
+      toast.error(getLL().flow.copy_file_path_failed());
     }
   };
 
@@ -801,7 +833,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 setOpenMenuUuid(null);
               } else {
                 const rect = e.currentTarget.getBoundingClientRect();
-                setMenuPosition(computeMenuPosition(rect, 120, 140));
+                setMenuPosition(computeMenuPosition(rect, 190, 180));
                 setOpenMenuUuid(flowMeta.uuid);
               }
             }}
@@ -818,7 +850,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           {openMenuUuid === flowMeta.uuid && createPortal(
             <div
               ref={menuRef}
-              className="fixed z-[9999] min-w-[120px] rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95"
+              className="fixed z-[9999] min-w-[190px] whitespace-nowrap rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95"
               style={{ top: menuPosition.top, left: menuPosition.left }}
             >
               <button
@@ -842,6 +874,17 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               >
                 <Copy className="w-3.5 h-3.5" />
                 {getLL().flow.duplicate_flow()}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCopyFilePath(flowMeta.uuid);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              >
+                <ClipboardCopy className="w-3.5 h-3.5" />
+                {getLL().flow.copy_file_path()}
               </button>
               <button
                 type="button"

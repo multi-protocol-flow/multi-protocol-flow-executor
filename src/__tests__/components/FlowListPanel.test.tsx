@@ -29,6 +29,22 @@ const mockFlowStorage = vi.hoisted(() => ({
 vi.mock('@/services/storage', () => ({
   flowStorage: mockFlowStorage,
 }));
+const mockToast = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  info: vi.fn(),
+}));
+
+vi.mock('sonner', () => ({
+  toast: mockToast,
+}));
+
+const mockCopyToClipboard = vi.hoisted(() => vi.fn().mockResolvedValue(true));
+
+vi.mock('@/lib/clipboard', () => ({
+  copyToClipboard: mockCopyToClipboard,
+}));
+
 
 // Mock templates
 vi.mock('@/templates/builtinFlows', () => ({
@@ -313,6 +329,95 @@ describe('FlowListPanel', () => {
     });
 
   });
+  describe('复制流程文件绝对路径', () => {
+    it('菜单中应显示复制流程的文件绝对路径选项，并能复制成功', async () => {
+      const user = userEvent.setup();
+      const flowMetas = [
+        {
+          uuid: 'flow-1',
+          name: '流程1',
+          updatedAt: Date.now(),
+          filePath: '/absolute/path/to/flow-1.mpf',
+          folderPath: '',
+        },
+      ];
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
+      useFlowListStore.getState().setFlows(
+        flowMetas.map((m) => ({
+          uuid: m.uuid,
+          name: m.name,
+          updated_at: m.updatedAt,
+          folder_path: '',
+          file_path: m.filePath,
+        }))
+      );
+
+      await act(async () => {
+        render(<FlowListPanel />);
+      });
+
+      const flowItem = screen.getByText('流程1');
+      await user.hover(flowItem);
+      const moreButton = screen.getByRole('button', { name: '更多操作' });
+      await act(async () => {
+        await user.click(moreButton);
+      });
+
+      const copyPathButton = screen.getByRole('button', { name: '复制流程的文件绝对路径' });
+      expect(copyPathButton).toBeDefined();
+
+      await act(async () => {
+        await user.click(copyPathButton);
+      });
+
+      expect(mockCopyToClipboard).toHaveBeenCalledWith('/absolute/path/to/flow-1.mpf');
+      expect(mockToast.success).toHaveBeenCalledWith('已复制流程文件绝对路径');
+    });
+
+    it('当 store 中没有 file_path 时，应回退查询 listFlows 并成功复制', async () => {
+      const user = userEvent.setup();
+      const flowMetas = [
+        {
+          uuid: 'flow-fallback',
+          name: '回退测试流程',
+          updatedAt: Date.now(),
+          filePath: '/fallback/path/to/flow-fallback.mpf',
+          folderPath: '',
+        },
+      ];
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
+      useFlowListStore.getState().setFlows([
+        {
+          uuid: 'flow-fallback',
+          name: '回退测试流程',
+          updated_at: Date.now(),
+          folder_path: '',
+        },
+      ]);
+
+      await act(async () => {
+        render(<FlowListPanel />);
+      });
+
+      const flowItem = screen.getByText('回退测试流程');
+      await user.hover(flowItem);
+      const moreButton = screen.getByRole('button', { name: '更多操作' });
+      await act(async () => {
+        await user.click(moreButton);
+      });
+
+      const copyPathButton = screen.getByRole('button', { name: '复制流程的文件绝对路径' });
+      await act(async () => {
+        await user.click(copyPathButton);
+      });
+
+      expect(mockFlowStorage.listFlows).toHaveBeenCalled();
+      expect(mockCopyToClipboard).toHaveBeenCalledWith('/fallback/path/to/flow-fallback.mpf');
+      expect(mockToast.success).toHaveBeenCalledWith('已复制流程文件绝对路径');
+      expect(useFlowListStore.getState().flows[0].file_path).toBe('/fallback/path/to/flow-fallback.mpf');
+    });
+  });
+
 
   describe('空列表状态', () => {
     it('无流程时应显示空状态提示', async () => {

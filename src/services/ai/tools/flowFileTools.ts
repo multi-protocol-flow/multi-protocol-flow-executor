@@ -130,6 +130,7 @@ export const flowFileToolHandlers = {
         name: f.name,
         updated_at: f.updatedAt,
         folder_path: f.folderPath,
+        file_path: f.filePath,
       })),
     );
 
