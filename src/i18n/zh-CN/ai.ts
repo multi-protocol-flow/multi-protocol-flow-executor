@@ -53,6 +53,13 @@ const ai = {
   tool_call: {
     done: '执行成功',
     running: '正在执行...',
+    copy_arguments: '复制参数',
+    copied: '已复制',
+    call_args: '调用参数',
+  },
+  code: {
+    copy: '复制代码',
+    copied: '已复制',
   },
 
   copilot: {
@@ -69,13 +76,21 @@ const ai = {
     prompt_sample_2: '编写一段 JavaScript 脚本对上一步 items 数组按 price 升序排序',
     prompt_sample_3: '将画布上的所有节点重新进行水平 DAG 自动布局排版',
     prompt_sample_4: '运行当前流程并在控制台中排查报错原因',
+    prompt_diagnose_flow: '深度诊断当前流程的报错原因并向我提出修复方案',
+    diagnose_and_fix_node: 'AI 诊断修复',
+    diagnose_and_fix_flow: 'AI 诊断流程报错',
     thought_process: '思考过程 (Reasoning)',
     thinking: '正在思考...',
     executing_tools: '正在执行工具联动画布...',
     input_placeholder: '给 AI 助手发送指令... (Enter 发送, Shift+Enter 换行)',
+    input_midway_placeholder: '正在执行中，输入可补充要求 / 调整指令... (Enter 发送)',
     input_disabled_placeholder: '请先配置激活 AI Provider 后开启对话...',
     shortcut_tip: '快捷键: Ctrl/Cmd + I 折叠侧边栏, Ctrl/Cmd + K 快速指令',
     send: '发送',
+    send_correction: '补充要求',
+    send_correction_tip: '向正在执行的 AI 发送补充指令或调整要求 (Enter 发送)',
+    steer_badge: '补充要求',
+    steer_prefix: '[补充要求]:',
     stop: '停止生成',
     sessions_title: '历史会话',
     new_session: '新建对话',
@@ -92,6 +107,11 @@ const ai = {
     remove_image: '移除图片',
     drag_resize: '拖拽调整侧边栏宽度',
     messages_count: '{count} 条消息',
+    dock_to_right: '吸附至右侧',
+    undock_panel: '脱离吸附 (浮动窗口)',
+    drag_to_move: '按住拖拽移动窗口 (拖动至右侧可重新吸附)',
+    auto_execute: '执行到底',
+    auto_execute_tip: '开启后 AI 将自主连续调用工具直至任务目标达成或手动中止',
   },
 
   spotlight: {

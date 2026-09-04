@@ -12151,6 +12151,28 @@ type RootTranslation = {
 			 * 正​在​执​行​.​.​.
 			 */
 			running: string
+			/**
+			 * 复​制​参​数
+			 */
+			copy_arguments: string
+			/**
+			 * 已​复​制
+			 */
+			copied: string
+			/**
+			 * 调​用​参​数
+			 */
+			call_args: string
+		}
+		code: {
+			/**
+			 * 复​制​代​码
+			 */
+			copy: string
+			/**
+			 * 已​复​制
+			 */
+			copied: string
 		}
 		copilot: {
 			/**
@@ -12206,6 +12228,18 @@ type RootTranslation = {
 			 */
 			prompt_sample_4: string
 			/**
+			 * 深​度​诊​断​当​前​流​程​的​报​错​原​因​并​向​我​提​出​修​复​方​案
+			 */
+			prompt_diagnose_flow: string
+			/**
+			 * A​I​ ​诊​断​修​复
+			 */
+			diagnose_and_fix_node: string
+			/**
+			 * A​I​ ​诊​断​流​程​报​错
+			 */
+			diagnose_and_fix_flow: string
+			/**
 			 * 思​考​过​程​ ​(​R​e​a​s​o​n​i​n​g​)
 			 */
 			thought_process: string
@@ -12222,6 +12256,10 @@ type RootTranslation = {
 			 */
 			input_placeholder: string
 			/**
+			 * 正​在​执​行​中​，​输​入​可​补​充​要​求​ ​/​ ​调​整​指​令​.​.​.​ ​(​E​n​t​e​r​ ​发​送​)
+			 */
+			input_midway_placeholder: string
+			/**
 			 * 请​先​配​置​激​活​ ​A​I​ ​P​r​o​v​i​d​e​r​ ​后​开​启​对​话​.​.​.
 			 */
 			input_disabled_placeholder: string
@@ -12233,6 +12271,22 @@ type RootTranslation = {
 			 * 发​送
 			 */
 			send: string
+			/**
+			 * 补​充​要​求
+			 */
+			send_correction: string
+			/**
+			 * 向​正​在​执​行​的​ ​A​I​ ​发​送​补​充​指​令​或​调​整​要​求​ ​(​E​n​t​e​r​ ​发​送​)
+			 */
+			send_correction_tip: string
+			/**
+			 * 补​充​要​求
+			 */
+			steer_badge: string
+			/**
+			 * [​补​充​要​求​]​:
+			 */
+			steer_prefix: string
 			/**
 			 * 停​止​生​成
 			 */
@@ -12299,6 +12353,26 @@ type RootTranslation = {
 			 * @param {unknown} count
 			 */
 			messages_count: RequiredParams<'count'>
+			/**
+			 * 吸​附​至​右​侧
+			 */
+			dock_to_right: string
+			/**
+			 * 脱​离​吸​附​ ​(​浮​动​窗​口​)
+			 */
+			undock_panel: string
+			/**
+			 * 按​住​拖​拽​移​动​窗​口​ ​(​拖​动​至​右​侧​可​重​新​吸​附​)
+			 */
+			drag_to_move: string
+			/**
+			 * 执​行​到​底
+			 */
+			auto_execute: string
+			/**
+			 * 开​启​后​ ​A​I​ ​将​自​主​连​续​调​用​工​具​直​至​任​务​目​标​达​成​或​手​动​中​止
+			 */
+			auto_execute_tip: string
 		}
 		spotlight: {
 			/**
@@ -24252,6 +24326,28 @@ export type TranslationFunctions = {
 			 * 正在执行...
 			 */
 			running: () => LocalizedString
+			/**
+			 * 复制参数
+			 */
+			copy_arguments: () => LocalizedString
+			/**
+			 * 已复制
+			 */
+			copied: () => LocalizedString
+			/**
+			 * 调用参数
+			 */
+			call_args: () => LocalizedString
+		}
+		code: {
+			/**
+			 * 复制代码
+			 */
+			copy: () => LocalizedString
+			/**
+			 * 已复制
+			 */
+			copied: () => LocalizedString
 		}
 		copilot: {
 			/**
@@ -24307,6 +24403,18 @@ export type TranslationFunctions = {
 			 */
 			prompt_sample_4: () => LocalizedString
 			/**
+			 * 深度诊断当前流程的报错原因并向我提出修复方案
+			 */
+			prompt_diagnose_flow: () => LocalizedString
+			/**
+			 * AI 诊断修复
+			 */
+			diagnose_and_fix_node: () => LocalizedString
+			/**
+			 * AI 诊断流程报错
+			 */
+			diagnose_and_fix_flow: () => LocalizedString
+			/**
 			 * 思考过程 (Reasoning)
 			 */
 			thought_process: () => LocalizedString
@@ -24323,6 +24431,10 @@ export type TranslationFunctions = {
 			 */
 			input_placeholder: () => LocalizedString
 			/**
+			 * 正在执行中，输入可补充要求 / 调整指令... (Enter 发送)
+			 */
+			input_midway_placeholder: () => LocalizedString
+			/**
 			 * 请先配置激活 AI Provider 后开启对话...
 			 */
 			input_disabled_placeholder: () => LocalizedString
@@ -24334,6 +24446,22 @@ export type TranslationFunctions = {
 			 * 发送
 			 */
 			send: () => LocalizedString
+			/**
+			 * 补充要求
+			 */
+			send_correction: () => LocalizedString
+			/**
+			 * 向正在执行的 AI 发送补充指令或调整要求 (Enter 发送)
+			 */
+			send_correction_tip: () => LocalizedString
+			/**
+			 * 补充要求
+			 */
+			steer_badge: () => LocalizedString
+			/**
+			 * [补充要求]:
+			 */
+			steer_prefix: () => LocalizedString
 			/**
 			 * 停止生成
 			 */
@@ -24398,6 +24526,26 @@ export type TranslationFunctions = {
 			 * {count} 条消息
 			 */
 			messages_count: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 吸附至右侧
+			 */
+			dock_to_right: () => LocalizedString
+			/**
+			 * 脱离吸附 (浮动窗口)
+			 */
+			undock_panel: () => LocalizedString
+			/**
+			 * 按住拖拽移动窗口 (拖动至右侧可重新吸附)
+			 */
+			drag_to_move: () => LocalizedString
+			/**
+			 * 执行到底
+			 */
+			auto_execute: () => LocalizedString
+			/**
+			 * 开启后 AI 将自主连续调用工具直至任务目标达成或手动中止
+			 */
+			auto_execute_tip: () => LocalizedString
 		}
 		spotlight: {
 			/**

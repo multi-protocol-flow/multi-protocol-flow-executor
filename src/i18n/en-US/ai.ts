@@ -53,6 +53,13 @@ const ai = {
   tool_call: {
     done: 'Executed successfully',
     running: 'Executing tool...',
+    copy_arguments: 'Copy arguments',
+    copied: 'Copied',
+    call_args: 'Arguments',
+  },
+  code: {
+    copy: 'Copy code',
+    copied: 'Copied',
   },
 
   copilot: {
@@ -69,13 +76,21 @@ const ai = {
     prompt_sample_2: 'Write JavaScript to sort items array by price ascending with assert',
     prompt_sample_3: 'Organize and auto-layout all nodes on the canvas horizontally',
     prompt_sample_4: 'Run debug execution and inspect errors in console',
+    prompt_diagnose_flow: 'Diagnose current workflow execution failure and suggest repair directions',
+    diagnose_and_fix_node: 'AI Diagnose & Fix',
+    diagnose_and_fix_flow: 'AI Diagnose Flow Errors',
     thought_process: 'Reasoning Process',
     thinking: 'Thinking...',
     executing_tools: 'Executing canvas actions...',
     input_placeholder: 'Ask MPE Copilot... (Enter to send, Shift+Enter for newline)',
+    input_midway_placeholder: 'Executing... Type to add instructions or adjust requirement (Enter to send)',
     input_disabled_placeholder: 'Please configure an AI provider first...',
     shortcut_tip: 'Shortcuts: Ctrl/Cmd + I toggle sidebar, Ctrl/Cmd + K spotlight',
     send: 'Send',
+    send_correction: 'Send Update',
+    send_correction_tip: 'Send updated instructions or adjust requirement (Enter to send)',
+    steer_badge: 'Updated Instruction',
+    steer_prefix: '[Updated Instruction]:',
     stop: 'Stop Generation',
     sessions_title: 'Chat History',
     new_session: 'New Chat',
@@ -92,6 +107,11 @@ const ai = {
     remove_image: 'Remove Image',
     drag_resize: 'Drag to resize sidebar width',
     messages_count: '{count} messages',
+    dock_to_right: 'Dock to right',
+    undock_panel: 'Undock (Floating window)',
+    drag_to_move: 'Drag header to move (drag to right edge to dock)',
+    auto_execute: 'Run to End',
+    auto_execute_tip: 'When enabled, AI autonomously chains tool calls until goal is achieved or manually stopped',
   },
 
   spotlight: {
