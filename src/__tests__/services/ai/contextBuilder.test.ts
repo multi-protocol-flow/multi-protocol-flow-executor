@@ -25,6 +25,22 @@ describe('contextBuilder', () => {
       expect(prompt).toContain('get_node_detail');
     });
 
+    it('包含内置动态变量规范与常见类别示例', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toContain('Built-in Dynamic Variables');
+      expect(prompt).toContain('{{$guid}}');
+      expect(prompt).toContain('{{$timestamp}}');
+      expect(prompt).toContain('{{$randomEmail}}');
+      expect(prompt).toContain('{{$randomInt}}');
+      expect(prompt).toContain('context.variables.get(\'$guid\')');
+    });
+
+    it('包含透明可解释自主执行规划原则', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toContain('TRANSPARENT PLANNING FIRST');
+      expect(prompt).toContain('已为您规划');
+    });
+
     it('追加用户自定义 System Prompt', () => {
       const custom = 'Always use camelCase for variables.';
       const prompt = buildSystemPrompt(custom);

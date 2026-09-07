@@ -529,12 +529,12 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       output: ['true (success)', 'false (failure/error)'],
     },
     fields: {
-      url: { type: 'string', required: true, description: 'Target URL, supports {{variables.xxx}} or {{env.XXX}}' },
+      url: { type: 'string', required: true, description: 'Target URL, supports {{variables.xxx}}, {{env.XXX}}, and built-in dynamic variables like {{$guid}}, {{$timestamp}}' },
       method: { type: 'string', enum: ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'], default: 'get', required: true },
-      headers: { type: 'object', description: 'Key-value map of HTTP headers, e.g. {"Authorization": "Bearer {{variables.token}}"}' },
+      headers: { type: 'object', description: 'Key-value map of HTTP headers, e.g. {"Authorization": "Bearer {{variables.token}}", "X-Request-Id": "{{$guid}}"}' },
       query_params: { type: 'object', description: 'Key-value map of URL query parameters' },
       body_type: { type: 'string', enum: ['none', 'body', 'form-data', 'x-www-form-urlencoded', 'binary'], default: 'none' },
-      body: { type: 'string', description: 'Raw request body (JSON string, text, etc.)' },
+      body: { type: 'string', description: 'Raw request body (JSON string, text, etc.), supports {{variables.xxx}}, {{env.XXX}}, and dynamic variables like {{$guid}}, {{$timestamp}}, {{$randomEmail}}, {{$randomInt}}' },
       timeout_ms: { type: 'number', default: 30000, description: 'Request timeout in milliseconds' },
       auth: {
         type: 'object',
