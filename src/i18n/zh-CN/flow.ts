@@ -94,6 +94,7 @@ const zh_CN_flow: BaseTranslation = {
   close_minimap: '关闭小地图',
   open_minimap: '打开小地图',
   auto_layout_horizontal: '水平自动布局',
+  auto_layout_adaptive: '自适应折行布局',
 
   // 工具栏
   undo: '撤销 (Ctrl+Z)',

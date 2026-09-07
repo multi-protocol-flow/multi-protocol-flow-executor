@@ -93,6 +93,7 @@ const en_US_flow = {
   close_minimap: 'Close Minimap',
   open_minimap: 'Open Minimap',
   auto_layout_horizontal: 'Auto Layout (Horizontal)',
+  auto_layout_adaptive: 'Adaptive Wrap Layout',
 
   // Toolbar
   undo: 'Undo (Ctrl+Z)',

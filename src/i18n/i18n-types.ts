@@ -7813,6 +7813,10 @@ type RootTranslation = {
 		 */
 		auto_layout_horizontal: string
 		/**
+		 * 自适应折行布局
+		 */
+		auto_layout_adaptive: string
+		/**
 		 * 撤​销​ ​(​C​t​r​l​+​Z​)
 		 */
 		undo: string
@@ -20742,6 +20746,10 @@ export type TranslationFunctions = {
 		 * 水平自动布局
 		 */
 		auto_layout_horizontal: () => LocalizedString
+		/**
+		 * 自适应折行布局
+		 */
+		auto_layout_adaptive: () => LocalizedString
 		/**
 		 * 撤销 (Ctrl+Z)
 		 */
