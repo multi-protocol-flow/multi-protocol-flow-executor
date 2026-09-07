@@ -276,6 +276,19 @@ export const useAIStore = create<AIStore>((set, get) => ({
   createNewSession: async (title?: string) => {
     get().stopGeneration();
 
+    // 如果当前会话有消息，在创建新会话前保存当前会话进度
+    const currentId = get().currentSessionId;
+    if (currentId && get().messages.length > 0) {
+      const currentMeta = get().sessions.find((s) => s.id === currentId);
+      await aiSessionStorage.saveSession({
+        id: currentId,
+        title: currentMeta ? currentMeta.title : getLL().ai.copilot.new_session_title(),
+        createdAt: currentMeta ? currentMeta.createdAt : Date.now(),
+        updatedAt: Date.now(),
+        messages: get().messages,
+      });
+    }
+
     const newId = crypto.randomUUID();
     const newSession: AISession = {
       id: newId,
@@ -304,16 +317,44 @@ export const useAIStore = create<AIStore>((set, get) => ({
     if (get().currentSessionId === sessionId) return;
     get().stopGeneration();
 
-    const sessionData = await aiSessionStorage.loadSession(sessionId);
-    if (sessionData) {
-      set({
-        currentSessionId: sessionId,
-        messages: sessionData.messages,
-        error: null,
-        pendingActions: [],
-        agentStatus: 'idle',
+    // 1. 如果当前会话有消息，在切换离开前先行持久化当前会话
+    const currentId = get().currentSessionId;
+    if (currentId && get().messages.length > 0) {
+      const currentMeta = get().sessions.find((s) => s.id === currentId);
+      await aiSessionStorage.saveSession({
+        id: currentId,
+        title: currentMeta ? currentMeta.title : getLL().ai.copilot.new_session_title(),
+        createdAt: currentMeta ? currentMeta.createdAt : Date.now(),
+        updatedAt: Date.now(),
+        messages: get().messages,
       });
     }
+
+    // 2. 加载目标会话数据（若存储中缺失对应 sessionData，根据 metadata 兜底恢复）
+    let sessionData = await aiSessionStorage.loadSession(sessionId);
+    if (!sessionData) {
+      const targetMeta = get().sessions.find((s) => s.id === sessionId);
+      sessionData = {
+        id: sessionId,
+        title: targetMeta ? targetMeta.title : getLL().ai.copilot.new_session_title(),
+        createdAt: targetMeta ? targetMeta.createdAt : Date.now(),
+        updatedAt: targetMeta ? targetMeta.updatedAt : Date.now(),
+        messages: [],
+      };
+      await aiSessionStorage.saveSession(sessionData);
+    }
+
+    const latestMetas = await aiSessionStorage.listSessions();
+
+    // 3. 保证 currentSessionId 与 messages 一定切换成功
+    set({
+      sessions: latestMetas.length > 0 ? latestMetas : get().sessions,
+      currentSessionId: sessionId,
+      messages: sessionData.messages || [],
+      error: null,
+      pendingActions: [],
+      agentStatus: 'idle',
+    });
   },
 
   renameSession: async (sessionId: string, newTitle: string) => {

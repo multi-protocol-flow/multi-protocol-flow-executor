@@ -97,6 +97,32 @@ describe('aiStore', () => {
     expect(useAIStore.getState().currentSessionId).toBe(s2Id);
   });
 
+  it('切换会话时自动持久化当前会话并在目标会话缺失时安全兜底', async () => {
+    const store = useAIStore.getState();
+    const s1Id = await store.createNewSession('会话 A');
+    useAIStore.setState({
+      messages: [
+        { id: 'm1', role: 'user', content: 'Session A message', timestamp: Date.now() },
+      ],
+    });
+
+    const s2Id = await store.createNewSession('会话 B');
+    expect(useAIStore.getState().currentSessionId).toBe(s2Id);
+    expect(useAIStore.getState().messages).toEqual([]);
+
+    // 切换回会话 A：自动持久化会话 B 并恢复会话 A 的消息
+    await store.switchSession(s1Id);
+    expect(useAIStore.getState().currentSessionId).toBe(s1Id);
+    expect(useAIStore.getState().messages).toHaveLength(1);
+    expect(useAIStore.getState().messages[0].content).toBe('Session A message');
+
+    // 模拟目标会话在存储中被删除，switchSession 依然能正确切换到该 ID 并安全兜底为空消息
+    await aiSessionStorage.deleteSession('non-existent-session-id');
+    await store.switchSession('non-existent-session-id');
+    expect(useAIStore.getState().currentSessionId).toBe('non-existent-session-id');
+    expect(useAIStore.getState().messages).toEqual([]);
+  });
+
   it('修改侧边栏宽度', () => {
     const store = useAIStore.getState();
     store.setPanelWidth(450);
