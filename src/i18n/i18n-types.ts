@@ -6949,6 +6949,10 @@ type RootTranslation = {
 		 */
 		logs_dir: string
 		/**
+		 * 插​件​存​储​目​录
+		 */
+		plugins_dir: string
+		/**
 		 * 未​设​置
 		 */
 		not_set: string
@@ -7025,6 +7029,10 @@ type RootTranslation = {
 		 */
 		logs_dir_desc: string
 		/**
+		 * 存​放​扩​展​协​议​插​件​包​与​ ​S​i​d​e​c​a​r​ ​运​行​时​二​进​制​的​目​录
+		 */
+		plugins_dir_desc: string
+		/**
 		 * 打​开​文​件
 		 */
 		open_file: string
@@ -7064,6 +7072,10 @@ type RootTranslation = {
 		 * 快​捷​预​设
 		 */
 		timeout_presets: string
+		/**
+		 * 推​荐
+		 */
+		preset_recommended: string
 		/**
 		 * 配​置​流​程​节​点​执​行​策​略​与​后​台​插​件​子​进​程​的​工​作​载​荷
 		 */
@@ -7813,7 +7825,7 @@ type RootTranslation = {
 		 */
 		auto_layout_horizontal: string
 		/**
-		 * 自适应折行布局
+		 * 自​适​应​折​行​布​局
 		 */
 		auto_layout_adaptive: string
 		/**
@@ -19889,6 +19901,10 @@ export type TranslationFunctions = {
 		 */
 		logs_dir: () => LocalizedString
 		/**
+		 * 插件存储目录
+		 */
+		plugins_dir: () => LocalizedString
+		/**
 		 * 未设置
 		 */
 		not_set: () => LocalizedString
@@ -19965,6 +19981,10 @@ export type TranslationFunctions = {
 		 */
 		logs_dir_desc: () => LocalizedString
 		/**
+		 * 存放扩展协议插件包与 Sidecar 运行时二进制的目录
+		 */
+		plugins_dir_desc: () => LocalizedString
+		/**
 		 * 打开文件
 		 */
 		open_file: () => LocalizedString
@@ -20004,6 +20024,10 @@ export type TranslationFunctions = {
 		 * 快捷预设
 		 */
 		timeout_presets: () => LocalizedString
+		/**
+		 * 推荐
+		 */
+		preset_recommended: () => LocalizedString
 		/**
 		 * 配置流程节点执行策略与后台插件子进程的工作载荷
 		 */
