@@ -49,6 +49,8 @@ pub mod utils;
 pub mod variable;
 /// WebSocket 消息流追踪，支持消息方向、内容类型和所有权转移
 pub mod ws_stream;
+/// 本地工程工作区探查与代码分析模块
+pub mod workspace;
 
 // Re-export key trait types
 pub use traits::{
@@ -79,3 +81,6 @@ pub use traits::{HookExecutor, NoopHookExecutor};
 
 // Re-export node types
 pub use node::ExecutionErrorStrategy;
+
+// Re-export workspace types
+pub use workspace::{CodeMatch, WorkspaceScanResult};

@@ -1967,6 +1967,47 @@ pub async fn ai_chat_stream(
 }
 
 // ============================================================================
+// AI 工作区感知与代码分析命令
+// ============================================================================
+
+/// 扫描本地工程目录，提取技术栈、配置文件、接口规范与核心代码目录
+#[tauri::command]
+pub fn ai_scan_workspace(workspace_dir: String) -> Result<flow_engine::workspace::WorkspaceScanResult, String> {
+    let path = std::path::Path::new(&workspace_dir);
+    flow_engine::workspace::scan_workspace(path, 6)
+}
+
+/// 基于正则表达式检索工作区中的源代码，按文件与行号返回匹配结果
+#[tauri::command]
+pub fn ai_search_code(
+    workspace_dir: String,
+    pattern: String,
+    ext: Option<String>,
+    max_results: Option<usize>,
+) -> Result<Vec<flow_engine::workspace::CodeMatch>, String> {
+    let path = std::path::Path::new(&workspace_dir);
+    flow_engine::workspace::search_workspace_code(path, &pattern, ext.as_deref(), max_results.unwrap_or(20))
+}
+
+/// 按行范围切片读取代码文件内容，带防溢出安全截断保护
+#[tauri::command]
+pub fn ai_read_code_slice(
+    file_path: String,
+    start_line: usize,
+    max_lines: usize,
+) -> Result<String, String> {
+    let path = std::path::Path::new(&file_path);
+    flow_engine::workspace::read_workspace_slice(path, start_line, max_lines)
+}
+
+/// 解析接口契约规范文件 (OpenAPI JSON/YAML 或 Protobuf .proto)
+#[tauri::command]
+pub fn ai_inspect_api_spec(file_path: String) -> Result<serde_json::Value, String> {
+    let path = std::path::Path::new(&file_path);
+    flow_engine::workspace::inspect_api_spec(path)
+}
+
+// ============================================================================
 // 单元测试
 // ============================================================================
 

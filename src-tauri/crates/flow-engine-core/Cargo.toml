@@ -17,5 +17,8 @@ chrono = { workspace = true }
 rand = { workspace = true }
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
+[dev-dependencies]
+tempfile = { workspace = true }
+
 [lints]
 workspace = true

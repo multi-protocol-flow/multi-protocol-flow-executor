@@ -22,6 +22,7 @@ pub use flow_engine_core::traits;
 pub use flow_engine_core::utils;
 pub use flow_engine_core::variable;
 pub use flow_engine_core::ws_stream;
+pub use flow_engine_core::workspace;
 
 // Wave 2: 无依赖的基础模块
 pub use flow_engine_executor::command;
