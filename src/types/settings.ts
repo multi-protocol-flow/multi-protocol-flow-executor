@@ -54,6 +54,12 @@ export interface Settings {
   aiWindowMode?: 'dock' | 'spotlight';
   /** 自定义全局 System Prompt */
   aiCustomSystemPrompt?: string;
+  /** 启动时是否自动检查更新（默认 true） */
+  autoCheckUpdate?: boolean;
+  /** 是否接收预发布版本（Beta / Alpha） */
+  includePrerelease?: boolean;
+  /** 跳过提醒的版本号列表 */
+  ignoredVersions?: string[];
 }
 
 // ============================================================================
@@ -94,6 +100,12 @@ export interface SettingsState {
   aiWindowMode: 'dock' | 'spotlight';
   /** 自定义全局 System Prompt */
   aiCustomSystemPrompt?: string;
+  /** 启动时是否自动检查更新 */
+  autoCheckUpdate?: boolean;
+  /** 是否接收预发布版本 */
+  includePrerelease?: boolean;
+  /** 跳过提醒的版本号列表 */
+  ignoredVersions?: string[];
   /** 是否正在加载 */
   isLoading: boolean;
   /** 错误信息 */
@@ -146,6 +158,12 @@ export interface SettingsActions {
   setAiWindowMode: (mode: 'dock' | 'spotlight') => Promise<void>;
   /** 设置自定义全局 System Prompt */
   setAiCustomSystemPrompt: (prompt: string | undefined) => Promise<void>;
+  /** 设置启动时自动检查更新 */
+  setAutoCheckUpdate?: (enabled: boolean) => Promise<void>;
+  /** 设置是否接收预发布版本 */
+  setIncludePrerelease?: (enabled: boolean) => Promise<void>;
+  /** 记录跳过某个版本的更新提醒 */
+  addIgnoredVersion?: (version: string) => Promise<void>;
 }
 
 /**

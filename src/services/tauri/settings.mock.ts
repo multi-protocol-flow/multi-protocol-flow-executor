@@ -42,6 +42,9 @@ export async function loadSettings(): Promise<Settings> {
     aiEnabled: stored.aiEnabled ?? true,
     aiWindowMode: stored.aiWindowMode ?? 'dock',
     aiCustomSystemPrompt: stored.aiCustomSystemPrompt,
+    autoCheckUpdate: stored.autoCheckUpdate ?? true,
+    includePrerelease: stored.includePrerelease ?? false,
+    ignoredVersions: stored.ignoredVersions ?? [],
   };
 }
 

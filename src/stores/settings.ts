@@ -43,6 +43,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   aiEnabled: true,
   aiWindowMode: 'dock',
   aiCustomSystemPrompt: undefined,
+  autoCheckUpdate: true,
+  includePrerelease: false,
+  ignoredVersions: [],
   isLoading: true,
   error: null,
   loadSettings: async () => {
@@ -66,6 +69,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         aiEnabled: settings.aiEnabled ?? true,
         aiWindowMode: settings.aiWindowMode ?? 'dock',
         aiCustomSystemPrompt: settings.aiCustomSystemPrompt,
+        autoCheckUpdate: settings.autoCheckUpdate ?? true,
+        includePrerelease: settings.includePrerelease ?? false,
+        ignoredVersions: settings.ignoredVersions ?? [],
         isLoading: false,
       });
     } catch (e) {
@@ -250,6 +256,39 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       const service = await getSettingsService();
       await service.saveSettings({ aiCustomSystemPrompt: prompt });
       set({ aiCustomSystemPrompt: prompt });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setAutoCheckUpdate: async (enabled) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ autoCheckUpdate: enabled });
+      set({ autoCheckUpdate: enabled });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setIncludePrerelease: async (enabled) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ includePrerelease: enabled });
+      set({ includePrerelease: enabled });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  addIgnoredVersion: async (version) => {
+    try {
+      const current = get().ignoredVersions ?? [];
+      if (current.includes(version)) return;
+      const updated = [...current, version];
+      const service = await getSettingsService();
+      await service.saveSettings({ ignoredVersions: updated });
+      set({ ignoredVersions: updated });
     } catch (e) {
       set({ error: formatErrorMessage(e) });
     }

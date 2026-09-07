@@ -48,6 +48,9 @@ export async function loadSettings(): Promise<Settings> {
     const aiEnabled = await store.get<boolean>('aiEnabled');
     const aiWindowMode = await store.get<'dock' | 'spotlight'>('aiWindowMode');
     const aiCustomSystemPrompt = await store.get<string>('aiCustomSystemPrompt');
+    const autoCheckUpdate = await store.get<boolean>('autoCheckUpdate');
+    const includePrerelease = await store.get<boolean>('includePrerelease');
+    const ignoredVersions = await store.get<string[]>('ignoredVersions');
     return {
       reportDir: reportDir ?? `${appDataDir}/reports/`,
       logDir: logDir ?? `${appDataDir}/logs/`,
@@ -64,6 +67,9 @@ export async function loadSettings(): Promise<Settings> {
       aiEnabled: aiEnabled ?? true,
       aiWindowMode: aiWindowMode ?? 'dock',
       aiCustomSystemPrompt: aiCustomSystemPrompt ?? undefined,
+      autoCheckUpdate: autoCheckUpdate ?? true,
+      includePrerelease: includePrerelease ?? false,
+      ignoredVersions: ignoredVersions ?? [],
     };
   }
   const { loadSettings: loadSettingsImpl } = await import('./settings.mock');
@@ -124,6 +130,15 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
     }
     if (settings.aiCustomSystemPrompt !== undefined) {
       await store.set('aiCustomSystemPrompt', settings.aiCustomSystemPrompt);
+    }
+    if (settings.autoCheckUpdate !== undefined) {
+      await store.set('autoCheckUpdate', settings.autoCheckUpdate);
+    }
+    if (settings.includePrerelease !== undefined) {
+      await store.set('includePrerelease', settings.includePrerelease);
+    }
+    if (settings.ignoredVersions !== undefined) {
+      await store.set('ignoredVersions', settings.ignoredVersions);
     }
     await store.save();
     return;
