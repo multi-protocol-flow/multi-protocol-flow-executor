@@ -5,7 +5,7 @@
 import { useFlowStore } from '@/stores/flow';
 import { useExecutionStore } from '@/stores/execution';
 import { getCachedDefaultConfig } from '@/lib/NodeRegistry';
-import { getLayoutedPositions } from '@/components/canvas/layout';
+import { getLayoutedPositions, getAdaptiveLayoutedPositions } from '@/components/canvas/layout';
 import { createDefaultNodeData } from '@/components/canvas/utils';
 import type { Node, Connection, NodeType, NodeData, AnyNodeType, ExecutionErrorStrategy } from '@/types';
 import type { AIToolDefinition } from '@/types/ai';
@@ -421,6 +421,15 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
             type: 'string',
             enum: ['LR'],
             description: 'Layout direction (horizontal LR). Defaults to LR.',
+          },
+          mode: {
+            type: 'string',
+            enum: ['horizontal', 'adaptive'],
+            description: 'Layout mode: "horizontal" (single line LR) or "adaptive" (wrap lines based on viewport width to prevent infinite horizontal scrolling). Defaults to horizontal.',
+          },
+          viewport_width: {
+            type: 'number',
+            description: 'Optional canvas viewport width in pixels for adaptive layout mode. Defaults to 1200.',
           },
         },
       },
@@ -1107,21 +1116,31 @@ export const canvasToolHandlers = {
     throw new Error('Either connection_id or both source and target UUIDs must be provided.');
   },
 
-  async auto_layout(args?: { direction?: 'LR' }) {
+  async auto_layout(args?: { direction?: 'LR'; mode?: 'horizontal' | 'adaptive'; viewport_width?: number }) {
     const flowState = useFlowStore.getState();
     const currentFlow = flowState.flow;
     if (!currentFlow || currentFlow.nodes.length === 0) {
       return { success: true, node_count: 0 };
     }
 
+    const mode = args?.mode || 'horizontal';
     const direction = args?.direction || 'LR';
-    const positions = getLayoutedPositions(currentFlow.nodes, currentFlow.connections, direction);
+
+    let positions: Map<string, { x: number; y: number }>;
+    if (mode === 'adaptive') {
+      positions = getAdaptiveLayoutedPositions(currentFlow.nodes, currentFlow.connections, {
+        viewportWidth: args?.viewport_width ?? 1200,
+      });
+    } else {
+      positions = getLayoutedPositions(currentFlow.nodes, currentFlow.connections, direction);
+    }
     flowState.batchUpdateNodePositions(positions);
 
     return {
       success: true,
       node_count: currentFlow.nodes.length,
       direction,
+      mode,
     };
   },
 

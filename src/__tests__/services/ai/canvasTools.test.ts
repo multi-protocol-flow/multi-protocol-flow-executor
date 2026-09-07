@@ -251,6 +251,16 @@ describe('canvasToolHandlers 集成测试', () => {
     expect(allConfigs.success).toBe(true);
     expect(allConfigs.nodes.length).toBeGreaterThan(0);
   });
+
+  it('auto_layout: 支持 horizontal 和 adaptive 两种排版模式', async () => {
+    const horizRes = await canvasToolHandlers.auto_layout({ mode: 'horizontal' });
+    expect(horizRes.success).toBe(true);
+    expect(horizRes.mode).toBe('horizontal');
+
+    const adaptRes = await canvasToolHandlers.auto_layout({ mode: 'adaptive', viewport_width: 1000 });
+    expect(adaptRes.success).toBe(true);
+    expect(adaptRes.mode).toBe('adaptive');
+  });
 });
 
 describe('buildSystemPrompt', () => {
