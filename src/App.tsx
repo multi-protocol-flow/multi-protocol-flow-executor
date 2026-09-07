@@ -6,6 +6,7 @@ import { MainLayout } from '@/layouts/MainLayout';
 import { WelcomeWizard } from '@/components/welcome/WelcomeWizard';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTheme } from '@/hooks/useTheme';
+import { useRemoteCommands } from '@/hooks/useRemoteCommands';
 import { useSettingsStore } from '@/stores/settings';
 import { useDebugStore } from '@/stores/debug';
 import { useFlowStore } from '@/stores/flow';
@@ -37,6 +38,9 @@ function App() {
 
   // 主题管理
   useTheme();
+  // 终端远程联动指令监听 (CLI mpe open / mpe ai)
+  useRemoteCommands();
+
 
   // 应用启动时加载全局设置
   const loadSettings = useSettingsStore((state) => state.loadSettings);

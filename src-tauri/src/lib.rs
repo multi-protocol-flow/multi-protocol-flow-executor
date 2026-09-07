@@ -13,6 +13,7 @@ use tokio::sync::Mutex;
 pub use mpe_cli::cli;
 
 // Tauri 特有模块
+pub mod gui_ipc;
 mod plugin_protocol;
 mod tauri_adapters;
 mod tauri_commands;
@@ -33,6 +34,10 @@ pub use tauri_commands::{
     ai_chat_stream,
     ai_fetch_models,
     ai_test_connection,
+    ai_scan_workspace,
+    ai_search_code,
+    ai_read_code_slice,
+    ai_inspect_api_spec,
     cancel_dataset_execution,
     // 执行会话管理
     cancel_flow,
@@ -420,6 +425,8 @@ pub fn run() {
                     .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
                     .build(),
             );
+            gui_ipc::start_gui_ipc_server(app.handle().clone());
+
 
             Ok(())
         })
@@ -516,7 +523,16 @@ pub fn run() {
             ai_test_connection,
             ai_fetch_models,
             ai_chat_stream,
+            ai_scan_workspace,
+            ai_search_code,
+            ai_read_code_slice,
+            ai_inspect_api_spec,
         ])
-        .run(tauri::generate_context!())
-        .unwrap_or_else(|e| eprintln!("Tauri application error: {e}"));
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                gui_ipc::cleanup_gui_instance_file();
+            }
+        });
 }
