@@ -109,6 +109,8 @@ export function AICopilotPanel() {
     agentStatus === 'executing_tools' ||
     agentStatus === 'waiting_confirmation';
 
+  const latestAssistantMsg = [...messages].reverse().find((m) => m.role === 'assistant');
+  const latestAssistantMsgId = latestAssistantMsg?.id;
   // 初始化会话列表
   useEffect(() => {
     if (isCopilotOpen) {
@@ -399,7 +401,7 @@ export function AICopilotPanel() {
               }`}
               onMouseDown={isFloating ? handleMouseDownFloatingHeader : handleMouseDownDockedDrag}
             >
-              <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden mr-1">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-1">
                 {/* 拖拽移动把手 */}
                 <div
                   className="flex items-center justify-center p-1 rounded hover:bg-muted/70 text-muted-foreground transition-colors shrink-0 cursor-grab active:cursor-grabbing"
@@ -429,7 +431,10 @@ export function AICopilotPanel() {
 
               {/* 历史会话浮动列表 Popover */}
               {showSessionMenu && (
-                <div className="absolute left-0 top-8 w-64 rounded-lg border border-border bg-popover text-popover-foreground shadow-xl z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                <div
+                  className="absolute left-0 top-8 w-64 rounded-lg border border-border bg-popover text-popover-foreground shadow-xl z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
                   <div className="flex items-center justify-between px-2 py-1 border-b border-border/50 text-[11px] font-medium text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <History className="h-3 w-3" />
@@ -456,14 +461,20 @@ export function AICopilotPanel() {
                       return (
                         <div
                           key={sess.id}
-                          className={`group flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-colors ${
+                          className={`group flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-colors cursor-pointer ${
                             isCurrent
                               ? 'bg-primary/10 text-primary font-medium'
                               : 'hover:bg-muted/70 text-foreground'
                           }`}
+                          onClick={() => {
+                            if (!isEditing) {
+                              switchSession(sess.id);
+                              setShowSessionMenu(false);
+                            }
+                          }}
                         >
                           {isEditing ? (
-                            <div className="flex items-center gap-1 w-full">
+                            <div className="flex items-center gap-1 w-full" onClick={(e) => e.stopPropagation()}>
                               <Input
                                 value={editTitleInput}
                                 onChange={(e) => setEditTitleInput(e.target.value)}
@@ -485,21 +496,13 @@ export function AICopilotPanel() {
                             </div>
                           ) : (
                             <>
-                              <button
-                                type="button"
-                                className="flex-1 text-left truncate min-w-0 pr-1.5"
-                                onClick={() => {
-                                  switchSession(sess.id);
-                                  setShowSessionMenu(false);
-                                }}
-                              >
+                              <div className="flex-1 text-left truncate min-w-0 pr-1.5">
                                 <div className="truncate">{sess.title}</div>
                                 <div className="text-[10px] text-muted-foreground font-normal">
                                   {new Date(sess.updatedAt).toLocaleDateString()}{' '}
                                   · {ll.ai.copilot.messages_count({ count: sess.messageCount })}
                                 </div>
-                              </button>
-
+                              </div>
                               <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 transition-opacity">
                                 <button
                                   type="button"
@@ -756,10 +759,11 @@ export function AICopilotPanel() {
                 return null;
               }
 
+              const isLatestAssistant = msg.id === latestAssistantMsgId;
               const thoughtOpen =
                 openThoughts[msg.id] !== undefined
                   ? openThoughts[msg.id]
-                  : isStreamingThis;
+                  : (isStreamingThis || (isGenerating && isLatestAssistant));
 
               return (
                 <div key={msg.id} className="flex justify-start gap-2 pr-4">
@@ -779,6 +783,14 @@ export function AICopilotPanel() {
                           <Brain className="h-3 w-3 text-indigo-500 shrink-0" />
                           <span className="font-medium text-[11px] truncate min-w-0 flex-1">
                             {ll.ai.copilot.thought_process()}
+                            {isStreamingThis && (
+                              <span className="ml-1.5 text-[10px] text-primary animate-pulse font-normal">
+                                ({ll.ai.copilot.thinking()})
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/70 font-mono mr-1">
+                            {msg.thought.length} 字
                           </span>
                           {thoughtOpen ? (
                             <ChevronDown className="h-3 w-3 ml-auto shrink-0" />
@@ -793,6 +805,18 @@ export function AICopilotPanel() {
                         )}
                       </div>
                     )}
+
+                    {/* 正文内容渲染（放在工具调用前，保证意图和方案规划先于工具卡片呈现） */}
+                    {msg.content ? (
+                      <div className="rounded-2xl rounded-tl-sm bg-muted/40 p-3 border border-border/40 text-foreground text-xs leading-relaxed break-words">
+                        <MarkdownViewer content={msg.content} compact />
+                      </div>
+                    ) : isStreamingThis && !msg.thought && (!msg.tool_calls || msg.tool_calls.length === 0) ? (
+                      <div className="flex items-center gap-1.5 text-muted-foreground py-1">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                        <span className="text-xs">{ll.ai.copilot.thinking()}</span>
+                      </div>
+                    ) : null}
 
                     {/* 工具调用项展示 */}
                     {msg.tool_calls && msg.tool_calls.length > 0 && (
@@ -813,18 +837,6 @@ export function AICopilotPanel() {
                         })}
                       </div>
                     )}
-
-                    {/* 正文内容渲染 */}
-                    {msg.content ? (
-                      <div className="rounded-2xl rounded-tl-sm bg-muted/40 p-3 border border-border/40 text-foreground text-xs leading-relaxed break-words">
-                        <MarkdownViewer content={msg.content} compact />
-                      </div>
-                    ) : isStreamingThis && !msg.thought && (!msg.tool_calls || msg.tool_calls.length === 0) ? (
-                      <div className="flex items-center gap-1.5 text-muted-foreground py-1">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                        <span className="text-xs">{ll.ai.copilot.thinking()}</span>
-                      </div>
-                    ) : null}
                   </div>
                 </div>
               );

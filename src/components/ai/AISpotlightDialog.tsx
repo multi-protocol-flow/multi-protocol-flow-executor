@@ -13,6 +13,9 @@ import {
   Loader2,
   X,
   AlertCircle,
+  Brain,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -42,8 +45,12 @@ export function AISpotlightDialog() {
   const activeProvider = aiProviders.find((p) => p.id === activeAiProviderId);
 
   const [prompt, setPrompt] = useState('');
+  const [openThoughts, setOpenThoughts] = useState<Record<string, boolean>>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const toggleThought = (id: string) => {
+    setOpenThoughts((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const isGenerating =
     agentStatus === 'thinking' ||
@@ -207,6 +214,62 @@ export function AISpotlightDialog() {
                       <Bot className="h-3 w-3" />
                     </div>
                     <div className="flex-1 space-y-1.5 min-w-0">
+                      {/* 深度思考过程展示 (DeepSeek R1 / Reasoning) */}
+                      {msg.thought && (() => {
+                        const latestAssistantMsg = [...recentMessages].reverse().find((m) => m.role === 'assistant');
+                        const isLatestAssistant = latestAssistantMsg?.id === msg.id;
+                        const thoughtOpen =
+                          openThoughts[msg.id] !== undefined
+                            ? openThoughts[msg.id]
+                            : (isStreaming || (isGenerating && isLatestAssistant));
+
+                        return (
+                          <div className="rounded border border-border/60 bg-muted/30 text-[11px] overflow-hidden">
+                            <button
+                              type="button"
+                              className="flex w-full items-center gap-1.5 px-2 py-1 text-left text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                              onClick={() => toggleThought(msg.id)}
+                            >
+                              <Brain className="h-3 w-3 text-indigo-500 shrink-0" />
+                              <span className="font-medium truncate min-w-0 flex-1">
+                                {ll.ai.copilot.thought_process()}
+                                {isStreaming && (
+                                  <span className="ml-1 text-[10px] text-primary animate-pulse font-normal">
+                                    ({ll.ai.copilot.thinking()})
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground/70 font-mono mr-1">
+                                {msg.thought.length} 字
+                              </span>
+                              {thoughtOpen ? (
+                                <ChevronDown className="h-3 w-3 shrink-0" />
+                              ) : (
+                                <ChevronRight className="h-3 w-3 shrink-0" />
+                              )}
+                            </button>
+                            {thoughtOpen && (
+                              <div className="border-t border-border/40 p-2 text-[10px] font-mono text-muted-foreground/90 whitespace-pre-wrap break-words bg-background/40 max-h-36 overflow-y-auto">
+                                {msg.thought}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* 正文内容渲染（放在工具调用前） */}
+                      {msg.content ? (
+                        <div className="rounded-xl bg-muted/40 p-2.5 border border-border/40 text-foreground text-xs leading-relaxed break-words">
+                          <MarkdownViewer content={msg.content} compact />
+                        </div>
+                      ) : isStreaming && !msg.thought && (!msg.tool_calls || msg.tool_calls.length === 0) ? (
+                        <div className="flex items-center gap-1.5 text-muted-foreground py-1">
+                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                          <span className="text-xs">{ll.ai.copilot.thinking()}</span>
+                        </div>
+                      ) : null}
+
+                      {/* 工具调用项展示 */}
                       {msg.tool_calls && msg.tool_calls.length > 0 && (
                         <div className="space-y-1">
                           {msg.tool_calls.map((tc) => {
@@ -225,17 +288,6 @@ export function AISpotlightDialog() {
                           })}
                         </div>
                       )}
-
-                      {msg.content ? (
-                        <div className="rounded-xl bg-muted/40 p-2.5 border border-border/40 text-foreground text-xs leading-relaxed break-words">
-                          <MarkdownViewer content={msg.content} compact />
-                        </div>
-                      ) : isStreaming ? (
-                        <div className="flex items-center gap-1.5 text-muted-foreground py-1">
-                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                          <span className="text-xs">{ll.ai.copilot.thinking()}</span>
-                        </div>
-                      ) : null}
                     </div>
                   </div>
                 );
