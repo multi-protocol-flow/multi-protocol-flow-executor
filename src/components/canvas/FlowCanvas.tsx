@@ -31,12 +31,12 @@ import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore, selectIsExecuting, selectFlow, selectIsDirty, connectionFor } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
-import { MapIcon, ArrowRightLeft, Search } from 'lucide-react';
+import { MapIcon, ArrowRightLeft, WrapText, Search } from 'lucide-react';
 import type { NodeData, NodeType } from '@/types';
 import type { NodeMetadata } from '@/types/nodeRegistry';
 import { getNodeMetadata } from '@/lib/NodeRegistry';
 import { datasourceGetTemplates } from '@/services/tauri/datasource';
-import { getLayoutedPositions, type LayoutDirection } from './layout';
+import { getLayoutedPositions, getAdaptiveLayoutedPositions, type LayoutDirection } from './layout';
 import {
   convertFlowToReactFlow,
   convertEdgeToConnection,
@@ -745,6 +745,22 @@ function FlowCanvasInner() {
     }, 150);
   }, [flow, batchUpdateNodePositions, fitView]);
 
+  // 可视画布自适应折行自动布局处理
+  const handleAdaptiveLayout = useCallback(() => {
+    if (!flow) return;
+
+    const containerWidth = canvasRef.current?.clientWidth ?? 1200;
+    const positions = getAdaptiveLayoutedPositions(flow.nodes, flow.connections, {
+      viewportWidth: containerWidth,
+    });
+    batchUpdateNodePositions(positions);
+
+    // 延迟 fitView，自适应折行布局整体宽高比均衡，padding 设为 0.2 更充盈饱满
+    setTimeout(() => {
+      fitView({ padding: 0.2, duration: 300 });
+    }, 150);
+  }, [flow, batchUpdateNodePositions, fitView]);
+
   // 处理节点右键菜单
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
@@ -1288,6 +1304,13 @@ function FlowCanvasInner() {
             title={ll.flow.auto_layout_horizontal()}
           >
             <ArrowRightLeft className="w-4 h-4" />
+          </ControlButton>
+          {/* 可视画布自适应折行布局 */}
+          <ControlButton
+            onClick={handleAdaptiveLayout}
+            title={ll.flow.auto_layout_adaptive()}
+          >
+            <WrapText className="w-4 h-4" />
           </ControlButton>
           {/* 搜索流程 */}
           <ControlButton
