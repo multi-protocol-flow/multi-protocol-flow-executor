@@ -19,6 +19,7 @@ export function EngineSettingsTab() {
   } = useSettingsStore();
 
   const openPluginSettingsDialog = useUIStore((s) => s.openPluginSettingsDialog);
+  const closeSettingsDialog = useUIStore((s) => s.closeSettingsDialog);
   const ll = getLL();
 
   const [timeoutInput, setTimeoutInput] = useState<string>(
@@ -51,10 +52,12 @@ export function EngineSettingsTab() {
     { label: '300s', value: 300000 },
   ];
 
+  const recommendedTag = ll.settings.preset_recommended?.() ?? 'Recommended';
+
   const concurrencyPresets = [
     { label: '64', value: 64 },
     { label: '128', value: 128 },
-    { label: '256 (推荐)', value: 256 },
+    { label: `256 (${recommendedTag})`, value: 256 },
     { label: '512', value: 512 },
     { label: '1024', value: 1024 },
   ];
@@ -62,7 +65,7 @@ export function EngineSettingsTab() {
   const queuePresets = [
     { label: '512', value: 512 },
     { label: '1024', value: 1024 },
-    { label: '2048 (推荐)', value: 2048 },
+    { label: `2048 (${recommendedTag})`, value: 2048 },
     { label: '4096', value: 4096 },
     { label: '8192', value: 8192 },
   ];
@@ -323,7 +326,10 @@ export function EngineSettingsTab() {
           type="button"
           variant="outline"
           size="sm"
-          onClick={openPluginSettingsDialog}
+          onClick={() => {
+            closeSettingsDialog();
+            openPluginSettingsDialog();
+          }}
           className="gap-1 text-xs shrink-0 cursor-pointer"
         >
           <span>{ll.settings.plugins_manager_link?.() ?? 'Open Plugins Manager'}</span>
