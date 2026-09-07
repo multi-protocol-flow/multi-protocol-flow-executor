@@ -11,6 +11,8 @@ const mockSelectNode = vi.fn();
 const mockToggleFlowListPanel = vi.fn();
 const mockToggleBottomPanel = vi.fn();
 const mockToggleConfigPanel = vi.fn();
+const mockToggleCopilot = vi.fn();
+const mockToggleSpotlight = vi.fn();
 
 vi.mock('@/stores', () => ({
   useFlowStore: vi.fn(() => ({
@@ -22,6 +24,12 @@ vi.mock('@/stores', () => ({
     toggleBottomPanel: mockToggleBottomPanel,
     toggleConfigPanel: mockToggleConfigPanel,
   })),
+  useAIStore: {
+    getState: vi.fn(() => ({
+      toggleCopilot: mockToggleCopilot,
+      toggleSpotlight: mockToggleSpotlight,
+    })),
+  },
 }));
 
 // Mock flowStorage (hook imports it for Ctrl+S)
@@ -229,6 +237,53 @@ describe('useKeyboardShortcuts', () => {
       handler(event);
 
       expect(mockToggleConfigPanel).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Ctrl+I 唤起 AI Copilot', () => {
+    it('Ctrl+I 调用 toggleCopilot', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'i', ctrlKey: true });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(mockToggleCopilot).toHaveBeenCalledTimes(1);
+    });
+
+    it('Cmd+I (metaKey) 也调用 toggleCopilot', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'i', metaKey: true });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(mockToggleCopilot).toHaveBeenCalledTimes(1);
+    });
+
+    it('通过 e.code === KeyI 也能唤起（兼容输入法按键）', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'Process', code: 'KeyI', ctrlKey: true });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(mockToggleCopilot).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -18,6 +18,8 @@ const ll = getLL();
  * - Delete / Backspace: 删除选中的节点（带确认弹窗）或选中的边
  * - Escape: 取消选择节点
  * - Ctrl/Cmd + S: 保存当前流程
+ * - Ctrl/Cmd + I: 唤起/切换 AI Copilot 侧边栏
+ * - Ctrl/Cmd + K: 唤起 AI Spotlight 快捷指令弹窗
  * - Ctrl/Cmd + B: 切换左侧面板
  * - Ctrl/Cmd + H: 切换历史面板
  * - Ctrl/Cmd + J: 切换配置面板
@@ -90,14 +92,14 @@ export function useKeyboardShortcuts() {
         }
       }
       // Ctrl/Cmd + K: 切换 AI Spotlight 快捷指令弹窗
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K' || e.code === 'KeyK')) {
         e.preventDefault();
         useAIStore.getState().toggleSpotlight();
         return;
       }
 
       // Ctrl/Cmd + I: 切换 AI Copilot 侧边栏
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'i' || e.key === 'I')) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'i' || e.key === 'I' || e.code === 'KeyI')) {
         e.preventDefault();
         useAIStore.getState().toggleCopilot();
         return;

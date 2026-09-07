@@ -37,7 +37,15 @@ function getShortcutGroups(): ShortcutGroup[] {
         { keys: ['Ctrl+B'], description: ll.togglePanelLeft() },
         { keys: ['Ctrl+H'], description: ll.togglePanelHistory() },
         { keys: ['Ctrl+J'], description: ll.togglePanelConfig() },
+        { keys: ['Ctrl+Shift+F'], description: ll.searchOverlay() },
         { keys: ['Ctrl+,'], description: ll.openSettings() },
+      ],
+    },
+    {
+      group: ll.group.ai(),
+      shortcuts: [
+        { keys: ['Ctrl+I'], description: ll.toggleCopilot() },
+        { keys: ['Ctrl+K'], description: ll.toggleSpotlight() },
       ],
     },
     {
