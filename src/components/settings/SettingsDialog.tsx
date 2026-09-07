@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Palette, HardDrive, Sparkles, Cpu, CheckCircle2 } from 'lucide-react';
+import { Palette, HardDrive, Sparkles, Cpu, CheckCircle2, Info, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useUIStore } from '@/stores/ui';
 import { useSettingsStore } from '@/stores/settings';
@@ -10,9 +11,11 @@ import { cn } from '@/lib/utils';
 import { GeneralSettingsTab } from './GeneralSettingsTab';
 import { StorageSettingsTab } from './StorageSettingsTab';
 import { EngineSettingsTab } from './EngineSettingsTab';
+import { AboutSettingsTab } from './AboutSettingsTab';
 import { AIProviderSettingsCard } from '@/components/ai/AIProviderSettingsCard';
+import { useUpdateStore } from '@/stores/update';
 
-export type SettingsTabId = 'general' | 'storage' | 'ai' | 'engine';
+export type SettingsTabId = 'general' | 'storage' | 'ai' | 'engine' | 'about';
 
 export function SettingsDialog() {
   const showSettingsDialog = useUIStore((s) => s.showSettingsDialog);
@@ -21,6 +24,8 @@ export function SettingsDialog() {
   const setSettingsDialogTab = useUIStore((s) => s.setSettingsDialogTab);
 
   const loadSettings = useSettingsStore((s) => s.loadSettings);
+  const currentVersion = useUpdateStore((s) => s.currentVersion);
+  const loadCurrentVersion = useUpdateStore((s) => s.loadCurrentVersion);
   const ll = getLL();
 
   const [activeTab, setActiveTab] = useState<SettingsTabId>('general');
@@ -36,8 +41,9 @@ export function SettingsDialog() {
   useEffect(() => {
     if (showSettingsDialog) {
       void loadSettings();
+      void loadCurrentVersion();
     }
-  }, [showSettingsDialog, loadSettings]);
+  }, [showSettingsDialog, loadSettings, loadCurrentVersion]);
 
   const handleTabChange = (tabId: SettingsTabId) => {
     setActiveTab(tabId);
@@ -79,6 +85,13 @@ export function SettingsDialog() {
       title: ll.settings.tab_engine?.() ?? 'Engine & Performance',
       description: ll.settings.engine_desc?.() ?? 'Configure execution timeout and plugin concurrency capacity',
     },
+    {
+      id: 'about',
+      label: ll.settings.tab_about?.() ?? 'About & Updates',
+      icon: Info,
+      title: ll.settings.tab_about?.() ?? 'About & Updates',
+      description: ll.settings.about_desc?.() ?? 'View version info and check for software updates',
+    },
   ];
 
   const currentNav = navItems.find((item) => item.id === activeTab) ?? navItems[0];
@@ -90,23 +103,36 @@ export function SettingsDialog() {
         if (!open) closeSettingsDialog();
       }}
     >
-      <DialogContent className="max-w-4xl w-[90vw] h-[640px] max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col bg-background sm:rounded-xl shadow-2xl border-border">
-        {/* 顶部标题栏 */}
+      <DialogContent
+        hideCloseButton
+        className="max-w-4xl w-[90vw] h-[640px] max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col bg-background sm:rounded-xl shadow-2xl border-border"
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/70 shrink-0 select-none">
           <div className="flex items-center gap-3">
             <DialogTitle className="text-base font-semibold text-foreground">
               {ll.settings.dialog_title?.() ?? 'Global Settings'}
             </DialogTitle>
             <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-border/60">
-              v0.1.1-beta.2
+              v{currentVersion || '0.1.1-beta.2'}
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2 pr-8">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 border border-border/40 px-2.5 py-1 rounded-full">
               <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
               <span>{ll.settings.saved_badge?.() ?? 'Auto-saved'}</span>
             </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-sm opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground cursor-pointer"
+              onClick={closeSettingsDialog}
+              title={ll.panels.close()}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">{ll.panels.close()}</span>
+            </Button>
           </div>
         </div>
 
@@ -160,6 +186,7 @@ export function SettingsDialog() {
                 {activeTab === 'storage' && <StorageSettingsTab />}
                 {activeTab === 'ai' && <AIProviderSettingsCard className="border-t-0 pt-0" />}
                 {activeTab === 'engine' && <EngineSettingsTab />}
+                {activeTab === 'about' && <AboutSettingsTab />}
               </div>
             </ScrollArea>
           </main>

@@ -15,6 +15,7 @@ import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { PluginSettingsDialog } from '@/components/dialogs/PluginSettingsDialog';
 import { SettingsDialog } from '@/components/settings';
+import { UpdateDialog } from '@/components/dialogs/UpdateDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { ShortcutsDialog } from '@/components/dialogs/ShortcutsDialog';
 import { SearchOverlay } from '@/components/dialogs/SearchOverlay';
@@ -32,6 +33,7 @@ import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDeb
 import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
+import { useUpdateStore } from '@/stores/update';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, Puzzle, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard, Sparkles, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -297,6 +299,17 @@ export function MainLayout() {
       }
     };
   }, [isBottomPanelExpanded]);
+  // 启动后异步静默检查版本更新
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const { autoCheckUpdate } = useSettingsStore.getState();
+      if (autoCheckUpdate) {
+        void useUpdateStore.getState().checkForUpdates(false);
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
@@ -783,6 +796,9 @@ export function MainLayout() {
 
       {/* ===== 全局设置对话框 ===== */}
       <SettingsDialog />
+
+      {/* ===== 版本更新提示对话框 ===== */}
+      <UpdateDialog />
       {/* ===== 全流程搜索面板 ===== */}
 
       {/* ===== AI 助手侧边栏与 Spotlight 弹窗 ===== */}
