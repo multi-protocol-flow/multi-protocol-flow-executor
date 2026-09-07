@@ -48,15 +48,33 @@ export function LeftSidebarPanel() {
 
   useEffect(() => {
     if (!containerRef.current) return;
+    let animationFrameId: number | null = null;
     const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.contentRect.height > 0) {
-          setContainerHeight(entry.contentRect.height);
+      const updateHeight = () => {
+        for (const entry of entries) {
+          const height = entry.contentRect.height;
+          if (height > 0) {
+            setContainerHeight((prev) => (Math.abs(prev - height) > 1 ? height : prev));
+          }
         }
+      };
+
+      if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        if (animationFrameId !== null) {
+          window.cancelAnimationFrame(animationFrameId);
+        }
+        animationFrameId = window.requestAnimationFrame(updateHeight);
+      } else {
+        updateHeight();
       }
     });
     observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    return () => {
+      if (animationFrameId !== null && typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      observer.disconnect();
+    };
   }, []);
 
   // 新建文件夹回调引用
