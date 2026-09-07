@@ -2,7 +2,7 @@
  * globalErrorHandler 测试
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { setupGlobalErrorHandlers } from '@/lib/globalErrorHandler';
+import { setupGlobalErrorHandlers, isResizeObserverLoopError } from '@/lib/globalErrorHandler';
 import * as notifyModule from '@/lib/notify';
 
 vi.mock('@/lib/notify', () => ({
@@ -46,5 +46,36 @@ describe('globalErrorHandler', () => {
       reason,
       expect.objectContaining({ category: 'Runtime' })
     );
+  });
+
+  it('静默忽略 ResizeObserver loop completed with undelivered notifications 错误', () => {
+    setupGlobalErrorHandlers();
+
+    const event = new ErrorEvent('error', {
+      message: 'ResizeObserver loop completed with undelivered notifications.',
+    });
+    window.dispatchEvent(event);
+
+    expect(notifyModule.notifyError).not.toHaveBeenCalled();
+  });
+
+  it('静默忽略 ResizeObserver loop limit exceeded 错误', () => {
+    setupGlobalErrorHandlers();
+
+    const event = new ErrorEvent('error', {
+      message: 'ResizeObserver loop limit exceeded',
+    });
+    window.dispatchEvent(event);
+
+    expect(notifyModule.notifyError).not.toHaveBeenCalled();
+  });
+
+  it('isResizeObserverLoopError 正确识别各种输入形态', () => {
+    expect(isResizeObserverLoopError(null, 'ResizeObserver loop completed with undelivered notifications.')).toBe(true);
+    expect(isResizeObserverLoopError('ResizeObserver loop limit exceeded')).toBe(true);
+    expect(isResizeObserverLoopError(new Error('ResizeObserver loop completed with undelivered notifications.'))).toBe(true);
+    expect(isResizeObserverLoopError({ message: 'ResizeObserver loop limit exceeded' })).toBe(true);
+    expect(isResizeObserverLoopError(new Error('Normal error'))).toBe(false);
+    expect(isResizeObserverLoopError(null, 'Normal error message')).toBe(false);
   });
 });
