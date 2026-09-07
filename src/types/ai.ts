@@ -143,6 +143,24 @@ export interface AIPendingAction {
   createdAt: number;
 }
 
+
+// ============================================================================
+// 项目工作区感知 (Workspace Context)
+// ============================================================================
+
+/**
+ * 本地项目工作区上下文
+ */
+export interface AIWorkspaceContext {
+  /** 本地项目绝对根路径 */
+  path: string;
+  /** 项目目录名称或包名 */
+  name: string;
+  /** 探测到的技术栈（如 "Node.js (Express)", "Go (Gin)", "Python (FastAPI)"） */
+  techStack?: string;
+  /** 检测到的 OpenAPI/Swagger/Proto 文件相对路径 */
+  apiSpecPath?: string;
+}
 // ============================================================================
 // AI 会话管理 (Session Management)
 // ============================================================================
@@ -161,6 +179,8 @@ export interface AISessionMetadata {
   updatedAt: number;
   /** 消息数量 */
   messageCount: number;
+  /** 关联的本地项目工作区 */
+  workspace?: AIWorkspaceContext;
 }
 
 /**
@@ -177,6 +197,8 @@ export interface AISession {
   updatedAt: number;
   /** 该会话的所有消息 */
   messages: AIMessage[];
+  /** 关联的本地项目工作区 */
+  workspace?: AIWorkspaceContext;
 }
 
 // ============================================================================
@@ -199,11 +221,11 @@ export type AIAgentStatus =
 export interface AIState {
   /** 当前活跃会话 ID */
   currentSessionId: string | null;
-  /** 历史会话元数据列表 */
   sessions: AISessionMetadata[];
+  /** 当前关联的本地项目工作区 */
+  activeWorkspace: AIWorkspaceContext | null;
   /** 当前活跃会话的消息记录 */
   messages: AIMessage[];
-  /** Agent 状态机 */
   agentStatus: AIAgentStatus;
   /** 当前正在流式输出的消息 ID */
   activeStreamingMessageId: string | null;

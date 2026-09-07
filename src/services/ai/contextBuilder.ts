@@ -8,6 +8,7 @@ import { useDatasourceStore } from '@/stores/datasource';
 import { useExecutionStore } from '@/stores/execution';
 import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
+import { useAIStore } from '@/stores/ai';
 
 /**
  * 构建系统提示词 (System Prompt)
@@ -204,6 +205,23 @@ When a flow execution fails or the user reports errors/issues:
       `### Autonomous Mode Status:\n**AUTONOMOUS EXECUTION MODE IS CURRENTLY ACTIVE ("执行到底"模式开启)**. The user wants you to drive the task all the way to completion. Continue chaining tools across turns until the full objective is achieved or user confirmation is strictly required.`
     );
   }
+  const activeWorkspace = useAIStore.getState().activeWorkspace;
+  if (activeWorkspace) {
+    parts.push(
+      `### Local Project Workspace Context (<current_project_workspace>):
+The user has linked a local codebase / project workspace to this session:
+- **Project Root Path**: \`${activeWorkspace.path}\`
+- **Project Name**: \`${activeWorkspace.name}\`
+${activeWorkspace.techStack ? `- **Detected Tech Stack**: \`${activeWorkspace.techStack}\`` : ''}
+${activeWorkspace.apiSpecPath ? `- **API Specification File**: \`${activeWorkspace.apiSpecPath}\`` : ''}
+
+**Workspace Exploration & Pipeline Generation Guidelines**:
+1. **API Specification First**: If the user asks to generate test flows or orchestrate endpoints from this project, ALWAYS prioritize checking for OpenAPI / Swagger / Proto specifications using \`inspect_api_spec\` or \`scan_project_structure\`. Directly parse the spec to extract exact routes, HTTP methods, request bodies, and parameters with high precision.
+2. **Code Search & Slice Inspection**: If no API spec exists, invoke \`scan_project_structure\` to inspect project directories (controllers, routes, handlers), use \`search_project_code\` to locate router definitions, and \`read_source_code\` with line ranges to inspect endpoint signatures without blowing context limits.
+3. **Batch Pipeline Orchestration**: Once endpoints are identified, immediately call \`batch_create_pipeline\` to lay out connected flow nodes on the canvas, configure realistic request headers/params, and wire variable extractions or assertions.`
+    );
+  }
+
   const activeLocale = useSettingsStore.getState().locale || 'zh-CN';
   if (activeLocale === 'zh-CN') {
     parts.push(
@@ -307,6 +325,14 @@ export function buildActiveStateSummary(): string {
   const lines: string[] = ['### Current Project & Workspace Context:'];
 
   // 1. 流程基本信息
+  // 0. 关联的本地项目工作区
+  const activeWorkspace = useAIStore.getState().activeWorkspace;
+  if (activeWorkspace) {
+    lines.push(
+      `- **Linked Project Workspace**: "${activeWorkspace.name}" (path: ${activeWorkspace.path}${activeWorkspace.techStack ? `, tech: ${activeWorkspace.techStack}` : ''})`
+    );
+  }
+
   const currentFlow = flowState.flow;
   if (currentFlow) {
     lines.push(`- **Current Flow**:`);

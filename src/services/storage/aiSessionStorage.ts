@@ -142,6 +142,7 @@ export const aiSessionStorage = {
       createdAt: session.createdAt,
       updatedAt: session.updatedAt,
       messageCount: session.messages.length,
+      workspace: session.workspace,
     };
 
     memoryIndex.set(session.id, metadata);

@@ -241,4 +241,30 @@ describe('aiStore', () => {
 
     sendSpy.mockRestore();
   });
+
+  it('setSessionWorkspace 正确设置活跃工作区并持久化至当前会话', async () => {
+    await useAIStore.getState().initSessions();
+    const ws = {
+      path: '/projects/demo-service',
+      name: 'demo-service',
+      techStack: 'Node.js (Express)',
+      apiSpecPath: 'openapi.yaml',
+    };
+
+    useAIStore.getState().setSessionWorkspace(ws);
+    expect(useAIStore.getState().activeWorkspace).toEqual(ws);
+
+    // 验证切换会话或新建会话的行为
+    const currentId = useAIStore.getState().currentSessionId;
+    expect(currentId).toBeDefined();
+
+    // 创建一个新会话，新会话默认无工作区
+    const newSessionId = await useAIStore.getState().createNewSession('新会话');
+    expect(useAIStore.getState().currentSessionId).toBe(newSessionId);
+    expect(useAIStore.getState().activeWorkspace).toBeNull();
+
+    // 切回原会话，工作区自动恢复
+    await useAIStore.getState().switchSession(currentId!);
+    expect(useAIStore.getState().activeWorkspace).toEqual(ws);
+  });
 });

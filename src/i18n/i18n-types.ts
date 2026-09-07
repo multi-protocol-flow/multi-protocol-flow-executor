@@ -12578,6 +12578,22 @@ type RootTranslation = {
 			 * 插​件​列​表
 			 */
 			list_plugins: string
+			/**
+			 * 扫​描​项​目​结​构
+			 */
+			scan_project_structure: string
+			/**
+			 * 检​索​项​目​代​码
+			 */
+			search_project_code: string
+			/**
+			 * 切​片​阅​读​代​码
+			 */
+			read_source_code: string
+			/**
+			 * 解​析​接​口​文​档
+			 */
+			inspect_api_spec: string
 		}
 		code: {
 			/**
@@ -12788,6 +12804,30 @@ type RootTranslation = {
 			 * 开​启​后​ ​A​I​ ​将​自​主​连​续​调​用​工​具​直​至​任​务​目​标​达​成​或​手​动​中​止
 			 */
 			auto_execute_tip: string
+			/**
+			 * 关​联​本​地​项​目
+			 */
+			link_workspace: string
+			/**
+			 * 关​联​本​地​代​码​工​程​，​让​ ​A​I​ ​感​知​项​目​结​构​与​代​码​契​约
+			 */
+			link_workspace_tip: string
+			/**
+			 * 切​换
+			 */
+			switch_workspace: string
+			/**
+			 * 切​换​关​联​的​本​地​项​目​目​录
+			 */
+			switch_workspace_tip: string
+			/**
+			 * 解​除
+			 */
+			unlink_workspace: string
+			/**
+			 * 解​除​与​当​前​工​作​区​的​关​联
+			 */
+			unlink_workspace_tip: string
 			/**
 			 * A​I​ ​请​求​异​常
 			 */
@@ -25215,6 +25255,22 @@ export type TranslationFunctions = {
 			 * 插件列表
 			 */
 			list_plugins: () => LocalizedString
+			/**
+			 * 扫描项目结构
+			 */
+			scan_project_structure: () => LocalizedString
+			/**
+			 * 检索项目代码
+			 */
+			search_project_code: () => LocalizedString
+			/**
+			 * 切片阅读代码
+			 */
+			read_source_code: () => LocalizedString
+			/**
+			 * 解析接口文档
+			 */
+			inspect_api_spec: () => LocalizedString
 		}
 		code: {
 			/**
@@ -25423,6 +25479,30 @@ export type TranslationFunctions = {
 			 * 开启后 AI 将自主连续调用工具直至任务目标达成或手动中止
 			 */
 			auto_execute_tip: () => LocalizedString
+			/**
+			 * 关联本地项目
+			 */
+			link_workspace: () => LocalizedString
+			/**
+			 * 关联本地代码工程，让 AI 感知项目结构与代码契约
+			 */
+			link_workspace_tip: () => LocalizedString
+			/**
+			 * 切换
+			 */
+			switch_workspace: () => LocalizedString
+			/**
+			 * 切换关联的本地项目目录
+			 */
+			switch_workspace_tip: () => LocalizedString
+			/**
+			 * 解除
+			 */
+			unlink_workspace: () => LocalizedString
+			/**
+			 * 解除与当前工作区的关联
+			 */
+			unlink_workspace_tip: () => LocalizedString
 			/**
 			 * AI 请求异常
 			 */

@@ -5,6 +5,7 @@
  */
 
 import { useFlowStore } from '@/stores/flow';
+import { useAIStore } from '@/stores/ai';
 import { useDatasourceStore } from '@/stores/datasource';
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -320,6 +321,40 @@ export function formatToolTitle(
       const ver = cleanName(args.version);
       if (plugin) {
         target = ver ? `"${plugin}" (${ver})` : `"${plugin}"`;
+      }
+      break;
+    }
+
+    // ========================================================================
+    // 5. 工作区感知与代码分析
+    // ========================================================================
+    case 'scan_project_structure': {
+      const dir = cleanName(args.workspace_dir);
+      target = dir || useAIStore.getState().activeWorkspace?.name || undefined;
+      break;
+    }
+
+    case 'search_project_code': {
+      const pattern = cleanName(args.pattern);
+      if (pattern) {
+        target = `/${pattern}/`;
+      }
+      break;
+    }
+
+    case 'read_source_code': {
+      const file = cleanName(args.file_path);
+      const start = args.start_line ? `:${args.start_line}` : '';
+      if (file) {
+        target = `${file}${start}`;
+      }
+      break;
+    }
+
+    case 'inspect_api_spec': {
+      const spec = cleanName(args.file_path);
+      if (spec) {
+        target = `${spec}`;
       }
       break;
     }

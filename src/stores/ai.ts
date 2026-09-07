@@ -7,6 +7,7 @@ import type {
   AIState,
   AIMessage,
   AISession,
+  AIWorkspaceContext,
 } from '@/types/ai';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useSettingsStore } from './settings';
@@ -119,6 +120,12 @@ export interface AIActions {
   renameSession: (sessionId: string, newTitle: string) => Promise<void>;
   /** 删除指定会话 */
   deleteSession: (sessionId: string) => Promise<void>;
+  // ===== 工作区感知 =====
+  /** 设置当前活跃会话关联的本地项目工作区 */
+  setSessionWorkspace: (ws: AIWorkspaceContext | null) => void;
+  /** 打开原生文件选择器关联本地项目目录 */
+  selectWorkspaceFolder: () => Promise<void>;
+
 
   /** 清空当前会话的消息历史 */
   clearMessages: () => void;
@@ -141,6 +148,7 @@ export type AIStore = AIState & AIActions;
 const initialState: AIState = {
   currentSessionId: null,
   sessions: [],
+  activeWorkspace: null,
   messages: [],
   agentStatus: 'idle',
   activeStreamingMessageId: null,
@@ -238,6 +246,48 @@ export const useAIStore = create<AIStore>((set, get) => ({
     set({ autoExecuteToGoal: next });
   },
 
+  setSessionWorkspace: (ws: AIWorkspaceContext | null) => {
+    set({ activeWorkspace: ws });
+    const currentId = get().currentSessionId;
+    if (currentId) {
+      const updatedSessions = get().sessions.map((s) =>
+        s.id === currentId ? { ...s, workspace: ws ?? undefined } : s,
+      );
+      set({ sessions: updatedSessions });
+      aiSessionStorage.loadSession(currentId).then((sess) => {
+        if (sess) {
+          sess.workspace = ws ?? undefined;
+          sess.updatedAt = Date.now();
+          aiSessionStorage.saveSession(sess);
+        }
+      });
+    }
+  },
+
+  selectWorkspaceFolder: async () => {
+    try {
+      // 动态导入以支持 Web 浏览器模拟层与 Vitest 纯 node 测试环境
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({
+        directory: true,
+        multiple: false,
+      });
+      if (!selected || typeof selected !== 'string') {
+        return;
+      }
+      const cleanPath = selected.replace(/[/\\]+$/, '');
+      const segments = cleanPath.split(/[/\\]/);
+      const folderName = segments[segments.length - 1] || 'workspace';
+      const ws: AIWorkspaceContext = {
+        path: selected,
+        name: folderName,
+      };
+      get().setSessionWorkspace(ws);
+    } catch (err) {
+      console.warn('Failed to open workspace folder dialog:', err);
+    }
+  },
+
   initSessions: async () => {
     try {
       const sessionMetas = await aiSessionStorage.listSessions();
@@ -256,6 +306,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
         set({
           sessions: updatedList,
           currentSessionId: newId,
+          activeWorkspace: null,
           messages: [],
         });
       } else {
@@ -265,6 +316,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
         set({
           sessions: sessionMetas,
           currentSessionId: activeId,
+          activeWorkspace: sessionData?.workspace ?? null,
           messages: sessionData ? sessionData.messages : [],
         });
       }
@@ -273,7 +325,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
     }
   },
 
-  createNewSession: async (title?: string) => {
+  createNewSession: async (title?: string, initialWorkspace?: AIWorkspaceContext) => {
     get().stopGeneration();
 
     // 如果当前会话有消息，在创建新会话前保存当前会话进度
@@ -286,6 +338,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
         createdAt: currentMeta ? currentMeta.createdAt : Date.now(),
         updatedAt: Date.now(),
         messages: get().messages,
+        workspace: get().activeWorkspace ?? undefined,
       });
     }
 
@@ -296,6 +349,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
       createdAt: Date.now(),
       updatedAt: Date.now(),
       messages: [],
+      workspace: initialWorkspace,
     };
 
     await aiSessionStorage.saveSession(newSession);
@@ -304,6 +358,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
     set({
       sessions: sessionMetas,
       currentSessionId: newId,
+      activeWorkspace: initialWorkspace ?? null,
       messages: [],
       error: null,
       pendingActions: [],
@@ -327,6 +382,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
         createdAt: currentMeta ? currentMeta.createdAt : Date.now(),
         updatedAt: Date.now(),
         messages: get().messages,
+        workspace: get().activeWorkspace ?? undefined,
       });
     }
 
@@ -350,6 +406,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
     set({
       sessions: latestMetas.length > 0 ? latestMetas : get().sessions,
       currentSessionId: sessionId,
+      activeWorkspace: sessionData.workspace ?? null,
       messages: sessionData.messages || [],
       error: null,
       pendingActions: [],
@@ -378,12 +435,12 @@ export const useAIStore = create<AIStore>((set, get) => ({
         set({
           sessions: remaining,
           currentSessionId: remaining[0].id,
+          activeWorkspace: nextSession?.workspace ?? null,
           messages: nextSession ? nextSession.messages : [],
         });
       } else {
         await get().createNewSession();
       }
-    } else {
       set({ sessions: remaining });
     }
   },
@@ -467,6 +524,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
         title: currentMeta ? currentMeta.title : getLL().ai.copilot.new_session_title(),
         createdAt: currentMeta ? currentMeta.createdAt : Date.now(),
         updatedAt: Date.now(),
+        workspace: get().activeWorkspace ?? undefined,
         messages: get().messages.filter((m) => {
           if (m.role === 'assistant') {
             const hasContent = Boolean(m.content && m.content.trim().length > 0);
@@ -594,6 +652,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
         title: currentMeta ? currentMeta.title : getLL().ai.copilot.new_session_title(),
         createdAt: currentMeta ? currentMeta.createdAt : Date.now(),
         updatedAt: Date.now(),
+        workspace: get().activeWorkspace ?? undefined,
         messages: get().messages.filter((m) => {
           if (m.role === 'assistant') {
             const hasContent = Boolean(m.content && m.content.trim().length > 0);

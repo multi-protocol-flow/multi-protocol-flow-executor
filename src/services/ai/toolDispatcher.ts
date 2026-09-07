@@ -23,6 +23,10 @@ import {
   executionToolDefinitions,
   executionToolHandlers,
 } from './tools/executionTools';
+import {
+  workspaceToolDefinitions,
+  workspaceToolHandlers,
+} from './tools/workspaceTools';
 
 /**
  * 获取所有可供 LLM 调用的工具定义列表
@@ -36,6 +40,7 @@ export function getAllAIToolDefinitions(): AIToolDefinition[] {
     ...pluginToolDefinitions,
     ...envAndSettingsToolDefinitions,
     ...executionToolDefinitions,
+    ...workspaceToolDefinitions,
   ];
 }
 
@@ -141,6 +146,23 @@ const ALL_HANDLERS: Record<
   diagnose_flow_errors: (args) =>
     executionToolHandlers.diagnose_flow_errors(
       args as Parameters<typeof executionToolHandlers.diagnose_flow_errors>[0],
+    ),
+
+  scan_project_structure: (args) =>
+    workspaceToolHandlers.scan_project_structure(
+      args as Parameters<typeof workspaceToolHandlers.scan_project_structure>[0],
+    ),
+  search_project_code: (args) =>
+    workspaceToolHandlers.search_project_code(
+      args as Parameters<typeof workspaceToolHandlers.search_project_code>[0],
+    ),
+  read_source_code: (args) =>
+    workspaceToolHandlers.read_source_code(
+      args as Parameters<typeof workspaceToolHandlers.read_source_code>[0],
+    ),
+  inspect_api_spec: (args) =>
+    workspaceToolHandlers.inspect_api_spec(
+      args as Parameters<typeof workspaceToolHandlers.inspect_api_spec>[0],
     ),
 };
 /**

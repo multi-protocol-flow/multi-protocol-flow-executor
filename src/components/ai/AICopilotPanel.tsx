@@ -29,6 +29,7 @@ import {
   ExternalLink,
   Zap,
   AlertCircle,
+  Folder,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +56,7 @@ export function AICopilotPanel() {
   const {
     sessions,
     currentSessionId,
+    activeWorkspace,
     messages,
     agentStatus,
     activeStreamingMessageId,
@@ -69,6 +71,8 @@ export function AICopilotPanel() {
     setFloatingPosition,
     toggleAutoExecuteToGoal,
     setCopilotOpen,
+    setSessionWorkspace,
+    selectWorkspaceFolder,
     initSessions,
     createNewSession,
     switchSession,
@@ -312,6 +316,21 @@ export function AICopilotPanel() {
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
+
+    // 优先检查是否拖入本地工程文件夹或项目目录
+    const droppedFile = e.dataTransfer.files?.[0] as (File & { path?: string }) | undefined;
+    if (droppedFile?.path && !droppedFile.type.startsWith('image/')) {
+      const filePath = droppedFile.path;
+      const cleanPath = filePath.replace(/[/\\]+$/, '');
+      const segments = cleanPath.split(/[/\\]/);
+      const name = segments[segments.length - 1] || 'workspace';
+      setSessionWorkspace({
+        path: filePath,
+        name,
+      });
+      return;
+    }
+
     const images = await extractImagesFromDrop(e.dataTransfer);
     if (images.length > 0) {
       setAttachedImages((prev) => [...prev, ...images]);
@@ -882,6 +901,55 @@ export function AICopilotPanel() {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
+          {/* 工作区胶囊组件 (Workspace Context Pill) */}
+          <div className="flex items-center justify-between">
+            {!activeWorkspace ? (
+              <button
+                type="button"
+                onClick={() => selectWorkspaceFolder()}
+                className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted/70 rounded-md border border-border/60 transition-colors"
+                title={ll.ai.copilot.link_workspace_tip()}
+              >
+                <Folder className="h-3.5 w-3.5 text-primary/70" />
+                <span>{ll.ai.copilot.link_workspace()}</span>
+              </button>
+            ) : (
+              <div className="w-full flex items-center justify-between text-[11px] bg-primary/5 border border-primary/20 rounded-md px-2 py-1 text-foreground">
+                <div
+                  className="flex items-center gap-1.5 min-w-0 max-w-[240px] truncate cursor-help"
+                  title={`${activeWorkspace.path}${activeWorkspace.techStack ? ` (${activeWorkspace.techStack})` : ''}`}
+                >
+                  <Folder className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="font-medium text-foreground truncate">{activeWorkspace.name}</span>
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{activeWorkspace.path}</span>
+                  {activeWorkspace.techStack && (
+                    <span className="shrink-0 px-1 py-0.2 text-[9px] bg-primary/10 text-primary rounded font-mono">
+                      {activeWorkspace.techStack}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <button
+                    type="button"
+                    onClick={() => selectWorkspaceFolder()}
+                    className="text-[10px] text-muted-foreground hover:text-foreground px-1 py-0.5 rounded hover:bg-muted transition-colors"
+                    title={ll.ai.copilot.switch_workspace_tip()}
+                  >
+                    {ll.ai.copilot.switch_workspace()}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSessionWorkspace(null)}
+                    className="text-muted-foreground hover:text-destructive p-0.5 rounded hover:bg-destructive/10 transition-colors"
+                    title={ll.ai.copilot.unlink_workspace_tip()}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* 图片附件待发预览条 */}
           {attachedImages.length > 0 && (
             <div className="flex flex-wrap gap-2 p-1.5 bg-muted/30 rounded-lg border border-border/50">
