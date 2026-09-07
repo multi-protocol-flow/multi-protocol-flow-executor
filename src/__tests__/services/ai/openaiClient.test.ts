@@ -4,6 +4,7 @@ import {
   streamChatCompletion,
   testConnection,
   fetchModels,
+  SseStreamParser,
 } from '@/services/ai/openaiClient';
 import type { AIProviderConfig, AIMessage } from '@/types/ai';
 
@@ -148,6 +149,64 @@ describe('openaiClient', () => {
       expect(result.thought).toBe('Let me think. Done thinking.');
       expect(result.content).toBe('Here is the answer.');
       expect(thoughtChunks).toEqual(['Let me think.', ' Done thinking.']);
+    });
+
+    it('正确流式提取 delta.content 中的 <think>...</think> 标签', async () => {
+      const ssePayload = [
+        'data: {"choices":[{"delta":{"content":"<think>Let me plan "}}]}\n\n',
+        'data: {"choices":[{"delta":{"content":"the pipeline.</think>I will create "}}]}\n\n',
+        'data: {"choices":[{"delta":{"content":"the nodes."}}]}\n\n',
+        'data: [DONE]\n\n',
+      ].join('');
+
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(ssePayload));
+          controller.close();
+        },
+      });
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        body: stream,
+      });
+
+      const thoughtChunks: string[] = [];
+      const contentChunks: string[] = [];
+      const messages: AIMessage[] = [{ id: '1', role: 'user', content: 'create pipeline', timestamp: Date.now() }];
+      const result = await streamChatCompletion(mockConfig, messages, undefined, {
+        onThoughtChunk: (chunk) => thoughtChunks.push(chunk),
+        onContentChunk: (chunk) => contentChunks.push(chunk),
+      });
+
+      expect(result.thought).toBe('Let me plan the pipeline.');
+      expect(result.content).toBe('I will create the nodes.');
+      expect(thoughtChunks.join('')).toBe('Let me plan the pipeline.');
+      expect(contentChunks.join('')).toBe('I will create the nodes.');
+    });
+
+    it('SseStreamParser 能正确处理跨 chunk 拆分的 <think> 和 </think> 标签', () => {
+      const thoughtChunks: string[] = [];
+      const contentChunks: string[] = [];
+      const parser = new SseStreamParser({
+        onThoughtChunk: (c) => thoughtChunks.push(c),
+        onContentChunk: (c) => contentChunks.push(c),
+      });
+
+      // <think> 拆分在两个 chunk
+      parser.feedChunk('data: {"choices":[{"delta":{"content":"<th"}}]}\n\n');
+      parser.feedChunk('data: {"choices":[{"delta":{"content":"ink>Thinking about "}}]}\n\n');
+      parser.feedChunk('data: {"choices":[{"delta":{"content":"architecture."}}]}\n\n');
+      // </think> 拆分在两个 chunk
+      parser.feedChunk('data: {"choices":[{"delta":{"content":"</th"}}]}\n\n');
+      parser.feedChunk('data: {"choices":[{"delta":{"content":"ink>Here is the plan."}}]}\n\n');
+      parser.feedChunk('data: [DONE]\n\n');
+
+      const result = parser.getResult();
+      expect(result.thought).toBe('Thinking about architecture.');
+      expect(result.content).toBe('Here is the plan.');
+      expect(thoughtChunks.join('')).toBe('Thinking about architecture.');
+      expect(contentChunks.join('')).toBe('Here is the plan.');
     });
 
     it('正确将用户图片组装为 OpenAI Vision 多模态格式', async () => {

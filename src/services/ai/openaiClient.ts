@@ -70,12 +70,45 @@ function buildHeaders(
 }
 
 /**
+ * 辅助检测末尾是否为未闭合的部分起始标签（如 "<", "<t", "<th", "<think"）
+ */
+function findPartialOpenTagIndex(text: string): number {
+  const lastLt = text.lastIndexOf('<');
+  if (lastLt !== -1 && text.length - lastLt < 9) {
+    const candidate = text.slice(lastLt).toLowerCase();
+    if ('<think>'.startsWith(candidate) || '<thought>'.startsWith(candidate)) {
+      return lastLt;
+    }
+  }
+  return -1;
+}
+
+/**
+ * 辅助检测末尾是否为未闭合的部分结束标签（如 "<", "</", "</t", "</th", "</think"）
+ */
+function findPartialCloseTagIndex(text: string): number {
+  const lastLt = text.lastIndexOf('</');
+  if (lastLt !== -1 && text.length - lastLt < 10) {
+    const candidate = text.slice(lastLt).toLowerCase();
+    if ('</think>'.startsWith(candidate) || '</thought>'.startsWith(candidate)) {
+      return lastLt;
+    }
+  }
+  if (text.endsWith('<')) {
+    return text.length - 1;
+  }
+  return -1;
+}
+
+/**
  * SSE 流式数据处理器
  */
-class SseStreamParser {
+export class SseStreamParser {
   private buffer = '';
   private accumulatedContent = '';
   private accumulatedThought = '';
+  private inThinkBlock = false;
+  private pendingTagBuffer = '';
   private toolCallsMap = new Map<
     number,
     { id: string; name: string; arguments: string }
@@ -108,25 +141,21 @@ class SseStreamParser {
           if (choice.finish_reason) {
             this.finishReason = choice.finish_reason;
           }
-
           const delta = choice.delta;
           if (!delta) continue;
 
-          // 1. 处理思考链 / reasoning_content (DeepSeek R1)
+          // 1. 处理思考链 / reasoning_content (DeepSeek R1 / Reasoning API)
           const thoughtChunk =
             delta.reasoning_content || delta.reasoning || delta.thought;
           if (thoughtChunk) {
-            this.accumulatedThought += thoughtChunk;
-            this.callbacks?.onThoughtChunk?.(thoughtChunk);
+            this.appendThought(thoughtChunk);
           }
 
-          // 2. 处理正文文本
+          // 2. 处理正文文本（包含对 <think>...</think> 标签的流式提取）
           const contentChunk = delta.content;
           if (contentChunk) {
-            this.accumulatedContent += contentChunk;
-            this.callbacks?.onContentChunk?.(contentChunk);
+            this.handleContentChunk(contentChunk);
           }
-
           // 3. 处理工具调用 delta
           if (delta.tool_calls && Array.isArray(delta.tool_calls)) {
             for (const tcDelta of delta.tool_calls) {
@@ -171,8 +200,80 @@ class SseStreamParser {
       }
     }
   }
+  private appendContent(text: string) {
+    if (!text) return;
+    this.accumulatedContent += text;
+    this.callbacks?.onContentChunk?.(text);
+  }
+
+  private appendThought(text: string) {
+    if (!text) return;
+    this.accumulatedThought += text;
+    this.callbacks?.onThoughtChunk?.(text);
+  }
+
+  private handleContentChunk(chunk: string) {
+    let text = this.pendingTagBuffer + chunk;
+    this.pendingTagBuffer = '';
+
+    while (text.length > 0) {
+      if (!this.inThinkBlock) {
+        // 处于正文区域：寻找起始标签 <think> 或 <thought>
+        const openMatch = text.match(/<(think|thought)>/i);
+        if (openMatch && openMatch.index !== undefined) {
+          const before = text.slice(0, openMatch.index);
+          this.appendContent(before);
+          text = text.slice(openMatch.index + openMatch[0].length);
+          this.inThinkBlock = true;
+        } else {
+          // 检查末尾是否含有半截起始标签
+          const partialIndex = findPartialOpenTagIndex(text);
+          if (partialIndex !== -1) {
+            const before = text.slice(0, partialIndex);
+            this.appendContent(before);
+            this.pendingTagBuffer = text.slice(partialIndex);
+            text = '';
+          } else {
+            this.appendContent(text);
+            text = '';
+          }
+        }
+      } else {
+        // 处于思考区域：寻找闭合标签 </think> 或 </thought>
+        const closeMatch = text.match(/<\/(think|thought)>/i);
+        if (closeMatch && closeMatch.index !== undefined) {
+          const before = text.slice(0, closeMatch.index);
+          this.appendThought(before);
+          text = text.slice(closeMatch.index + closeMatch[0].length);
+          this.inThinkBlock = false;
+        } else {
+          // 检查末尾是否含有半截闭合标签
+          const partialIndex = findPartialCloseTagIndex(text);
+          if (partialIndex !== -1) {
+            const before = text.slice(0, partialIndex);
+            this.appendThought(before);
+            this.pendingTagBuffer = text.slice(partialIndex);
+            text = '';
+          } else {
+            this.appendThought(text);
+            text = '';
+          }
+        }
+      }
+    }
+  }
 
   getResult(): ChatCompletionResult {
+    // 冲刷残留的标签缓冲区
+    if (this.pendingTagBuffer) {
+      if (this.inThinkBlock) {
+        this.appendThought(this.pendingTagBuffer);
+      } else {
+        this.appendContent(this.pendingTagBuffer);
+      }
+      this.pendingTagBuffer = '';
+    }
+
     const finalToolCalls: AIToolCall[] = Array.from(
       this.toolCallsMap.values(),
     ).map((tc) => ({
