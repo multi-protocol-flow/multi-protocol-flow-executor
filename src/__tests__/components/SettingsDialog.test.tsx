@@ -38,8 +38,11 @@ vi.mock('@/i18n/i18n-lazy', () => ({
       plugin_queue_capacity: () => '插件通信队列容量',
       plugin_queue_capacity_tip: () => '队列深度',
       timeout_presets: () => '快捷预设',
+      preset_recommended: () => '推荐',
       engine_desc: () => '引擎配置',
       plugins_manager_link: () => '打开插件管理',
+      plugins_dir: () => '插件存储目录',
+      plugins_dir_desc: () => '扩展插件保存路径',
       copy_path: () => '复制路径',
       path_copied: () => '路径已复制到剪贴板',
       copy_failed: () => '复制失败',
@@ -81,6 +84,10 @@ vi.mock('@/i18n/i18n-lazy', () => ({
     plugins: {
       settings_title: () => '插件设置',
       source_default: () => '管理插件',
+      source_env: () => '环境变量指定',
+      source_config: () => '配置指定',
+      reload_success: () => '插件已重载',
+      reload_failed: () => '插件重载失败',
     },
     panels: {
       close: () => '关闭',
@@ -132,6 +139,21 @@ describe('PathSettingItem', () => {
     const openBtn = screen.getByTitle('打开目录');
     fireEvent.click(openBtn);
     expect(handleOpen).toHaveBeenCalled();
+  });
+  it('支持渲染徽标与扩展操作按钮', () => {
+    render(
+      <PathSettingItem
+        label="插件目录"
+        description="插件路径"
+        path="/data/plugins"
+        icon={Folder}
+        badge={<span data-testid="test-badge">自定义徽标</span>}
+        extraHeaderAction={<button type="button">管理</button>}
+      />
+    );
+
+    expect(screen.getByTestId('test-badge')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '管理' })).toBeInTheDocument();
   });
 
   it('文件模式下渲染打开文件与打开所在目录按钮', () => {
@@ -195,6 +217,7 @@ describe('SettingsDialog', () => {
     fireEvent.click(storageTabBtn);
 
     expect(screen.getByText('流程保存目录')).toBeInTheDocument();
+    expect(screen.getByText('插件存储目录')).toBeInTheDocument();
     expect(screen.getByText('报告目录')).toBeInTheDocument();
     expect(screen.getByText('日志目录')).toBeInTheDocument();
   });
@@ -209,6 +232,8 @@ describe('SettingsDialog', () => {
     expect(screen.getByText('插件最大并发数')).toBeInTheDocument();
     expect(screen.getByText('插件通信队列容量')).toBeInTheDocument();
     expect(screen.getByText('10s')).toBeInTheDocument();
+    expect(screen.getByText('256 (推荐)')).toBeInTheDocument();
+    expect(screen.getByText('2048 (推荐)')).toBeInTheDocument();
   });
 
   it('切换到 AI Tab 时展示 AI Provider 配置，点击添加 Provider 后展示快速填充预设与正确样式的保存按钮', () => {
@@ -231,5 +256,35 @@ describe('SettingsDialog', () => {
     expect(saveBtn).toBeInTheDocument();
     expect(saveBtn.className).toContain('bg-primary');
     expect(saveBtn.className).toContain('hover:bg-primary/90');
+  });
+
+  it('在引擎 Tab 中点击打开插件管理应关闭全局设置弹窗并打开插件弹窗（消除弹窗叠弹窗）', () => {
+    render(<SettingsDialog />);
+
+    const engineTabBtn = screen.getByText('引擎与性能');
+    fireEvent.click(engineTabBtn);
+
+    const openPluginsBtn = screen.getByRole('button', { name: /打开插件管理/ });
+    fireEvent.click(openPluginsBtn);
+
+    expect(useUIStore.getState().showSettingsDialog).toBe(false);
+    expect(useUIStore.getState().showPluginSettingsDialog).toBe(true);
+  });
+
+  it('在存储 Tab 中点击打开插件管理应关闭全局设置弹窗并打开插件弹窗（消除弹窗叠弹窗）', () => {
+    useUIStore.setState({
+      showSettingsDialog: true,
+      showPluginSettingsDialog: false,
+    });
+    render(<SettingsDialog />);
+
+    const storageTabBtn = screen.getAllByText('存储与路径')[0];
+    fireEvent.click(storageTabBtn);
+
+    const openPluginsBtn = screen.getByRole('button', { name: /打开插件管理/ });
+    fireEvent.click(openPluginsBtn);
+
+    expect(useUIStore.getState().showSettingsDialog).toBe(false);
+    expect(useUIStore.getState().showPluginSettingsDialog).toBe(true);
   });
 });
