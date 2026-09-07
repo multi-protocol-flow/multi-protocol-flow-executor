@@ -7,7 +7,8 @@ const shortcuts: Translation['shortcuts'] = {
   hint: '按 Esc 关闭 · 快捷键使用 Ctrl 修饰（Mac 上为 ⌘）',
   group: {
     edit: '编辑',
-    execute: '执行',
+    execute: '执行与面板',
+    ai: 'AI 助手',
     canvas: '画布',
   },
   undo: '撤销',
@@ -28,6 +29,9 @@ const shortcuts: Translation['shortcuts'] = {
   fitView: '适应画布到窗口',
   focusNodeList: '聚焦到节点列表',
   openShortcuts: '打开快捷键面板',
+  toggleCopilot: '唤起/切换 AI Copilot 侧边栏',
+  toggleSpotlight: '唤起 AI 快捷指令弹窗',
+  searchOverlay: '全流程搜索',
 };
 
 export default shortcuts;

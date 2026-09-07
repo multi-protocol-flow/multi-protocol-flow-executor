@@ -7,7 +7,8 @@ const shortcuts: Translation['shortcuts'] = {
   hint: 'Press Esc to close · Ctrl modifier (⌘ on Mac)',
   group: {
     edit: 'Edit',
-    execute: 'Execute',
+    execute: 'Execution & Panels',
+    ai: 'AI Assistant',
     canvas: 'Canvas',
   },
   undo: 'Undo',
@@ -28,6 +29,9 @@ const shortcuts: Translation['shortcuts'] = {
   fitView: 'Fit canvas to window',
   focusNodeList: 'Focus on node list',
   openShortcuts: 'Open shortcuts panel',
+  toggleCopilot: 'Toggle AI Copilot sidebar',
+  toggleSpotlight: 'Toggle AI Spotlight modal',
+  searchOverlay: 'Global search',
 };
 
 export default shortcuts;

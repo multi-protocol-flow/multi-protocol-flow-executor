@@ -7084,6 +7084,114 @@ type RootTranslation = {
 		 * 已​自​动​同​步
 		 */
 		saved_badge: string
+		/**
+		 * 关​于​与​更​新
+		 */
+		tab_about: string
+		/**
+		 * 查​看​系​统​版​本​信​息​、​更​新​日​志​并​检​查​最​新​软​件​发​布
+		 */
+		about_desc: string
+		/**
+		 * M​P​E​ ​F​l​o​w
+		 */
+		app_name: string
+		/**
+		 * 多​协​议​流​程​编​排​与​执​行​引​擎
+		 */
+		app_subtitle: string
+		/**
+		 * 当​前​版​本
+		 */
+		version_current: string
+		/**
+		 * 最​新​版​本
+		 */
+		version_latest: string
+		/**
+		 * 检​查​更​新
+		 */
+		check_updates: string
+		/**
+		 * 正​在​检​查​更​新​.​.​.
+		 */
+		checking_updates: string
+		/**
+		 * 发​现​新​版​本
+		 */
+		update_available: string
+		/**
+		 * 当​前​已​是​最​新​版​本
+		 */
+		update_already_latest: string
+		/**
+		 * 检​查​更​新​失​败
+		 */
+		update_check_failed: string
+		/**
+		 * 启​动​时​自​动​检​查​更​新
+		 */
+		auto_check_updates: string
+		/**
+		 * 在​应​用​程​序​每​次​启​动​时​在​后​台​静​默​检​查​是​否​有​新​版​本​发​布
+		 */
+		auto_check_updates_desc: string
+		/**
+		 * 接​收​预​发​布​版​本​ ​(​B​e​t​a​ ​/​ ​R​C​)
+		 */
+		include_prerelease: string
+		/**
+		 * 抢​先​体​验​包​含​最​新​特​性​但​可​能​不​够​稳​定​的​测​试​版​本
+		 */
+		include_prerelease_desc: string
+		/**
+		 * 立​即​下​载​更​新
+		 */
+		download_update: string
+		/**
+		 * 正​在​下​载​更​新​包​.​.​.
+		 */
+		downloading_update: string
+		/**
+		 * 下​载​完​成​，​已​准​备​安​装
+		 */
+		download_completed: string
+		/**
+		 * 立​即​安​装​并​重​启
+		 */
+		install_and_restart: string
+		/**
+		 * 正​在​启​动​安​装​程​序​.​.​.
+		 */
+		installing_update: string
+		/**
+		 * 跳​过​此​版​本
+		 */
+		skip_version: string
+		/**
+		 * 稍​后​提​醒
+		 */
+		remind_later: string
+		/**
+		 * 在​浏​览​器​中​下​载
+		 */
+		open_in_browser: string
+		/**
+		 * 查​看​完​整​更​新​日​志
+		 */
+		view_changelog: string
+		/**
+		 * 官​方​网​站
+		 */
+		official_website: string
+		/**
+		 * 开​源​代​码​仓​库
+		 */
+		open_source_repo: string
+		/**
+		 * 运​行​平​台
+		 */
+		system_platform: string
 	}
 	plugins: {
 		/**
@@ -9602,9 +9710,13 @@ type RootTranslation = {
 			 */
 			edit: string
 			/**
-			 * 执​行
+			 * 执​行​与​面​板
 			 */
 			execute: string
+			/**
+			 * A​I​ ​助​手
+			 */
+			ai: string
 			/**
 			 * 画​布
 			 */
@@ -9682,6 +9794,18 @@ type RootTranslation = {
 		 * 打​开​快​捷​键​面​板
 		 */
 		openShortcuts: string
+		/**
+		 * 唤​起​/​切​换​ ​A​I​ ​C​o​p​i​l​o​t​ ​侧​边​栏
+		 */
+		toggleCopilot: string
+		/**
+		 * 唤​起​ ​A​I​ ​快​捷​指​令​弹​窗
+		 */
+		toggleSpotlight: string
+		/**
+		 * 全​流​程​搜​索
+		 */
+		searchOverlay: string
 	}
 	viewer: {
 		common: {
@@ -19896,6 +20020,114 @@ export type TranslationFunctions = {
 		 * 已自动同步
 		 */
 		saved_badge: () => LocalizedString
+		/**
+		 * 关于与更新
+		 */
+		tab_about: () => LocalizedString
+		/**
+		 * 查看系统版本信息、更新日志并检查最新软件发布
+		 */
+		about_desc: () => LocalizedString
+		/**
+		 * MPE Flow
+		 */
+		app_name: () => LocalizedString
+		/**
+		 * 多协议流程编排与执行引擎
+		 */
+		app_subtitle: () => LocalizedString
+		/**
+		 * 当前版本
+		 */
+		version_current: () => LocalizedString
+		/**
+		 * 最新版本
+		 */
+		version_latest: () => LocalizedString
+		/**
+		 * 检查更新
+		 */
+		check_updates: () => LocalizedString
+		/**
+		 * 正在检查更新...
+		 */
+		checking_updates: () => LocalizedString
+		/**
+		 * 发现新版本
+		 */
+		update_available: () => LocalizedString
+		/**
+		 * 当前已是最新版本
+		 */
+		update_already_latest: () => LocalizedString
+		/**
+		 * 检查更新失败
+		 */
+		update_check_failed: () => LocalizedString
+		/**
+		 * 启动时自动检查更新
+		 */
+		auto_check_updates: () => LocalizedString
+		/**
+		 * 在应用程序每次启动时在后台静默检查是否有新版本发布
+		 */
+		auto_check_updates_desc: () => LocalizedString
+		/**
+		 * 接收预发布版本 (Beta / RC)
+		 */
+		include_prerelease: () => LocalizedString
+		/**
+		 * 抢先体验包含最新特性但可能不够稳定的测试版本
+		 */
+		include_prerelease_desc: () => LocalizedString
+		/**
+		 * 立即下载更新
+		 */
+		download_update: () => LocalizedString
+		/**
+		 * 正在下载更新包...
+		 */
+		downloading_update: () => LocalizedString
+		/**
+		 * 下载完成，已准备安装
+		 */
+		download_completed: () => LocalizedString
+		/**
+		 * 立即安装并重启
+		 */
+		install_and_restart: () => LocalizedString
+		/**
+		 * 正在启动安装程序...
+		 */
+		installing_update: () => LocalizedString
+		/**
+		 * 跳过此版本
+		 */
+		skip_version: () => LocalizedString
+		/**
+		 * 稍后提醒
+		 */
+		remind_later: () => LocalizedString
+		/**
+		 * 在浏览器中下载
+		 */
+		open_in_browser: () => LocalizedString
+		/**
+		 * 查看完整更新日志
+		 */
+		view_changelog: () => LocalizedString
+		/**
+		 * 官方网站
+		 */
+		official_website: () => LocalizedString
+		/**
+		 * 开源代码仓库
+		 */
+		open_source_repo: () => LocalizedString
+		/**
+		 * 运行平台
+		 */
+		system_platform: () => LocalizedString
 	}
 	plugins: {
 		/**
@@ -22386,9 +22618,13 @@ export type TranslationFunctions = {
 			 */
 			edit: () => LocalizedString
 			/**
-			 * 执行
+			 * 执行与面板
 			 */
 			execute: () => LocalizedString
+			/**
+			 * AI 助手
+			 */
+			ai: () => LocalizedString
 			/**
 			 * 画布
 			 */
@@ -22466,6 +22702,18 @@ export type TranslationFunctions = {
 		 * 打开快捷键面板
 		 */
 		openShortcuts: () => LocalizedString
+		/**
+		 * 唤起/切换 AI Copilot 侧边栏
+		 */
+		toggleCopilot: () => LocalizedString
+		/**
+		 * 唤起 AI 快捷指令弹窗
+		 */
+		toggleSpotlight: () => LocalizedString
+		/**
+		 * 全流程搜索
+		 */
+		searchOverlay: () => LocalizedString
 	}
 	viewer: {
 		common: {
