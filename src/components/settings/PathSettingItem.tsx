@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from 'react';
+import { useState, type ComponentType, type ReactNode } from 'react';
 import { Copy, Check, FolderOpen, FolderEdit, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -10,6 +10,8 @@ export interface PathSettingItemProps {
   description: string;
   path: string;
   icon: ComponentType<{ className?: string }>;
+  badge?: ReactNode;
+  extraHeaderAction?: ReactNode;
   isFile?: boolean;
   isLoading?: boolean;
   onSelectDirectory?: () => Promise<void> | void;
@@ -22,6 +24,8 @@ export function PathSettingItem({
   description,
   path,
   icon: Icon,
+  badge,
+  extraHeaderAction,
   isFile = false,
   isLoading = false,
   onSelectDirectory,
@@ -71,15 +75,19 @@ export function PathSettingItem({
     <div className="rounded-xl border border-border/60 bg-card p-3.5 space-y-2 transition-all hover:border-border/90">
       {/* 标题与描述 */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <Icon className="h-4 w-4 text-foreground/80" />
           </div>
-          <div>
-            <div className="text-sm font-medium text-foreground leading-snug">{label}</div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-foreground leading-snug">{label}</span>
+              {badge}
+            </div>
             <p className="text-xs text-muted-foreground">{description}</p>
           </div>
         </div>
+        {extraHeaderAction}
       </div>
 
       {/* 一体化路径栏：路径 + 内嵌微动作图标组 */}
