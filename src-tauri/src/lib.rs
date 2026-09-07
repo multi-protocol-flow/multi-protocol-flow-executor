@@ -17,6 +17,7 @@ pub mod gui_ipc;
 mod plugin_protocol;
 mod tauri_adapters;
 mod tauri_commands;
+pub mod updater;
 
 // 导出 flow-engine 的所有公开项
 pub use flow_engine::*;
@@ -38,6 +39,11 @@ pub use tauri_commands::{
     ai_search_code,
     ai_read_code_slice,
     ai_inspect_api_spec,
+    // 应用更新命令
+    get_app_version,
+    check_app_update,
+    download_update_package,
+    install_update_package,
     cancel_dataset_execution,
     // 执行会话管理
     cancel_flow,
@@ -527,6 +533,11 @@ pub fn run() {
             ai_search_code,
             ai_read_code_slice,
             ai_inspect_api_spec,
+            // 应用更新命令
+            get_app_version,
+            check_app_update,
+            download_update_package,
+            install_update_package,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

@@ -116,6 +116,8 @@ pub use flow_engine_plugin::discovery::{PluginScan, ScanEntry, ScanSkipReason};
 // 插件市场客户端 + 安装器（GUI 市场 Tab 与 `mpe plugin install` 共用）
 #[cfg(feature = "plugin-manager")]
 pub use flow_engine_plugin_marketplace;
+#[cfg(feature = "plugin-manager")]
+pub use flow_engine_plugin::semver;
 
 // 数据集执行模块
 pub use flow_engine_executor::csv_parser;

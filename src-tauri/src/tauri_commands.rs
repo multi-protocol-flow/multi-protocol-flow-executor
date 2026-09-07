@@ -2008,6 +2008,50 @@ pub fn ai_inspect_api_spec(file_path: String) -> Result<serde_json::Value, Strin
 }
 
 // ============================================================================
+// 版本检查与更新命令
+// ============================================================================
+
+/// 获取当前应用编译包版本号
+#[tauri::command]
+pub fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+/// 检查应用新版本
+#[tauri::command]
+pub async fn check_app_update(
+    include_prerelease: Option<bool>,
+) -> Result<crate::updater::UpdateCheckResult, String> {
+    let current_version = env!("CARGO_PKG_VERSION");
+    crate::updater::check_for_update(current_version, include_prerelease).await
+}
+
+/// 下载安装包并通过 `app-update-progress` 事件实时推送下载进度
+#[tauri::command]
+pub async fn download_update_package(
+    app: tauri::AppHandle,
+    url: String,
+) -> Result<String, String> {
+    use tauri::Emitter;
+    let app_clone = app.clone();
+    let file_path: std::path::PathBuf = crate::updater::download_update_package(&url, move |progress| {
+        let _ = app_clone.emit("app-update-progress", progress);
+    })
+    .await?;
+    Ok(file_path.display().to_string())
+}
+
+/// 执行下载好的安装包，并在 Windows 上退出主程序完成覆盖安装
+#[tauri::command]
+pub fn install_update_package(
+    app: tauri::AppHandle,
+    file_path: String,
+) -> Result<(), String> {
+    let path = std::path::Path::new(&file_path);
+    crate::updater::launch_installer(path, &app)
+}
+
+// ============================================================================
 // 单元测试
 // ============================================================================
 
