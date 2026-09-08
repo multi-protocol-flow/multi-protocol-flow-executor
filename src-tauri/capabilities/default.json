@@ -17,7 +17,10 @@
       "identifier": "opener:allow-open-url",
       "allow": [
         { "url": "https://github.com/**" },
-        { "url": "https://docs.rs/**" }
+        { "url": "https://docs.rs/**" },
+        { "url": "https://bellard.org/**" },
+        { "url": "https://262.ecma-international.org/**" },
+        { "url": "https://mpe.run/**" }
       ]
     },
     "store:default",
