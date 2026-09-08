@@ -89,7 +89,8 @@ describe('NodeConfigPanel', () => {
       const state = {
         getSelectedNode: vi.fn(() => null),
         updateNode: mockUpdateNode,
-        nodes: [],
+        flow: mockFlow,
+        nodes: mockFlow.nodes,
         connections: [],
       };
       return selector ? selector(state) : state;
@@ -101,13 +102,12 @@ describe('NodeConfigPanel', () => {
   });
 
   describe('空状态', () => {
-    it('当没有选中节点且非只读模式时显示流程节点列表', () => {
+    it('当没有选中节点且非只读模式时显示流程属性面板', () => {
       render(<NodeConfigPanel />);
 
-      // FlowNodeList 组件显示"流程节点"标题
-      expect(screen.getByText('流程节点')).toBeDefined();
-      // 无节点时显示"暂无节点"
-      expect(screen.getByText('暂无节点')).toBeDefined();
+      // FlowConfigPanel 组件显示"流程属性"标题
+      expect(screen.getByText('流程属性')).toBeDefined();
+      expect(screen.getByDisplayValue(mockFlow.name)).toBeDefined();
     });
 
     it('当没有选中节点且为只读模式时显示调试模式提示', () => {
@@ -144,7 +144,7 @@ describe('NodeConfigPanel', () => {
       currentSelected = null;
       rerender(<NodeConfigPanel />);
       await waitFor(() => {
-        expect(screen.getByText('流程节点')).toBeDefined();
+        expect(screen.getByText('流程属性')).toBeDefined();
       });
     });
   });

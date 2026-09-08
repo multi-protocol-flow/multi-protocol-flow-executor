@@ -356,12 +356,20 @@ export function MainLayout() {
 
           {/* 当前流程名称 */}
           {flow && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent border border-border">
-              <span className="text-sm text-muted-foreground">{flow.name}</span>
+            <button
+              type="button"
+              onClick={() => {
+                useFlowStore.getState().selectNode(null);
+                useUIStore.getState().setConfigPanelOpen(true);
+              }}
+              className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent border border-border hover:bg-accent/80 hover:border-primary/40 transition-colors cursor-pointer text-left"
+              title={getLL().flow.flow_properties()}
+            >
+              <span className="text-sm text-muted-foreground hover:text-foreground transition-colors">{flow.name}</span>
               {isDirty && (
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title={getLL().flow.unsaved()} />
               )}
-            </div>
+            </button>
           )}
         </div>
 

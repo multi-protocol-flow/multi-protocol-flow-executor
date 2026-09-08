@@ -83,7 +83,7 @@ function mergeNodeDataReplace<T extends Record<string, unknown>>(original: T, up
 }
 import { useFlowStore, useDebugStore, selectHistoryVersion, selectNodes } from '@/stores';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
-import { FlowNodeList } from './FlowNodeList';
+import { FlowConfigPanel } from './FlowConfigPanel';
 import { getPanelLoader, isSchemaDriven } from '@/lib/configPanelRegistry';
 import { SchemaConfigPanel } from '@/components/panels/SchemaConfigPanel';
 import { Button } from '@/components/ui/button';
@@ -230,7 +230,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
     });
   }, [selectedNode?.name]);
 
-  // 未选中节点时显示流程节点列表
+  // 未选中节点时显示流程属性面板
   if (!selectedNode) {
     if (readOnly) {
       return (
@@ -247,7 +247,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
         </div>
       );
     }
-    return <FlowNodeList />;
+    return <FlowConfigPanel />;
   }
 
   // 冻结节点 UUID，防止快速切换节点时闭包捕获到过时的节点

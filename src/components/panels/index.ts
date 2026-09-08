@@ -4,6 +4,7 @@
 
 // 主组件
 export { NodeConfigPanel } from './NodeConfigPanel';
+export { FlowConfigPanel } from './FlowConfigPanel';
 
 // 变量面板
 export { VariablePanel } from './VariablePanel';
