@@ -177,7 +177,6 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
         'relative px-4 py-2 rounded-xl',
         'border-2 border-border',
         'bg-background',
-        'transition-transform duration-200 ease-out',
         'w-fit min-w-[180px] max-w-[400px]',
         'flex items-center',
         selected && 'border-[3px] border-slate-500',

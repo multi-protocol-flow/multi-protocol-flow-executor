@@ -369,7 +369,7 @@ export function NodePalette() {
     <>
       {/* 半透明遮罩 */}
       <div
-        className="fixed inset-0 z-[60] bg-black/25 backdrop-blur-[1px] cursor-default"
+        className="fixed inset-0 z-[60] bg-black/20 cursor-default"
         onClick={closePalette}
       />
 
@@ -379,7 +379,7 @@ export function NodePalette() {
         onKeyDown={handleKeyDown}
         className={cn(
           'z-[70] flex flex-col',
-          'bg-background/95 backdrop-blur-md rounded-2xl',
+          'bg-background rounded-2xl',
           'shadow-2xl border border-border/60',
           'animate-in fade-in-0 zoom-in-95 duration-150',
           'overflow-hidden select-none',

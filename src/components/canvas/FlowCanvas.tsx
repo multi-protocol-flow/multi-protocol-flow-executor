@@ -165,12 +165,6 @@ const CANVAS_STYLE_STRING = `
   .react-flow__node.dragging * {
     cursor: url("${GRABBING_CURSOR_SVG}") 8 8, grabbing !important;
   }
-  .react-flow__node:not(.dragging) {
-    transition: transform 300ms ease-out;
-  }
-  .react-flow__node.dragging {
-    transition: none !important;
-  }
   .react-flow__node {
     /* contain: paint 会裁剪溢出内容（包括节点出入口圆圈），所以只保留 layout style */
     contain: layout style;

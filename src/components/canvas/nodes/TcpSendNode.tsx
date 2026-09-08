@@ -36,7 +36,6 @@ export const TcpSendNode = memo(function TcpSendNode({ id, data, selected }: Nod
         'relative px-4 py-2 rounded-xl',
         'border-2 border-border',
         'bg-background',
-        'transition-transform duration-200 ease-out',
         'w-[180px]',
         'flex items-center',
         selected && 'border-[3px] border-emerald-500',

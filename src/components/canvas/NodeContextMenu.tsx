@@ -225,7 +225,7 @@ export function NodeContextMenu({
       ref={menuRef}
       className={cn(
         'fixed z-50 min-w-[160px]',
-        'bg-background/95 backdrop-blur-xl',
+        'bg-background',
         'rounded-lg shadow-xl',
         'border border-border/50 dark:border-white/20',
         'py-1',
