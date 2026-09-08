@@ -390,8 +390,8 @@ function DatasourceEntry({
                 {(!isSingle || conn.name) && (
                   <div
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-1 cursor-pointer select-none text-xs hover:bg-accent/50 transition-colors',
-                      !isSingle ? 'font-medium text-foreground' : 'text-muted-foreground'
+                      'flex items-center gap-1.5 h-8 px-2.5 rounded-md cursor-pointer select-none text-[13px] transition-colors',
+                      expanded ? 'bg-accent/20 hover:bg-accent/40 font-medium text-foreground' : 'hover:bg-accent/30 text-muted-foreground',
                     )}
                     onClick={() => toggleConnExpanded(conn.id)}
                   >
@@ -814,26 +814,31 @@ function GroupFolderItem({
     <div>
       <button
         type="button"
-        className="w-full flex items-center gap-1.5 px-3 py-1 text-left text-xs text-foreground hover:bg-accent font-medium select-none"
+        className={cn(
+          'w-full flex items-center gap-1.5 h-8.5 px-2.5 rounded-md text-left text-[13px] transition-colors select-none',
+          isOpen
+            ? 'bg-accent/40 hover:bg-accent/60 text-foreground font-semibold'
+            : 'hover:bg-accent/50 text-foreground/85 font-medium',
+        )}
         onClick={() => onToggle(node.fullPath)}
       >
         {isOpen ? (
-          <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         ) : (
-          <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         )}
         {isOpen ? (
-          <FolderOpen className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          <FolderOpen className="w-4 h-4 text-amber-500 shrink-0" />
         ) : (
-          <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          <Folder className="w-4 h-4 text-amber-500 shrink-0" />
         )}
         <span className="truncate flex-1">{node.name}</span>
-        <span className="text-[10px] text-muted-foreground font-mono">
+        <span className="text-xs text-muted-foreground/75 font-mono shrink-0 tabular-nums">
           {`(${node.totalCount})`}
         </span>
       </button>
       {isOpen && (
-        <div className="pl-3">
+        <div className="pl-3.5 ml-2 border-l border-border/40 space-y-0.5 mt-0.5">
           {node.children.map((child) => (
             <GroupFolderItem
               key={child.id}
@@ -927,12 +932,11 @@ function ResourceLevel({
     <div>
       {/* 资源层级头（仅顶层展示；子级作为分组内容渲染） */}
       {parentId === null && (
-        <div className="px-3 pt-1 pb-0.5 text-xs text-muted-foreground flex items-center gap-1">
+        <div className="px-2.5 pt-2 pb-1 text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider flex items-center gap-1">
           <span className="truncate">{resource.label}</span>
           {loading && !cached && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
         </div>
       )}
-
       {/* 叶子节点按多级嵌套分组展示 */}
       {displayedGroupTree ? (
         displayedGroupTree.map((node) => (
@@ -973,7 +977,12 @@ function ResourceLevel({
               <button
                 type="button"
                 title={item.extra.length > 0 ? `${item.name}\n${item.extra.map((kv) => `${kv.label}: ${kv.value}`).join(' · ')}` : item.name}
-                className="w-full flex items-center gap-1.5 px-3 py-1 text-left text-sm text-foreground hover:bg-accent font-medium select-none"
+                className={cn(
+                  'w-full flex items-center gap-1.5 h-8.5 px-2.5 rounded-md text-left text-[13px] transition-colors select-none',
+                  isExpanded
+                    ? 'bg-accent/40 hover:bg-accent/60 text-foreground font-semibold'
+                    : 'hover:bg-accent/50 text-foreground/85 font-medium',
+                )}
                 onClick={() => {
                   const next = !isExpanded;
                   setExpanded((prev) => ({ ...prev, [item.id]: next }));
@@ -993,14 +1002,14 @@ function ResourceLevel({
                   <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 )}
                 {isExpanded ? (
-                  <FolderOpen className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <FolderOpen className="w-4 h-4 text-primary shrink-0" />
                 ) : (
-                  <Folder className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <Folder className="w-4 h-4 text-primary shrink-0" />
                 )}
                 <span className="truncate flex-1">{item.name}</span>
               </button>
               {isExpanded && (
-                <div className="pl-3">
+                <div className="pl-3.5 ml-2 border-l border-border/40 space-y-0.5 mt-0.5">
                   <ResourceLevel
                     ds={ds}
                     conn={conn}
@@ -1110,17 +1119,19 @@ function ItemRow({
       onDragStart={handleDragStart}
       onClick={() => onSelect(ds, item, conn)}
       title={tooltipText}
-      className="group flex items-center gap-1.5 px-3 py-1 cursor-pointer hover:bg-accent rounded-sm select-none transition-colors"
+      className="group flex items-center gap-2 h-8 px-2.5 cursor-pointer hover:bg-accent/60 rounded-md select-none transition-colors"
     >
-      <Icon className={cn('w-3.5 h-3.5 shrink-0', PROTOCOL_COLOR_MAP[item.protocol] ?? 'text-slate-500')} />
+      <Icon className={cn('w-4 h-4 shrink-0', PROTOCOL_COLOR_MAP[item.protocol] ?? 'text-slate-500')} />
       {item.method && (
-        <Badge variant="secondary" className="h-4 px-1 text-[10px] font-mono shrink-0">
+        <Badge variant="secondary" className="h-4.5 px-1.5 text-[10px] font-mono shrink-0 leading-none">
           {item.method}
         </Badge>
       )}
-      <span className="min-w-0 truncate text-sm text-foreground flex-1">{item.name}</span>
+      <span className="min-w-0 truncate text-[13px] text-foreground/90 group-hover:text-foreground flex-1">{item.name}</span>
       <Button
         variant="ghost"
+        size="icon"
+        className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={(e) => {
           e.stopPropagation();
           onSelect(ds, item, conn);
