@@ -1271,6 +1271,50 @@ type RootTranslation = {
 			 * 复​制​失​败
 			 */
 			curlCopyFailed: string
+			/**
+			 * H​e​a​d​e​r
+			 */
+			tabHeaders: string
+			/**
+			 * 请​求​体
+			 */
+			tabBody: string
+			/**
+			 * 认​证
+			 */
+			tabAuth: string
+			/**
+			 * 设​置
+			 */
+			tabSettings: string
+			/**
+			 * 当​前​请​求​不​携​带​ ​B​o​d​y​ ​内​容
+			 */
+			noBodyHelp: string
+			/**
+			 * 当​前​请​求​不​使​用​附​加​认​证
+			 */
+			noAuthHelp: string
+			/**
+			 * 格​式​化
+			 */
+			formatJson: string
+			/**
+			 * 格​式​化​ ​J​S​O​N
+			 */
+			formatJsonTitle: string
+			/**
+			 * J​S​O​N​ ​已​格​式​化
+			 */
+			formatJsonSuccess: string
+			/**
+			 * 当​前​内​容​不​是​合​法​的​ ​J​S​O​N​，​无​法​格​式​化
+			 */
+			formatJsonError: string
+			/**
+			 * 发​送​时​将​自​动​附​加​请​求​头​:​ ​A​u​t​h​o​r​i​z​a​t​i​o​n​:​ ​B​e​a​r​e​r​ ​<​T​o​k​e​n​>
+			 */
+			authBearerNotice: string
 		}
 		script: {
 			/**
@@ -14284,6 +14328,50 @@ export type TranslationFunctions = {
 			 * 复制失败
 			 */
 			curlCopyFailed: () => LocalizedString
+			/**
+			 * Header
+			 */
+			tabHeaders: () => LocalizedString
+			/**
+			 * 请求体
+			 */
+			tabBody: () => LocalizedString
+			/**
+			 * 认证
+			 */
+			tabAuth: () => LocalizedString
+			/**
+			 * 设置
+			 */
+			tabSettings: () => LocalizedString
+			/**
+			 * 当前请求不携带 Body 内容
+			 */
+			noBodyHelp: () => LocalizedString
+			/**
+			 * 当前请求不使用附加认证
+			 */
+			noAuthHelp: () => LocalizedString
+			/**
+			 * 格式化
+			 */
+			formatJson: () => LocalizedString
+			/**
+			 * 格式化 JSON
+			 */
+			formatJsonTitle: () => LocalizedString
+			/**
+			 * JSON 已格式化
+			 */
+			formatJsonSuccess: () => LocalizedString
+			/**
+			 * 当前内容不是合法的 JSON，无法格式化
+			 */
+			formatJsonError: () => LocalizedString
+			/**
+			 * 发送时将自动附加请求头: Authorization: Bearer <Token>
+			 */
+			authBearerNotice: () => LocalizedString
 		}
 		script: {
 			/**

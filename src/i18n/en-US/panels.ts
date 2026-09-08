@@ -176,6 +176,17 @@ const en_US_panels = {
     curlCopyButton: 'Copy as cURL',
     curlCopySuccess: 'cURL command copied to clipboard',
     curlCopyFailed: 'Copy failed',
+    tabHeaders: 'Header',
+    tabBody: 'Body',
+    tabAuth: 'Auth',
+    tabSettings: 'Settings',
+    noBodyHelp: 'No body content for this request',
+    noAuthHelp: 'No authentication used for this request',
+    formatJson: 'Prettify',
+    formatJsonTitle: 'Prettify JSON',
+    formatJsonSuccess: 'JSON formatted successfully',
+    formatJsonError: 'Invalid JSON content, unable to format',
+    authBearerNotice: 'Will automatically attach header: Authorization: Bearer <Token>',
   },
 
   script: {

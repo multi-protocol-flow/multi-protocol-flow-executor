@@ -178,6 +178,17 @@ const zh_CN_panels: BaseTranslation = {
     curlCopyButton: '复制为 cURL 命令',
     curlCopySuccess: 'cURL 命令已复制到剪贴板',
     curlCopyFailed: '复制失败',
+    tabHeaders: 'Header',
+    tabBody: '请求体',
+    tabAuth: '认证',
+    tabSettings: '设置',
+    noBodyHelp: '当前请求不携带 Body 内容',
+    noAuthHelp: '当前请求不使用附加认证',
+    formatJson: '格式化',
+    formatJsonTitle: '格式化 JSON',
+    formatJsonSuccess: 'JSON 已格式化',
+    formatJsonError: '当前内容不是合法的 JSON，无法格式化',
+    authBearerNotice: '发送时将自动附加请求头: Authorization: Bearer <Token>',
   },
 
   script: {
