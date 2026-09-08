@@ -151,3 +151,40 @@ describe('HttpConfig - 样式测试', () => {
     expect(urlInput.className).toContain('flex');
   });
 });
+
+describe('HttpConfig - 现代化布局与交互', () => {
+  const mockOnSave = vi.fn();
+  const defaultData: HttpConfigType = {
+    type: 'http',
+    url: 'https://api.example.com',
+    method: 'get',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('应该渲染 4 个分类 Tab', () => {
+    render(<HttpConfig data={defaultData} onSave={mockOnSave} />);
+
+    expect(screen.getByRole('tab', { name: /header/i })).toBeDefined();
+    expect(screen.getByRole('tab', { name: /请求体|body/i })).toBeDefined();
+    expect(screen.getByRole('tab', { name: /认证/i })).toBeDefined();
+    expect(screen.getByRole('tab', { name: /设置/i })).toBeDefined();
+  });
+
+  it('顶部控制栏应该包含 cURL 导入与复制按钮', () => {
+    render(<HttpConfig data={defaultData} onSave={mockOnSave} />);
+
+    expect(screen.getByTitle('导入 cURL')).toBeDefined();
+    expect(screen.getByTitle('复制为 cURL 命令')).toBeDefined();
+  });
+
+  it('Headers 页面应显示快捷添加芯片', () => {
+    render(<HttpConfig data={defaultData} onSave={mockOnSave} />);
+
+    expect(screen.getByRole('button', { name: /Content-Type/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Authorization/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Accept/i })).toBeDefined();
+  });
+});
