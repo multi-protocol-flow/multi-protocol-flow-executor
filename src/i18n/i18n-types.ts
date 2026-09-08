@@ -9224,6 +9224,58 @@ type RootTranslation = {
 		 */
 		flow_info_expand: string
 		/**
+		 * 流​程​属​性
+		 */
+		flow_properties: string
+		/**
+		 * 流​程​名​称
+		 */
+		flow_name: string
+		/**
+		 * 流​程​初​始​变​量
+		 */
+		flow_variables: string
+		/**
+		 * 流​程​执​行​时​的​全​局​初​始​变​量​键​值​对
+		 */
+		flow_variables_desc: string
+		/**
+		 * 暂​无​流​程​变​量
+		 */
+		flow_variables_empty: string
+		/**
+		 * 流​程​概​况
+		 */
+		flow_summary: string
+		/**
+		 * 流​程​ ​I​D
+		 */
+		flow_uuid: string
+		/**
+		 * 节​点​数
+		 */
+		node_count_label: string
+		/**
+		 * 连​线​数
+		 */
+		connection_count_label: string
+		/**
+		 * 管​理​环​境
+		 */
+		manage_environments_btn: string
+		/**
+		 * 添​加​变​量
+		 */
+		add_variable_btn: string
+		/**
+		 * 变​量​名
+		 */
+		var_name_placeholder: string
+		/**
+		 * 值​ ​(​支​持​ ​J​S​O​N​ ​或​字​符​串​)
+		 */
+		var_value_placeholder: string
+		/**
 		 * 流​程​验​证​未​通​过
 		 */
 		validation_error_title: string
@@ -22363,6 +22415,58 @@ export type TranslationFunctions = {
 		 * 展开
 		 */
 		flow_info_expand: () => LocalizedString
+		/**
+		 * 流程属性
+		 */
+		flow_properties: () => LocalizedString
+		/**
+		 * 流程名称
+		 */
+		flow_name: () => LocalizedString
+		/**
+		 * 流程初始变量
+		 */
+		flow_variables: () => LocalizedString
+		/**
+		 * 流程执行时的全局初始变量键值对
+		 */
+		flow_variables_desc: () => LocalizedString
+		/**
+		 * 暂无流程变量
+		 */
+		flow_variables_empty: () => LocalizedString
+		/**
+		 * 流程概况
+		 */
+		flow_summary: () => LocalizedString
+		/**
+		 * 流程 ID
+		 */
+		flow_uuid: () => LocalizedString
+		/**
+		 * 节点数
+		 */
+		node_count_label: () => LocalizedString
+		/**
+		 * 连线数
+		 */
+		connection_count_label: () => LocalizedString
+		/**
+		 * 管理环境
+		 */
+		manage_environments_btn: () => LocalizedString
+		/**
+		 * 添加变量
+		 */
+		add_variable_btn: () => LocalizedString
+		/**
+		 * 变量名
+		 */
+		var_name_placeholder: () => LocalizedString
+		/**
+		 * 值 (支持 JSON 或字符串)
+		 */
+		var_value_placeholder: () => LocalizedString
 		/**
 		 * 流程验证未通过
 		 */

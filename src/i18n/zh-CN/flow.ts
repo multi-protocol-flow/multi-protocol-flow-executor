@@ -425,6 +425,20 @@ const zh_CN_flow: BaseTranslation = {
   flow_info_collapse: '收起',
   flow_info_expand: '展开',
 
+  // 流程属性面板
+  flow_properties: '流程属性',
+  flow_name: '流程名称',
+  flow_variables: '流程初始变量',
+  flow_variables_desc: '流程执行时的全局初始变量键值对',
+  flow_variables_empty: '暂无流程变量',
+  flow_summary: '流程概况',
+  flow_uuid: '流程 ID',
+  node_count_label: '节点数',
+  connection_count_label: '连线数',
+  manage_environments_btn: '管理环境',
+  add_variable_btn: '添加变量',
+  var_name_placeholder: '变量名',
+  var_value_placeholder: '值 (支持 JSON 或字符串)',
   // 流程验证
   validation_error_title: '流程验证未通过',
   validation_error_desc: '该流程存在以下验证问题，请修复后再操作',

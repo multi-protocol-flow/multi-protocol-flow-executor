@@ -425,6 +425,20 @@ const en_US_flow = {
   flow_info_collapse: 'Collapse',
   flow_info_expand: 'Expand',
 
+  // Flow properties panel
+  flow_properties: 'Flow Properties',
+  flow_name: 'Flow Name',
+  flow_variables: 'Initial Variables',
+  flow_variables_desc: 'Global initial key-value variables for execution',
+  flow_variables_empty: 'No flow variables',
+  flow_summary: 'Flow Summary',
+  flow_uuid: 'Flow ID',
+  node_count_label: 'Nodes',
+  connection_count_label: 'Connections',
+  manage_environments_btn: 'Manage Environments',
+  add_variable_btn: 'Add Variable',
+  var_name_placeholder: 'Variable name',
+  var_value_placeholder: 'Value (JSON or string)',
   // Flow validation
   validation_error_title: 'Flow Validation Failed',
   validation_error_desc: 'The flow has the following validation issues. Please fix them before proceeding.',
