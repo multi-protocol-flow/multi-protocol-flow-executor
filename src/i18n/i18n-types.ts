@@ -7049,6 +7049,50 @@ type RootTranslation = {
 		 */
 		tab_engine: string
 		/**
+		 * 快​捷​键​与​手​册
+		 */
+		tab_shortcuts: string
+		/**
+		 * 查​看​系​统​快​捷​键​列​表​、​Q​u​i​c​k​J​S​ ​脚​本​函​数​及​动​态​变​量​参​考​手​册
+		 */
+		shortcuts_desc: string
+		/**
+		 * 内​置​开​发​手​册​与​参​考
+		 */
+		manuals_section_title: string
+		/**
+		 * 内​置​函​数​沙​箱​与​全​局​动​态​变​量​字​典​，​可​在​流​程​编​排​的​各​节​点​中​直​接​调​用
+		 */
+		manuals_section_desc: string
+		/**
+		 * 脚​本​函​数​ ​A​P​I​ ​参​考
+		 */
+		open_script_manual: string
+		/**
+		 * 查​看​ ​Q​u​i​c​k​J​S​ ​沙​箱​中​可​用​的​ ​f​n​.​v​a​r​i​a​b​l​e​s​,​ ​f​n​.​r​e​s​p​o​n​s​e​,​ ​f​n​.​f​l​o​w​,​ ​f​n​.​e​x​p​e​c​t​ ​等​内​置​ ​A​P​I
+		 */
+		open_script_manual_desc: string
+		/**
+		 * 动​态​变​量​参​考​手​册
+		 */
+		open_dynamic_vars_manual: string
+		/**
+		 * 查​看​全​流​程​支​持​的​内​置​动​态​变​量​（​如​ ​$​g​u​i​d​,​ ​$​t​i​m​e​s​t​a​m​p​ ​等​）​及​其​实​时​示​例
+		 */
+		open_dynamic_vars_manual_desc: string
+		/**
+		 * 帮​助​与​参​考
+		 */
+		header_help_title: string
+		/**
+		 * 打​开​完​整​手​册
+		 */
+		open_in_dialog: string
+		/**
+		 * 查​看​所​有​快​捷​键
+		 */
+		view_all_shortcuts: string
+		/**
 		 * 全​局​设​置
 		 */
 		dialog_title: string
@@ -8247,7 +8291,7 @@ type RootTranslation = {
 		 */
 		script_help_quickjs_doc: string
 		/**
-		 * E​S​6​ ​入​门​教​程
+		 * E​S​6​ ​规​范
 		 */
 		script_help_es6_tutorial: string
 		/**
@@ -8258,6 +8302,26 @@ type RootTranslation = {
 		 * 查​看​动​态​变​量​手​册
 		 */
 		script_help_dynamic_vars_link: string
+		/**
+		 * 支​持​动​态​变​量​如
+		 */
+		script_help_dynamic_vars_support: string
+		/**
+		 * /​/​ ​动​态​变​量​与​模​板​插​值
+		 */
+		script_comment_dynamic_vars: string
+		/**
+		 * /​/​ ​任​意​节​点​类​型​ ​—​ ​获​取​完​整​输​出
+		 */
+		script_comment_all_nodes: string
+		/**
+		 * /​/​ ​H​T​T​P​ ​节​点​（​向​下​兼​容​）
+		 */
+		script_comment_http_node: string
+		/**
+		 * 请​求​失​败​:​ 
+		 */
+		script_error_request_failed: string
 		/**
 		 * 概​述
 		 */
@@ -20070,6 +20134,50 @@ export type TranslationFunctions = {
 		 */
 		tab_engine: () => LocalizedString
 		/**
+		 * 快捷键与手册
+		 */
+		tab_shortcuts: () => LocalizedString
+		/**
+		 * 查看系统快捷键列表、QuickJS 脚本函数及动态变量参考手册
+		 */
+		shortcuts_desc: () => LocalizedString
+		/**
+		 * 内置开发手册与参考
+		 */
+		manuals_section_title: () => LocalizedString
+		/**
+		 * 内置函数沙箱与全局动态变量字典，可在流程编排的各节点中直接调用
+		 */
+		manuals_section_desc: () => LocalizedString
+		/**
+		 * 脚本函数 API 参考
+		 */
+		open_script_manual: () => LocalizedString
+		/**
+		 * 查看 QuickJS 沙箱中可用的 fn.variables, fn.response, fn.flow, fn.expect 等内置 API
+		 */
+		open_script_manual_desc: () => LocalizedString
+		/**
+		 * 动态变量参考手册
+		 */
+		open_dynamic_vars_manual: () => LocalizedString
+		/**
+		 * 查看全流程支持的内置动态变量（如 $guid, $timestamp 等）及其实时示例
+		 */
+		open_dynamic_vars_manual_desc: () => LocalizedString
+		/**
+		 * 帮助与参考
+		 */
+		header_help_title: () => LocalizedString
+		/**
+		 * 打开完整手册
+		 */
+		open_in_dialog: () => LocalizedString
+		/**
+		 * 查看所有快捷键
+		 */
+		view_all_shortcuts: () => LocalizedString
+		/**
 		 * 全局设置
 		 */
 		dialog_title: () => LocalizedString
@@ -21256,7 +21364,7 @@ export type TranslationFunctions = {
 		 */
 		script_help_quickjs_doc: () => LocalizedString
 		/**
-		 * ES6 入门教程
+		 * ES6 规范
 		 */
 		script_help_es6_tutorial: () => LocalizedString
 		/**
@@ -21267,6 +21375,26 @@ export type TranslationFunctions = {
 		 * 查看动态变量手册
 		 */
 		script_help_dynamic_vars_link: () => LocalizedString
+		/**
+		 * 支持动态变量如
+		 */
+		script_help_dynamic_vars_support: () => LocalizedString
+		/**
+		 * // 动态变量与模板插值
+		 */
+		script_comment_dynamic_vars: () => LocalizedString
+		/**
+		 * // 任意节点类型 — 获取完整输出
+		 */
+		script_comment_all_nodes: () => LocalizedString
+		/**
+		 * // HTTP 节点（向下兼容）
+		 */
+		script_comment_http_node: () => LocalizedString
+		/**
+		 * 请求失败: 
+		 */
+		script_error_request_failed: () => LocalizedString
 		/**
 		 * 概述
 		 */
