@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { VariableChangesCard } from './VariableChangesCard';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
-
+import { CopyButton } from '@/components/common';
 interface AssertionViewerProps {
   /** 节点执行报告 */
   report: NodeExecutionReport;
@@ -31,10 +31,11 @@ interface CollapsibleSectionProps {
   icon: React.ReactNode;
   defaultOpen?: boolean;
   badge?: React.ReactNode;
+  extra?: React.ReactNode;
   children: React.ReactNode;
 }
 
-function CollapsibleSection({ title, icon, defaultOpen = false, badge, children }: CollapsibleSectionProps) {
+function CollapsibleSection({ title, icon, defaultOpen = false, badge, extra, children }: CollapsibleSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -52,7 +53,10 @@ function CollapsibleSection({ title, icon, defaultOpen = false, badge, children 
           <div className="text-muted-foreground">{icon}</div>
           <span className="font-medium text-foreground text-sm">{title}</span>
         </button>
-        {badge && <div className="pr-3">{badge}</div>}
+        <div className="flex items-center gap-2 pr-3">
+          {badge}
+          {extra}
+        </div>
       </div>
       {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
     </div>
@@ -134,9 +138,15 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
           <div className="space-y-1.5">
             <div className="flex items-start gap-2 text-sm">
               <span className="text-muted-foreground shrink-0 min-w-16">{getLL().execution.viewers.target_label()}:</span>
-              <code className="font-mono text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded text-xs break-all">
+              <code className="font-mono text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded text-xs break-all select-text">
                 {result.target}
               </code>
+              <CopyButton
+                value={result.target}
+                title={ll.execution.viewers.copy_target()}
+                size="xs"
+                className="h-5 p-0.5"
+              />
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground shrink-0 min-w-16">{getLL().execution.viewers.operator_label()}:</span>
@@ -149,25 +159,50 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
           {/* 期望值 vs 实际值 */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <div className="text-xs font-medium text-muted-foreground">{getLL().execution.viewers.assertion_expected()}</div>
-              <div className="bg-background/60 rounded p-2 font-mono text-sm text-foreground break-all">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">{getLL().execution.viewers.assertion_expected()}</span>
+                <CopyButton
+                  value={result.expected}
+                  format="json"
+                  title={ll.execution.viewers.copy_expected()}
+                  size="xs"
+                  className="h-5 p-0.5"
+                />
+              </div>
+              <div className="bg-background/60 rounded p-2 font-mono text-sm text-foreground break-all select-text cursor-text">
                 {formatValue(result.expected)}
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-xs font-medium text-muted-foreground">{getLL().execution.viewers.assertion_actual()}</div>
-              <div className="bg-background/60 rounded p-2 font-mono text-sm text-foreground break-all">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">{getLL().execution.viewers.assertion_actual()}</span>
+                <CopyButton
+                  value={result.actual}
+                  format="json"
+                  title={ll.execution.viewers.copy_actual()}
+                  size="xs"
+                  className="h-5 p-0.5"
+                />
+              </div>
+              <div className="bg-background/60 rounded p-2 font-mono text-sm text-foreground break-all select-text cursor-text">
                 {formatValue(result.actual)}
               </div>
             </div>
           </div>
-
           {/* 错误信息 */}
           {result.error && (
             <div className="rounded bg-red-100/70 dark:bg-red-900/40 p-2">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-700 dark:text-red-300">{result.error}</p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2 flex-1">
+                  <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700 dark:text-red-300 select-text cursor-text">{result.error}</p>
+                </div>
+                <CopyButton
+                  value={result.error}
+                  title={ll.execution.viewers.copy_error_message()}
+                  size="xs"
+                  className="h-5 p-0.5 shrink-0"
+                />
               </div>
             </div>
           )}
@@ -295,6 +330,14 @@ export const AssertionViewer = memo(function AssertionViewer({ report }: Asserti
             <Badge variant="outline" className="font-mono text-xs">
               {getLL().viewer.assert.total_items({count: results.length})}
             </Badge>
+          }
+          extra={
+            <CopyButton
+              value={results}
+              format="json"
+              label={ll.execution.report.copy_all()}
+              size="xs"
+            />
           }
         >
           <div className="space-y-1.5">

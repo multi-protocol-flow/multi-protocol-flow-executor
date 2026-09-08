@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
-
+import { CopyButton } from '@/components/common';
 interface SseViewerProps {
   report: NodeExecutionReport;
 }
@@ -162,13 +162,13 @@ function SseEventCard({ event, index }: { event: SseEvent; index: number }) {
   const truncatedData = data.length > 200 ? data.slice(0, 200) + '...' : data;
 
   return (
-    <div className="border border-border rounded-lg p-2.5">
+    <div className="border border-border rounded-lg p-2.5 group">
       <div className="flex items-center gap-2 mb-1.5">
         <Badge variant="outline" className="text-[10px] px-1 py-0 font-mono">
           #{index + 1}
         </Badge>
         {event.event && (
-          <code className="text-xs font-mono text-foreground break-all">
+          <code className="text-xs font-mono text-foreground break-all select-text">
             {event.event}
           </code>
         )}
@@ -182,9 +182,17 @@ function SseEventCard({ event, index }: { event: SseEvent; index: number }) {
             {event.timestamp}ms
           </span>
         )}
+        {data && (
+          <CopyButton
+            value={data}
+            title={getLL().execution.viewers.copy_value()}
+            size="xs"
+            className="h-5 p-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          />
+        )}
       </div>
       {data && (
-        <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-40 overflow-auto bg-muted rounded p-2">
+        <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-40 overflow-auto bg-muted rounded p-2 select-text cursor-text">
           {truncatedData}
         </pre>
       )}
@@ -349,9 +357,17 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
-            <Badge variant="outline" className="font-mono text-xs">
-              {ll.viewer.sse.events_count({ count: eventCount })}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="font-mono text-xs">
+                {ll.viewer.sse.events_count({ count: eventCount })}
+              </Badge>
+              <CopyButton
+                value={events}
+                format="json"
+                label={ll.execution.report.copy_all()}
+                size="xs"
+              />
+            </div>
           }
         >
           <div className="space-y-2">

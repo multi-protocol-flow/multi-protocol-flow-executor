@@ -20,7 +20,7 @@ import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
 import { generateCurlCommand, type CurlExportOptions } from '@/lib/curlExporter';
 import { toast } from 'sonner';
-
+import { CopyButton } from '@/components/common';
 interface HttpNodeViewerProps {
   /** 节点执行报告 */
   report: NodeExecutionReport;
@@ -100,15 +100,26 @@ function KeyValueList({ data }: KeyValueListProps) {
   }
 
   return (
-    <div className="space-y-1.5">
-      {Object.entries(data).map(([key, value]) => (
-        <div key={key} className="flex items-start gap-2 text-sm">
-          <span className="font-mono text-muted-foreground min-w-0 shrink-0">{key}:</span>
-          <span className="text-foreground break-all">
-            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-          </span>
-        </div>
-      ))}
+    <div className="space-y-1 select-text cursor-text">
+      {Object.entries(data).map(([key, value]) => {
+        const strVal = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        return (
+          <div key={key} className="flex items-start justify-between gap-2 text-sm group hover:bg-muted/30 px-1.5 py-0.5 rounded transition-colors">
+            <div className="flex items-start gap-2 min-w-0 flex-1">
+              <span className="font-mono text-muted-foreground min-w-0 shrink-0 select-text">{key}:</span>
+              <span className="text-foreground break-all select-text font-mono text-xs">
+                {strVal}
+              </span>
+            </div>
+            <CopyButton
+              value={`${key}: ${strVal}`}
+              title={ll.execution.viewers.copy_value()}
+              size="xs"
+              className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -407,24 +418,47 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
             <Badge className={cn('font-mono text-xs shrink-0', getMethodColor(config.method || 'GET'))}>
               {config.method}
             </Badge>
-            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
+            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded select-text cursor-text">
               {config.url || <span className="text-muted-foreground italic">{ll.execution.viewers.not_configured_url()}</span>}
             </code>
+            {config.url && (
+              <CopyButton
+                value={config.url}
+                title={ll.execution.viewers.copy_url()}
+                size="xs"
+              />
+            )}
           </div>
-
           {/* Headers */}
           {config.headers && Object.keys(config.headers).length > 0 && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.execution.viewers.request_headers()}</div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-medium text-muted-foreground">{ll.execution.viewers.request_headers()}</span>
+                <CopyButton
+                  value={config.headers}
+                  format="json"
+                  label={ll.execution.viewers.copy_headers()}
+                  size="xs"
+                />
+              </div>
               <KeyValueList data={config.headers} />
             </div>
           )}
-
           {/* Body */}
           {showBody && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">
-                {ll.execution.viewers.request_body()} <span className="font-normal">({bodyLabel})</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {ll.execution.viewers.request_body()} <span className="font-normal">({bodyLabel})</span>
+                </span>
+                {hasBody && (
+                  <CopyButton
+                    value={config.body}
+                    format="json"
+                    label={ll.execution.viewers.copy_body()}
+                    size="xs"
+                  />
+                )}
               </div>
               {bodyType === 'body' && hasBody && (
                 <div className="bg-muted rounded p-2">
@@ -518,16 +552,33 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
         title={ll.execution.viewers.response_headers()}
         icon={<ArrowDownToLine className="w-4 h-4" />}
         defaultOpen={false}
+        extra={
+          headers && Object.keys(headers).length > 0 ? (
+            <CopyButton
+              value={headers}
+              format="json"
+              label={ll.execution.viewers.copy_response_headers()}
+              size="xs"
+            />
+          ) : null
+        }
       >
         <KeyValueList data={headers} />
       </CollapsibleSection>
-
       {/* 响应 Cookie */}
       {outputData?.cookies_received && outputData.cookies_received.length > 0 && (
         <CollapsibleSection
           title={ll.execution.viewers.response_cookie({ count: outputData.cookies_received.length })}
           icon={<ArrowDownToLine className="w-4 h-4" />}
           defaultOpen={false}
+          extra={
+            <CopyButton
+              value={outputData.cookies_received}
+              format="json"
+              label={ll.execution.viewers.copy_json()}
+              size="xs"
+            />
+          }
         >
           <div className="border border-border rounded overflow-hidden text-sm">
             <div className="grid grid-cols-[1fr_1.5fr_0.8fr_0.5fr] bg-muted/50">
@@ -554,6 +605,14 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
           title={ll.execution.viewers.response_body()}
           icon={<ArrowDownToLine className="w-4 h-4" />}
           defaultOpen={false}
+          extra={
+            <CopyButton
+              value={body}
+              format="json"
+              label={ll.execution.viewers.copy_body()}
+              size="xs"
+            />
+          }
         >
           <div className="bg-muted rounded p-2">
             <RawJsonViewer data={body} />

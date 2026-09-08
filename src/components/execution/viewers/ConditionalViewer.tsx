@@ -14,6 +14,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
+import { CopyButton } from '@/components/common';
 
 interface ConditionalViewerProps {
   /** 节点执行报告 */
@@ -39,26 +40,30 @@ interface CollapsibleSectionProps {
   title: string;
   icon: React.ReactNode;
   defaultOpen?: boolean;
+  extra?: React.ReactNode;
   children: React.ReactNode;
 }
 
-function CollapsibleSection({ title, icon, defaultOpen = false, children }: CollapsibleSectionProps) {
+function CollapsibleSection({ title, icon, defaultOpen = false, extra, children }: CollapsibleSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
-        aria-expanded={isOpen}
-      >
-        <div className="text-muted-foreground">
-          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </div>
-        <div className="text-muted-foreground">{icon}</div>
-        <span className="font-medium text-foreground text-sm">{title}</span>
-      </button>
+      <div className="flex items-center w-full bg-muted/30 hover:bg-muted/50 transition-colors">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex-1 flex items-center gap-2 p-3 text-left"
+          aria-expanded={isOpen}
+        >
+          <div className="text-muted-foreground">
+            {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </div>
+          <div className="text-muted-foreground">{icon}</div>
+          <span className="font-medium text-foreground text-sm">{title}</span>
+        </button>
+        {extra && <div className="pr-3">{extra}</div>}
+      </div>
       {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
     </div>
   );
@@ -86,8 +91,11 @@ function ValueDisplay({ label, value }: ValueDisplayProps) {
 
   return (
     <div className="space-y-1">
-      <div className="text-xs font-medium text-muted-foreground">{label}</div>
-      <div className="bg-muted rounded p-2 font-mono text-sm text-foreground whitespace-pre-wrap break-all">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-medium text-muted-foreground">{label}</div>
+        <CopyButton value={value} format="json" size="xs" className="h-5 p-0.5" />
+      </div>
+      <div className="bg-muted rounded p-2 font-mono text-sm text-foreground whitespace-pre-wrap break-all select-text cursor-text">
         {displayValue}
       </div>
     </div>
@@ -115,9 +123,18 @@ export const ConditionalViewer = memo(function ConditionalViewer({ report }: Con
         title={ll.execution.viewers.condition_expression()}
         icon={<Code2 className="w-4 h-4" />}
         defaultOpen={true}
+        extra={
+          expression ? (
+            <CopyButton
+              value={expression}
+              title={ll.execution.viewers.copy_expression()}
+              size="xs"
+            />
+          ) : null
+        }
       >
         {expression ? (
-          <div className="bg-muted rounded p-2 font-mono text-sm text-foreground">
+          <div className="bg-muted rounded p-2 font-mono text-sm text-foreground select-text cursor-text">
             {expression}
           </div>
         ) : (

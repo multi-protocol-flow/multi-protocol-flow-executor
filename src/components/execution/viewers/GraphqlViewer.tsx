@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
 import { RawJsonViewer } from './RawJsonViewer';
-
+import { CopyButton } from '@/components/common';
 interface GraphqlViewerProps {
   report: NodeExecutionReport;
 }
@@ -348,8 +348,16 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
           title={ll.viewer.graphql.section_response_data()}
           icon={<FileJson className="w-4 h-4" />}
           defaultOpen={true}
+          extra={
+            <CopyButton
+              value={output!.data}
+              format="json"
+              label={ll.execution.viewers.copy_body()}
+              size="xs"
+            />
+          }
         >
-          <div className="bg-muted rounded p-2 max-h-60 overflow-auto">
+          <div className="bg-muted rounded p-2 max-h-60 overflow-auto select-text cursor-text">
             <RawJsonViewer data={output!.data} />
           </div>
         </CollapsibleSection>
@@ -362,13 +370,21 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
           icon={<AlertTriangle className="w-4 h-4" />}
           defaultOpen={true}
           extra={
-            <Badge variant="outline" className="font-mono text-xs text-red-600 dark:text-red-400">
-              {ll.viewer.graphql.error_count({count: output!.errors!.length})}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="font-mono text-xs text-red-600 dark:text-red-400">
+                {ll.viewer.graphql.error_count({count: output!.errors!.length})}
+              </Badge>
+              <CopyButton
+                value={output!.errors}
+                format="json"
+                label={ll.execution.viewers.copy_error_report()}
+                size="xs"
+              />
+            </div>
           }
         >
-          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded p-2 max-h-40 overflow-auto">
-            <pre className="text-xs font-mono text-red-700 dark:text-red-300 whitespace-pre-wrap break-all">
+          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded p-2 max-h-40 overflow-auto select-text cursor-text">
+            <pre className="text-xs font-mono text-red-700 dark:text-red-300 whitespace-pre-wrap break-all select-text cursor-text">
               {JSON.stringify(output!.errors, null, 2)}
             </pre>
           </div>

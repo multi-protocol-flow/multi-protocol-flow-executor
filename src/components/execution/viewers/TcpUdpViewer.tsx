@@ -32,7 +32,7 @@ import { VariableChangesCard } from './VariableChangesCard';
 import { HexViewer, dataToBytes } from '@/components/common/HexViewer';
 import { RecordingViewer } from './RecordingViewer';
 import { getLL } from '@/i18n/i18n-lazy';
-
+import { CopyButton } from '@/components/common';
 interface TcpUdpViewerProps {
   /** 节点执行报告 */
   report: NodeExecutionReport;
@@ -409,11 +409,22 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
         title={ll.viewer.tcp.section_send_data()}
         icon={<ArrowUpFromLine className="w-4 h-4" />}
         defaultOpen={true}
-        extra={sentData?.size !== undefined && (
-          <Badge variant="outline" className="font-mono text-xs">
-            {sentData.size} bytes
-          </Badge>
-        )}
+        extra={
+          <div className="flex items-center gap-2">
+            {sentData?.size !== undefined && (
+              <Badge variant="outline" className="font-mono text-xs">
+                {sentData.size} bytes
+              </Badge>
+            )}
+            {sentData && (
+              <CopyButton
+                value={sentData.data ?? sentData}
+                title={ll.execution.report.copy_all()}
+                size="xs"
+              />
+            )}
+          </div>
+        }
       >
         <div className="space-y-2">
           {/* 编码 / 分帧信息 */}
@@ -455,11 +466,20 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
           title={ll.viewer.tcp.section_receive_data()}
           icon={<ArrowDownToLine className="w-4 h-4" />}
           defaultOpen={true}
-          extra={receivedData.size !== undefined && (
-            <Badge variant="outline" className="font-mono text-xs">
-              {receivedData.size} bytes
-            </Badge>
-          )}
+          extra={
+            <div className="flex items-center gap-2">
+              {receivedData.size !== undefined && (
+                <Badge variant="outline" className="font-mono text-xs">
+                  {receivedData.size} bytes
+                </Badge>
+              )}
+              <CopyButton
+                value={receivedData.data ?? (receivedData as { text_preview?: string }).text_preview ?? receivedData}
+                title={ll.execution.report.copy_all()}
+                size="xs"
+              />
+            </div>
+          }
         >
           <div className="space-y-2">
             {/* 编码信息 */}
@@ -586,11 +606,22 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
         title={ll.viewer.tcp.section_receive_data()}
         icon={<ArrowDownToLine className="w-4 h-4" />}
         defaultOpen={true}
-        extra={receivedData?.size !== undefined && (
-          <Badge variant="outline" className="font-mono text-xs">
-            {receivedData.size} bytes
-          </Badge>
-        )}
+        extra={
+          <div className="flex items-center gap-2">
+            {receivedData?.size !== undefined && (
+              <Badge variant="outline" className="font-mono text-xs">
+                {receivedData.size} bytes
+              </Badge>
+            )}
+            {receivedData && (
+              <CopyButton
+                value={receivedData.data ?? receivedData}
+                title={ll.execution.report.copy_all()}
+                size="xs"
+              />
+            )}
+          </div>
+        }
       >
         <div className="space-y-2">
           {/* 编码 / 连接信息 */}
@@ -892,11 +923,22 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
         title={ll.viewer.tcp.section_send_data()}
         icon={<ArrowUpFromLine className="w-4 h-4" />}
         defaultOpen={true}
-        extra={sentData?.size !== undefined && (
-          <Badge variant="outline" className="font-mono text-xs">
-            {sentData.size} bytes
-          </Badge>
-        )}
+        extra={
+          <div className="flex items-center gap-2">
+            {sentData?.size !== undefined && (
+              <Badge variant="outline" className="font-mono text-xs">
+                {sentData.size} bytes
+              </Badge>
+            )}
+            {sentData && (
+              <CopyButton
+                value={sentData.data ?? sentData}
+                title={ll.execution.report.copy_all()}
+                size="xs"
+              />
+            )}
+          </div>
+        }
       >
         <div className="space-y-2">
           {/* 目标地址 */}
@@ -1007,11 +1049,22 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
         title={ll.viewer.tcp.section_receive_data()}
         icon={<ArrowDownToLine className="w-4 h-4" />}
         defaultOpen={true}
-        extra={receivedData?.size !== undefined && (
-          <Badge variant="outline" className="font-mono text-xs">
-            {receivedData.size} bytes
-          </Badge>
-        )}
+        extra={
+          <div className="flex items-center gap-2">
+            {receivedData?.size !== undefined && (
+              <Badge variant="outline" className="font-mono text-xs">
+                {receivedData.size} bytes
+              </Badge>
+            )}
+            {receivedData && (
+              <CopyButton
+                value={receivedData.data ?? receivedData}
+                title={ll.execution.report.copy_all()}
+                size="xs"
+              />
+            )}
+          </div>
+        }
       >
         <div className="space-y-2">
           {/* 来源地址 */}
