@@ -1,6 +1,6 @@
 /**
- * FlowNodeList - 流程节点列表面板
- * 按加入时间排序，批量删除，点击定位
+ * FlowNodeList - 流程节点大纲列表
+ * 按加入时间排序，支持选择高亮、跳转定位、全选和批量删除
  */
 import { useState, useMemo, useCallback } from 'react';
 import { useFlowStore, useUIStore, selectNodes } from '@/stores';
@@ -14,9 +14,7 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Trash2, List, Check, Minus, ChevronDown, ChevronRight, Eye, Pencil, Info } from 'lucide-react';
-import { MarkdownViewer } from '@/components/ui/MarkdownViewer';
+import { Trash2, List, Check, Minus } from 'lucide-react';
 
 // ============================================================================
 // 类型定义
@@ -25,6 +23,8 @@ import { MarkdownViewer } from '@/components/ui/MarkdownViewer';
 interface FlowNodeListProps {
   /** 只读模式（调试时隐藏 checkbox 和删除按钮） */
   readOnly?: boolean;
+  /** 是否显示独立卡片标题栏（嵌入侧边栏 CollapsiblePanel 时设为 false） */
+  showHeader?: boolean;
 }
 
 // ============================================================================
@@ -96,16 +96,12 @@ function NodeTypeIcon({ type }: { type: NodeType }) {
 // 主组件
 // ============================================================================
 
-export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
+export function FlowNodeList({ readOnly = false, showHeader = true }: FlowNodeListProps) {
   const ll = getLL().panels.flowNodeList;
-  const flowLl = getLL().flow;
   // 按加入时间排序（flow.nodes 的顺序即为加入顺序）
   const nodes = useFlowStore(selectNodes);
-  const flow = useFlowStore((s) => s.flow);
-  const updateFlowDescription = useFlowStore((s) => s.updateFlowDescription);
+  const selectedNodeId = useFlowStore((s) => s.selectedNodeId);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
-  const [flowInfoExpanded, setFlowInfoExpanded] = useState(true);
-  const [descMode, setDescMode] = useState<'edit' | 'preview'>('edit');
 
   // 可选节点数量（排除 entry）
   const selectableCount = useMemo(
@@ -151,13 +147,12 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
     useFlowStore.getState().focusOnNode(uuid);
   }, []);
 
-// 批量删除
+  // 批量删除
   const handleBatchDelete = useCallback(() => {
     if (checkedIds.size === 0) return;
     const count = checkedIds.size;
 
     useUIStore.getState().showConfirm({
-      // 使用函数延迟求值，对话框渲染时调用 getLL() 获取当前语言文本
       title: () => getLL().panels.confirmDelete(),
       description: () => getLL().panels.deleteConfirmDesc({ count }),
       confirmText: () => getLL().panels.delete(),
@@ -170,6 +165,13 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
 
   // 空状态
   if (nodes.length === 0) {
+    if (!showHeader) {
+      return (
+        <div className="flex h-full items-center justify-center p-4">
+          <p className="text-xs text-muted-foreground">{ll.empty()}</p>
+        </div>
+      );
+    }
     return (
       <Card className="flex h-full flex-col overflow-hidden border-0 shadow-none">
         <CardHeader className="shrink-0 border-b border-muted bg-background px-2 pt-4 pb-3">
@@ -185,6 +187,106 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
     );
   }
 
+  // 工具条内容（全选 + 批量删除）
+  const toolbarContent = !readOnly && nodes.length > 1 && (
+    <div className="flex items-center justify-between px-2 py-1.5 border-b border-border/40 bg-muted/20 text-xs shrink-0">
+      <div className="flex items-center gap-1.5">
+        <div className="w-5 shrink-0 flex items-center justify-center">
+          <InlineCheckbox
+            checked={allChecked ? true : someChecked ? 'indeterminate' : false}
+            onChange={handleToggleAll}
+          />
+        </div>
+        <span className="text-[11px] text-muted-foreground">
+          {allChecked ? ll.deselectAll() : ll.selectAll()}
+        </span>
+      </div>
+
+      {checkedIds.size > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 gap-1 px-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={handleBatchDelete}
+        >
+          <Trash2 className="h-3 w-3" />
+          {ll.deleteSelected({ count: checkedIds.size || '' })}
+        </Button>
+      )}
+    </div>
+  );
+
+  const listContent = (
+    <ScrollArea className="h-full">
+      <div className="px-1.5 py-1 space-y-0.5">
+        {nodes.map((node) => {
+          const isEntry = node.type === 'entry';
+          const meta = NODE_META[node.type];
+          // 插件节点 badge：内置节点用 NODE_META，插件用后端 display_name
+          const badgeName = meta?.name ?? getNodeDisplayName(node.type);
+          const hasBadge = Boolean(meta) || Boolean(getCachedNodeMeta(node.type));
+          const isSelected = selectedNodeId === node.uuid;
+
+          return (
+            <div
+              key={node.uuid}
+              className={cn(
+                'group flex items-center gap-1.5 rounded-md px-1.5 py-1 cursor-pointer transition-colors duration-100',
+                isSelected
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'hover:bg-accent text-foreground/90'
+              )}
+              onClick={() => handleClickNode(node.uuid)}
+            >
+              {/* Checkbox 列 - 固定宽度对齐 */}
+              {!readOnly && (
+                <div
+                  className="w-5 shrink-0 flex items-center justify-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <InlineCheckbox
+                    checked={checkedIds.has(node.uuid)}
+                    disabled={isEntry}
+                    onChange={() => handleToggleCheck(node.uuid)}
+                  />
+                </div>
+              )}
+
+              {/* 节点类型图标 */}
+              <NodeTypeIcon type={node.type} />
+
+              {/* 节点名称 */}
+              <span className="truncate text-xs flex-1">{node.name}</span>
+
+              {/* 节点类型标签 */}
+              {hasBadge && (
+                <span
+                  className={cn(
+                    'ml-auto shrink-0 rounded px-1 py-0.5 text-[9px] font-medium leading-none',
+                    meta?.badge ?? 'bg-muted text-muted-foreground'
+                  )}
+                >
+                  {badgeName}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </ScrollArea>
+  );
+
+  if (!showHeader) {
+    return (
+      <div className="flex h-full flex-col overflow-hidden bg-background">
+        {toolbarContent}
+        <div className="flex-1 overflow-hidden min-h-0">
+          {listContent}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Card className="flex h-full flex-col overflow-hidden border-0 shadow-none">
       <CardHeader className="shrink-0 border-b border-muted bg-background px-2 pt-4 pb-3">
@@ -197,7 +299,7 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
             </span>
           </CardTitle>
 
-          {/* 批量操作区 - 固定高度避免出现/消失时列表跳动 */}
+          {/* 批量操作区 */}
           {!readOnly && (
             <div className="flex items-center gap-2 h-7">
               <Button
@@ -233,129 +335,7 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
       </CardHeader>
 
       <CardContent className="flex-1 overflow-hidden p-0">
-        <ScrollArea className="h-full">
-          {/* 流程信息区（可折叠） */}
-          {flow && (
-            <div className="border-b border-muted">
-              <button
-                type="button"
-                onClick={() => setFlowInfoExpanded(!flowInfoExpanded)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
-              >
-                {flowInfoExpanded ? (
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                ) : (
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                )}
-                <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="truncate">{flowLl.flow_info_title()}</span>
-              </button>
-
-              {flowInfoExpanded && (
-                <div className="px-3 pb-3 space-y-3">
-                  {/* 流程名称（只读显示） */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground shrink-0">{flowLl.flow_info_title()}:</span>
-                    <span className="text-sm text-foreground truncate font-medium">{flow.name}</span>
-                  </div>
-
-                  {/* 流程描述（编辑/预览切换） */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        {flowLl.flow_info_description()}
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setDescMode(descMode === 'edit' ? 'preview' : 'edit')}
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {descMode === 'edit' ? (
-                          <>
-                            <Eye className="h-3 w-3" />
-                            {flowLl.flow_info_preview()}
-                          </>
-                        ) : (
-                          <>
-                            <Pencil className="h-3 w-3" />
-                            {flowLl.flow_info_edit()}
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    {descMode === 'edit' ? (
-                      <Textarea
-                        value={flow.description ?? ''}
-                        onChange={(e) => updateFlowDescription(e.target.value)}
-                        placeholder={flowLl.flow_info_description_placeholder()}
-                        className="min-h-[72px] text-xs resize-y"
-                      />
-                    ) : (
-                      <div className="min-h-[72px] rounded-md border border-input bg-background px-3 py-2">
-                        {flow.description ? (
-                          <MarkdownViewer content={flow.description} compact />
-                        ) : (
-                          <p className="text-xs text-muted-foreground italic">
-                            {flowLl.flow_info_description_placeholder()}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="px-2 py-1.5 space-y-0.5">
-            {nodes.map((node) => {
-              const isEntry = node.type === 'entry';
-              const meta = NODE_META[node.type];
-              // 插件节点 badge：内置节点用 NODE_META，插件用后端 display_name
-              const badgeName = meta?.name ?? getNodeDisplayName(node.type);
-              const hasBadge = Boolean(meta) || Boolean(getCachedNodeMeta(node.type));
-
-              return (
-                <div
-                  key={node.uuid}
-                  className={cn(
-                    'group flex items-center gap-1.5 rounded-md px-1 py-1.5 cursor-pointer',
-                    'hover:bg-accent transition-colors duration-100'
-                  )}
-                  onClick={() => handleClickNode(node.uuid)}
-                >
-                  {/* Checkbox 列 - 固定宽度对齐 */}
-                  {!readOnly && (
-                    <div
-                      className="w-6 shrink-0 flex items-center justify-center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <InlineCheckbox
-                        checked={checkedIds.has(node.uuid)}
-                        disabled={isEntry}
-                        onChange={() => handleToggleCheck(node.uuid)}
-                      />
-                    </div>
-                  )}
-
-                  {/* 节点类型图标 */}
-                  <NodeTypeIcon type={node.type} />
-
-                  {/* 节点名称 */}
-                  <span className="truncate text-sm text-foreground/90">{node.name}</span>
-
-                  {/* 节点类型标签 */}
-                  {hasBadge && (
-                    <span className={cn('ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none', meta?.badge ?? 'bg-muted text-muted-foreground')}>
-                      {badgeName}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </ScrollArea>
+        {listContent}
       </CardContent>
     </Card>
   );

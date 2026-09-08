@@ -2,14 +2,15 @@
  * LeftSidebarPanel - 左侧面板容器
  * 管理 VSCode 风格的面板布局：顶部固定 + 底部可折叠面板区
  */
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Plus, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
 import { FlowListPanel } from '@/components/sidebar';
 import { DataSourcePanel } from '@/components/sidebar/DataSourcePanel';
-import { useUIStore, useDebugStore } from '@/stores';
+import { FlowNodeList } from '@/components/panels/FlowNodeList';
+import { useUIStore, useDebugStore, useFlowStore } from '@/stores';
 import { selectIsDebugging } from '@/stores/debug';
-import { useRef, useCallback, useState, useEffect } from 'react';
 import { getLL } from '@/i18n/i18n-lazy';
 import { cn } from '@/lib/utils';
 /** 面板标题栏高度 */
@@ -23,9 +24,14 @@ const FLOW_LIST_MIN_HEIGHT = 100;
 
 /** 数据源面板默认高度 */
 const DATASOURCE_PANEL_DEFAULT_HEIGHT = 280;
-
 /** 数据源面板最小高度 */
 const DATASOURCE_PANEL_MIN_HEIGHT = 100;
+
+/** 节点大纲默认高度 */
+const NODE_OUTLINE_DEFAULT_HEIGHT = 220;
+
+/** 节点大纲最小高度 */
+const NODE_OUTLINE_MIN_HEIGHT = 80;
 export function LeftSidebarPanel() {
   const LL = getLL();
   // UI 状态
@@ -35,9 +41,14 @@ export function LeftSidebarPanel() {
   const [isDatasourceCollapsed, setIsDatasourceCollapsed] = useState(true);
   // 数据源面板高度（支持拖拽调整）
   const [datasourceHeight, setDatasourceHeight] = useState(DATASOURCE_PANEL_DEFAULT_HEIGHT);
+  // 流程节点大纲面板状态（默认展开）
+  const [isNodeOutlineCollapsed, setIsNodeOutlineCollapsed] = useState(false);
+  const [nodeOutlineHeight, setNodeOutlineHeight] = useState(NODE_OUTLINE_DEFAULT_HEIGHT);
+
+  const flow = useFlowStore((state) => state.flow);
+  const nodesCount = flow?.nodes?.length ?? 0;
   const isDebugging = useDebugStore(selectIsDebugging);
   const debugSessionId = useDebugStore((state) => state.sessionId);
-
   // Actions
   const toggleFlowListCollapsed = useUIStore((state) => state.toggleFlowListCollapsed);
   const openNewFlowDialog = useUIStore((state) => state.openNewFlowDialog);
@@ -88,9 +99,20 @@ export function LeftSidebarPanel() {
   const handleToggleDatasource = useCallback(() => {
     setIsDatasourceCollapsed((prev) => !prev);
   }, []);
+
+  // 切换节点大纲折叠
+  const handleToggleNodeOutline = useCallback(() => {
+    setIsNodeOutlineCollapsed((prev) => !prev);
+  }, []);
+
+  const maxNodeOutlineHeight = Math.max(
+    NODE_OUTLINE_MIN_HEIGHT + 40,
+    containerHeight - (FLOW_LIST_MIN_HEIGHT + HEADER_HEIGHT * 2)
+  );
+
   const maxDatasourceHeight = Math.max(
     DATASOURCE_PANEL_MIN_HEIGHT + 50,
-    containerHeight - (FLOW_LIST_MIN_HEIGHT + HEADER_HEIGHT)
+    containerHeight - (FLOW_LIST_MIN_HEIGHT + HEADER_HEIGHT * (flow ? 2 : 1))
   );
   return (
     <div ref={containerRef} className="h-full flex flex-col bg-background overflow-hidden" data-testid="sidebar-flow-list">
@@ -146,6 +168,41 @@ export function LeftSidebarPanel() {
           onCreateFolderTrigger={(fn) => { createFolderTriggerRef.current = fn; }}
         />
       </CollapsiblePanel>
+
+      {/* ===== 中间：流程节点大纲（仅在当前打开流程时显示） ===== */}
+      {flow && (
+        <CollapsiblePanel
+          title={LL.panels.flowNodeList.title()}
+          isCollapsed={isNodeOutlineCollapsed}
+          onToggle={handleToggleNodeOutline}
+          collapsedHeight={HEADER_HEIGHT}
+          height={
+            isNodeOutlineCollapsed
+              ? undefined
+              : isFlowListCollapsed
+              ? undefined
+              : nodeOutlineHeight
+          }
+          onHeightChange={setNodeOutlineHeight}
+          resizable={!isFlowListCollapsed && !isNodeOutlineCollapsed}
+          minHeight={NODE_OUTLINE_MIN_HEIGHT}
+          maxHeight={maxNodeOutlineHeight}
+          className={cn(
+            isNodeOutlineCollapsed
+              ? 'shrink-0 border-t border-border'
+              : isFlowListCollapsed
+              ? 'flex-1 min-h-0 border-t border-border'
+              : 'shrink-0 border-t border-border'
+          )}
+          headerRight={
+            <span className="text-xs text-muted-foreground font-normal mr-1">
+              ({nodesCount})
+            </span>
+          }
+        >
+          <FlowNodeList showHeader={false} readOnly={isDebugging} />
+        </CollapsiblePanel>
+      )}
 
       {/* ===== 底部：数据源面板（可折叠、可拖拽调高、折叠置底） ===== */}
       <CollapsiblePanel

@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LeftSidebarPanel } from '@/components/sidebar/LeftSidebarPanel';
-import { useUIStore, useDebugStore, useDatasourceStore } from '@/stores';
+import { useUIStore, useDebugStore, useDatasourceStore, useFlowStore } from '@/stores';
 import { switchLocale } from '@/i18n';
+import type { Flow } from '@/types';
 
 // Mock flowStorage
 vi.mock('@/services/storage', () => ({
@@ -35,6 +36,7 @@ describe('LeftSidebarPanel', () => {
     useUIStore.getState().resetPanels();
     useDebugStore.getState().reset();
     useDatasourceStore.getState().reset();
+    useFlowStore.setState({ flow: null });
   });
 
   it('renders data-source panel collapsed by default', async () => {
@@ -97,5 +99,46 @@ describe('LeftSidebarPanel', () => {
     await waitFor(() => {
       expect(screen.getByText('无已安装的数据源插件')).toBeInTheDocument();
     });
+  });
+
+  it('当有打开的流程时渲染流程节点大纲面板并展示节点列表', async () => {
+    const sampleFlow: Flow = {
+      uuid: 'flow-sidebar-test',
+      name: '侧边栏测试流程',
+      nodes: [
+        {
+          uuid: 'n-entry',
+          name: '开始节点',
+          type: 'entry',
+          position: { x: 0, y: 0 },
+          data: { type: 'entry' },
+        },
+        {
+          uuid: 'n-http',
+          name: '查询用户信息',
+          type: 'http',
+          position: { x: 50, y: 50 },
+          data: { type: 'http', url: 'https://api.example.com', method: 'get' },
+        },
+      ],
+      connections: [],
+    };
+
+    useFlowStore.setState({ flow: sampleFlow });
+    render(<LeftSidebarPanel />);
+
+    // 显示流程节点面板标题及数量徽章
+    const outlineHeader = screen.getByText('流程节点');
+    expect(outlineHeader).toBeInTheDocument();
+    expect(screen.getByText('(2)')).toBeInTheDocument();
+
+    // 显示节点列表项
+    expect(screen.getByText('开始节点')).toBeInTheDocument();
+    expect(screen.getByText('查询用户信息')).toBeInTheDocument();
+
+    // 点击折叠节点大纲
+    fireEvent.click(outlineHeader);
+    const outlineButton = outlineHeader.closest('[role="button"]');
+    expect(outlineButton).toHaveAttribute('aria-expanded', 'false');
   });
 });
