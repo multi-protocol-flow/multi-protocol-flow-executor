@@ -7,7 +7,7 @@
  * 3. 转换预览（Template Preview）：展示转成画布节点后的 NodeTemplate 配置，并支持一键导入到画布
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Copy,
   Check,
@@ -47,6 +47,7 @@ import { createDefaultNodeData, createDefaultNodeName } from '@/components/canva
 import type {
   DataItem,
   DataItemProtocol,
+  DatasourceConnection,
   DatasourceDescription,
   NodeTemplate,
 } from '@/types/datasource';
@@ -81,6 +82,7 @@ export interface DatasourceItemDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   datasource: DatasourceDescription | null;
   item: DataItem | null;
+  connection?: DatasourceConnection | null;
   resourceId?: string;
 }
 
@@ -89,6 +91,7 @@ export function DatasourceItemDetailDialog({
   onOpenChange,
   datasource,
   item,
+  connection,
   resourceId = 'api',
 }: DatasourceItemDetailDialogProps) {
   const LL = getLL();
@@ -101,9 +104,15 @@ export function DatasourceItemDetailDialog({
   const flow = useFlowStore((s) => s.flow);
   const addNode = useFlowStore((s) => s.addNode);
 
+  const activeConn = useMemo(() => {
+    if (connection) return connection;
+    if (datasource) return connectionFor(datasource.id);
+    return undefined;
+  }, [connection, datasource]);
+
   // 打开弹窗或条目变化时，拉取完整最新详情及转换模板
   useEffect(() => {
-    if (!open || !datasource || !item) {
+    if (!open || !datasource || !item || !activeConn) {
       setDetailItem(null);
       setTemplate(null);
       return;
@@ -111,15 +120,12 @@ export function DatasourceItemDetailDialog({
 
     setDetailItem(item);
     setActiveTab('raw');
-    const conn = connectionFor(datasource.id);
-    if (!conn) return;
-
     let cancelled = false;
     setLoading(true);
 
     Promise.allSettled([
-      datasourceGetItem(datasource.id, resourceId, item.id, conn.config),
-      datasourceGetTemplates(datasource.id, [item.id], conn.config),
+      datasourceGetItem(datasource.id, resourceId, item.id, activeConn.config),
+      datasourceGetTemplates(datasource.id, [item.id], activeConn.config),
     ]).then(([itemRes, tplRes]) => {
       if (cancelled) return;
       if (itemRes.status === 'fulfilled') {
@@ -134,7 +140,7 @@ export function DatasourceItemDetailDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, datasource, item, resourceId]);
+  }, [open, datasource, item, activeConn, resourceId]);
 
   const rawData = detailItem?.raw ?? detailItem;
 
@@ -214,6 +220,7 @@ export function DatasourceItemDetailDialog({
                   )}
                   <Badge variant="outline" className="text-[11px] text-muted-foreground">
                     {datasource.display_name}
+                    {activeConn?.name ? ` · ${activeConn.name}` : ''}
                   </Badge>
                 </div>
                 <DialogDescription className="text-xs font-mono text-muted-foreground mt-1 truncate">

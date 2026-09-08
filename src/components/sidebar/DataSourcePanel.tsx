@@ -27,6 +27,9 @@ import {
   Eye,
   Search,
   X,
+  Plus,
+  Pencil,
+  Trash2,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,10 +43,10 @@ import { DatasourceItemDetailDialog } from '@/components/dialogs/DatasourceItemD
 import type {
   DataItem,
   DataItemProtocol,
+  DatasourceConnection,
   DatasourceDescription,
   DatasourceResource,
 } from '@/types/datasource';
-
 /** 协议 → lucide 图标（与 nodeIcons.ts 同源图标集） */
 const PROTOCOL_ICON_MAP: Record<DataItemProtocol, LucideIcon> = {
   http: Globe,
@@ -86,7 +89,7 @@ function formatErrorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-/** 单个数据源：连接状态 + 配置表单 / 浏览树 */
+/** 单个数据源插件：管理该插件下的多个数据源连接实例及各连接的浏览树 */
 function DatasourceEntry({
   ds,
   refreshToken,
@@ -95,48 +98,88 @@ function DatasourceEntry({
 }: {
   ds: DatasourceDescription;
   refreshToken: number;
-  onSelectItem: (ds: DatasourceDescription, item: DataItem) => void;
+  onSelectItem: (ds: DatasourceDescription, item: DataItem, conn: DatasourceConnection) => void;
   searchKeyword?: string;
 }) {
   const LL = getLL();
   const connections = useDatasourceStore((s) => s.connections);
-  const currentConn = useMemo(
-    () => connections.find((c) => c.datasource_id === ds.id),
+  const dsConnections = useMemo(
+    () => connections.filter((c) => c.datasource_id === ds.id),
     [connections, ds.id],
   );
-  const connected = currentConn != null;
-  const [configOpen, setConfigOpen] = useState(false);
+  const connected = dsConnections.length > 0;
+
+  // 正在编辑或新建的连接状态
+  // null: 未打开表单; '__new__': 新建连接; UUID: 编辑已有连接
+  const [activeFormMode, setActiveFormMode] = useState<string | null>(null);
+  const [connName, setConnName] = useState('');
   const [configValues, setConfigValues] = useState<Record<string, string>>({});
   const [configError, setConfigError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const toggleConfig = useCallback(() => {
-    if (!configOpen && currentConn?.config) {
-      // 打开时自动回填已保存的配置
-      const stringified: Record<string, string> = {};
-      for (const [k, v] of Object.entries(currentConn.config)) {
+  // 每个连接的折叠/展开状态
+  const [expandedConns, setExpandedConns] = useState<Record<string, boolean>>({});
+
+  const isConnExpanded = useCallback(
+    (connId: string) => {
+      return expandedConns[connId] ?? true;
+    },
+    [expandedConns],
+  );
+
+  const toggleConnExpanded = useCallback((connId: string) => {
+    setExpandedConns((prev) => ({
+      ...prev,
+      [connId]: !(prev[connId] ?? true),
+    }));
+  }, []);
+
+  // 打开新建连接表单
+  const handleStartAdd = useCallback(() => {
+    setActiveFormMode('__new__');
+    setConnName('');
+    setConfigValues({});
+    setConfigError(null);
+  }, []);
+
+  // 打开编辑已有连接表单
+  const handleStartEdit = useCallback((conn: DatasourceConnection) => {
+    setActiveFormMode(conn.id);
+    setConnName(conn.name ?? '');
+    const stringified: Record<string, string> = {};
+    if (conn.config) {
+      for (const [k, v] of Object.entries(conn.config)) {
         if (v != null) stringified[k] = String(v);
       }
-      setConfigValues(stringified);
     }
+    setConfigValues(stringified);
     setConfigError(null);
-    setConfigOpen((v) => !v);
-  }, [configOpen, currentConn]);
+  }, []);
+
+  const handleCancelForm = useCallback(() => {
+    setActiveFormMode(null);
+    setConfigValues({});
+    setConfigError(null);
+    setConnName('');
+  }, []);
 
   const handleConfigChange = useCallback((key: string, value: string) => {
     setConfigValues((prev) => ({ ...prev, [key]: value }));
     setConfigError(null);
   }, []);
 
-  const handleDisconnect = useCallback(async () => {
-    if (currentConn) {
-      await useDatasourceStore.getState().deleteConnection(currentConn.id);
-      setConfigOpen(false);
-      setConfigValues({});
-      setConfigError(null);
-    }
-  }, [currentConn]);
+  // 删除连接
+  const handleDeleteConnection = useCallback(
+    async (connId: string) => {
+      await useDatasourceStore.getState().deleteConnection(connId);
+      if (activeFormMode === connId) {
+        setActiveFormMode(null);
+      }
+    },
+    [activeFormMode],
+  );
 
+  // 保存连接
   const handleSave = useCallback(async () => {
     const schema = (ds.config_schema ?? null) as ConfigSchema | null;
     for (const field of schema?.required ?? []) {
@@ -154,52 +197,124 @@ function DatasourceEntry({
         setConfigError(result.message ?? LL.datasource.validate_fail());
         return;
       }
-      await useDatasourceStore
-        .getState()
-        .saveConnection({
-          id: currentConn?.id ?? crypto.randomUUID(),
-          datasource_id: ds.id,
-          display_name: ds.display_name,
-          config,
-          created_at: currentConn?.created_at ?? new Date().toISOString(),
-        });
-      setConfigOpen(false);
+
+      const isNew = activeFormMode === '__new__';
+      const editingConn = isNew ? null : dsConnections.find((c) => c.id === activeFormMode);
+      const connId = isNew ? crypto.randomUUID() : (editingConn?.id ?? crypto.randomUUID());
+
+      await useDatasourceStore.getState().saveConnection({
+        id: connId,
+        datasource_id: ds.id,
+        name: connName.trim() || undefined,
+        display_name: ds.display_name,
+        config,
+        created_at: editingConn?.created_at ?? new Date().toISOString(),
+      });
+
+      setActiveFormMode(null);
+      setExpandedConns((prev) => ({ ...prev, [connId]: true }));
     } catch (e) {
       setConfigError(formatErrorMessage(e));
     } finally {
       setSaving(false);
     }
-  }, [LL, configValues, currentConn, ds]);
+  }, [LL, activeFormMode, configValues, connName, ds, dsConnections]);
+
+  // 顶层根资源
+  const childIds = useMemo(
+    () => new Set(ds.resources.map((r) => r.children).filter(Boolean)),
+    [ds.resources],
+  );
+  const rootResources = useMemo(
+    () => ds.resources.filter((r) => !childIds.has(r.id)),
+    [ds.resources, childIds],
+  );
 
   return (
     <div className="border-b border-border last:border-b-0">
-      {/* 数据源行 */}
+      {/* 插件级头部行 */}
       <div className="flex items-center gap-2 px-3 py-1.5">
         <span className="flex-1 min-w-0 truncate text-sm font-medium text-foreground">
           {ds.display_name}
         </span>
         {connected ? (
-          <Badge variant="outline" className="text-emerald-600 shrink-0">
-            {LL.datasource.connected()}
+          <Badge variant="outline" className="text-emerald-600 shrink-0 text-[11px] h-5 px-1.5">
+            {dsConnections.length > 1
+              ? LL.datasource.connections_count({ count: dsConnections.length })
+              : LL.datasource.connected()}
           </Badge>
         ) : (
-          <Badge variant="outline" className="text-muted-foreground shrink-0">
+          <Badge variant="outline" className="text-muted-foreground shrink-0 text-[11px] h-5 px-1.5">
             {LL.datasource.not_connected()}
           </Badge>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 text-xs shrink-0"
-          onClick={toggleConfig}
-        >
-          {connected ? LL.datasource.edit() : LL.datasource.configure()}
-        </Button>
+        {connected ? (
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-1.5 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              onClick={handleStartAdd}
+              title={LL.datasource.add_connection()}
+            >
+              <Plus className="w-3 h-3" />
+              <span className="hidden sm:inline">{LL.datasource.add_connection()}</span>
+            </Button>
+            {dsConnections.length === 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => handleStartEdit(dsConnections[0])}
+              >
+                {LL.datasource.edit()}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs shrink-0"
+            onClick={handleStartAdd}
+          >
+            {LL.datasource.configure()}
+          </Button>
+        )}
       </div>
 
-      {/* 配置表单 */}
-      {configOpen && (
-        <div className="px-3 pb-2 space-y-2">
+      {/* 新建/编辑配置表单 */}
+      {activeFormMode != null && (
+        <div className="px-3 py-2 bg-muted/20 border-t border-b border-border space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-foreground">
+              {activeFormMode === '__new__' ? LL.datasource.add_connection() : LL.datasource.edit()}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-4 h-4 p-0 text-muted-foreground hover:text-foreground"
+              onClick={handleCancelForm}
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+
+          {/* 连接名称输入 */}
+          <label className="block space-y-1">
+            <span className="text-xs text-muted-foreground">
+              {LL.datasource.connection_name()}
+            </span>
+            <Input
+              type="text"
+              value={connName}
+              placeholder={LL.datasource.connection_name_placeholder()}
+              onChange={(e) => setConnName(e.target.value)}
+              className="h-7 text-xs"
+            />
+          </label>
+
+          {/* 动态 Schema 字段 */}
           {ds.config_schema
             ? (() => {
                 const schema = ds.config_schema as ConfigSchema;
@@ -223,9 +338,11 @@ function DatasourceEntry({
                 ));
               })()
             : null}
+
           {configError && (
             <p className="text-xs text-destructive">{configError}</p>
           )}
+
           <div className="flex gap-2 pt-1">
             <Button
               size="sm"
@@ -236,12 +353,12 @@ function DatasourceEntry({
               {saving && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
               {LL.datasource.save()}
             </Button>
-            {connected && (
+            {activeFormMode !== '__new__' && (
               <Button
                 size="sm"
                 variant="destructive"
                 className="h-6 px-2 text-xs mr-auto"
-                onClick={handleDisconnect}
+                onClick={() => handleDeleteConnection(activeFormMode)}
                 disabled={saving}
               >
                 {LL.datasource.disconnect()}
@@ -250,39 +367,88 @@ function DatasourceEntry({
             <Button
               size="sm"
               variant="ghost"
-              className="h-6 px-2 text-xs"
-              onClick={() => {
-                setConfigOpen(false);
-                setConfigError(null);
-              }}
+              className="h-6 px-2 text-xs ml-auto"
+              onClick={handleCancelForm}
             >
               {LL.datasource.cancel()}
             </Button>
           </div>
         </div>
       )}
-      {/* 浏览树（仅渲染顶层根资源；子资源在展开分组时按需递归渲染） */}
+
+      {/* 连接列表与浏览树 */}
       {connected && (
         <div className="pb-1">
-          {(() => {
-            const childIds = new Set(
-              ds.resources.map((r) => r.children).filter(Boolean),
+          {dsConnections.map((conn, index) => {
+            const isSingle = dsConnections.length === 1;
+            const expanded = isConnExpanded(conn.id);
+            const title = conn.name || (isSingle ? ds.display_name : `${ds.display_name} (${index + 1})`);
+
+            return (
+              <div key={conn.id} className={cn(!isSingle && 'border-t border-border/50 first:border-t-0')}>
+                {/* 多连接时显示独立的连接头部行；单连接且有自定义名称时也显示连接名 */}
+                {(!isSingle || conn.name) && (
+                  <div
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1 cursor-pointer select-none text-xs hover:bg-accent/50 transition-colors',
+                      !isSingle ? 'font-medium text-foreground' : 'text-muted-foreground'
+                    )}
+                    onClick={() => toggleConnExpanded(conn.id)}
+                  >
+                    {!isSingle && (
+                      <ChevronRight
+                        className={cn(
+                          'w-3.5 h-3.5 shrink-0 text-muted-foreground transition-transform',
+                          expanded && 'rotate-90',
+                        )}
+                      />
+                    )}
+                    <span className="truncate flex-1">{title}</span>
+                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-5 h-5 text-muted-foreground hover:text-foreground"
+                        title={LL.datasource.edit()}
+                        onClick={() => handleStartEdit(conn)}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                      {!isSingle && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-5 h-5 text-muted-foreground hover:text-destructive"
+                          title={LL.datasource.delete_connection()}
+                          onClick={() => handleDeleteConnection(conn.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 展开的资源树 */}
+                {expanded && (
+                  <div className={cn(!isSingle && 'pl-2')}>
+                    {rootResources.map((resource) => (
+                      <ResourceLevel
+                        key={resource.id}
+                        ds={ds}
+                        conn={conn}
+                        resource={resource}
+                        parentId={null}
+                        refreshToken={refreshToken}
+                        onSelectItem={onSelectItem}
+                        searchKeyword={searchKeyword}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             );
-            const rootResources = ds.resources.filter(
-              (r) => !childIds.has(r.id),
-            );
-            return rootResources.map((resource) => (
-              <ResourceLevel
-                key={resource.id}
-                ds={ds}
-                resource={resource}
-                parentId={null}
-                refreshToken={refreshToken}
-                onSelectItem={onSelectItem}
-                searchKeyword={searchKeyword}
-              />
-            ));
-          })()}
+          })}
         </div>
       )}
     </div>
@@ -622,6 +788,7 @@ export function filterGroupTree(
 function GroupFolderItem({
   node,
   ds,
+  conn,
   depth,
   expanded,
   onToggle,
@@ -630,10 +797,11 @@ function GroupFolderItem({
 }: {
   node: GroupTreeNode;
   ds: DatasourceDescription;
+  conn: DatasourceConnection;
   depth: number;
   expanded: Record<string, boolean>;
   onToggle: (path: string) => void;
-  onSelectItem: (ds: DatasourceDescription, item: DataItem) => void;
+  onSelectItem: (ds: DatasourceDescription, item: DataItem, conn: DatasourceConnection) => void;
   isSearching?: boolean;
 }) {
   const isOpen =
@@ -671,6 +839,7 @@ function GroupFolderItem({
               key={child.id}
               node={child}
               ds={ds}
+              conn={conn}
               depth={depth + 1}
               expanded={expanded}
               onToggle={onToggle}
@@ -679,7 +848,7 @@ function GroupFolderItem({
             />
           ))}
           {node.items.map((item) => (
-            <ItemRow key={item.id} ds={ds} item={item} onSelect={onSelectItem} />
+            <ItemRow key={item.id} ds={ds} conn={conn} item={item} onSelect={onSelectItem} />
           ))}
         </div>
       )}
@@ -688,6 +857,7 @@ function GroupFolderItem({
 }
 function ResourceLevel({
   ds,
+  conn,
   resource,
   parentId,
   refreshToken,
@@ -695,15 +865,19 @@ function ResourceLevel({
   searchKeyword,
 }: {
   ds: DatasourceDescription;
+  conn: DatasourceConnection;
   resource: DatasourceResource;
   parentId: string | null;
   refreshToken: number;
-  onSelectItem: (ds: DatasourceDescription, item: DataItem) => void;
+  onSelectItem: (ds: DatasourceDescription, item: DataItem, conn: DatasourceConnection) => void;
   searchKeyword?: string;
 }) {
   const LL = getLL();
-  const cacheKey = `${ds.id}/${resource.id}/${parentId ?? ''}`;
-  const cached = useDatasourceStore((s) => s.browseCache[cacheKey]);
+  const cacheKey = `${conn.id}/${resource.id}/${parentId ?? ''}`;
+  const legacyCacheKey = `${ds.id}/${resource.id}/${parentId ?? ''}`;
+  const cached = useDatasourceStore(
+    (s) => s.browseCache[cacheKey] ?? s.browseCache[legacyCacheKey],
+  );
   const browseCache = useDatasourceStore((s) => s.browseCache);
   const loading = useDatasourceStore((s) => s.loading);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -714,12 +888,11 @@ function ResourceLevel({
     if (cached) return;
     useDatasourceStore
       .getState()
-      .browse(ds.id, resource.id, parentId)
+      .browse(ds.id, resource.id, parentId, false, conn.id)
       .catch(() => {
         /* 错误已写入 store.error，面板统一展示 */
       });
-  }, [ds.id, resource.id, parentId, refreshToken]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [ds.id, conn.id, resource.id, parentId, refreshToken]); // eslint-disable-line react-hooks/exhaustive-deps
   const items = cached ?? [];
   const isSearching = Boolean(searchKeyword?.trim());
 
@@ -767,6 +940,7 @@ function ResourceLevel({
             key={node.id}
             node={node}
             ds={ds}
+            conn={conn}
             depth={0}
             expanded={groupExpanded}
             onToggle={handleToggleGroup}
@@ -776,8 +950,9 @@ function ResourceLevel({
         ))
       ) : resource.children != null ? (
         items.map((item) => {
-          const childCacheKey = `${ds.id}/${resource.children}/${item.id}`;
-          const cachedChildren = browseCache[childCacheKey];
+          const childCacheKey = `${conn.id}/${resource.children}/${item.id}`;
+          const legacyChildCacheKey = `${ds.id}/${resource.children}/${item.id}`;
+          const cachedChildren = browseCache[childCacheKey] ?? browseCache[legacyChildCacheKey];
           const hasMatchingChildren = cachedChildren?.some((child) =>
             matchItem(child, searchKeyword ?? '', item.name),
           );
@@ -805,7 +980,7 @@ function ResourceLevel({
                   if (next) {
                     useDatasourceStore
                       .getState()
-                      .browse(ds.id, resource.children!, item.id)
+                      .browse(ds.id, resource.children!, item.id, false, conn.id)
                       .catch(() => {
                         /* 错误已写入 store.error */
                       });
@@ -828,6 +1003,7 @@ function ResourceLevel({
                 <div className="pl-3">
                   <ResourceLevel
                     ds={ds}
+                    conn={conn}
                     resource={
                       ds.resources.find((r) => r.id === resource.children) ?? {
                         id: resource.children!,
@@ -848,7 +1024,7 @@ function ResourceLevel({
         })
       ) : (
         displayedFlatItems.map((item) => (
-          <ItemRow key={item.id} ds={ds} item={item} onSelect={onSelectItem} />
+          <ItemRow key={item.id} ds={ds} conn={conn} item={item} onSelect={onSelectItem} />
         ))
       )}
 
@@ -874,12 +1050,14 @@ function ResourceLevel({
 /** 叶子条目行：协议徽标 + method + 名称；可拖拽，点击打开详情弹窗，鼠标 hover 展示 url 及详细信息 */
 function ItemRow({
   ds,
+  conn,
   item,
   onSelect,
 }: {
   ds: DatasourceDescription;
+  conn: DatasourceConnection;
   item: DataItem;
-  onSelect: (ds: DatasourceDescription, item: DataItem) => void;
+  onSelect: (ds: DatasourceDescription, item: DataItem, conn: DatasourceConnection) => void;
 }) {
   const LL = getLL();
   const Icon = PROTOCOL_ICON_MAP[item.protocol] ?? Network;
@@ -888,13 +1066,16 @@ function ItemRow({
     (e: React.DragEvent) => {
       e.dataTransfer.setData(
         'application/reactflow/datasource',
-        JSON.stringify({ datasource_id: ds.id, item_ids: [item.id] }),
+        JSON.stringify({
+          datasource_id: ds.id,
+          connection_id: conn.id,
+          item_ids: [item.id],
+        }),
       );
       e.dataTransfer.effectAllowed = 'move';
     },
-    [ds.id, item.id],
+    [ds.id, conn.id, item.id],
   );
-
   const tooltipText = useMemo(() => {
     const lines: string[] = [];
 
@@ -927,7 +1108,7 @@ function ItemRow({
     <div
       draggable
       onDragStart={handleDragStart}
-      onClick={() => onSelect(ds, item)}
+      onClick={() => onSelect(ds, item, conn)}
       title={tooltipText}
       className="group flex items-center gap-1.5 px-3 py-1 cursor-pointer hover:bg-accent rounded-sm select-none transition-colors"
     >
@@ -940,11 +1121,9 @@ function ItemRow({
       <span className="min-w-0 truncate text-sm text-foreground flex-1">{item.name}</span>
       <Button
         variant="ghost"
-        size="icon"
-        className="w-5 h-5 opacity-0 group-hover:opacity-100 shrink-0 text-muted-foreground hover:text-foreground"
         onClick={(e) => {
           e.stopPropagation();
-          onSelect(ds, item);
+          onSelect(ds, item, conn);
         }}
         title={LL.datasource.view_detail()}
       >
@@ -966,6 +1145,7 @@ export function DataSourcePanel() {
   const [selectedItemState, setSelectedItemState] = useState<{
     ds: DatasourceDescription;
     item: DataItem;
+    conn: DatasourceConnection;
   } | null>(null);
 
   // 挂载时加载描述列表 + 已保存连接
@@ -980,9 +1160,12 @@ export function DataSourcePanel() {
     setRefreshToken((t) => t + 1);
   }, []);
 
-  const handleSelectItem = useCallback((ds: DatasourceDescription, item: DataItem) => {
-    setSelectedItemState({ ds, item });
-  }, []);
+  const handleSelectItem = useCallback(
+    (ds: DatasourceDescription, item: DataItem, conn: DatasourceConnection) => {
+      setSelectedItemState({ ds, item, conn });
+    },
+    [],
+  );
 
   return (
     <div className="flex flex-col h-full min-h-0" data-testid="datasource-panel">
@@ -1057,6 +1240,7 @@ export function DataSourcePanel() {
         }}
         datasource={selectedItemState?.ds ?? null}
         item={selectedItemState?.item ?? null}
+        connection={selectedItemState?.conn ?? null}
       />
     </div>
   );

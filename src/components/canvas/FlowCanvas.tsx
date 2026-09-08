@@ -983,14 +983,16 @@ function FlowCanvasInner() {
       const dsPayload = event.dataTransfer.getData('application/reactflow/datasource');
       if (dsPayload) {
         if (!flow) return;
-        let parsed: { datasource_id: string; item_ids: string[] };
+        let parsed: { datasource_id: string; connection_id?: string; item_ids: string[] };
         try {
           parsed = JSON.parse(dsPayload);
         } catch {
           toast.error(ll.datasource.drag_payload_invalid());
           return;
         }
-        const conn = connectionFor(parsed.datasource_id);
+        const conn = parsed.connection_id
+          ? connectionFor(parsed.connection_id)
+          : connectionFor(parsed.datasource_id);
         if (!conn) {
           toast.error(ll.datasource.auth_failed());
           return;
