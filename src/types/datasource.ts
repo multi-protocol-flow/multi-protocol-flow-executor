@@ -84,12 +84,21 @@ export interface ValidateConfigResult {
 export interface DatasourceConnection {
   /** 连接 id（UUID） */
   id: string;
-  /** 数据源 id */
+  /** 数据源 id（对应插件 describe 注册的 datasource.id） */
   datasource_id: string;
-  /** 展示名称（冗余自描述，便于面板展示） */
+  /** 连接自定义名称（如 "支付中心项目"、"测试空间"），缺省时回退到 display_name */
+  name?: string;
+  /** 数据源插件展示名称（冗余自描述，便于面板展示） */
   display_name: string;
   /** 连接配置（api_key 等，保存时原样写入） */
   config: Record<string, unknown>;
   /** 创建时间（ISO 8601） */
   created_at: string;
+}
+
+/** 拖拽到画布的数据源条目 Payload */
+export interface DatasourceDragPayload {
+  datasource_id: string;
+  connection_id?: string;
+  item_ids: string[];
 }

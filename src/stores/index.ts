@@ -10,7 +10,7 @@ export { useDebugStore } from './debug';
 export { useStressTestStore } from './stressTest';
 export { useWsStreamStore } from './wsStream';
 export { usePluginsStore } from './plugins';
-export { useDatasourceStore, connectionFor } from './datasource';
+export { useDatasourceStore, connectionFor, connectionsForDatasource } from './datasource';
 export { useAIStore } from './ai';
 
 // Flow store selectors

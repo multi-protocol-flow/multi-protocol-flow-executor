@@ -2,9 +2,8 @@
  * 数据源插件状态管理
  *
  * 覆盖数据源描述列表（listDatasources）、已保存连接（本地持久化）与浏览缓存
- * （browseCache，key = `${datasourceId}/${resourceId}/${parentId ?? ''}`）。
- * 一个数据源一个连接（P0 不支持多连接）：`connectionFor` 由面板从 connections
- * 中查找。
+ * （browseCache，key = `${connectionId}/${resourceId}/${parentId ?? ''}`）。
+ * 支持同一个数据源插件配置多个连接实例（如多个 Eolink 空间、多个 Postman 工作空间等）。
  */
 
 import { create } from 'zustand';
@@ -57,9 +56,10 @@ interface DatasourceState {
     resourceId: string,
     parentId: string | null,
     force?: boolean,
+    connectionId?: string,
   ) => Promise<DataItem[]>;
-  /** 清空浏览缓存（刷新按钮用；可选按数据源过滤） */
-  clearCache: (datasourceId?: string) => void;
+  /** 清空浏览缓存（刷新按钮用；可选按连接 id 或数据源 id 过滤） */
+  clearCache: (id?: string) => void;
   /** 重置（测试隔离） */
   reset: () => void;
 }
@@ -95,33 +95,39 @@ export const useDatasourceStore = create<DatasourceState>((set, get) => ({
   },
 
   saveConnection: async (conn) => {
-    const existing = get().connections.filter(
-      (c) => c.datasource_id !== conn.datasource_id,
-    );
+    // 按 conn.id 进行 upsert：存在同 id 则更新，不存在则追加新连接
+    const existing = get().connections.filter((c) => c.id !== conn.id);
     const connections = [...existing, conn];
     set({ connections });
-    get().clearCache(conn.datasource_id);
+    get().clearCache(conn.id);
     await saveConnections(connections);
   },
 
   deleteConnection: async (id) => {
     const connections = get().connections.filter((c) => c.id !== id);
     set({ connections });
+    get().clearCache(id);
     await saveConnections(connections);
   },
 
-  browse: async (datasourceId, resourceId, parentId, force = false) => {
-    const key = `${datasourceId}/${resourceId}/${parentId ?? ''}`;
-    const cached = get().browseCache[key];
+  browse: async (datasourceId, resourceId, parentId, force = false, connectionId) => {
+    const conn = connectionId
+      ? connectionFor(connectionId)
+      : connectionFor(datasourceId);
+    if (!conn) {
+      const err = `datasource ${datasourceId} has no saved connection`;
+      set({ error: err, loading: false });
+      throw new Error(err);
+    }
+
+    const key = `${conn.id}/${resourceId}/${parentId ?? ''}`;
+    const legacyKey = `${datasourceId}/${resourceId}/${parentId ?? ''}`;
+    const cached = get().browseCache[key] ?? get().browseCache[legacyKey];
     if (cached && !force) {
       return cached;
     }
     set({ loading: true, error: null });
     try {
-      const conn = connectionFor(datasourceId);
-      if (!conn) {
-        throw new Error(`datasource ${datasourceId} has no saved connection`);
-      }
       const items = await datasourceBrowse(
         datasourceId,
         resourceId,
@@ -129,7 +135,11 @@ export const useDatasourceStore = create<DatasourceState>((set, get) => ({
         conn.config,
       );
       set((state) => ({
-        browseCache: { ...state.browseCache, [key]: items },
+        browseCache: {
+          ...state.browseCache,
+          [key]: items,
+          [legacyKey]: items,
+        },
         loading: false,
       }));
       return items;
@@ -139,15 +149,29 @@ export const useDatasourceStore = create<DatasourceState>((set, get) => ({
     }
   },
 
-  clearCache: (datasourceId) => {
-    if (!datasourceId) {
+  clearCache: (id) => {
+    if (!id) {
       set({ browseCache: {} });
       return;
     }
+    // id 可能是 connectionId 或 datasourceId
+    const matchingConnIds = new Set(
+      get()
+        .connections.filter((c) => c.datasource_id === id || c.id === id)
+        .map((c) => c.id),
+    );
+    const matchingDsIds = new Set(
+      get()
+        .connections.filter((c) => c.datasource_id === id || c.id === id)
+        .map((c) => c.datasource_id),
+    );
+    matchingDsIds.add(id);
+
     set((state) => {
       const browseCache: Record<string, DataItem[]> = {};
       for (const [key, value] of Object.entries(state.browseCache)) {
-        if (!key.startsWith(`${datasourceId}/`)) {
+        const prefix = key.split('/')[0];
+        if (!matchingConnIds.has(prefix) && !matchingDsIds.has(prefix)) {
           browseCache[key] = value;
         }
       }
@@ -159,10 +183,22 @@ export const useDatasourceStore = create<DatasourceState>((set, get) => ({
 }));
 
 /**
- * 查找数据源对应的已保存连接（一个数据源一个连接；P0 不支持多连接）。
+ * 查找指定连接。
+ * 优先按 connectionId 精准匹配；若未匹配到或入参为 datasourceId 则回退按 datasource_id 查找第一个匹配连接。
  */
-export function connectionFor(datasourceId: string): DatasourceConnection | undefined {
+export function connectionFor(idOrDatasourceId: string): DatasourceConnection | undefined {
+  const connections = useDatasourceStore.getState().connections;
+  return (
+    connections.find((c) => c.id === idOrDatasourceId) ??
+    connections.find((c) => c.datasource_id === idOrDatasourceId)
+  );
+}
+
+/**
+ * 查找某个数据源类型下的所有已保存连接
+ */
+export function connectionsForDatasource(datasourceId: string): DatasourceConnection[] {
   return useDatasourceStore
     .getState()
-    .connections.find((c) => c.datasource_id === datasourceId);
+    .connections.filter((c) => c.datasource_id === datasourceId);
 }
