@@ -188,6 +188,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
       } catch {
         // Session may already be cleaned up, ignore
       }
+      flushBuffer();
       set({ isExecuting: false });
     },
 
