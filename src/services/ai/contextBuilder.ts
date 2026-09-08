@@ -405,8 +405,13 @@ export function buildActiveStateSummary(): string {
   if (datasourceState.descriptions && datasourceState.descriptions.length > 0) {
     lines.push(`- **Datasource Plugins**:`);
     for (const ds of datasourceState.descriptions) {
-      const conn = datasourceState.connections.find(c => c.datasource_id === ds.id);
-      lines.push(`  * ${ds.display_name} (id: ${ds.id}, connected: ${!!conn})`);
+      const conns = datasourceState.connections.filter((c) => c.datasource_id === ds.id);
+      if (conns.length > 0) {
+        const connNames = conns.map((c) => `"${c.name || c.display_name}" (id: ${c.id})`).join(', ');
+        lines.push(`  * ${ds.display_name} (id: ${ds.id}, connected: true, connections: [${connNames}])`);
+      } else {
+        lines.push(`  * ${ds.display_name} (id: ${ds.id}, connected: false)`);
+      }
     }
   }
 

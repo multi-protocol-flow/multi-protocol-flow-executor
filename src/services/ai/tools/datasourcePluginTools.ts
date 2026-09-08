@@ -40,6 +40,10 @@ export const datasourcePluginToolDefinitions: AIToolDefinition[] = [
             type: 'string',
             description: 'Optional parent item ID for folder hierarchy browsing (null for top level).',
           },
+          connection_id: {
+            type: 'string',
+            description: 'Optional connection ID if multiple connections are configured for this datasource.',
+          },
         },
         required: ['datasource_id', 'resource_id'],
       },
@@ -65,6 +69,10 @@ export const datasourcePluginToolDefinitions: AIToolDefinition[] = [
             type: 'string',
             description: 'Optional custom display name for the imported node.',
           },
+          connection_id: {
+            type: 'string',
+            description: 'Optional connection ID if multiple connections are configured for this datasource.',
+          },
         },
         required: ['datasource_id', 'item_id'],
       },
@@ -84,13 +92,17 @@ export const datasourcePluginToolHandlers = {
     return {
       success: true,
       datasources: descriptions.map((ds) => {
-        const conn = connections.find((c) => c.datasource_id === ds.id);
+        const conns = connections.filter((c) => c.datasource_id === ds.id);
         return {
           id: ds.id,
           display_name: ds.display_name,
           auth: ds.auth,
           resources: ds.resources,
-          connected: !!conn,
+          connected: conns.length > 0,
+          connections: conns.map((c) => ({
+            id: c.id,
+            name: c.name || c.display_name,
+          })),
         };
       }),
     };
@@ -100,14 +112,16 @@ export const datasourcePluginToolHandlers = {
     datasource_id: string;
     resource_id: string;
     parent_id?: string | null;
+    connection_id?: string;
   }) {
     const dsStore = useDatasourceStore.getState();
     const items = await dsStore.browse(
       args.datasource_id,
       args.resource_id,
       args.parent_id ?? null,
+      false,
+      args.connection_id,
     );
-
     return {
       success: true,
       datasource_id: args.datasource_id,
@@ -130,6 +144,7 @@ export const datasourcePluginToolHandlers = {
     datasource_id: string;
     item_id: string;
     name?: string;
+    connection_id?: string;
   }) {
     const dsStore = useDatasourceStore.getState();
     const flowState = useFlowStore.getState();
@@ -138,7 +153,9 @@ export const datasourcePluginToolHandlers = {
       throw new Error('No active flow to import datasource item into.');
     }
 
-    const conn = dsStore.connections.find((c) => c.datasource_id === args.datasource_id);
+    const conn = args.connection_id
+      ? dsStore.connections.find((c) => c.id === args.connection_id)
+      : dsStore.connections.find((c) => c.datasource_id === args.datasource_id);
     const config = conn?.config || {};
 
     const templates = await datasourceGetTemplates(
@@ -146,7 +163,6 @@ export const datasourcePluginToolHandlers = {
       [args.item_id],
       config,
     );
-
     if (templates.length === 0) {
       throw new Error(`Failed to convert datasource item "${args.item_id}" into node template.`);
     }
