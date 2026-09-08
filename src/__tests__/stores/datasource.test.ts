@@ -2,7 +2,7 @@
  * Datasource Store 单元测试
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useDatasourceStore } from '@/stores/datasource';
+import { useDatasourceStore, connectionFor, connectionsForDatasource } from '@/stores/datasource';
 import type { DatasourceConnection } from '@/types/datasource';
 
 // Mock datasource 服务（静态 + 动态 import 均被拦截）
@@ -106,6 +106,33 @@ describe('DatasourceStore', () => {
       expect(state.connections[0].config.api_key).toBe('new');
     });
 
+    it('同一个 datasource_id 支持保存多个不同 id 的连接（多空间/项目）', async () => {
+      mockedSaveConnections.mockResolvedValue(undefined);
+      const store = useDatasourceStore.getState();
+
+      await store.saveConnection(
+        makeConnection({ id: 'conn-space-1', name: '空间1', config: { space_id: '101' } }),
+      );
+      await store.saveConnection(
+        makeConnection({ id: 'conn-space-2', name: '空间2', config: { space_id: '202' } }),
+      );
+
+      const conns = useDatasourceStore.getState().connections;
+      expect(conns).toHaveLength(2);
+      expect(conns.map((c) => c.name)).toEqual(['空间1', '空间2']);
+
+      // connectionsForDatasource 查出该插件下的所有连接
+      const eolinkConns = connectionsForDatasource('eolink');
+      expect(eolinkConns).toHaveLength(2);
+
+      // connectionFor 精准匹配 id
+      expect(connectionFor('conn-space-1')?.config.space_id).toBe('101');
+      expect(connectionFor('conn-space-2')?.config.space_id).toBe('202');
+
+      // connectionFor 按 datasource_id 回退返回第一个
+      expect(connectionFor('eolink')?.id).toBe('conn-space-1');
+    });
+
     it('deleteConnection 删除连接并整表持久化', async () => {
       mockedSaveConnections.mockResolvedValue(undefined);
       const store = useDatasourceStore.getState();
@@ -190,6 +217,27 @@ describe('DatasourceStore', () => {
         useDatasourceStore.getState().browse('eolink', 'project', null),
       ).rejects.toThrow('auth failed');
       expect(useDatasourceStore.getState().error).toBe('auth failed');
+    });
+
+    it('指定 connectionId 进行 browse 时使用对应连接配置与缓存', async () => {
+      mockedDatasourceBrowse.mockResolvedValue([
+        { id: 'p2', name: 'Project Space 2', protocol: 'other', extra: [] },
+      ]);
+      const store = useDatasourceStore.getState();
+      await store.saveConnection(
+        makeConnection({ id: 'conn-space-2', config: { space_id: '202' } }),
+      );
+
+      const res = await store.browse('eolink', 'project', null, false, 'conn-space-2');
+      expect(res).toHaveLength(1);
+      expect(mockedDatasourceBrowse).toHaveBeenCalledWith(
+        'eolink',
+        'project',
+        null,
+        { space_id: '202' },
+      );
+      // 验证连接级别的缓存 key
+      expect(useDatasourceStore.getState().browseCache['conn-space-2/project/']).toHaveLength(1);
     });
   });
 

@@ -516,4 +516,40 @@ describe('DataSourcePanel', () => {
       expect(screen.queryByText('获取用户信息')).not.toBeInTheDocument();
     });
   });
+
+  it('renders multiple connections under the same datasource plugin with independent titles', async () => {
+    const connSpace1: DatasourceConnection = {
+      id: 'conn-space-1',
+      datasource_id: 'eolink',
+      name: '支付空间',
+      display_name: 'Eolink',
+      config: { space_id: '101' },
+      created_at: '2026-08-05T00:00:00Z',
+    };
+    const connSpace2: DatasourceConnection = {
+      id: 'conn-space-2',
+      datasource_id: 'eolink',
+      name: '用户空间',
+      display_name: 'Eolink',
+      config: { space_id: '202' },
+      created_at: '2026-08-06T00:00:00Z',
+    };
+
+    useDatasourceStore.setState({
+      descriptions: [mockDatasource],
+      connections: [connSpace1, connSpace2],
+      browseCache: {
+        'conn-space-1/api/': [mockItem],
+      },
+    });
+
+    render(<DataSourcePanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText('2 个连接')).toBeInTheDocument();
+      expect(screen.getByText('支付空间')).toBeInTheDocument();
+      expect(screen.getByText('用户空间')).toBeInTheDocument();
+      expect(screen.getByText('用户模块')).toBeInTheDocument();
+    });
+  });
 });
