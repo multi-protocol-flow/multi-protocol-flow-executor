@@ -115,6 +115,38 @@ describe('NodeConfigPanel', () => {
 
       expect(screen.getByText('调试模式')).toBeDefined();
     });
+
+    it('切换选中节点及取消选中时正确在配置面板与节点列表间切换', async () => {
+      let currentSelected: (typeof mockFlow.nodes)[number] | null = mockFlow.nodes[0];
+      (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
+        const state = {
+          getSelectedNode: () => currentSelected,
+          updateNode: mockUpdateNode,
+          flow: mockFlow,
+          nodes: mockFlow.nodes,
+        };
+        return selector ? selector(state) : state;
+      });
+
+      const { rerender } = render(<NodeConfigPanel />);
+      await waitFor(() => {
+        expect(screen.getByText('入口节点')).toBeDefined();
+      });
+
+      // 模拟在画布上选中 HTTP 节点
+      currentSelected = mockFlow.nodes[1];
+      rerender(<NodeConfigPanel />);
+      await waitFor(() => {
+        expect(screen.getByText('HTTP 请求')).toBeDefined();
+      });
+
+      // 模拟点击画布空白区域（取消选中）
+      currentSelected = null;
+      rerender(<NodeConfigPanel />);
+      await waitFor(() => {
+        expect(screen.getByText('流程节点')).toBeDefined();
+      });
+    });
   });
 
   describe('Entry 节点', () => {

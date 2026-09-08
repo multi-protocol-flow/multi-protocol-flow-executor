@@ -149,7 +149,10 @@ function LazyConfigPanel({ nodeType, data, onSave, nodeUuid }: { nodeType: strin
 }
 
 export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeConfigPanelProps) {
-  const getSelectedNode = useFlowStore((s) => s.getSelectedNode);
+  // 订阅当前选中的节点对象（selectedNodeId 变化或当前节点数据变化时触发更新）
+  const storeSelectedNode = useFlowStore((s) =>
+    typeof s.getSelectedNode === 'function' ? s.getSelectedNode() : null
+  );
   const modifyNodeConfig = useDebugStore((state) => state.modifyNodeConfig);
   const historyVersion = useFlowStore(selectHistoryVersion);
   const ll = getLL().panels.nodeConfig;
@@ -171,7 +174,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   const locale = useSettingsStore((s) => s.locale ?? 'en-US');
 
   // 优先使用外部传入的节点，否则回退到 store 中的选中节点
-  const selectedNode = externalNode ?? getSelectedNode();
+  const selectedNode = externalNode ?? storeSelectedNode;
 
   // 当前渲染周期的节点 UUID（在渲染阶段同步捕获，用于 handleSave 闭包）
   // 子组件的 cleanup effect 中持有的 onSave 闭包捕获的是创建时的 uuid，
