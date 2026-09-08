@@ -149,7 +149,7 @@ function LazyConfigPanel({ nodeType, data, onSave, nodeUuid }: { nodeType: strin
 }
 
 export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeConfigPanelProps) {
-  const { getSelectedNode } = useFlowStore();
+  const getSelectedNode = useFlowStore((s) => s.getSelectedNode);
   const modifyNodeConfig = useDebugStore((state) => state.modifyNodeConfig);
   const historyVersion = useFlowStore(selectHistoryVersion);
   const ll = getLL().panels.nodeConfig;

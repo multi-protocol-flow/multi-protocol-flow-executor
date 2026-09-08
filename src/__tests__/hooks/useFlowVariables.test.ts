@@ -142,4 +142,43 @@ describe('useFlowVariables', () => {
     expect(result.current.availableVariableNames).toEqual(['resp_data', 'a']);
     expect(result.current.nodeLabels['n1']).toBe('提取');
   });
+
+  it('节点仅位置改变（变量无变化）时保持返回相同的对象引用', () => {
+    const initialFlow = createFlow({
+      initial_variables: { a: '1' },
+      nodes: [
+        createNode({
+          uuid: 'n1',
+          type: 'http',
+          name: 'HTTP请求',
+          position: { x: 100, y: 100 },
+        }),
+      ],
+    });
+
+    act(() => {
+      useFlowStore.setState({ flow: initialFlow });
+    });
+
+    const { result, rerender } = renderHook(() => useFlowVariables());
+    const firstRef = result.current;
+
+    // 仅移动节点坐标，创建新 flow 实例
+    act(() => {
+      useFlowStore.setState({
+        flow: {
+          ...initialFlow,
+          nodes: [
+            {
+              ...initialFlow.nodes[0],
+              position: { x: 250, y: 350 },
+            },
+          ],
+        },
+      });
+    });
+    rerender();
+
+    expect(result.current).toBe(firstRef);
+  });
 });
