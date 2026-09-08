@@ -13,9 +13,8 @@ import {
 import type { VariableChange } from '@/types';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
-
+import { CopyButton } from '@/components/common';
 import { RawJsonViewer } from './RawJsonViewer';
-
 interface VariableChangesCardProps {
   /** 变更记录列表 */
   changes: VariableChange[] | undefined | null;
@@ -58,27 +57,35 @@ export const VariableChangesCard = memo(function VariableChangesCard({ changes, 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       {/* 标题栏 */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
-        aria-expanded={isOpen}
-      >
-        <div className="text-muted-foreground">
-          {isOpen ? (
-            <ChevronDown className="w-4 h-4" />
-          ) : (
-            <ChevronRight className="w-4 h-4" />
-          )}
+      <div className="flex items-center justify-between w-full bg-muted/30 hover:bg-muted/50 transition-colors">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex-1 flex items-center gap-2 p-3 text-left"
+          aria-expanded={isOpen}
+        >
+          <div className="text-muted-foreground">
+            {isOpen ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </div>
+          <Variable className="w-4 h-4 text-violet-500" />
+          <span className="font-medium text-foreground text-sm">{ll.execution.viewers.variable_changes()}</span>
+        </button>
+        <div className="flex items-center gap-2 pr-3">
+          <CopyButton
+            value={changes}
+            format="json"
+            label={ll.execution.report.copy_all()}
+            size="xs"
+          />
+          <span className="text-xs text-muted-foreground">
+            {changes.length}
+          </span>
         </div>
-        <Variable className="w-4 h-4 text-violet-500" />
-        <span className="font-medium text-foreground text-sm">{ll.execution.viewers.variable_changes()}</span>
-        <span className="ml-auto text-xs text-muted-foreground">
-          {changes.length}
-        </span>
-      </button>
-
-      {/* 变更列表 */}
+      </div>
       {isOpen && (
         <div className="p-3 border-t border-border bg-background">
           <div className="space-y-2">
@@ -97,9 +104,17 @@ export const VariableChangesCard = memo(function VariableChangesCard({ changes, 
                 >
                   {/* 变量名 */}
                   <div className="flex items-center gap-2 mb-2">
-                    <code className="font-mono text-foreground font-medium">
-                      {change.key}
-                    </code>
+                    <div className="flex items-center gap-1">
+                      <code className="font-mono text-foreground font-medium select-text">
+                        {change.key}
+                      </code>
+                      <CopyButton
+                        value={change.key}
+                        title={ll.execution.viewers.copy_var_name()}
+                        size="xs"
+                        className="h-5 p-0.5"
+                      />
+                    </div>
                     <span className={cn(
                       'text-xs px-1.5 py-0.5 rounded',
                       isNewVariable 
@@ -109,18 +124,26 @@ export const VariableChangesCard = memo(function VariableChangesCard({ changes, 
                       {isNewVariable ? ll.execution.viewers.var_created() : ll.execution.viewers.var_updated()}
                     </span>
                   </div>
-
                   {/* 简化显示：当前值 → 旧值（可选） */}
                   <div className="flex items-center gap-3 text-sm">
                     {/* 当前值 */}
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-muted-foreground mb-0.5">{ll.execution.viewers.var_new_value()}</div>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-xs text-muted-foreground">{ll.execution.viewers.var_new_value()}</span>
+                        <CopyButton
+                          value={change.new_value}
+                          format="json"
+                          title={ll.execution.viewers.copy_new_value()}
+                          size="xs"
+                          className="h-5 p-0.5"
+                        />
+                      </div>
                       {typeof change.new_value === 'object' && change.new_value !== null ? (
                         <div className="bg-background/60 rounded p-1.5 max-h-32 overflow-auto">
                           <RawJsonViewer data={change.new_value} />
                         </div>
                       ) : (
-                        <code className="font-mono text-foreground text-xs">
+                        <code className="font-mono text-foreground text-xs select-text cursor-text">
                           {formatValue(change.new_value)}
                         </code>
                       )}
@@ -131,13 +154,22 @@ export const VariableChangesCard = memo(function VariableChangesCard({ changes, 
                       <>
                         <span className="text-muted-foreground shrink-0">←</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs text-muted-foreground mb-0.5">{ll.execution.viewers.var_old_value()}</div>
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-xs text-muted-foreground">{ll.execution.viewers.var_old_value()}</span>
+                            <CopyButton
+                              value={change.old_value}
+                              format="json"
+                              title={ll.execution.viewers.copy_old_value()}
+                              size="xs"
+                              className="h-5 p-0.5"
+                            />
+                          </div>
                           {typeof change.old_value === 'object' && change.old_value !== null ? (
                             <div className="bg-background/60 rounded p-1.5 max-h-32 overflow-auto">
                               <RawJsonViewer data={change.old_value} />
                             </div>
                           ) : (
-                            <code className="font-mono text-muted-foreground text-xs line-through">
+                            <code className="font-mono text-muted-foreground text-xs line-through select-text cursor-text">
                               {formatValue(change.old_value)}
                             </code>
                           )}

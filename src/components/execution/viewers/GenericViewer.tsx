@@ -18,7 +18,7 @@ import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useExecutionStore } from '@/stores';
-
+import { CopyButton } from '@/components/common';
 interface GenericViewerProps {
   /** 节点执行报告 */
   report: NodeExecutionReport;
@@ -31,26 +31,30 @@ interface CollapsibleSectionProps {
   title: string;
   icon: React.ReactNode;
   defaultOpen?: boolean;
+  extra?: React.ReactNode;
   children: React.ReactNode;
 }
 
-function CollapsibleSection({ title, icon, defaultOpen = false, children }: CollapsibleSectionProps) {
+function CollapsibleSection({ title, icon, defaultOpen = false, extra, children }: CollapsibleSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
-        aria-expanded={isOpen}
-      >
-        <div className="text-muted-foreground">
-          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </div>
-        <div className="text-muted-foreground">{icon}</div>
-        <span className="font-medium text-foreground text-sm">{title}</span>
-      </button>
+      <div className="flex items-center w-full bg-muted/30 hover:bg-muted/50 transition-colors">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex-1 flex items-center gap-2 p-3 text-left"
+          aria-expanded={isOpen}
+        >
+          <div className="text-muted-foreground">
+            {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </div>
+          <div className="text-muted-foreground">{icon}</div>
+          <span className="font-medium text-foreground text-sm">{title}</span>
+        </button>
+        {extra && <div className="pr-3">{extra}</div>}
+      </div>
       {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
     </div>
   );
@@ -114,11 +118,14 @@ export const GenericViewer = memo(function GenericViewer({ report }: GenericView
               <div className="bg-background border border-border rounded-md p-3">
                 <div className="text-xs font-semibold text-foreground/80 mb-1.5 flex items-center justify-between">
                   <span>{ll.execution.viewers.stream_content()}</span>
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    {ll.execution.viewers.chars_count({ count: nodeStreamData.fullContent.length })}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {ll.execution.viewers.chars_count({ count: nodeStreamData.fullContent.length })}
+                    </span>
+                    <CopyButton value={nodeStreamData.fullContent} size="xs" />
+                  </div>
                 </div>
-                <div className="text-xs text-foreground font-sans whitespace-pre-wrap leading-relaxed">
+                <div className="text-xs text-foreground font-sans whitespace-pre-wrap leading-relaxed select-text cursor-text">
                   {nodeStreamData.fullContent}
                   {isRunning && (
                     <span className="inline-block w-1.5 h-3.5 bg-blue-500 ml-1 animate-pulse align-middle" />
@@ -152,6 +159,17 @@ export const GenericViewer = memo(function GenericViewer({ report }: GenericView
         title={ll.execution.viewers.input_data()}
         icon={<ArrowUpFromLine className="w-4 h-4" />}
         defaultOpen={true}
+        extra={
+          resolved_config !== undefined && resolved_config !== null ? (
+            <CopyButton
+              value={resolved_config}
+              format="json"
+              label={ll.execution.viewers.copy_json()}
+              title={ll.execution.viewers.copy_json()}
+              size="xs"
+            />
+          ) : null
+        }
       >
         <DataSection data={resolved_config} emptyText={ll.execution.viewers.no_input_data()} />
       </CollapsibleSection>
@@ -160,10 +178,39 @@ export const GenericViewer = memo(function GenericViewer({ report }: GenericView
         title={ll.execution.viewers.output_data()}
         icon={<ArrowDownToLine className="w-4 h-4" />}
         defaultOpen={true}
+        extra={
+          output_data !== undefined && output_data !== null ? (
+            <CopyButton
+              value={output_data}
+              format="json"
+              label={ll.execution.viewers.copy_json()}
+              title={ll.execution.viewers.copy_json()}
+              size="xs"
+            />
+          ) : null
+        }
       >
         <DataSection data={output_data} emptyText={ll.execution.viewers.no_output_data()} />
       </CollapsibleSection>
 
+      {report.plugin_data !== undefined && report.plugin_data !== null && (
+        <CollapsibleSection
+          title={ll.execution.viewers.plugin_data()}
+          icon={<Sparkles className="w-4 h-4 text-purple-500" />}
+          defaultOpen={true}
+          extra={
+            <CopyButton
+              value={report.plugin_data}
+              format="json"
+              label={ll.execution.viewers.copy_json()}
+              title={ll.execution.viewers.copy_json()}
+              size="xs"
+            />
+          }
+        >
+          <DataSection data={report.plugin_data} />
+        </CollapsibleSection>
+      )}
       <VariableChangesCard changes={variable_changes} defaultOpen={true} />
     </div>
   );

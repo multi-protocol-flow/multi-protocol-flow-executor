@@ -26,6 +26,9 @@ import { useCurrentLocale } from '@/hooks/useLocale';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import { getLL } from '@/i18n/i18n-lazy';
 import { createPluginRequestHandler } from '@/lib/pluginRequestActions';
+import { CopyButton } from '@/components/common';
+import { copyToClipboard } from '@/lib/clipboard';
+import { toast } from 'sonner';
 interface PluginIframeViewerProps {
   /** 节点执行报告 */
   report: NodeExecutionReport;
@@ -35,27 +38,36 @@ interface CollapsibleSectionProps {
   title: string;
   icon: React.ReactNode;
   defaultOpen?: boolean;
+  extra?: React.ReactNode;
   children: React.ReactNode;
 }
 
-function CollapsibleSection({ title, icon, defaultOpen = false, children }: CollapsibleSectionProps) {
+function CollapsibleSection({ title, icon, defaultOpen = false, extra, children }: CollapsibleSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
-      >
-        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          {icon}
-          <span>{title}</span>
+      <div className="flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex-1 flex items-center gap-2 text-left"
+        >
+          <div className="text-muted-foreground">{icon}</div>
+          <span className="text-sm font-medium text-foreground">{title}</span>
+        </button>
+        <div className="flex items-center gap-2">
+          {extra}
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label={isOpen ? "Collapse" : "Expand"}
+          >
+            {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
         </div>
-        <div className="text-muted-foreground">
-          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </div>
-      </button>
+      </div>
       {isOpen && (
         <div className="p-3 border-t border-border bg-background">
           {children}
@@ -91,6 +103,15 @@ export const PluginIframeViewer = memo(function PluginIframeViewer({ report }: P
           title={ll.execution.viewers.input_data()}
           icon={<ArrowUpFromLine className="w-4 h-4" />}
           defaultOpen={false}
+          extra={
+            <CopyButton
+              value={inputPayload}
+              format="json"
+              label={ll.execution.viewers.copy_json()}
+              title={ll.execution.viewers.copy_json()}
+              size="xs"
+            />
+          }
         >
           <div className="bg-muted rounded p-2">
             <RawJsonViewer data={inputPayload} />
@@ -104,13 +125,21 @@ export const PluginIframeViewer = memo(function PluginIframeViewer({ report }: P
           title={ll.execution.viewers.output_data()}
           icon={<ArrowDownToLine className="w-4 h-4" />}
           defaultOpen={false}
+          extra={
+            <CopyButton
+              value={output_data}
+              format="json"
+              label={ll.execution.viewers.copy_json()}
+              title={ll.execution.viewers.copy_json()}
+              size="xs"
+            />
+          }
         >
           <div className="bg-muted rounded p-2">
             <RawJsonViewer data={output_data} />
           </div>
         </CollapsibleSection>
       )}
-
       {/* 4. 变量变更 */}
       <VariableChangesCard changes={variable_changes} defaultOpen={false} />
     </div>
@@ -235,6 +264,12 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
               '*'
             );
           });
+      } else if (data.type === 'copy' && data.payload && typeof data.payload === 'object') {
+        const copyText = (data.payload as { text?: string }).text;
+        if (copyText) {
+          copyToClipboard(copyText);
+          toast.success(getLL().execution.report.copied_to_clipboard());
+        }
       }
     };
     window.addEventListener('message', handleWindowMessage);
