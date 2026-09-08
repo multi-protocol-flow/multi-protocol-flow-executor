@@ -10,6 +10,17 @@ import { useZoomStore } from '@/stores/zoom';
 import { getLL } from '@/i18n/i18n-lazy';
 
 const ll = getLL();
+function getFlowStoreState() {
+  return typeof useFlowStore.getState === 'function'
+    ? useFlowStore.getState()
+    : (useFlowStore as unknown as () => ReturnType<typeof useFlowStore.getState>)();
+}
+
+function getUIStoreState() {
+  return typeof useUIStore.getState === 'function'
+    ? useUIStore.getState()
+    : (useUIStore as unknown as () => ReturnType<typeof useUIStore.getState>)();
+}
 
 /**
  * 键盘快捷键 Hook
@@ -30,9 +41,6 @@ const ll = getLL();
  * - Ctrl/Cmd + 0: 重置缩放
  */
 export function useKeyboardShortcuts() {
-  const { selectedNodeId, selectNode } = useFlowStore();
-  const { toggleFlowListPanel, toggleBottomPanel, toggleConfigPanel } = useUIStore();
-
   /**
    * Delete / Backspace 处理（capture 阶段）
    * 在 ReactFlow 处理之前拦截，实现节点删除确认弹窗
@@ -50,7 +58,7 @@ export function useKeyboardShortcuts() {
       if (isInputting) return;
 
       // 检查是否有选中的非 entry 节点
-      const { getSelectedNode, removeNode } = useFlowStore.getState();
+      const { getSelectedNode, removeNode } = getFlowStoreState();
       const selectedNode = getSelectedNode();
 
       if (selectedNode && selectedNode.type !== 'entry') {
@@ -59,7 +67,7 @@ export function useKeyboardShortcuts() {
         e.stopPropagation();
 
         // 弹出确认对话框，与 NodeConfigPanel 的删除按钮行为一致
-        const { showConfirm } = useUIStore.getState();
+        const { showConfirm } = getUIStoreState();
         const LL = getLL();
         showConfirm({
           title: LL.flow.delete_node_title(),
@@ -67,13 +75,13 @@ export function useKeyboardShortcuts() {
           confirmText: LL.flow.delete_node_confirm(),
           onConfirm: () => {
             removeNode(selectedNode.uuid);
-            selectNode(null);
+            getFlowStoreState().selectNode(null);
           },
         });
       }
       // 无节点选中时，不拦截，让 ReactFlow 处理边的删除
     },
-    [selectNode]
+    []
   );
 
   const handleKeyDown = useCallback(
@@ -87,6 +95,7 @@ export function useKeyboardShortcuts() {
 
       // Escape: 取消选择
       if (e.key === 'Escape') {
+        const { selectedNodeId, selectNode } = getFlowStoreState();
         if (selectedNodeId) {
           selectNode(null);
         }
@@ -110,21 +119,21 @@ export function useKeyboardShortcuts() {
       // Ctrl/Cmd + Shift + Z / Ctrl/Cmd + Y: 重做
       if ((e.ctrlKey || e.metaKey) && (e.key === 'Z' || e.key === 'z') && e.shiftKey) {
         e.preventDefault();
-        useFlowStore.getState().redo();
+        getFlowStoreState().redo();
         return;
       }
 
       // Ctrl/Cmd + Y: 重做
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
         e.preventDefault();
-        useFlowStore.getState().redo();
+        getFlowStoreState().redo();
         return;
       }
 
       // Ctrl/Cmd + Z: 撤销
       if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
         e.preventDefault();
-        useFlowStore.getState().undo();
+        getFlowStoreState().undo();
         return;
       }
 
@@ -138,7 +147,7 @@ export function useKeyboardShortcuts() {
         // 等待一个微任务，让面板的 saveData -> handleSave -> updateNode 完成同步更新
         await new Promise(resolve => setTimeout(resolve, 0));
         
-        const { flow, isDirty, markSaved } = useFlowStore.getState();
+        const { flow, isDirty, markSaved } = getFlowStoreState();
         if (!flow || !isDirty) {
           toast.info(ll.execution.toast.no_changes(), { description: ll.execution.toast.no_unsaved_changes() });
           return;
@@ -156,19 +165,19 @@ export function useKeyboardShortcuts() {
       // Ctrl/Cmd + B: 切换左侧面板
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
         e.preventDefault();
-        toggleFlowListPanel();
+        getUIStoreState().toggleFlowListPanel();
       }
 
       // Ctrl/Cmd + H: 切换底部面板展开/收起
       if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
         e.preventDefault();
-        toggleBottomPanel();
+        getUIStoreState().toggleBottomPanel();
       }
 
       // Ctrl/Cmd + J: 切换配置面板
       if ((e.ctrlKey || e.metaKey) && e.key === 'j') {
         e.preventDefault();
-        toggleConfigPanel();
+        getUIStoreState().toggleConfigPanel();
       }
 
       // Ctrl/Cmd + =/+: 放大
@@ -192,19 +201,19 @@ export function useKeyboardShortcuts() {
       // Ctrl/Cmd + /: 打开快捷键面板
       if ((e.ctrlKey || e.metaKey) && e.key === '/') {
         e.preventDefault();
-        useUIStore.getState().openShortcutsDialog();
+        getUIStoreState().openShortcutsDialog();
       }
 
       // Ctrl/Cmd + Shift + F: 打开全流程搜索
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
-        useUIStore.getState().openSearchOverlay();
+        getUIStoreState().openSearchOverlay();
       }
 
       // Ctrl/Cmd + ,: 打开设置
       if ((e.ctrlKey || e.metaKey) && e.key === ',') {
         e.preventDefault();
-        useUIStore.getState().openSettingsDialog();
+        getUIStoreState().openSettingsDialog();
       }
 
       // Ctrl/Cmd + Enter: 执行流程
@@ -217,7 +226,7 @@ export function useKeyboardShortcuts() {
       // Ctrl/Cmd + D: 复制选中节点
       if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
         e.preventDefault();
-        const state = useFlowStore.getState();
+        const state = getFlowStoreState();
         const selectedNode = state.getSelectedNode();
         if (selectedNode && selectedNode.type !== 'entry') {
           const newUuid = crypto.randomUUID();
@@ -239,7 +248,7 @@ export function useKeyboardShortcuts() {
       // Ctrl/Cmd + L: 聚焦到节点列表
       if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
         e.preventDefault();
-        useUIStore.getState().setFlowListPanelOpen(true);
+        getUIStoreState().setFlowListPanelOpen(true);
       }
 
       // F: 适应画布到窗口（非输入状态）
@@ -248,7 +257,7 @@ export function useKeyboardShortcuts() {
         window.dispatchEvent(new CustomEvent('trigger-fit-view'));
       }
     },
-    [selectedNodeId, selectNode, toggleFlowListPanel, toggleBottomPanel, toggleConfigPanel]
+    []
   );
 
   // Delete/Backspace: capture 阶段拦截，优先于 ReactFlow 处理
