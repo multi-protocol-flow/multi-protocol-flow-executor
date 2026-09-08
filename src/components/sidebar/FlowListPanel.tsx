@@ -778,13 +778,13 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           }
         }}
         title={disabled ? getLL().flow.debug_no_switch() : undefined}
-          style={{ marginLeft: `${depth * 20}px` }}
-          className={cn(
-          'group flex items-center gap-2 px-3 h-12 rounded-lg text-sm text-left transition-all duration-150',
-          'bg-background border border-border',
-          !disabled && 'hover:bg-accent',
-          isSelected && !disabled && 'bg-background border-border',
-          !isSelected && !disabled && 'text-muted-foreground',
+        style={{ marginLeft: `${depth * 14}px` }}
+        className={cn(
+          'group flex items-center gap-2.5 px-3 h-10.5 rounded-lg text-xs text-left transition-all duration-150',
+          'border select-none',
+          !disabled && 'cursor-pointer',
+          isSelected && !disabled && 'bg-accent/80 border-border text-foreground font-medium shadow-xs',
+          !isSelected && !disabled && 'border-border/40 bg-background/50 hover:bg-accent/50 hover:border-border text-foreground/80 hover:text-foreground',
           disabled && 'opacity-50 pointer-events-none',
           isDebugFlow && '!opacity-100 !pointer-events-none border-primary/50 bg-primary/5'
         )}
@@ -799,7 +799,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             )}
           />
         )}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex flex-col justify-center py-0.5">
           {renamingUuid === flowMeta.uuid ? (
             <input
               ref={renameInputRef}
@@ -809,12 +809,14 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               onBlur={() => handleConfirmRename()}
               onKeyDown={handleRenameKeyDown}
               onClick={(e) => e.stopPropagation()}
-              className="w-full px-1 py-0 text-sm font-medium bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
+              className="w-full px-1.5 py-0.5 text-xs font-medium bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
             />
           ) : (
             <>
-              <p className="truncate font-medium">{flowMeta.name}</p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className={cn("truncate font-medium text-[13px] leading-snug", isSelected ? "text-foreground" : "text-foreground/90")}>
+                {flowMeta.name}
+              </p>
+              <p className="text-xs text-muted-foreground/75 truncate leading-none mt-0.5">
                 {formatRelativeTime(flowMeta.updated_at)}
               </p>
             </>
@@ -942,8 +944,13 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               toggleFolder(folderPath);
             }
           }}
-          className="group flex items-center gap-1.5 h-8 rounded-md text-sm text-left transition-colors hover:bg-accent/50 cursor-pointer"
-          style={{ marginLeft: `${depth * 20}px`, paddingRight: '12px' }}
+          className={cn(
+            'group flex items-center gap-1.5 h-9 px-2 rounded-md text-[13px] text-left transition-colors cursor-pointer select-none',
+            isExpanded
+              ? 'bg-accent/40 hover:bg-accent/60 text-foreground font-semibold'
+              : 'hover:bg-accent/50 text-foreground/85 font-medium'
+          )}
+          style={{ marginLeft: `${depth * 14}px`, paddingRight: '6px' }}
           onContextMenu={(e) => {
             e.preventDefault();
             const rect = e.currentTarget.getBoundingClientRect();
@@ -952,14 +959,14 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           }}
         >
           {isExpanded ? (
-            <ChevronDown className="w-3 h-3 shrink-0 text-muted-foreground" />
+            <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
           ) : (
-            <ChevronRight className="w-3 h-3 shrink-0 text-muted-foreground" />
+            <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
           )}
           {isExpanded ? (
-            <FolderOpen className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+            <FolderOpen className="w-4 h-4 shrink-0 text-amber-500" />
           ) : (
-            <Folder className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+            <Folder className="w-4 h-4 shrink-0 text-amber-500" />
           )}
 
           {renamingFolderPath === folderPath ? (
@@ -971,13 +978,13 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               onBlur={() => handleConfirmRenameFolder()}
               onKeyDown={handleRenameFolderKeyDown}
               onClick={(e) => e.stopPropagation()}
-              className="flex-1 min-w-0 px-1 py-0 text-sm bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
+              className="flex-1 min-w-0 px-1.5 py-0.5 text-xs bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
             />
           ) : (
-            <span className="truncate text-muted-foreground text-xs font-medium">{displayName}</span>
+            <span className="truncate flex-1 min-w-0">{displayName}</span>
           )}
 
-          {/* 文件夹更多操作按钮 */}
+          {/* 文件夹更多操作按钮（位于统计左侧） */}
           <Button
             variant="ghost"
             size="icon"
@@ -992,37 +999,44 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               }
             }}
             className={cn(
-              'h-5 w-5 shrink-0 ml-auto transition-opacity duration-150',
+              'h-6 w-6 shrink-0 transition-opacity duration-150',
               'opacity-0 group-hover:opacity-100',
               'hover:bg-accent'
             )}
             title={getLL().flow.folder_ops()}
           >
-            <MoreVertical className="w-3 h-3" />
+            <MoreVertical className="w-3.5 h-3.5" />
           </Button>
+
+          {/* 数字统计放到最右侧 */}
+          {renamingFolderPath !== folderPath && (
+            <span className="text-xs text-muted-foreground/75 font-mono shrink-0 tabular-nums ml-0.5">
+              {`(${folderFlows.length})`}
+            </span>
+          )}
         </div>
 
         {/* 文件夹展开内容：子文件夹（优先）→ 流程 → 新建文件夹输入 */}
         {isExpanded && (
-          <div className="space-y-0.5 mt-0.5">
+          <div className="space-y-1 mt-0.5">
             {/* 子文件夹优先渲染 */}
             {childFolderElements}
             {folderFlows.map(flow => renderFlowItem(flow, depth + 1))}
             {folderFlows.length === 0 && !childFolderElements && !(isCreatingFolder && newFolderParentPath === folderPath) && (
               <div
-                className="text-xs text-muted-foreground/60 italic px-3 py-1"
-                style={{ marginLeft: `${(depth + 1) * 20}px` }}
+                className="text-xs text-muted-foreground/60 italic px-2 py-1"
+                style={{ marginLeft: `${(depth + 1) * 14}px` }}
               >
                 {getLL().flow.empty_folder()}
               </div>
             )}
             {isCreatingFolder && newFolderParentPath === folderPath && (
               <div
-                className="w-full flex items-center gap-1.5 h-8 rounded-md text-sm"
-                style={{ marginLeft: `${(depth + 1) * 20}px`, paddingRight: '12px' }}
+                className="w-full flex items-center gap-1.5 h-8 rounded-md text-xs px-2"
+                style={{ marginLeft: `${(depth + 1) * 14}px`, paddingRight: '8px' }}
               >
-                <ChevronRight className="w-3 h-3 shrink-0 text-muted-foreground" />
-                <Folder className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                <Folder className="w-4 h-4 shrink-0 text-amber-500" />
                 <input
                   ref={newFolderInputRef}
                   type="text"
@@ -1039,7 +1053,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                     }
                   }}
                   placeholder={getLL().flow.folder_name_placeholder()}
-                  className="flex-1 min-w-0 px-1 py-0 text-sm bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
+                  className="flex-1 min-w-0 px-1 py-0 text-xs bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
             )}
@@ -1137,11 +1151,11 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             {/* 新建文件夹输入框（始终可见，不依赖 showHeader） */}
             {isCreatingFolder && !newFolderParentPath && (
               <div
-                className="w-full flex items-center gap-1.5 h-8 rounded-md text-sm"
-                style={{ paddingLeft: '8px', paddingRight: '12px' }}
+                className="w-full flex items-center gap-1.5 h-8 rounded-md text-xs px-2"
+                style={{ paddingLeft: '8px', paddingRight: '8px' }}
               >
-                <ChevronRight className="w-3 h-3 shrink-0 text-muted-foreground" />
-                <Folder className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                <Folder className="w-4 h-4 shrink-0 text-amber-500" />
                 <input
                   ref={newFolderInputRef}
                   type="text"
@@ -1158,7 +1172,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                     }
                   }}
                   placeholder={getLL().flow.folder_name_placeholder()}
-                  className="flex-1 min-w-0 px-1 py-0 text-sm bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
+                  className="flex-1 min-w-0 px-1 py-0 text-xs bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
             )}
@@ -1169,7 +1183,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 return folderPaths.map(folderPath => {
                   const children = treeData.folderChildrenMap.get(folderPath) ?? [];
                   const childElements = expandedFolders.has(folderPath) && children.length > 0
-                    ? <div key={`children-${folderPath}`} className="space-y-0.5 mt-0.5">{renderFolderTree(children, depth + 1)}</div>
+                    ? <div key={`children-${folderPath}`} className="space-y-1 mt-0.5">{renderFolderTree(children, depth + 1)}</div>
                     : null;
                   return (
                     <div key={`folder-tree-${folderPath}`}>
