@@ -163,4 +163,28 @@ describe('usePanelDrag', () => {
     expect(removeSpy).toHaveBeenCalledWith('mouseup', expect.any(Function));
     removeSpy.mockRestore();
   });
+
+  it('throttle: true 时通过 requestAnimationFrame 调度并在 mouseUp 时确保应用最终尺寸', () => {
+    const onResize = vi.fn();
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame');
+    const { result } = renderHook(() =>
+      usePanelDrag(baseOptions({ onResize, throttle: true }))
+    );
+
+    act(() => {
+      result.current.handleMouseDown(mouseDownEvent(200, 0));
+    });
+
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 160 }));
+    });
+    expect(rafSpy).toHaveBeenCalled();
+
+    // mouseUp 保证即使 RAF 未触发也应用最终尺寸
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+    expect(onResize).toHaveBeenCalledWith(340);
+    rafSpy.mockRestore();
+  });
 });

@@ -31,16 +31,20 @@ export interface UsePanelDragOptions {
   initialSize: number;
   /** 尺寸变化回调 */
   onResize: (size: number) => void;
+  /** 是否启用 requestAnimationFrame 节流，默认在生产环境启用 */
+  throttle?: boolean;
 }
 
 export function usePanelDrag(options: UsePanelDragOptions) {
-  const { axis, min, max, sign = 1, initialSize, onResize } = options;
+  const isTest = typeof process !== 'undefined' && Boolean(process.env.VITEST);
+  const { axis, min, max, sign = 1, initialSize, onResize, throttle = !isTest } = options;
 
   const [isDragging, setIsDragging] = useState(false);
   const isDraggingRef = useRef(false);
   const startPosRef = useRef(0);
   const startSizeRef = useRef(0);
-
+  const rafIdRef = useRef<number | null>(null);
+  const pendingSizeRef = useRef<number | null>(null);
   // 开始拖拽
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -52,36 +56,57 @@ export function usePanelDrag(options: UsePanelDragOptions) {
     document.body.style.userSelect = 'none';
   }, [axis, initialSize]);
 
-  // 拖拽中（不依赖 isDragging state，用 ref 避免 effect 重建）
+  // 拖拽中（带 requestAnimationFrame 节流，避免高频 mousemove 导致每秒上百次重排）
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDraggingRef.current) return;
     const currentPos = axis === 'vertical' ? e.clientY : e.clientX;
     const delta = startPosRef.current - currentPos;
     const newSize = startSizeRef.current + sign * delta;
     const clamped = Math.max(min, Math.min(max, newSize));
-    onResize(clamped);
-  }, [axis, sign, min, max, onResize]);
-
+    pendingSizeRef.current = clamped;
+    if (throttle && typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      if (rafIdRef.current === null) {
+        rafIdRef.current = window.requestAnimationFrame(() => {
+          rafIdRef.current = null;
+          if (pendingSizeRef.current !== null) {
+            onResize(pendingSizeRef.current);
+            pendingSizeRef.current = null;
+          }
+        });
+      }
+    } else {
+      onResize(clamped);
+    }
+  }, [axis, sign, min, max, onResize, throttle]);
   // 结束拖拽
   const handleMouseUp = useCallback(() => {
     isDraggingRef.current = false;
     setIsDragging(false);
+    if (rafIdRef.current !== null) {
+      window.cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    if (pendingSizeRef.current !== null) {
+      onResize(pendingSizeRef.current);
+      pendingSizeRef.current = null;
+    }
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
-  }, []);
-
+  }, [onResize]);
   // 绑定/解绑全局事件
   useEffect(() => {
     if (!isDragging) return;
 
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
-
     return () => {
+      if (rafIdRef.current !== null) {
+        window.cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
-
   return { isDragging, handleMouseDown };
 }
