@@ -38,5 +38,11 @@ const zh_CN_datasource = {
   node_template_label: '可落画布节点模板 (NodeTemplate)：',
   search_placeholder: '搜索目录、名称或路径...',
   no_search_results: '未找到匹配的数据项',
+  add_connection: '添加连接',
+  connection_name: '连接名称',
+  connection_name_placeholder: '例如：测试空间、项目 A（可选）',
+  connections_count: '{count} 个连接',
+  delete_connection: '删除连接',
+  delete_connection_confirm: '确定要删除此数据源连接吗？',
 };
 export default zh_CN_datasource;

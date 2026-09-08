@@ -38,6 +38,12 @@ const en_US_datasource = {
   node_template_label: 'Canvas Node Template (NodeTemplate):',
   search_placeholder: 'Search directory, name or path...',
   no_search_results: 'No matching items found',
+  add_connection: 'Add Connection',
+  connection_name: 'Connection Name',
+  connection_name_placeholder: 'e.g., Test Space, Project A (optional)',
+  connections_count: '{count} connection(s)',
+  delete_connection: 'Delete Connection',
+  delete_connection_confirm: 'Are you sure you want to delete this connection?',
 };
 
 export default en_US_datasource;

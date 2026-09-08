@@ -7512,6 +7512,31 @@ type RootTranslation = {
 		 * 未​找​到​匹​配​的​数​据​项
 		 */
 		no_search_results: string
+		/**
+		 * 添​加​连​接
+		 */
+		add_connection: string
+		/**
+		 * 连​接​名​称
+		 */
+		connection_name: string
+		/**
+		 * 例​如​：​测​试​空​间​、​项​目​ ​A​（​可​选​）
+		 */
+		connection_name_placeholder: string
+		/**
+		 * {​c​o​u​n​t​}​ ​个​连​接
+		 * @param {unknown} count
+		 */
+		connections_count: RequiredParams<'count'>
+		/**
+		 * 删​除​连​接
+		 */
+		delete_connection: string
+		/**
+		 * 确​定​要​删​除​此​数​据​源​连​接​吗​？
+		 */
+		delete_connection_confirm: string
 	}
 	flow: {
 		/**
@@ -20504,6 +20529,30 @@ export type TranslationFunctions = {
 		 * 未找到匹配的数据项
 		 */
 		no_search_results: () => LocalizedString
+		/**
+		 * 添加连接
+		 */
+		add_connection: () => LocalizedString
+		/**
+		 * 连接名称
+		 */
+		connection_name: () => LocalizedString
+		/**
+		 * 例如：测试空间、项目 A（可选）
+		 */
+		connection_name_placeholder: () => LocalizedString
+		/**
+		 * {count} 个连接
+		 */
+		connections_count: (arg: { count: unknown }) => LocalizedString
+		/**
+		 * 删除连接
+		 */
+		delete_connection: () => LocalizedString
+		/**
+		 * 确定要删除此数据源连接吗？
+		 */
+		delete_connection_confirm: () => LocalizedString
 	}
 	flow: {
 		/**
