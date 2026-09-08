@@ -5063,6 +5063,22 @@ type RootTranslation = {
 			 * 无​拓​扑​数​据
 			 */
 			no_topology_data: string
+			/**
+			 * 复​制​节​点​完​整​报​告
+			 */
+			copy_node_report: string
+			/**
+			 * 激​活​端​口
+			 */
+			used_port: string
+			/**
+			 * 等​待​耗​时
+			 */
+			wait_duration: string
+			/**
+			 * 执​行​状​态
+			 */
+			status_summary: string
 		}
 		compare: {
 			/**
@@ -6375,6 +6391,74 @@ type RootTranslation = {
 			 * 插​件​结​果​面​板​占​位​ ​—​—​ ​插​件​自​定​义​结​果​界​面​将​在​此​渲​染
 			 */
 			plugin_viewer_placeholder: string
+			/**
+			 * 复​制​ ​J​S​O​N
+			 */
+			copy_json: string
+			/**
+			 * 复​制​值
+			 */
+			copy_value: string
+			/**
+			 * 复​制​错​误​报​告
+			 */
+			copy_error_report: string
+			/**
+			 * 复​制​错​误​信​息
+			 */
+			copy_error_message: string
+			/**
+			 * 复​制​堆​栈​信​息
+			 */
+			copy_stack_trace: string
+			/**
+			 * 复​制​ ​U​R​L
+			 */
+			copy_url: string
+			/**
+			 * 复​制​节​点​名
+			 */
+			copy_node_name: string
+			/**
+			 * 复​制​ ​H​e​a​d​e​r​s
+			 */
+			copy_headers: string
+			/**
+			 * 复​制​ ​H​e​a​d​e​r​s
+			 */
+			copy_response_headers: string
+			/**
+			 * 复​制​内​容
+			 */
+			copy_body: string
+			/**
+			 * 复​制​变​量​名
+			 */
+			copy_var_name: string
+			/**
+			 * 复​制​新​值
+			 */
+			copy_new_value: string
+			/**
+			 * 复​制​旧​值
+			 */
+			copy_old_value: string
+			/**
+			 * 复​制​表​达​式
+			 */
+			copy_expression: string
+			/**
+			 * 复​制​目​标​字​段
+			 */
+			copy_target: string
+			/**
+			 * 复​制​实​际​值
+			 */
+			copy_actual: string
+			/**
+			 * 复​制​期​望​值
+			 */
+			copy_expected: string
 		}
 		toast: {
 			/**
@@ -18186,6 +18270,22 @@ export type TranslationFunctions = {
 			 * 无拓扑数据
 			 */
 			no_topology_data: () => LocalizedString
+			/**
+			 * 复制节点完整报告
+			 */
+			copy_node_report: () => LocalizedString
+			/**
+			 * 激活端口
+			 */
+			used_port: () => LocalizedString
+			/**
+			 * 等待耗时
+			 */
+			wait_duration: () => LocalizedString
+			/**
+			 * 执行状态
+			 */
+			status_summary: () => LocalizedString
 		}
 		compare: {
 			/**
@@ -19470,6 +19570,74 @@ export type TranslationFunctions = {
 			 * 插件结果面板占位 —— 插件自定义结果界面将在此渲染
 			 */
 			plugin_viewer_placeholder: () => LocalizedString
+			/**
+			 * 复制 JSON
+			 */
+			copy_json: () => LocalizedString
+			/**
+			 * 复制值
+			 */
+			copy_value: () => LocalizedString
+			/**
+			 * 复制错误报告
+			 */
+			copy_error_report: () => LocalizedString
+			/**
+			 * 复制错误信息
+			 */
+			copy_error_message: () => LocalizedString
+			/**
+			 * 复制堆栈信息
+			 */
+			copy_stack_trace: () => LocalizedString
+			/**
+			 * 复制 URL
+			 */
+			copy_url: () => LocalizedString
+			/**
+			 * 复制节点名
+			 */
+			copy_node_name: () => LocalizedString
+			/**
+			 * 复制 Headers
+			 */
+			copy_headers: () => LocalizedString
+			/**
+			 * 复制 Headers
+			 */
+			copy_response_headers: () => LocalizedString
+			/**
+			 * 复制内容
+			 */
+			copy_body: () => LocalizedString
+			/**
+			 * 复制变量名
+			 */
+			copy_var_name: () => LocalizedString
+			/**
+			 * 复制新值
+			 */
+			copy_new_value: () => LocalizedString
+			/**
+			 * 复制旧值
+			 */
+			copy_old_value: () => LocalizedString
+			/**
+			 * 复制表达式
+			 */
+			copy_expression: () => LocalizedString
+			/**
+			 * 复制目标字段
+			 */
+			copy_target: () => LocalizedString
+			/**
+			 * 复制实际值
+			 */
+			copy_actual: () => LocalizedString
+			/**
+			 * 复制期望值
+			 */
+			copy_expected: () => LocalizedString
 		}
 		toast: {
 			/**
