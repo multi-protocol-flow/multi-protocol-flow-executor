@@ -13,7 +13,7 @@ import {
   DYNAMIC_VARIABLES,
   type DynamicVariableItem,
 } from "@/types/dynamicVariable";
-import { DynamicVariablesHelpDialog } from "@/components/dialogs/DynamicVariablesHelpDialog";
+import { useUIStore } from '@/stores/ui';
 import { getLL } from '@/i18n/i18n-lazy';
 
 const LL = getLL();
@@ -102,7 +102,7 @@ export function VariableSelector({
   // 搜索状态
   const [searchQuery, setSearchQuery] = React.useState("");
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
-  const [helpDialogOpen, setHelpDialogOpen] = React.useState(false);
+
   
   // 支持受控和非受控模式
   const open = controlledOpen ?? uncontrolledOpen;
@@ -263,7 +263,7 @@ export function VariableSelector({
             type="button"
             onClick={() => {
               setOpen(false);
-              setHelpDialogOpen(true);
+              useUIStore.getState().openDynamicVariablesHelpDialog();
             }}
             className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium hover:underline flex items-center gap-1 shrink-0"
           >
@@ -280,10 +280,7 @@ export function VariableSelector({
         </div>
       </PopoverContent>
       </Popover>
-      <DynamicVariablesHelpDialog
-        open={helpDialogOpen}
-        onOpenChange={setHelpDialogOpen}
-      />
+
     </>
   );
 }

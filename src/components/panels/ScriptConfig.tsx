@@ -5,7 +5,7 @@
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Clock, Database, BookOpen } from 'lucide-react';
 import type { ScriptNodeConfig } from '@/types/node';
-import { ScriptHelpDialog } from '@/components/dialogs/ScriptHelpDialog';
+import { useUIStore } from '@/stores/ui';
 import { getLL } from '@/i18n/i18n-lazy';
 import { DYNAMIC_VARIABLES } from '@/types/dynamicVariable';
 
@@ -201,7 +201,7 @@ function dynamicVariableCompletions(context: CompletionContext) {
 
 export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
   const ll = getLL().panels.script;
-  const [helpOpen, setHelpOpen] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -322,7 +322,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
           </Label>
           <button
             type="button"
-            onClick={() => setHelpOpen(true)}
+            onClick={() => useUIStore.getState().openScriptHelpDialog()}
             className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <BookOpen className="h-3.5 w-3.5" />
@@ -428,8 +428,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
         </div>
       </div>
 
-      {/* API 参考弹窗 */}
-      <ScriptHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+
     </form>
   );
 }

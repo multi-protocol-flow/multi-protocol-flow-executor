@@ -24,17 +24,17 @@ import {
   CheckCheck,
   Sparkles,
 } from 'lucide-react';
-import { DynamicVariablesHelpDialog } from './DynamicVariablesHelpDialog';
+import { useUIStore } from '@/stores/ui';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 
-/** 动态导入 Tauri URL 打开器 */
+/** 打开外部链接（优先通过 Tauri opener 唤起系统浏览器，兜底通过 window.open） */
 async function openUrl(url: string) {
   try {
     const { openUrl } = await import('@tauri-apps/plugin-opener');
     await openUrl(url);
   } catch {
-    // 非 Tauri 环境，静默忽略
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 }
 
@@ -164,7 +164,6 @@ function UtilSubCategory({ title, items }: { title: string; items: string[] }) {
 }
 
 export function ScriptHelpDialog({ open, onOpenChange }: ScriptHelpDialogProps) {
-  const [dynamicHelpOpen, setDynamicHelpOpen] = useState(false);
   const sections: SectionData[] = [
     {
       id: 'overview',
@@ -199,11 +198,15 @@ export function ScriptHelpDialog({ open, onOpenChange }: ScriptHelpDialogProps) 
           ]} />
           <div className="flex items-center justify-between pt-1">
             <span className="text-xs text-muted-foreground">
-              支持动态变量如 <code className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">fn.variables.get('$guid')</code>
+              {getLL().flow.script_help_dynamic_vars_support()}{' '}
+              <code className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">fn.variables.get('$guid')</code>
             </span>
             <button
               type="button"
-              onClick={() => setDynamicHelpOpen(true)}
+              onClick={() => {
+                onOpenChange(false);
+                useUIStore.getState().openDynamicVariablesHelpDialog();
+              }}
               className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:underline transition-colors"
             >
               <Sparkles className="h-3 w-3" />
@@ -212,7 +215,7 @@ export function ScriptHelpDialog({ open, onOpenChange }: ScriptHelpDialogProps) 
           </div>
           <CodeBlock code={`fn.variables.set('token', 'abc123');
 const token = fn.variables.get('token');
-// 动态变量与模板插值
+${getLL().flow.script_comment_dynamic_vars()}
 const guid = fn.variables.get('$guid');
 const authHeader = fn.variables.replaceIn('Bearer {{$guid}}');
 const allVars = JSON.parse(fn.variables.all());`} />
@@ -226,8 +229,8 @@ const allVars = JSON.parse(fn.variables.all());`} />
       content: (
         <>
           <p className="text-xs text-muted-foreground mb-2">
-            {getLL().flow.script_section_response_desc()}
-            <code className="bg-muted/60 px-1.5 py-0.5 rounded text-[11px] font-mono ml-1">fn.response.raw</code>
+            {getLL().flow.script_section_response_desc()}{' '}
+            <code className="bg-muted/60 px-1.5 py-0.5 rounded text-[11px] font-mono">fn.response.raw</code>{' '}
             {getLL().flow.script_section_response_raw()}
           </p>
           <ApiTable rows={[
@@ -241,12 +244,12 @@ const allVars = JSON.parse(fn.variables.all());`} />
             { method: 'text()', description: getLL().flow.fn_response_text() },
             { method: 'json()', description: getLL().flow.fn_response_json() },
           ]} />
-          <CodeBlock code={`// 任意节点类型 — 获取完整输出
+          <CodeBlock code={`${getLL().flow.script_comment_all_nodes()}
 const data = JSON.parse(fn.response.raw);
 fn.variables.set('count', data.rows.length.toString());
 fn.variables.set('firstName', data.rows[0].name);
 
-// HTTP 节点（向下兼容）
+${getLL().flow.script_comment_http_node()}
 const code = fn.response.code;
 const body = JSON.parse(fn.response.body);
 fn.variables.set('userId', body.user.id);`} />
@@ -293,7 +296,7 @@ fn.variables.set('userId', body.user.id);`} />
             { method: 'stop()', description: getLL().flow.fn_flow_stop() },
           ]} />
           <CodeBlock code={`if (fn.response.code !== 200) {
-  fn.flow.abort('请求失败: ' + fn.response.code);
+  fn.flow.abort('${getLL().flow.script_error_request_failed()}' + fn.response.code);
 }
 if (JSON.parse(fn.response.body).done) { fn.flow.stop(); }
 if (JSON.parse(fn.response.body).skip) { fn.flow.skip(); }`} />
@@ -391,8 +394,7 @@ fn.expect(result).to.eql({ status: 'ok' });`} />
   ];
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-[680px] h-[85vh] flex flex-col overflow-hidden p-0 gap-0"
         hideCloseButton
@@ -419,7 +421,7 @@ fn.expect(result).to.eql({ status: 'ok' });`} />
                 <span className="text-muted-foreground/40">|</span>
                 <button
                   type="button"
-                  onClick={() => openUrl('https://es6.ruanyifeng.com/')}
+                  onClick={() => openUrl('https://262.ecma-international.org/6.0/')}
                   className="inline-flex items-center gap-1 text-xs text-violet-600 hover:text-violet-700 hover:underline transition-colors"
                 >
                   <ExternalLink className="h-3 w-3" />
@@ -454,10 +456,5 @@ fn.expect(result).to.eql({ status: 'ok' });`} />
         </div>
       </DialogContent>
     </Dialog>
-    <DynamicVariablesHelpDialog
-      open={dynamicHelpOpen}
-      onOpenChange={setDynamicHelpOpen}
-    />
-  </>
-);
+  );
 }
