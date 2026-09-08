@@ -90,50 +90,52 @@ const initialState = {
 };
 
 export const useExecutionStore = create<ExecutionState>((set, get) => {
-  // T21: setState 批量更新缓冲（预留 — 切换 handleExecutionEvent 时启用）
+  // T21: setState 批量更新缓冲
   // ════════════════════════════════════════════════════════════════════════
   // 通过 queueMicrotask 将多个 handleExecutionEvent 合并为一次 setState 调用，
-  // 减少高频事件下 React 重渲染次数。
-  //
-  //   启用步骤：
-  //   1. 取消下面 3 行注释（类型 + 变量 + merge 函数）
-  //   2. 取消 scheduleFlush 函数的注释
-  //   3. 将 handleExecutionEvent 中各分支的 set(...) 替换为
-  //      eventBuffer.push({ updater: ... }) + scheduleFlush()
-  //
-  //   // 缓冲条目类型
-  //   interface EventBufferEntry {
-  //     updater: Partial<ExecutionState> | ((state: ExecutionState) => Partial<ExecutionState>);
-  //   }
-  //   let eventBuffer: EventBufferEntry[] = [];
-  //   let flushScheduled = false;
-  //
-  //   // 合并所有缓冲条目为单个 Partial<ExecutionState>
-  //   function mergeBufferedEvents(state: ExecutionState, entries: EventBufferEntry[]): Partial<ExecutionState> {
-  //     let merged: Partial<ExecutionState> = {};
-  //     for (const entry of entries) {
-  //       const partial = typeof entry.updater === 'function'
-  //         ? entry.updater(state)
-  //         : entry.updater;
-  //       Object.assign(merged, partial);
-  //     }
-  //     return merged;
-  //   }
-  //
-  //   // 在下一个微任务执行一次合并 set
-  //   const scheduleFlush = () => {
-  //     if (!flushScheduled) {
-  //       flushScheduled = true;
-  //       queueMicrotask(() => {
-  //         flushScheduled = false;
-  //         if (eventBuffer.length === 0) return;
-  //         const currentState = get();
-  //         const merged = mergeBufferedEvents(currentState, eventBuffer);
-  //         eventBuffer = [];
-  //         set(merged);
-  //       });
-  //     }
-  //   };
+  // 减少高频事件（流式 token / 连续节点状态）下 React 重渲染次数。
+  interface EventBufferEntry {
+    updater: Partial<ExecutionState> | ((state: ExecutionState) => Partial<ExecutionState>);
+  }
+  let eventBuffer: EventBufferEntry[] = [];
+  let flushScheduled = false;
+  const isTest = typeof process !== 'undefined' && Boolean(process.env.VITEST);
+
+  function applyBufferedEvents(state: ExecutionState, entries: EventBufferEntry[]): Partial<ExecutionState> {
+    let acc = { ...state };
+    for (const entry of entries) {
+      const partial = typeof entry.updater === 'function' ? entry.updater(acc) : entry.updater;
+      acc = { ...acc, ...partial };
+    }
+    return acc;
+  }
+
+  const flushBuffer = () => {
+    if (eventBuffer.length === 0) return;
+    const currentState = get();
+    const merged = applyBufferedEvents(currentState, eventBuffer);
+    eventBuffer = [];
+    set(merged);
+  };
+
+  const scheduleFlush = () => {
+    if (isTest) {
+      flushBuffer();
+      return;
+    }
+    if (!flushScheduled) {
+      flushScheduled = true;
+      queueMicrotask(() => {
+        flushScheduled = false;
+        flushBuffer();
+      });
+    }
+  };
+
+  const queueEventUpdate = (updater: Partial<ExecutionState> | ((state: ExecutionState) => Partial<ExecutionState>)) => {
+    eventBuffer.push({ updater });
+    scheduleFlush();
+  };
   // ════════════════════════════════════════════════════════════════════════
 
   return {
@@ -170,7 +172,10 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         error,
       }),
 
-    reset: () => set(initialState),
+    reset: () => {
+      eventBuffer = [];
+      set(initialState);
+    },
 
     clearError: () => set({ error: null }),
 
@@ -187,11 +192,8 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
     },
 
     handleExecutionEvent: (event: ExecutionEvent) => {
-      // TODO: 切换为批量缓冲模式时，将以下 set 调用替换为 eventBuffer.push + scheduleFlush()
-      // 示例：
-      //   eventBuffer.push({ updater: { isExecuting: true, ... } });
-      //   scheduleFlush();
       if ('flowStarted' in event) {
+        flushBuffer();
         const { totalNodes } = event.flowStarted;
         set({
           isExecuting: true,
@@ -206,10 +208,10 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         });
       } else if ('nodeStarted' in event) {
         const { nodeUuid } = event.nodeStarted;
-        set({ currentNodeUuid: nodeUuid });
+        queueEventUpdate({ currentNodeUuid: nodeUuid });
       } else if ('nodeCompleted' in event) {
         const { report } = event.nodeCompleted;
-        set((state) => ({
+        queueEventUpdate((state) => ({
           nodeReportsMap: {
             ...state.nodeReportsMap,
             [report.node_uuid]: report,
@@ -218,6 +220,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           currentNodeUuid: null,
         }));
       } else if ('flowCompleted' in event) {
+        flushBuffer();
         const { report } = event.flowCompleted;
         set((state) => {
           const newHistory = [report, ...state.history].slice(0, MAX_HISTORY_SIZE);
@@ -231,11 +234,12 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           };
         });
       } else if ('flowCancelled' in event) {
+        flushBuffer();
         set({ isExecuting: false });
       } else if ('pluginEvent' in event) {
         const pluginEvt = event.pluginEvent;
         const isStream = pluginEvt.eventType === 'stream';
-        set((state) => {
+        queueEventUpdate((state) => {
           let nextNodeStreamMap = state.nodeStreamMap;
           if (isStream) {
             const dataObj =
@@ -297,6 +301,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
     },
 
     clearExecutionState: () => {
+      eventBuffer = [];
       useWsStreamStore.getState().resetWsStreams();
       set({
         nodeReportsMap: {},
