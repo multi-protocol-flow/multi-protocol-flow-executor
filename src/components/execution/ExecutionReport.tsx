@@ -40,7 +40,7 @@ import { WsMessageTimeline } from './WsMessageTimeline';
 import { CanvasReportViewer } from './CanvasReportViewer';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-
+import { CopyButton } from '@/components/common';
 /** 统计卡片组件 */
 function StatCard({
   icon: Icon,
@@ -218,7 +218,15 @@ export function ExecutionReport() {
               </button>
             </div>
 
-            {/* 最大化按钮 */}
+            {/* 复制报告 JSON */}
+            <CopyButton
+              value={displayReport}
+              format="json"
+              label={ll.execution.report.copy_all()}
+              title={ll.execution.report.copy_all()}
+              size="sm"
+              className="ml-2 h-8"
+            />
             <Button
               variant="ghost"
               size="icon"
@@ -338,11 +346,19 @@ export function ExecutionReport() {
                   {/* 流程级错误 */}
                   {displayReport.flow_error && (
                     <div className="rounded-xl bg-red-50 dark:bg-red-950/50 p-4 border border-red-200/50 dark:border-red-800/50">
-                      <div className="flex items-center gap-2 mb-2 text-red-600 dark:text-red-400">
-                        <AlertCircle className="w-4 h-4" />
-                        <span className="font-medium">{ll.execution.report.flow_error()}</span>
+                      <div className="flex items-center justify-between gap-2 mb-2 text-red-600 dark:text-red-400">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="font-medium">{ll.execution.report.flow_error()}</span>
+                        </div>
+                        <CopyButton
+                          value={displayReport.flow_error.message}
+                          title={ll.execution.viewers.copy_error_message()}
+                          size="xs"
+                          className="bg-background/80 text-red-700 dark:text-red-300 border-red-300/60"
+                        />
                       </div>
-                      <p className="text-red-600 dark:text-red-400">{displayReport.flow_error.message}</p>
+                      <p className="text-red-600 dark:text-red-400 select-text cursor-text">{displayReport.flow_error.message}</p>
                     </div>
                   )}
 
