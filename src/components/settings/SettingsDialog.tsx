@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Palette, HardDrive, Sparkles, Cpu, CheckCircle2, Info, X } from 'lucide-react';
+import { Palette, HardDrive, Sparkles, Cpu, CheckCircle2, Info, X, Keyboard } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,10 @@ import { StorageSettingsTab } from './StorageSettingsTab';
 import { EngineSettingsTab } from './EngineSettingsTab';
 import { AboutSettingsTab } from './AboutSettingsTab';
 import { AIProviderSettingsCard } from '@/components/ai/AIProviderSettingsCard';
+import { ShortcutsSettingsTab } from './ShortcutsSettingsTab';
 import { useUpdateStore } from '@/stores/update';
 
-export type SettingsTabId = 'general' | 'storage' | 'ai' | 'engine' | 'about';
+export type SettingsTabId = 'general' | 'storage' | 'ai' | 'engine' | 'about' | 'shortcuts';
 
 export function SettingsDialog() {
   const showSettingsDialog = useUIStore((s) => s.showSettingsDialog);
@@ -84,6 +85,13 @@ export function SettingsDialog() {
       icon: Cpu,
       title: ll.settings.tab_engine?.() ?? 'Engine & Performance',
       description: ll.settings.engine_desc?.() ?? 'Configure execution timeout and plugin concurrency capacity',
+    },
+    {
+      id: 'shortcuts',
+      label: ll.settings.tab_shortcuts?.() ?? 'Shortcuts & Manuals',
+      icon: Keyboard,
+      title: ll.settings.tab_shortcuts?.() ?? 'Shortcuts & Manuals',
+      description: ll.settings.shortcuts_desc?.() ?? 'View keyboard shortcuts, script APIs, and dynamic variables reference handbook',
     },
     {
       id: 'about',
@@ -186,6 +194,7 @@ export function SettingsDialog() {
                 {activeTab === 'storage' && <StorageSettingsTab />}
                 {activeTab === 'ai' && <AIProviderSettingsCard className="border-t-0 pt-0" />}
                 {activeTab === 'engine' && <EngineSettingsTab />}
+                {activeTab === 'shortcuts' && <ShortcutsSettingsTab />}
                 {activeTab === 'about' && <AboutSettingsTab />}
               </div>
             </ScrollArea>

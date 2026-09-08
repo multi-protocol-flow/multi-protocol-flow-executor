@@ -18,6 +18,8 @@ import { SettingsDialog } from '@/components/settings';
 import { UpdateDialog } from '@/components/dialogs/UpdateDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { ShortcutsDialog } from '@/components/dialogs/ShortcutsDialog';
+import { ScriptHelpDialog } from '@/components/dialogs/ScriptHelpDialog';
+import { DynamicVariablesHelpDialog } from '@/components/dialogs/DynamicVariablesHelpDialog';
 import { SearchOverlay } from '@/components/dialogs/SearchOverlay';
 import { EnvironmentManagerDialog } from '@/components/panels/EnvironmentManager';
 import {
@@ -34,7 +36,8 @@ import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
 import { useUpdateStore } from '@/stores/update';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, Puzzle, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard, Sparkles, Copy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, Puzzle, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard, Sparkles, Copy, HelpCircle, BookOpen } from 'lucide-react';
+import * as Popover from '@radix-ui/react-popover';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -388,17 +391,69 @@ export function MainLayout() {
           </div>
           )}
 
-          {/* 快捷键按钮 */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => useUIStore.getState().openShortcutsDialog()}
-            title={`${getLL().flow.keyboard_shortcuts()} (Ctrl+/)`}
-            className="hidden sm:inline-flex"
-          >
-            <Keyboard className="h-5 w-5" />
-          </Button>
-
+          {/* 帮助与手册下拉菜单 */}
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                title={getLL().settings.header_help_title()}
+                className="hidden sm:inline-flex cursor-pointer"
+              >
+                <HelpCircle className="h-5 w-5" />
+              </Button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                side="bottom"
+                align="end"
+                sideOffset={8}
+                className="w-56 rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl z-50 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+              >
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
+                  {getLL().settings.header_help_title()}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => useUIStore.getState().openShortcutsDialog()}
+                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs hover:bg-muted transition-colors text-left cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <Keyboard className="h-4 w-4 text-muted-foreground" />
+                    <span>{getLL().shortcuts.title()}</span>
+                  </span>
+                  <kbd className="px-1 py-0.5 text-[10px] font-mono rounded border border-border bg-muted/60 text-muted-foreground">
+                    Ctrl+/
+                  </kbd>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => useUIStore.getState().openScriptHelpDialog()}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-muted transition-colors text-left cursor-pointer"
+                >
+                  <BookOpen className="h-4 w-4 text-violet-500" />
+                  <span>{getLL().settings.open_script_manual()}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => useUIStore.getState().openDynamicVariablesHelpDialog()}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs hover:bg-muted transition-colors text-left cursor-pointer"
+                >
+                  <Sparkles className="h-4 w-4 text-emerald-500" />
+                  <span>{getLL().settings.open_dynamic_vars_manual()}</span>
+                </button>
+                <div className="my-1 border-t border-border/60" />
+                <button
+                  type="button"
+                  onClick={() => useUIStore.getState().openSettingsDialog('shortcuts')}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-left cursor-pointer"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>{getLL().settings.tab_shortcuts()}</span>
+                </button>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
           {/* 插件设置按钮 */}
           <Button
             variant="ghost"
@@ -790,6 +845,21 @@ export function MainLayout() {
 
       {/* ===== 快捷键面板 ===== */}
       <ShortcutsDialog />
+      {/* ===== 脚本函数 API 参考对话框 ===== */}
+      <ScriptHelpDialog
+        open={useUIStore((s) => s.showScriptHelpDialog)}
+        onOpenChange={(open) => {
+          if (!open) useUIStore.getState().closeScriptHelpDialog();
+        }}
+      />
+
+      {/* ===== 动态变量手册对话框 ===== */}
+      <DynamicVariablesHelpDialog
+        open={useUIStore((s) => s.showDynamicVariablesHelpDialog)}
+        onOpenChange={(open) => {
+          if (!open) useUIStore.getState().closeDynamicVariablesHelpDialog();
+        }}
+      />
 
       {/* ===== 插件设置对话框 ===== */}
       <PluginSettingsDialog />
