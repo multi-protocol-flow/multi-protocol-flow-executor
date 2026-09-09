@@ -81,11 +81,16 @@ function toFormData(data: HttpConfigType): HttpConfigFormData {
     }
   }
 
+  const rawBodyType = (data as HttpConfigType & { body_type?: HttpBodyType }).body_type;
+  const inferredBodyType = (rawBodyType && rawBodyType !== 'none')
+    ? rawBodyType
+    : (body && body.trim() !== '' ? 'body' : (rawBodyType || 'none'));
+
   return {
     url: data.url || '',
     method: data.method || 'get',
     headers: headers.length > 0 ? headers : undefined,
-    body_type: (data as HttpConfigType & { body_type?: HttpBodyType }).body_type || 'none',
+    body_type: inferredBodyType,
     content_type: data.content_type ?? 'json',
     body: body || undefined,
     form_fields: data.form_fields || [],
@@ -947,6 +952,10 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   id="body"
                   variables={variables}
                   nodeLabels={nodeLabels}
+                  value={watch('body') ?? ''}
+                  onValueChange={(val) => {
+                    setValue('body', val, { shouldDirty: true });
+                  }}
                   {...register('body')}
                   placeholder={getBodyPlaceholder(watchedContentType)}
                   className="min-h-[140px] resize-y font-mono text-xs"

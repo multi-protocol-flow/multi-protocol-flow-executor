@@ -31,6 +31,23 @@ describe('HttpConfig - Content-Type 选择器', () => {
     const contentTypeSelect = screen.getByLabelText(/content-type/i);
     expect(contentTypeSelect).toBeDefined();
   });
+  it('当 body 有内容但 body_type 未指定时，应自动推断为 body 并正确显示在 textarea 中', () => {
+    const config: HttpConfigType = {
+      type: 'http',
+      url: 'https://example.com/api',
+      method: 'post',
+      body: '{"auto_inferred": "yes"}',
+    };
+
+    render(<HttpConfig data={config} onSave={mockOnSave} />);
+
+    // 验证 Content-Type 存在（表明自动推断为 body 类型）
+    expect(screen.getByLabelText(/content-type/i)).toBeDefined();
+    // 验证 textarea 中正确显示 body 内容
+    const textarea = screen.getByPlaceholderText(/\{\s*"key"/i) as HTMLTextAreaElement;
+    expect(textarea.value).toBe('{"auto_inferred": "yes"}');
+  });
+
 
   it('[GREEN] Content-Type 选择器应包含 json/text/html/xml/javascript 选项', () => {
     const config: HttpConfigType = {
