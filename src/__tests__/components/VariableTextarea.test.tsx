@@ -29,6 +29,18 @@ describe('VariableTextarea', () => {
     );
     expect(screen.getByDisplayValue('initial body text')).toBeInTheDocument();
   });
+  it('renders correctly with react-hook-form register', () => {
+    const { useForm } = require('react-hook-form');
+    function FormComp() {
+      const { register } = useForm({
+        defaultValues: { body: 'hello from hook form' },
+      });
+      return <VariableTextarea variables={[]} {...register('body')} />;
+    }
+    render(<FormComp />);
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+    expect(textarea.value).toBe('hello from hook form');
+  });
 
   it('renders textarea with placeholder', () => {
     render(

@@ -77,26 +77,34 @@ export const VariableTextarea = React.forwardRef<
       [forwardedRef]
     );
 
+    // 是否受控模式
+    const isControlled = controlledValue !== undefined;
+
     // 非受控模式状态
     const [uncontrolledValue, setUncontrolledValue] = React.useState(defaultValue);
 
     // 变量选择器受控开关状态
     const [selectorOpen, setSelectorOpen] = React.useState(false);
 
-    // 当前值（受控/非受控）
-    const value = controlledValue ?? uncontrolledValue;
+    // 当前值（受控模式取 controlledValue，非受控模式优先取 DOM 当前值，降级到 state）
+    const value = controlledValue !== undefined
+      ? controlledValue
+      : (internalRef.current ? internalRef.current.value : uncontrolledValue);
 
     // 更新值
     const updateValue = React.useCallback(
       (newValue: string) => {
-        if (controlledValue === undefined) {
+        if (!isControlled) {
           setUncontrolledValue(newValue);
+          if (internalRef.current && internalRef.current.value !== newValue) {
+            internalRef.current.value = newValue;
+            internalRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+          }
         }
         onValueChange?.(newValue);
       },
-      [controlledValue, onValueChange]
+      [isControlled, onValueChange]
     );
-
     // 变量选择器是否可用
     const isVariableSelectorEnabled =
       !disableVariableSelector &&
@@ -145,28 +153,29 @@ export const VariableTextarea = React.forwardRef<
     const handleVariableSelect = React.useCallback(
       (variableName: string) => {
         const textarea = internalRef.current;
+        const curVal = value;
         if (!textarea) {
           const insertion = `{{${variableName}}}`;
-          updateValue(value + insertion);
+          updateValue(curVal + insertion);
           setSelectorOpen(false);
           return;
         }
 
-        let start = textarea.selectionStart ?? value.length;
-        let end = textarea.selectionEnd ?? value.length;
-        if (start === 0 && end === 0 && value.endsWith('{{')) {
-          start = value.length;
-          end = value.length;
+        let start = textarea.selectionStart ?? curVal.length;
+        let end = textarea.selectionEnd ?? curVal.length;
+        if (start === 0 && end === 0 && curVal.endsWith('{{')) {
+          start = curVal.length;
+          end = curVal.length;
         }
         // 如果光标前刚好是 {{，则替换掉它，避免产生 {{{{var}}}}
-        const beforeCursor = value.slice(0, start);
+        const beforeCursor = curVal.slice(0, start);
         let replaceStart = start;
         if (beforeCursor.endsWith('{{')) {
           replaceStart = start - 2;
         }
 
         const insertion = `{{${variableName}}}`;
-        const newValue = value.slice(0, replaceStart) + insertion + value.slice(end);
+        const newValue = curVal.slice(0, replaceStart) + insertion + curVal.slice(end);
         updateValue(newValue);
         setSelectorOpen(false);
 
@@ -179,14 +188,13 @@ export const VariableTextarea = React.forwardRef<
       },
       [value, updateValue]
     );
-
     return (
       <div className={cn('relative flex flex-col group', containerClassName)}>
         <div className="relative">
           <Textarea
             {...props}
             ref={setTextareaRef}
-            value={value}
+            {...(isControlled ? { value: controlledValue } : (defaultValue ? { defaultValue } : {}))}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             disabled={disabled}
