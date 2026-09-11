@@ -11,11 +11,16 @@ vi.mock('@/i18n/i18n-lazy', () => ({
   getLL: () => ({
     settings: {
       dialog_title: () => '全局设置',
+      dialog_desc: () => '管理外观主题、本地存储路径、AI 助手服务商及底层引擎性能参数',
       saved_badge: () => '已自动同步',
       tab_general: () => '常规与外观',
       tab_storage: () => '存储与路径',
       tab_ai: () => 'AI 助手模型',
       tab_engine: () => '引擎与性能',
+      tab_shortcuts: () => '快捷键与手册',
+      shortcuts_desc: () => '查看系统快捷键列表',
+      tab_about: () => '关于与更新',
+      about_desc: () => '查看系统版本信息',
       appearance: () => '外观主题',
       appearance_desc: () => '选择明暗模式',
       theme_light: () => '浅色',
