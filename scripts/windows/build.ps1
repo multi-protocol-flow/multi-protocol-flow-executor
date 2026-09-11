@@ -1,33 +1,23 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Windows 本地构建脚本：支持编译 CLI (mpe-cli) 与 GUI (NSIS 安装包)
+    Windows 本地构建脚本：构建完整安装包 (GUI + CLI 二合一 NSIS)
 .DESCRIPTION
     用法:
-      .\scripts\windows\build.ps1 [version] [-CliOnly] [-GuiOnly] [-All]
+      .\scripts\windows\build.ps1 [version]
     示例:
       .\scripts\windows\build.ps1 0.2.0-beta.1
-      .\scripts\windows\build.ps1 -CliOnly
 #>
 
 [CmdletBinding()]
 param(
     [Parameter(Position=0)]
-    [string]$Version,
-
-    [switch]$CliOnly,
-    [switch]$GuiOnly,
-    [switch]$All
+    [string]$Version
 )
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent (Split-Path -Parent $ScriptDir)
-
-# 确定目标模式
-$TargetMode = "all"
-if ($CliOnly) { $TargetMode = "cli" }
-elseif ($GuiOnly) { $TargetMode = "gui" }
 
 Set-Location $ProjectRoot
 
@@ -42,9 +32,8 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 }
 
 Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host "  MPE Windows 本地构建" -ForegroundColor Cyan
+Write-Host "  MPE Windows 本地构建 (完整安装包)" -ForegroundColor Cyan
 Write-Host "  版本: v$Version" -ForegroundColor Cyan
-Write-Host "  模式: $TargetMode" -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
 
 # === 1. 版本号同步注入 ===
@@ -79,76 +68,41 @@ if (-not (Test-Path $DistDir)) {
     New-Item -ItemType Directory -Path $DistDir | Out-Null
 }
 
-# === 2. 构建 CLI ===
-if ($TargetMode -eq "all" -or $TargetMode -eq "cli") {
-    Write-Host ""
-    Write-Host "=========================================" -ForegroundColor Cyan
-    Write-Host "==> 1/2 构建 Windows CLI (mpe-cli.exe)" -ForegroundColor Cyan
-    Write-Host "=========================================" -ForegroundColor Cyan
+# === 2. 构建完整版 (Tauri NSIS 安装包，内置 GUI + CLI) ===
+Write-Host ""
+Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host "==> 构建完整版安装包 (Tauri NSIS)" -ForegroundColor Cyan
+Write-Host "=========================================" -ForegroundColor Cyan
 
-    Push-Location "src-tauri"
-    try {
-        cargo build -p mpe-cli --release
-        if ($LASTEXITCODE -ne 0) { throw "cargo build mpe-cli 失败" }
-    } finally {
-        Pop-Location
-    }
-
-    $CliBin = Join-Path $ProjectRoot "src-tauri\target\release\mpe-cli.exe"
-    if (-not (Test-Path $CliBin)) {
-        throw "找不到编译出的 CLI 文件: $CliBin"
-    }
-
-    # 打包为 zip
-    $TempStage = Join-Path $env:TEMP ("mpe_cli_stage_" + [Guid]::NewGuid().ToString("N"))
-    New-Item -ItemType Directory -Path $TempStage | Out-Null
-    Copy-Item $CliBin -Destination (Join-Path $TempStage "mpe.exe") -Force
-
-    $CliZip = Join-Path $DistDir "mpe-v$Version-windows-x86_64.zip"
-    if (Test-Path $CliZip) { Remove-Item $CliZip -Force }
-    Compress-Archive -Path (Join-Path $TempStage "*") -DestinationPath $CliZip -Force
-    Remove-Item $TempStage -Recurse -Force
-
-    Write-Host "  ✓ CLI 打包完成: $CliZip" -ForegroundColor Green
+if (-not (Test-Path "node_modules")) {
+    Write-Host "==> 安装前端依赖..." -ForegroundColor Yellow
+    npm ci
+    if ($LASTEXITCODE -ne 0) { throw "npm ci 失败" }
 }
 
-# === 3. 构建 GUI (NSIS 安装包) ===
-if ($TargetMode -eq "all" -or $TargetMode -eq "gui") {
-    Write-Host ""
-    Write-Host "=========================================" -ForegroundColor Cyan
-    Write-Host "==> 2/2 构建 Windows GUI (Tauri NSIS)" -ForegroundColor Cyan
-    Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host "==> 生成 i18n 类型..." -ForegroundColor Yellow
+npm run typesafe-i18n
+if ($LASTEXITCODE -ne 0) { throw "typesafe-i18n 失败" }
 
-    if (-not (Test-Path "node_modules")) {
-        Write-Host "==> 安装前端依赖..." -ForegroundColor Yellow
-        npm ci
-        if ($LASTEXITCODE -ne 0) { throw "npm ci 失败" }
-    }
+Write-Host "==> 构建前端产物..." -ForegroundColor Yellow
+npm run build
+if ($LASTEXITCODE -ne 0) { throw "npm run build 失败" }
 
-    Write-Host "==> 生成 i18n 类型..." -ForegroundColor Yellow
-    npm run typesafe-i18n
-    if ($LASTEXITCODE -ne 0) { throw "typesafe-i18n 失败" }
+Write-Host "==> 执行 Tauri 打包 (NSIS)..." -ForegroundColor Yellow
+npx tauri build --bundles nsis --config src-tauri/tauri.conf.ci.json
+if ($LASTEXITCODE -ne 0) { throw "tauri build 失败" }
 
-    Write-Host "==> 构建前端产物..." -ForegroundColor Yellow
-    npm run build
-    if ($LASTEXITCODE -ne 0) { throw "npm run build 失败" }
-
-    Write-Host "==> 执行 Tauri 打包 (NSIS)..." -ForegroundColor Yellow
-    npx tauri build --bundles nsis --config src-tauri/tauri.conf.ci.json
-    if ($LASTEXITCODE -ne 0) { throw "tauri build 失败" }
-
-    $NsisDir = Join-Path $ProjectRoot "src-tauri\target\release\bundle\nsis"
-    Get-ChildItem "$NsisDir\*.exe" | ForEach-Object {
-        Copy-Item $_.FullName -Destination $DistDir -Force
-        Write-Host "  ✓ 复制安装包: $($_.Name)" -ForegroundColor Green
-    }
-    Get-ChildItem "$NsisDir\*.exe.sig" -ErrorAction SilentlyContinue | ForEach-Object {
-        Copy-Item $_.FullName -Destination $DistDir -Force
-        Write-Host "  ✓ 复制签名: $($_.Name)" -ForegroundColor Green
-    }
+$NsisDir = Join-Path $ProjectRoot "src-tauri\target\release\bundle\nsis"
+Get-ChildItem "$NsisDir\*.exe" | ForEach-Object {
+    Copy-Item $_.FullName -Destination $DistDir -Force
+    Write-Host "  ✓ 复制安装包: $($_.Name)" -ForegroundColor Green
+}
+Get-ChildItem "$NsisDir\*.exe.sig" -ErrorAction SilentlyContinue | ForEach-Object {
+    Copy-Item $_.FullName -Destination $DistDir -Force
+    Write-Host "  ✓ 复制签名: $($_.Name)" -ForegroundColor Green
 }
 
-# === 4. 生成 SHA256 校验和 ===
+# === 3. 生成 SHA256 校验和 ===
 Write-Host ""
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host "==> 生成 SHA256 校验清单" -ForegroundColor Cyan
@@ -156,7 +110,7 @@ Write-Host "=========================================" -ForegroundColor Cyan
 
 $ChecksumFile = Join-Path $DistDir "SHA256SUMS-windows.txt"
 $Hashes = @()
-Get-ChildItem $DistDir -File | Where-Object { $_.Name -match '\.(exe|zip)$' } | ForEach-Object {
+Get-ChildItem $DistDir -File | Where-Object { $_.Name -match '\.exe$' } | ForEach-Object {
     $hash = (Get-FileHash -Path $_.FullName -Algorithm SHA256).Hash.ToLower()
     $Hashes += "$hash  $($_.Name)"
 }

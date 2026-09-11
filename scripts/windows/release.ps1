@@ -4,10 +4,9 @@
     一键 Windows 本地构建与发布脚本 (Build + Upload to R2)
 .DESCRIPTION
     用法:
-      .\scripts\windows\release.ps1 [version] [-CliOnly] [-GuiOnly] [-All] [-Upload]
+      .\scripts\windows\release.ps1 [version] [-Upload]
     示例:
       .\scripts\windows\release.ps1 0.2.0-beta.1 -Upload
-      .\scripts\windows\release.ps1 -CliOnly -Upload
 #>
 
 [CmdletBinding()]
@@ -15,9 +14,6 @@ param(
     [Parameter(Position=0)]
     [string]$Version,
 
-    [switch]$CliOnly,
-    [switch]$GuiOnly,
-    [switch]$All,
     [switch]$Upload
 )
 
@@ -37,14 +33,9 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = $Version -replace '^v', ''
 }
 
-$TargetMode = "all"
-if ($CliOnly) { $TargetMode = "cli" }
-elseif ($GuiOnly) { $TargetMode = "gui" }
-
 Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host " 🚀 MPE Windows 本地发布工作流" -ForegroundColor Cyan
+Write-Host " 🚀 MPE Windows 本地发布工作流 (完整安装包)" -ForegroundColor Cyan
 Write-Host " 版本: v$Version" -ForegroundColor Cyan
-Write-Host " 模式: $TargetMode" -ForegroundColor Cyan
 Write-Host " 上传: $(if ($Upload) { '是 (R2)' } else { '否 (仅本地)' })" -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
 
@@ -64,14 +55,7 @@ if ($Upload) {
 
 # === 2. 执行构建 ===
 $BuildScript = Join-Path $ScriptDir "build.ps1"
-$BuildArgs = @{
-    Version = $Version
-}
-if ($CliOnly) { $BuildArgs["CliOnly"] = $true }
-elseif ($GuiOnly) { $BuildArgs["GuiOnly"] = $true }
-else { $BuildArgs["All"] = $true }
-
-& $BuildScript @BuildArgs
+& $BuildScript -Version $Version
 if ($LASTEXITCODE -ne 0) { throw "构建步骤执行失败" }
 
 # === 3. 执行上传 ===

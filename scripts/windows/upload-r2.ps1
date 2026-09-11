@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    将本地构建的 Windows 产物上传到 Cloudflare R2，并增量更新 manifest.json 与 changelog.json
+    将本地构建的 Windows 完整版产物上传到 Cloudflare R2，并增量更新 manifest.json 与 changelog.json
 .DESCRIPTION
     用法:
       .\scripts\windows\upload-r2.ps1 [version]
@@ -81,11 +81,9 @@ Write-Host "=========================================" -ForegroundColor Cyan
 # === 4. 扫描待上传文件 ===
 $UploadFiles = @()
 
-$CliZip = Get-ChildItem $DistDir -File | Where-Object { $_.Name -like "mpe-v$Version-windows-*.zip" -or $_.Name -like "*$Version*.zip" } | Select-Object -First 1
 $ExeFile = Get-ChildItem $DistDir -File | Where-Object { $_.Name -like "*$Version*.exe" -or $_.Name -like "*x64*.exe" } | Select-Object -First 1
 $ChecksumFile = Join-Path $DistDir "SHA256SUMS-windows.txt"
 
-if ($CliZip) { $UploadFiles += $CliZip.FullName }
 if ($ExeFile) {
     $UploadFiles += $ExeFile.FullName
     $SigPath = "$($ExeFile.FullName).sig"
@@ -147,7 +145,6 @@ try {
     if (-not $Manifest.assets) { $Manifest | Add-Member -NotePropertyName "assets" -NotePropertyValue ([PSCustomObject]@{}) -Force }
 
     $ExeName = if ($ExeFile) { Split-Path -Leaf $ExeFile.FullName } else { "" }
-    $CliName = if ($CliZip) { Split-Path -Leaf $CliZip.FullName } else { "" }
 
     # 读取 Windows 签名
     $WinSig = ""
@@ -161,13 +158,7 @@ try {
             url = "$DownloadBase/$Prefix/$ExeName"
         }
         $Manifest.platforms | Add-Member -NotePropertyName "windows-x86_64" -NotePropertyValue $platformObj -Force
-    }
-
-    if ($ExeName) {
-        $Manifest.assets | Add-Member -NotePropertyName "windows_gui" -NotePropertyValue "$DownloadBase/$Prefix/$ExeName" -Force
-    }
-    if ($CliName) {
-        $Manifest.assets | Add-Member -NotePropertyName "windows_cli" -NotePropertyValue "$DownloadBase/$Prefix/$CliName" -Force
+        $Manifest.assets | Add-Member -NotePropertyName "windows" -NotePropertyValue "$DownloadBase/$Prefix/$ExeName" -Force
     }
 
     $ManifestJson = $Manifest | ConvertTo-Json -Depth 10
@@ -213,9 +204,6 @@ try {
     }
     if ($ExeName) {
         $entry.downloads | Add-Member -NotePropertyName "windows" -NotePropertyValue "$DownloadBase/$Prefix/$ExeName" -Force
-    }
-    if ($CliName) {
-        $entry.downloads | Add-Member -NotePropertyName "windows_cli" -NotePropertyValue "$DownloadBase/$Prefix/$CliName" -Force
     }
 
     $ChangelogJson = $Changelog | ConvertTo-Json -Depth 10
