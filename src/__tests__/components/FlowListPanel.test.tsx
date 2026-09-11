@@ -118,6 +118,57 @@ describe('FlowListPanel', () => {
       expect(screen.getByText('流程1')).toBeDefined();
       expect(screen.getByText('流程2')).toBeDefined();
     });
+
+    it('流程项支持拖拽并携带 subflow 协议数据', async () => {
+      const flowMetas = [
+        { uuid: 'flow-1', name: '子流程A', updatedAt: Date.now(), filePath: 'flow-1.mpf', folderPath: '' },
+      ];
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
+      useFlowListStore.getState().setFlows(flowMetas.map(m => ({
+        uuid: m.uuid,
+        name: m.name,
+        updated_at: m.updatedAt,
+        folder_path: '',
+        file_path: m.filePath,
+      })));
+
+      await act(async () => {
+        render(<FlowListPanel />);
+      });
+
+      const flowItem = screen.getByText('子流程A').closest('[role="button"]');
+      expect(flowItem).toHaveAttribute('draggable', 'true');
+
+      const setDataMock = vi.fn();
+      const dataTransfer = {
+        setData: setDataMock,
+        effectAllowed: 'none',
+      };
+      const dragStartEvent = new Event('dragstart', { bubbles: true });
+      Object.assign(dragStartEvent, {
+        dataTransfer,
+      });
+
+      flowItem?.dispatchEvent(dragStartEvent);
+
+      expect(dataTransfer.effectAllowed).toBe('all');
+      expect(setDataMock).toHaveBeenCalledWith(
+        'application/reactflow/subflow',
+        JSON.stringify({
+          uuid: 'flow-1',
+          name: '子流程A',
+          filePath: 'flow-1.mpf',
+        })
+      );
+      expect(setDataMock).toHaveBeenCalledWith(
+        'text/plain',
+        JSON.stringify({
+          uuid: 'flow-1',
+          name: '子流程A',
+          filePath: 'flow-1.mpf',
+        })
+      );
+    });
   });
 
   describe('多标签流程切换', () => {
