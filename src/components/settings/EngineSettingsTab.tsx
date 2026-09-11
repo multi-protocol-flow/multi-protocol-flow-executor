@@ -88,23 +88,23 @@ export function EngineSettingsTab() {
   return (
     <div className="space-y-6">
       {/* 默认执行超时 */}
-      <div className="rounded-lg border border-border/70 bg-card p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
+      <div className="rounded-xl border border-border/70 bg-card p-4 space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Timer className="h-4 w-4" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold text-foreground">
               {ll.settings.default_timeout()}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
               {ll.settings.default_timeout_tip()}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative w-48 shrink-0">
+        <div className="pt-1 space-y-2.5">
+          <div className="relative w-48 max-w-full">
             <Input
               type="number"
               min={1000}
@@ -133,7 +133,7 @@ export function EngineSettingsTab() {
                   setDefaultExecutionTimeoutMs(clamped);
                 }
               }}
-              className="pr-10 font-mono text-sm"
+              className="pr-10 font-mono text-sm h-9"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground select-none">
               ms
@@ -141,8 +141,8 @@ export function EngineSettingsTab() {
           </div>
 
           {/* 快速预设标签 */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs text-muted-foreground mr-1 select-none">
+          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+            <span className="text-xs text-muted-foreground mr-1 select-none shrink-0">
               {ll.settings.timeout_presets()}:
             </span>
             {timeoutPresets.map((preset) => (
@@ -152,8 +152,8 @@ export function EngineSettingsTab() {
                 variant={Number(timeoutInput) === preset.value ? 'secondary' : 'outline'}
                 size="sm"
                 className={cn(
-                  'h-7 px-2 text-xs cursor-pointer',
-                  Number(timeoutInput) === preset.value && 'font-semibold border-primary/50'
+                  'h-7 px-2.5 text-xs cursor-pointer',
+                  Number(timeoutInput) === preset.value && 'font-semibold border-primary/50 bg-primary/10 text-primary'
                 )}
                 onClick={() => handleTimeoutPreset(preset.value)}
               >
@@ -165,23 +165,23 @@ export function EngineSettingsTab() {
       </div>
 
       {/* 插件最大并发数 */}
-      <div className="rounded-lg border border-border/70 bg-card p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
+      <div className="rounded-xl border border-border/70 bg-card p-4 space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Cpu className="h-4 w-4" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold text-foreground">
               {ll.settings.plugin_max_concurrency()}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
               {ll.settings.plugin_max_concurrency_tip()}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="w-48 shrink-0">
+        <div className="pt-1 space-y-2.5">
+          <div className="w-48 max-w-full">
             <Input
               type="number"
               min={1}
@@ -210,11 +210,14 @@ export function EngineSettingsTab() {
                   setPluginMaxConcurrency(clamped);
                 }
               }}
-              className="font-mono text-sm"
+              className="font-mono text-sm h-9"
             />
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+            <span className="text-xs text-muted-foreground mr-1 select-none shrink-0">
+              {ll.settings.timeout_presets()}:
+            </span>
             {concurrencyPresets.map((preset) => (
               <Button
                 key={preset.value}
@@ -222,8 +225,8 @@ export function EngineSettingsTab() {
                 variant={Number(concurrencyInput) === preset.value ? 'secondary' : 'outline'}
                 size="sm"
                 className={cn(
-                  'h-7 px-2 text-xs cursor-pointer',
-                  Number(concurrencyInput) === preset.value && 'font-semibold border-primary/50'
+                  'h-7 px-2.5 text-xs cursor-pointer',
+                  Number(concurrencyInput) === preset.value && 'font-semibold border-primary/50 bg-primary/10 text-primary'
                 )}
                 onClick={() => handleConcurrencyPreset(preset.value)}
               >
@@ -235,23 +238,23 @@ export function EngineSettingsTab() {
       </div>
 
       {/* 插件通信队列深度 */}
-      <div className="rounded-lg border border-border/70 bg-card p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
+      <div className="rounded-xl border border-border/70 bg-card p-4 space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Layers className="h-4 w-4" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold text-foreground">
               {ll.settings.plugin_queue_capacity()}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
               {ll.settings.plugin_queue_capacity_tip()}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="w-48 shrink-0">
+        <div className="pt-1 space-y-2.5">
+          <div className="w-48 max-w-full">
             <Input
               type="number"
               min={16}
@@ -280,11 +283,14 @@ export function EngineSettingsTab() {
                   setPluginQueueCapacity(clamped);
                 }
               }}
-              className="font-mono text-sm"
+              className="font-mono text-sm h-9"
             />
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+            <span className="text-xs text-muted-foreground mr-1 select-none shrink-0">
+              {ll.settings.timeout_presets()}:
+            </span>
             {queuePresets.map((preset) => (
               <Button
                 key={preset.value}
@@ -292,8 +298,8 @@ export function EngineSettingsTab() {
                 variant={Number(queueCapInput) === preset.value ? 'secondary' : 'outline'}
                 size="sm"
                 className={cn(
-                  'h-7 px-2 text-xs cursor-pointer',
-                  Number(queueCapInput) === preset.value && 'font-semibold border-primary/50'
+                  'h-7 px-2.5 text-xs cursor-pointer',
+                  Number(queueCapInput) === preset.value && 'font-semibold border-primary/50 bg-primary/10 text-primary'
                 )}
                 onClick={() => handleQueuePreset(preset.value)}
               >
@@ -305,19 +311,19 @@ export function EngineSettingsTab() {
       </div>
 
       {/* 插件管理快捷通道 */}
-      <div className="rounded-lg border border-dashed border-border p-4 flex items-center justify-between gap-4 bg-muted/20">
-        <div className="flex items-center gap-2.5">
+      <div className="rounded-xl border border-dashed border-border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/20">
+        <div className="flex items-start gap-3 min-w-0">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <Puzzle className="h-4 w-4" />
           </div>
-          <div>
-            <div className="text-sm font-medium text-foreground flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-foreground flex items-center gap-2 flex-wrap">
               <span>{ll.plugins.settings_title()}</span>
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
                 Marketplace
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
               {ll.plugins.source_default()}
             </p>
           </div>
@@ -330,7 +336,7 @@ export function EngineSettingsTab() {
             closeSettingsDialog();
             openPluginSettingsDialog();
           }}
-          className="gap-1 text-xs shrink-0 cursor-pointer"
+          className="gap-1 text-xs shrink-0 cursor-pointer self-start sm:self-auto"
         >
           <span>{ll.settings.plugins_manager_link()}</span>
           <ChevronRight className="h-3.5 w-3.5" />

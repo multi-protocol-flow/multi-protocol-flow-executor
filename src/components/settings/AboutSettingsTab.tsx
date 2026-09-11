@@ -82,28 +82,28 @@ export function AboutSettingsTab() {
       {/* 软件标识与版本头图卡片 */}
       <div className="rounded-xl border border-border/70 bg-muted/20 p-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-xl bg-background border border-border/80 flex items-center justify-center p-2 shadow-2xs">
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            <div className="h-14 w-14 rounded-xl bg-background border border-border/80 flex items-center justify-center p-2 shadow-2xs shrink-0">
               <img src="/mpe-logo.svg" alt="MPE Flow Logo" className="h-full w-full object-contain" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-base font-bold text-foreground">{ll.settings.app_name()}</h3>
-                <Badge variant="outline" className="text-xs font-mono font-normal">
+                <Badge variant="outline" className="text-xs font-mono font-normal shrink-0">
                   v{currentVersion || '0.1.1-beta.2'}
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
                 {ll.settings.app_subtitle()}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 self-end sm:self-center">
+          <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center">
             <Button
               variant="outline"
               size="sm"
-              className="text-xs h-8 gap-1.5 cursor-pointer"
+              className="text-xs h-8 gap-1.5 cursor-pointer shrink-0"
               onClick={() => checkForUpdates(true)}
               disabled={isChecking}
             >
@@ -304,33 +304,35 @@ export function AboutSettingsTab() {
         </h4>
 
         <div className="rounded-xl border border-border/70 divide-y divide-border/50 bg-muted/10">
-          <div className="p-4 flex items-center justify-between">
-            <div className="space-y-0.5 pr-4">
+          <div className="p-4 flex items-center justify-between gap-4">
+            <div className="space-y-0.5 min-w-0 flex-1 pr-2">
               <div className="text-xs font-medium text-foreground">
                 {ll.settings.auto_check_updates()}
               </div>
-              <div className="text-[11px] text-muted-foreground">
+              <div className="text-[11px] text-muted-foreground leading-relaxed">
                 {ll.settings.auto_check_updates_desc()}
               </div>
             </div>
             <Switch
               checked={autoCheckUpdate}
               onCheckedChange={(checked) => void setAutoCheckUpdate?.(checked)}
+              className="shrink-0"
             />
           </div>
 
-          <div className="p-4 flex items-center justify-between">
-            <div className="space-y-0.5 pr-4">
+          <div className="p-4 flex items-center justify-between gap-4">
+            <div className="space-y-0.5 min-w-0 flex-1 pr-2">
               <div className="text-xs font-medium text-foreground">
                 {ll.settings.include_prerelease()}
               </div>
-              <div className="text-[11px] text-muted-foreground">
+              <div className="text-[11px] text-muted-foreground leading-relaxed">
                 {ll.settings.include_prerelease_desc()}
               </div>
             </div>
             <Switch
               checked={includePrerelease}
               onCheckedChange={(checked) => void setIncludePrerelease?.(checked)}
+              className="shrink-0"
             />
           </div>
         </div>
@@ -343,18 +345,18 @@ export function AboutSettingsTab() {
           <span>{ll.settings.system_platform()}</span>
         </h4>
 
-        <div className="rounded-xl border border-border/70 p-4 bg-muted/10 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-          <div>
+        <div className="rounded-xl border border-border/70 p-4 bg-muted/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+          <div className="min-w-0">
             <div className="text-[11px] text-muted-foreground">Architecture</div>
-            <div className="font-medium font-mono text-foreground mt-0.5">Tauri 2.x + Rust</div>
+            <div className="font-medium font-mono text-foreground mt-0.5 truncate">Tauri 2.x + Rust</div>
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-[11px] text-muted-foreground">Frontend</div>
-            <div className="font-medium font-mono text-foreground mt-0.5">React 19 + TypeScript</div>
+            <div className="font-medium font-mono text-foreground mt-0.5 truncate">React 19 + TypeScript</div>
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-[11px] text-muted-foreground">Protocol Crates</div>
-            <div className="font-medium font-mono text-foreground mt-0.5">7 Native + Sidecar Plugins</div>
+            <div className="font-medium font-mono text-foreground mt-0.5 truncate">7 Native + Sidecar Plugins</div>
           </div>
         </div>
       </div>
@@ -365,65 +367,65 @@ export function AboutSettingsTab() {
           {ll.settings.official_website()}
         </h4>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           <button
             type="button"
             onClick={() => openExternalUrl('https://mpe.run')}
-            className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-left group cursor-pointer"
+            className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-left group cursor-pointer gap-2 min-w-0"
           >
-            <div className="flex items-center gap-2.5">
-              <Globe className="h-4 w-4 text-primary" />
-              <div>
-                <div className="text-xs font-medium text-foreground">{ll.settings.official_website()}</div>
-                <div className="text-[11px] text-muted-foreground font-mono">https://mpe.run</div>
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <Globe className="h-4 w-4 text-primary shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium text-foreground truncate">{ll.settings.official_website()}</div>
+                <div className="text-[11px] text-muted-foreground font-mono truncate">https://mpe.run</div>
               </div>
             </div>
-            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
           </button>
 
           <button
             type="button"
             onClick={() => openExternalUrl('https://mpe.run/changelog')}
-            className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-left group cursor-pointer"
+            className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-left group cursor-pointer gap-2 min-w-0"
           >
-            <div className="flex items-center gap-2.5">
-              <FileText className="h-4 w-4 text-primary" />
-              <div>
-                <div className="text-xs font-medium text-foreground">{ll.settings.view_changelog()}</div>
-                <div className="text-[11px] text-muted-foreground font-mono">https://mpe.run/changelog</div>
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <FileText className="h-4 w-4 text-primary shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium text-foreground truncate">{ll.settings.view_changelog()}</div>
+                <div className="text-[11px] text-muted-foreground font-mono truncate">https://mpe.run/changelog</div>
               </div>
             </div>
-            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
           </button>
 
           <button
             type="button"
             onClick={() => openExternalUrl('https://mpe.run/docs')}
-            className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-left group cursor-pointer"
+            className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-left group cursor-pointer gap-2 min-w-0"
           >
-            <div className="flex items-center gap-2.5">
-              <BookOpen className="h-4 w-4 text-primary" />
-              <div>
-                <div className="text-xs font-medium text-foreground">Documentation</div>
-                <div className="text-[11px] text-muted-foreground font-mono">https://mpe.run/docs</div>
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <BookOpen className="h-4 w-4 text-primary shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium text-foreground truncate">Documentation</div>
+                <div className="text-[11px] text-muted-foreground font-mono truncate">https://mpe.run/docs</div>
               </div>
             </div>
-            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
           </button>
 
           <button
             type="button"
             onClick={() => openExternalUrl('https://github.com/multi-protocol-flow-executor')}
-            className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-left group cursor-pointer"
+            className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-left group cursor-pointer gap-2 min-w-0"
           >
-            <div className="flex items-center gap-2.5">
-              <Github className="h-4 w-4 text-primary" />
-              <div>
-                <div className="text-xs font-medium text-foreground">{ll.settings.open_source_repo()}</div>
-                <div className="text-[11px] text-muted-foreground font-mono">GitHub / MPE Flow</div>
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <Github className="h-4 w-4 text-primary shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium text-foreground truncate">{ll.settings.open_source_repo()}</div>
+                <div className="text-[11px] text-muted-foreground font-mono truncate">GitHub / MPE Flow</div>
               </div>
             </div>
-            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
           </button>
         </div>
       </div>
