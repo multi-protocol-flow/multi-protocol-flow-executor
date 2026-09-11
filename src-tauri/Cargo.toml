@@ -71,7 +71,7 @@ expect_used = "warn"
 
 [package]
 name = "app"
-version = "0.1.1-beta.2"
+version = "0.2.0-beta.1"
 description = "A Tauri App"
 authors = ["you"]
 license = ""

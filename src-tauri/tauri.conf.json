@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "multi-protocol-flow-executor",
-  "version": "0.1.1-beta.2",
+  "version": "0.2.0-beta.1",
   "identifier": "com.multi-protocol-flow-executor",
   "build": {
     "frontendDist": "../dist",
@@ -38,7 +38,9 @@
     "active": true,
     "targets": [
       "nsis",
-      "dmg"
+      "dmg",
+      "deb",
+      "appimage"
     ],
     "icon": [
       "icons/32x32.png",
