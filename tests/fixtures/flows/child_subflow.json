@@ -1,0 +1,54 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "c0000000-0000-0000-0000-000000000001",
+    "name": "Child SubFlow Fixture",
+    "nodes": [
+      {
+        "uuid": "child-entry",
+        "type": "entry",
+        "name": "Child Start",
+        "position": { "x": 0, "y": 0 },
+        "data": { "type": "entry" },
+        "ports": null
+      },
+      {
+        "uuid": "child-script",
+        "type": "script",
+        "name": "Set Subflow Variable",
+        "position": { "x": 200, "y": 0 },
+        "data": {
+          "type": "script",
+          "script": "fn.variables.set('subflow_token', 'token_from_child_42');",
+          "timeout_ms": 5000
+        },
+        "ports": null
+      },
+      {
+        "uuid": "child-end",
+        "type": "end",
+        "name": "Child End",
+        "position": { "x": 400, "y": 0 },
+        "data": { "type": "end" },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "c-c-1",
+        "source_node_uuid": "child-entry",
+        "target_node_uuid": "child-script",
+        "source_port_id": "out",
+        "target_port_id": "in"
+      },
+      {
+        "id": "c-c-2",
+        "source_node_uuid": "child-script",
+        "target_node_uuid": "child-end",
+        "source_port_id": "true",
+        "target_port_id": "in"
+      }
+    ]
+  },
+  "_meta": null
+}
