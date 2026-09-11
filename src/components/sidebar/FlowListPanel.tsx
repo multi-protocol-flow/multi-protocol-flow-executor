@@ -77,6 +77,9 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const [renamingFolderPath, setRenamingFolderPath] = useState<string | null>(null);
   const [renamingFolderName, setRenamingFolderName] = useState('');
   const renameFolderInputRef = useRef<HTMLInputElement>(null);
+  // 拖拽流程标识，避免拖拽释放时误触发流程切换
+  const isDraggingFlowRef = useRef(false);
+
 
   /** 将 flowStorage 元数据映射为 FlowListStore 元数据 */
   const mapMetadata = useCallback((meta: { uuid: string; name: string; updatedAt: number; folderPath: string; filePath?: string }) => ({
@@ -780,14 +783,46 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     const isSelected = currentFlow?.uuid === flowMeta.uuid;
     const isDebugFlow = disabled && debugFlowUuid === flowMeta.uuid;
 
+    const canDrag = !disabled && renamingUuid !== flowMeta.uuid;
+
+    const handleDragStart = (e: React.DragEvent) => {
+      if (!canDrag) {
+        e.preventDefault();
+        return;
+      }
+      isDraggingFlowRef.current = true;
+      const payload = JSON.stringify({
+        uuid: flowMeta.uuid,
+        name: flowMeta.name,
+        filePath: flowMeta.file_path,
+      });
+      e.dataTransfer.setData('application/reactflow/subflow', payload);
+      e.dataTransfer.setData('text/plain', payload);
+      e.dataTransfer.effectAllowed = 'all';
+    };
+
+    const handleDragEnd = () => {
+      window.setTimeout(() => {
+        isDraggingFlowRef.current = false;
+      }, 100);
+    };
+
+    const itemTitle = disabled
+      ? getLL().flow.debug_no_switch()
+      : `${flowMeta.name} (${getLL().flow.drag_to_canvas_as_subflow()})`;
+
     return (
       <div
         key={flowMeta.uuid}
         role="button"
         tabIndex={disabled ? -1 : 0}
+        draggable={canDrag}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
         onClick={() => {
           if (disabled) return;
           if (renamingUuid === flowMeta.uuid) return;
+          if (isDraggingFlowRef.current) return;
           handleSelectFlow(flowMeta.uuid);
         }}
         onKeyDown={(e) => {
@@ -798,12 +833,12 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             handleSelectFlow(flowMeta.uuid);
           }
         }}
-        title={disabled ? getLL().flow.debug_no_switch() : undefined}
+        title={itemTitle}
         style={{ marginLeft: `${depth * 14}px` }}
         className={cn(
           'group flex items-center gap-2.5 px-3 h-10.5 rounded-lg text-xs text-left transition-all duration-150',
           'border select-none',
-          !disabled && 'cursor-pointer',
+          !disabled && 'cursor-pointer active:cursor-grabbing',
           isSelected && !disabled && 'bg-accent/80 border-border text-foreground font-medium shadow-xs',
           !isSelected && !disabled && 'border-border/40 bg-background/50 hover:bg-accent/50 hover:border-border text-foreground/80 hover:text-foreground',
           disabled && 'opacity-50 pointer-events-none',

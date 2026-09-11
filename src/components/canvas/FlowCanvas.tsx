@@ -975,7 +975,7 @@ function FlowCanvasInner() {
   const onDrop = useCallback(
     async (event: React.DragEvent) => {
       event.preventDefault();
-
+      event.stopPropagation();
       // 数据源条目拖拽：经 get_templates 转成节点模板落画布
       const dsPayload = event.dataTransfer.getData('application/reactflow/datasource');
       if (dsPayload) {
@@ -1026,6 +1026,70 @@ function FlowCanvasInner() {
         }
         return;
       }
+      // 子流程拖拽：从流程列表拖入画布生成 sub_flow 节点（或空画布时直接打开）
+      const subflowPayload =
+        event.dataTransfer.getData('application/reactflow/subflow') ||
+        event.dataTransfer.getData('text/plain');
+      if (subflowPayload) {
+        let subflowData: { uuid?: string; name?: string; filePath?: string } | null = null;
+        try {
+          const parsed = JSON.parse(subflowPayload);
+          if (parsed && typeof parsed === 'object' && typeof parsed.uuid === 'string') {
+            subflowData = parsed;
+          }
+        } catch {
+          subflowData = null;
+        }
+
+        if (subflowData?.uuid) {
+          if (!flow) {
+            flowStorage
+              .loadFlow(subflowData.uuid)
+              .then((loadedFlow) => {
+                if (loadedFlow) {
+                  useFlowStore.getState().openTab(loadedFlow);
+                }
+              })
+              .catch(console.error);
+            return;
+          }
+
+          // 禁止循环引用当前流程自身
+          if (flow.uuid === subflowData.uuid) {
+            toast.error(ll.flow.cannot_reference_self_subflow());
+            return;
+          }
+
+          const position = screenToFlowPosition({
+            x: event.clientX,
+            y: event.clientY,
+          });
+
+          const defaultData = createDefaultNodeData('sub_flow');
+          const nodeData = {
+            ...defaultData,
+            type: 'sub_flow' as const,
+            target_flow_id: subflowData.uuid,
+            target_flow_path: '',
+            inherit_all_variables: true,
+            export_all_variables: true,
+            variable_mappings: [],
+            output_mappings: [],
+          };
+
+          const nodeCount = flow.nodes.length + 1;
+          const name = subflowData.name || createDefaultNodeName('sub_flow', nodeCount);
+          addNode({
+            uuid: crypto.randomUUID(),
+            type: 'sub_flow',
+            name,
+            position,
+            data: nodeData as unknown as NodeData,
+          });
+          return;
+        }
+      }
+
 
       const nodeType = event.dataTransfer.getData('application/reactflow/nodeType');
       if (!nodeType || !flow) return;
@@ -1137,7 +1201,12 @@ function FlowCanvasInner() {
   // 没有流程时显示空状态
   if (!flow) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-background" data-guide="canvas-area">
+      <div
+        className="w-full h-full flex items-center justify-center bg-background"
+        data-guide="canvas-area"
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+      >
         <div className="text-center max-w-lg">
           <h2 className="text-xl font-semibold text-muted-foreground mb-6">
             {ll.flow.no_flow_title()}
