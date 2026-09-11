@@ -44,6 +44,7 @@ export default defineConfig(({ mode }) => {
     // 全局变量，define 替换会破坏包内部逻辑。运行时靠 isTauriEnv() 检测即可。
     base: isTauri ? '/' : './',
     build: {
+      target: 'es2022',
       outDir: isTauri ? 'dist' : 'website/playground',
     },
   }
