@@ -260,7 +260,7 @@ if (appImageName) {
 }
 
 fs.writeFileSync(changelogPath, JSON.stringify(changelog, null, 2) + '\n');
-console.log('  ✓ changelog.json 已更新: ' + (isNew ? '新增 v' + version : '合并 v' + version 下载链接'));
+console.log('  ✓ changelog.json 已更新: ' + (isNew ? ('新增 v' + version) : ('合并 v' + version + ' 下载链接')));
 "
 
 aws s3 cp "$REMOTE_CHANGELOG" "s3://${R2_BUCKET}/changelog.json" \
