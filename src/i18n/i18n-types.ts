@@ -8181,6 +8181,14 @@ type RootTranslation = {
 		 */
 		executing_no_switch: string
 		/**
+		 * 拖​拽​至​画​布​生​成​子​流​程
+		 */
+		drag_to_canvas_as_subflow: string
+		/**
+		 * 不​能​将​当​前​流​程​作​为​自​身​的​子​流​程
+		 */
+		cannot_reference_self_subflow: string
+		/**
 		 * 关​闭​标​签
 		 */
 		close_tab: string
@@ -21691,6 +21699,14 @@ export type TranslationFunctions = {
 		 * 执行中不可切换流程
 		 */
 		executing_no_switch: () => LocalizedString
+		/**
+		 * 拖拽至画布生成子流程
+		 */
+		drag_to_canvas_as_subflow: () => LocalizedString
+		/**
+		 * 不能将当前流程作为自身的子流程
+		 */
+		cannot_reference_self_subflow: () => LocalizedString
 		/**
 		 * 关闭标签
 		 */
