@@ -13,6 +13,9 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { useUIStore } from '@/stores/ui';
 
 const WELCOME_SHOWN_KEY = 'mpe-welcome-shown';
+const CARD_CLASS =
+  'w-[340px] max-w-full shadow-2xl border-border/80 dark:border-primary/20 bg-card/95 backdrop-blur-md ring-1 ring-black/5 dark:ring-white/10 box-border overflow-hidden';
+
 
 
 interface WelcomeWizardProps {
@@ -47,10 +50,15 @@ export function WelcomeWizard({ children }: WelcomeWizardProps) {
       case 1:
         return (
           <GuideHighlighter targetSelector="[data-guide='app-logo']" tooltipPosition="bottom">
-            <Card className="w-80 shadow-xl border-primary/20">
-              <CardHeader>
-                <CardTitle>                  {welcome.welcome_step1_title?.() || 'Welcome to MPE'}</CardTitle>
-                <CardDescription>
+            <Card className={CARD_CLASS}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                    Step 1 / 3
+                  </span>
+                </div>
+                <CardTitle>{welcome.welcome_step1_title?.() || 'Welcome to MPE'}</CardTitle>
+                <CardDescription className="text-xs leading-relaxed break-words">
                   {welcome.welcome_step1_desc?.() || 'Multi-Protocol Flow Orchestration & Execution Engine'}
                 </CardDescription>
               </CardHeader>
@@ -68,10 +76,15 @@ export function WelcomeWizard({ children }: WelcomeWizardProps) {
       case 2:
         return (
           <GuideHighlighter targetSelector="[data-guide='new-flow-btn']" tooltipPosition="right">
-            <Card className="w-80 shadow-xl border-primary/20">
-              <CardHeader>
+            <Card className={CARD_CLASS}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                    Step 2 / 3
+                  </span>
+                </div>
                 <CardTitle>{welcome.welcome_step2_title?.() || 'Create Your First Flow'}</CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs leading-relaxed break-words">
                   {welcome.welcome_step2_desc?.() || 'Click "New Flow" on the left to start building'}
                 </CardDescription>
               </CardHeader>
@@ -89,10 +102,15 @@ export function WelcomeWizard({ children }: WelcomeWizardProps) {
       case 3:
         return (
           <GuideHighlighter targetSelector="[data-guide='canvas-area']" tooltipPosition="center">
-            <Card className="w-80 shadow-xl border-primary/20">
-              <CardHeader>
+            <Card className={CARD_CLASS}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                    Step 3 / 3
+                  </span>
+                </div>
                 <CardTitle>{welcome.welcome_step3_title?.() || 'Configure & Execute'}</CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs leading-relaxed break-words">
                   {welcome.welcome_step3_desc?.() || 'Select a node, configure parameters, and execute'}
                 </CardDescription>
               </CardHeader>

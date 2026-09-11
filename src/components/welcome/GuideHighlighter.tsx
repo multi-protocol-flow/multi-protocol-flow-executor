@@ -70,7 +70,10 @@ export function GuideHighlighter({
 
   // 目标元素未找到时，渲染居中卡片但不显示遮罩层
   const showOverlay = targetRect !== null;
-
+  // 判断目标元素是否占据屏幕大面积（例如画布主工作区），大面积区域避免全镂空造成浅色主题下刺眼割裂
+  const isLargeTarget =
+    showOverlay &&
+    (targetRect.width * targetRect.height) / (window.innerWidth * window.innerHeight) > 0.25;
   return createPortal(
     <div
       className="fixed inset-0 z-[60]"
@@ -93,11 +96,25 @@ export function GuideHighlighter({
               />
             </mask>
           </defs>
+          {/* 全局暗色遮罩 */}
           <rect
             width="100%"
             height="100%"
-            fill="rgba(0, 0, 0, 0.5)"
+            fill="rgba(15, 23, 42, 0.45)"
             mask="url(#guide-highlight-mask)"
+          />
+
+          {/* 高亮开孔边框与大区域柔光衬底 */}
+          <rect
+            x={targetRect.left}
+            y={targetRect.top}
+            width={targetRect.width}
+            height={targetRect.height}
+            fill={isLargeTarget ? 'rgba(15, 23, 42, 0.16)' : 'none'}
+            stroke="var(--primary)"
+            strokeWidth={isLargeTarget ? '1.5' : '2'}
+            strokeOpacity={isLargeTarget ? '0.25' : '0.6'}
+            rx={borderRadius}
           />
         </svg>
       )}
@@ -113,6 +130,8 @@ export function GuideHighlighter({
                   position: 'absolute',
                   maxHeight: 'calc(100vh - 32px)',
                   overflowY: 'auto',
+                  overflowX: 'hidden',
+                  boxSizing: 'border-box',
                   ...getTooltipStyle(targetRect, tooltipPosition),
                 }
               : {
@@ -122,6 +141,8 @@ export function GuideHighlighter({
                   transform: 'translate(-50%, -50%)',
                   maxHeight: 'calc(100vh - 32px)',
                   overflowY: 'auto',
+                  overflowX: 'hidden',
+                  boxSizing: 'border-box',
                 }
           }
         >
@@ -149,8 +170,8 @@ function clampY(center: number, cardHeight: number, padding: number): number {
 
 function getTooltipStyle(rect: TargetRect, position: string): React.CSSProperties {
   // 卡片估算尺寸，用于边界裁剪与自适应定位
-  const CARD_WIDTH = 320;
-  const CARD_HEIGHT = 220; // 引导卡片实际高度估算（包含 header, desc, footer）
+  const CARD_WIDTH = 340;
+  const CARD_HEIGHT = 230; // 引导卡片实际高度估算（包含 header, desc, footer）
   const GAP = 16;
   const PAD = 16;
 
