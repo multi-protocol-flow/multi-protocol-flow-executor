@@ -164,17 +164,14 @@ mod tests {
             Ok(_) => panic!("unknown datasource must fail"),
             Err(e) => e,
         };
-        assert_eq!(
-            err.to_string(),
-            "protocol error: unknown datasource nope"
-        );
+        assert_eq!(err.to_string(), "protocol error: unknown datasource nope");
     }
 
     /// `perform_datasource_call` round-trips a params object over an
     /// in-memory fake connection.
     #[tokio::test]
-    async fn perform_datasource_call_round_trips_in_memory() -> Result<(), Box<dyn std::error::Error>>
-    {
+    async fn perform_datasource_call_round_trips_in_memory(
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let (host_tx, plugin_rx) = tokio::io::duplex(64 * 1024);
         let (plugin_tx, host_rx) = tokio::io::duplex(64 * 1024);
         let conn = PluginConnection::from_io(

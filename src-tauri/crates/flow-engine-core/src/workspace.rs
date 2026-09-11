@@ -63,7 +63,10 @@ pub fn scan_workspace(root: &Path, max_depth: usize) -> Result<WorkspaceScanResu
         return Err(format!("Workspace root does not exist: {}", root.display()));
     }
     if !root.is_dir() {
-        return Err(format!("Workspace root is not a directory: {}", root.display()));
+        return Err(format!(
+            "Workspace root is not a directory: {}",
+            root.display()
+        ));
     }
 
     let mut config_files = Vec::new();
@@ -239,10 +242,9 @@ fn detect_tech_stack(config_files: &[String], root: &Path) -> Option<String> {
     {
         return Some("Python".to_string());
     }
-    if lower_configs
-        .iter()
-        .any(|c| c.ends_with("pom.xml") || c.ends_with("build.gradle") || c.ends_with("build.gradle.kts"))
-    {
+    if lower_configs.iter().any(|c| {
+        c.ends_with("pom.xml") || c.ends_with("build.gradle") || c.ends_with("build.gradle.kts")
+    }) {
         return Some("Java / JVM".to_string());
     }
     if lower_configs.iter().any(|c| c.ends_with("composer.json")) {
@@ -275,7 +277,16 @@ pub fn search_workspace_code(
     let clean_ext = ext.map(|e| e.trim_start_matches('.').to_lowercase());
     let mut matches = Vec::new();
 
-    search_dir_code(root, root, 0, 8, &re, clean_ext.as_deref(), limit, &mut matches)?;
+    search_dir_code(
+        root,
+        root,
+        0,
+        8,
+        &re,
+        clean_ext.as_deref(),
+        limit,
+        &mut matches,
+    )?;
 
     Ok(matches)
 }
@@ -312,7 +323,16 @@ fn search_dir_code(
             if IGNORED_DIRS.contains(&name_str.as_ref()) {
                 continue;
             }
-            search_dir_code(root, &path, depth + 1, max_depth, re, target_ext, limit, matches)?;
+            search_dir_code(
+                root,
+                &path,
+                depth + 1,
+                max_depth,
+                re,
+                target_ext,
+                limit,
+                matches,
+            )?;
         } else if path.is_file() {
             if let Some(target) = target_ext {
                 let file_ext = path
@@ -393,13 +413,19 @@ pub fn read_workspace_slice(
         return Err(format!("File does not exist: {}", file_path.display()));
     }
     if !file_path.is_file() {
-        return Err(format!("Path is not a regular file: {}", file_path.display()));
+        return Err(format!(
+            "Path is not a regular file: {}",
+            file_path.display()
+        ));
     }
 
     // 单文件尺寸安全检查 (限制最大 5MB)
     if let Ok(meta) = file_path.metadata() {
         if meta.len() > 5 * 1024 * 1024 {
-            return Err(format!("File is too large to read safely (> 5MB): {}", file_path.display()));
+            return Err(format!(
+                "File is too large to read safely (> 5MB): {}",
+                file_path.display()
+            ));
         }
     }
 
@@ -487,7 +513,9 @@ fn parse_proto_spec(content: &str) -> Result<serde_json::Value, String> {
         Ok(r) => r,
         Err(e) => return Err(e.to_string()),
     };
-    let rpc_re = match Regex::new(r"rpc\s+([A-Za-z0-9_]+)\s*\(\s*([A-Za-z0-9_.]+)\s*\)\s*returns\s*\(\s*([A-Za-z0-9_.]+)\s*\)") {
+    let rpc_re = match Regex::new(
+        r"rpc\s+([A-Za-z0-9_]+)\s*\(\s*([A-Za-z0-9_.]+)\s*\)\s*returns\s*\(\s*([A-Za-z0-9_.]+)\s*\)",
+    ) {
         Ok(r) => r,
         Err(e) => return Err(e.to_string()),
     };
@@ -598,7 +626,11 @@ fn collect_postman_items(items: &[serde_json::Value], endpoints: &mut Vec<serde_
                 .and_then(|m| m.as_str())
                 .unwrap_or("GET")
                 .to_lowercase();
-            let url = if let Some(raw_url) = req.get("url").and_then(|u| u.get("raw")).and_then(|r| r.as_str()) {
+            let url = if let Some(raw_url) = req
+                .get("url")
+                .and_then(|u| u.get("raw"))
+                .and_then(|r| r.as_str())
+            {
                 raw_url.to_string()
             } else if let Some(url_str) = req.get("url").and_then(|u| u.as_str()) {
                 url_str.to_string()
@@ -630,10 +662,11 @@ fn parse_openapi_yaml(content: &str) -> Result<serde_json::Value, String> {
         Ok(r) => r,
         Err(e) => return Err(e.to_string()),
     };
-    let summary_re = match Regex::new(r#"^\s{6,12}(?:summary|description):\s*['"]?([^'"]+)['"]?\s*$"#) {
-        Ok(r) => r,
-        Err(e) => return Err(e.to_string()),
-    };
+    let summary_re =
+        match Regex::new(r#"^\s{6,12}(?:summary|description):\s*['"]?([^'"]+)['"]?\s*$"#) {
+            Ok(r) => r,
+            Err(e) => return Err(e.to_string()),
+        };
 
     let flush_endpoint = |endpoints: &mut Vec<serde_json::Value>,
                           path: &Option<String>,
@@ -658,17 +691,32 @@ fn parse_openapi_yaml(content: &str) -> Result<serde_json::Value, String> {
         if in_paths {
             if !line.starts_with(' ') && !trimmed.is_empty() {
                 // 离开 paths 区块
-                flush_endpoint(&mut endpoints, &current_path, &current_method, &current_summary);
+                flush_endpoint(
+                    &mut endpoints,
+                    &current_path,
+                    &current_method,
+                    &current_summary,
+                );
                 break;
             }
 
             if let Some(caps) = path_re.captures(trimmed) {
-                flush_endpoint(&mut endpoints, &current_path, &current_method, &current_summary);
+                flush_endpoint(
+                    &mut endpoints,
+                    &current_path,
+                    &current_method,
+                    &current_summary,
+                );
                 current_method = None;
                 current_summary = None;
                 current_path = caps.get(1).map(|m| m.as_str().to_string());
             } else if let Some(caps) = method_re.captures(trimmed) {
-                flush_endpoint(&mut endpoints, &current_path, &current_method, &current_summary);
+                flush_endpoint(
+                    &mut endpoints,
+                    &current_path,
+                    &current_method,
+                    &current_summary,
+                );
                 current_summary = None;
                 current_method = caps.get(1).map(|m| m.as_str().to_lowercase());
             } else if let Some(caps) = summary_re.captures(trimmed) {
@@ -679,7 +727,12 @@ fn parse_openapi_yaml(content: &str) -> Result<serde_json::Value, String> {
         }
     }
 
-    flush_endpoint(&mut endpoints, &current_path, &current_method, &current_summary);
+    flush_endpoint(
+        &mut endpoints,
+        &current_path,
+        &current_method,
+        &current_summary,
+    );
 
     Ok(serde_json::json!({
         "format": "openapi",
@@ -714,7 +767,10 @@ mod tests {
         if let Err(e) = create_dir_all(root.join("node_modules/express")) {
             panic!("Failed to create node_modules: {e}");
         }
-        if let Err(e) = write(root.join("openapi.yaml"), "paths:\n  /users:\n    get:\n      summary: Get all users\n") {
+        if let Err(e) = write(
+            root.join("openapi.yaml"),
+            "paths:\n  /users:\n    get:\n      summary: Get all users\n",
+        ) {
             panic!("Failed to write openapi.yaml: {e}");
         }
 
@@ -730,9 +786,14 @@ mod tests {
         assert!(scan.config_files.contains(&"package.json".to_string()));
         assert!(scan.config_files.contains(&"tsconfig.json".to_string()));
         assert!(scan.spec_files.contains(&"openapi.yaml".to_string()));
-        assert!(scan.key_directories.contains(&"src/controllers".to_string()));
+        assert!(scan
+            .key_directories
+            .contains(&"src/controllers".to_string()));
         // node_modules 不应该出现在 key_directories
-        assert!(!scan.key_directories.iter().any(|d| d.contains("node_modules")));
+        assert!(!scan
+            .key_directories
+            .iter()
+            .any(|d| d.contains("node_modules")));
     }
 
     #[test]
@@ -816,6 +877,11 @@ mod tests {
         };
         assert_eq!(parsed_proto["protocol"], "grpc");
         assert_eq!(parsed_proto["services"][0]["service"], "UserService");
-        assert_eq!(parsed_proto["services"][0]["rpcs"].as_array().map_or(0, |a| a.len()), 2);
+        assert_eq!(
+            parsed_proto["services"][0]["rpcs"]
+                .as_array()
+                .map_or(0, |a| a.len()),
+            2
+        );
     }
 }

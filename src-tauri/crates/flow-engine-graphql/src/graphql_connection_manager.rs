@@ -214,7 +214,10 @@ impl GraphqlProvider for GraphqlConnectionManager {
                             .map(|e| e.message.as_str())
                             .collect::<Vec<_>>()
                             .join("; ");
-                        warn!("GraphQL connection verification returned errors: {}", error_msg);
+                        warn!(
+                            "GraphQL connection verification returned errors: {}",
+                            error_msg
+                        );
                         // 仍然算连接Success（可能是服务端不支持 __typename 查询）
                     }
                 }
@@ -418,7 +421,8 @@ impl GraphqlProvider for GraphqlConnectionManager {
         }; // 读锁释放
 
         // 检查是否配置了 WebSocket 端点
-        let ws_url = ws_endpoint.ok_or_else(|| "GraphQL connection has no WebSocket endpoint configured".to_string())?;
+        let ws_url = ws_endpoint
+            .ok_or_else(|| "GraphQL connection has no WebSocket endpoint configured".to_string())?;
 
         let start = std::time::Instant::now();
 
@@ -647,7 +651,10 @@ impl GraphqlProvider for GraphqlConnectionManager {
                 Ok(())
             }
             None => {
-                warn!("GraphQL disconnect failed: connection '{}' does not exist", uuid);
+                warn!(
+                    "GraphQL disconnect failed: connection '{}' does not exist",
+                    uuid
+                );
                 Err(format!("GraphQL connection '{}' does not exist", uuid))
             }
         }

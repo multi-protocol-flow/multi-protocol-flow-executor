@@ -240,8 +240,8 @@ impl GraphqlClient {
             variables: variables.clone(),
             operation_name: None,
         };
-        let operations_json =
-            serde_json::to_string(&body).map_err(|e| format!("failed to serialize request body: {}", e))?;
+        let operations_json = serde_json::to_string(&body)
+            .map_err(|e| format!("failed to serialize request body: {}", e))?;
         form = form.text("operations", operations_json);
 
         // map 字段：文件索引到变量路径的映射
@@ -249,8 +249,8 @@ impl GraphqlClient {
         for (i, _file) in files.iter().enumerate() {
             map.insert(i.to_string(), vec![format!("variables.file.{}", i)]);
         }
-        let map_json =
-            serde_json::to_string(&map).map_err(|e| format!("failed to serialize file map: {}", e))?;
+        let map_json = serde_json::to_string(&map)
+            .map_err(|e| format!("failed to serialize file map: {}", e))?;
         form = form.text("map", map_json);
 
         // 添加文件
@@ -329,8 +329,11 @@ impl GraphqlClient {
         match auth {
             GraphqlAuth::None => {}
             GraphqlAuth::Bearer(token) => {
-                if let Ok(v) = reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)) {
-                    request.headers_mut().insert(reqwest::header::AUTHORIZATION, v);
+                if let Ok(v) = reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token))
+                {
+                    request
+                        .headers_mut()
+                        .insert(reqwest::header::AUTHORIZATION, v);
                 }
             }
             GraphqlAuth::ApiKey { name, value } => {
@@ -371,10 +374,7 @@ impl GraphqlClient {
                 );
             }
             GraphqlAuth::ApiKey { name, value } => {
-                init_payload.insert(
-                    name.clone(),
-                    serde_json::Value::String(value.clone()),
-                );
+                init_payload.insert(name.clone(), serde_json::Value::String(value.clone()));
             }
             GraphqlAuth::Cookie(cookie) => {
                 init_payload.insert(
@@ -496,7 +496,10 @@ impl GraphqlClient {
 
             // 检查最大事件数
             if max_events > 0 && events.len() as u32 >= max_events {
-                info!("GraphQL subscription reached max events {}, sending complete", max_events);
+                info!(
+                    "GraphQL subscription reached max events {}, sending complete",
+                    max_events
+                );
                 let _ = write
                     .send(WsMessage::Text(
                         serde_json::json!({"type": "complete", "id": sub_id})
@@ -548,7 +551,10 @@ impl GraphqlClient {
                             if has_errors {
                                 let error_msgs: Vec<String> =
                                     event.errors.iter().map(|e| e.message.clone()).collect();
-                                log::warn!("GraphQL subscription event contains errors: {:?}", error_msgs);
+                                log::warn!(
+                                    "GraphQL subscription event contains errors: {:?}",
+                                    error_msgs
+                                );
                             }
 
                             events.push(event);
@@ -565,7 +571,9 @@ impl GraphqlClient {
                                 .await;
                         }
                         "error" => {
-                            let error_msg = parsed["payload"].as_str().unwrap_or("unknown subscription error");
+                            let error_msg = parsed["payload"]
+                                .as_str()
+                                .unwrap_or("unknown subscription error");
                             return Err(format!("GraphQL subscription error: {}", error_msg));
                         }
                         _ => {
@@ -843,7 +851,8 @@ mod tests {
                 server_ms: Some(90),
             }),
         };
-        let json = serde_json::to_string(&response).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
+        let json =
+            serde_json::to_string(&response).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
         assert!(json.contains("\"status_code\":200"));
         assert!(json.contains("\"total_ms\":150"));
         // errors 为 None 时不应序列化
@@ -870,7 +879,8 @@ mod tests {
                 server_ms: None,
             }),
         };
-        let json = serde_json::to_string(&response).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
+        let json =
+            serde_json::to_string(&response).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
         assert!(json.contains("Field 'foo' not found"));
         assert!(json.contains("\"line\":1"));
         assert!(json.contains("\"column\":5"));
@@ -905,7 +915,8 @@ mod tests {
             path: None,
             extensions: None,
         };
-        let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
+        let json =
+            serde_json::to_string(&error).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
         assert!(json.contains("\"message\":\"Syntax Error\""));
         // 可选字段为 None 时不序列化
         assert!(!json.contains("locations"));
@@ -921,7 +932,8 @@ mod tests {
             path: Some(serde_json::json!("query.user")),
             extensions: Some(serde_json::json!({"code": "VALIDATION_ERROR"})),
         };
-        let json = serde_json::to_string(&error).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
+        let json =
+            serde_json::to_string(&error).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
         assert!(json.contains("\"line\":2"));
         assert!(json.contains("\"column\":3"));
         assert!(json.contains("VALIDATION_ERROR"));
@@ -938,7 +950,8 @@ mod tests {
             tls_ms: None,
             server_ms: None,
         };
-        let json = serde_json::to_string(&timing).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
+        let json =
+            serde_json::to_string(&timing).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
         assert!(json.contains("\"total_ms\":200"));
         assert!(!json.contains("dns_ms"));
     }
@@ -953,7 +966,8 @@ mod tests {
             extensions: None,
             received_at: 1234567890,
         };
-        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
+        let json =
+            serde_json::to_string(&event).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
         assert!(json.contains("newMessage"));
         assert!(json.contains("\"received_at\":1234567890"));
         // errors 为空数组时仍然序列化（serde default）
@@ -969,7 +983,8 @@ mod tests {
             event_count: 0,
             duration_ms: 1000,
         };
-        let json = serde_json::to_string(&response).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
+        let json =
+            serde_json::to_string(&response).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
         assert!(json.contains("\"event_count\":0"));
         assert!(json.contains("\"duration_ms\":1000"));
     }
@@ -985,7 +1000,8 @@ mod tests {
     #[test]
     fn test_auth_serialization() {
         let auth = GraphqlAuth::Bearer("my-token".to_string());
-        let json = serde_json::to_string(&auth).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
+        let json =
+            serde_json::to_string(&auth).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
         assert!(json.contains("Bearer"));
         assert!(json.contains("my-token"));
     }
@@ -1101,7 +1117,8 @@ mod tests {
     #[test]
     fn test_error_location() {
         let loc = GraphqlErrorLocation { line: 3, column: 7 };
-        let json = serde_json::to_string(&loc).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
+        let json =
+            serde_json::to_string(&loc).unwrap_or_else(|e| panic!("failed to serialize: {e}"));
         assert!(json.contains("\"line\":3"));
         assert!(json.contains("\"column\":7"));
     }
@@ -1316,7 +1333,9 @@ mod tests {
         assert!(result.is_ok());
         let response = result.unwrap_or_else(|e| panic!("failed to parse response: {e}"));
         let data = response.data.unwrap_or_else(|| panic!("expected data"));
-        let user = data.get("user").unwrap_or_else(|| panic!("expected user field"));
+        let user = data
+            .get("user")
+            .unwrap_or_else(|| panic!("expected user field"));
         assert_eq!(user["id"], 42);
         assert_eq!(user["name"], "Bob");
     }

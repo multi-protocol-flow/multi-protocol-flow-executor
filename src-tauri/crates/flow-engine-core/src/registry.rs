@@ -180,11 +180,7 @@ mod tests {
 
         registry.register(Arc::new(MockPlugin::new("http", "HTTP 请求", "http")));
 
-        registry.register(Arc::new(MockPlugin::new(
-            "tcp_connect",
-            "TCP 连接",
-            "tcp",
-        )));
+        registry.register(Arc::new(MockPlugin::new("tcp_connect", "TCP 连接", "tcp")));
 
         let metadata = registry.all_metadata();
         assert_eq!(metadata.len(), 2);

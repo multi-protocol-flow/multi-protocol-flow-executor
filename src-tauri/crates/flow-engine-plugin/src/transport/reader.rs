@@ -124,4 +124,3 @@ fn dispatch_frame(frame: &[u8], shared: &ConnectionShared) -> Dispatch {
         )
     }
 }
-

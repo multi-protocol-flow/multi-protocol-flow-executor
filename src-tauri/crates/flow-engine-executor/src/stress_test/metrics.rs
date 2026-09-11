@@ -771,7 +771,12 @@ mod tests {
 
         // 添加超过限制数量的Error样本
         for i in 0..(MAX_ERROR_SAMPLES + 5) {
-            let sample = ErrorSample::new(i as u64, format!("node-{:03}", i), "HTTP", format!("Error {}", i));
+            let sample = ErrorSample::new(
+                i as u64,
+                format!("node-{:03}", i),
+                "HTTP",
+                format!("Error {}", i),
+            );
             collector.record_failure("Timeout".to_string(), sample);
         }
 

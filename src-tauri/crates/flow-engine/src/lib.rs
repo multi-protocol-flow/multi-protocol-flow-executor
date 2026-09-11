@@ -21,8 +21,8 @@ pub use flow_engine_core::statistics;
 pub use flow_engine_core::traits;
 pub use flow_engine_core::utils;
 pub use flow_engine_core::variable;
-pub use flow_engine_core::ws_stream;
 pub use flow_engine_core::workspace;
+pub use flow_engine_core::ws_stream;
 
 // Wave 2: 无依赖的基础模块
 pub use flow_engine_executor::command;
@@ -59,7 +59,6 @@ pub use flow_engine_executor::flow_engine_tcp::{
     tcp_send_executor, templates, udp_bind_executor, udp_close_executor, udp_recv_from_executor,
     udp_send_to_executor, udp_socket_manager,
 };
-
 
 // SSE (flow-engine-sse)
 #[cfg(feature = "protocol-sse")]
@@ -103,21 +102,21 @@ pub use flow_engine_executor::default_registry;
 #[cfg(feature = "plugin-manager")]
 pub use flow_engine_executor::default_registry::default_registry_with_plugins;
 #[cfg(feature = "plugin-manager")]
-pub use flow_engine_plugin::manager::PluginManager;
-#[cfg(feature = "plugin-manager")]
-pub use flow_engine_plugin::transport::ConnectionConfig;
-#[cfg(feature = "plugin-manager")]
 pub use flow_engine_plugin::datasource;
 #[cfg(feature = "plugin-manager")]
+pub use flow_engine_plugin::manager::PluginManager;
+#[cfg(feature = "plugin-manager")]
 pub use flow_engine_plugin::sidecar::SidecarPlugin;
+#[cfg(feature = "plugin-manager")]
+pub use flow_engine_plugin::transport::ConnectionConfig;
 // 插件目录扫描（已安装列表；GUI 与 CLI 共用）
 #[cfg(feature = "plugin-manager")]
 pub use flow_engine_plugin::discovery::{PluginScan, ScanEntry, ScanSkipReason};
 // 插件市场客户端 + 安装器（GUI 市场 Tab 与 `mpe plugin install` 共用）
 #[cfg(feature = "plugin-manager")]
-pub use flow_engine_plugin_marketplace;
-#[cfg(feature = "plugin-manager")]
 pub use flow_engine_plugin::semver;
+#[cfg(feature = "plugin-manager")]
+pub use flow_engine_plugin_marketplace;
 
 // 数据集执行模块
 pub use flow_engine_executor::csv_parser;

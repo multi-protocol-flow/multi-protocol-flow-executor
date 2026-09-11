@@ -94,9 +94,7 @@ impl StressTestSessionManager {
     pub fn new() -> Self {
         Self {
             session: RwLock::new(None),
-            registry: std::sync::RwLock::new(Arc::new(
-                crate::default_registry::default_registry(),
-            )),
+            registry: std::sync::RwLock::new(Arc::new(crate::default_registry::default_registry())),
         }
     }
 
@@ -115,7 +113,10 @@ impl StressTestSessionManager {
     ///
     /// 已启动的压测会话沿用其启动时的注册表 Arc 直至结束；后续新会话使用新注册表。
     pub fn set_registry(&self, registry: Arc<flow_engine_core::registry::NodeRegistry>) {
-        *self.registry.write().unwrap_or_else(|poisoned| poisoned.into_inner()) = registry;
+        *self
+            .registry
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = registry;
     }
 
     /// 启动新的压测会话

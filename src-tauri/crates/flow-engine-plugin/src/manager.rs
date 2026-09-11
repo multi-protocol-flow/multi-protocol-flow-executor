@@ -194,7 +194,6 @@ impl PluginManager {
         self.default_execution_timeout
     }
 
-
     /// Registers a plugin with the lifecycle manager, creating an entry whose
     /// residency mode comes from `manifest.capabilities.streaming`
     /// (streaming → [`ResidencyMode::Resident`], otherwise on-demand).
@@ -251,7 +250,10 @@ impl PluginManager {
                 continue;
             };
             if let Err(e) = conn
-                .send_notification(mpe_plugin_sdk::protocol::notification::FLOW_ENDED_METHOD, params.clone())
+                .send_notification(
+                    mpe_plugin_sdk::protocol::notification::FLOW_ENDED_METHOD,
+                    params.clone(),
+                )
                 .await
             {
                 log::debug!("flowEnded notify failed for plugin {}: {e}", entry.name);
@@ -284,7 +286,10 @@ impl PluginManager {
                     self.register_plugin(registration.name.clone(), registration.manifest.clone());
                     self.add_registration(registration.clone());
                     if !registration.datasources.is_empty() {
-                        self.register_datasources(&registration.name, registration.datasources.clone());
+                        self.register_datasources(
+                            &registration.name,
+                            registration.datasources.clone(),
+                        );
                     }
                     registrations.push(registration);
                 }
@@ -388,8 +393,10 @@ impl PluginManager {
         if plugin_manifest.entry.command.starts_with("./")
             || plugin_manifest.entry.command.starts_with(".\\")
         {
-            plugin_manifest.entry.command =
-                crate::discovery::resolve_entry_command(&plugin.dir, &plugin_manifest.entry.command);
+            plugin_manifest.entry.command = crate::discovery::resolve_entry_command(
+                &plugin.dir,
+                &plugin_manifest.entry.command,
+            );
         }
         for arg in &mut plugin_manifest.entry.args {
             if arg.starts_with("./") || arg.starts_with(".\\") {
@@ -406,7 +413,6 @@ impl PluginManager {
         })
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -444,14 +450,16 @@ mod tests {
             !error.is_empty(),
             "error reason must be non-empty (UI-facing)"
         );
-        assert!(manager.quarantined().is_empty(), "single failure is not quarantine");
+        assert!(
+            manager.quarantined().is_empty(),
+            "single failure is not quarantine"
+        );
     }
 
     /// 测试真实 Python 数据源插件 describe 与注册
     #[tokio::test]
     async fn describe_python_datasource_plugin() {
-        let eolink_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../plugins/eolink");
+        let eolink_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../plugins/eolink");
         if !eolink_dir.exists() {
             return;
         }
@@ -461,7 +469,8 @@ mod tests {
 
         let registrations = manager.scan_and_describe().await;
         let eolink_reg = registrations.iter().find(|r| r.name == "eolink");
-        let eolink_reg = eolink_reg.unwrap_or_else(|| panic!("eolink plugin must describe successfully"));
+        let eolink_reg =
+            eolink_reg.unwrap_or_else(|| panic!("eolink plugin must describe successfully"));
         assert_eq!(eolink_reg.datasources.len(), 1);
         assert_eq!(eolink_reg.datasources[0].id, "eolink");
 
@@ -477,8 +486,7 @@ mod tests {
     /// 测试通过 `manager.datasource_call` 调用 Python 插件的 browse
     #[tokio::test]
     async fn datasource_call_python_plugin_browse() {
-        let eolink_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../plugins/eolink");
+        let eolink_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../plugins/eolink");
         if !eolink_dir.exists() {
             return;
         }
@@ -488,7 +496,11 @@ mod tests {
 
         // 调用 validate_config（空 key 校验）
         let val_res = manager
-            .datasource_call("eolink", "validate_config", serde_json::json!({"config": {}}))
+            .datasource_call(
+                "eolink",
+                "validate_config",
+                serde_json::json!({"config": {}}),
+            )
             .await
             .expect("validate_config call");
         assert_eq!(val_res["valid"], false);

@@ -77,10 +77,7 @@ impl CookieJar {
         let request_host = parsed_url
             .as_ref()
             .and_then(|u| u.host_str().map(|h| h.to_lowercase()));
-        let request_path = parsed_url
-            .as_ref()
-            .map(|u| u.path())
-            .unwrap_or("/");
+        let request_path = parsed_url.as_ref().map(|u| u.path()).unwrap_or("/");
 
         self.cookies
             .values()
@@ -122,7 +119,8 @@ impl CookieJar {
                 if let Some(cookie) = Self::parse_set_cookie(value) {
                     let domain_norm = normalize_domain(cookie.domain.as_deref());
                     let path_norm = normalize_path(cookie.path.as_deref());
-                    self.cookies.insert((cookie.name.clone(), domain_norm, path_norm), cookie);
+                    self.cookies
+                        .insert((cookie.name.clone(), domain_norm, path_norm), cookie);
                 }
             }
         }
@@ -140,7 +138,8 @@ impl CookieJar {
             }
             let domain_norm = normalize_domain(cookie.domain.as_deref());
             let path_norm = normalize_path(cookie.path.as_deref());
-            self.cookies.insert((cookie.name.clone(), domain_norm, path_norm), cookie);
+            self.cookies
+                .insert((cookie.name.clone(), domain_norm, path_norm), cookie);
         }
     }
 

@@ -268,12 +268,18 @@ mod tests {
 
         // 记录多种Error
         for i in 0..3 {
-            let sample = ErrorSample::new(i, format!("node-{}", i), "HTTP", format!("Timeout {}", i));
+            let sample =
+                ErrorSample::new(i, format!("node-{}", i), "HTTP", format!("Timeout {}", i));
             metrics.record_failure("Timeout".to_string(), sample);
         }
 
         for i in 0..2 {
-            let sample = ErrorSample::new(i, format!("node-{}", i), "HTTP", format!("Connection refused {}", i));
+            let sample = ErrorSample::new(
+                i,
+                format!("node-{}", i),
+                "HTTP",
+                format!("Connection refused {}", i),
+            );
             metrics.record_failure("ConnectionRefused".to_string(), sample);
         }
 

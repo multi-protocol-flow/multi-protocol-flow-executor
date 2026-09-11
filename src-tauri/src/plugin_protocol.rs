@@ -130,12 +130,7 @@ fn not_found() -> Response<Vec<u8>> {
 /// Shared response builder. Headers/status are static constants, so the
 /// builder cannot actually fail; the fallback keeps production code free of
 /// `unwrap`.
-fn response(
-    status: StatusCode,
-    content_type: &str,
-    body: Vec<u8>,
-    csp: &str,
-) -> Response<Vec<u8>> {
+fn response(status: StatusCode, content_type: &str, body: Vec<u8>, csp: &str) -> Response<Vec<u8>> {
     Response::builder()
         .status(status)
         .header(header::CONTENT_TYPE, content_type)
@@ -159,7 +154,6 @@ fn minimal_wrapper(plugin_id: &str) -> String {
     )
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -168,13 +162,14 @@ mod tests {
     /// 未知 page 404。
     #[test]
     fn serves_config_panel_and_viewer_pages() {
-        let resolver = |_plugin: &str, page: &str| -> Option<(&'static str, Option<&'static str>)> {
-            match page {
-                "config-panel" => Some(("inline", Some("<html>panel</html>"))),
-                "viewer" => Some(("inline", Some("<html>viewer</html>"))),
-                _ => None,
-            }
-        };
+        let resolver =
+            |_plugin: &str, page: &str| -> Option<(&'static str, Option<&'static str>)> {
+                match page {
+                    "config-panel" => Some(("inline", Some("<html>panel</html>"))),
+                    "viewer" => Some(("inline", Some("<html>viewer</html>"))),
+                    _ => None,
+                }
+            };
         let panel = plugin_iframe_response(resolver, "grpc.localhost", "config-panel");
         assert_eq!(panel.status(), StatusCode::OK);
         assert_eq!(panel.body().as_slice(), b"<html>panel</html>");
@@ -196,12 +191,13 @@ mod tests {
     /// viewer 页回退：无 viewer 内容时走 minimal wrapper（严格 CSP）。
     #[test]
     fn viewer_without_content_gets_wrapper() {
-        let resolver = |_plugin: &str, page: &str| -> Option<(&'static str, Option<&'static str>)> {
-            match page {
-                "config-panel" => Some(("inline", Some("<html>panel</html>"))),
-                _ => None,
-            }
-        };
+        let resolver =
+            |_plugin: &str, page: &str| -> Option<(&'static str, Option<&'static str>)> {
+                match page {
+                    "config-panel" => Some(("inline", Some("<html>panel</html>"))),
+                    _ => None,
+                }
+            };
         let viewer = plugin_iframe_response(resolver, "grpc.localhost", "viewer");
         assert_eq!(viewer.status(), StatusCode::NOT_FOUND, "no viewer → 404");
     }

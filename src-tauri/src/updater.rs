@@ -3,9 +3,9 @@
 //! 与官网 changelog (`https://download.mpe.run/changelog.json`) 对齐，
 //! 支持基于 SemVer 的版本检测、流式分块下载带进度反馈以及跨平台安装执行。
 
-use std::path::{Path, PathBuf};
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use tokio::io::AsyncWriteExt;
 
 /// 官方更新信息源地址
@@ -150,7 +150,9 @@ pub async fn check_for_update(
 
     // 如果未显式指定 include_prerelease，当前版本若带 pre-release 标签则默认包含预发布更新
     let include_pre = include_prerelease.unwrap_or_else(|| {
-        current_version.contains('-') || current_version.contains("beta") || current_version.contains("alpha")
+        current_version.contains('-')
+            || current_version.contains("beta")
+            || current_version.contains("alpha")
     });
 
     log::info!(
@@ -173,7 +175,10 @@ pub async fn check_for_update(
         .map_err(|e| format!("Network request failed: {e}"))?;
 
     if !response.status().is_success() {
-        return Err(format!("Update server returned HTTP status {}", response.status()));
+        return Err(format!(
+            "Update server returned HTTP status {}",
+            response.status()
+        ));
     }
 
     let entries: Vec<ChangelogEntry> = response
@@ -186,10 +191,7 @@ pub async fn check_for_update(
 }
 
 /// 流式分块下载安装包，并定期调用进度回调
-pub async fn download_update_package<F>(
-    url: &str,
-    on_progress: F,
-) -> Result<PathBuf, String>
+pub async fn download_update_package<F>(url: &str, on_progress: F) -> Result<PathBuf, String>
 where
     F: Fn(DownloadProgress) + Send + Sync + 'static,
 {
@@ -208,7 +210,10 @@ where
         .map_err(|e| format!("Failed to connect to download URL: {e}"))?;
 
     if !response.status().is_success() {
-        return Err(format!("Download failed with HTTP status {}", response.status()));
+        return Err(format!(
+            "Download failed with HTTP status {}",
+            response.status()
+        ));
     }
 
     let total = response.content_length();
@@ -218,21 +223,22 @@ where
         .rsplit('/')
         .next()
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| {
-            match std::env::consts::OS {
-                "windows" => "mpe-update-setup.exe",
-                "macos" => "mpe-update-universal.dmg",
-                _ => "mpe-update-linux.tar.gz",
-            }
+        .unwrap_or_else(|| match std::env::consts::OS {
+            "windows" => "mpe-update-setup.exe",
+            "macos" => "mpe-update-universal.dmg",
+            _ => "mpe-update-linux.tar.gz",
         });
 
     let temp_dir = std::env::temp_dir();
     let final_path = temp_dir.join(file_name);
     let part_path = temp_dir.join(format!("{file_name}.part"));
 
-    let mut file = tokio::fs::File::create(&part_path)
-        .await
-        .map_err(|e| format!("Failed to create temporary file {}: {e}", part_path.display()))?;
+    let mut file = tokio::fs::File::create(&part_path).await.map_err(|e| {
+        format!(
+            "Failed to create temporary file {}: {e}",
+            part_path.display()
+        )
+    })?;
 
     let mut received: u64 = 0;
     let start_time = std::time::Instant::now();
@@ -290,14 +296,20 @@ where
         .await
         .map_err(|e| format!("Failed to finalize downloaded package: {e}"))?;
 
-    log::info!("[Updater] Download completed successfully: {}", final_path.display());
+    log::info!(
+        "[Updater] Download completed successfully: {}",
+        final_path.display()
+    );
     Ok(final_path)
 }
 
 /// 执行安装包并视平台退出当前程序
 pub fn launch_installer(file_path: &Path, app: &tauri::AppHandle) -> Result<(), String> {
     if !file_path.exists() {
-        return Err(format!("Installer file not found at {}", file_path.display()));
+        return Err(format!(
+            "Installer file not found at {}",
+            file_path.display()
+        ));
     }
 
     log::info!("[Updater] Launching installer: {}", file_path.display());
@@ -353,8 +365,14 @@ mod tests {
     fn make_test_entry(version: &str, prerelease: bool, win_url: &str) -> ChangelogEntry {
         let mut downloads = HashMap::new();
         downloads.insert("windows".to_string(), win_url.to_string());
-        downloads.insert("macos".to_string(), "https://example.com/mac.dmg".to_string());
-        downloads.insert("linux".to_string(), "https://example.com/linux.tar.gz".to_string());
+        downloads.insert(
+            "macos".to_string(),
+            "https://example.com/mac.dmg".to_string(),
+        );
+        downloads.insert(
+            "linux".to_string(),
+            "https://example.com/linux.tar.gz".to_string(),
+        );
 
         ChangelogEntry {
             version: version.to_string(),
@@ -373,11 +391,15 @@ mod tests {
             make_test_entry("0.1.1-beta.1", true, "https://example.com/0.1.1-beta.1.exe"),
         ];
 
-        let result = find_latest_release(&entries, "0.1.1-beta.1", true, "windows").expect("Candidate found");
+        let result = find_latest_release(&entries, "0.1.1-beta.1", true, "windows")
+            .expect("Candidate found");
         assert!(result.has_update);
         assert_eq!(result.latest_version, "0.1.1-beta.2");
         assert_eq!(result.current_version, "0.1.1-beta.1");
-        assert_eq!(result.download_url.as_deref(), Some("https://example.com/0.1.1-beta.2.exe"));
+        assert_eq!(
+            result.download_url.as_deref(),
+            Some("https://example.com/0.1.1-beta.2.exe")
+        );
     }
 
     #[test]
@@ -387,7 +409,8 @@ mod tests {
             make_test_entry("0.1.1-beta.1", true, "https://example.com/0.1.1-beta.1.exe"),
         ];
 
-        let result = find_latest_release(&entries, "0.1.1-beta.2", true, "windows").expect("Candidate found");
+        let result = find_latest_release(&entries, "0.1.1-beta.2", true, "windows")
+            .expect("Candidate found");
         assert!(!result.has_update);
         assert_eq!(result.latest_version, "0.1.1-beta.2");
     }
@@ -399,7 +422,8 @@ mod tests {
             make_test_entry("0.1.0", false, "https://example.com/0.1.0.exe"),
         ];
 
-        let result = find_latest_release(&entries, "0.1.0", false, "windows").expect("Candidate found");
+        let result =
+            find_latest_release(&entries, "0.1.0", false, "windows").expect("Candidate found");
         assert!(!result.has_update);
         assert_eq!(result.latest_version, "0.1.0");
     }

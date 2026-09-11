@@ -165,7 +165,9 @@ impl<W: AsyncWrite + Unpin> FrameWriter<W> {
             let mut stack_buf = [0u8; 4096];
             stack_buf[..payload.len()].copy_from_slice(payload);
             stack_buf[payload.len()] = LINE_DELIMITER;
-            self.inner.write_all(&stack_buf[..payload.len() + 1]).await?;
+            self.inner
+                .write_all(&stack_buf[..payload.len() + 1])
+                .await?;
         } else {
             let mut combined = Vec::with_capacity(payload.len() + 1);
             combined.extend_from_slice(payload);
@@ -189,4 +191,3 @@ impl<W: AsyncWrite + Unpin> FrameWriter<W> {
         self.inner
     }
 }
-

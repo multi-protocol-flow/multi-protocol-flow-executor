@@ -118,7 +118,12 @@ impl AppConfig {
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
             .filter(|&c| c > 0)
-            .or_else(|| config_file.as_ref().and_then(|c| c.plugins.max_concurrency).filter(|&c| c > 0))
+            .or_else(|| {
+                config_file
+                    .as_ref()
+                    .and_then(|c| c.plugins.max_concurrency)
+                    .filter(|&c| c > 0)
+            })
         {
             plugin_connection_config.max_concurrent_requests = concurrency;
         }
@@ -126,7 +131,12 @@ impl AppConfig {
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
             .filter(|&q| q > 0)
-            .or_else(|| config_file.as_ref().and_then(|c| c.plugins.queue_capacity).filter(|&q| q > 0))
+            .or_else(|| {
+                config_file
+                    .as_ref()
+                    .and_then(|c| c.plugins.queue_capacity)
+                    .filter(|&q| q > 0)
+            })
         {
             plugin_connection_config.queue_capacity = queue_cap;
         }

@@ -616,25 +616,49 @@ mod tests {
     #[test]
     fn test_execution_timeout_precedence() {
         // Default fallback
-        assert_eq!(execution_timeout(&json!({}), DEFAULT_EXECUTION_TIMEOUT), DEFAULT_EXECUTION_TIMEOUT);
-        assert_eq!(execution_timeout(&json!({}), Duration::from_secs(60)), Duration::from_secs(60));
+        assert_eq!(
+            execution_timeout(&json!({}), DEFAULT_EXECUTION_TIMEOUT),
+            DEFAULT_EXECUTION_TIMEOUT
+        );
+        assert_eq!(
+            execution_timeout(&json!({}), Duration::from_secs(60)),
+            Duration::from_secs(60)
+        );
 
         // timeout_ms
-        assert_eq!(execution_timeout(&json!({ "timeout_ms": 45000 }), DEFAULT_EXECUTION_TIMEOUT), Duration::from_millis(45000));
+        assert_eq!(
+            execution_timeout(&json!({ "timeout_ms": 45000 }), DEFAULT_EXECUTION_TIMEOUT),
+            Duration::from_millis(45000)
+        );
 
         // execution_timeout_ms
-        assert_eq!(execution_timeout(&json!({ "execution_timeout_ms": 50000 }), DEFAULT_EXECUTION_TIMEOUT), Duration::from_millis(50000));
+        assert_eq!(
+            execution_timeout(
+                &json!({ "execution_timeout_ms": 50000 }),
+                DEFAULT_EXECUTION_TIMEOUT
+            ),
+            Duration::from_millis(50000)
+        );
 
         // provider.timeout_ms
-        assert_eq!(execution_timeout(&json!({ "provider": { "timeout_ms": 60000 } }), DEFAULT_EXECUTION_TIMEOUT), Duration::from_millis(60000));
+        assert_eq!(
+            execution_timeout(
+                &json!({ "provider": { "timeout_ms": 60000 } }),
+                DEFAULT_EXECUTION_TIMEOUT
+            ),
+            Duration::from_millis(60000)
+        );
 
         // override_timeout_ms takes precedence
         assert_eq!(
-            execution_timeout(&json!({
-                "override_timeout_ms": 90000,
-                "timeout_ms": 45000,
-                "provider": { "timeout_ms": 60000 }
-            }), DEFAULT_EXECUTION_TIMEOUT),
+            execution_timeout(
+                &json!({
+                    "override_timeout_ms": 90000,
+                    "timeout_ms": 45000,
+                    "provider": { "timeout_ms": 60000 }
+                }),
+                DEFAULT_EXECUTION_TIMEOUT
+            ),
             Duration::from_millis(90000)
         );
     }
@@ -680,7 +704,11 @@ mod tests {
             }
         });
         assert_eq!(
-            execution_timeout_with_node_map(&chat_with_override, &node_map, DEFAULT_EXECUTION_TIMEOUT),
+            execution_timeout_with_node_map(
+                &chat_with_override,
+                &node_map,
+                DEFAULT_EXECUTION_TIMEOUT
+            ),
             Duration::from_millis(120000)
         );
     }

@@ -20,4 +20,3 @@ pub use error::MarketplaceError;
 pub use installer::{install_plugin, InstalledPluginInfo};
 pub use model::{MarketplacePlugin, PlatformAsset};
 pub use platform::current_platform;
-

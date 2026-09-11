@@ -28,9 +28,7 @@ pub use hook_executor::{HookExecutor, NoopHookExecutor};
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
 };
-pub use provider_key::{
-    Graphql, ProviderKey, Sse, Tcp, Udp, Ws,
-};
+pub use provider_key::{Graphql, ProviderKey, Sse, Tcp, Udp, Ws};
 pub use sse_provider::{
     SseConnectOutput, SseConnectionInfo, SseEventItem, SseListenOutput, SseProvider,
 };

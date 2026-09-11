@@ -139,7 +139,10 @@ impl Drop for SseConnectionManager {
                     if let Some(handle) = conn.listen_handle {
                         handle.abort();
                     }
-                    info!("SSE connection {} cleaned up asynchronously on manager release", id);
+                    info!(
+                        "SSE connection {} cleaned up asynchronously on manager release",
+                        id
+                    );
                 }
             });
         }
@@ -395,7 +398,10 @@ impl SseProvider for SseConnectionManager {
                 Ok(())
             }
             None => {
-                warn!("SSE disconnect failed: connection '{}' does not exist", uuid);
+                warn!(
+                    "SSE disconnect failed: connection '{}' does not exist",
+                    uuid
+                );
                 Err(format!("SSE connection '{}' does not exist", uuid))
             }
         }

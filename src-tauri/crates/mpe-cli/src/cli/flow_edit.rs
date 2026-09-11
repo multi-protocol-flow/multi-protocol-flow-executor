@@ -149,9 +149,7 @@ fn default_node_data(node_type: &str) -> NodeData {
         node_types::GRAPHQL_DISCONNECT => NodeData::GraphqlDisconnect(Default::default()),
         "proxy" => NodeData::Proxy(Default::default()),
         "variable_extractor" => NodeData::VariableExtractor(Default::default()),
-        _ if node_type.contains(':') => {
-            NodeData::Plugin(serde_json::json!({ "type": node_type }))
-        }
+        _ if node_type.contains(':') => NodeData::Plugin(serde_json::json!({ "type": node_type })),
         _ => NodeData::entry(),
     }
 }

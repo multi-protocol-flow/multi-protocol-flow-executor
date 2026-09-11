@@ -61,4 +61,3 @@ pub const RESERVED_TYPE_IDS: &[&str] = &[
 pub fn is_reserved_type_id(id: &str) -> bool {
     RESERVED_TYPE_IDS.binary_search(&id).is_ok()
 }
-

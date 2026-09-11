@@ -80,7 +80,10 @@ impl MarketplaceClient {
         }
     }
 
-    async fn fetch_plugins_from_url(&self, url: &str) -> Result<Vec<MarketplacePlugin>, MarketplaceError> {
+    async fn fetch_plugins_from_url(
+        &self,
+        url: &str,
+    ) -> Result<Vec<MarketplacePlugin>, MarketplaceError> {
         // Try with 1 retry on transient network errors or 5xx server errors
         let mut last_err = None;
         for attempt in 0..2 {
@@ -133,7 +136,8 @@ impl MarketplaceClient {
             return Ok(plugins);
         }
 
-        Err(last_err.unwrap_or_else(|| MarketplaceError::BadResponse("unknown request failure".into())))
+        Err(last_err
+            .unwrap_or_else(|| MarketplaceError::BadResponse("unknown request failure".into())))
     }
 
     /// Download `url` into memory, failing on any non-2xx status.
@@ -168,18 +172,32 @@ mod tests {
     fn test_url_normalization() {
         ensure_crypto_provider();
         let c1 = MarketplaceClient::new("https://example.com/registry".into());
-        assert_eq!(c1.primary_plugins_url(), "https://example.com/registry/plugins");
-        assert_eq!(c1.fallback_plugins_url(), Some("https://example.com/registry/plugins.json".into()));
+        assert_eq!(
+            c1.primary_plugins_url(),
+            "https://example.com/registry/plugins"
+        );
+        assert_eq!(
+            c1.fallback_plugins_url(),
+            Some("https://example.com/registry/plugins.json".into())
+        );
 
         let c2 = MarketplaceClient::new("https://example.com/registry/".into());
-        assert_eq!(c2.primary_plugins_url(), "https://example.com/registry/plugins");
+        assert_eq!(
+            c2.primary_plugins_url(),
+            "https://example.com/registry/plugins"
+        );
 
         let c3 = MarketplaceClient::new("https://example.com/registry/plugins".into());
-        assert_eq!(c3.primary_plugins_url(), "https://example.com/registry/plugins");
+        assert_eq!(
+            c3.primary_plugins_url(),
+            "https://example.com/registry/plugins"
+        );
 
         let c4 = MarketplaceClient::new("https://example.com/registry/plugins.json".into());
-        assert_eq!(c4.primary_plugins_url(), "https://example.com/registry/plugins.json");
+        assert_eq!(
+            c4.primary_plugins_url(),
+            "https://example.com/registry/plugins.json"
+        );
         assert_eq!(c4.fallback_plugins_url(), None);
     }
 }
-

@@ -17,4 +17,3 @@ pub fn current_platform() -> Option<String> {
     };
     Some(format!("{os}-{arch}"))
 }
-

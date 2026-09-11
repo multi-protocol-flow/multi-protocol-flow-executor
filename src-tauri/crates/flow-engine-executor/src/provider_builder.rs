@@ -45,7 +45,6 @@ impl ProviderBuilderExt for ExecutionContext {
             self.set_provider("ws", ws);
         }
 
-
         #[cfg(feature = "protocol-tcp")]
         {
             let tcp =
@@ -76,5 +75,4 @@ impl ProviderBuilderExt for ExecutionContext {
 
         self
     }
-
 }

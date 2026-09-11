@@ -28,7 +28,9 @@ pub fn get_gui_instance_path() -> PathBuf {
     }
     if cfg!(target_os = "windows") {
         if let Ok(app_data) = std::env::var("APPDATA") {
-            return PathBuf::from(app_data).join("mpe").join("gui-instance.json");
+            return PathBuf::from(app_data)
+                .join("mpe")
+                .join("gui-instance.json");
         }
     }
     if let Ok(home) = std::env::var("HOME") {
@@ -166,7 +168,8 @@ mod tests {
                 if let Ok(n) = socket.read(&mut buf).await {
                     let req = String::from_utf8_lossy(&buf[..n]);
                     if req.contains(&format!("Bearer {}", expected_token)) {
-                        let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 15\r\n\r\n{\"status\":\"ok\"}";
+                        let resp =
+                            b"HTTP/1.1 200 OK\r\nContent-Length: 15\r\n\r\n{\"status\":\"ok\"}";
                         let _ = socket.write_all(resp).await;
                     }
                 }
@@ -180,12 +183,8 @@ mod tests {
             version: "0.1.0".to_string(),
         };
 
-        let res = send_gui_command(
-            &info,
-            "/open",
-            &serde_json::json!({ "path": "/test/path" }),
-        )
-        .await;
+        let res =
+            send_gui_command(&info, "/open", &serde_json::json!({ "path": "/test/path" })).await;
         assert!(res.is_ok());
     }
 }

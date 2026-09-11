@@ -48,7 +48,9 @@ pub fn get_gui_instance_path() -> PathBuf {
     }
     if cfg!(target_os = "windows") {
         if let Ok(app_data) = std::env::var("APPDATA") {
-            return PathBuf::from(app_data).join("mpe").join("gui-instance.json");
+            return PathBuf::from(app_data)
+                .join("mpe")
+                .join("gui-instance.json");
         }
     }
     if let Ok(home) = std::env::var("HOME") {
@@ -108,8 +110,12 @@ async fn run_server_loop(app: tauri::AppHandle) -> Result<(), String> {
 
     let json_bytes = serde_json::to_vec_pretty(&info)
         .map_err(|e| format!("Failed to serialize instance info: {e}"))?;
-    std::fs::write(&instance_path, json_bytes)
-        .map_err(|e| format!("Failed to write instance info to {}: {e}", instance_path.display()))?;
+    std::fs::write(&instance_path, json_bytes).map_err(|e| {
+        format!(
+            "Failed to write instance info to {}: {e}",
+            instance_path.display()
+        )
+    })?;
 
     log::info!(
         "[GUI IPC] Loopback bridge listening on 127.0.0.1:{}, metadata written to {}",

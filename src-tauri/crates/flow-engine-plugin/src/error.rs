@@ -89,4 +89,3 @@ impl From<&JsonRpcError> for PluginError {
         Self::from_jsonrpc_error(error)
     }
 }
-

@@ -9,10 +9,10 @@ pub mod graphql_connection_manager;
 pub mod graphql_disconnect_executor;
 #[allow(missing_docs)]
 pub mod graphql_introspect_executor;
-/// GraphQL 端点内省（设计时调用，返回 Schema + 查询模板）
-pub mod introspect_endpoint;
 pub mod graphql_query_executor;
 pub mod graphql_subscribe_executor;
+/// GraphQL 端点内省（设计时调用，返回 Schema + 查询模板）
+pub mod introspect_endpoint;
 #[allow(missing_docs)]
 pub mod plugin;
 

@@ -510,7 +510,12 @@ mod tests {
             error_statistics: vec![ErrorStatistics {
                 error_kind: "Timeout".to_string(),
                 count: 5,
-                samples: vec![ErrorSample::new(10, "node-001", "HTTP Request", "Request timeout")],
+                samples: vec![ErrorSample::new(
+                    10,
+                    "node-001",
+                    "HTTP Request",
+                    "Request timeout",
+                )],
             }],
             node_statistics: vec![],
             node_type_statistics: vec![],

@@ -12,13 +12,13 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use flow_engine_core::plugin::NodePlugin;
-use flow_engine_core::registry::NodeRegistry;
-use mpe_plugin_sdk::protocol::describe::NodeDescription;
 use crate::error::PluginError;
 use crate::manager::{PluginManager, PluginRegistration};
 use crate::reserved::is_reserved_type_id;
 use crate::transport::PluginConnection;
+use flow_engine_core::plugin::NodePlugin;
+use flow_engine_core::registry::NodeRegistry;
+use mpe_plugin_sdk::protocol::describe::NodeDescription;
 
 /// Why a plugin node was rejected by the collision policy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,7 +67,6 @@ pub fn decide_registration(
         Ok(())
     }
 }
-
 
 impl PluginManager {
     /// Appends a describe-produced registration (from any source) to the
@@ -156,5 +155,4 @@ impl PluginManager {
         }
         self.registrations = registrations;
     }
-
 }

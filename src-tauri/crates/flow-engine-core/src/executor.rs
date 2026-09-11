@@ -207,13 +207,12 @@ mod tests {
             json!({"profile": {"name": "Alice", "age": 30}}),
             "node-1".to_string(),
         );
-        context.variables.set_variable(
-            "active".to_string(),
-            json!(true),
-            "node-1".to_string(),
-        );
+        context
+            .variables
+            .set_variable("active".to_string(), json!(true), "node-1".to_string());
 
-        let template = "User {{user.profile.name}} is {{user.profile.age}} years old, active: {{active}}";
+        let template =
+            "User {{user.profile.name}} is {{user.profile.age}} years old, active: {{active}}";
         let res = replace_variables(template, &context).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(res, "User Alice is 30 years old, active: true");
     }
@@ -239,7 +238,10 @@ mod tests {
         let err3 = replace_variables("{{user.profile.missing}}", &context)
             .err()
             .unwrap_or_else(|| panic!("expected Err"));
-        assert_eq!(err3, "Variable path 'profile.missing' is not an object type");
+        assert_eq!(
+            err3,
+            "Variable path 'profile.missing' is not an object type"
+        );
 
         let err4 = replace_variables("{{user[0]}}", &context)
             .err()
@@ -302,7 +304,10 @@ mod tests {
         let res = replace_variables(template, &context).unwrap_or_else(|e| panic!("{e}"));
         let parts: Vec<&str> = res.split('|').collect();
         assert_eq!(parts.len(), 2);
-        assert_ne!(parts[0], parts[1], "Multiple dynamic evaluations should generate distinct values");
+        assert_ne!(
+            parts[0], parts[1],
+            "Multiple dynamic evaluations should generate distinct values"
+        );
     }
 
     #[test]

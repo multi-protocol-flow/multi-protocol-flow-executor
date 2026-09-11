@@ -161,4 +161,3 @@ pub fn host_satisfies(host: &str, required: &str) -> bool {
     };
     host_version >= required_version
 }
-

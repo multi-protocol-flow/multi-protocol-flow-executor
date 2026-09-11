@@ -82,4 +82,3 @@ fn validate(manifest: &PluginManifest) -> Result<(), ManifestError> {
     }
     Ok(())
 }
-

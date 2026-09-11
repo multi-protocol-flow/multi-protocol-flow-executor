@@ -129,4 +129,3 @@ pub fn frontend_metadata_from(frontend: &FrontendDescription) -> FrontendMetadat
         url: frontend.url.clone(),
     }
 }
-

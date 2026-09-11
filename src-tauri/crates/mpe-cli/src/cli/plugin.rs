@@ -64,8 +64,8 @@ fn config_file_has_plugins_dir() -> bool {
 /// List installed plugins (scan of the effective plugins directory)
 async fn execute_list() -> Result<(), CliError> {
     let dir = super::plugins_dir();
-    let host_version = std::env::var("MPE_HOST_VERSION")
-        .unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string());
+    let host_version =
+        std::env::var("MPE_HOST_VERSION").unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string());
     let entries = flow_engine::PluginScan::scan_with_errors(&dir, &host_version);
     let list: Vec<serde_json::Value> = entries
         .into_iter()
@@ -135,9 +135,7 @@ async fn execute_install(
 
     let plugin = plugins
         .iter()
-        .find(|plugin| {
-            plugin.name == name && version.is_none_or(|v| plugin.version == v)
-        })
+        .find(|plugin| plugin.name == name && version.is_none_or(|v| plugin.version == v))
         .ok_or_else(|| {
             CliError::execution(format!(
                 "plugin {name}{} not found in marketplace",

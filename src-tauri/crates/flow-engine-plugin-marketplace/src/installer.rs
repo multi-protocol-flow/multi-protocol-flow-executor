@@ -63,7 +63,9 @@ pub async fn install_plugin(
     // 2. Target directory + AlreadyInstalled gate (checked before download).
     let target = install_dir.join(&plugin.name);
     if target.join("plugin.json").exists() && !force {
-        return Err(MarketplaceError::AlreadyInstalled(target.display().to_string()));
+        return Err(MarketplaceError::AlreadyInstalled(
+            target.display().to_string(),
+        ));
     }
 
     // Ensure install_dir exists
@@ -146,11 +148,7 @@ fn install_into(
 /// A leading `<plugin_name>/` component (the common "zip root contains the
 /// plugin directory" layout) is stripped so the archive's `plugin.json`
 /// lands directly in `target`.
-fn extract_archive(
-    bytes: &[u8],
-    target: &Path,
-    plugin_name: &str,
-) -> Result<(), MarketplaceError> {
+fn extract_archive(bytes: &[u8], target: &Path, plugin_name: &str) -> Result<(), MarketplaceError> {
     let cursor = Cursor::new(bytes);
     let mut archive =
         ZipArchive::new(cursor).map_err(|e| MarketplaceError::Extract(e.to_string()))?;
@@ -249,4 +247,3 @@ fn platform_unsupported(plugin: &MarketplacePlugin) -> MarketplaceError {
     available.sort();
     MarketplaceError::PlatformUnsupported { available }
 }
-

@@ -165,15 +165,12 @@ impl ScriptExecutionContext {
         vars_obj.set(
             "get",
             Func::from(move |key: String| -> Option<String> {
-                let user_val = vars_get
-                    .borrow()
-                    .get(&key)
-                    .and_then(|v| match v {
-                        serde_json::Value::String(s) => Some(s.clone()),
-                        serde_json::Value::Number(n) => Some(n.to_string()),
-                        serde_json::Value::Bool(b) => Some(b.to_string()),
-                        _ => v.as_str().map(|s| s.to_string()),
-                    });
+                let user_val = vars_get.borrow().get(&key).and_then(|v| match v {
+                    serde_json::Value::String(s) => Some(s.clone()),
+                    serde_json::Value::Number(n) => Some(n.to_string()),
+                    serde_json::Value::Bool(b) => Some(b.to_string()),
+                    _ => v.as_str().map(|s| s.to_string()),
+                });
                 if user_val.is_some() {
                     return user_val;
                 }

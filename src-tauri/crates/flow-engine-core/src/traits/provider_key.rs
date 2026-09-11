@@ -77,7 +77,6 @@ mod tests {
         assert_eq!(Udp::key(), "udp");
     }
 
-
     #[test]
     fn test_sse_key() {
         assert_eq!(Sse::key(), "sse");
@@ -87,6 +86,4 @@ mod tests {
     fn test_graphql_key() {
         assert_eq!(Graphql::key(), "graphql");
     }
-
-
 }

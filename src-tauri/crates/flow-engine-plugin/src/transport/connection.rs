@@ -176,7 +176,9 @@ impl ConnectionShared {
         Self {
             config,
             pending: Mutex::new(HashMap::new()),
-            recent_cancelled_or_timed_out: Mutex::new(std::collections::VecDeque::with_capacity(4096)),
+            recent_cancelled_or_timed_out: Mutex::new(std::collections::VecDeque::with_capacity(
+                4096,
+            )),
             next_id: AtomicU64::new(1), // 0 is reserved for notifications
             backpressure,
             metrics: Mutex::new(TransportMetrics::default()),
@@ -189,7 +191,6 @@ impl ConnectionShared {
             shutdown_initiated: AtomicBool::new(false),
         }
     }
-
 
     /// Marks the connection as exited exactly once (first caller wins),
     /// publishing the reason and draining the pending map so every waiter
@@ -514,11 +515,12 @@ impl PluginConnection {
         let deadline = tokio::time::Instant::now() + timeout;
 
         // Bounded inflight acquisition (never blocks forever).
-        let _permit = match tokio::time::timeout_at(deadline, self.shared.backpressure.acquire()).await {
-            Ok(Ok(permit)) => permit,
-            Ok(Err(e)) => return Err(e),
-            Err(_) => return Err(PluginError::Timeout(timeout)),
-        };
+        let _permit =
+            match tokio::time::timeout_at(deadline, self.shared.backpressure.acquire()).await {
+                Ok(Ok(permit)) => permit,
+                Ok(Err(e)) => return Err(e),
+                Err(_) => return Err(PluginError::Timeout(timeout)),
+            };
 
         let id = self.shared.next_id.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = oneshot::channel();
@@ -708,4 +710,3 @@ impl PluginConnection {
         }
     }
 }
-

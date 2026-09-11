@@ -88,7 +88,11 @@ pub async fn execute_flow(
                 },
                 message: format!(
                     "flow execution {}",
-                    if result.success { "succeeded" } else { "failed" }
+                    if result.success {
+                        "succeeded"
+                    } else {
+                        "failed"
+                    }
                 ),
                 timestamp: end_timestamp,
                 node_uuid: None,

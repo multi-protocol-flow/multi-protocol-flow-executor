@@ -221,5 +221,4 @@ mod tests {
         assert_eq!(ports_ref[0].id, "port-1");
         assert_eq!(ports_ref[1].id, "port-2");
     }
-
 }

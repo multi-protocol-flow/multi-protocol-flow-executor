@@ -268,7 +268,6 @@ mod tests {
         assert_eq!(r3.unwrap_or_else(|e| panic!("{e}")), json!("alice"));
     }
 
-
     #[test]
     fn test_extract_target_nested_field() {
         let input = json!({

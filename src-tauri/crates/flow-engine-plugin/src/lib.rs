@@ -8,10 +8,10 @@
 //! `mpe-plugin-sdk::protocol` for the shared wire contract. Transport, lifecycle, and
 //! manager logic land in M1+; this file declares the module skeleton only.
 
-/// Describe RPC handshake and P0 frontend normalization.
-pub mod describe;
 /// Host-side datasource registry + RPC relay.
 pub mod datasource;
+/// Describe RPC handshake and P0 frontend normalization.
+pub mod describe;
 /// Plugin directory scanning and discovery.
 pub mod discovery;
 /// Plugin error types.
@@ -37,11 +37,10 @@ pub mod reserved;
 pub mod semver;
 /// `SidecarPlugin`: the `NodePlugin` wrapper around a plugin connection.
 pub mod sidecar;
-/// `uiCall` RPC relay for config-panel discovery queries.
-pub mod ui_call;
 /// Pipelined JSON-RPC transport over a child process's stdin/stdout.
 pub mod transport;
+/// `uiCall` RPC relay for config-panel discovery queries.
+pub mod ui_call;
 /// Execute RPC mapping helpers for `SidecarPlugin` (kept out of `sidecar.rs`
 /// for the 250-pure-LOC ceiling).
 pub(crate) mod wrapper;
-

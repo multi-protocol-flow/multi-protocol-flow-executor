@@ -255,7 +255,6 @@ mod tests {
         assert_eq!(normalize_jsonpath(".status"), "$.status");
     }
 
-
     #[test]
     fn test_apply_output_mappings_basic() {
         use crate::context::ExecutionContext;

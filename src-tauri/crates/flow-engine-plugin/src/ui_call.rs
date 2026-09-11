@@ -56,4 +56,3 @@ impl PluginManager {
         perform_ui_call(&conn, method, params).await
     }
 }
-
