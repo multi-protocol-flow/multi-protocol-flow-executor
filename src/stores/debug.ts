@@ -4,7 +4,7 @@
  * 包含心跳超时检测、命令超时检测和状态回滚机制
  */
 import { create } from 'zustand';
-import type { DebugStatus, PauseReason, ExecutionStackEntry, DebugEvent, GrpcConnectionInfo, GrpcMethodCallRecord, GrpcRealtimeStreamMessage, GrpcRealtimeStreamError } from '@/types/debug';
+import type { DebugStatus, PauseReason, ExecutionStackEntry, DebugEvent, DebugCallFrame, GrpcConnectionInfo, GrpcMethodCallRecord, GrpcRealtimeStreamMessage, GrpcRealtimeStreamError } from '@/types/debug';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types/report';
 import { DEBUG_HEALTH_CONFIG } from '@/types/debug';
 import { startDebug, sendDebugCommand, endDebug as endDebugService, saveFlowReport } from '@/services/tauri';
@@ -57,7 +57,10 @@ interface DebugState {
   lastDebugReport: FlowExecutionReport | null;
   /** 调试数据是否为只读模式（调试结束后保留数据但禁止编辑） */
   isDebugDataReadOnly: boolean;
-
+  /** 多层子流程嵌套调用栈帧 */
+  callFrames: DebugCallFrame[];
+  /** 当前用户检视的栈帧索引（默认最新栈顶） */
+  activeFrameIndex: number;
   // ===== gRPC 调试数据 =====
   /** gRPC 通道连接信息 (connection_id → 连接信息) */
   grpcConnections: Record<string, GrpcConnectionInfo>;
@@ -77,6 +80,12 @@ interface DebugState {
   continueExecution: () => Promise<void>;
   /** 单步执行 */
   stepOver: () => Promise<void>;
+  /** 单步步入（遇到 sub_flow 节点进入其内部） */
+  stepInto: () => Promise<void>;
+  /** 单步步出（执行完当前子流程并在父流程暂停） */
+  stepOut: () => Promise<void>;
+  /** 切换检视特定栈帧 */
+  setActiveFrame: (index: number) => void;
   /** 跳过节点 */
   skipNode: (selectedPort?: string, simulatedOutput?: unknown) => Promise<void>;
   /** 执行到底 */
@@ -121,6 +130,8 @@ const initialState = {
   grpcMethodCalls: {},
   grpcStreamMessages: {},
   grpcStreamErrors: {},
+  callFrames: [] as DebugCallFrame[],
+  activeFrameIndex: 0,
 };
 
 // ============================================================================
@@ -215,12 +226,14 @@ function stackEntryToReport(entry: ExecutionStackEntry): NodeExecutionReport {
     status,
     input_data: entry.input,
     output_data: entry.output,
+    used_port_id: entry.used_port_id,
     error: entry.error
       ? { error_kind: 'execution', message: entry.error }
       : undefined,
     resolved_config: entry.resolved_config,
     variable_changes: entry.variable_changes,
     skip_reason: entry.skip_reason,
+    sub_flow_report: entry.sub_flow_report,
   };
 }
 
@@ -348,6 +361,81 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         isCommandPending: false,
         previousStatus: null,
         error: `${ll.execution.toast.debug_step_over_failed()}: ${(error as Error).message}`,
+      });
+    }
+  },
+
+  stepInto: async () => {
+    const currentStatus = get().status;
+    try {
+      set({ 
+        isCommandPending: true, 
+        previousStatus: currentStatus,
+        pauseReason: null,
+        error: null 
+      });
+      
+      await sendDebugCommand('StepInto');
+      set({ status: 'running' });
+      
+      startCommandTimeout();
+    } catch (error) {
+      set({ 
+        status: currentStatus,
+        isCommandPending: false,
+        previousStatus: null,
+        error: (error as Error).message,
+      });
+    }
+  },
+
+  stepOut: async () => {
+    const currentStatus = get().status;
+    try {
+      set({ 
+        isCommandPending: true, 
+        previousStatus: currentStatus,
+        pauseReason: null,
+        error: null 
+      });
+      
+      await sendDebugCommand('StepOut');
+      set({ status: 'running' });
+      
+      startCommandTimeout();
+    } catch (error) {
+      set({ 
+        status: currentStatus,
+        isCommandPending: false,
+        previousStatus: null,
+        error: (error as Error).message,
+      });
+    }
+  },
+
+  setActiveFrame: (index: number) => {
+    const { callFrames } = get();
+    if (index >= 0 && index < callFrames.length) {
+      set({ activeFrameIndex: index });
+      const targetFrame = callFrames[index];
+      import('./flow').then(({ useFlowStore }) => {
+        const flowState = useFlowStore.getState();
+        if (targetFrame.frame_id === 0) {
+          flowState.clearDebugSubflows?.();
+          flowState.centerOnNode?.(targetFrame.node_uuid);
+        } else {
+          if (flowState.flow?.uuid === targetFrame.flow_uuid) {
+            flowState.centerOnNode?.(targetFrame.node_uuid);
+          } else {
+            import('@/services/storage/flowStorage').then(({ flowStorage }) => {
+              flowStorage.loadFlow(targetFrame.flow_uuid).then((loadedFlow) => {
+                useFlowStore.getState().pushDebugSubflow?.(loadedFlow, targetFrame.parent_subflow_node_uuid);
+                useFlowStore.getState().centerOnNode?.(targetFrame.node_uuid);
+              }).catch(() => {
+              });
+            });
+          }
+        }
       });
     }
   },
@@ -480,17 +568,44 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       // 收到暂停事件，清除命令超时
       clearCommandTimeout();
       
-      const { node_uuid, reason, variables, execution_stack } = event.PausedAtNode;
+      const { node_uuid, reason, variables, execution_stack, call_frames } = event.PausedAtNode;
+      const frames = call_frames ?? [];
+      const topIndex = frames.length > 0 ? frames.length - 1 : 0;
       set({
         status: 'paused',
         currentNodeUuid: node_uuid,
         pauseReason: reason,
         variables,
         executionStack: execution_stack,
+        callFrames: frames,
+        activeFrameIndex: topIndex,
         // 保留上一个节点的输出，不清空，方便用户查看最近执行的节点结果
         isCommandPending: false,
         previousStatus: null,
         healthStatus: 'healthy',
+      });
+
+      // 驱动当前活跃流程的切换与画布展示
+      import('./flow').then(({ useFlowStore }) => {
+        const flowStore = useFlowStore.getState();
+        if (frames.length > 1) {
+          const topFrame = frames[topIndex];
+          if (flowStore.flow?.uuid !== topFrame.flow_uuid) {
+            import('@/services/storage/flowStorage').then(({ flowStorage }) => {
+              flowStorage.loadFlow(topFrame.flow_uuid).then((subflow) => {
+                useFlowStore.getState().pushDebugSubflow?.(subflow, topFrame.parent_subflow_node_uuid);
+                useFlowStore.getState().centerOnNode?.(node_uuid);
+              }).catch((err) => {
+                console.warn('[Debug] Could not load subflow to display on canvas:', err);
+              });
+            });
+          } else {
+            flowStore.centerOnNode?.(node_uuid);
+          }
+        } else if (frames.length <= 1 && (flowStore.debugFlowStack?.length ?? 0) > 0) {
+          flowStore.clearDebugSubflows?.();
+          flowStore.centerOnNode?.(node_uuid);
+        }
       });
 
       // 桥接：将当前暂停节点标记为 executionStore 的 currentNodeUuid
@@ -540,9 +655,10 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       set({
         status: 'ended',
         // 保留调试数据用于只读查看，不清空 currentNodeUuid 和 pauseReason
-        isCommandPending: false,
         previousStatus: null,
         healthStatus: 'healthy',
+        callFrames: [],
+        activeFrameIndex: 0,
         // 存储调试报告（如果有）
         lastDebugReport: report || null,
         // 更新执行堆栈（包含所有节点，包括最后一个）
@@ -772,3 +888,11 @@ export const selectHealthStatus = (state: DebugState) => state.healthStatus;
 export const selectIsCommandPending = (state: DebugState) => state.isCommandPending;
 /** 选择调试数据是否为只读模式 */
 export const selectIsDebugDataReadOnly = (state: DebugState) => state.isDebugDataReadOnly;
+
+/** 选择调用栈帧列表 */
+export const selectCallFrames = (state: DebugState) => state.callFrames;
+/** 选择当前检视栈帧索引 */
+export const selectActiveFrameIndex = (state: DebugState) => state.activeFrameIndex;
+/** 选择当前检视的栈帧 */
+export const selectActiveCallFrame = (state: DebugState) =>
+  state.callFrames[state.activeFrameIndex] ?? null;

@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useDebugStore, selectDebugStatus, selectCurrentNodeUuid, selectIsDebugging, selectIsPaused } from '@/stores/debug';
+import { useExecutionStore } from '@/stores/execution';
 import type { DebugEvent, ExecutionStackEntry } from '@/types/debug';
 
 // Mock tauri service
@@ -21,6 +22,7 @@ vi.mock('sonner', () => ({
 describe('DebugStore', () => {
   beforeEach(() => {
     useDebugStore.getState().reset();
+    useExecutionStore.getState().reset();
     vi.clearAllMocks();
   });
 
@@ -171,6 +173,63 @@ describe('DebugStore', () => {
         const state = useDebugStore.getState();
         expect(state.currentNodeOutput).toBeNull();
       });
+      it('处理 NodeExecuted 事件（sub_flow 节点保留 sub_flow_report）', () => {
+        const mockSubFlowReport = {
+          uuid: 'report-child-1',
+          flow_uuid: 'child-flow-uuid',
+          flow_name: '子流程认证',
+          start_time: 1000,
+          end_time: 2000,
+          duration_ms: 1000,
+          status: 'success' as const,
+          executed_count: 1,
+          node_reports: [
+            {
+              node_uuid: 'child-http-node',
+              node_type: 'http',
+              node_name: '登录请求',
+              start_time: 1000,
+              end_time: 2000,
+              duration_ms: 1000,
+              status: 'success' as const,
+            },
+          ],
+          total_nodes: 1,
+          statistics: { success_count: 1, failed_count: 0, skipped_count: 0 },
+        };
+
+        const event: DebugEvent = {
+          NodeExecuted: {
+            entry: {
+              node_uuid: 'subflow-node-1',
+              node_name: '调用子流程',
+              node_type: 'sub_flow',
+              started_at: 1000,
+              ended_at: 2000,
+              input: { target_flow_path: './child.json' },
+              output: { success: true },
+              used_port_id: 'out',
+              success: true,
+              sub_flow_report: mockSubFlowReport,
+            },
+          },
+        };
+
+        useDebugStore.getState().handleDebugEvent(event);
+
+        // 验证 debug store 的 executionStack 包含 sub_flow_report
+        const debugState = useDebugStore.getState();
+        expect(debugState.executionStack).toHaveLength(1);
+        expect(debugState.executionStack[0].sub_flow_report).toEqual(mockSubFlowReport);
+
+        // 验证桥接到 executionStore 的节点报告同样保留 sub_flow_report 与 used_port_id
+        const execReport = useExecutionStore.getState().getNodeExecutionReport('subflow-node-1');
+        expect(execReport).not.toBeNull();
+        expect(execReport?.used_port_id).toBe('out');
+        expect(execReport?.sub_flow_report).toBeDefined();
+        expect(execReport?.sub_flow_report?.node_reports).toHaveLength(1);
+        expect(execReport?.sub_flow_report?.node_reports[0].node_uuid).toBe('child-http-node');
+      });
     });
 
     describe('SessionEnded 事件', () => {
@@ -197,6 +256,66 @@ describe('DebugStore', () => {
         expect(state.currentNodeUuid).toBe('node-1'); // 保留最后暂停的节点
         expect(state.pauseReason).not.toBeNull(); // 保留暂停原因
         expect(state.isDebugDataReadOnly).toBe(false); // 不再设置只读标记，执行数据保留在 executionStore
+      });
+      it('处理 SessionEnded 事件时同步包含 sub_flow_report 的 execution_stack 到 executionStore', () => {
+        const mockSubFlowReport = {
+          uuid: 'report-child-2',
+          flow_uuid: 'child-flow-uuid',
+          flow_name: '子流程',
+          start_time: 1000,
+          end_time: 2000,
+          duration_ms: 1000,
+          status: 'success' as const,
+          executed_count: 2,
+          node_reports: [
+            {
+              node_uuid: 'child-1',
+              node_type: 'entry',
+              node_name: '入口',
+              start_time: 1000,
+              end_time: 1100,
+              duration_ms: 100,
+              status: 'success' as const,
+            },
+            {
+              node_uuid: 'child-2',
+              node_type: 'http',
+              node_name: '请求',
+              start_time: 1100,
+              end_time: 2000,
+              duration_ms: 900,
+              status: 'success' as const,
+            },
+          ],
+          total_nodes: 2,
+          statistics: { success_count: 2, failed_count: 0, skipped_count: 0 },
+        };
+
+        const event: DebugEvent = {
+          SessionEnded: {
+            reason: { type: 'completed' },
+            execution_stack: [
+              {
+                node_uuid: 'subflow-node-1',
+                node_name: '调用子流程',
+                node_type: 'sub_flow',
+                started_at: 1000,
+                ended_at: 2000,
+                success: true,
+                used_port_id: 'out',
+                sub_flow_report: mockSubFlowReport,
+              },
+            ],
+          },
+        };
+
+        useDebugStore.getState().handleDebugEvent(event);
+
+        const execReport = useExecutionStore.getState().getNodeExecutionReport('subflow-node-1');
+        expect(execReport).not.toBeNull();
+        expect(execReport?.sub_flow_report).toBeDefined();
+        expect(execReport?.sub_flow_report?.node_reports).toHaveLength(2);
+        expect(execReport?.used_port_id).toBe('out');
       });
 
       it('处理 SessionEnded 事件（用户终止）', () => {
@@ -908,6 +1027,100 @@ describe('DebugStore', () => {
       });
     });
   });
+  describe('Subflow 嵌套调试与调用栈帧 (Call Frames)', () => {
+    it('处理携带多层 call_frames 的 PausedAtNode 事件', () => {
+      const event: DebugEvent = {
+        PausedAtNode: {
+          node_uuid: 'c-http-1',
+          reason: { type: 'step_complete', node_uuid: 'c-http-1' },
+          variables: { foo: 'bar' },
+          execution_stack: [],
+          call_frames: [
+            {
+              frame_id: 0,
+              flow_uuid: 'root-flow',
+              flow_name: 'Root Flow',
+              node_uuid: 'subflow-node',
+              node_name: 'SubFlow',
+            },
+            {
+              frame_id: 1,
+              flow_uuid: 'child-flow',
+              flow_name: 'Child Flow',
+              node_uuid: 'c-http-1',
+              node_name: 'HTTP Request',
+              parent_subflow_node_uuid: 'subflow-node',
+            },
+          ],
+        },
+      };
 
+      useDebugStore.getState().handleDebugEvent(event);
 
+      const state = useDebugStore.getState();
+      expect(state.status).toBe('paused');
+      expect(state.currentNodeUuid).toBe('c-http-1');
+      expect(state.callFrames).toHaveLength(2);
+      expect(state.callFrames[0].flow_uuid).toBe('root-flow');
+      expect(state.callFrames[1].flow_uuid).toBe('child-flow');
+      expect(state.activeFrameIndex).toBe(1);
+    });
+
+    it('setActiveFrame 切换检视特定栈帧', () => {
+      useDebugStore.setState({
+        callFrames: [
+          {
+            frame_id: 0,
+            flow_uuid: 'root-flow',
+            flow_name: 'Root Flow',
+            node_uuid: 'subflow-node',
+            node_name: 'SubFlow',
+          },
+          {
+            frame_id: 1,
+            flow_uuid: 'child-flow',
+            flow_name: 'Child Flow',
+            node_uuid: 'c-http-1',
+            node_name: 'HTTP Request',
+            parent_subflow_node_uuid: 'subflow-node',
+          },
+        ],
+        activeFrameIndex: 1,
+      });
+
+      useDebugStore.getState().setActiveFrame(0);
+      expect(useDebugStore.getState().activeFrameIndex).toBe(0);
+
+      useDebugStore.getState().setActiveFrame(1);
+      expect(useDebugStore.getState().activeFrameIndex).toBe(1);
+
+      // 无效索引不更新
+      useDebugStore.getState().setActiveFrame(99);
+      expect(useDebugStore.getState().activeFrameIndex).toBe(1);
+    });
+
+    it('stepInto 发送 StepInto 命令并更新状态', async () => {
+      const { sendDebugCommand } = await import('@/services/tauri');
+      const mockSendDebugCommand = sendDebugCommand as ReturnType<typeof vi.fn>;
+      mockSendDebugCommand.mockResolvedValue(undefined);
+      useDebugStore.setState({ status: 'paused' });
+
+      await useDebugStore.getState().stepInto();
+
+      expect(mockSendDebugCommand).toHaveBeenCalledWith('StepInto');
+      expect(useDebugStore.getState().status).toBe('running');
+    });
+
+    it('stepOut 发送 StepOut 命令并更新状态', async () => {
+      const { sendDebugCommand } = await import('@/services/tauri');
+      const mockSendDebugCommand = sendDebugCommand as ReturnType<typeof vi.fn>;
+      mockSendDebugCommand.mockResolvedValue(undefined);
+      useDebugStore.setState({ status: 'paused' });
+
+      await useDebugStore.getState().stepOut();
+
+      expect(mockSendDebugCommand).toHaveBeenCalledWith('StepOut');
+      expect(useDebugStore.getState().status).toBe('running');
+    });
+  });
 });

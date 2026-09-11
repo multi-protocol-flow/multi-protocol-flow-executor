@@ -47,10 +47,10 @@ pub mod traits;
 pub mod utils;
 /// 变量系统，支持 `{{path.to.value}}` 模板语法引用执行上下文中的数据
 pub mod variable;
-/// WebSocket 消息流追踪，支持消息方向、内容类型和所有权转移
-pub mod ws_stream;
 /// 本地工程工作区探查与代码分析模块
 pub mod workspace;
+/// WebSocket 消息流追踪，支持消息方向、内容类型和所有权转移
+pub mod ws_stream;
 
 // Re-export key trait types
 pub use traits::{
@@ -61,8 +61,8 @@ pub use traits::{
 
 // Re-export debug types
 pub use debug_types::{
-    DebugCommand, DebugEvent, DebugSessionState, DebugStatus, EndReason, ExecutionStackEntry,
-    PauseReason,
+    DebugCallFrame, DebugCommand, DebugEvent, DebugSessionState, DebugStatus, EndReason,
+    ExecutionStackEntry, PauseReason,
 };
 
 // Re-export execution event types

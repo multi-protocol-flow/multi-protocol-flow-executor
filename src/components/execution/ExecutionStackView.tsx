@@ -7,6 +7,8 @@ import { ChevronDown, ChevronRight, Copy, Pause, CheckCircle } from 'lucide-reac
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getLL } from '@/i18n/i18n-lazy';
+import { useCurrentLocale } from '@/hooks/useLocale';
+import { useDebugStore } from '@/stores';
 import type { ExecutionStackEntry } from '@/types/debug';
 
 interface ExecutionStackViewProps {
@@ -176,11 +178,61 @@ export function ExecutionStackView({
   isReadOnly,
   onNavigateToNode,
 }: ExecutionStackViewProps) {
+  useCurrentLocale();
   const ll = getLL();
   const navigateHandler = onNavigateToNode ?? (() => {});
+  const callFrames = useDebugStore((state) => state.callFrames);
+  const activeFrameIndex = useDebugStore((state) => state.activeFrameIndex);
+  const setActiveFrame = useDebugStore((state) => state.setActiveFrame);
 
   return (
     <div className="h-full overflow-y-auto">
+      {/* 分层调用栈帧展示 */}
+      {callFrames.length > 1 && (
+        <div className="border-b border-border bg-muted/40 p-2 space-y-1">
+          <div className="text-[11px] font-semibold text-muted-foreground uppercase px-2 py-0.5 tracking-wider">
+            {ll.flow.debug_call_frames_title()}
+          </div>
+          {callFrames.map((frame, idx) => {
+            const isSelected = idx === activeFrameIndex;
+            const isPausedFrame = idx === callFrames.length - 1;
+            return (
+              <button
+                key={`${frame.flow_uuid}-${idx}`}
+                onClick={() => {
+                  setActiveFrame(idx);
+                  navigateHandler(frame.node_uuid);
+                }}
+                className={cn(
+                  'w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs transition-colors cursor-pointer text-left',
+                  isSelected
+                    ? 'bg-primary/15 text-primary font-medium'
+                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <span className="font-mono text-[10px] px-1 py-0.5 rounded bg-muted-foreground/15">
+                    #{frame.frame_id}
+                  </span>
+                  <span className="truncate font-medium text-foreground">
+                    {frame.flow_name || (idx === 0 ? ll.flow.debug_breadcrumbs_root() : ll.flow.debug_breadcrumbs_subflow({ depth: idx }))}
+                  </span>
+                  <span className="text-muted-foreground truncate">
+                    ({frame.node_name || frame.node_uuid})
+                  </span>
+                </div>
+                {isPausedFrame && (
+                  <span className="flex items-center gap-1 text-[10px] text-amber-500 font-semibold shrink-0">
+                    <Pause className="w-2.5 h-2.5 fill-current" />
+                    {ll.flow.debug_call_frames_paused()}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {executionStack.length > 0 ? (
         executionStack.map((entry) => (
           <StackEntryItem
@@ -191,7 +243,9 @@ export function ExecutionStackView({
           />
         ))
       ) : (
-        <div className="p-4 text-sm text-muted-foreground text-center">{ll.execution.viewers.execution_stack_empty()}</div>
+        <div className="p-4 text-sm text-muted-foreground text-center">
+          {ll.execution.viewers.execution_stack_empty()}
+        </div>
       )}
     </div>
   );

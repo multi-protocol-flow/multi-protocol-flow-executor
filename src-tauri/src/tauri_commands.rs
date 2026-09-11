@@ -57,7 +57,6 @@ impl Default for ExecutionSessionManager {
     }
 }
 
-
 // ============================================================================
 // 流程命令
 // ============================================================================
@@ -98,6 +97,9 @@ pub async fn execute_flow(
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
     let session_id = uuid::Uuid::new_v4().to_string();
+
+    // 子流程按 ID 解析需要与前端列表同一流程目录
+    crate::sync_flows_dir_override(&app);
 
     log::info!(
         "[IPC::execute_flow] Start: uuid={}, name='{}', nodes={}, session={}",
@@ -180,20 +182,26 @@ pub async fn execute_flow(
     // 幂等：仅通知已在运行的插件，不拉起空闲插件。
     #[cfg(feature = "plugin-manager")]
     {
-        snap.manager
-            .notify_flow_ended(&result.execution_id)
-            .await;
+        snap.manager.notify_flow_ended(&result.execution_id).await;
     }
     if output.success {
         log::info!(
             "[IPC::execute_flow] Succeeded: uuid={}, duration={}ms",
-            output.flow_report.as_ref().map(|r| r.flow_uuid.as_str()).unwrap_or(""),
+            output
+                .flow_report
+                .as_ref()
+                .map(|r| r.flow_uuid.as_str())
+                .unwrap_or(""),
             execution_time
         );
     } else {
         log::warn!(
             "[IPC::execute_flow] Failed: uuid={}, duration={}ms, error={:?}",
-            output.flow_report.as_ref().map(|r| r.flow_uuid.as_str()).unwrap_or(""),
+            output
+                .flow_report
+                .as_ref()
+                .map(|r| r.flow_uuid.as_str())
+                .unwrap_or(""),
             execution_time,
             output.error
         );
@@ -214,7 +222,10 @@ pub fn cancel_flow(state: State<'_, ExecutionSessionManager>) -> Result<(), Stri
         log::warn!("[IPC::cancel_flow] No active execution session to cancel");
         return Err("No active execution session".to_string());
     }
-    log::info!("[IPC::cancel_flow] Sending cancel signal to {} session(s)", senders.len());
+    log::info!(
+        "[IPC::cancel_flow] Sending cancel signal to {} session(s)",
+        senders.len()
+    );
     for (_id, tx) in senders {
         let _ = tx.send(true);
     }
@@ -252,6 +263,9 @@ pub async fn execute_single_node(
         node.name,
         node.uuid
     );
+
+    // 子流程按 ID 解析需要与前端列表同一流程目录
+    crate::sync_flows_dir_override(&app);
 
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
@@ -301,6 +315,17 @@ pub async fn validate_flow(
     flow: Flow,
     app: tauri::AppHandle,
 ) -> flow_engine::validator::ValidationResult {
+    crate::sync_flows_dir_override(&app);
+    let mut search_dirs = Vec::new();
+    if let Some(dir) = crate::resolve_flows_dir(&app) {
+        search_dirs.push(dir);
+    }
+    if let Ok(dir) = flow_engine::storage::get_flows_dir() {
+        if !search_dirs.contains(&dir) {
+            search_dirs.push(dir);
+        }
+    }
+
     let validator = flow_engine::validator::FlowValidator::new();
     // 插件 validate RPC 是异步的；async 命令直接在 Tauri 运行时内 await，
     // 不阻塞线程，IPC 返回形状（直接返回 ValidationResult）不变。
@@ -311,16 +336,17 @@ pub async fn validate_flow(
     #[cfg(feature = "plugin-manager")]
     {
         validator
-            .validate_with_registry_async(
+            .validate_with_registry_async_and_dirs(
                 &flow,
                 &snap.registry,
                 Some(snap.manager.as_ref()),
+                &search_dirs,
             )
             .await
     }
     #[cfg(not(feature = "plugin-manager"))]
     {
-        validator.validate_with_registry(&flow, &snap.registry)
+        validator.validate_with_registry_and_dirs(&flow, &snap.registry, &search_dirs)
     }
 }
 
@@ -331,7 +357,11 @@ pub async fn validate_flow(
 /// 保存流程执行报告
 #[tauri::command]
 pub fn save_flow_report(report: FlowExecutionReport, reports_dir: String) -> Result<(), String> {
-    log::info!("[IPC::save_flow_report] uuid={}, dir={}", report.uuid, reports_dir);
+    log::info!(
+        "[IPC::save_flow_report] uuid={}, dir={}",
+        report.uuid,
+        reports_dir
+    );
     let res = flow_engine::commands::save_flow_report(report, &reports_dir);
     if let Err(ref e) = res {
         log::error!("[IPC::save_flow_report] FAILED: {}", e);
@@ -356,7 +386,11 @@ pub fn list_flow_reports(reports_dir: String) -> Result<Vec<ReportMetadata>, Str
     log::debug!("[IPC::list_flow_reports] dir={}", reports_dir);
     let res = flow_engine::commands::list_flow_reports(&reports_dir);
     if let Err(ref e) = res {
-        log::error!("[IPC::list_flow_reports] FAILED: dir={}, error={}", reports_dir, e);
+        log::error!(
+            "[IPC::list_flow_reports] FAILED: dir={}, error={}",
+            reports_dir,
+            e
+        );
     }
     res
 }
@@ -364,10 +398,18 @@ pub fn list_flow_reports(reports_dir: String) -> Result<Vec<ReportMetadata>, Str
 /// 删除流程执行报告
 #[tauri::command]
 pub fn delete_flow_report(uuid: String, reports_dir: String) -> Result<(), String> {
-    log::info!("[IPC::delete_flow_report] uuid={}, dir={}", uuid, reports_dir);
+    log::info!(
+        "[IPC::delete_flow_report] uuid={}, dir={}",
+        uuid,
+        reports_dir
+    );
     let res = flow_engine::commands::delete_flow_report(&uuid, &reports_dir);
     if let Err(ref e) = res {
-        log::error!("[IPC::delete_flow_report] FAILED: uuid={}, error={}", uuid, e);
+        log::error!(
+            "[IPC::delete_flow_report] FAILED: uuid={}, error={}",
+            uuid,
+            e
+        );
     }
     res
 }
@@ -518,7 +560,8 @@ use flow_engine::dataset_executor::{DatasetEvent, DatasetExecutionConfig};
 /// 管理数据驱动执行的取消信号发送端。
 pub struct DatasetExecutionSessionManager {
     /// 取消信号发送端映射（会话 ID -> watch channel sender）
-    cancel_senders: std::sync::Arc<std::sync::Mutex<HashMap<String, tokio::sync::watch::Sender<bool>>>>,
+    cancel_senders:
+        std::sync::Arc<std::sync::Mutex<HashMap<String, tokio::sync::watch::Sender<bool>>>>,
 }
 
 impl DatasetExecutionSessionManager {
@@ -562,13 +605,16 @@ pub async fn start_debug(
     on_log: Channel<LogEvent>,
     state: State<'_, Arc<Mutex<DebugSessionManager>>>,
     node_registry: State<'_, NodeRegistryState>,
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
 ) -> Result<(), String> {
     // 检查是否已有调试会话
     let mut manager = state.lock().await;
     if manager.command_sender.is_some() {
         return Err("A debug session is already running".to_string());
     }
+
+    // 子流程按 ID 解析需要与前端列表同一流程目录
+    crate::sync_flows_dir_override(&app);
 
     // 创建命令通道
     let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -702,6 +748,9 @@ pub async fn start_stress_test(
     input: StartStressTestInput,
     state: State<'_, Arc<StressTestSessionManager>>,
 ) -> Result<(), String> {
+    // 子流程按 ID 解析需要与前端列表同一流程目录
+    crate::sync_flows_dir_override(&app_handle);
+
     // 创建事件发送器
     let (event_sender, mut event_receiver) = mpsc::unbounded_channel::<StressTestEvent>();
 
@@ -783,7 +832,11 @@ pub fn list_flow_files(
     log::debug!("[IPC::list_flow_files] flows_dir={}", flows_dir);
     let res = flow_engine::storage::list_flow_files(std::path::Path::new(&flows_dir));
     if let Err(ref e) = res {
-        log::error!("[IPC::list_flow_files] FAILED: dir={}, error={}", flows_dir, e);
+        log::error!(
+            "[IPC::list_flow_files] FAILED: dir={}, error={}",
+            flows_dir,
+            e
+        );
     }
     res
 }
@@ -794,7 +847,11 @@ pub fn load_flow_file(
     uuid: String,
     flows_dir: String,
 ) -> Result<flow_engine::storage::FlowFile, String> {
-    log::debug!("[IPC::load_flow_file] uuid={}, flows_dir={}", uuid, flows_dir);
+    log::debug!(
+        "[IPC::load_flow_file] uuid={}, flows_dir={}",
+        uuid,
+        flows_dir
+    );
     let res = flow_engine::storage::load_flow_file_raw(&uuid, std::path::Path::new(&flows_dir));
     if let Err(ref e) = res {
         log::error!("[IPC::load_flow_file] FAILED: uuid={}, error={}", uuid, e);
@@ -815,9 +872,17 @@ pub fn save_flow_file(
         flow.name,
         flows_dir
     );
-    let res = flow_engine::storage::save_flow_file_with_meta(&flow, std::path::Path::new(&flows_dir), meta);
+    let res = flow_engine::storage::save_flow_file_with_meta(
+        &flow,
+        std::path::Path::new(&flows_dir),
+        meta,
+    );
     if let Err(ref e) = res {
-        log::error!("[IPC::save_flow_file] FAILED: uuid={}, error={}", flow.uuid, e);
+        log::error!(
+            "[IPC::save_flow_file] FAILED: uuid={}, error={}",
+            flow.uuid,
+            e
+        );
     }
     res
 }
@@ -825,7 +890,11 @@ pub fn save_flow_file(
 /// 删除流程文件
 #[tauri::command]
 pub fn delete_flow_file(uuid: String, flows_dir: String) -> Result<(), String> {
-    log::info!("[IPC::delete_flow_file] uuid={}, flows_dir={}", uuid, flows_dir);
+    log::info!(
+        "[IPC::delete_flow_file] uuid={}, flows_dir={}",
+        uuid,
+        flows_dir
+    );
     let res = flow_engine::storage::delete_flow_file(&uuid, std::path::Path::new(&flows_dir));
     if let Err(ref e) = res {
         log::error!("[IPC::delete_flow_file] FAILED: uuid={}, error={}", uuid, e);
@@ -836,7 +905,11 @@ pub fn delete_flow_file(uuid: String, flows_dir: String) -> Result<(), String> {
 /// 复制流程文件
 #[tauri::command]
 pub fn copy_flow_file(uuid: String, flows_dir: String) -> Result<Flow, String> {
-    log::info!("[IPC::copy_flow_file] uuid={}, flows_dir={}", uuid, flows_dir);
+    log::info!(
+        "[IPC::copy_flow_file] uuid={}, flows_dir={}",
+        uuid,
+        flows_dir
+    );
     let res = flow_engine::storage::copy_flow_file(&uuid, std::path::Path::new(&flows_dir));
     if let Err(ref e) = res {
         log::error!("[IPC::copy_flow_file] FAILED: uuid={}, error={}", uuid, e);
@@ -865,10 +938,18 @@ pub fn create_folder(
     flows_dir: String,
     folder_path: String,
 ) -> Result<flow_engine::storage::FolderInfo, String> {
-    log::info!("[IPC::create_folder] path={}, flows_dir={}", folder_path, flows_dir);
+    log::info!(
+        "[IPC::create_folder] path={}, flows_dir={}",
+        folder_path,
+        flows_dir
+    );
     let res = flow_engine::storage::create_folder(std::path::Path::new(&flows_dir), &folder_path);
     if let Err(ref e) = res {
-        log::error!("[IPC::create_folder] FAILED: path={}, error={}", folder_path, e);
+        log::error!(
+            "[IPC::create_folder] FAILED: path={}, error={}",
+            folder_path,
+            e
+        );
     }
     res
 }
@@ -876,10 +957,18 @@ pub fn create_folder(
 /// 删除文件夹
 #[tauri::command]
 pub fn delete_folder(flows_dir: String, folder_path: String) -> Result<(), String> {
-    log::info!("[IPC::delete_folder] path={}, flows_dir={}", folder_path, flows_dir);
+    log::info!(
+        "[IPC::delete_folder] path={}, flows_dir={}",
+        folder_path,
+        flows_dir
+    );
     let res = flow_engine::storage::delete_folder(std::path::Path::new(&flows_dir), &folder_path);
     if let Err(ref e) = res {
-        log::error!("[IPC::delete_folder] FAILED: path={}, error={}", folder_path, e);
+        log::error!(
+            "[IPC::delete_folder] FAILED: path={}, error={}",
+            folder_path,
+            e
+        );
     }
     res
 }
@@ -897,9 +986,17 @@ pub fn rename_folder(
         new_name,
         flows_dir
     );
-    let res = flow_engine::storage::rename_folder(std::path::Path::new(&flows_dir), &folder_path, &new_name);
+    let res = flow_engine::storage::rename_folder(
+        std::path::Path::new(&flows_dir),
+        &folder_path,
+        &new_name,
+    );
     if let Err(ref e) = res {
-        log::error!("[IPC::rename_folder] FAILED: path={}, error={}", folder_path, e);
+        log::error!(
+            "[IPC::rename_folder] FAILED: path={}, error={}",
+            folder_path,
+            e
+        );
     }
     res
 }
@@ -923,7 +1020,11 @@ pub fn move_flow_to_folder(
         &target_folder_path,
     );
     if let Err(ref e) = res {
-        log::error!("[IPC::move_flow_to_folder] FAILED: uuid={}, error={}", uuid, e);
+        log::error!(
+            "[IPC::move_flow_to_folder] FAILED: uuid={}, error={}",
+            uuid,
+            e
+        );
     }
     res
 }
@@ -1085,11 +1186,9 @@ pub async fn datasource_get_templates(
     config: serde_json::Value,
 ) -> Result<Vec<flow_engine::datasource::NodeTemplate>, String> {
     let snap = app.state::<NodeRegistryState>().snapshot();
-    let params = serde_json::to_value(flow_engine::datasource::GetTemplatesParams {
-        config,
-        item_ids,
-    })
-    .map_err(|e| format!("get_templates params serialization failed: {e}"))?;
+    let params =
+        serde_json::to_value(flow_engine::datasource::GetTemplatesParams { config, item_ids })
+            .map_err(|e| format!("get_templates params serialization failed: {e}"))?;
     let value = snap
         .manager
         .datasource_call(
@@ -1186,10 +1285,11 @@ pub struct InstalledPlugin {
 #[tauri::command]
 pub fn get_plugin_dir_info(app: tauri::AppHandle) -> PluginDirInfo {
     let (effective_dir, source) = crate::resolve_plugin_dir(&app);
-    let configured = app
-        .store("store/settings.bin")
-        .ok()
-        .and_then(|store| store.get("pluginDir").and_then(|v| v.as_str().map(String::from)));
+    let configured = app.store("store/settings.bin").ok().and_then(|store| {
+        store
+            .get("pluginDir")
+            .and_then(|v| v.as_str().map(String::from))
+    });
     PluginDirInfo {
         effective_dir: effective_dir.display().to_string(),
         source,
@@ -1210,10 +1310,11 @@ pub async fn reload_plugins(
     dir: String,
 ) -> Result<ReloadPluginsResult, String> {
     log::info!("[IPC::reload_plugins] Start reload from dir: {}", dir);
-    let host_locale = app
-        .store("store/settings.bin")
-        .ok()
-        .and_then(|store| store.get("locale").and_then(|v| v.as_str().map(String::from)));
+    let host_locale = app.store("store/settings.bin").ok().and_then(|store| {
+        store
+            .get("locale")
+            .and_then(|v| v.as_str().map(String::from))
+    });
 
     // 新目录 → 新管理器 → describe → 新注册表
     let default_timeout = crate::resolve_default_execution_timeout(&app);
@@ -1237,9 +1338,7 @@ pub async fn reload_plugins(
         manager.quarantined().into_iter().collect();
     let needs_retry = flow_engine::PluginScan::scan(std::path::Path::new(&dir))
         .into_iter()
-        .any(|plugin| {
-            !registered.contains(&plugin.name) && !quarantined.contains(&plugin.name)
-        });
+        .any(|plugin| !registered.contains(&plugin.name) && !quarantined.contains(&plugin.name));
     if needs_retry {
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         manager.scan_and_describe().await;
@@ -1298,8 +1397,8 @@ pub fn list_installed_plugins(app: tauri::AppHandle) -> Vec<InstalledPlugin> {
     let snap = app.state::<NodeRegistryState>().snapshot();
     // 与 flow-engine-plugin discovery 的 host_version() 对齐：
     // MPE_HOST_VERSION 覆盖，否则取本 crate 包版本
-    let host_version = std::env::var("MPE_HOST_VERSION")
-        .unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string());
+    let host_version =
+        std::env::var("MPE_HOST_VERSION").unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string());
     let loaded: HashSet<&str> = snap
         .manager
         .registrations()
@@ -1387,22 +1486,26 @@ pub async fn install_marketplace_plugin(
     );
     let install_dir = crate::resolve_plugin_dir(&app).0;
     let client = flow_engine::flow_engine_plugin_marketplace::MarketplaceClient::new(url);
-    let plugins = client
-        .list_plugins()
-        .await
-        .map_err(|e| e.to_string())?;
+    let plugins = client.list_plugins().await.map_err(|e| e.to_string())?;
     let plugin = plugins
         .iter()
-        .find(|plugin| plugin.name == name && version.as_deref().is_none_or(|v| plugin.version == v))
+        .find(|plugin| {
+            plugin.name == name && version.as_deref().is_none_or(|v| plugin.version == v)
+        })
         .ok_or_else(|| {
             format!(
                 "plugin {name}{} not found in marketplace",
                 version.map(|v| format!("@{v}")).unwrap_or_default()
             )
         })?;
-    let res = flow_engine::flow_engine_plugin_marketplace::install_plugin(&client, plugin, &install_dir, force)
-        .await
-        .map_err(|e| e.to_string());
+    let res = flow_engine::flow_engine_plugin_marketplace::install_plugin(
+        &client,
+        plugin,
+        &install_dir,
+        force,
+    )
+    .await
+    .map_err(|e| e.to_string());
     match &res {
         Ok(info) => log::info!(
             "[IPC::install_marketplace_plugin] Succeeded: name={}, path={:?}",
@@ -1451,6 +1554,9 @@ pub async fn execute_flow_with_dataset(
     state: State<'_, DatasetExecutionSessionManager>,
     node_registry: State<'_, NodeRegistryState>,
 ) -> Result<(), String> {
+    // 子流程按 ID 解析需要与前端列表同一流程目录
+    crate::sync_flows_dir_override(&app);
+
     // 获取应用数据目录（用于保存Failed行详情）
     let app_data_dir = app
         .path()
@@ -1750,7 +1856,10 @@ fn format_reqwest_error(e: &reqwest::Error) -> String {
     let mut current: Option<&dyn Error> = Some(e);
     while let Some(err) = current {
         let msg = err.to_string();
-        if !messages.iter().any(|m: &String| m == &msg || msg.contains(m.as_str())) {
+        if !messages
+            .iter()
+            .any(|m: &String| m == &msg || msg.contains(m.as_str()))
+        {
             messages.push(msg);
         }
         current = err.source();
@@ -1893,7 +2002,11 @@ pub async fn ai_fetch_models(
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        log::warn!("[IPC::ai_fetch_models] Non-success response: HTTP {} - {}", status, body);
+        log::warn!(
+            "[IPC::ai_fetch_models] Non-success response: HTTP {} - {}",
+            status,
+            body
+        );
         return Err(format!("HTTP {}: {}", status, body));
     }
     let json: serde_json::Value = resp.json().await.map_err(|e| {
@@ -1921,7 +2034,6 @@ pub async fn ai_chat_stream(
     custom_headers: Option<HashMap<String, String>>,
     on_chunk: Channel<String>,
 ) -> Result<(), String> {
-
     let cleaned_base = normalize_ai_base_url(&base_url);
     let endpoint = format!("{}/chat/completions", cleaned_base);
 
@@ -1948,7 +2060,11 @@ pub async fn ai_chat_stream(
     if !resp.status().is_success() {
         let status = resp.status();
         let err_body = resp.text().await.unwrap_or_default();
-        log::warn!("[IPC::ai_chat_stream] HTTP non-success: {} - {}", status, err_body);
+        log::warn!(
+            "[IPC::ai_chat_stream] HTTP non-success: {} - {}",
+            status,
+            err_body
+        );
         return Err(format!("HTTP {}: {}", status, err_body));
     }
 
@@ -1972,7 +2088,9 @@ pub async fn ai_chat_stream(
 
 /// 扫描本地工程目录，提取技术栈、配置文件、接口规范与核心代码目录
 #[tauri::command]
-pub fn ai_scan_workspace(workspace_dir: String) -> Result<flow_engine::workspace::WorkspaceScanResult, String> {
+pub fn ai_scan_workspace(
+    workspace_dir: String,
+) -> Result<flow_engine::workspace::WorkspaceScanResult, String> {
     let path = std::path::Path::new(&workspace_dir);
     flow_engine::workspace::scan_workspace(path, 6)
 }
@@ -1986,7 +2104,12 @@ pub fn ai_search_code(
     max_results: Option<usize>,
 ) -> Result<Vec<flow_engine::workspace::CodeMatch>, String> {
     let path = std::path::Path::new(&workspace_dir);
-    flow_engine::workspace::search_workspace_code(path, &pattern, ext.as_deref(), max_results.unwrap_or(20))
+    flow_engine::workspace::search_workspace_code(
+        path,
+        &pattern,
+        ext.as_deref(),
+        max_results.unwrap_or(20),
+    )
 }
 
 /// 按行范围切片读取代码文件内容，带防溢出安全截断保护
@@ -2028,25 +2151,20 @@ pub async fn check_app_update(
 
 /// 下载安装包并通过 `app-update-progress` 事件实时推送下载进度
 #[tauri::command]
-pub async fn download_update_package(
-    app: tauri::AppHandle,
-    url: String,
-) -> Result<String, String> {
+pub async fn download_update_package(app: tauri::AppHandle, url: String) -> Result<String, String> {
     use tauri::Emitter;
     let app_clone = app.clone();
-    let file_path: std::path::PathBuf = crate::updater::download_update_package(&url, move |progress| {
-        let _ = app_clone.emit("app-update-progress", progress);
-    })
-    .await?;
+    let file_path: std::path::PathBuf =
+        crate::updater::download_update_package(&url, move |progress| {
+            let _ = app_clone.emit("app-update-progress", progress);
+        })
+        .await?;
     Ok(file_path.display().to_string())
 }
 
 /// 执行下载好的安装包，并在 Windows 上退出主程序完成覆盖安装
 #[tauri::command]
-pub fn install_update_package(
-    app: tauri::AppHandle,
-    file_path: String,
-) -> Result<(), String> {
+pub fn install_update_package(app: tauri::AppHandle, file_path: String) -> Result<(), String> {
     let path = std::path::Path::new(&file_path);
     crate::updater::launch_installer(path, &app)
 }

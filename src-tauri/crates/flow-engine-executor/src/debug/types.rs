@@ -5,8 +5,8 @@
 
 // Re-export debug types from flow-engine-core
 pub use flow_engine_core::debug_types::{
-    DebugCommand, DebugEvent, DebugSessionState, DebugStatus, EndReason, ExecutionStackEntry,
-    PauseReason,
+    DebugCallFrame, DebugCommand, DebugEvent, DebugSessionState, DebugStatus, EndReason,
+    ExecutionStackEntry, PauseReason,
 };
 
 // ============================================================================
@@ -109,6 +109,7 @@ mod tests {
             resolved_config: None,
             variable_changes: None,
             skip_reason: None,
+            sub_flow_report: None,
         };
 
         let json = serde_json::to_string(&entry).unwrap_or_else(|e| panic!("{e}"));
@@ -174,6 +175,7 @@ mod tests {
             resolved_config: None,
             variable_changes: None,
             skip_reason: None,
+            sub_flow_report: None,
         };
 
         state.push_stack_entry(entry1);
@@ -261,6 +263,8 @@ mod tests {
             },
             DebugCommand::Continue,
             DebugCommand::StepOver,
+            DebugCommand::StepInto,
+            DebugCommand::StepOut,
             DebugCommand::SkipNode {
                 selected_port: Some("true".to_string()),
                 simulated_output: Some(json!({"status": 200})),
@@ -302,6 +306,7 @@ mod tests {
                 },
                 variables: HashMap::new(),
                 execution_stack: vec![],
+                call_frames: vec![],
             },
             DebugEvent::NodeExecuted {
                 entry: ExecutionStackEntry {
@@ -318,6 +323,7 @@ mod tests {
                     resolved_config: None,
                     variable_changes: None,
                     skip_reason: None,
+                    sub_flow_report: None,
                 },
             },
             DebugEvent::SessionEnded {

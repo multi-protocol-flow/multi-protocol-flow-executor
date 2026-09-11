@@ -46,6 +46,8 @@ export type DebugCommand =
   | { StartDebug: { flow_uuid: string } }
   | 'Continue'
   | 'StepOver'
+  | 'StepInto'
+  | 'StepOut'
   | { SkipNode: { selected_port?: string; simulated_output?: unknown } }
   | 'RunToEnd'
   | 'EndDebug'
@@ -54,6 +56,18 @@ export type DebugCommand =
   | { SetBreakpoint: { node_uuid: string; enabled: boolean } };
 
 // ============================================================================
+/**
+ * 调试调用栈帧（多层子流程嵌套）
+ */
+export interface DebugCallFrame {
+  frame_id: number;
+  flow_uuid: string;
+  flow_name: string;
+  node_uuid: string;
+  node_name: string;
+  parent_subflow_node_uuid?: string;
+}
+
 // 调试事件枚举
 // ============================================================================
 
@@ -79,12 +93,16 @@ export interface ExecutionStackEntry {
   success: boolean;
   /** 错误信息（如果失败） */
   error?: string;
+  /** 实际使用的输出端口 ID */
+  used_port_id?: string;
   /** 解析后的配置（与 NodeExecutionReport 对齐） */
   resolved_config?: unknown;
   /** 当前节点修改变量的记录（与 NodeExecutionReport 对齐） */
   variable_changes?: VariableChange[];
   /** 跳过原因（与 NodeExecutionReport 对齐） */
   skip_reason?: string;
+  /** 子流程嵌套执行报告树（与 NodeExecutionReport 对齐） */
+  sub_flow_report?: FlowExecutionReport;
 }
 
 /**
@@ -98,6 +116,7 @@ export type DebugEvent =
         reason: PauseReason;
         variables: Record<string, unknown>;
         execution_stack: ExecutionStackEntry[];
+        call_frames?: DebugCallFrame[];
       };
     }
   | { NodeExecuted: { entry: ExecutionStackEntry } }
@@ -303,4 +322,6 @@ export interface DebugSessionState {
   is_stepping: boolean;
   /** 是否跳过后续断点（执行到底模式） */
   skip_breakpoints: boolean;
+  /** 多层子流程嵌套调用栈帧 */
+  call_frames?: DebugCallFrame[];
 }

@@ -7,8 +7,8 @@ mod types;
 
 // Re-export 主要类型
 pub use types::{
-    DebugCommand, DebugEvent, DebugSessionState, DebugStatus, EndReason, ExecutionStackEntry,
-    PauseReason,
+    DebugCallFrame, DebugCommand, DebugEvent, DebugSessionState, DebugStatus, EndReason,
+    ExecutionStackEntry, PauseReason,
 };
 
 // Re-export 执行器

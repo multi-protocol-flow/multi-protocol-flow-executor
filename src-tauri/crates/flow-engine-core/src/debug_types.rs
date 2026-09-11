@@ -86,6 +86,10 @@ pub enum DebugCommand {
     Continue,
     /// 单步执行
     StepOver,
+    /// 单步步入（遇到 `sub_flow` 节点进入其内部首节点暂停；普通节点行为同 `StepOver`）
+    StepInto,
+    /// 单步步出（执行完当前子流程剩余节点，在父流程该 `sub_flow` 节点的后继节点暂停）
+    StepOut,
     /// 跳过当前节点
     SkipNode {
         /// 选择的输出分支（用于条件/HTTP/WebSocket 节点）
@@ -119,6 +123,22 @@ pub enum DebugCommand {
         enabled: bool,
     },
 }
+/// 调试调用栈帧（用于多层子流程嵌套调试）
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DebugCallFrame {
+    /// 栈帧 ID（0 为最顶层根流程，越深越大）
+    pub frame_id: usize,
+    /// 当前流程 UUID
+    pub flow_uuid: String,
+    /// 当前流程名称
+    pub flow_name: String,
+    /// 当前暂停/执行节点 UUID
+    pub node_uuid: String,
+    /// 当前暂停/执行节点名称
+    pub node_name: String,
+    /// 父流程中的 `SubFlow` 节点 UUID（顶层根流程为 None）
+    pub parent_subflow_node_uuid: Option<String>,
+}
 
 // ============================================================================
 // 调试事件枚举
@@ -143,6 +163,9 @@ pub enum DebugEvent {
         variables: HashMap<String, serde_json::Value>,
         /// 执行堆栈（已执行节点列表）
         execution_stack: Vec<ExecutionStackEntry>,
+        /// 多层子流程嵌套调用栈帧
+        #[serde(default)]
+        call_frames: Vec<DebugCallFrame>,
     },
     /// 节点execution complete
     NodeExecuted {
@@ -373,6 +396,9 @@ pub struct ExecutionStackEntry {
     /// 跳过原因（与 `NodeExecutionReport` 对齐）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_reason: Option<String>,
+    /// 子流程嵌套执行报告树（与 `NodeExecutionReport` 对齐）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_flow_report: Option<Box<crate::report::FlowExecutionReport>>,
 }
 
 // ============================================================================
@@ -409,6 +435,9 @@ pub struct DebugSessionState {
     /// 调试开始时间（毫秒时间戳）
     #[serde(default)]
     pub start_time_ms: u64,
+    /// 多层子流程嵌套调用栈帧
+    #[serde(default)]
+    pub call_frames: Vec<DebugCallFrame>,
 }
 
 impl Default for DebugSessionState {
@@ -426,6 +455,7 @@ impl Default for DebugSessionState {
             skip_breakpoints: false,
             temp_node_configs: HashMap::new(),
             start_time_ms: 0,
+            call_frames: Vec::new(),
         }
     }
 }
@@ -492,11 +522,23 @@ impl DebugSessionState {
         }
     }
 
+    /// 记录最新堆栈条目的子流程嵌套报告（SubFlow 节点专用）
+    ///
+    /// 与 `NodeExecutionReport.sub_flow_report` 对齐：调试模式下子流程同样
+    /// 作为单个节点执行，其内部执行报告树由此挂载，供报告视图展示。
+    pub fn set_last_stack_entry_sub_flow_report(
+        &mut self,
+        sub_flow_report: Option<Box<crate::report::FlowExecutionReport>>,
+    ) {
+        if let Some(last_entry) = self.execution_stack.last_mut() {
+            last_entry.sub_flow_report = sub_flow_report;
+        }
+    }
+
     /// 设置变量
     pub fn set_variable(&mut self, name: String, value: serde_json::Value) {
         self.variables.insert(name, value);
     }
-
     /// 获取变量
     pub fn get_variable(&self, name: &str) -> Option<&serde_json::Value> {
         self.variables.get(name)

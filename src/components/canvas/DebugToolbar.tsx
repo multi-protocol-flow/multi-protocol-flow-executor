@@ -2,10 +2,9 @@
  * DebugToolbar - 调试工具栏
  * 调试模式下显示的工具栏，包含调试控制按钮
  */
-import { useState } from 'react';
-import { Play, SkipForward, FastForward, Square, ArrowDownToLine } from 'lucide-react';
-import { useDebugStore, selectIsPaused, selectCurrentNodeUuid } from '@/stores';
-import { useFlowStore } from '@/stores';
+import { useState, useEffect } from 'react';
+import { Play, SkipForward, FastForward, Square, ArrowDownToLine, CornerDownRight, CornerUpLeft } from 'lucide-react';
+import { useDebugStore, selectIsPaused, selectCurrentNodeUuid, useFlowStore } from '@/stores';
 import { SkipNodeDialog } from '@/components/dialogs/SkipNodeDialog';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -19,16 +18,43 @@ export function DebugToolbar() {
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
   const continueExecution = useDebugStore((state) => state.continueExecution);
   const stepOver = useDebugStore((state) => state.stepOver);
+  const stepInto = useDebugStore((state) => state.stepInto);
+  const stepOut = useDebugStore((state) => state.stepOut);
+  const rawCallFrames = useDebugStore((state) => state.callFrames);
+  const callFrames = rawCallFrames ?? [];
   const skipNode = useDebugStore((state) => state.skipNode);
   const runToEnd = useDebugStore((state) => state.runToEnd);
   const endDebugSession = useDebugStore((state) => state.endDebugSession);
-
   const flow = useFlowStore((state) => state.flow);
 
   // 跳过节点对话框状态
   const [showSkipDialog, setShowSkipDialog] = useState(false);
+  // 是否可步出（处于子流程中且已暂停）
+  const canStepOut = isPaused && callFrames.length > 1;
 
-  // 获取当前节点信息
+  // 全局快捷键监听 (F11 步入, Shift+F11 步出, F10 单步)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F11') {
+        e.preventDefault();
+        if (!isPaused) return;
+        if (e.shiftKey) {
+          if (callFrames.length > 1) {
+            stepOut();
+          }
+        } else {
+          stepInto();
+        }
+      } else if (e.key === 'F10') {
+        e.preventDefault();
+        if (isPaused) {
+          stepOver();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPaused, callFrames.length, stepInto, stepOut, stepOver]);
   const currentNode = flow?.nodes.find((n) => n.uuid === currentNodeUuid);
 
   // 获取当前节点的输出端口
@@ -115,6 +141,36 @@ export function DebugToolbar() {
           )}
         >
           <ArrowDownToLine className="w-5 h-5" />
+        </button>
+
+        {/* 步入按钮 - 靛蓝色 */}
+        <button
+          onClick={stepInto}
+          disabled={!isPaused}
+          title={isPaused ? getLL().flow.debug_step_into_available() : getLL().flow.debug_step_into_unavailable()}
+          className={cn(
+            'flex items-center justify-center p-2 rounded-lg',
+            'transition-all duration-150',
+            'hover:bg-black/5',
+            isPaused ? 'text-indigo-500 cursor-pointer' : 'opacity-40 cursor-not-allowed'
+          )}
+        >
+          <CornerDownRight className="w-5 h-5" />
+        </button>
+
+        {/* 步出按钮 - 紫色 */}
+        <button
+          onClick={stepOut}
+          disabled={!canStepOut}
+          title={canStepOut ? getLL().flow.debug_step_out_available() : getLL().flow.debug_step_out_unavailable()}
+          className={cn(
+            'flex items-center justify-center p-2 rounded-lg',
+            'transition-all duration-150',
+            'hover:bg-black/5',
+            canStepOut ? 'text-purple-500 cursor-pointer' : 'opacity-40 cursor-not-allowed'
+          )}
+        >
+          <CornerUpLeft className="w-5 h-5" />
         </button>
 
         {/* 跳过按钮 - 橙色 */}
