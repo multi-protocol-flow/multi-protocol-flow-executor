@@ -16,8 +16,8 @@ interface GuideHighlighterProps {
   borderRadius?: number;
   /** Content to show in the tooltip/callout near the highlighted element */
   children?: React.ReactNode;
-  /** Position of the tooltip relative to target: 'top' | 'bottom' | 'left' | 'right' */
-  tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
+  /** Position of the tooltip relative to target: 'top' | 'bottom' | 'left' | 'right' | 'center' */
+  tooltipPosition?: 'top' | 'bottom' | 'left' | 'right' | 'center';
   /** Callback when overlay is clicked */
   onClick?: () => void;
 }
@@ -106,14 +106,22 @@ export function GuideHighlighter({
       {children && (
         <div
           className="animate-in fade-in zoom-in-95 duration-200"
+          onClick={(e) => e.stopPropagation()}
           style={
             showOverlay
-              ? { position: 'absolute', ...getTooltipStyle(targetRect, tooltipPosition) }
+              ? {
+                  position: 'absolute',
+                  maxHeight: 'calc(100vh - 32px)',
+                  overflowY: 'auto',
+                  ...getTooltipStyle(targetRect, tooltipPosition),
+                }
               : {
                   position: 'fixed',
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
+                  maxHeight: 'calc(100vh - 32px)',
+                  overflowY: 'auto',
                 }
           }
         >
@@ -140,60 +148,124 @@ function clampY(center: number, cardHeight: number, padding: number): number {
 }
 
 function getTooltipStyle(rect: TargetRect, position: string): React.CSSProperties {
-  // 卡片估算尺寸，用于边界裁剪
+  // 卡片估算尺寸，用于边界裁剪与自适应定位
   const CARD_WIDTH = 320;
-  const CARD_HEIGHT = 280; // 引导卡片最大高度估算
+  const CARD_HEIGHT = 220; // 引导卡片实际高度估算（包含 header, desc, footer）
+  const GAP = 16;
   const PAD = 16;
 
-  switch (position) {
-    case 'top': {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  // 计算目标元素各方向的外部剩余空间
+  const spaceBottom = viewportHeight - (rect.top + rect.height + GAP);
+  const spaceTop = rect.top - GAP;
+  const spaceRight = viewportWidth - (rect.left + rect.width + GAP);
+  const spaceLeft = rect.left - GAP;
+
+  // 判断各方向是否有足够空间容纳卡片
+  const canFitBottom = spaceBottom >= CARD_HEIGHT + PAD;
+  const canFitTop = spaceTop >= CARD_HEIGHT + PAD;
+  const canFitRight = spaceRight >= CARD_WIDTH + PAD;
+  const canFitLeft = spaceLeft >= CARD_WIDTH + PAD;
+
+  // 自适应定位判断
+  let resolvedPosition = position;
+
+  if (position === 'center') {
+    resolvedPosition = 'center';
+  } else if (position === 'bottom') {
+    if (!canFitBottom) {
+      if (canFitTop) {
+        resolvedPosition = 'top';
+      } else {
+        // 上下外部均不足以容纳（例如目标元素占满大部分屏幕高度），回退至内部居中
+        resolvedPosition = 'center';
+      }
+    }
+  } else if (position === 'top') {
+    if (!canFitTop) {
+      if (canFitBottom) {
+        resolvedPosition = 'bottom';
+      } else {
+        resolvedPosition = 'center';
+      }
+    }
+  } else if (position === 'right') {
+    if (!canFitRight) {
+      if (canFitLeft) {
+        resolvedPosition = 'left';
+      } else {
+        resolvedPosition = 'center';
+      }
+    }
+  } else if (position === 'left') {
+    if (!canFitLeft) {
+      if (canFitRight) {
+        resolvedPosition = 'right';
+      } else {
+        resolvedPosition = 'center';
+      }
+    }
+  }
+
+  switch (resolvedPosition) {
+    case 'center': {
       return {
         left: clampX(rect.left + rect.width / 2, CARD_WIDTH, PAD),
-        bottom: window.innerHeight - rect.top + 16,
+        top: clampY(rect.top + rect.height / 2, CARD_HEIGHT, PAD),
+        transform: 'translate(-50%, -50%)',
+        maxWidth: Math.min(CARD_WIDTH, viewportWidth - PAD * 2),
+      };
+    }
+    case 'top': {
+      const rawBottom = viewportHeight - rect.top + GAP;
+      const maxBottom = viewportHeight - CARD_HEIGHT - PAD;
+      const bottomValue = Math.min(rawBottom, maxBottom);
+      return {
+        left: clampX(rect.left + rect.width / 2, CARD_WIDTH, PAD),
+        bottom: Math.max(PAD, bottomValue),
         transform: 'translateX(-50%)',
-        maxWidth: Math.min(CARD_WIDTH, window.innerWidth - PAD * 2),
+        maxWidth: Math.min(CARD_WIDTH, viewportWidth - PAD * 2),
       };
     }
     case 'bottom': {
-      // bottom 位置的 top 值可能使卡片超出屏幕底部
-      const topValue = Math.min(
-        rect.top + rect.height + 16,
-        window.innerHeight - 100, // 至少留 100px 底部空间
-      );
+      const rawTop = rect.top + rect.height + GAP;
+      const maxTop = viewportHeight - CARD_HEIGHT - PAD;
+      const topValue = Math.min(rawTop, maxTop);
       return {
         left: clampX(rect.left + rect.width / 2, CARD_WIDTH, PAD),
-        top: topValue,
+        top: Math.max(PAD, topValue),
         transform: 'translateX(-50%)',
-        maxWidth: Math.min(CARD_WIDTH, window.innerWidth - PAD * 2),
+        maxWidth: Math.min(CARD_WIDTH, viewportWidth - PAD * 2),
       };
     }
     case 'left': {
       return {
-        right: Math.max(16, window.innerWidth - rect.left + 16),
+        right: Math.max(PAD, viewportWidth - rect.left + GAP),
         top: clampY(rect.top + rect.height / 2, CARD_HEIGHT, PAD),
         transform: 'translateY(-50%)',
-        maxWidth: Math.min(CARD_WIDTH, window.innerWidth - PAD * 2),
+        maxWidth: Math.min(CARD_WIDTH, viewportWidth - PAD * 2),
       };
     }
     case 'right': {
-      // right 位置：left 要保证卡片不超出右边界，top 要保证不超出上下边界
       const leftValue = Math.max(
         PAD,
-        Math.min(rect.left + rect.width + 16, window.innerWidth - CARD_WIDTH - PAD),
+        Math.min(rect.left + rect.width + GAP, viewportWidth - CARD_WIDTH - PAD),
       );
       return {
         left: leftValue,
         top: clampY(rect.top + rect.height / 2, CARD_HEIGHT, PAD),
         transform: 'translateY(-50%)',
-        maxWidth: Math.min(CARD_WIDTH, window.innerWidth - PAD * 2),
+        maxWidth: Math.min(CARD_WIDTH, viewportWidth - PAD * 2),
       };
     }
     default: {
       return {
         left: clampX(rect.left + rect.width / 2, CARD_WIDTH, PAD),
-        top: rect.top + rect.height + 16,
-        transform: 'translateX(-50%)',
-        maxWidth: Math.min(CARD_WIDTH, window.innerWidth - PAD * 2),
+        top: clampY(rect.top + rect.height / 2, CARD_HEIGHT, PAD),
+        transform: 'translate(-50%, -50%)',
+        maxWidth: Math.min(CARD_WIDTH, viewportWidth - PAD * 2),
       };
     }
   }

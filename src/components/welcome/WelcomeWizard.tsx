@@ -5,22 +5,23 @@
  * 使用 GuideHighlighter 在目标元素上显示引导卡片。
  * 首次启动自动触发，完成后记录 localStorage 不再显示。
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { GuideHighlighter } from './GuideHighlighter';
 import { getLL } from '@/i18n/i18n-lazy';
+import { useUIStore } from '@/stores/ui';
 
 const WELCOME_SHOWN_KEY = 'mpe-welcome-shown';
 
-type WelcomeStep = 0 | 1 | 2 | 3; // 0 = 未启动, 1-3 = 各步骤
 
 interface WelcomeWizardProps {
   children: React.ReactNode;
 }
 
 export function WelcomeWizard({ children }: WelcomeWizardProps) {
-  const [step, setStep] = useState<WelcomeStep>(0);
+  const step = useUIStore((s) => s.welcomeStep);
+  const setStep = useUIStore((s) => s.setWelcomeStep);
   const ll = getLL();
   const welcome = ll.welcome || ll.common;
 
@@ -32,12 +33,12 @@ export function WelcomeWizard({ children }: WelcomeWizardProps) {
       const timer = setTimeout(() => setStep(1), 500);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [setStep]);
 
   const finishWizard = useCallback(() => {
     localStorage.setItem(WELCOME_SHOWN_KEY, 'true');
     setStep(0);
-  }, []);
+  }, [setStep]);
 
   if (step === 0) return <>{children}</>;
 
@@ -87,7 +88,7 @@ export function WelcomeWizard({ children }: WelcomeWizardProps) {
         );
       case 3:
         return (
-          <GuideHighlighter targetSelector="[data-guide='canvas-area']" tooltipPosition="bottom">
+          <GuideHighlighter targetSelector="[data-guide='canvas-area']" tooltipPosition="center">
             <Card className="w-80 shadow-xl border-primary/20">
               <CardHeader>
                 <CardTitle>{welcome.welcome_step3_title?.() || 'Configure & Execute'}</CardTitle>
