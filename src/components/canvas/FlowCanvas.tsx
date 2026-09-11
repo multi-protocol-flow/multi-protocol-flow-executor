@@ -29,6 +29,7 @@ import { CanvasToolbar } from './CanvasToolbar';
 import { DebugBreadcrumbs } from './DebugBreadcrumbs';
 import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
+import { EmptyCanvasTips } from './EmptyCanvasTips';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore, selectIsExecuting, selectFlow, selectIsDirty, connectionFor } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
@@ -1261,13 +1262,8 @@ function FlowCanvasInner() {
             />
           </div>
 
-          {/* Keyboard shortcuts hint */}
-          <div className="text-xs text-muted-foreground/60">
-            <span className="inline-flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">{wc.empty_right_click_key()}</kbd>
-              <span>{wc.empty_right_click_desc()}</span>
-            </span>
-          </div>
+          {/* Keyboard shortcuts & usage tips hint */}
+          <EmptyCanvasTips />
         </div>
       </div>
     );

@@ -4,6 +4,8 @@
 export { FlowCanvas } from './FlowCanvas';
 export { FlowTabBar } from './FlowTabBar';
 export { CanvasToolbar } from './CanvasToolbar';
+export { EmptyCanvasTips, CANVAS_TIPS } from './EmptyCanvasTips';
+export type { CanvasTipItem, EmptyCanvasTipsProps } from './EmptyCanvasTips';
 export { NodePalette } from './NodePalette';
 export { EntryNode, HttpNode, ConditionalNode } from './nodes';
 export type { EntryNodeData, HttpNodeData, ConditionalNodeData } from './nodes';
