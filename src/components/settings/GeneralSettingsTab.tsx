@@ -16,19 +16,19 @@ export function GeneralSettingsTab() {
   }> = [
     {
       value: 'light',
-      label: ll.settings.theme_light?.() ?? 'Light',
+      label: ll.settings.theme_light(),
       icon: Sun,
       previewClass: 'bg-[#fafafa] border-[#e4e4e7] text-zinc-900',
     },
     {
       value: 'dark',
-      label: ll.settings.theme_dark?.() ?? 'Dark',
+      label: ll.settings.theme_dark(),
       icon: Moon,
       previewClass: 'bg-[#18181b] border-[#27272a] text-zinc-100',
     },
     {
       value: 'system',
-      label: ll.settings.theme_system?.() ?? 'System',
+      label: ll.settings.theme_system(),
       icon: Monitor,
       previewClass: 'bg-gradient-to-r from-[#fafafa] to-[#18181b] border-[#71717a]/40 text-foreground',
     },
@@ -57,10 +57,10 @@ export function GeneralSettingsTab() {
       <div className="space-y-3">
         <div>
           <h3 className="text-sm font-semibold text-foreground">
-            {ll.settings.appearance?.() ?? 'Appearance Theme'}
+            {ll.settings.appearance()}
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {ll.settings.appearance_desc?.() ?? 'Select light, dark, or sync with operating system theme.'}
+            {ll.settings.appearance_desc()}
           </p>
         </div>
 
@@ -112,10 +112,10 @@ export function GeneralSettingsTab() {
       <div className="space-y-3">
         <div>
           <h3 className="text-sm font-semibold text-foreground">
-            {ll.settings.language?.() ?? 'Language'}
+            {ll.settings.language()}
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {ll.settings.language_desc?.() ?? 'Select the display language for the application interface.'}
+            {ll.settings.language_desc()}
           </p>
         </div>
 

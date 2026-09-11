@@ -36,24 +36,24 @@ export function PathSettingItem({
   const [copied, setCopied] = useState(false);
 
   const displayPath = isLoading
-    ? (ll.settings.loading?.() ?? 'Loading...')
-    : path || (ll.settings.not_set?.() ?? 'Not Set');
+    ? ll.settings.loading()
+    : path || ll.settings.not_set();
 
   const handleCopy = async () => {
     if (!path) return;
     try {
       await navigator.clipboard.writeText(path);
       setCopied(true);
-      toast.success(ll.settings.path_copied?.() ?? 'Path copied to clipboard');
+      toast.success(ll.settings.path_copied());
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error(ll.settings.copy_failed?.() ?? 'Failed to copy path');
+      toast.error(ll.settings.copy_failed());
     }
   };
 
   const handleOpenDirectory = async () => {
     if (!isTauriEnv()) {
-      toast.info(ll.settings.cannot_open_in_browser?.() ?? 'Running in browser environment');
+      toast.info(ll.settings.cannot_open_in_browser());
       return;
     }
     if (onOpenDirectory) {
@@ -63,7 +63,7 @@ export function PathSettingItem({
 
   const handleOpenFile = async () => {
     if (!isTauriEnv()) {
-      toast.info(ll.settings.cannot_open_in_browser?.() ?? 'Running in browser environment');
+      toast.info(ll.settings.cannot_open_in_browser());
       return;
     }
     if (onOpenFile) {
@@ -113,7 +113,7 @@ export function PathSettingItem({
               'disabled:opacity-40 disabled:cursor-not-allowed',
               copied && 'text-green-600 bg-green-500/10'
             )}
-            title={ll.settings.copy_path?.() ?? 'Copy Path'}
+            title={ll.settings.copy_path()}
           >
             {copied ? (
               <Check className="h-3.5 w-3.5 text-green-600 stroke-[2.5]" />
@@ -133,7 +133,7 @@ export function PathSettingItem({
                   onClick={handleOpenFile}
                   disabled={!path || isLoading}
                   className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-background/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  title={ll.settings.open_file?.() ?? 'Open File'}
+                  title={ll.settings.open_file()}
                 >
                   <FileText className="h-3.5 w-3.5" />
                 </button>
@@ -144,7 +144,7 @@ export function PathSettingItem({
                   onClick={handleOpenDirectory}
                   disabled={!path || isLoading}
                   className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-background/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  title={ll.settings.open_in_folder?.() ?? 'Open Enclosing Folder'}
+                  title={ll.settings.open_in_folder()}
                 >
                   <FolderOpen className="h-3.5 w-3.5" />
                 </button>
@@ -158,7 +158,7 @@ export function PathSettingItem({
                   onClick={onSelectDirectory}
                   disabled={isLoading}
                   className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-background/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  title={ll.settings.select_dir?.() ?? 'Select Directory'}
+                  title={ll.settings.select_dir()}
                 >
                   <FolderEdit className="h-3.5 w-3.5" />
                 </button>
@@ -169,7 +169,7 @@ export function PathSettingItem({
                   onClick={handleOpenDirectory}
                   disabled={!path || isLoading}
                   className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-background/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  title={ll.settings.open_dir?.() ?? 'Open Directory'}
+                  title={ll.settings.open_dir()}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                 </button>

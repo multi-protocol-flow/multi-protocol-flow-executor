@@ -52,7 +52,7 @@ export function EngineSettingsTab() {
     { label: '300s', value: 300000 },
   ];
 
-  const recommendedTag = ll.settings.preset_recommended?.() ?? 'Recommended';
+  const recommendedTag = ll.settings.preset_recommended();
 
   const concurrencyPresets = [
     { label: '64', value: 64 },
@@ -95,10 +95,10 @@ export function EngineSettingsTab() {
           </div>
           <div>
             <div className="text-sm font-semibold text-foreground">
-              {ll.settings.default_timeout?.() ?? 'Default Node Execution Timeout'}
+              {ll.settings.default_timeout()}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {ll.settings.default_timeout_tip?.() ?? 'Global fallback timeout for nodes.'}
+              {ll.settings.default_timeout_tip()}
             </p>
           </div>
         </div>
@@ -143,7 +143,7 @@ export function EngineSettingsTab() {
           {/* 快速预设标签 */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs text-muted-foreground mr-1 select-none">
-              {ll.settings.timeout_presets?.() ?? 'Presets'}:
+              {ll.settings.timeout_presets()}:
             </span>
             {timeoutPresets.map((preset) => (
               <Button
@@ -172,10 +172,10 @@ export function EngineSettingsTab() {
           </div>
           <div>
             <div className="text-sm font-semibold text-foreground">
-              {ll.settings.plugin_max_concurrency?.() ?? 'Max Plugin Concurrency'}
+              {ll.settings.plugin_max_concurrency()}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {ll.settings.plugin_max_concurrency_tip?.() ?? 'Max concurrent requests per plugin process.'}
+              {ll.settings.plugin_max_concurrency_tip()}
             </p>
           </div>
         </div>
@@ -242,10 +242,10 @@ export function EngineSettingsTab() {
           </div>
           <div>
             <div className="text-sm font-semibold text-foreground">
-              {ll.settings.plugin_queue_capacity?.() ?? 'Plugin Queue Capacity'}
+              {ll.settings.plugin_queue_capacity()}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {ll.settings.plugin_queue_capacity_tip?.() ?? 'Queue depth between host and plugin.'}
+              {ll.settings.plugin_queue_capacity_tip()}
             </p>
           </div>
         </div>
@@ -312,13 +312,13 @@ export function EngineSettingsTab() {
           </div>
           <div>
             <div className="text-sm font-medium text-foreground flex items-center gap-2">
-              <span>{ll.plugins.settings_title?.() ?? 'Plugin Settings'}</span>
+              <span>{ll.plugins.settings_title()}</span>
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
                 Marketplace
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {ll.plugins.source_default?.() ?? 'Manage installed plugins, custom paths, and plugin marketplace.'}
+              {ll.plugins.source_default()}
             </p>
           </div>
         </div>
@@ -332,7 +332,7 @@ export function EngineSettingsTab() {
           }}
           className="gap-1 text-xs shrink-0 cursor-pointer"
         >
-          <span>{ll.settings.plugins_manager_link?.() ?? 'Open Plugins Manager'}</span>
+          <span>{ll.settings.plugins_manager_link()}</span>
           <ChevronRight className="h-3.5 w-3.5" />
         </Button>
       </div>

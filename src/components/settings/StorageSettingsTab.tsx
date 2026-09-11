@@ -63,7 +63,7 @@ export function StorageSettingsTab() {
           if (mounted) setConfigFilePath(p);
         }
       } catch {
-        if (mounted) setConfigFilePath(ll.common.label_browser_storage?.() ?? 'Browser LocalStorage');
+        if (mounted) setConfigFilePath(ll.common.label_browser_storage());
       }
     })();
     return () => {
@@ -118,9 +118,9 @@ export function StorageSettingsTab() {
       await setPluginDir(dir);
       await reloadPlugins(dir);
       clearNodeMetadataCache();
-      toast.success(ll.plugins.reload_success?.() ?? 'Plugins reloaded');
+      toast.success(ll.plugins.reload_success());
     } catch (e) {
-      toast.error(ll.plugins.reload_failed?.() ?? 'Plugin reload failed', {
+      toast.error(ll.plugins.reload_failed(), {
         description: e instanceof Error ? e.message : String(e),
       });
     }
@@ -135,8 +135,8 @@ export function StorageSettingsTab() {
     <div className="space-y-4">
       {/* 配置文件 */}
       <PathSettingItem
-        label={ll.settings.config_file?.() ?? 'Config File'}
-        description={ll.settings.config_file_desc?.() ?? 'Stores global preferences, credentials, and runtime parameters.'}
+        label={ll.settings.config_file()}
+        description={ll.settings.config_file_desc()}
         path={configFilePath}
         icon={Settings2}
         isFile
@@ -147,8 +147,8 @@ export function StorageSettingsTab() {
 
       {/* 流程保存目录 */}
       <PathSettingItem
-        label={ll.settings.flows_dir?.() ?? 'Flows Directory'}
-        description={ll.settings.flows_dir_desc?.() ?? 'Default directory for saving local workflow (.mpf / JSON) files.'}
+        label={ll.settings.flows_dir()}
+        description={ll.settings.flows_dir_desc()}
         path={flowsDir}
         icon={FolderInput}
         isLoading={isLoading}
@@ -158,8 +158,8 @@ export function StorageSettingsTab() {
 
       {/* 插件存储目录 */}
       <PathSettingItem
-        label={ll.settings.plugins_dir?.() ?? 'Plugins Directory'}
-        description={ll.settings.plugins_dir_desc?.() ?? 'Directory for protocol extensions and sidecar plugin binaries.'}
+        label={ll.settings.plugins_dir()}
+        description={ll.settings.plugins_dir_desc()}
         path={pluginDirInfo?.effectiveDir ?? ''}
         icon={Puzzle}
         badge={
@@ -186,7 +186,7 @@ export function StorageSettingsTab() {
             }}
             className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 cursor-pointer shrink-0"
           >
-            <span>{ll.settings.plugins_manager_link?.() ?? 'Open Plugins Manager'}</span>
+            <span>{ll.settings.plugins_manager_link()}</span>
             <ChevronRight className="h-3 w-3" />
           </Button>
         }
@@ -195,8 +195,8 @@ export function StorageSettingsTab() {
         onOpenDirectory={handleOpenPluginDir}
       />
       <PathSettingItem
-        label={ll.settings.reports_dir?.() ?? 'Reports Directory'}
-        description={ll.settings.reports_dir_desc?.() ?? 'Directory for flow execution history and stress testing reports.'}
+        label={ll.settings.reports_dir()}
+        description={ll.settings.reports_dir_desc()}
         path={reportDir}
         icon={FolderOpen}
         isLoading={isLoading}
@@ -206,8 +206,8 @@ export function StorageSettingsTab() {
 
       {/* 日志目录 */}
       <PathSettingItem
-        label={ll.settings.logs_dir?.() ?? 'Logs Directory'}
-        description={ll.settings.logs_dir_desc?.() ?? 'Directory for application logs and child process communication traces.'}
+        label={ll.settings.logs_dir()}
+        description={ll.settings.logs_dir_desc()}
         path={logDir}
         icon={FolderCog}
         isLoading={isLoading}

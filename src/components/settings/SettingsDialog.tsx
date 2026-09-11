@@ -62,45 +62,45 @@ export function SettingsDialog() {
   }> = [
     {
       id: 'general',
-      label: ll.settings.tab_general?.() ?? 'General & Appearance',
+      label: ll.settings.tab_general(),
       icon: Palette,
-      title: ll.settings.tab_general?.() ?? 'General & Appearance',
-      description: ll.settings.appearance_desc?.() ?? 'Customize theme and interface language',
+      title: ll.settings.tab_general(),
+      description: ll.settings.appearance_desc(),
     },
     {
       id: 'storage',
-      label: ll.settings.tab_storage?.() ?? 'Storage & Paths',
+      label: ll.settings.tab_storage(),
       icon: HardDrive,
-      title: ll.settings.tab_storage?.() ?? 'Storage & Paths',
-      description: ll.settings.dialog_desc?.() ?? 'Manage configuration file, flows, reports, and log folders',
+      title: ll.settings.tab_storage(),
+      description: ll.settings.dialog_desc(),
     },
     {
       id: 'ai',
-      label: ll.settings.tab_ai?.() ?? 'AI Copilot & Models',
+      label: ll.settings.tab_ai(),
       icon: Sparkles,
-      title: ll.settings.tab_ai?.() ?? 'AI Copilot & Models',
-      description: ll.ai.settings.description?.() ?? 'Configure OpenAI-compatible providers, models, and API keys',
+      title: ll.settings.tab_ai(),
+      description: ll.ai.settings.description(),
     },
     {
       id: 'engine',
-      label: ll.settings.tab_engine?.() ?? 'Engine & Performance',
+      label: ll.settings.tab_engine(),
       icon: Cpu,
-      title: ll.settings.tab_engine?.() ?? 'Engine & Performance',
-      description: ll.settings.engine_desc?.() ?? 'Configure execution timeout and plugin concurrency capacity',
+      title: ll.settings.tab_engine(),
+      description: ll.settings.engine_desc(),
     },
     {
       id: 'shortcuts',
-      label: ll.settings.tab_shortcuts?.() ?? 'Shortcuts & Manuals',
+      label: ll.settings.tab_shortcuts(),
       icon: Keyboard,
-      title: ll.settings.tab_shortcuts?.() ?? 'Shortcuts & Manuals',
-      description: ll.settings.shortcuts_desc?.() ?? 'View keyboard shortcuts, script APIs, and dynamic variables reference handbook',
+      title: ll.settings.tab_shortcuts(),
+      description: ll.settings.shortcuts_desc(),
     },
     {
       id: 'about',
-      label: ll.settings.tab_about?.() ?? 'About & Updates',
+      label: ll.settings.tab_about(),
       icon: Info,
-      title: ll.settings.tab_about?.() ?? 'About & Updates',
-      description: ll.settings.about_desc?.() ?? 'View version info and check for software updates',
+      title: ll.settings.tab_about(),
+      description: ll.settings.about_desc(),
     },
   ];
 
@@ -120,7 +120,7 @@ export function SettingsDialog() {
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/70 shrink-0 select-none">
           <div className="flex items-center gap-3">
             <DialogTitle className="text-base font-semibold text-foreground">
-              {ll.settings.dialog_title?.() ?? 'Global Settings'}
+              {ll.settings.dialog_title()}
             </DialogTitle>
             <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-border/60">
               v{currentVersion || '0.1.1-beta.2'}
@@ -130,7 +130,7 @@ export function SettingsDialog() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 border border-border/40 px-2.5 py-1 rounded-full">
               <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-              <span>{ll.settings.saved_badge?.() ?? 'Auto-saved'}</span>
+              <span>{ll.settings.saved_badge()}</span>
             </div>
 
             <Button
