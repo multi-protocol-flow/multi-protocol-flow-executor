@@ -122,7 +122,7 @@ export function NodeContextMenu({
       useExecutionStore.getState().setReport(flowReport);
       useExecutionStore.getState().openReportDialog(flowReport);
     } catch (error) {
-      notifyError(LL.flow.test_node_failed?.() ?? 'Failed to test node', error, { category: 'NodeExecution', flowUuid: flow?.uuid });
+      notifyError(LL.flow.test_node_failed(), error, { category: 'NodeExecution', flowUuid: flow?.uuid });
     } finally {
       setTesting(false);
       onClose();

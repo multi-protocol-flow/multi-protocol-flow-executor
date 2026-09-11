@@ -89,7 +89,7 @@ export const useUpdateStore = create<UpdateStore>((set, get) => ({
           lastChecked: Date.now(),
         });
         if (manual) {
-          notifyInfo(ll.settings.update_already_latest?.() ?? 'You are using the latest version.');
+          notifyInfo(ll.settings.update_already_latest());
         }
       }
 
