@@ -2,6 +2,7 @@
  * 画布组件导出
  */
 export { FlowCanvas } from './FlowCanvas';
+export { FlowTabBar } from './FlowTabBar';
 export { CanvasToolbar } from './CanvasToolbar';
 export { NodePalette } from './NodePalette';
 export { EntryNode, HttpNode, ConditionalNode } from './nodes';
