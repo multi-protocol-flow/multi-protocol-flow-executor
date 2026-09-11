@@ -8177,6 +8177,43 @@ type RootTranslation = {
 		 */
 		debug_no_new_flow: string
 		/**
+		 * 执​行​中​不​可​切​换​流​程
+		 */
+		executing_no_switch: string
+		/**
+		 * 关​闭​标​签
+		 */
+		close_tab: string
+		/**
+		 * 关​闭​其​他​标​签
+		 */
+		close_other_tabs: string
+		/**
+		 * 关​闭​右​侧​标​签
+		 */
+		close_tabs_to_right: string
+		/**
+		 * 关​闭​所​有​标​签
+		 */
+		close_all_tabs: string
+		/**
+		 * 未​保​存​的​修​改
+		 */
+		unsaved_tab_confirm_title: string
+		/**
+		 * 流​程​「​{​n​a​m​e​}​」​有​未​保​存​的​修​改​。​是​否​在​关​闭​前​保​存​？
+		 * @param {string} name
+		 */
+		unsaved_tab_confirm_desc: RequiredParams<'name'>
+		/**
+		 * 保​存​并​关​闭
+		 */
+		save_and_close: string
+		/**
+		 * 放​弃​修​改​并​关​闭
+		 */
+		discard_and_close: string
+		/**
 		 * H​T​T​P​节​点​示​例​流​程
 		 */
 		http_example: string
@@ -21650,6 +21687,42 @@ export type TranslationFunctions = {
 		 * 调试中不可新建流程
 		 */
 		debug_no_new_flow: () => LocalizedString
+		/**
+		 * 执行中不可切换流程
+		 */
+		executing_no_switch: () => LocalizedString
+		/**
+		 * 关闭标签
+		 */
+		close_tab: () => LocalizedString
+		/**
+		 * 关闭其他标签
+		 */
+		close_other_tabs: () => LocalizedString
+		/**
+		 * 关闭右侧标签
+		 */
+		close_tabs_to_right: () => LocalizedString
+		/**
+		 * 关闭所有标签
+		 */
+		close_all_tabs: () => LocalizedString
+		/**
+		 * 未保存的修改
+		 */
+		unsaved_tab_confirm_title: () => LocalizedString
+		/**
+		 * 流程「{name}」有未保存的修改。是否在关闭前保存？
+		 */
+		unsaved_tab_confirm_desc: (arg: { name: string }) => LocalizedString
+		/**
+		 * 保存并关闭
+		 */
+		save_and_close: () => LocalizedString
+		/**
+		 * 放弃修改并关闭
+		 */
+		discard_and_close: () => LocalizedString
 		/**
 		 * HTTP节点示例流程
 		 */
