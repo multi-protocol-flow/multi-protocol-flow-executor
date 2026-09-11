@@ -73,6 +73,10 @@ pub async fn execute(
     // Load config (get reports_dir)
     let app_config = config::AppConfig::load().map_err(CliError::Config)?;
 
+    // 子流程按 ID 解析使用配置中的流程目录（默认数据目录），
+    // 与 `mpe flow list` 等命令的可见范围保持一致
+    flow_engine::storage::set_flows_dir_override(Some(app_config.flows_dir.clone()));
+
     // Load flow
     let flow = flow_engine::storage::load_flow(flow_path)
         .map_err(|e| CliError::execution(format!("Failed to load flow: {}", e)))?;
@@ -211,7 +215,14 @@ pub async fn execute(
             flow_name, status_str, total_time_ms, result.executed_count
         );
 
-        let headers = ["Status", "Node Name", "Type", "Duration", "Port", "Error / Details"];
+        let headers = [
+            "Status",
+            "Node Name",
+            "Type",
+            "Duration",
+            "Port",
+            "Error / Details",
+        ];
         let rows: Vec<Vec<String>> = result
             .node_reports
             .iter()
@@ -263,7 +274,11 @@ pub async fn execute(
             message: result
                 .error
                 .unwrap_or_else(|| "Execution failed".to_string()),
-            data: if format == "table" { None } else { Some(output_data) },
+            data: if format == "table" {
+                None
+            } else {
+                Some(output_data)
+            },
         });
     }
 

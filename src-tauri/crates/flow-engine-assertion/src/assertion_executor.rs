@@ -548,6 +548,8 @@ mod tests {
     /// 创建测试上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.to_string(),
             execution_id: String::new(),
             current_node_uuid: None,
@@ -1042,6 +1044,8 @@ mod tests {
     ) {
         let (event_sender, event_receiver) = tokio::sync::mpsc::unbounded_channel();
         let context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.to_string(),
             execution_id: String::new(),
             current_node_uuid: None,

@@ -122,6 +122,14 @@ pub struct ExecutionContext {
     /// 使用 `skip_serializing_if` 在 None 时从序列化输出中省略。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub current_node_plugin_data: Option<Value>,
+
+    /// 子流程调用栈（用于循环调用检测与最大递归深度防护）
+    #[serde(skip)]
+    pub call_stack: Vec<String>,
+
+    /// 暂存的子流程执行报告（供 `FlowExecutor` 收集构建 `NodeExecutionReport`）
+    #[serde(skip)]
+    pub current_sub_flow_report: Option<Box<crate::report::FlowExecutionReport>>,
 }
 
 impl ExecutionContext {
@@ -155,6 +163,8 @@ impl ExecutionContext {
             cancel_receiver: None,
             providers: HashMap::new(),
             current_node_plugin_data: None,
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
         }
     }
 
@@ -479,7 +489,10 @@ impl ExecutionContext {
         if let Some(stream) = streams.get_mut(connection_id) {
             stream.push_message(message)
         } else {
-            Err(format!("WebSocket connection '{}' does not exist", connection_id))
+            Err(format!(
+                "WebSocket connection '{}' does not exist",
+                connection_id
+            ))
         }
     }
 
@@ -727,7 +740,10 @@ mod tests {
         // 同一 flow_uuid 的两次执行必须得到不同 execution_id（per-execution 隔离）
         assert_eq!(a.flow_uuid, b.flow_uuid);
         assert!(!a.execution_id.is_empty());
-        assert_ne!(a.execution_id, b.execution_id, "execution_id must be unique per execution");
+        assert_ne!(
+            a.execution_id, b.execution_id,
+            "execution_id must be unique per execution"
+        );
     }
 
     #[test]
@@ -736,7 +752,10 @@ mod tests {
         let json = serde_json::to_string(&ctx).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
 
         // #[serde(skip)]：execution_id 是运行时字段，不出现在序列化输出中
-        assert!(!json.contains("execution_id"), "execution_id must not serialize");
+        assert!(
+            !json.contains("execution_id"),
+            "execution_id must not serialize"
+        );
     }
 
     #[test]
@@ -1170,6 +1189,7 @@ mod tests {
         let event = ExecutionEvent::FlowCancelled {
             flow_uuid: "flow-001".to_string(),
             reason: "用户取消".to_string(),
+            parent_node_uuid: None,
         };
 
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));

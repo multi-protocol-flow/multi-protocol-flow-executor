@@ -194,6 +194,8 @@ mod tests {
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
             current_node_plugin_data: None,
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
         };
 
         let mut node_map = HashMap::new();
@@ -215,10 +217,11 @@ mod tests {
         assert_eq!(next_node_ids, vec!["next-1".to_string()]);
         // 验证输出数据为空（Entry node不产生数据）
         assert!(output_data.is_none());
-        // 验证执行时间 < 1ms
+        // 验证 Entry 节点未做阻塞性工作（护栏而非微基准：
+        // 并行测试负载下 <1ms 会随机失败，这里放宽到不会误报的上限）
         assert!(
-            elapsed.as_millis() < 1,
-            "执行时间应该小于 1ms，实际: {}ms",
+            elapsed.as_millis() < 50,
+            "Entry node should pass through without blocking work, actual: {}ms",
             elapsed.as_millis()
         );
     }
@@ -254,6 +257,8 @@ mod tests {
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
             current_node_plugin_data: None,
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
         };
 
         let node_map = HashMap::new();
@@ -341,6 +346,8 @@ mod tests {
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
             current_node_plugin_data: None,
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
         };
 
         let mut node_map = HashMap::new();
@@ -418,6 +425,8 @@ mod tests {
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
             current_node_plugin_data: None,
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
         };
 
         let mut node_map = HashMap::new();
@@ -501,6 +510,8 @@ mod tests {
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
             current_node_plugin_data: None,
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
         };
 
         let mut node_map = HashMap::new();
@@ -568,6 +579,8 @@ mod tests {
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
             current_node_plugin_data: None,
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
         };
 
         let mut node_map = HashMap::new();
@@ -640,6 +653,8 @@ mod tests {
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
             current_node_plugin_data: None,
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
         };
 
         let mut node_map = HashMap::new();

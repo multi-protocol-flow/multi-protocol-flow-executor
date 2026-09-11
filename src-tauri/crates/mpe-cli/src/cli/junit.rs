@@ -128,6 +128,7 @@ mod tests {
         duration_ms: u64,
     ) -> NodeExecutionReport {
         NodeExecutionReport {
+            sub_flow_report: None,
             node_uuid: format!("uuid-{}", name),
             node_type: node_type.to_string(),
             node_name: name.to_string(),

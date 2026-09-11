@@ -365,6 +365,8 @@ mod tests {
     /// 创建执行上下文（无 `sse_manager`）
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.to_string(),
             execution_id: String::new(),
             current_node_uuid: None,

@@ -568,7 +568,6 @@ pub struct ProtoFile {
     pub content: String,
 }
 
-
 // ============================================================================
 // Assertion 节点配置
 // ============================================================================
@@ -1337,6 +1336,55 @@ fn default_variable_extractor_type() -> String {
 pub struct EndConfig;
 
 // ============================================================================
+// SubFlow 节点配置
+// ============================================================================
+
+/// 子流程变量映射
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VariableMapping {
+    /// 源变量名或表达式
+    pub source: String,
+    /// 目标变量名
+    pub target: String,
+}
+
+/// 子流程节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SubFlowConfig {
+    /// Target flow UUID (GUI reference)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_flow_id: Option<String>,
+    /// Target flow file path (CLI/relative reference)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_flow_path: Option<String>,
+    /// Inherit all parent variables (default true)
+    #[serde(default = "default_true")]
+    pub inherit_all_variables: bool,
+    /// Custom input variable overrides (parent expr -> child var)
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub variable_mappings: Vec<VariableMapping>,
+    /// Export all child variables back to parent (default true)
+    #[serde(default = "default_true")]
+    pub export_all_variables: bool,
+    /// Explicit output variable names to export (used when `export_all_variables` is false)
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub output_mappings: Vec<VariableMapping>,
+}
+
+impl Default for SubFlowConfig {
+    fn default() -> Self {
+        Self {
+            target_flow_id: None,
+            target_flow_path: None,
+            inherit_all_variables: true,
+            variable_mappings: Vec::new(),
+            export_all_variables: true,
+            output_mappings: Vec::new(),
+        }
+    }
+}
+
+// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -1426,6 +1474,9 @@ pub enum NodeData {
     VariableExtractor(VariableExtractorConfig),
     /// 结束节点配置
     End(EndConfig),
+    /// 子流程节点配置
+    #[serde(rename = "sub_flow")]
+    SubFlow(SubFlowConfig),
     /// 插件节点配置（未知类型的兜底捕获）
     ///
     /// 当反序列化遇到不认识的 `type` 值时，整个 JSON 对象会被保留在此变体中。
@@ -1532,6 +1583,9 @@ impl<'de> serde::Deserialize<'de> for NodeData {
                     .map_err(serde::de::Error::custom)
             }
             "end" => Ok(NodeData::End(EndConfig)),
+            "sub_flow" => serde_json::from_value::<SubFlowConfig>(value.clone())
+                .map(NodeData::SubFlow)
+                .map_err(serde::de::Error::custom),
             // 未知 type → 兜底到 Plugin
             _ => Ok(NodeData::Plugin(value)),
         }
@@ -1570,6 +1624,7 @@ impl NodeData {
             NodeData::Proxy(_) => "proxy".to_string(),
             NodeData::VariableExtractor(_) => "variable_extractor".to_string(),
             NodeData::End(_) => "end".to_string(),
+            NodeData::SubFlow(_) => "sub_flow".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
                 .and_then(|v| v.as_str())
@@ -1707,6 +1762,11 @@ impl NodeData {
     /// 创建空的 End 节点配置
     pub fn end() -> Self {
         Self::End(EndConfig)
+    }
+
+    /// 创建 `SubFlow` 节点配置
+    pub fn sub_flow(config: SubFlowConfig) -> Self {
+        Self::SubFlow(config)
     }
 }
 
@@ -2706,5 +2766,4 @@ mod tests {
         assert_eq!(config.dataset_path, Some("/path/data.csv".to_string()));
         assert_eq!(config.dataset_encoding, None);
     }
-
 }

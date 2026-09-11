@@ -1,6 +1,7 @@
 // 流程验证器模块 - FlowValidator 实现
 
 use std::collections::HashSet;
+use std::path::PathBuf;
 
 use flow_engine_core::error::ErrorCode;
 use flow_engine_core::flow::Flow;
@@ -177,6 +178,44 @@ impl FlowValidator {
             }
         }
 
+        // 规则 11: 检查 SubFlow 节点直接与间接循环引用
+        let default_dirs = crate::storage::get_flows_dir()
+            .map(|d| vec![d])
+            .unwrap_or_default();
+        let cycle_errors = check_subflow_cycles(flow, &default_dirs);
+        for err in cycle_errors {
+            if !errors
+                .iter()
+                .any(|e| e.code == err.code && e.message == err.message)
+            {
+                errors.push(err);
+            }
+        }
+        // 兼容自引用直接判断（若子流程尚未保存到磁盘或无 search_dirs）
+        for node in &flow.nodes {
+            if node.node_type == node_types::SUB_FLOW || node.node_type == "sub_flow" {
+                if let NodeData::SubFlow(cfg) = &node.data {
+                    if let Some(target_id) = &cfg.target_flow_id {
+                        if !flow.uuid.is_empty()
+                            && target_id == &flow.uuid
+                            && !errors
+                                .iter()
+                                .any(|e| e.code == ErrorCode::E_VAL_CYCLE_DETECTED)
+                        {
+                            errors.push(ValidationEntry {
+                                code: ErrorCode::E_VAL_CYCLE_DETECTED,
+                                message: format!(
+                                    "Subflow node '{}' directly references its containing flow (cycle detected)",
+                                    node.name
+                                ),
+                                field: Some("target_flow_id".to_string()),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
         if errors.is_empty() {
             if warnings.is_empty() {
                 ValidationResult::success()
@@ -230,8 +269,37 @@ impl FlowValidator {
         flow: &Flow,
         registry: &flow_engine_core::registry::NodeRegistry,
     ) -> ValidationResult {
-        let mut result = self.validate(flow);
+        let default_dirs = crate::storage::get_flows_dir()
+            .map(|d| vec![d])
+            .unwrap_or_default();
+        self.validate_with_registry_and_dirs(flow, registry, &default_dirs)
+    }
 
+    /// 带自定义搜索目录的验证
+    pub fn validate_with_dirs(&self, flow: &Flow, search_dirs: &[PathBuf]) -> ValidationResult {
+        let mut result = self.validate(flow);
+        let cycle_errors = check_subflow_cycles(flow, search_dirs);
+        for err in cycle_errors {
+            if !result
+                .errors
+                .iter()
+                .any(|e| e.code == err.code && e.message == err.message)
+            {
+                result.errors.push(err);
+                result.valid = false;
+            }
+        }
+        result
+    }
+
+    /// 带自定义搜索目录与注册表的验证
+    pub fn validate_with_registry_and_dirs(
+        &self,
+        flow: &Flow,
+        registry: &flow_engine_core::registry::NodeRegistry,
+        search_dirs: &[PathBuf],
+    ) -> ValidationResult {
+        let mut result = self.validate_with_dirs(flow, search_dirs);
         for node in &flow.nodes {
             if let Some(plugin) = registry.get(&node.node_type) {
                 if let Ok(config) = serde_json::to_value(&node.data) {
@@ -294,7 +362,23 @@ impl FlowValidator {
         registry: &flow_engine_core::registry::NodeRegistry,
         manager: Option<&flow_engine_plugin::manager::PluginManager>,
     ) -> ValidationResult {
-        let mut result = self.validate_with_registry(flow, registry);
+        let default_dirs = crate::storage::get_flows_dir()
+            .map(|d| vec![d])
+            .unwrap_or_default();
+        self.validate_with_registry_async_and_dirs(flow, registry, manager, &default_dirs)
+            .await
+    }
+
+    /// 异步验证流程（支持自定义搜索目录）
+    #[cfg(feature = "plugin-manager")]
+    pub async fn validate_with_registry_async_and_dirs(
+        &self,
+        flow: &Flow,
+        registry: &flow_engine_core::registry::NodeRegistry,
+        manager: Option<&flow_engine_plugin::manager::PluginManager>,
+        search_dirs: &[PathBuf],
+    ) -> ValidationResult {
+        let mut result = self.validate_with_registry_and_dirs(flow, registry, search_dirs);
         let Some(manager) = manager else {
             return result;
         };
@@ -929,6 +1013,204 @@ impl FlowValidator {
             ValidationResult::success()
         } else {
             ValidationResult::errors(errors)
+        }
+    }
+
+    /// 静态成环检测：检查流程及递归子流程是否存在循环依赖
+    pub fn check_subflow_cycles(flow: &Flow, search_dirs: &[PathBuf]) -> Vec<ValidationEntry> {
+        check_subflow_cycles(flow, search_dirs)
+    }
+}
+
+#[derive(Clone, Debug)]
+struct SubflowDfsFrame {
+    name: String,
+    uuid: Option<String>,
+    canonical_path: Option<PathBuf>,
+}
+
+/// 检查流程中是否存在跨流程成环循环依赖（A -> B -> A 等）
+pub fn check_subflow_cycles(flow: &Flow, search_dirs: &[PathBuf]) -> Vec<ValidationEntry> {
+    let mut errors = Vec::new();
+    let mut visited_black = HashSet::new();
+
+    let root_frame = SubflowDfsFrame {
+        name: if !flow.name.trim().is_empty() {
+            flow.name.clone()
+        } else if !flow.uuid.trim().is_empty() {
+            flow.uuid.clone()
+        } else {
+            "Root Flow".to_string()
+        },
+        uuid: if !flow.uuid.trim().is_empty() {
+            Some(flow.uuid.clone())
+        } else {
+            None
+        },
+        canonical_path: None,
+    };
+
+    let mut active_chain: Vec<SubflowDfsFrame> = vec![root_frame];
+
+    dfs_subflow_cycles(
+        flow,
+        search_dirs,
+        &mut active_chain,
+        &mut visited_black,
+        &mut errors,
+    );
+
+    errors
+}
+
+fn dfs_subflow_cycles(
+    current_flow: &Flow,
+    search_dirs: &[PathBuf],
+    active_chain: &mut Vec<SubflowDfsFrame>,
+    visited_black: &mut HashSet<String>,
+    errors: &mut Vec<ValidationEntry>,
+) {
+    for node in &current_flow.nodes {
+        if node.node_type != node_types::SUB_FLOW && node.node_type != "sub_flow" {
+            continue;
+        }
+
+        let config = match &node.data {
+            NodeData::SubFlow(cfg) => Some(cfg.clone()),
+            NodeData::Plugin(val) => serde_json::from_value(val.clone()).ok(),
+            _ => None,
+        };
+
+        let Some(cfg) = config else {
+            continue;
+        };
+
+        // 1. 如果配置了 target_flow_id，先看是否直接命中调用链中某一帧的 UUID
+        if let Some(target_id) = cfg
+            .target_flow_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+        {
+            if let Some(pos) = active_chain
+                .iter()
+                .position(|f| f.uuid.as_deref() == Some(target_id))
+            {
+                let mut chain: Vec<String> =
+                    active_chain[pos..].iter().map(|f| f.name.clone()).collect();
+                chain.push(active_chain[pos].name.clone());
+                errors.push(ValidationEntry {
+                    code: ErrorCode::E_VAL_CYCLE_DETECTED,
+                    message: format!(
+                        "Circular subflow dependency detected: {}",
+                        chain.join(" -> ")
+                    ),
+                    field: Some("target_flow_id".to_string()),
+                });
+                continue;
+            }
+        }
+
+        // 2. 加载目标流程
+        let resolved = crate::sub_flow_executor::SubFlowNodeExecutor::resolve_flow_with_dirs(
+            &cfg,
+            search_dirs,
+        );
+        let Ok((child_flow, child_path)) = resolved else {
+            continue;
+        };
+
+        let child_canonical_path = child_path
+            .as_ref()
+            .and_then(|p| std::fs::canonicalize(p).ok().or_else(|| Some(p.clone())));
+        let child_uuid = if !child_flow.uuid.trim().is_empty() {
+            Some(child_flow.uuid.clone())
+        } else {
+            None
+        };
+
+        // 3. 检查解析出的流程是否已在当前调用链中 (Gray 状态)
+        let cycle_match_pos = active_chain.iter().position(|f| {
+            if let (Some(fuuid), Some(cuuid)) = (&f.uuid, &child_uuid) {
+                if !fuuid.is_empty() && fuuid == cuuid {
+                    return true;
+                }
+            }
+            if let (Some(fpath), Some(cpath)) = (&f.canonical_path, &child_canonical_path) {
+                if fpath == cpath {
+                    return true;
+                }
+            }
+            false
+        });
+
+        if let Some(pos) = cycle_match_pos {
+            let mut chain: Vec<String> =
+                active_chain[pos..].iter().map(|f| f.name.clone()).collect();
+            chain.push(active_chain[pos].name.clone());
+            errors.push(ValidationEntry {
+                code: ErrorCode::E_VAL_CYCLE_DETECTED,
+                message: format!(
+                    "Circular subflow dependency detected: {}",
+                    chain.join(" -> ")
+                ),
+                field: Some(if cfg.target_flow_id.is_some() {
+                    "target_flow_id".to_string()
+                } else {
+                    "target_flow_path".to_string()
+                }),
+            });
+            continue;
+        }
+
+        // 4. 检查是否已经完全探索过 (Black 状态)
+        let memo_key = child_uuid.clone().unwrap_or_else(|| {
+            child_canonical_path
+                .as_ref()
+                .map(|p| p.display().to_string())
+                .unwrap_or_default()
+        });
+        if !memo_key.is_empty() && visited_black.contains(&memo_key) {
+            continue;
+        }
+
+        // 5. 准备递归进入子流程
+        let mut child_search_dirs = search_dirs.to_vec();
+        if let Some(ref path) = child_path {
+            if let Some(parent) = path.parent() {
+                if !child_search_dirs.contains(&parent.to_path_buf()) {
+                    child_search_dirs.insert(0, parent.to_path_buf());
+                }
+            }
+        }
+
+        let child_frame = SubflowDfsFrame {
+            name: if !child_flow.name.trim().is_empty() {
+                child_flow.name.clone()
+            } else if !child_flow.uuid.trim().is_empty() {
+                child_flow.uuid.clone()
+            } else {
+                child_canonical_path
+                    .as_ref()
+                    .map(|p| p.display().to_string())
+                    .unwrap_or_else(|| "SubFlow".to_string())
+            },
+            uuid: child_uuid,
+            canonical_path: child_canonical_path,
+        };
+
+        active_chain.push(child_frame);
+        dfs_subflow_cycles(
+            &child_flow,
+            &child_search_dirs,
+            active_chain,
+            visited_black,
+            errors,
+        );
+        active_chain.pop();
+
+        if !memo_key.is_empty() {
+            visited_black.insert(memo_key);
         }
     }
 }

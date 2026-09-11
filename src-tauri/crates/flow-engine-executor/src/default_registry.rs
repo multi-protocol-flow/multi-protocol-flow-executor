@@ -18,6 +18,7 @@ use flow_engine_plugin::manager::PluginManager;
 /// | Logic | EntryPlugin | `entry` |
 /// | Logic | ConditionalPlugin | `conditional` |
 /// | HTTP | HttpPlugin | `http` |
+/// | Logic | SubFlowPlugin | `sub_flow` |
 /// | WebSocket | WsConnectPlugin | `ws_connect` |
 /// | WebSocket | WsSendCollectPlugin | `ws_send_collect` |
 /// | WebSocket | WsClosePlugin | `ws_close` |
@@ -50,6 +51,7 @@ pub fn default_registry() -> NodeRegistry {
     registry.register(std::sync::Arc::new(
         crate::plugin_conditional::ConditionalPlugin,
     ));
+    registry.register(std::sync::Arc::new(crate::plugin_sub_flow::SubFlowPlugin));
 
     // HTTP (flow-engine-http)
     #[cfg(feature = "protocol-http")]
@@ -78,7 +80,6 @@ pub fn default_registry() -> NodeRegistry {
     // UDP (flow-engine-tcp) — 批量注册 4 个插件
     #[cfg(feature = "protocol-tcp")]
     flow_engine_tcp::plugin::UdpPluginGroup::register_all(&mut registry);
-
 
     // SSE (flow-engine-sse) — 批量注册 3 个插件
     #[cfg(feature = "protocol-sse")]
@@ -163,7 +164,7 @@ mod tests {
     fn test_plugin_count_matches_features() {
         let registry = default_registry();
         let count = registry.len();
-        let mut expected = 5usize; // always-on: entry, conditional, end, variable_extractor, proxy
+        let mut expected = 6usize; // always-on: entry, conditional, sub_flow, end, variable_extractor, proxy
 
         #[cfg(feature = "protocol-http")]
         {
@@ -210,6 +211,7 @@ mod tests {
         // Always present
         assert!(type_ids.contains(&"entry"));
         assert!(type_ids.contains(&"conditional"));
+        assert!(type_ids.contains(&"sub_flow"));
         assert!(type_ids.contains(&"end"));
         assert!(type_ids.contains(&"variable_extractor"));
         assert!(type_ids.contains(&"proxy"));
@@ -241,7 +243,6 @@ mod tests {
         {
             assert!(!type_ids.contains(&"script"));
         }
-
     }
 
     #[test]

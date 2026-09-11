@@ -192,6 +192,7 @@ mod tests {
         output_size: Option<u64>,
     ) -> NodeExecutionReport {
         NodeExecutionReport {
+            sub_flow_report: None,
             node_uuid: node_id.to_string(),
             node_type: "test".to_string(),
             node_name: "Test Node".to_string(),

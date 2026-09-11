@@ -969,6 +969,8 @@ mod tests {
             cancel_receiver: None,
             providers: std::collections::HashMap::new(),
             current_node_plugin_data: None,
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
         }
     }
 

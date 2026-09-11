@@ -1092,6 +1092,8 @@ mod tests {
             }
         }
         ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.to_string(),
             execution_id: String::new(),
             current_node_uuid: None,
@@ -2008,6 +2010,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2076,6 +2080,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2135,6 +2141,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2195,6 +2203,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2254,6 +2264,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2326,6 +2338,8 @@ mod tests {
         );
         storage.set_variable("test_body".to_string(), json!("body_value"), String::new());
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2398,6 +2412,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2481,6 +2497,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2543,6 +2561,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2609,6 +2629,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2668,6 +2690,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2731,6 +2755,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2790,6 +2816,8 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
+            call_stack: Vec::new(),
+            current_sub_flow_report: None,
             flow_uuid: flow_id.clone(),
             execution_id: String::new(),
             current_node_uuid: Some(http_node.uuid.clone()),

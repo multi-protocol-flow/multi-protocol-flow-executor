@@ -91,6 +91,9 @@ pub struct NodeExecutionReport {
     /// 为空时从序列化输出中省略，旧 JSON 消费者不受影响
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plugin_data: Option<serde_json::Value>,
+    /// 子流程嵌套执行报告树
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sub_flow_report: Option<Box<FlowExecutionReport>>,
 }
 
 /// 报告元数据（用于历史列表）
@@ -694,6 +697,7 @@ mod tests {
     #[test]
     fn report_plugin_data_roundtrip() {
         let mut report = NodeExecutionReport {
+            sub_flow_report: None,
             node_uuid: "node-plugin-1".to_string(),
             node_type: "plugin:demo".to_string(),
             node_name: "Demo Plugin".to_string(),

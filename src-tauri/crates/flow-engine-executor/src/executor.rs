@@ -41,7 +41,6 @@ pub struct ExecutionResult {
     pub execution_id: String,
 }
 
-
 /// 根据节点类型构建 `input_data`
 ///
 /// `input_data` 代表节点消费的输入数据（配置信息）
@@ -121,6 +120,13 @@ pub struct FlowExecutor {
     hook_executor: Option<Arc<dyn flow_engine_core::traits::HookExecutor>>,
     /// 节点无配置超时时的兜底超时（默认 30s）
     fallback_timeout: std::time::Duration,
+    /// 子流程调用栈（用于循环调用检测与深度防护）
+    call_stack: Vec<String>,
+    /// 触发本流程的 SubFlow 调用节点 UUID（顶层流程为 None）
+    ///
+    /// 会被盖章到本流程发出的所有 [`flow_engine_core::execution_event::ExecutionEvent`] 上，
+    /// 前端据此把子流程内部的节点事件归属到 SubFlow 节点，而非顶层流程。
+    parent_node_uuid: Option<String>,
 }
 impl Default for FlowExecutor {
     fn default() -> Self {
@@ -139,6 +145,8 @@ impl FlowExecutor {
             registry: Arc::new(crate::default_registry::default_registry()),
             hook_executor: None,
             fallback_timeout: std::time::Duration::from_millis(FALLBACK_TIMEOUT_MS),
+            call_stack: Vec::new(),
+            parent_node_uuid: None,
         }
     }
 
@@ -156,6 +164,22 @@ impl FlowExecutor {
     /// Set flow file path (used for CLI relative path resolution)
     pub fn with_flow_file_path(mut self, path: PathBuf) -> Self {
         self.flow_file_path = Some(path);
+        self
+    }
+
+    /// 设置子流程调用栈
+    pub fn with_call_stack(mut self, call_stack: Vec<String>) -> Self {
+        self.call_stack = call_stack;
+        self
+    }
+
+    /// 设置触发本流程的 SubFlow 调用节点 UUID
+    ///
+    /// 子流程执行器构建子 `FlowExecutor` 时调用：子流程内部发出的所有执行事件
+    /// 都会携带该 UUID，前端据此把它们归属到 SubFlow 节点下，使子流程在
+    /// 顶层流程中表现为**单个节点**。
+    pub fn with_parent_node_uuid(mut self, parent_node_uuid: String) -> Self {
+        self.parent_node_uuid = Some(parent_node_uuid);
         self
     }
 
@@ -248,6 +272,11 @@ impl FlowExecutor {
             }
         }
 
+        let mut call_stack = self.call_stack.clone();
+        if !flow.uuid.is_empty() {
+            call_stack.push(flow.uuid.clone());
+        }
+
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
             execution_id: execution_id.clone(),
@@ -265,8 +294,12 @@ impl FlowExecutor {
             cancel_receiver: self.cancel_receiver.clone(),
             providers: std::collections::HashMap::new(),
             current_node_plugin_data: None,
+            call_stack,
+            current_sub_flow_report: None,
         }
         .with_default_providers();
+
+        context.set_provider("node_registry", self.registry.clone());
 
         // 集成流程验证器
         let validator = crate::validator::FlowValidator::new();
@@ -358,6 +391,7 @@ impl FlowExecutor {
                 flow_uuid: flow.uuid.clone(),
                 flow_name: flow.name.clone(),
                 total_nodes: flow.nodes.len() as u32,
+                parent_node_uuid: self.parent_node_uuid.clone(),
             })
             .await;
 
@@ -397,6 +431,7 @@ impl FlowExecutor {
                     node_uuid: node.uuid.clone(),
                     node_name: node.name.clone(),
                     node_type: node.node_type.clone(),
+                    parent_node_uuid: self.parent_node_uuid.clone(),
                 })
                 .await;
 
@@ -601,6 +636,7 @@ impl FlowExecutor {
                         // 消费插件节点的 report_data back-channel（SidecarPlugin 在
                         // execute 时写入；非插件节点保持 None）
                         plugin_data: context.current_node_plugin_data.take(),
+                        sub_flow_report: context.current_sub_flow_report.take(),
                     };
                     let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
@@ -610,6 +646,7 @@ impl FlowExecutor {
                     context
                         .emit_execution_event(ExecutionEvent::NodeCompleted {
                             report: Box::new(event_report),
+                            parent_node_uuid: self.parent_node_uuid.clone(),
                         })
                         .await;
 
@@ -743,6 +780,7 @@ impl FlowExecutor {
                             skip_reason: None,
                             wait_duration_ms: None,
                             plugin_data: context.current_node_plugin_data.take(),
+                            sub_flow_report: context.current_sub_flow_report.take(),
                         };
                         let event_report = node_report.clone();
                         node_reports.push(node_report.clone());
@@ -752,6 +790,7 @@ impl FlowExecutor {
                         context
                             .emit_execution_event(ExecutionEvent::NodeCompleted {
                                 report: Box::new(event_report),
+                                parent_node_uuid: self.parent_node_uuid.clone(),
                             })
                             .await;
 
@@ -809,7 +848,8 @@ impl FlowExecutor {
                         ));
 
                     let plugin_data = context.current_node_plugin_data.take();
-                    let node_output_data = error_detail.context.clone().or_else(|| plugin_data.clone());
+                    let node_output_data =
+                        error_detail.context.clone().or_else(|| plugin_data.clone());
                     let node_report = flow_engine_core::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
                         node_type: node.node_type.clone(),
@@ -828,6 +868,7 @@ impl FlowExecutor {
                         skip_reason: None,
                         wait_duration_ms: None,
                         plugin_data,
+                        sub_flow_report: context.current_sub_flow_report.take(),
                     };
                     let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
@@ -837,6 +878,7 @@ impl FlowExecutor {
                     context
                         .emit_execution_event(ExecutionEvent::NodeCompleted {
                             report: Box::new(event_report),
+                            parent_node_uuid: self.parent_node_uuid.clone(),
                         })
                         .await;
 
@@ -1106,12 +1148,14 @@ impl FlowExecutor {
                 .emit_execution_event(ExecutionEvent::FlowCancelled {
                     flow_uuid: flow.uuid.clone(),
                     reason: "User cancelled execution".to_string(),
+                    parent_node_uuid: self.parent_node_uuid.clone(),
                 })
                 .await;
         } else {
             context
                 .emit_execution_event(ExecutionEvent::FlowCompleted {
                     report: Box::new(flow_report.clone()),
+                    parent_node_uuid: self.parent_node_uuid.clone(),
                 })
                 .await;
         }
@@ -1262,8 +1306,8 @@ impl FlowExecutor {
         }
 
         // 2. Build execution context with unique flow id
-        let mut context = ExecutionContext::new("_single_node_".to_string(), now_ms)
-            .with_default_providers();
+        let mut context =
+            ExecutionContext::new("_single_node_".to_string(), now_ms).with_default_providers();
 
         // 3. Inject variables from JSON object
         if let Some(serde_json::Value::Object(obj)) = variables {
@@ -1301,6 +1345,7 @@ impl FlowExecutor {
                         skip_reason: None,
                         wait_duration_ms: None,
                         plugin_data: context.current_node_plugin_data.take(),
+                        sub_flow_report: None,
                     }],
                     flow_report: None,
                     execution_id: context.execution_id.clone(),
@@ -1352,6 +1397,7 @@ impl FlowExecutor {
                         skip_reason: None,
                         wait_duration_ms: None,
                         plugin_data: context.current_node_plugin_data.take(),
+                        sub_flow_report: None,
                     }],
                     flow_report: None,
                     execution_id: context.execution_id.clone(),
@@ -1382,6 +1428,7 @@ impl FlowExecutor {
                         skip_reason: None,
                         wait_duration_ms: None,
                         plugin_data: context.current_node_plugin_data.take(),
+                        sub_flow_report: None,
                     }],
                     flow_report: None,
                     execution_id: context.execution_id.clone(),
@@ -1420,6 +1467,7 @@ impl FlowExecutor {
                         skip_reason: None,
                         wait_duration_ms: None,
                         plugin_data: context.current_node_plugin_data.take(),
+                        sub_flow_report: None,
                     }],
                     flow_report: None,
                     execution_id: context.execution_id.clone(),
@@ -2132,31 +2180,18 @@ mod tests {
         assert_eq!(result.executed_count, 3);
     }
 
+    fn make_test_context(variables: VariableStorage) -> ExecutionContext {
+        let mut ctx = ExecutionContext::new("test-flow".to_string(), 0);
+        ctx.variables = variables;
+        ctx
+    }
+
     #[test]
     fn test_replace_variables_simple() {
-        // 测试简单变量替换
-        // 注意：变量是拍平存储的（顶级 key），不需要 initial_variables. 前缀
         let template = "Bearer {{api_key}}";
         let mut variables = VariableStorage::new();
         variables.set_variable("api_key".to_string(), json!("test-key"), String::new());
-        let context = ExecutionContext {
-            flow_uuid: "test-flow".to_string(),
-            execution_id: String::new(),
-            current_node_uuid: None,
-            variables,
-            node_reports: vec![],
-            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
-            log_sender: None,
-            flow_file_path: None,
-            ws_connection_urls: std::collections::HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            last_node_output: None,
-            debug_event_sender: None,
-            execution_event_sender: None,
-            cancel_receiver: None,
-            providers: std::collections::HashMap::new(),
-            current_node_plugin_data: None,
-        };
+        let context = make_test_context(variables);
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), "Bearer test-key");
@@ -2164,7 +2199,6 @@ mod tests {
 
     #[test]
     fn test_replace_variables_nested_path() {
-        // 测试嵌套路径
         let template = "Hello {{user.profile.name}}";
         let mut variables = VariableStorage::new();
         variables.set_variable(
@@ -2176,24 +2210,7 @@ mod tests {
             }),
             String::new(),
         );
-        let context = ExecutionContext {
-            flow_uuid: "test-flow".to_string(),
-            execution_id: String::new(),
-            current_node_uuid: None,
-            variables,
-            node_reports: vec![],
-            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
-            log_sender: None,
-            flow_file_path: None,
-            ws_connection_urls: std::collections::HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            last_node_output: None,
-            debug_event_sender: None,
-            execution_event_sender: None,
-            cancel_receiver: None,
-            providers: std::collections::HashMap::new(),
-            current_node_plugin_data: None,
-        };
+        let context = make_test_context(variables);
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), "Hello Alice");
@@ -2201,27 +2218,9 @@ mod tests {
 
     #[test]
     fn test_replace_variables_strict_mode() {
-        // 测试严格模式（变量不存在时报错）
         let template = "{{nonexistent.var}}";
         let variables = VariableStorage::new();
-        let context = ExecutionContext {
-            flow_uuid: "test-flow".to_string(),
-            execution_id: String::new(),
-            current_node_uuid: None,
-            variables,
-            node_reports: vec![],
-            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
-            log_sender: None,
-            flow_file_path: None,
-            ws_connection_urls: std::collections::HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            last_node_output: None,
-            debug_event_sender: None,
-            execution_event_sender: None,
-            cancel_receiver: None,
-            providers: std::collections::HashMap::new(),
-            current_node_plugin_data: None,
-        };
+        let context = make_test_context(variables);
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result
@@ -2232,28 +2231,10 @@ mod tests {
 
     #[test]
     fn test_replace_variables_index_not_supported() {
-        // 测试索引访问不支持
         let template = "{{items[0]}}";
         let mut variables = VariableStorage::new();
         variables.set_variable("items".to_string(), json!(["a", "b", "c"]), String::new());
-        let context = ExecutionContext {
-            flow_uuid: "test-flow".to_string(),
-            execution_id: String::new(),
-            current_node_uuid: None,
-            variables,
-            node_reports: vec![],
-            flow_trigger_time: flow_engine_core::utils::unix_timestamp_ms(),
-            log_sender: None,
-            flow_file_path: None,
-            ws_connection_urls: std::collections::HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            last_node_output: None,
-            debug_event_sender: None,
-            execution_event_sender: None,
-            cancel_receiver: None,
-            providers: std::collections::HashMap::new(),
-            current_node_plugin_data: None,
-        };
+        let context = make_test_context(variables);
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result
@@ -2285,25 +2266,7 @@ mod tests {
             let template = format!("{{{{items[{}]}}}}", index);
             let mut variables = VariableStorage::new();
             variables.set_variable("items".to_string(), json!(["a", "b", "c"]), String::new());
-            let context = ExecutionContext {
-                flow_uuid: "test-flow".to_string(),
-                execution_id: String::new(),
-                current_node_uuid: None,
-                variables,
-                node_reports: vec![],
-                flow_trigger_time: 0,
-                log_sender: None,
-                flow_file_path: None,
-
-                ws_connection_urls: std::collections::HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            last_node_output: None,
-            debug_event_sender: None,
-            execution_event_sender: None,
-            cancel_receiver: None,
-            providers: std::collections::HashMap::new(),
-            current_node_plugin_data: None,
-        };
+            let context = make_test_context(variables);
         let result = replace_variables(&template, &context);
         assert!(result.is_err());
         assert!(result.err().unwrap_or_else(|| panic!("expected Err, got Ok")).contains("Index access not supported"));
@@ -2317,25 +2280,7 @@ mod tests {
             let template = "{{test_var}}";
             let mut variables = VariableStorage::new();
             variables.set_variable("test_var".to_string(), json!(value.clone()), String::new());
-            let context = ExecutionContext {
-                flow_uuid: "test-flow".to_string(),
-                execution_id: String::new(),
-                current_node_uuid: None,
-                variables,
-                node_reports: vec![],
-                flow_trigger_time: 0,
-                log_sender: None,
-                flow_file_path: None,
-
-                ws_connection_urls: std::collections::HashMap::new(),
-                ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            last_node_output: None,
-                debug_event_sender: None,
-                execution_event_sender: None,
-                cancel_receiver: None,
-                providers: std::collections::HashMap::new(),
-                current_node_plugin_data: None,
-            };
+            let context = make_test_context(variables);
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
             assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), value);
@@ -2349,25 +2294,7 @@ mod tests {
             let template = "{{value}}";
             let mut variables = VariableStorage::new();
             variables.set_variable("value".to_string(), json!(num), String::new());
-            let context = ExecutionContext {
-                flow_uuid: "test-flow".to_string(),
-                execution_id: String::new(),
-                current_node_uuid: None,
-                variables,
-                node_reports: vec![],
-                flow_trigger_time: 0,
-                log_sender: None,
-                flow_file_path: None,
-
-                ws_connection_urls: std::collections::HashMap::new(),
-                ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            last_node_output: None,
-                debug_event_sender: None,
-                execution_event_sender: None,
-                cancel_receiver: None,
-                providers: std::collections::HashMap::new(),
-                current_node_plugin_data: None,
-            };
+            let context = make_test_context(variables);
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
             assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), num.to_string());
@@ -2381,25 +2308,7 @@ mod tests {
             let template = "{{flag}}";
             let mut variables = VariableStorage::new();
             variables.set_variable("flag".to_string(), json!(val), String::new());
-            let context = ExecutionContext {
-                flow_uuid: "test-flow".to_string(),
-                execution_id: String::new(),
-                current_node_uuid: None,
-                variables,
-                node_reports: vec![],
-                flow_trigger_time: 0,
-                log_sender: None,
-                flow_file_path: None,
-
-                ws_connection_urls: std::collections::HashMap::new(),
-                ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            last_node_output: None,
-                debug_event_sender: None,
-                execution_event_sender: None,
-                cancel_receiver: None,
-                providers: std::collections::HashMap::new(),
-                current_node_plugin_data: None,
-            };
+            let context = make_test_context(variables);
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
             assert_eq!(result.unwrap_or_else(|e| panic!("{e}")), val.to_string());

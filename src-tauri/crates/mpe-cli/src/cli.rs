@@ -6,9 +6,9 @@ pub mod config;
 pub mod debug_cmd;
 pub mod flow;
 pub mod flow_edit;
+pub mod gui_bridge;
 pub mod junit;
 pub mod output;
-pub mod gui_bridge;
 #[cfg(feature = "plugin-manager")]
 pub mod plugin;
 pub mod report;
@@ -544,14 +544,15 @@ async fn async_main() -> Result<(), CliError> {
         #[cfg(feature = "plugin-manager")]
         Commands::Plugin { command } => plugin::execute(command).await,
         Commands::Open { path } => {
-            let abs_path = std::fs::canonicalize(&path)
-                .unwrap_or_else(|_| {
-                    if path.is_absolute() {
-                        path.clone()
-                    } else {
-                        std::env::current_dir().map(|cwd| cwd.join(&path)).unwrap_or(path.clone())
-                    }
-                });
+            let abs_path = std::fs::canonicalize(&path).unwrap_or_else(|_| {
+                if path.is_absolute() {
+                    path.clone()
+                } else {
+                    std::env::current_dir()
+                        .map(|cwd| cwd.join(&path))
+                        .unwrap_or(path.clone())
+                }
+            });
             let path_str = abs_path.to_string_lossy().to_string();
 
             if let Some(gui) = gui_bridge::find_running_gui().await {
@@ -571,14 +572,15 @@ async fn async_main() -> Result<(), CliError> {
         }
         Commands::Ai { prompt, workspace } => {
             let target_ws = workspace.unwrap_or_else(|| PathBuf::from("."));
-            let abs_ws = std::fs::canonicalize(&target_ws)
-                .unwrap_or_else(|_| {
-                    if target_ws.is_absolute() {
-                        target_ws.clone()
-                    } else {
-                        std::env::current_dir().map(|cwd| cwd.join(&target_ws)).unwrap_or(target_ws.clone())
-                    }
-                });
+            let abs_ws = std::fs::canonicalize(&target_ws).unwrap_or_else(|_| {
+                if target_ws.is_absolute() {
+                    target_ws.clone()
+                } else {
+                    std::env::current_dir()
+                        .map(|cwd| cwd.join(&target_ws))
+                        .unwrap_or(target_ws.clone())
+                }
+            });
             let ws_str = abs_ws.to_string_lossy().to_string();
 
             if let Some(gui) = gui_bridge::find_running_gui().await {
@@ -649,11 +651,11 @@ async fn build_shared_registry() -> (
         let conn_config = app_config
             .map(|c| c.plugin_connection_config)
             .unwrap_or_default();
-        let mut manager = PluginManager::new(plugins_dir())
-            .with_connection_config(conn_config);
+        let mut manager = PluginManager::new(plugins_dir()).with_connection_config(conn_config);
         if let Some(timeout) = default_timeout {
             manager = manager.with_default_execution_timeout(timeout);
         }
+        manager.scan_and_describe().await;
         let manager = Arc::new(manager);
         let registry = Arc::new(default_registry_with_plugins(&manager));
         (registry, Some(manager))

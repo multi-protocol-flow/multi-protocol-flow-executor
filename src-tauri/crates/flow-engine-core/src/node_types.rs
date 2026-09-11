@@ -56,3 +56,5 @@ pub const GRAPHQL_SUBSCRIBE: &str = "graphql_subscribe";
 pub const GRAPHQL_INTROSPECT: &str = "graphql_introspect";
 /// GraphQL 断开连接节点
 pub const GRAPHQL_DISCONNECT: &str = "graphql_disconnect";
+/// 子流程节点
+pub const SUB_FLOW: &str = "sub_flow";

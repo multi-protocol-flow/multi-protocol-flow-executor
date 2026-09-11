@@ -34,19 +34,15 @@ pub use flow_engine::storage::{
 pub use tauri_commands::{
     ai_chat_stream,
     ai_fetch_models,
-    ai_test_connection,
+    ai_inspect_api_spec,
+    ai_read_code_slice,
     ai_scan_workspace,
     ai_search_code,
-    ai_read_code_slice,
-    ai_inspect_api_spec,
-    // 应用更新命令
-    get_app_version,
-    check_app_update,
-    download_update_package,
-    install_update_package,
+    ai_test_connection,
     cancel_dataset_execution,
     // 执行会话管理
     cancel_flow,
+    check_app_update,
     copy_flow_file,
     create_flow,
     create_folder,
@@ -55,17 +51,21 @@ pub use tauri_commands::{
     delete_flow_report,
     delete_folder,
     delete_stress_test_report,
+    download_update_package,
     end_debug,
     execute_flow,
     execute_flow_with_dataset,
     execute_single_node,
     force_end_debug,
     get_app_data_dir,
+    // 应用更新命令
+    get_app_version,
     get_debug_status,
     get_node_config_schema,
     // 节点注册表命令
     get_registered_node_types,
     get_stress_test_status,
+    install_update_package,
     list_dataset_reports,
     // 流程文件存储命令
     list_flow_files,
@@ -203,6 +203,42 @@ fn resolve_plugin_dir(app: &tauri::AppHandle) -> (PathBuf, crate::tauri_commands
         .unwrap_or_else(|| PathBuf::from("plugins"));
     (dir, PluginDirSource::Default)
 }
+/// 解析流程存储目录：设置文件 `flowsDir`，缺省为应用数据目录下 `flows`
+///
+/// 与前端 `flowStorage.getFlowsDir()` 使用完全相同的来源与回退：
+/// 设置项 → `get_app_data_dir()/flows`。注意应用数据目录由 Tauri 依据 identifier
+/// 生成（`.../com.multi-protocol-flow-executor`），与引擎内硬编码的默认数据目录
+/// 不同，因此这里必须显式回退到应用的 app_data_dir，否则会出现
+/// 「前端列表可见、执行期按 ID 找不到子流程」。
+pub(crate) fn resolve_flows_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
+    let configured = app.store("store/settings.bin").ok().and_then(|store| {
+        store
+            .get("flowsDir")
+            .and_then(|v| v.as_str().map(String::from))
+    });
+    resolve_flows_dir_from(configured.as_deref(), app.path().app_data_dir().ok())
+}
+
+/// 流程目录解析的纯逻辑：设置项（去空白后非空）优先，否则 `app_data_dir/flows`
+///
+/// 单独抽出以便单测覆盖"默认目录与引擎内置默认值不同"这一情形。
+pub(crate) fn resolve_flows_dir_from(
+    configured: Option<&str>,
+    app_data_dir: Option<PathBuf>,
+) -> Option<PathBuf> {
+    if let Some(dir) = configured.map(str::trim).filter(|s| !s.is_empty()) {
+        return Some(PathBuf::from(dir));
+    }
+    app_data_dir.map(|dir| dir.join("flows"))
+}
+
+/// 将当前生效的流程目录登记到引擎存储层
+///
+/// 在任何执行入口调用一次，使执行期的子流程解析与前端列表使用同一目录。
+pub(crate) fn sync_flows_dir_override(app: &tauri::AppHandle) {
+    flow_engine::storage::set_flows_dir_override(resolve_flows_dir(app));
+}
+
 /// 解析默认执行超时时间：`MPE_DEFAULT_TIMEOUT_MS` 环境变量优先，否则设置文件 `defaultExecutionTimeoutMs`，
 /// 缺省回退到 30 秒。
 pub(crate) fn resolve_default_execution_timeout(app: &tauri::AppHandle) -> std::time::Duration {
@@ -213,7 +249,11 @@ pub(crate) fn resolve_default_execution_timeout(app: &tauri::AppHandle) -> std::
         .or_else(|| {
             app.store("store/settings.bin")
                 .ok()
-                .and_then(|store| store.get("defaultExecutionTimeoutMs").and_then(|v| v.as_u64()))
+                .and_then(|store| {
+                    store
+                        .get("defaultExecutionTimeoutMs")
+                        .and_then(|v| v.as_u64())
+                })
                 .filter(|&ms| ms > 0)
         })
         .map(std::time::Duration::from_millis)
@@ -221,7 +261,9 @@ pub(crate) fn resolve_default_execution_timeout(app: &tauri::AppHandle) -> std::
 }
 
 /// 解析插件连接配置（并发上限、队列深度、默认超时时间）
-pub(crate) fn resolve_plugin_connection_config(app: &tauri::AppHandle) -> flow_engine::ConnectionConfig {
+pub(crate) fn resolve_plugin_connection_config(
+    app: &tauri::AppHandle,
+) -> flow_engine::ConnectionConfig {
     let mut config = flow_engine::ConnectionConfig::default();
 
     if let Some(concurrency) = std::env::var("MPE_PLUGIN_MAX_CONCURRENCY")
@@ -231,7 +273,11 @@ pub(crate) fn resolve_plugin_connection_config(app: &tauri::AppHandle) -> flow_e
         .or_else(|| {
             app.store("store/settings.bin")
                 .ok()
-                .and_then(|store| store.get("pluginMaxConcurrency").and_then(|v| v.as_u64().map(|n| n as usize)))
+                .and_then(|store| {
+                    store
+                        .get("pluginMaxConcurrency")
+                        .and_then(|v| v.as_u64().map(|n| n as usize))
+                })
                 .filter(|&c| c > 0)
         })
     {
@@ -245,7 +291,11 @@ pub(crate) fn resolve_plugin_connection_config(app: &tauri::AppHandle) -> flow_e
         .or_else(|| {
             app.store("store/settings.bin")
                 .ok()
-                .and_then(|store| store.get("pluginQueueCapacity").and_then(|v| v.as_u64().map(|n| n as usize)))
+                .and_then(|store| {
+                    store
+                        .get("pluginQueueCapacity")
+                        .and_then(|v| v.as_u64().map(|n| n as usize))
+                })
                 .filter(|&q| q > 0)
         })
     {
@@ -260,7 +310,6 @@ pub(crate) fn resolve_plugin_connection_config(app: &tauri::AppHandle) -> flow_e
     config
 }
 
-
 /// 构建共享节点注册表状态
 ///
 /// 插件扫描与 describe 在启动时同步阻塞执行（describe 会拉起插件进程，
@@ -270,7 +319,10 @@ pub(crate) fn resolve_plugin_connection_config(app: &tauri::AppHandle) -> flow_e
 /// `host_locale` 是宿主当前 UI 语言（BCP-47，如 `en-US`）：插件进程在
 /// spawn 时经 `MPE_LOCALE` 环境变量注入（匹配插件 `locales` 则用宿主语言，
 /// 否则用插件 `default_locale`），语言在插件进程生命周期内固定。
-fn build_node_registry_state(app: &tauri::AppHandle, host_locale: Option<String>) -> NodeRegistryState {
+fn build_node_registry_state(
+    app: &tauri::AppHandle,
+    host_locale: Option<String>,
+) -> NodeRegistryState {
     #[cfg(feature = "plugin-manager")]
     {
         let (plugins_dir, _source) = resolve_plugin_dir(app);
@@ -433,7 +485,6 @@ pub fn run() {
             );
             gui_ipc::start_gui_ipc_server(app.handle().clone());
 
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -546,4 +597,61 @@ pub fn run() {
                 gui_ipc::cleanup_gui_instance_file();
             }
         });
+}
+
+#[cfg(test)]
+mod flows_dir_tests {
+    use super::resolve_flows_dir_from;
+    use std::path::PathBuf;
+
+    /// 设置项非空时优先使用设置项（工作区目录）
+    #[test]
+    fn resolve_flows_dir_prefers_configured_dir() {
+        let resolved = resolve_flows_dir_from(
+            Some("/workspace/mpe-flows"),
+            Some(PathBuf::from(
+                "/home/u/.local/share/com.multi-protocol-flow-executor",
+            )),
+        );
+        assert_eq!(resolved, Some(PathBuf::from("/workspace/mpe-flows")));
+    }
+
+    /// 未配置时回退到「应用数据目录/flows」——它不是引擎内置的默认目录
+    /// （`<data_dir>/multi-protocol-flow-executor/flows`），二者不一致会导致
+    /// 前端列表可见而执行期按 ID 找不到子流程。
+    #[test]
+    fn resolve_flows_dir_falls_back_to_app_data_dir() {
+        let resolved = resolve_flows_dir_from(
+            None,
+            Some(PathBuf::from(
+                "/home/u/.local/share/com.multi-protocol-flow-executor",
+            )),
+        );
+        assert_eq!(
+            resolved,
+            Some(PathBuf::from(
+                "/home/u/.local/share/com.multi-protocol-flow-executor/flows"
+            ))
+        );
+    }
+
+    /// 空白设置值按未配置处理
+    #[test]
+    fn resolve_flows_dir_ignores_blank_setting() {
+        let app_data = Some(PathBuf::from("/data/app"));
+        assert_eq!(
+            resolve_flows_dir_from(Some("   "), app_data.clone()),
+            Some(PathBuf::from("/data/app/flows"))
+        );
+        assert_eq!(
+            resolve_flows_dir_from(Some(""), app_data),
+            Some(PathBuf::from("/data/app/flows"))
+        );
+    }
+
+    /// 应用数据目录不可用时返回 None（调用方清除覆盖，回退引擎默认目录）
+    #[test]
+    fn resolve_flows_dir_none_when_unresolvable() {
+        assert_eq!(resolve_flows_dir_from(None, None), None);
+    }
 }

@@ -9,6 +9,7 @@ use serde_json::json;
 fn test_node_report_fields_exist() {
     // 创建包含所有新字段的 NodeExecutionReport
     let report = NodeExecutionReport {
+        sub_flow_report: None,
         node_uuid: "test-uuid".to_string(),
         node_type: "http".to_string(),
         node_name: "测试节点".to_string(),
@@ -93,6 +94,7 @@ fn test_node_report_backward_compat() {
 fn test_node_report_skip_serializing_if() {
     // 创建所有新字段为 None 的报告
     let report = NodeExecutionReport {
+        sub_flow_report: None,
         node_uuid: "test-uuid".to_string(),
         node_type: "http".to_string(),
         node_name: "测试".to_string(),
@@ -126,6 +128,7 @@ fn test_node_report_skip_serializing_if() {
 #[test]
 fn test_node_report_skipped_with_reason() {
     let report = NodeExecutionReport {
+        sub_flow_report: None,
         node_uuid: "skipped-uuid".to_string(),
         node_type: "http".to_string(),
         node_name: "被跳过的节点".to_string(),

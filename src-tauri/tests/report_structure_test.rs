@@ -147,6 +147,7 @@ fn test_report_structure_skipped_node_info() {
 fn test_report_structure_node_execution_report() {
     // 创建包含所有字段的报告
     let report = NodeExecutionReport {
+        sub_flow_report: None,
         node_uuid: "node-uuid-full".to_string(),
         node_type: "http".to_string(),
         node_name: "full test node".to_string(),
@@ -238,6 +239,7 @@ fn test_report_structure_node_execution_report() {
 #[test]
 fn test_report_structure_node_execution_report_failed() {
     let report = NodeExecutionReport {
+        sub_flow_report: None,
         node_uuid: "failed-node".to_string(),
         node_type: "http".to_string(),
         node_name: "failed HTTP request".to_string(),
@@ -281,6 +283,7 @@ fn test_report_structure_node_execution_report_failed() {
 #[test]
 fn test_report_structure_node_execution_report_skipped() {
     let report = NodeExecutionReport {
+        sub_flow_report: None,
         node_uuid: "skipped-node".to_string(),
         node_type: "http".to_string(),
         node_name: "skipped node".to_string(),
@@ -323,6 +326,7 @@ fn test_report_structure_flow_execution_report() {
     // 创建节点报告
     let node_reports = vec![
         NodeExecutionReport {
+            sub_flow_report: None,
             node_uuid: "entry-1".to_string(),
             node_type: "entry".to_string(),
             node_name: "入口".to_string(),
@@ -345,6 +349,7 @@ fn test_report_structure_flow_execution_report() {
             plugin_data: None,
         },
         NodeExecutionReport {
+            sub_flow_report: None,
             node_uuid: "http-1".to_string(),
             node_type: "http".to_string(),
             node_name: "API request".to_string(),
@@ -770,6 +775,7 @@ fn test_report_structure_full_roundtrip() {
         status: ExecutionStatus::Success,
         node_reports: vec![
             NodeExecutionReport {
+                sub_flow_report: None,
                 node_uuid: "entry".to_string(),
                 node_type: "entry".to_string(),
                 node_name: "entry".to_string(),
@@ -788,6 +794,7 @@ fn test_report_structure_full_roundtrip() {
                 plugin_data: None,
             },
             NodeExecutionReport {
+                sub_flow_report: None,
                 node_uuid: "http-1".to_string(),
                 node_type: "http".to_string(),
                 node_name: "fetch users".to_string(),
@@ -810,6 +817,7 @@ fn test_report_structure_full_roundtrip() {
                 plugin_data: None,
             },
             NodeExecutionReport {
+                sub_flow_report: None,
                 node_uuid: "cond-1".to_string(),
                 node_type: "conditional".to_string(),
                 node_name: "check user count".to_string(),

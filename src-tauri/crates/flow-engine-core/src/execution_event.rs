@@ -12,6 +12,13 @@ use serde::{Deserialize, Serialize};
 /// - `NodeStarted`: 每个节点start execution时
 /// - `NodeCompleted`: 每个节点execution complete时（Success或Failed）
 /// - `FlowCompleted`: 流程执行结束时
+///
+/// # 子流程嵌套
+///
+/// 子流程在宿主中被视为**单个节点**：其内部节点的执行事件同样流经父流程的
+/// 事件通道，但会带上 `parentNodeUuid`（触发该子流程的 `SubFlow` 节点 UUID）。
+/// 前端据此把嵌套事件归属到 `SubFlow` 节点下，而不计入顶层流程的节点计数、
+/// 也不会用嵌套的 `FlowStarted`/`FlowCompleted` 重置顶层运行状态。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ExecutionEvent {
@@ -26,6 +33,13 @@ pub enum ExecutionEvent {
         #[serde(rename = "totalNodes")]
         /// 总节点数
         total_nodes: u32,
+        /// 所属 `SubFlow` 调用节点 UUID；顶层流程为 `None`
+        #[serde(
+            rename = "parentNodeUuid",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
+        parent_node_uuid: Option<String>,
     },
     /// 节点start execution
     NodeStarted {
@@ -38,16 +52,37 @@ pub enum ExecutionEvent {
         #[serde(rename = "nodeType")]
         /// 节点类型
         node_type: String,
+        /// 所属 `SubFlow` 调用节点 UUID；顶层流程为 `None`
+        #[serde(
+            rename = "parentNodeUuid",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
+        parent_node_uuid: Option<String>,
     },
     /// 节点execution complete
     NodeCompleted {
         /// 节点执行报告
         report: Box<NodeExecutionReport>,
+        /// 所属 `SubFlow` 调用节点 UUID；顶层流程为 `None`
+        #[serde(
+            rename = "parentNodeUuid",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
+        parent_node_uuid: Option<String>,
     },
     /// 流程execution complete
     FlowCompleted {
         /// 流程执行报告
         report: Box<FlowExecutionReport>,
+        /// 所属 `SubFlow` 调用节点 UUID；顶层流程为 `None`
+        #[serde(
+            rename = "parentNodeUuid",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
+        parent_node_uuid: Option<String>,
     },
     /// 流程被取消
     FlowCancelled {
@@ -56,6 +91,13 @@ pub enum ExecutionEvent {
         flow_uuid: String,
         /// 取消原因
         reason: String,
+        /// 所属 `SubFlow` 调用节点 UUID；顶层流程为 `None`
+        #[serde(
+            rename = "parentNodeUuid",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
+        parent_node_uuid: Option<String>,
     },
     /// 插件节点流式事件（`SidecarPlugin` 运行时推送）
     ///
@@ -94,6 +136,7 @@ mod tests {
             flow_uuid: "flow-001".to_string(),
             flow_name: "Test Flow".to_string(),
             total_nodes: 5,
+            parent_node_uuid: None,
         };
 
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -125,6 +168,7 @@ mod tests {
             node_uuid: "node-001".to_string(),
             node_name: "HTTP 请求".to_string(),
             node_type: "http".to_string(),
+            parent_node_uuid: None,
         };
 
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -157,6 +201,7 @@ mod tests {
     #[test]
     fn test_node_completed_camel_case() {
         let report = NodeExecutionReport {
+            sub_flow_report: None,
             node_uuid: "node-001".to_string(),
             node_type: "http".to_string(),
             node_name: "HTTP 请求".to_string(),
@@ -177,6 +222,7 @@ mod tests {
 
         let event = ExecutionEvent::NodeCompleted {
             report: Box::new(report),
+            parent_node_uuid: None,
         };
 
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -224,6 +270,7 @@ mod tests {
 
         let event = ExecutionEvent::FlowCompleted {
             report: Box::new(report),
+            parent_node_uuid: None,
         };
 
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -244,6 +291,7 @@ mod tests {
             flow_uuid: "flow-001".to_string(),
             flow_name: "测试".to_string(),
             total_nodes: 3,
+            parent_node_uuid: None,
         };
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         let deserialized: ExecutionEvent =
@@ -258,6 +306,7 @@ mod tests {
             node_uuid: "node-001".to_string(),
             node_name: "HTTP 请求".to_string(),
             node_type: "http".to_string(),
+            parent_node_uuid: None,
         };
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         let deserialized: ExecutionEvent =
@@ -269,6 +318,7 @@ mod tests {
 
         // NodeCompleted
         let report = NodeExecutionReport {
+            sub_flow_report: None,
             node_uuid: "node-001".to_string(),
             node_type: "entry".to_string(),
             node_name: "Entry".to_string(),
@@ -288,6 +338,7 @@ mod tests {
         };
         let event = ExecutionEvent::NodeCompleted {
             report: Box::new(report),
+            parent_node_uuid: None,
         };
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         let deserialized: ExecutionEvent =
@@ -324,6 +375,7 @@ mod tests {
         };
         let event = ExecutionEvent::FlowCompleted {
             report: Box::new(report),
+            parent_node_uuid: None,
         };
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         let deserialized: ExecutionEvent =
@@ -366,5 +418,46 @@ mod tests {
             json,
             serde_json::to_string(&deserialized).unwrap_or_else(|e| panic!("序列化Failed: {e}"))
         );
+    }
+
+    /// 嵌套事件（子流程内部节点）携带 `parentNodeUuid`；顶层事件省略该字段
+    #[test]
+    fn test_nested_event_parent_node_uuid() {
+        let nested = ExecutionEvent::NodeStarted {
+            node_uuid: "child-node-1".to_string(),
+            node_name: "子流程节点".to_string(),
+            node_type: "http".to_string(),
+            parent_node_uuid: Some("subflow-node-1".to_string()),
+        };
+        let json = serde_json::to_string(&nested).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(
+            json.contains("\"parentNodeUuid\""),
+            "字段名应为 parentNodeUuid，实际: {json}"
+        );
+        assert!(json.contains("\"subflow-node-1\""));
+
+        let root = ExecutionEvent::NodeStarted {
+            node_uuid: "node-1".to_string(),
+            node_name: "顶层节点".to_string(),
+            node_type: "http".to_string(),
+            parent_node_uuid: None,
+        };
+        let json = serde_json::to_string(&root).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(
+            !json.contains("parentNodeUuid"),
+            "顶层事件不应包含 parentNodeUuid，实际: {json}"
+        );
+
+        // 旧版本事件（无该字段）必须仍可反序列化为顶层事件
+        let legacy = r#"{"nodeStarted":{"nodeUuid":"n","nodeName":"N","nodeType":"http"}}"#;
+        let parsed: ExecutionEvent =
+            serde_json::from_str(legacy).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        assert!(matches!(
+            parsed,
+            ExecutionEvent::NodeStarted {
+                ref parent_node_uuid,
+                ..
+            } if parent_node_uuid.is_none()
+        ));
     }
 }

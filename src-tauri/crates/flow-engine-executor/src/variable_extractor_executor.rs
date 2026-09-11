@@ -49,10 +49,9 @@ impl NodeExecutor for VariableExtractorExecutor {
                 })?
         } else {
             // 从 last_node_output 读取
-            context
-                .last_node_output
-                .clone()
-                .ok_or_else(|| ErrorDetail::execution_error("no upstream node output to extract".to_string()))?
+            context.last_node_output.clone().ok_or_else(|| {
+                ErrorDetail::execution_error("no upstream node output to extract".to_string())
+            })?
         };
 
         // 3. 应用输出映射，将提取的值写入上下文变量
@@ -219,7 +218,8 @@ mod tests {
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"));
         assert!(
-            err.message.contains("execution result not found for node nonexistent"),
+            err.message
+                .contains("execution result not found for node nonexistent"),
             "Error信息应提示节点未找到: {}",
             err
         );
@@ -261,6 +261,7 @@ mod tests {
             skip_reason: None,
             wait_duration_ms: None,
             plugin_data: None,
+            sub_flow_report: None,
         });
 
         let executor = VariableExtractorExecutor;

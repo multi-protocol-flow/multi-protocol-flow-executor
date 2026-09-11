@@ -19,7 +19,9 @@ static FLOW_METADATA_CACHE: LazyLock<Mutex<HashMap<PathBuf, (u64, String, String
 
 /// 使得指定路径的流程元数据缓存失效
 pub(crate) fn invalidate_flow_metadata_cache(path: &Path) {
-    let mut cache = FLOW_METADATA_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    let mut cache = FLOW_METADATA_CACHE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     cache.remove(path);
 }
 
@@ -103,8 +105,41 @@ pub fn get_data_dir() -> Result<PathBuf, String> {
 }
 
 /// 获取 flows 子目录路径
+///
+/// 优先返回宿主登记的覆盖目录（见 [`set_flows_dir_override`]），未登记时回退到
+/// 默认数据目录 `<data_dir>/flows`。
 pub fn get_flows_dir() -> Result<PathBuf, String> {
+    if let Some(dir) = flows_dir_override() {
+        return Ok(dir);
+    }
     Ok(get_data_dir()?.join("flows"))
+}
+
+/// 运行时流程目录覆盖
+///
+/// GUI 的流程目录可由设置项 `flowsDir` 指向任意目录（工作区/项目仓库），
+/// 与默认的 `<data_dir>/flows` 不同。执行期按 ID 解析子流程、按相对路径读写流程
+/// 文件都必须落在这个"当前生效目录"上，否则会出现「流程列表可见、运行时找不到」。
+/// 宿主（Tauri 命令层 / CLI）在边界处登记该目录。
+static FLOWS_DIR_OVERRIDE: LazyLock<Mutex<Option<PathBuf>>> = LazyLock::new(|| Mutex::new(None));
+
+/// 覆盖值的测试串行锁：进程级状态，避免用例间互相踩踏
+#[cfg(test)]
+static FLOWS_DIR_OVERRIDE_TEST_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+/// 读取当前登记的流程目录覆盖值（`None` 表示使用默认目录）
+fn flows_dir_override() -> Option<PathBuf> {
+    FLOWS_DIR_OVERRIDE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
+}
+
+/// 登记当前生效的流程目录（`None` 恢复默认目录）
+///
+/// 由宿主在每次涉及流程存储/执行的入口处调用，保证执行期解析与前端列表使用同一目录。
+pub fn set_flows_dir_override(dir: Option<PathBuf>) {
+    *FLOWS_DIR_OVERRIDE.lock().unwrap_or_else(|e| e.into_inner()) = dir;
 }
 
 /// 确保 flows 子目录存在
@@ -197,6 +232,10 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
 pub fn load_flow(path: &str) -> Result<Flow, String> {
     let file_path = if std::path::Path::new(path).is_absolute() {
         // 规范化绝对路径以避免重复分隔符
+        PathBuf::from(path)
+            .canonicalize()
+            .unwrap_or_else(|_| PathBuf::from(path))
+    } else if std::path::Path::new(path).exists() {
         PathBuf::from(path)
             .canonicalize()
             .unwrap_or_else(|_| PathBuf::from(path))
@@ -328,8 +367,8 @@ pub fn save_flow_file_with_meta(
     let target_path = target_dir.join(&filename);
 
     // 原子写入：先写临时文件，再重命名
-    let mut temp_file =
-        NamedTempFile::new_in(flows_dir).map_err(|e| format!("failed to create temporary file: {}", e))?;
+    let mut temp_file = NamedTempFile::new_in(flows_dir)
+        .map_err(|e| format!("failed to create temporary file: {}", e))?;
 
     temp_file
         .write_all(json_string.as_bytes())
@@ -423,7 +462,9 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
 
         // 检查元数据缓存
         let cached = {
-            let cache = FLOW_METADATA_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+            let cache = FLOW_METADATA_CACHE
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
             cache.get(path).cloned()
         };
 
@@ -452,7 +493,9 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
                 let u = flow_meta.flow.uuid;
                 let n = flow_meta.flow.name;
                 if updated_at > 0 {
-                    let mut cache = FLOW_METADATA_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+                    let mut cache = FLOW_METADATA_CACHE
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
                     cache.insert(path.clone(), (updated_at, u.clone(), n.clone()));
                 }
                 (u, n)
@@ -581,7 +624,8 @@ pub fn get_reports_dir() -> Result<PathBuf, String> {
 /// - `reports_dir`: 存储目录路径（由调用方决定）
 pub fn save_report(report: &FlowExecutionReport, reports_dir: &Path) -> Result<(), String> {
     // 确保目录存在
-    fs::create_dir_all(reports_dir).map_err(|e| format!("failed to create report directory: {}", e))?;
+    fs::create_dir_all(reports_dir)
+        .map_err(|e| format!("failed to create report directory: {}", e))?;
 
     // 根据执行模式决定文件名前缀
     let filename = match report.execution_mode {
@@ -593,12 +637,12 @@ pub fn save_report(report: &FlowExecutionReport, reports_dir: &Path) -> Result<(
     let file_path = reports_dir.join(filename);
 
     // 序列化为 JSON
-    let json_string =
-        serde_json::to_string_pretty(report).map_err(|e| format!("failed to serialize report: {}", e))?;
+    let json_string = serde_json::to_string_pretty(report)
+        .map_err(|e| format!("failed to serialize report: {}", e))?;
 
     // 使用原子写入：先写临时文件，再重命名
-    let mut temp_file =
-        NamedTempFile::new_in(reports_dir).map_err(|e| format!("failed to create temporary file: {}", e))?;
+    let mut temp_file = NamedTempFile::new_in(reports_dir)
+        .map_err(|e| format!("failed to create temporary file: {}", e))?;
 
     // 写入内容到临时文件
     temp_file
@@ -647,8 +691,8 @@ pub fn load_report(uuid: &str, reports_dir: &Path) -> Result<FlowExecutionReport
         .map_err(|e| format!("failed to read report file {:?}: {}", file_path, e))?;
 
     // 反序列化
-    let report: FlowExecutionReport =
-        serde_json::from_str(&content).map_err(|e| format!("failed to parse report file: {}", e))?;
+    let report: FlowExecutionReport = serde_json::from_str(&content)
+        .map_err(|e| format!("failed to parse report file: {}", e))?;
 
     Ok(report)
 }
@@ -688,7 +732,8 @@ pub fn list_reports(reports_dir: &Path) -> Result<Vec<ReportMetadata>, String> {
     let mut reports = Vec::new();
 
     // 读取目录中的所有 JSON 文件
-    for entry in fs::read_dir(reports_dir).map_err(|e| format!("failed to read report directory: {}", e))?
+    for entry in
+        fs::read_dir(reports_dir).map_err(|e| format!("failed to read report directory: {}", e))?
     {
         let entry = entry.map_err(|e| format!("failed to read directory entry: {}", e))?;
         let path = entry.path();
@@ -819,7 +864,8 @@ pub fn save_stress_report(
     reports_dir: &Path,
 ) -> Result<PathBuf, String> {
     // 确保目录存在
-    fs::create_dir_all(reports_dir).map_err(|e| format!("failed to create stress test report directory: {}", e))?;
+    fs::create_dir_all(reports_dir)
+        .map_err(|e| format!("failed to create stress test report directory: {}", e))?;
 
     // 生成时间戳：YYYYMMDD_HHMMSS
     let timestamp = format_timestamp(report.start_time);
@@ -834,12 +880,12 @@ pub fn save_stress_report(
     let file_path = reports_dir.join(filename);
 
     // 序列化为 JSON
-    let json_string =
-        serde_json::to_string_pretty(report).map_err(|e| format!("failed to serialize stress test report: {}", e))?;
+    let json_string = serde_json::to_string_pretty(report)
+        .map_err(|e| format!("failed to serialize stress test report: {}", e))?;
 
     // 使用原子写入：先写临时文件，再重命名
-    let mut temp_file =
-        NamedTempFile::new_in(reports_dir).map_err(|e| format!("failed to create temporary file: {}", e))?;
+    let mut temp_file = NamedTempFile::new_in(reports_dir)
+        .map_err(|e| format!("failed to create temporary file: {}", e))?;
 
     // 写入内容到临时文件
     temp_file
@@ -868,20 +914,31 @@ pub fn load_stress_report(file_path: &Path) -> Result<StressTestReport, String> 
         .try_exists()
         .map_err(|e| format!("failed to check stress test report file: {}", e))?
     {
-        return Err(format!("stress test report file not found: {:?}", file_path));
+        return Err(format!(
+            "stress test report file not found: {:?}",
+            file_path
+        ));
     }
 
     // 读取文件内容
-    let mut file = File::open(file_path)
-        .map_err(|e| format!("failed to open stress test report file {:?}: {}", file_path, e))?;
+    let mut file = File::open(file_path).map_err(|e| {
+        format!(
+            "failed to open stress test report file {:?}: {}",
+            file_path, e
+        )
+    })?;
 
     let mut content = String::new();
-    file.read_to_string(&mut content)
-        .map_err(|e| format!("failed to read stress test report file {:?}: {}", file_path, e))?;
+    file.read_to_string(&mut content).map_err(|e| {
+        format!(
+            "failed to read stress test report file {:?}: {}",
+            file_path, e
+        )
+    })?;
 
     // 反序列化
-    let report: StressTestReport =
-        serde_json::from_str(&content).map_err(|e| format!("failed to parse stress test report file: {}", e))?;
+    let report: StressTestReport = serde_json::from_str(&content)
+        .map_err(|e| format!("failed to parse stress test report file: {}", e))?;
 
     Ok(report)
 }
@@ -899,10 +956,17 @@ pub fn delete_stress_report(file_path: &Path) -> Result<(), String> {
         .try_exists()
         .map_err(|e| format!("failed to check stress test report file: {}", e))?
     {
-        return Err(format!("stress test report file not found: {:?}", file_path));
+        return Err(format!(
+            "stress test report file not found: {:?}",
+            file_path
+        ));
     }
-    fs::remove_file(file_path)
-        .map_err(|e| format!("failed to delete stress test report file {:?}: {}", file_path, e))
+    fs::remove_file(file_path).map_err(|e| {
+        format!(
+            "failed to delete stress test report file {:?}: {}",
+            file_path, e
+        )
+    })
 }
 
 /// 列出压测报告摘要
@@ -925,7 +989,8 @@ pub fn list_stress_reports(reports_dir: &Path) -> Result<Vec<StressTestReportSum
     let mut reports = Vec::new();
 
     // 读取目录中的所有 performance_*.json 文件
-    for entry in fs::read_dir(reports_dir).map_err(|e| format!("failed to read stress test report directory: {}", e))?
+    for entry in fs::read_dir(reports_dir)
+        .map_err(|e| format!("failed to read stress test report directory: {}", e))?
     {
         let entry = entry.map_err(|e| format!("failed to read directory entry: {}", e))?;
         let path = entry.path();
@@ -1200,7 +1265,8 @@ pub fn rename_folder(
     }
 
     // 重命名
-    fs::rename(&full_path, &new_full_path).map_err(|e| format!("failed to rename folder: {}", e))?;
+    fs::rename(&full_path, &new_full_path)
+        .map_err(|e| format!("failed to rename folder: {}", e))?;
 
     // 计算新的相对路径
     let new_rel = parent
@@ -1288,7 +1354,8 @@ pub fn move_flow_to_folder(
     }
 
     // 移动文件
-    fs::rename(&source_path, &target_path).map_err(|e| format!("failed to move flow file: {}", e))?;
+    fs::rename(&source_path, &target_path)
+        .map_err(|e| format!("failed to move flow file: {}", e))?;
 
     Ok(())
 }
@@ -1314,7 +1381,10 @@ pub fn move_folder(
         .try_exists()
         .map_err(|e| format!("failed to check source directory: {}", e))?
     {
-        return Err(format!("source folder does not exist: {}", source_folder_path));
+        return Err(format!(
+            "source folder does not exist: {}",
+            source_folder_path
+        ));
     }
 
     // 安全检查：规范化路径，防止路径遍历
@@ -1360,7 +1430,10 @@ pub fn move_folder(
             .try_exists()
             .map_err(|e| format!("failed to check target directory: {}", e))?
         {
-            return Err(format!("target folder does not exist: {}", target_folder_path));
+            return Err(format!(
+                "target folder does not exist: {}",
+                target_folder_path
+            ));
         }
         target_parent
     };
@@ -1392,6 +1465,29 @@ pub fn move_folder(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 流程目录覆盖：登记后 `get_flows_dir()` 返回覆盖值，复位后回到默认目录
+    ///
+    /// 覆盖值是进程级状态，用例内单独串行访问该状态（见 `FLOWS_DIR_OVERRIDE_TEST_LOCK`）。
+    #[test]
+    fn test_flows_dir_override_switches_effective_dir() {
+        let _guard = FLOWS_DIR_OVERRIDE_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let default_dir = get_data_dir().map(|d| d.join("flows"));
+        let workspace = PathBuf::from("/tmp/mpe-flows-dir-override-test");
+
+        set_flows_dir_override(Some(workspace.clone()));
+        assert_eq!(get_flows_dir().unwrap_or_else(|e| panic!("{e}")), workspace);
+
+        set_flows_dir_override(None);
+        if let Ok(default_dir) = default_dir {
+            assert_eq!(
+                get_flows_dir().unwrap_or_else(|e| panic!("{e}")),
+                default_dir
+            );
+        }
+    }
 
     /// 测试 `get_data_dir()` 返回正确的路径格式
     ///

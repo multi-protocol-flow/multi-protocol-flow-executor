@@ -29,6 +29,8 @@ pub mod plugin_end;
 pub mod plugin_entry;
 /// 代理设置节点插件
 pub mod plugin_proxy;
+/// 子流程节点插件
+pub mod plugin_sub_flow;
 /// 变量提取节点插件
 pub mod plugin_variable_extractor;
 /// 协议 provider 构造（DRY: 共享给 executor 和 debug executor）
@@ -37,6 +39,8 @@ pub mod provider_builder;
 pub mod storage;
 /// 压力测试模块，支持并发执行与性能指标采集
 pub mod stress_test;
+/// 子流程节点执行器
+pub mod sub_flow_executor;
 /// 流程验证器，检查流程结构与配置的完整性
 pub mod validator;
 /// 变量提取节点执行器
