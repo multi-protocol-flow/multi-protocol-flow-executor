@@ -105,7 +105,7 @@ export {
 export type { Connection } from './connection';
 
 // 流程类型
-export type { Flow, EnvironmentSet } from './flow';
+export type { Flow, EnvironmentSet, FlowTab, FlowTabSession } from './flow';
 export { getActiveVariables } from './flow';
 
 // 错误类型

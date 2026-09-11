@@ -42,6 +42,30 @@ export interface Flow {
 }
 
 /**
+ * 流程标签项
+ */
+export interface FlowTab {
+  /** 流程唯一标识符 */
+  uuid: string;
+  /** 流程名称 */
+  name: string;
+  /** 是否有未保存的修改 */
+  isDirty?: boolean;
+}
+
+/**
+ * 流程标签会话状态缓存（切换标签时保持每个流程独立的撤销重做栈与选中状态）
+ */
+export interface FlowTabSession {
+  flow: Flow;
+  selectedNodeId: string | null;
+  isDirty: boolean;
+  past: Flow[];
+  future: Flow[];
+  historyVersion: number;
+}
+
+/**
  * 获取当前激活的变量集（合并后）
  *
  * 以 initial_variables 为基础，如果设置了 active_environment 且存在匹配的环境，
