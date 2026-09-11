@@ -10214,6 +10214,120 @@ type RootTranslation = {
 		 * 全​局​搜​索
 		 */
 		empty_global_search: string
+		empty_tips: {
+			/**
+			 * 小​技​巧
+			 */
+			tip_label: string
+			/**
+			 * 点​击​换​一​个​提​示
+			 */
+			next_tip: string
+			/**
+			 * 右​键
+			 */
+			right_click_key: string
+			/**
+			 * 画​布​空​白​处​打​开​节​点​选​择​器
+			 */
+			right_click_desc: string
+			/**
+			 * 唤​起​ ​A​I​ ​快​捷​指​令​弹​窗
+			 */
+			spotlight_desc: string
+			/**
+			 * 展​开​或​收​起​ ​A​I​ ​C​o​p​i​l​o​t​ ​侧​边​栏
+			 */
+			copilot_desc: string
+			/**
+			 * 全​流​程​搜​索​节​点​与​数​据
+			 */
+			search_desc: string
+			/**
+			 * 快​速​执​行​当​前​流​程
+			 */
+			execute_desc: string
+			/**
+			 * 查​看​全​部​键​盘​快​捷​键
+			 */
+			shortcuts_desc: string
+			/**
+			 * 快​速​复​制​选​中​的​节​点
+			 */
+			duplicate_desc: string
+			/**
+			 * 自​适​应​居​中​显​示​整​个​流​程
+			 */
+			fit_view_desc: string
+			/**
+			 * S​p​a​c​e​ ​+​ ​拖​拽
+			 */
+			pan_key: string
+			/**
+			 * 平​移​浏​览​画​布
+			 */
+			pan_desc: string
+			/**
+			 * C​t​r​l​ ​+​ ​滚​轮
+			 */
+			zoom_key: string
+			/**
+			 * 快​速​缩​放​画​布​视​口
+			 */
+			zoom_desc: string
+			/**
+			 * 重​置​画​布​缩​放​至​ ​1​0​0​%
+			 */
+			reset_zoom_desc: string
+			/**
+			 * 拖​拽​ ​.​m​p​f​ ​文​件
+			 */
+			import_file_key: string
+			/**
+			 * 拖​入​窗​口​任​意​位​置​即​可​导​入​流​程
+			 */
+			import_file_desc: string
+			/**
+			 * S​h​i​f​t​ ​+​ ​拖​拽
+			 */
+			box_select_key: string
+			/**
+			 * 框​选​多​个​节​点​进​行​批​量​操​作
+			 */
+			box_select_desc: string
+			/**
+			 * 拖​拽​端​口​连​线
+			 */
+			drag_port_key: string
+			/**
+			 * 拖​至​空​白​画​布​快​速​创​建​下​游​节​点
+			 */
+			drag_port_desc: string
+			/**
+			 * 展​开​或​折​叠​左​侧​面​板
+			 */
+			toggle_sidebar_desc: string
+			/**
+			 * 撤​销​与​重​做​画​布​操​作
+			 */
+			undo_redo_desc: string
+			/**
+			 * 快​速​删​除​选​中​的​节​点​或​连​线
+			 */
+			delete_desc: string
+			/**
+			 * 保​存​当​前​编​辑​的​流​程
+			 */
+			save_desc: string
+			/**
+			 * 全​选​画​布​中​的​所​有​节​点
+			 */
+			select_all_desc: string
+			/**
+			 * 快​速​切​换​节​点​配​置​面​板
+			 */
+			toggle_config_desc: string
+		}
 		/**
 		 * 从​模​板​创​建
 		 */
@@ -23707,6 +23821,120 @@ export type TranslationFunctions = {
 		 * 全局搜索
 		 */
 		empty_global_search: () => LocalizedString
+		empty_tips: {
+			/**
+			 * 小技巧
+			 */
+			tip_label: () => LocalizedString
+			/**
+			 * 点击换一个提示
+			 */
+			next_tip: () => LocalizedString
+			/**
+			 * 右键
+			 */
+			right_click_key: () => LocalizedString
+			/**
+			 * 画布空白处打开节点选择器
+			 */
+			right_click_desc: () => LocalizedString
+			/**
+			 * 唤起 AI 快捷指令弹窗
+			 */
+			spotlight_desc: () => LocalizedString
+			/**
+			 * 展开或收起 AI Copilot 侧边栏
+			 */
+			copilot_desc: () => LocalizedString
+			/**
+			 * 全流程搜索节点与数据
+			 */
+			search_desc: () => LocalizedString
+			/**
+			 * 快速执行当前流程
+			 */
+			execute_desc: () => LocalizedString
+			/**
+			 * 查看全部键盘快捷键
+			 */
+			shortcuts_desc: () => LocalizedString
+			/**
+			 * 快速复制选中的节点
+			 */
+			duplicate_desc: () => LocalizedString
+			/**
+			 * 自适应居中显示整个流程
+			 */
+			fit_view_desc: () => LocalizedString
+			/**
+			 * Space + 拖拽
+			 */
+			pan_key: () => LocalizedString
+			/**
+			 * 平移浏览画布
+			 */
+			pan_desc: () => LocalizedString
+			/**
+			 * Ctrl + 滚轮
+			 */
+			zoom_key: () => LocalizedString
+			/**
+			 * 快速缩放画布视口
+			 */
+			zoom_desc: () => LocalizedString
+			/**
+			 * 重置画布缩放至 100%
+			 */
+			reset_zoom_desc: () => LocalizedString
+			/**
+			 * 拖拽 .mpf 文件
+			 */
+			import_file_key: () => LocalizedString
+			/**
+			 * 拖入窗口任意位置即可导入流程
+			 */
+			import_file_desc: () => LocalizedString
+			/**
+			 * Shift + 拖拽
+			 */
+			box_select_key: () => LocalizedString
+			/**
+			 * 框选多个节点进行批量操作
+			 */
+			box_select_desc: () => LocalizedString
+			/**
+			 * 拖拽端口连线
+			 */
+			drag_port_key: () => LocalizedString
+			/**
+			 * 拖至空白画布快速创建下游节点
+			 */
+			drag_port_desc: () => LocalizedString
+			/**
+			 * 展开或折叠左侧面板
+			 */
+			toggle_sidebar_desc: () => LocalizedString
+			/**
+			 * 撤销与重做画布操作
+			 */
+			undo_redo_desc: () => LocalizedString
+			/**
+			 * 快速删除选中的节点或连线
+			 */
+			delete_desc: () => LocalizedString
+			/**
+			 * 保存当前编辑的流程
+			 */
+			save_desc: () => LocalizedString
+			/**
+			 * 全选画布中的所有节点
+			 */
+			select_all_desc: () => LocalizedString
+			/**
+			 * 快速切换节点配置面板
+			 */
+			toggle_config_desc: () => LocalizedString
+		}
 		/**
 		 * 从模板创建
 		 */
