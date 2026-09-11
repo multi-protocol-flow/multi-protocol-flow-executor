@@ -61,7 +61,7 @@ components/
 - **Config 模式**: `react-hook-form` + `zodResolver(schema)` + `onSave` 回调。大协议 schema 放在自身文件头部。
 - **节点注册**: 新增节点类型必须同步注册 3 处 — `NodeRegistry.ts`(元数据)、`configPanelRegistry.ts`(面板映射)、`viewerRegistry.tsx`(查看器映射)。
 - **断点**: `useDebugStore` 持有 `breakpoints: Set<string>`。`BreakpointMarker` 只负责渲染和点击事件。
-- **i18n**: 全部用 `getLL()` 懒加载。新增翻译 key 同步更新 `zh-CN`/`en-US`/`i18n-types.ts`。
+- **i18n**: 全部用 `getLL()` 懒加载。新增翻译 key 同步更新 `zh-CN`/`en-US`/`i18n-types.ts`。翻译函数一律直接调用 `ll.<模块>.<键>()`，禁止 `?.()` / `.call()` / `.apply()` / `.bind()`（打包后整片文字空白，仅生产包复现，详见 `src/i18n/AGENTS.md`）
 
 ## 反模式
 
@@ -69,3 +69,4 @@ components/
 - 组件内直接调 Tauri IPC → 必须走 `@/services/tauri/` 服务层
 - `useFlowStore` 取 UI 状态 → UI 状态放 `useUIStore`，分开订阅减少重渲染
 - 直接修改 `node.data` → 必须通过 `useFlowStore.updateNodeData()`
+- 对翻译函数用 `?.()` / `.call()` → esbuild 降级后命中 i18n Proxy 的 `call` 陷阱，打包产物文字整片空白（dev 与单测均不复现）

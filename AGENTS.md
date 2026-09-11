@@ -98,7 +98,7 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 
 ### 前端
 
-- **i18n**: 用 `getLL()`，不用 `useI18nContext()`。新增 key 同步修改 zh-CN + en-US + i18n-types.ts
+- **i18n**: 用 `getLL()`，不用 `useI18nContext()`。新增 key 同步修改 zh-CN + en-US + i18n-types.ts。调用翻译一律 `ll.模块.键()`，禁止 `?.()` / `.call()` / `.apply()` / `.bind()`（打包后整片文字空白，仅生产包复现，详见 `src/i18n/AGENTS.md`）
 - **Store**: Zustand 5，每个 store 一个文件，必须实现 `reset()`。`useXxxStore.getState().reset()` 用于测试隔离
 - **注册表**: 三重注册 — `NodeRegistry.ts`(元数据) + `configPanelRegistry.ts`(配置面板) + `viewerRegistry.tsx`(查看器)
 - **TypeScript**: `strict: true`, `noUnusedLocals`, `noUnusedParameters`。禁止 `as any` / `@ts-ignore` / `@ts-expect-error`
@@ -123,6 +123,8 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 - 类型断言 (`as any`) → 破坏 TypeScript 严格性
 - `unwrap()` 在生产 Rust 代码中 → 应传播错误
 - 新增翻译 key 不更新 `i18n-types.ts` → 编译错误
+- 对 i18n 翻译函数使用 `?.()` / `.call()` / `.apply()` / `.bind()` → esbuild 降级为 `.call()` 后命中 i18n Proxy 陷阱，打包产物界面文字整片空白（dev 不复现，排查步骤见 `src/i18n/AGENTS.md`）
+- `build.target` 降到含 Chrome ≤ 90 的目标（如 Vite 默认 `'modules'`）→ 同上层：esbuild 会把 `?.()` 重写为 `.call()`，必须保持 `es2022`
 
 ### 工作流纪律
 
