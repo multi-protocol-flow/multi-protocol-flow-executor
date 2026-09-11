@@ -1,11 +1,9 @@
 #!/bin/bash
-# update-manifest.sh — Idempotent manifest generation for MPE releases
+# update-manifest.sh — Incremental manifest generation for MPE releases
 #
 # Called by each platform workflow after uploading artifacts.
-# Checks if all 3 platform artifacts exist in R2, then generates
-# manifest.json (Tauri auto-updater) + updates changelog.json.
-#
-# Idempotent: if manifest.json already exists for this version, skips.
+# Downloads existing manifest.json and changelog.json, merges the current
+# platform's artifacts and signatures, and re-uploads to R2.
 #
 # Usage: update-manifest.sh <platform> <version> <r2_endpoint> <r2_bucket>
 #
@@ -24,99 +22,124 @@ DOWNLOAD_BASE="https://download.mpe.run"
 
 echo "update-manifest: platform=${PLATFORM} version=${VERSION}"
 
-# ── 1. Check if manifest already exists (idempotent) ────────────────────
-if aws s3 ls "s3://${R2_BUCKET}/${PREFIX}/manifest.json" \
-  --endpoint-url "${R2_ENDPOINT}" &>/dev/null; then
-  echo "Manifest already exists at ${PREFIX}/manifest.json, skipping"
-  exit 0
-fi
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
 
-# ── 2. Check if all 3 platform artifacts exist ──────────────────────────
-WIN_EXIST=$(aws s3 ls "s3://${R2_BUCKET}/${PREFIX}/mpe-${VERSION}-x64-setup.exe" \
-  --endpoint-url "${R2_ENDPOINT}" 2>/dev/null)
-MAC_EXIST=$(aws s3 ls "s3://${R2_BUCKET}/${PREFIX}/mpe-${VERSION}-universal.dmg" \
-  --endpoint-url "${R2_ENDPOINT}" 2>/dev/null)
-LINUX_EXIST=$(aws s3 ls "s3://${R2_BUCKET}/${PREFIX}/mpe-v${VERSION}-linux-x86_64.tar.gz" \
-  --endpoint-url "${R2_ENDPOINT}" 2>/dev/null)
+# ── 1. Fetch existing manifest.json or initialize ─────────────────────
+aws s3 cp "s3://${R2_BUCKET}/manifest.json" "$TMP_DIR/manifest.json" \
+  --endpoint-url "${R2_ENDPOINT}" --quiet 2>/dev/null || \
+  echo '{"version":"","notes":"","pub_date":"","platforms":{}}' > "$TMP_DIR/manifest.json"
 
-echo "Artifacts check: windows=$([ -n "$WIN_EXIST" ] && echo OK || echo MISSING) macos=$([ -n "$MAC_EXIST" ] && echo OK || echo MISSING) linux=$([ -n "$LINUX_EXIST" ] && echo OK || echo MISSING)"
+# ── 2. Update platform entry in manifest.json ─────────────────────────
+python3 - << 'PYEOF' "$TMP_DIR/manifest.json" "$PLATFORM" "$VERSION" "$R2_ENDPOINT" "$R2_BUCKET" "$PREFIX" "$DOWNLOAD_BASE"
+import json, sys, subprocess
 
-if [ -z "$WIN_EXIST" ] || [ -z "$MAC_EXIST" ] || [ -z "$LINUX_EXIST" ]; then
-  echo "Not all artifacts uploaded yet, skipping"
-  exit 0
-fi
+manifest_path, platform, version, endpoint, bucket, prefix, download_base = sys.argv[1:8]
 
-echo "All 3 artifacts present, generating manifest..."
+with open(manifest_path, 'r', encoding='utf-8') as f:
+    try:
+        manifest = json.load(f)
+    except Exception:
+        manifest = {}
 
-# ── 3. Download signature files ─────────────────────────────────────────
-WIN_SIG=$(aws s3 cp "s3://${R2_BUCKET}/${PREFIX}/mpe-${VERSION}-x64-setup.exe.sig" - \
-  --endpoint-url "${R2_ENDPOINT}" 2>/dev/null || echo "")
-MAC_SIG=$(aws s3 cp "s3://${R2_BUCKET}/${PREFIX}/mpe-${VERSION}-universal.dmg.sig" - \
-  --endpoint-url "${R2_ENDPOINT}" 2>/dev/null || echo "")
+manifest["version"] = version
+manifest["notes"] = f"Release v{version}"
+manifest.setdefault("platforms", {})
 
-# ── 5. Generate manifest.json (Tauri auto-updater) ──────────────────────
-cat > /tmp/manifest.json << EOF
-{
-  "version": "${VERSION}",
-  "notes": "Release v${VERSION}",
-  "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "platforms": {
-    "windows-x86_64": {
-      "signature": "${WIN_SIG}",
-      "url": "${DOWNLOAD_BASE}/${PREFIX}/mpe-${VERSION}-x64-setup.exe"
-    },
-    "darwin-aarch64": {
-      "signature": "${MAC_SIG}",
-      "url": "${DOWNLOAD_BASE}/${PREFIX}/mpe-${VERSION}-universal.dmg"
-    },
-    "darwin-x86_64": {
-      "signature": "${MAC_SIG}",
-      "url": "${DOWNLOAD_BASE}/${PREFIX}/mpe-${VERSION}-universal.dmg"
+def fetch_sig(key):
+    cmd = ["aws", "s3", "cp", f"s3://{bucket}/{prefix}/{key}", "-", "--endpoint-url", endpoint]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    return res.stdout.strip() if res.returncode == 0 else ""
+
+if platform == "windows":
+    sig = fetch_sig(f"mpe-{version}-x64-setup.exe.sig")
+    manifest["platforms"]["windows-x86_64"] = {
+        "signature": sig,
+        "url": f"{download_base}/{prefix}/mpe-{version}-x64-setup.exe"
     }
-  }
-}
-EOF
+elif platform == "macos":
+    sig = fetch_sig(f"mpe-{version}-universal.dmg.sig")
+    manifest["platforms"]["darwin-aarch64"] = {
+        "signature": sig,
+        "url": f"{download_base}/{prefix}/mpe-{version}-universal.dmg"
+    }
+    manifest["platforms"]["darwin-x86_64"] = {
+        "signature": sig,
+        "url": f"{download_base}/{prefix}/mpe-{version}-universal.dmg"
+    }
+elif platform == "linux":
+    # Check for AppImage signature if present
+    sig = fetch_sig(f"mpe_{version}_amd64.AppImage.sig")
+    manifest["platforms"]["linux-x86_64"] = {
+        "signature": sig,
+        "url": f"{download_base}/{prefix}/mpe-v{version}-linux-x86_64.tar.gz"
+    }
 
-aws s3 cp /tmp/manifest.json "s3://${R2_BUCKET}/${PREFIX}/manifest.json" \
+from datetime import datetime, timezone
+manifest["pub_date"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+with open(manifest_path, 'w', encoding='utf-8') as f:
+    json.dump(manifest, f, indent=2, ensure_ascii=False)
+
+print(f"  ✓ manifest.json updated with platform: {platform}")
+PYEOF
+
+# ── 3. Upload manifest.json ───────────────────────────────────────────
+aws s3 cp "$TMP_DIR/manifest.json" "s3://${R2_BUCKET}/manifest.json" \
   --endpoint-url "${R2_ENDPOINT}" --cache-control "no-cache, must-revalidate" --quiet
-aws s3 cp /tmp/manifest.json "s3://${R2_BUCKET}/manifest.json" \
+aws s3 cp "$TMP_DIR/manifest.json" "s3://${R2_BUCKET}/${PREFIX}/manifest.json" \
   --endpoint-url "${R2_ENDPOINT}" --cache-control "no-cache, must-revalidate" --quiet
+echo "  ✓ manifest.json uploaded"
 
-echo "manifest.json uploaded"
+# ── 4. Fetch and update changelog.json ─────────────────────────────────
+aws s3 cp "s3://${R2_BUCKET}/changelog.json" "$TMP_DIR/changelog.json" \
+  --endpoint-url "${R2_ENDPOINT}" --quiet 2>/dev/null || echo "[]" > "$TMP_DIR/changelog.json"
 
-# ── 6. Update changelog.json ────────────────────────────────────────────
-aws s3 cp "s3://${R2_BUCKET}/changelog.json" /tmp/changelog.json \
-  --endpoint-url "${R2_ENDPOINT}" 2>/dev/null || echo "[]" > /tmp/changelog.json
+python3 - << 'PYEOF' "$TMP_DIR/changelog.json" "$PLATFORM" "$VERSION" "$PREFIX" "$DOWNLOAD_BASE"
+import json, sys, re
+from datetime import datetime, timezone
 
-IS_PRERELEASE="false"
-if echo "${VERSION}" | grep -qE '(beta|alpha)'; then
-  IS_PRERELEASE="true"
-fi
+changelog_path, platform, version, prefix, download_base = sys.argv[1:6]
 
-cat > /tmp/new_entry.json << EOF
-{
-  "version": "${VERSION}",
-  "tag": "v${VERSION}",
-  "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "notes": "Release v${VERSION}",
-  "prerelease": ${IS_PRERELEASE},
-  "downloads": {
-    "windows": "${DOWNLOAD_BASE}/${PREFIX}/mpe-${VERSION}-x64-setup.exe",
-    "macos": "${DOWNLOAD_BASE}/${PREFIX}/mpe-${VERSION}-universal.dmg",
-    "linux": "${DOWNLOAD_BASE}/${PREFIX}/mpe-v${VERSION}-linux-x86_64.tar.gz"
-  }
-}
-EOF
+with open(changelog_path, 'r', encoding='utf-8') as f:
+    try:
+        changelog = json.load(f)
+        if not isinstance(changelog, list):
+            changelog = []
+    except Exception:
+        changelog = []
 
-python3 -c "
-import json, sys
-changelog = json.load(open(sys.argv[1]))
-new_entry = json.load(open(sys.argv[2]))
-changelog.insert(0, new_entry)
-json.dump(changelog, open(sys.argv[3], 'w'), indent=2, ensure_ascii=False)
-" /tmp/changelog.json /tmp/new_entry.json /tmp/changelog_new.json
-aws s3 cp /tmp/changelog_new.json "s3://${R2_BUCKET}/changelog.json" \
+tag = f"v{version}"
+entry = next((item for item in changelog if item.get("version") == version or item.get("tag") == tag), None)
+
+if not entry:
+    entry = {
+        "version": version,
+        "tag": tag,
+        "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "notes": f"Release v{version}",
+        "prerelease": bool(re.search(r'(beta|alpha)', version)),
+        "downloads": {}
+    }
+    changelog.insert(0, entry)
+
+entry.setdefault("downloads", {})
+
+if platform == "windows":
+    entry["downloads"]["windows"] = f"{download_base}/{prefix}/mpe-{version}-x64-setup.exe"
+elif platform == "macos":
+    entry["downloads"]["macos"] = f"{download_base}/{prefix}/mpe-{version}-universal.dmg"
+elif platform == "linux":
+    entry["downloads"]["linux"] = f"{download_base}/{prefix}/mpe-v{version}-linux-x86_64.tar.gz"
+
+with open(changelog_path, 'w', encoding='utf-8') as f:
+    json.dump(changelog, f, indent=2, ensure_ascii=False)
+
+print(f"  ✓ changelog.json updated for platform: {platform}")
+PYEOF
+
+# ── 5. Upload changelog.json ──────────────────────────────────────────
+aws s3 cp "$TMP_DIR/changelog.json" "s3://${R2_BUCKET}/changelog.json" \
   --endpoint-url "${R2_ENDPOINT}" --cache-control "no-cache, must-revalidate" --quiet
-
-echo "changelog.json updated"
+echo "  ✓ changelog.json uploaded"
 echo "update-manifest: done"

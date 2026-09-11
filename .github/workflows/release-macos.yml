@@ -1,9 +1,11 @@
 name: Release - macOS
 
 on:
-  push:
-    tags: ['v*']
-
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 0.1.2 or v0.1.2)'
+        required: true
 permissions:
   contents: write
 
@@ -31,11 +33,14 @@ jobs:
 
       - name: Set version
         id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Inject version from tag
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ inputs.version }}"
+          VERSION="${VERSION#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Inject version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
           node -e "
           const fs = require('fs');
           const version = '$VERSION';
@@ -49,7 +54,6 @@ jobs:
           cargo = cargo.replace(/(\[package\][\s\S]*?version = )\"[^\"]*\"/, '\$1\"' + version + '\"');
           fs.writeFileSync('src-tauri/Cargo.toml', cargo);
           "
-
       - run: npm ci
       - run: npm run typesafe-i18n
 
@@ -60,7 +64,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
+          tagName: v${{ steps.version.outputs.version }}
           releaseName: 'MPE Flow ${{ github.ref_name }}'
           releaseBody: 'See the assets below to download and install.'
           releaseDraft: false
