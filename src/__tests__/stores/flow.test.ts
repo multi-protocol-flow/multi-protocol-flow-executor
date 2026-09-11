@@ -679,4 +679,188 @@ describe('FlowStore', () => {
       });
     });
   });
+
+  describe('多标签会话管理 (Multi-Tab Sessions)', () => {
+    const flowA: Flow = {
+      uuid: 'flow-a',
+      name: 'Flow A',
+      nodes: [
+        {
+          uuid: 'node-a1',
+          type: 'http',
+          name: 'HTTP A1',
+          position: { x: 0, y: 0 },
+          data: { type: 'http', url: 'https://a.com' },
+        },
+      ],
+      connections: [],
+    };
+
+    const flowB: Flow = {
+      uuid: 'flow-b',
+      name: 'Flow B',
+      nodes: [
+        {
+          uuid: 'node-b1',
+          type: 'http',
+          name: 'HTTP B1',
+          position: { x: 100, y: 100 },
+          data: { type: 'http', url: 'https://b.com' },
+        },
+      ],
+      connections: [],
+    };
+
+    const flowC: Flow = {
+      uuid: 'flow-c',
+      name: 'Flow C',
+      nodes: [],
+      connections: [],
+    };
+
+    it('打开 Tab A，修改节点产生 past 与 isDirty', () => {
+      useFlowStore.getState().openTab(flowA);
+      expect(useFlowStore.getState().tabs).toHaveLength(1);
+      expect(useFlowStore.getState().tabs[0].uuid).toBe('flow-a');
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-a');
+      expect(useFlowStore.getState().isDirty).toBe(false);
+
+      useFlowStore.getState().updateNode('node-a1', { name: 'HTTP A1 Modified' });
+      expect(useFlowStore.getState().isDirty).toBe(true);
+      expect(useFlowStore.getState().past).toHaveLength(1);
+      expect(useFlowStore.getState().tabs[0].isDirty).toBe(true);
+    });
+
+    it('多标签切换独立保留修改与撤销重做历史栈', () => {
+      // 1. 打开 Tab A 并修改
+      useFlowStore.getState().openTab(flowA);
+      useFlowStore.getState().updateNode('node-a1', { name: 'A-Mod-1' });
+      expect(useFlowStore.getState().isDirty).toBe(true);
+      expect(useFlowStore.getState().past).toHaveLength(1);
+
+      // 2. 打开 Tab B 并修改
+      useFlowStore.getState().openTab(flowB);
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-b');
+      expect(useFlowStore.getState().tabs).toHaveLength(2);
+      expect(useFlowStore.getState().isDirty).toBe(false);
+      expect(useFlowStore.getState().past).toHaveLength(0);
+
+      useFlowStore.getState().updateNode('node-b1', { name: 'B-Mod-1' });
+      expect(useFlowStore.getState().isDirty).toBe(true);
+      expect(useFlowStore.getState().past).toHaveLength(1);
+
+      // 3. 切换回 Tab A
+      useFlowStore.getState().switchTab('flow-a');
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-a');
+      expect(useFlowStore.getState().flow?.nodes[0].name).toBe('A-Mod-1');
+      expect(useFlowStore.getState().isDirty).toBe(true);
+      expect(useFlowStore.getState().past).toHaveLength(1);
+
+      // 4. 在 Tab A 触发 undo，仅回退 Tab A 的操作，Tab B 不受影响
+      useFlowStore.getState().undo();
+      expect(useFlowStore.getState().flow?.nodes[0].name).toBe('HTTP A1');
+      expect(useFlowStore.getState().future).toHaveLength(1);
+
+      // 验证 Tab B 在 session 中的状态依然保留
+      const sessionB = useFlowStore.getState().tabSessions['flow-b'];
+      expect(sessionB).toBeDefined();
+      expect(sessionB.flow.nodes[0].name).toBe('B-Mod-1');
+      expect(sessionB.isDirty).toBe(true);
+      expect(sessionB.past).toHaveLength(1);
+    });
+
+    it('关闭活跃标签自动切换至相邻标签', () => {
+      useFlowStore.getState().openTab(flowA);
+      useFlowStore.getState().openTab(flowB);
+      useFlowStore.getState().openTab(flowC);
+      expect(useFlowStore.getState().tabs).toHaveLength(3);
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-c');
+
+      // 关闭 Tab C，应切换至前一个相邻标签 Tab B
+      useFlowStore.getState().closeTab('flow-c');
+      expect(useFlowStore.getState().tabs).toHaveLength(2);
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-b');
+      expect(useFlowStore.getState().flow?.uuid).toBe('flow-b');
+
+      // 切换到 Tab A 并关闭 Tab A，应切换至后一个相邻标签 Tab B
+      useFlowStore.getState().switchTab('flow-a');
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-a');
+      useFlowStore.getState().closeTab('flow-a');
+      expect(useFlowStore.getState().tabs).toHaveLength(1);
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-b');
+      expect(useFlowStore.getState().flow?.uuid).toBe('flow-b');
+    });
+
+    it('关闭非活跃标签不影响当前活跃标签', () => {
+      useFlowStore.getState().openTab(flowA);
+      useFlowStore.getState().openTab(flowB);
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-b');
+
+      useFlowStore.getState().closeTab('flow-a');
+      expect(useFlowStore.getState().tabs).toHaveLength(1);
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-b');
+      expect(useFlowStore.getState().flow?.uuid).toBe('flow-b');
+    });
+
+    it('closeOtherTabs 保留指定标签并关闭其余标签', () => {
+      useFlowStore.getState().openTab(flowA);
+      useFlowStore.getState().openTab(flowB);
+      useFlowStore.getState().openTab(flowC);
+      expect(useFlowStore.getState().tabs).toHaveLength(3);
+
+      useFlowStore.getState().closeOtherTabs('flow-b');
+      expect(useFlowStore.getState().tabs).toHaveLength(1);
+      expect(useFlowStore.getState().tabs[0].uuid).toBe('flow-b');
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-b');
+      expect(useFlowStore.getState().flow?.uuid).toBe('flow-b');
+      expect(Object.keys(useFlowStore.getState().tabSessions)).toEqual(['flow-b']);
+    });
+
+    it('closeTabsToRight 关闭右侧所有标签', () => {
+      useFlowStore.getState().openTab(flowA);
+      useFlowStore.getState().openTab(flowB);
+      useFlowStore.getState().openTab(flowC);
+      expect(useFlowStore.getState().tabs).toHaveLength(3);
+
+      // 关闭 Tab A 右侧标签（Tab B、Tab C）
+      useFlowStore.getState().closeTabsToRight('flow-a');
+      expect(useFlowStore.getState().tabs).toHaveLength(1);
+      expect(useFlowStore.getState().tabs[0].uuid).toBe('flow-a');
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-a');
+      expect(useFlowStore.getState().flow?.uuid).toBe('flow-a');
+    });
+
+    it('closeAllTabs 清空所有标签与流程状态', () => {
+      useFlowStore.getState().openTab(flowA);
+      useFlowStore.getState().openTab(flowB);
+      expect(useFlowStore.getState().tabs).toHaveLength(2);
+
+      useFlowStore.getState().closeAllTabs();
+      expect(useFlowStore.getState().tabs).toHaveLength(0);
+      expect(useFlowStore.getState().activeTabUuid).toBeNull();
+      expect(useFlowStore.getState().flow).toBeNull();
+      expect(useFlowStore.getState().tabSessions).toEqual({});
+    });
+
+    it('updateTabName 同步更新标签名称、会话流程名称与当前活跃流程名称', () => {
+      useFlowStore.getState().openTab(flowA);
+      useFlowStore.getState().updateTabName('flow-a', 'Renamed Flow A');
+
+      expect(useFlowStore.getState().tabs[0].name).toBe('Renamed Flow A');
+      expect(useFlowStore.getState().flow?.name).toBe('Renamed Flow A');
+      expect(useFlowStore.getState().tabSessions['flow-a'].flow.name).toBe('Renamed Flow A');
+    });
+
+    it('markSaved 更新活跃标签与会话中的 isDirty 为 false', () => {
+      useFlowStore.getState().openTab(flowA);
+      useFlowStore.getState().updateFlowName('Modified Name');
+      expect(useFlowStore.getState().isDirty).toBe(true);
+      expect(useFlowStore.getState().tabs[0].isDirty).toBe(true);
+
+      useFlowStore.getState().markSaved();
+      expect(useFlowStore.getState().isDirty).toBe(false);
+      expect(useFlowStore.getState().tabs[0].isDirty).toBe(false);
+      expect(useFlowStore.getState().tabSessions['flow-a'].isDirty).toBe(false);
+    });
+  });
 });

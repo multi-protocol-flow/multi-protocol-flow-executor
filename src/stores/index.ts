@@ -24,6 +24,9 @@ export {
   selectCanRedo,
   selectHistoryVersion,
   selectCenterOnNodeUuid,
+  selectTabs,
+  selectActiveTabUuid,
+  selectTabSessions,
 } from './flow';
 
 // FlowList store selectors

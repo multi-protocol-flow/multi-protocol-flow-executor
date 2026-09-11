@@ -2,7 +2,7 @@
  * 当前编辑流程状态管理
  */
 import { create } from 'zustand';
-import type { Flow, Node, NodeData, Connection, EnvironmentSet, AnyNodeType } from '@/types';
+import type { Flow, Node, NodeData, Connection, EnvironmentSet, AnyNodeType, FlowTab, FlowTabSession } from '@/types';
 import { useExecutionStore } from './execution';
 /** 深度比较两个值是否相等（属性顺序无关，undefined 值视为缺失） */
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -67,6 +67,29 @@ interface FlowState {
   future: Flow[];
   /** 历史 version，每次 undo/redo 递增，用于通知 UI 同步表单状态 */
   historyVersion: number;
+
+  /** 打开的流程标签列表 */
+  tabs: FlowTab[];
+  /** 当前激活的标签 UUID */
+  activeTabUuid: string | null;
+  /** 各标签的会话状态缓存（切换标签时保持每个流程独立的撤销重做栈与选中状态） */
+  tabSessions: Record<string, FlowTabSession>;
+
+  // ===== Tab Actions =====
+  /** 打开流程标签（若已打开则切换） */
+  openTab: (flow: Flow) => void;
+  /** 切换活跃标签 */
+  switchTab: (targetUuid: string) => void;
+  /** 关闭指定标签 */
+  closeTab: (uuid: string) => void;
+  /** 关闭其他标签 */
+  closeOtherTabs: (keepUuid: string) => void;
+  /** 关闭指定标签右侧的所有标签 */
+  closeTabsToRight: (uuid: string) => void;
+  /** 关闭所有标签 */
+  closeAllTabs: () => void;
+  /** 更新指定标签的名称 */
+  updateTabName: (uuid: string, name: string) => void;
 
   // ===== Actions =====
   /** 设置当前流程 */
@@ -165,7 +188,24 @@ const initialState = {
   future: [],
   historyVersion: 0,
   debugFlowStack: [] as Array<{ flow: Flow; parentNodeUuid?: string }>,
+  tabs: [] as FlowTab[],
+  activeTabUuid: null as string | null,
+  tabSessions: {} as Record<string, FlowTabSession>,
 };
+
+/** 标记当前活跃标签为未保存脏状态（若已经是 dirty 则返回原引用） */
+function markTabDirty(tabs: FlowTab[], activeTabUuid: string | null): FlowTab[] {
+  if (!activeTabUuid) return tabs;
+  let changed = false;
+  const newTabs = tabs.map((t) => {
+    if (t.uuid === activeTabUuid && !t.isDirty) {
+      changed = true;
+      return { ...t, isDirty: true };
+    }
+    return t;
+  });
+  return changed ? newTabs : tabs;
+}
 
 export const useFlowStore = create<FlowState>((set, get) => {
   /** 历史栈最大步数 */
@@ -187,9 +227,326 @@ export const useFlowStore = create<FlowState>((set, get) => {
 
     // ===== Actions =====
     setFlow: (flow) => {
-      // 切换流程时清空上次执行的运行状态，避免底部面板残留旧流程的节点记录
+      if (flow === null) {
+        useExecutionStore.getState().clearExecutionState();
+        return set({
+          flow: null,
+          activeTabUuid: null,
+          selectedNodeId: null,
+          isDirty: false,
+          past: [],
+          future: [],
+        });
+      }
+      return get().openTab(flow);
+    },
+
+    openTab: (flow) => {
+      const state = get();
+      const existingTabIndex = state.tabs.findIndex((t) => t.uuid === flow.uuid);
+      if (existingTabIndex >= 0) {
+        if (state.activeTabUuid === flow.uuid) {
+          useExecutionStore.getState().clearExecutionState();
+          const updatedTabs = state.tabs.map((t) =>
+            t.uuid === flow.uuid ? { ...t, name: flow.name, isDirty: false } : t
+          );
+          const updatedSessions = {
+            ...state.tabSessions,
+            [flow.uuid]: {
+              flow,
+              selectedNodeId: null,
+              isDirty: false,
+              past: [],
+              future: [],
+              historyVersion: 0,
+            },
+          };
+          set({
+            tabs: updatedTabs,
+            tabSessions: updatedSessions,
+            flow,
+            selectedNodeId: null,
+            isDirty: false,
+            past: [],
+            future: [],
+            historyVersion: 0,
+          });
+          return;
+        }
+
+        const updatedSessions = { ...state.tabSessions };
+        if (state.activeTabUuid && state.flow) {
+          updatedSessions[state.activeTabUuid] = {
+            flow: state.flow,
+            selectedNodeId: state.selectedNodeId,
+            isDirty: state.isDirty,
+            past: state.past,
+            future: state.future,
+            historyVersion: state.historyVersion,
+          };
+        }
+        updatedSessions[flow.uuid] = {
+          flow,
+          selectedNodeId: null,
+          isDirty: false,
+          past: [],
+          future: [],
+          historyVersion: 0,
+        };
+        const updatedTabs = state.tabs.map((t) =>
+          t.uuid === flow.uuid ? { ...t, name: flow.name, isDirty: false } : t
+        );
+        useExecutionStore.getState().clearExecutionState();
+        set({
+          tabs: updatedTabs,
+          activeTabUuid: flow.uuid,
+          tabSessions: updatedSessions,
+          flow,
+          selectedNodeId: null,
+          isDirty: false,
+          past: [],
+          future: [],
+          historyVersion: 0,
+        });
+        return;
+      }
+
+      const updatedSessions = { ...state.tabSessions };
+      if (state.activeTabUuid && state.flow) {
+        updatedSessions[state.activeTabUuid] = {
+          flow: state.flow,
+          selectedNodeId: state.selectedNodeId,
+          isDirty: state.isDirty,
+          past: state.past,
+          future: state.future,
+          historyVersion: state.historyVersion,
+        };
+      }
+      updatedSessions[flow.uuid] = {
+        flow,
+        selectedNodeId: null,
+        isDirty: false,
+        past: [],
+        future: [],
+        historyVersion: 0,
+      };
+      const newTabs: FlowTab[] = [
+        ...state.tabs,
+        { uuid: flow.uuid, name: flow.name, isDirty: false },
+      ];
       useExecutionStore.getState().clearExecutionState();
-      return set({ flow, selectedNodeId: null, isDirty: false, past: [], future: [] });
+      set({
+        tabs: newTabs,
+        activeTabUuid: flow.uuid,
+        tabSessions: updatedSessions,
+        flow,
+        selectedNodeId: null,
+        isDirty: false,
+        past: [],
+        future: [],
+        historyVersion: 0,
+      });
+    },
+
+    switchTab: (targetUuid) => {
+      const state = get();
+      if (targetUuid === state.activeTabUuid) return;
+      const targetSession = state.tabSessions[targetUuid];
+      if (!targetSession) return;
+
+      const updatedSessions = { ...state.tabSessions };
+      if (state.activeTabUuid && state.flow) {
+        updatedSessions[state.activeTabUuid] = {
+          flow: state.flow,
+          selectedNodeId: state.selectedNodeId,
+          isDirty: state.isDirty,
+          past: state.past,
+          future: state.future,
+          historyVersion: state.historyVersion,
+        };
+      }
+
+      useExecutionStore.getState().clearExecutionState();
+      set({
+        tabSessions: updatedSessions,
+        activeTabUuid: targetUuid,
+        flow: targetSession.flow,
+        selectedNodeId: targetSession.selectedNodeId,
+        isDirty: targetSession.isDirty,
+        past: targetSession.past,
+        future: targetSession.future,
+        historyVersion: targetSession.historyVersion,
+      });
+    },
+
+    closeTab: (uuid) => {
+      const state = get();
+      const index = state.tabs.findIndex((t) => t.uuid === uuid);
+      if (index === -1) return;
+
+      const newTabs = state.tabs.filter((t) => t.uuid !== uuid);
+      const newSessions = { ...state.tabSessions };
+      delete newSessions[uuid];
+
+      if (uuid !== state.activeTabUuid) {
+        set({
+          tabs: newTabs,
+          tabSessions: newSessions,
+        });
+        return;
+      }
+
+      if (newTabs.length === 0) {
+        useExecutionStore.getState().clearExecutionState();
+        set({
+          tabs: [],
+          activeTabUuid: null,
+          tabSessions: {},
+          flow: null,
+          selectedNodeId: null,
+          isDirty: false,
+          past: [],
+          future: [],
+          historyVersion: 0,
+        });
+        return;
+      }
+
+      const nextTabIndex = Math.min(index, newTabs.length - 1);
+      const nextTab = newTabs[nextTabIndex];
+      const nextSession = newSessions[nextTab.uuid];
+
+      useExecutionStore.getState().clearExecutionState();
+      set({
+        tabs: newTabs,
+        activeTabUuid: nextTab.uuid,
+        tabSessions: newSessions,
+        flow: nextSession ? nextSession.flow : null,
+        selectedNodeId: nextSession ? nextSession.selectedNodeId : null,
+        isDirty: nextSession ? nextSession.isDirty : false,
+        past: nextSession ? nextSession.past : [],
+        future: nextSession ? nextSession.future : [],
+        historyVersion: nextSession ? nextSession.historyVersion : 0,
+      });
+    },
+
+    closeOtherTabs: (keepUuid) => {
+      const state = get();
+      const keepTab = state.tabs.find((t) => t.uuid === keepUuid);
+      if (!keepTab) return;
+
+      const keepSession =
+        state.activeTabUuid === keepUuid && state.flow
+          ? {
+              flow: state.flow,
+              selectedNodeId: state.selectedNodeId,
+              isDirty: state.isDirty,
+              past: state.past,
+              future: state.future,
+              historyVersion: state.historyVersion,
+            }
+          : state.tabSessions[keepUuid];
+
+      if (!keepSession) return;
+
+      const newSessions: Record<string, FlowTabSession> = {
+        [keepUuid]: keepSession,
+      };
+
+      useExecutionStore.getState().clearExecutionState();
+      set({
+        tabs: [keepTab],
+        activeTabUuid: keepUuid,
+        tabSessions: newSessions,
+        flow: keepSession.flow,
+        selectedNodeId: keepSession.selectedNodeId,
+        isDirty: keepSession.isDirty,
+        past: keepSession.past,
+        future: keepSession.future,
+        historyVersion: keepSession.historyVersion,
+      });
+    },
+
+    closeTabsToRight: (uuid) => {
+      const state = get();
+      const index = state.tabs.findIndex((t) => t.uuid === uuid);
+      if (index === -1) return;
+
+      const remainingTabs = state.tabs.slice(0, index + 1);
+      const remainingUuids = new Set(remainingTabs.map((t) => t.uuid));
+
+      const updatedSessions = { ...state.tabSessions };
+      if (state.activeTabUuid && state.flow && remainingUuids.has(state.activeTabUuid)) {
+        updatedSessions[state.activeTabUuid] = {
+          flow: state.flow,
+          selectedNodeId: state.selectedNodeId,
+          isDirty: state.isDirty,
+          past: state.past,
+          future: state.future,
+          historyVersion: state.historyVersion,
+        };
+      }
+      for (const key of Object.keys(updatedSessions)) {
+        if (!remainingUuids.has(key)) {
+          delete updatedSessions[key];
+        }
+      }
+
+      if (!remainingUuids.has(state.activeTabUuid ?? '')) {
+        const targetSession = updatedSessions[uuid];
+        useExecutionStore.getState().clearExecutionState();
+        set({
+          tabs: remainingTabs,
+          activeTabUuid: uuid,
+          tabSessions: updatedSessions,
+          flow: targetSession ? targetSession.flow : null,
+          selectedNodeId: targetSession ? targetSession.selectedNodeId : null,
+          isDirty: targetSession ? targetSession.isDirty : false,
+          past: targetSession ? targetSession.past : [],
+          future: targetSession ? targetSession.future : [],
+          historyVersion: targetSession ? targetSession.historyVersion : 0,
+        });
+      } else {
+        set({
+          tabs: remainingTabs,
+          tabSessions: updatedSessions,
+        });
+      }
+    },
+
+    closeAllTabs: () => {
+      useExecutionStore.getState().clearExecutionState();
+      set({
+        tabs: [],
+        activeTabUuid: null,
+        tabSessions: {},
+        flow: null,
+        selectedNodeId: null,
+        isDirty: false,
+        past: [],
+        future: [],
+        historyVersion: 0,
+      });
+    },
+
+    updateTabName: (uuid, name) => {
+      set((state) => {
+        const newTabs = state.tabs.map((t) => (t.uuid === uuid ? { ...t, name } : t));
+        const newSessions = { ...state.tabSessions };
+        if (newSessions[uuid]) {
+          newSessions[uuid] = {
+            ...newSessions[uuid],
+            flow: { ...newSessions[uuid].flow, name },
+          };
+        }
+        const newFlow =
+          state.flow && state.flow.uuid === uuid ? { ...state.flow, name } : state.flow;
+        return {
+          tabs: newTabs,
+          tabSessions: newSessions,
+          flow: newFlow,
+        };
+      });
     },
 
     updateFlowName: (name) =>
@@ -197,8 +554,11 @@ export const useFlowStore = create<FlowState>((set, get) => {
         if (!state.flow) return state;
         const newFlow = { ...state.flow, name };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const newTabs = state.tabs.map((t) =>
+          t.uuid === state.activeTabUuid ? { ...t, name, isDirty: true } : t
+        );
+        if (!history) return { flow: newFlow, isDirty: true, tabs: newTabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs: newTabs };
       }),
 
     updateFlowDescription: (description) =>
@@ -206,8 +566,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
         if (!state.flow) return state;
         const newFlow = { ...state.flow, description };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        if (!history) return { flow: newFlow, isDirty: true, tabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
     updateInitialVariables: (variables) =>
@@ -215,8 +576,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
         if (!state.flow) return state;
         const newFlow = { ...state.flow, initial_variables: variables };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        if (!history) return { flow: newFlow, isDirty: true, tabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
     setEnvironments: (environments) =>
@@ -224,8 +586,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
         if (!state.flow) return state;
         const newFlow = { ...state.flow, environments };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        if (!history) return { flow: newFlow, isDirty: true, tabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
     setActiveEnvironment: (name) =>
@@ -233,8 +596,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
         if (!state.flow) return state;
         const newFlow = { ...state.flow, active_environment: name ?? undefined };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        if (!history) return { flow: newFlow, isDirty: true, tabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
     addEnvironment: (env) =>
@@ -243,8 +607,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
         const environments = [...(state.flow.environments ?? []), env];
         const newFlow = { ...state.flow, environments };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        if (!history) return { flow: newFlow, isDirty: true, tabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
     updateEnvironment: (name, env) =>
@@ -253,13 +618,13 @@ export const useFlowStore = create<FlowState>((set, get) => {
         const environments = (state.flow.environments ?? []).map((e) =>
           e.name === name ? env : e
         );
-        // 如果改名了，也要更新 active_environment
         const active_environment =
           state.flow.active_environment === name ? env.name : state.flow.active_environment;
         const newFlow = { ...state.flow, environments, active_environment };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        if (!history) return { flow: newFlow, isDirty: true, tabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
     removeEnvironment: (name) =>
@@ -270,8 +635,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
           state.flow.active_environment === name ? undefined : state.flow.active_environment;
         const newFlow = { ...state.flow, environments, active_environment };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        if (!history) return { flow: newFlow, isDirty: true, tabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
     addNode: (node) =>
@@ -279,8 +645,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
         if (!state.flow) return state;
         const newFlow = { ...state.flow, nodes: [...state.flow.nodes, node] };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        if (!history) return { flow: newFlow, isDirty: true, tabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
     updateNode: (uuid, updates) =>
@@ -290,19 +657,17 @@ export const useFlowStore = create<FlowState>((set, get) => {
           ...state.flow,
           nodes: state.flow.nodes.map((n) => {
             if (n.uuid !== uuid) return n;
-            // 如果 updates 包含 data，与现有 data 浅合并，保留不在 updates.data 中的字段
             return updates.data && n.data
               ? { ...n, ...updates, data: { ...n.data, ...updates.data } as NodeData }
               : { ...n, ...updates };
           }),
         };
-        // 检查是否有实际变更，无变更则不标记 isDirty（避免选中/取消选中触发无意义保存）
         const history = pushHistory(state, newFlow);
         if (!history) {
-          // pushHistory 去重判定为无变更，不触发 isDirty
           return state;
         }
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
     batchUpdateNodePositions: (positions) =>
@@ -316,8 +681,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
           }),
         };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        if (!history) return { flow: newFlow, isDirty: true, tabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
     removeNode: (uuid) =>
@@ -332,12 +698,14 @@ export const useFlowStore = create<FlowState>((set, get) => {
           ),
         };
         const history = pushHistory(state, newFlow);
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
         return {
           ...(history ?? {}),
           flow: newFlow,
           selectedNodeId:
             state.selectedNodeId === uuid ? null : state.selectedNodeId,
           isDirty: true,
+          tabs,
         };
       }),
 
@@ -354,11 +722,13 @@ export const useFlowStore = create<FlowState>((set, get) => {
         };
         const history = pushHistory(state, newFlow);
         const selectedCleared = uuidSet.has(state.selectedNodeId ?? '');
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
         return {
           ...(history ?? {}),
           flow: newFlow,
           selectedNodeId: selectedCleared ? null : state.selectedNodeId,
           isDirty: true,
+          tabs,
         };
       }),
 
@@ -370,8 +740,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
           connections: [...state.flow.connections, connection],
         };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        if (!history) return { flow: newFlow, isDirty: true, tabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
     removeConnection: (id) =>
@@ -384,13 +755,32 @@ export const useFlowStore = create<FlowState>((set, get) => {
           ),
         };
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
-        return { ...history, flow: newFlow, isDirty: true };
+        const tabs = markTabDirty(state.tabs, state.activeTabUuid);
+        if (!history) return { flow: newFlow, isDirty: true, tabs };
+        return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
   selectNode: (uuid) => set({ selectedNodeId: uuid }),
 
-  markSaved: () => set({ isDirty: false }),
+  markSaved: () =>
+    set((state) => {
+      const activeUuid = state.activeTabUuid;
+      const newTabs = state.tabs.map((t) =>
+        t.uuid === activeUuid ? { ...t, isDirty: false } : t
+      );
+      const newSessions =
+        activeUuid && state.tabSessions[activeUuid]
+          ? {
+              ...state.tabSessions,
+              [activeUuid]: {
+                ...state.tabSessions[activeUuid],
+                isDirty: false,
+              },
+            }
+          : state.tabSessions;
+      return { isDirty: false, tabs: newTabs, tabSessions: newSessions };
+    }),
+
 
   reset: () => set(initialState),
 
@@ -455,16 +845,17 @@ export const useFlowStore = create<FlowState>((set, get) => {
         }
       });
 
-      return {
-        flow: {
-          ...state.flow,
-          nodes: state.flow.nodes.map((n) =>
-            n.uuid === uuid ? { ...n, hasBreakpoint: newBreakpoint } : n
-          ),
-        },
-        isDirty: true,
-      };
-    }),
+        return {
+          flow: {
+            ...state.flow,
+            nodes: state.flow.nodes.map((n) =>
+              n.uuid === uuid ? { ...n, hasBreakpoint: newBreakpoint } : n
+            ),
+          },
+          isDirty: true,
+          tabs: markTabDirty(state.tabs, state.activeTabUuid),
+        };
+      }),
 
   setBreakpoint: (uuid, enabled) =>
     set((state) => ({
@@ -477,6 +868,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
           }
         : null,
       isDirty: true,
+      tabs: markTabDirty(state.tabs, state.activeTabUuid),
     })),
 
   focusOnNode: (uuid) => set({ focusNodeUuid: uuid }),
@@ -490,7 +882,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
   unlockFlow: () => set({ isLocked: false, lockReason: null }),
 
   undo: () => {
-    const { flow, past, future, selectedNodeId, historyVersion } = get();
+    const { flow, past, future, selectedNodeId, historyVersion, tabs, activeTabUuid } = get();
     if (!flow || past.length === 0) return;
     const restoredFlow = past[past.length - 1];
     // 保留选中状态，仅当节点不存在于恢复后的 flow 时才清除
@@ -504,11 +896,12 @@ export const useFlowStore = create<FlowState>((set, get) => {
       selectedNodeId: stillExists ? selectedNodeId : null,
       isDirty: true,
       historyVersion: historyVersion + 1,
+      tabs: markTabDirty(tabs, activeTabUuid),
     });
   },
 
   redo: () => {
-    const { flow, past, future, selectedNodeId, historyVersion } = get();
+    const { flow, past, future, selectedNodeId, historyVersion, tabs, activeTabUuid } = get();
     if (!flow || future.length === 0) return;
     const restoredFlow = future[future.length - 1];
     // 保留选中状态，仅当节点不存在于恢复后的 flow 时才清除
@@ -522,6 +915,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
       selectedNodeId: stillExists ? selectedNodeId : null,
       isDirty: true,
       historyVersion: historyVersion + 1,
+      tabs: markTabDirty(tabs, activeTabUuid),
     });
   },
 
@@ -578,3 +972,9 @@ export const selectCanRedo = (state: FlowState) => state.future.length > 0;
 export const selectHistoryVersion = (state: FlowState) => state.historyVersion;
 /** 选择居中定位节点 UUID */
 export const selectCenterOnNodeUuid = (state: FlowState) => state.centerOnNodeUuid;
+/** 选择打开的流程标签列表 */
+export const selectTabs = (state: FlowState) => state.tabs;
+/** 选择当前活跃标签 UUID */
+export const selectActiveTabUuid = (state: FlowState) => state.activeTabUuid;
+/** 选择各标签会话状态缓存 */
+export const selectTabSessions = (state: FlowState) => state.tabSessions;
