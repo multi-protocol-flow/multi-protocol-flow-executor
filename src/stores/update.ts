@@ -11,6 +11,8 @@ import {
   installUpdatePackage,
 } from '@/services/tauri/updater';
 import { useSettingsStore } from '@/stores/settings';
+import { useUIStore } from '@/stores/ui';
+import { toast } from 'sonner';
 import { notifyError, notifyInfo } from '@/lib/notify';
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -63,9 +65,22 @@ export const useUpdateStore = create<UpdateStore>((set, get) => ({
           updateInfo: info,
           currentVersion: info.currentVersion,
           lastChecked: Date.now(),
-          // 手动检查时始终弹窗；自动静默检查仅在未被用户跳过时弹窗
-          showUpdateDialog: manual || !isIgnored,
+          showUpdateDialog: false,
         });
+
+        // 无论是静默检测（未跳过时）还是手动检测，均不再弹大模态窗，改为右上角 Toast 通知并引导至全局设置
+        if (manual || !isIgnored) {
+          toast(ll.settings.update_available(), {
+            description: `${ll.settings.update_available_toast_desc()} (v${info.latestVersion})`,
+            action: {
+              label: ll.settings.go_to_settings(),
+              onClick: () => {
+                useUIStore.getState().openSettingsDialog('about');
+              },
+            },
+            duration: 8000,
+          });
+        }
       } else {
         set({
           status: 'up-to-date',

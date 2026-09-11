@@ -7552,6 +7552,22 @@ type RootTranslation = {
 		 */
 		view_changelog: string
 		/**
+		 * 收​起​更​新​日​志
+		 */
+		hide_changelog: string
+		/**
+		 * 重​试​更​新
+		 */
+		retry_update: string
+		/**
+		 * 发​现​新​版​本​，​可​前​往​全​局​设​置​进​行​查​看​与​更​新
+		 */
+		update_available_toast_desc: string
+		/**
+		 * 前​往​设​置
+		 */
+		go_to_settings: string
+		/**
 		 * 官​方​网​站
 		 */
 		official_website: string
@@ -21191,6 +21207,22 @@ export type TranslationFunctions = {
 		 * 查看完整更新日志
 		 */
 		view_changelog: () => LocalizedString
+		/**
+		 * 收起更新日志
+		 */
+		hide_changelog: () => LocalizedString
+		/**
+		 * 重试更新
+		 */
+		retry_update: () => LocalizedString
+		/**
+		 * 发现新版本，可前往全局设置进行查看与更新
+		 */
+		update_available_toast_desc: () => LocalizedString
+		/**
+		 * 前往设置
+		 */
+		go_to_settings: () => LocalizedString
 		/**
 		 * 官方网站
 		 */

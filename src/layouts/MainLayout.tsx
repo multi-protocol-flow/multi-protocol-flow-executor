@@ -15,7 +15,6 @@ import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { PluginSettingsDialog } from '@/components/dialogs/PluginSettingsDialog';
 import { SettingsDialog } from '@/components/settings';
-import { UpdateDialog } from '@/components/dialogs/UpdateDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { ShortcutsDialog } from '@/components/dialogs/ShortcutsDialog';
 import { ScriptHelpDialog } from '@/components/dialogs/ScriptHelpDialog';
@@ -859,8 +858,6 @@ export function MainLayout() {
       {/* ===== 全局设置对话框 ===== */}
       <SettingsDialog />
 
-      {/* ===== 版本更新提示对话框 ===== */}
-      <UpdateDialog />
       {/* ===== 全流程搜索面板 ===== */}
 
       {/* ===== AI 助手侧边栏与 Spotlight 弹窗 ===== */}

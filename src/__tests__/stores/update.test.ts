@@ -5,7 +5,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useUpdateStore } from '@/stores/update';
 import { useSettingsStore } from '@/stores/settings';
+import { useUIStore } from '@/stores/ui';
+import { toast } from 'sonner';
 
+vi.mock('sonner', () => ({
+  toast: vi.fn(),
+}));
 describe('UpdateStore', () => {
   beforeEach(() => {
     useUpdateStore.getState().reset();
@@ -35,18 +40,19 @@ describe('UpdateStore', () => {
       expect(useUpdateStore.getState().currentVersion).toBe('0.1.1-beta.2');
     });
 
-    it('手动检查更新发现新版本后进入 available 并弹窗', async () => {
+    it('检查更新发现新版本后进入 available 且触发右上角通知，不弹出大模态弹窗', async () => {
       const info = await useUpdateStore.getState().checkForUpdates(true);
       expect(info).not.toBeNull();
       expect(info?.hasUpdate).toBe(true);
 
       const state = useUpdateStore.getState();
       expect(state.status).toBe('available');
-      expect(state.showUpdateDialog).toBe(true);
+      expect(state.showUpdateDialog).toBe(false);
       expect(state.updateInfo?.latestVersion).toBe('0.1.2');
+      expect(toast).toHaveBeenCalled();
     });
 
-    it('如果新版本在跳过列表中，静默检查不弹窗', async () => {
+    it('如果新版本在跳过列表中，静默检查不触发通知且不弹窗', async () => {
       useSettingsStore.setState({
         ignoredVersions: ['0.1.2'],
       });
@@ -55,9 +61,10 @@ describe('UpdateStore', () => {
       const state = useUpdateStore.getState();
       expect(state.status).toBe('available');
       expect(state.showUpdateDialog).toBe(false);
+      expect(toast).not.toHaveBeenCalled();
     });
 
-    it('如果新版本在跳过列表中，手动检查仍然弹窗', async () => {
+    it('如果新版本在跳过列表中，手动检查仍然触发右上角通知', async () => {
       useSettingsStore.setState({
         ignoredVersions: ['0.1.2'],
       });
@@ -65,15 +72,29 @@ describe('UpdateStore', () => {
       await useUpdateStore.getState().checkForUpdates(true);
       const state = useUpdateStore.getState();
       expect(state.status).toBe('available');
-      expect(state.showUpdateDialog).toBe(true);
+      expect(state.showUpdateDialog).toBe(false);
+      expect(toast).toHaveBeenCalled();
+    });
+
+    it('通知 Action 点击能够打开全局设置关于 Tab', async () => {
+      useUIStore.setState({ showSettingsDialog: false, settingsDialogTab: 'general' });
+      await useUpdateStore.getState().checkForUpdates(true);
+
+      expect(toast).toHaveBeenCalled();
+      const lastCall = vi.mocked(toast).mock.calls[0];
+      const options = lastCall[1] as { action?: { onClick?: () => void } };
+      expect(options.action?.onClick).toBeDefined();
+      options.action?.onClick?.();
+
+      expect(useUIStore.getState().showSettingsDialog).toBe(true);
+      expect(useUIStore.getState().settingsDialogTab).toBe('about');
     });
   });
 
   describe('忽略版本与弹窗控制', () => {
     it('ignoreCurrentVersion 将版本加入 settings 忽略列表并关闭弹窗', async () => {
       await useUpdateStore.getState().checkForUpdates(true);
-      expect(useUpdateStore.getState().showUpdateDialog).toBe(true);
-
+      expect(useUpdateStore.getState().showUpdateDialog).toBe(false);
       await useUpdateStore.getState().ignoreCurrentVersion();
       expect(useUpdateStore.getState().showUpdateDialog).toBe(false);
       expect(useSettingsStore.getState().ignoredVersions).toContain('0.1.2');
