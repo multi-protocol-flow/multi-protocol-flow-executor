@@ -253,6 +253,10 @@ type RootTranslation = {
 		 */
 		end: string
 		/**
+		 * 子​流​程
+		 */
+		sub_flow: string
+		/**
 		 * 此​节​点​无​需​配​置​，​仅​用​于​标​记​流​程​终​点​。
 		 */
 		end_config_hint: string
@@ -473,6 +477,10 @@ type RootTranslation = {
 			 * 标​记​工​作​流​正​常​执​行​结​束​与​终​点​输​出
 			 */
 			end: string
+			/**
+			 * 嵌​套​执​行​另​一​个​独​立​流​程​，​实​现​模​板​与​组​件​复​用
+			 */
+			sub_flow: string
 			/**
 			 * 建​立​ ​W​e​b​S​o​c​k​e​t​ ​客​户​端​长​连​接​会​话
 			 */
@@ -4536,6 +4544,143 @@ type RootTranslation = {
 		 * @param {unknown} total
 		 */
 		hex_truncated_notice: RequiredParams<'displayed' | 'total'>
+		subflow: {
+			/**
+			 * 目​标​子​流​程
+			 */
+			target_flow: string
+			/**
+			 * 选​择​已​保​存​流​程
+			 */
+			mode_flow_select: string
+			/**
+			 * 指​定​流​程​文​件
+			 */
+			mode_file_path: string
+			/**
+			 * 请​选​择​目​标​流​程
+			 */
+			select_target_flow: string
+			/**
+			 * 搜​索​流​程​名​称​.​.​.
+			 */
+			search_flow_placeholder: string
+			/**
+			 * 暂​无​已​保​存​的​流​程
+			 */
+			no_flows: string
+			/**
+			 * 未​找​到​匹​配​的​流​程
+			 */
+			no_matching_flows: string
+			/**
+			 * 目​标​流​程​不​存​在​，​可​能​已​被​删​除​或​重​命​名
+			 */
+			missing_target: string
+			/**
+			 * 流​程​文​件​路​径
+			 */
+			target_flow_path: string
+			/**
+			 * .​/​s​u​b​f​l​o​w​s​/​a​u​t​h​.​j​s​o​n
+			 */
+			target_flow_path_placeholder: string
+			/**
+			 * 相​对​路​径​以​当​前​流​程​文​件​所​在​目​录​为​基​准​，​也​可​填​写​绝​对​路​径
+			 */
+			target_flow_path_hint: string
+			/**
+			 * 浏​览​.​.​.
+			 */
+			browse_file: string
+			/**
+			 * 清​除
+			 */
+			clear_selection: string
+			/**
+			 * 在​新​标​签​页​打​开​流​程
+			 */
+			open_target_flow: string
+			/**
+			 * 继​承​父​流​程​所​有​变​量
+			 */
+			inherit_all_variables: string
+			/**
+			 * 开​启​后​，​子​流​程​将​直​接​继​承​父​流​程​执​行​到​此​节​点​时​的​所​有​变​量​快​照
+			 */
+			inherit_all_variables_desc: string
+			/**
+			 * 输​入​变​量​自​定​义​覆​盖
+			 */
+			input_mappings: string
+			/**
+			 * 将​父​流​程​表​达​式​或​变​量​映​射​为​子​流​程​指​定​变​量
+			 */
+			input_mappings_desc: string
+			/**
+			 * 添​加​输​入​变​量
+			 */
+			add_input_mapping: string
+			/**
+			 * 暂​无​自​定​义​输​入​变​量​覆​盖
+			 */
+			no_input_mappings: string
+			/**
+			 * 父​流​程​变​量​/​表​达​式​ ​(​如​ ​t​o​k​e​n​ ​或​ ​$​.​u​s​e​r​.​i​d​)
+			 */
+			source_expr_placeholder: string
+			/**
+			 * 子​流​程​变​量​名​ ​(​如​ ​a​u​t​h​_​t​o​k​e​n​)
+			 */
+			target_var_placeholder: string
+			/**
+			 * 导​出​子​流​程​所​有​变​量
+			 */
+			export_all_variables: string
+			/**
+			 * 开​启​后​，​子​流​程​修​改​和​创​建​的​所​有​变​量​将​全​部​回​写​到​父​流​程​上​下​文
+			 */
+			export_all_variables_desc: string
+			/**
+			 * 指​定​导​出​变​量
+			 */
+			output_mappings: string
+			/**
+			 * 仅​将​子​流​程​指​定​的​变​量​导​出​到​父​流​程​中
+			 */
+			output_mappings_desc: string
+			/**
+			 * 添​加​导​出​变​量
+			 */
+			add_output_mapping: string
+			/**
+			 * 暂​无​导​出​变​量​设​置
+			 */
+			no_output_mappings: string
+			/**
+			 * 子​流​程​变​量​名​ ​(​如​ ​t​o​k​e​n​)
+			 */
+			child_var_placeholder: string
+			/**
+			 * 父​流​程​变​量​名​ ​(​如​ ​a​u​t​h​_​t​o​k​e​n​)
+			 */
+			parent_var_placeholder: string
+			/**
+			 * 子​流​程​执​行​中​ ​{​c​o​m​p​l​e​t​e​d​}​/​{​t​o​t​a​l​}
+			 * @param {unknown} completed
+			 * @param {unknown} total
+			 */
+			running_progress: RequiredParams<'completed' | 'total'>
+			/**
+			 * 当​前​节​点​：​{​n​a​m​e​}
+			 * @param {unknown} name
+			 */
+			running_node: RequiredParams<'name'>
+			/**
+			 * 子​流​程​启​动​中​.​.​.
+			 */
+			running_starting: string
+		}
 	}
 	execution: {
 		node_types: {
@@ -5079,6 +5224,48 @@ type RootTranslation = {
 			 * 执​行​状​态
 			 */
 			status_summary: string
+			/**
+			 * 调​用​配​置
+			 */
+			sub_flow_invocation: string
+			/**
+			 * 子​流​程​节​点​数
+			 */
+			sub_flow_total_nodes: string
+			/**
+			 * 成​功​节​点
+			 */
+			sub_flow_success_nodes: string
+			/**
+			 * 失​败​节​点
+			 */
+			sub_flow_failed_nodes: string
+			/**
+			 * 子​流​程​输​入​变​量
+			 */
+			sub_flow_input_variables: string
+			/**
+			 * 子​流​程​输​出​变​量
+			 */
+			sub_flow_output_variables: string
+			/**
+			 * 跳​过​节​点​ ​(​{​c​o​u​n​t​}​)
+			 * @param {unknown} count
+			 */
+			sub_flow_skipped_nodes: RequiredParams<'count'>
+			/**
+			 * 子​节​点​执​行​明​细​ ​(​{​c​o​u​n​t​}​)
+			 * @param {unknown} count
+			 */
+			sub_flow_child_nodes: RequiredParams<'count'>
+			/**
+			 * 子​流​程​未​到​达​结​束​节​点
+			 */
+			sub_flow_not_reached_end: string
+			/**
+			 * 流​程​警​告
+			 */
+			flow_warning: string
 		}
 		compare: {
 			/**
@@ -8123,6 +8310,22 @@ type RootTranslation = {
 		 */
 		debug_step_unavailable: string
 		/**
+		 * 步​入​子​流​程​ ​(​F​1​1​)
+		 */
+		debug_step_into_available: string
+		/**
+		 * 步​入​ ​(​F​1​1​，​仅​在​暂​停​时​可​用​)
+		 */
+		debug_step_into_unavailable: string
+		/**
+		 * 步​出​子​流​程​ ​(​S​h​i​f​t​+​F​1​1​)
+		 */
+		debug_step_out_available: string
+		/**
+		 * 步​出​ ​(​S​h​i​f​t​+​F​1​1​，​仅​在​子​流​程​中​可​用​)
+		 */
+		debug_step_out_unavailable: string
+		/**
 		 * 跳​过​当​前​节​点
 		 */
 		debug_skip_available: string
@@ -8142,6 +8345,45 @@ type RootTranslation = {
 		 * 结​束​调​试​会​话
 		 */
 		debug_end: string
+		/**
+		 * 根​流​程
+		 */
+		debug_breadcrumbs_root: string
+		/**
+		 * 子​流​程​ ​{​d​e​p​t​h​}
+		 * @param {number} depth
+		 */
+		debug_breadcrumbs_subflow: RequiredParams<'depth'>
+		/**
+		 * 当​前​暂​停​在​:
+		 */
+		debug_breadcrumbs_paused_at: string
+		/**
+		 * 回​到​当​前​暂​停​节​点
+		 */
+		debug_breadcrumbs_locate: string
+		/**
+		 * 层​级​ ​{​d​e​p​t​h​}
+		 * @param {number} depth
+		 */
+		debug_breadcrumbs_depth: RequiredParams<'depth'>
+		/**
+		 * 调​用​栈​帧
+		 */
+		debug_call_frames_title: string
+		/**
+		 * 暂​停
+		 */
+		debug_call_frames_paused: string
+		/**
+		 * 子​流​程​内​部​已​暂​停​:​ ​{​n​a​m​e​}
+		 * @param {string} name
+		 */
+		debug_subflow_paused_inside: RequiredParams<'name'>
+		/**
+		 * 点​击​进​入​子​流​程
+		 */
+		debug_subflow_click_to_enter: string
 		/**
 		 * 入​口​节​点​断​点​（​固​定​）
 		 */
@@ -13080,6 +13322,29 @@ type RootTranslation = {
 			 */
 			diagnose_and_fix_flow: string
 			/**
+			 * 节​点​【​{​n​o​d​e​N​a​m​e​}​】​(​{​n​o​d​e​T​y​p​e​}​)​ ​执​行​报​错​了​：​[​{​e​r​r​o​r​K​i​n​d​}​]​ ​{​e​r​r​o​r​M​e​s​s​a​g​e​}​。​请​帮​我​分​析​具​体​报​错​原​因​，​并​向​我​询​问​修​复​方​向​，​确​认​后​再​帮​我​修​复​流​程​。
+			 * @param {unknown} errorKind
+			 * @param {unknown} errorMessage
+			 * @param {unknown} nodeName
+			 * @param {unknown} nodeType
+			 */
+			prompt_diagnose_node: RequiredParams<'errorKind' | 'errorMessage' | 'nodeName' | 'nodeType'>
+			/**
+			 * 当​前​节​点​执​行​报​错​了​：​[​{​e​r​r​o​r​K​i​n​d​}​]​ ​{​e​r​r​o​r​M​e​s​s​a​g​e​}​。​请​帮​我​诊​断​报​错​原​因​，​向​我​提​供​修​复​方​向​选​项​并​询​问​我​，​确​认​后​修​复​流​程​。
+			 * @param {unknown} errorKind
+			 * @param {unknown} errorMessage
+			 */
+			prompt_diagnose_current_node: RequiredParams<'errorKind' | 'errorMessage'>
+			/**
+			 * 当​前​流​程​执​行​失​败​了​，​失​败​节​点​包​括​：​{​f​a​i​l​e​d​N​o​d​e​s​}​。​请​帮​我​深​度​诊​断​报​错​原​因​，​向​我​提​供​修​复​方​向​选​项​并​询​问​我​，​确​认​后​帮​我​修​复​流​程​。
+			 * @param {unknown} failedNodes
+			 */
+			prompt_diagnose_flow_failures: RequiredParams<'failedNodes'>
+			/**
+			 * 当​前​流​程​执​行​报​错​了​（​状​态​：​f​a​i​l​e​d​）​。​请​帮​我​诊​断​流​程​中​的​问​题​，​向​我​询​问​修​复​方​向​，​并​在​确​认​后​帮​我​修​复​。
+			 */
+			prompt_diagnose_flow_generic: string
+			/**
 			 * 思​考​过​程​ ​(​R​e​a​s​o​n​i​n​g​)
 			 */
 			thought_process: string
@@ -13548,6 +13813,10 @@ export type TranslationFunctions = {
 		 */
 		end: () => LocalizedString
 		/**
+		 * 子流程
+		 */
+		sub_flow: () => LocalizedString
+		/**
 		 * 此节点无需配置，仅用于标记流程终点。
 		 */
 		end_config_hint: () => LocalizedString
@@ -13766,6 +14035,10 @@ export type TranslationFunctions = {
 			 * 标记工作流正常执行结束与终点输出
 			 */
 			end: () => LocalizedString
+			/**
+			 * 嵌套执行另一个独立流程，实现模板与组件复用
+			 */
+			sub_flow: () => LocalizedString
 			/**
 			 * 建立 WebSocket 客户端长连接会话
 			 */
@@ -17801,6 +18074,140 @@ export type TranslationFunctions = {
 		 * 显示前 {displayed} 字节（共 {total} 字节）
 		 */
 		hex_truncated_notice: (arg: { displayed: unknown, total: unknown }) => LocalizedString
+		subflow: {
+			/**
+			 * 目标子流程
+			 */
+			target_flow: () => LocalizedString
+			/**
+			 * 选择已保存流程
+			 */
+			mode_flow_select: () => LocalizedString
+			/**
+			 * 指定流程文件
+			 */
+			mode_file_path: () => LocalizedString
+			/**
+			 * 请选择目标流程
+			 */
+			select_target_flow: () => LocalizedString
+			/**
+			 * 搜索流程名称...
+			 */
+			search_flow_placeholder: () => LocalizedString
+			/**
+			 * 暂无已保存的流程
+			 */
+			no_flows: () => LocalizedString
+			/**
+			 * 未找到匹配的流程
+			 */
+			no_matching_flows: () => LocalizedString
+			/**
+			 * 目标流程不存在，可能已被删除或重命名
+			 */
+			missing_target: () => LocalizedString
+			/**
+			 * 流程文件路径
+			 */
+			target_flow_path: () => LocalizedString
+			/**
+			 * ./subflows/auth.json
+			 */
+			target_flow_path_placeholder: () => LocalizedString
+			/**
+			 * 相对路径以当前流程文件所在目录为基准，也可填写绝对路径
+			 */
+			target_flow_path_hint: () => LocalizedString
+			/**
+			 * 浏览...
+			 */
+			browse_file: () => LocalizedString
+			/**
+			 * 清除
+			 */
+			clear_selection: () => LocalizedString
+			/**
+			 * 在新标签页打开流程
+			 */
+			open_target_flow: () => LocalizedString
+			/**
+			 * 继承父流程所有变量
+			 */
+			inherit_all_variables: () => LocalizedString
+			/**
+			 * 开启后，子流程将直接继承父流程执行到此节点时的所有变量快照
+			 */
+			inherit_all_variables_desc: () => LocalizedString
+			/**
+			 * 输入变量自定义覆盖
+			 */
+			input_mappings: () => LocalizedString
+			/**
+			 * 将父流程表达式或变量映射为子流程指定变量
+			 */
+			input_mappings_desc: () => LocalizedString
+			/**
+			 * 添加输入变量
+			 */
+			add_input_mapping: () => LocalizedString
+			/**
+			 * 暂无自定义输入变量覆盖
+			 */
+			no_input_mappings: () => LocalizedString
+			/**
+			 * 父流程变量/表达式 (如 token 或 $.user.id)
+			 */
+			source_expr_placeholder: () => LocalizedString
+			/**
+			 * 子流程变量名 (如 auth_token)
+			 */
+			target_var_placeholder: () => LocalizedString
+			/**
+			 * 导出子流程所有变量
+			 */
+			export_all_variables: () => LocalizedString
+			/**
+			 * 开启后，子流程修改和创建的所有变量将全部回写到父流程上下文
+			 */
+			export_all_variables_desc: () => LocalizedString
+			/**
+			 * 指定导出变量
+			 */
+			output_mappings: () => LocalizedString
+			/**
+			 * 仅将子流程指定的变量导出到父流程中
+			 */
+			output_mappings_desc: () => LocalizedString
+			/**
+			 * 添加导出变量
+			 */
+			add_output_mapping: () => LocalizedString
+			/**
+			 * 暂无导出变量设置
+			 */
+			no_output_mappings: () => LocalizedString
+			/**
+			 * 子流程变量名 (如 token)
+			 */
+			child_var_placeholder: () => LocalizedString
+			/**
+			 * 父流程变量名 (如 auth_token)
+			 */
+			parent_var_placeholder: () => LocalizedString
+			/**
+			 * 子流程执行中 {completed}/{total}
+			 */
+			running_progress: (arg: { completed: unknown, total: unknown }) => LocalizedString
+			/**
+			 * 当前节点：{name}
+			 */
+			running_node: (arg: { name: unknown }) => LocalizedString
+			/**
+			 * 子流程启动中...
+			 */
+			running_starting: () => LocalizedString
+		}
 	}
 	execution: {
 		node_types: {
@@ -18338,6 +18745,46 @@ export type TranslationFunctions = {
 			 * 执行状态
 			 */
 			status_summary: () => LocalizedString
+			/**
+			 * 调用配置
+			 */
+			sub_flow_invocation: () => LocalizedString
+			/**
+			 * 子流程节点数
+			 */
+			sub_flow_total_nodes: () => LocalizedString
+			/**
+			 * 成功节点
+			 */
+			sub_flow_success_nodes: () => LocalizedString
+			/**
+			 * 失败节点
+			 */
+			sub_flow_failed_nodes: () => LocalizedString
+			/**
+			 * 子流程输入变量
+			 */
+			sub_flow_input_variables: () => LocalizedString
+			/**
+			 * 子流程输出变量
+			 */
+			sub_flow_output_variables: () => LocalizedString
+			/**
+			 * 跳过节点 ({count})
+			 */
+			sub_flow_skipped_nodes: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 子节点执行明细 ({count})
+			 */
+			sub_flow_child_nodes: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 子流程未到达结束节点
+			 */
+			sub_flow_not_reached_end: () => LocalizedString
+			/**
+			 * 流程警告
+			 */
+			flow_warning: () => LocalizedString
 		}
 		compare: {
 			/**
@@ -21336,6 +21783,22 @@ export type TranslationFunctions = {
 		 */
 		debug_step_unavailable: () => LocalizedString
 		/**
+		 * 步入子流程 (F11)
+		 */
+		debug_step_into_available: () => LocalizedString
+		/**
+		 * 步入 (F11，仅在暂停时可用)
+		 */
+		debug_step_into_unavailable: () => LocalizedString
+		/**
+		 * 步出子流程 (Shift+F11)
+		 */
+		debug_step_out_available: () => LocalizedString
+		/**
+		 * 步出 (Shift+F11，仅在子流程中可用)
+		 */
+		debug_step_out_unavailable: () => LocalizedString
+		/**
 		 * 跳过当前节点
 		 */
 		debug_skip_available: () => LocalizedString
@@ -21355,6 +21818,42 @@ export type TranslationFunctions = {
 		 * 结束调试会话
 		 */
 		debug_end: () => LocalizedString
+		/**
+		 * 根流程
+		 */
+		debug_breadcrumbs_root: () => LocalizedString
+		/**
+		 * 子流程 {depth}
+		 */
+		debug_breadcrumbs_subflow: (arg: { depth: number }) => LocalizedString
+		/**
+		 * 当前暂停在:
+		 */
+		debug_breadcrumbs_paused_at: () => LocalizedString
+		/**
+		 * 回到当前暂停节点
+		 */
+		debug_breadcrumbs_locate: () => LocalizedString
+		/**
+		 * 层级 {depth}
+		 */
+		debug_breadcrumbs_depth: (arg: { depth: number }) => LocalizedString
+		/**
+		 * 调用栈帧
+		 */
+		debug_call_frames_title: () => LocalizedString
+		/**
+		 * 暂停
+		 */
+		debug_call_frames_paused: () => LocalizedString
+		/**
+		 * 子流程内部已暂停: {name}
+		 */
+		debug_subflow_paused_inside: (arg: { name: string }) => LocalizedString
+		/**
+		 * 点击进入子流程
+		 */
+		debug_subflow_click_to_enter: () => LocalizedString
 		/**
 		 * 入口节点断点（固定）
 		 */
@@ -26164,6 +26663,22 @@ export type TranslationFunctions = {
 			 * AI 诊断流程报错
 			 */
 			diagnose_and_fix_flow: () => LocalizedString
+			/**
+			 * 节点【{nodeName}】({nodeType}) 执行报错了：[{errorKind}] {errorMessage}。请帮我分析具体报错原因，并向我询问修复方向，确认后再帮我修复流程。
+			 */
+			prompt_diagnose_node: (arg: { errorKind: unknown, errorMessage: unknown, nodeName: unknown, nodeType: unknown }) => LocalizedString
+			/**
+			 * 当前节点执行报错了：[{errorKind}] {errorMessage}。请帮我诊断报错原因，向我提供修复方向选项并询问我，确认后修复流程。
+			 */
+			prompt_diagnose_current_node: (arg: { errorKind: unknown, errorMessage: unknown }) => LocalizedString
+			/**
+			 * 当前流程执行失败了，失败节点包括：{failedNodes}。请帮我深度诊断报错原因，向我提供修复方向选项并询问我，确认后帮我修复流程。
+			 */
+			prompt_diagnose_flow_failures: (arg: { failedNodes: unknown }) => LocalizedString
+			/**
+			 * 当前流程执行报错了（状态：failed）。请帮我诊断流程中的问题，向我询问修复方向，并在确认后帮我修复。
+			 */
+			prompt_diagnose_flow_generic: () => LocalizedString
 			/**
 			 * 思考过程 (Reasoning)
 			 */
