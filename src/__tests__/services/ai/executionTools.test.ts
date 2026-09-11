@@ -117,6 +117,103 @@ describe('executionTools', () => {
       expect(res.diagnoses[0].suggested_repair_directions.length).toBeGreaterThan(0);
       expect(res.instruction_for_assistant).toContain('propose the suggested repair directions');
     });
+    it('能够深入诊断 sub_flow 内部嵌套失败节点', async () => {
+      const flow: Flow = {
+        uuid: 'flow-parent',
+        name: 'Parent Flow',
+        nodes: [
+          {
+            uuid: 'entry-1',
+            type: 'entry',
+            name: 'Start',
+            position: { x: 0, y: 0 },
+            data: { type: 'entry' },
+          },
+          {
+            uuid: 'subflow-1',
+            type: 'sub_flow',
+            name: 'Nested Subflow',
+            position: { x: 200, y: 0 },
+            data: { type: 'sub_flow', target_flow_path: './child.json' },
+          },
+        ],
+        connections: [
+          {
+            id: 'c1',
+            source_node_uuid: 'entry-1',
+            source_port_id: 'out',
+            target_node_uuid: 'subflow-1',
+            target_port_id: 'in',
+          },
+        ],
+      };
+      useFlowStore.getState().setFlow(flow);
+
+      const mockReport: FlowExecutionReport = {
+        uuid: 'rep-parent',
+        flow_uuid: 'flow-parent',
+        flow_name: 'Parent Flow',
+        start_time: 1000,
+        end_time: 1500,
+        duration_ms: 500,
+        total_nodes: 1,
+        executed_count: 1,
+        status: 'failed',
+        statistics: { success_count: 0, failed_count: 1 },
+        node_reports: [
+          {
+            node_uuid: 'subflow-1',
+            node_name: 'Nested Subflow',
+            node_type: 'sub_flow',
+            start_time: 1000,
+            end_time: 1500,
+            duration_ms: 500,
+            status: 'failed',
+            error: {
+              error_kind: 'execution',
+              error_code: 'E_EXECUTION_ERROR',
+              message: 'Subflow execution failed',
+            },
+            sub_flow_report: {
+              uuid: 'rep-child',
+              flow_uuid: 'flow-child',
+              flow_name: 'Child Flow',
+              start_time: 1000,
+              end_time: 1500,
+              duration_ms: 500,
+              total_nodes: 1,
+              executed_count: 1,
+              status: 'failed',
+              statistics: { success_count: 0, failed_count: 1 },
+              node_reports: [
+                {
+                  node_uuid: 'child-http',
+                  node_name: 'Child Query',
+                  node_type: 'http',
+                  start_time: 1000,
+                  end_time: 1500,
+                  duration_ms: 500,
+                  status: 'failed',
+                  error: {
+                    error_kind: 'execution',
+                    error_code: 'E_HTTP_STATUS_ERROR',
+                    message: 'Internal Server Error 500',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      };
+      useExecutionStore.getState().setReport(mockReport);
+
+      const res = await executionToolHandlers.diagnose_flow_errors();
+      expect(res.success).toBe(true);
+      expect(res.failed_count).toBe(1);
+      expect(res.diagnoses[0].node_type).toBe('sub_flow');
+      expect(res.diagnoses[0].possible_root_cause).toContain('Child Query');
+      expect(res.diagnoses[0].suggested_repair_directions.length).toBeGreaterThan(0);
+    });
   });
 
   describe('get_last_execution_report', () => {

@@ -25,7 +25,7 @@ Your role is to assist users in designing, constructing, debugging, optimizing, 
 ### 1. MPE Core Architecture & DAG Routing Rules:
 - **DAG Execution Flow**: Nodes execute as a Directed Acyclic Graph. Execution begins at the 'entry' node.
 - **Node Taxonomy**:
-  * Flow Control: 'entry', 'end', 'conditional', 'proxy'
+  * Flow Control & Modularization: 'entry', 'end', 'conditional', 'proxy', 'sub_flow'
   * HTTP & REST: 'http'
   * Scripts & Logic: 'script'
   * Assertions: 'assertion'
@@ -43,6 +43,7 @@ Your role is to assist users in designing, constructing, debugging, optimizing, 
       - **'false'**: Error / failure / condition-false branch.
     - **Flow Control & Utilities**:
       - 'entry': Single outgoing port **'out'**.
+      - 'sub_flow': Success outgoing port **'out'**, failure outgoing port **'false'**. Target input port **'in'**.
       - 'variable_extractor', 'proxy', 'sse_disconnect', 'graphql_disconnect': Outgoing port **'out'**.
       - 'end': Terminal node with target port **'in'** only (no outgoing port).
   * **NEVER use 'default' as a port name!** There is no 'default' port in MPE.
@@ -152,6 +153,19 @@ When calling \`batch_create_pipeline\`, \`add_node\`, or \`update_node_config\`,
 - **'graphql_introspect'**: \`{}\`
 - **'graphql_disconnect'**: \`{}\`
 - **'proxy'**: \`{ "mode": "http" | "socks5" | "clear", "http_proxy": "http://127.0.0.1:7890" }\`
+- **'sub_flow'**:
+  \`\`\`json
+  {
+    "target_flow_id": "optional-flow-uuid",       // target flow UUID (for saved workflow in workspace)
+    "target_flow_path": "./subflows/auth.json",   // target flow file path (relative or absolute .mpf / .json)
+    "inherit_all_variables": true,                 // whether child flow inherits parent variables (default: true)
+    "variable_mappings": [                        // explicit variable mappings from parent to child
+      { "source": "parent_token", "target": "child_token" }
+    ],
+    "export_all_variables": true,                  // whether child exports all variables back to parent (default: true)
+    "output_mappings": []                          // specific exported variable mappings when export_all_variables is false
+  }
+  \`\`\`
 - **'end'**: \`{}\` (Terminal node)
 - **Plugins ('<proto>:<action>')**: \`{ ...specific_plugin_params }\`. E.g., \`redis:command\`: \`{ "command": "GET user:1" }\`, \`db:query\`: \`{ "connection_string": "...", "query": "SELECT 1" }\`. Call \`get_node_type_schema\` to inspect exact plugin parameters.
 
@@ -283,6 +297,12 @@ export function formatNodeConfigSummary(
       const script = String(data.script || '').trim();
       const snippet = script.length > 80 ? script.substring(0, 77) + '...' : script;
       return `script: "${snippet.replace(/\n/g, '\\n')}"`;
+    }
+    case 'sub_flow': {
+      const target = data.target_flow_path || data.target_flow_id || 'unassigned';
+      const inherit = data.inherit_all_variables ?? true;
+      const exportVars = data.export_all_variables ?? true;
+      return `target: ${target}, inherit_vars: ${inherit}, export_vars: ${exportVars}`;
     }
     case 'ws_connect':
     case 'sse_connect':

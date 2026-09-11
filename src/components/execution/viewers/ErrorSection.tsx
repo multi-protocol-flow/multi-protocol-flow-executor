@@ -62,8 +62,16 @@ export function ErrorSection({ error, nodeName, nodeType }: ErrorSectionProps) {
     e.stopPropagation();
     useAIStore.getState().setCopilotOpen(true);
     const prompt = nodeName
-      ? `节点【${nodeName}】(${nodeType || 'node'}) 执行报错了：[${error.error_kind}] ${resolvedMsg}。请帮我分析具体报错原因，并向我询问修复方向，确认后再帮我修复流程。`
-      : `当前节点执行报错了：[${error.error_kind}] ${resolvedMsg}。请帮我诊断报错原因，向我提供修复方向选项并询问我，确认后修复流程。`;
+      ? ll.ai.copilot.prompt_diagnose_node({
+          nodeName,
+          nodeType: nodeType || 'node',
+          errorKind: error.error_kind,
+          errorMessage: resolvedMsg,
+        })
+      : ll.ai.copilot.prompt_diagnose_current_node({
+          errorKind: error.error_kind,
+          errorMessage: resolvedMsg,
+        });
     useAIStore.getState().sendMessage(prompt);
   };
   return (

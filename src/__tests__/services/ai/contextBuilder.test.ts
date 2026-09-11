@@ -24,6 +24,14 @@ describe('contextBuilder', () => {
       expect(prompt).toContain('get_node_type_schema');
       expect(prompt).toContain('get_node_detail');
     });
+    it('包含 sub_flow 子流程节点分类、端口规范与配置模式', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toContain("'sub_flow'");
+      expect(prompt).toContain("sub_flow");
+      expect(prompt).toContain("target_flow_path");
+      expect(prompt).toContain("target_flow_id");
+      expect(prompt).toContain("inherit_all_variables");
+    });
 
     it('包含内置动态变量规范与常见类别示例', () => {
       const prompt = buildSystemPrompt();
@@ -218,6 +226,16 @@ describe('contextBuilder', () => {
 
     it('空配置兜底', () => {
       expect(formatNodeConfigSummary('http', undefined)).toBe('empty config');
+    });
+    it('格式化 sub_flow 节点摘要', () => {
+      const res = formatNodeConfigSummary('sub_flow', {
+        target_flow_path: './subflows/login.json',
+        inherit_all_variables: true,
+        export_all_variables: true,
+      });
+      expect(res).toContain('target: ./subflows/login.json');
+      expect(res).toContain('inherit_vars: true');
+      expect(res).toContain('export_vars: true');
     });
   });
 });

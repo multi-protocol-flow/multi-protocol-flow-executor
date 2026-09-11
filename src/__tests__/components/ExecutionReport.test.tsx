@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ExecutionReport } from '@/components/execution/ExecutionReport';
 import { useExecutionStore } from '@/stores';
+import { useAIStore } from '@/stores/ai';
 import type { FlowExecutionReport } from '@/types';
 
 // Mock Zustand store
@@ -303,5 +304,23 @@ describe('ExecutionReport', () => {
 
     const { container } = render(<ExecutionReport />);
     expect(container.firstChild).toBeNull();
+  });
+  it('点击 AI 诊断流程报错按钮时使用国际化提示词触发 AI 分析', () => {
+    const sendSpy = vi.spyOn(useAIStore.getState(), 'sendMessage').mockResolvedValue();
+    mockStoreState(createStoreState({
+      report: failedReport,
+      isReportDialogOpen: true,
+    }));
+
+    render(<ExecutionReport />);
+
+    const diagBtn = screen.getByRole('button', { name: /AI 诊断流程报错|AI Diagnose Flow Errors/i });
+    fireEvent.click(diagBtn);
+
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+    const sentPrompt = sendSpy.mock.calls[0][0];
+    expect(sentPrompt).toContain('HTTP请求节点');
+    expect(sentPrompt).toContain('请求超时');
+    sendSpy.mockRestore();
   });
 });

@@ -45,6 +45,17 @@ describe('resolveDefaultPorts', () => {
     expect(sourcePort).toBe('out');
     expect(targetPort).toBe('in');
   });
+  it('sub_flow -> http: 源端口默认应为 out，目标端口为 in', () => {
+    const { sourcePort, targetPort } = resolveDefaultPorts('sub_flow', 'http');
+    expect(sourcePort).toBe('out');
+    expect(targetPort).toBe('in');
+  });
+
+  it('智能纠偏：如果模型给 sub_flow 传入 true 端口，应自动纠偏为 out', () => {
+    const { sourcePort, targetPort } = resolveDefaultPorts('sub_flow', 'script', 'true', 'in');
+    expect(sourcePort).toBe('out');
+    expect(targetPort).toBe('in');
+  });
 });
 
 describe('buildDefaultNodeData 格式规范化与容错', () => {
@@ -107,6 +118,16 @@ describe('buildDefaultNodeData 格式规范化与容错', () => {
     expect(mappings[0].target).toBe('auth_token');
     expect(mappings[1].source).toBe('$.status');
     expect(mappings[1].target).toBe('http_status');
+  });
+  it('sub_flow 节点：配置标准化与默认继承配置', () => {
+    const data = buildDefaultNodeData('sub_flow', {
+      target_flow_path: './subflows/auth.json',
+    }) as unknown as Record<string, unknown>;
+
+    expect(data.type).toBe('sub_flow');
+    expect(data.target_flow_path).toBe('./subflows/auth.json');
+    expect(data.inherit_all_variables).toBe(true);
+    expect(data.export_all_variables).toBe(true);
   });
 
   it('normalizeJsonPath: 正确为省略 $. 前缀的路径补齐前缀', () => {
@@ -244,8 +265,17 @@ describe('canvasToolHandlers 集成测试', () => {
     const customSchema = await canvasToolHandlers.get_node_type_schema({ node_type: 'redis:command' });
     expect(customSchema.success).toBe(true);
     expect(customSchema.hint).toBeDefined();
-  });
 
+    const subflowSchema = await canvasToolHandlers.get_node_type_schema({ node_type: 'sub_flow' });
+    expect(subflowSchema.success).toBe(true);
+    expect(subflowSchema.builtin_schema).toBeDefined();
+    const schema = subflowSchema.builtin_schema;
+    if (schema && typeof schema === 'object' && 'display_name' in schema) {
+      expect(schema.display_name).toBe('SubFlow');
+    } else {
+      expect.fail('sub_flow builtin_schema missing display_name');
+    }
+  });
   it('get_flow_nodes_config: 批量获取节点完整配置', async () => {
     const allConfigs = await canvasToolHandlers.get_flow_nodes_config();
     expect(allConfigs.success).toBe(true);

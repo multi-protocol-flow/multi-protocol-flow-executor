@@ -36,6 +36,7 @@ export function resolveDefaultPorts(
 
   const isOutPortSource = [
     'entry',
+    'sub_flow',
     'variable_extractor',
     'proxy',
     'sse_disconnect',
@@ -48,8 +49,10 @@ export function resolveDefaultPorts(
   } else if (sourcePort === 'out' && !isOutPortSource) {
     // 保护纠偏：协议/条件节点没有 'out' 端口，模型传 'out' 时自动映射到 'true'
     sourcePort = 'true';
+  } else if (sourcePort === 'true' && sourceType === 'sub_flow') {
+    // 保护纠偏：sub_flow 成功端口为 'out'，模型传 'true' 时自动映射到 'out'
+    sourcePort = 'out';
   }
-
   return { sourcePort, targetPort };
 }
 
@@ -216,6 +219,24 @@ export function buildDefaultNodeData(type: string, config?: Record<string, unkno
           : '// JavaScript Execution Sandbox\nconsole.log("Running script step");\n',
       } as unknown as NodeData;
     }
+    case 'sub_flow': {
+      const variableMappings = Array.isArray(rawConfig.variable_mappings)
+        ? rawConfig.variable_mappings
+        : [];
+      const outputMappings = Array.isArray(rawConfig.output_mappings)
+        ? rawConfig.output_mappings
+        : [];
+      return {
+        ...rawConfig,
+        type: 'sub_flow',
+        target_flow_id: rawConfig.target_flow_id ? String(rawConfig.target_flow_id) : undefined,
+        target_flow_path: rawConfig.target_flow_path ? String(rawConfig.target_flow_path) : undefined,
+        inherit_all_variables: rawConfig.inherit_all_variables ?? true,
+        variable_mappings: variableMappings,
+        export_all_variables: rawConfig.export_all_variables ?? true,
+        output_mappings: outputMappings,
+      } as unknown as NodeData;
+    }
 
     case 'entry':
       return { type: 'entry' } as unknown as NodeData;
@@ -250,7 +271,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
                 type: {
                   type: 'string',
                   description:
-                    "Node type: 'http', 'script', 'assertion', 'conditional', 'variable_extractor', 'end', 'ws_connect', 'tcp_connect', etc.",
+                    "Node type: 'http', 'script', 'assertion', 'conditional', 'sub_flow', 'variable_extractor', 'end', 'ws_connect', 'tcp_connect', etc.",
                 },
                 name: {
                   type: 'string',
@@ -295,7 +316,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
         properties: {
           type: {
             type: 'string',
-            description: 'The node type (e.g. http, script, conditional, assertion, entry, end, ws_connect, etc.).',
+            description: 'The node type (e.g. http, script, conditional, assertion, sub_flow, entry, end, ws_connect, etc.).',
           },
           name: {
             type: 'string',
@@ -312,7 +333,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
           config: {
             type: 'object',
             description:
-              "Node configuration parameters specific to the node type (e.g. for http: {method: 'get'|'post', url, headers, body}, for assertion: {assertions: [...]}, for conditional: {condition_type, field_path, operator, expected_value}).",
+              "Node configuration parameters specific to the node type (e.g. for http: {method: 'get'|'post', url, headers, body}, for sub_flow: {target_flow_id, target_flow_path, inherit_all_variables}, for assertion: {assertions: [...]}, for conditional: {condition_type, field_path, operator, expected_value}).",
           },
           on_error: {
             type: 'string',
@@ -359,7 +380,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
     function: {
       name: 'connect_nodes',
       description:
-        "Connect two nodes in the workflow canvas. Automatically determines correct ports ('out' for entry/extractor/proxy, 'true' for http/script/assertion/conditional/plugins, 'in' for target).",
+        "Connect two nodes in the workflow canvas. Automatically determines correct ports ('out' for entry/sub_flow/extractor/proxy, 'true' for http/script/assertion/conditional/plugins, 'in' for target).",
       parameters: {
         type: 'object',
         properties: {
@@ -491,14 +512,14 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
     function: {
       name: 'get_node_type_schema',
       description:
-        'Query the complete configuration schema, allowable parameter names, data types, descriptions, default values, and usage examples for any node type (including built-in protocols and plugins like http, assertion, conditional, script, variable_extractor, ws_*, tcp_*, sse_*, graphql_*, redis:*, db:*, kafka:*, etc.).',
+        'Query the complete configuration schema, allowable parameter names, data types, descriptions, default values, and usage examples for any node type (including built-in protocols and plugins like http, sub_flow, assertion, conditional, script, variable_extractor, ws_*, tcp_*, sse_*, graphql_*, redis:*, db:*, kafka:*, etc.).',
       parameters: {
         type: 'object',
         properties: {
           node_type: {
             type: 'string',
             description:
-              "The node type identifier, e.g. 'http', 'assertion', 'conditional', 'script', 'variable_extractor', 'ws_connect', 'tcp_connect', 'redis:command', 'db:query'.",
+              "The node type identifier, e.g. 'http', 'sub_flow', 'assertion', 'conditional', 'script', 'variable_extractor', 'ws_connect', 'tcp_connect', 'redis:command', 'db:query'.",
           },
         },
         required: ['node_type'],
@@ -620,6 +641,43 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       field_path: 'status',
       operator: 'equal',
       expected_value: 200,
+    },
+  },
+  sub_flow: {
+    display_name: 'SubFlow',
+    category: 'tools',
+    description: 'Execute another workflow as a modular, reusable subflow with variable inheritance and mapping',
+    ports: {
+      input: ['in'],
+      output: ['out (subflow succeeded)', 'false (subflow failed)'],
+    },
+    fields: {
+      target_flow_id: { type: 'string', description: 'Target flow UUID (for saved workflow in workspace)' },
+      target_flow_path: { type: 'string', description: 'Target flow file path (relative or absolute .mpf / .json path)' },
+      inherit_all_variables: { type: 'boolean', default: true, description: 'Whether child flow inherits all variables from parent' },
+      variable_mappings: {
+        type: 'array',
+        description: 'Explicit input variable mappings from parent to child: [{ source, target }]',
+        items: {
+          source: { type: 'string', description: 'Variable name or expression in parent flow' },
+          target: { type: 'string', description: 'Variable name in child flow' },
+        },
+      },
+      export_all_variables: { type: 'boolean', default: true, description: 'Whether to export all variables from child back to parent' },
+      output_mappings: {
+        type: 'array',
+        description: 'Specific variable mappings exported from child to parent when export_all_variables is false',
+        items: {
+          source: { type: 'string', description: 'Variable name in child flow' },
+          target: { type: 'string', description: 'Variable name in parent flow' },
+        },
+      },
+    },
+    example: {
+      target_flow_id: 'flow-uuid-12345',
+      target_flow_path: './subflows/login.json',
+      inherit_all_variables: true,
+      export_all_variables: true,
     },
   },
   variable_extractor: {

@@ -284,6 +284,18 @@ export const executionToolHandlers = {
         possibleRootCause = `JavaScript runtime error in sandbox: ${errMsg}`;
         suggestedDirections.push('Direction 1: Fix JavaScript code syntax or object property access.');
         suggestedDirections.push('Direction 2: Check preceding step response structure accessed via context.steps.<id>.response.body.');
+      } else if (nr.node_type === 'sub_flow') {
+        const subReport = nr.sub_flow_report;
+        const failedChild = subReport?.node_reports?.find((c) => c.status === 'failed');
+        if (failedChild) {
+          possibleRootCause = `Subflow [${subReport?.flow_name || 'child'}] failed at internal node "${failedChild.node_name}" (${failedChild.node_type}): ${failedChild.error?.message || 'failed'}`;
+          suggestedDirections.push(`Direction 1: Inspect and fix failed child node "${failedChild.node_name}" inside subflow target.`);
+          suggestedDirections.push('Direction 2: Check input variable mappings passed from parent to child flow.');
+        } else {
+          possibleRootCause = `Subflow execution failed: ${errMsg}`;
+          suggestedDirections.push('Direction 1: Verify target_flow_id or target_flow_path exists and is accessible.');
+          suggestedDirections.push('Direction 2: Check variable inheritance and output mapping settings.');
+        }
       } else {
         suggestedDirections.push(`Direction 1: Review ${nr.node_type} node parameters and connection credentials.`);
       }
