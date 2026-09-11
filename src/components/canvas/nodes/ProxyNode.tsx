@@ -11,6 +11,7 @@ import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { getLL } from '@/i18n/i18n-lazy';
 import { memo } from 'react';
+import { useCurrentLocale } from '@/hooks/useLocale';
 
 /** Proxy 节点数据类型 */
 export interface ProxyNodeData {
@@ -18,17 +19,13 @@ export interface ProxyNodeData {
   config?: ProxyConfig;
 }
 
-/** Proxy 节点数据类型 */
-export interface ProxyNodeData {
-  label?: string;
-  config?: ProxyConfig;
-}
 
 /**
  * Proxy 节点 - 代理设置
  * 单输入端口 "in"，单输出端口 "out"
  */
 export const ProxyNode = memo(function ProxyNode({ id, data, selected }: NodeProps) {
+  useCurrentLocale();
   const nodeData = data as ProxyNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);

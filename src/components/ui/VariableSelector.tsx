@@ -16,7 +16,6 @@ import {
 import { useUIStore } from '@/stores/ui';
 import { getLL } from '@/i18n/i18n-lazy';
 
-const LL = getLL();
 
 // ============================================================================
 // Popover 基础组件 (shadcn/ui 风格)
@@ -94,10 +93,12 @@ export function VariableSelector({
   nodeLabels = {},
   triggerClassName,
   triggerChildren,
-  placeholder = LL.flow.variable_selector_search(),
-  emptyText = LL.flow.variable_selector_empty(),
+  placeholder,
+  emptyText,
 }: VariableSelectorProps) {
   const LL = getLL();
+  const actualPlaceholder = placeholder ?? LL.flow.variable_selector_search();
+  const actualEmptyText = emptyText ?? LL.flow.variable_selector_empty();
 
   // 搜索状态
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -201,7 +202,7 @@ export function VariableSelector({
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               type="text"
-              placeholder={placeholder}
+              placeholder={actualPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8 pr-8 h-8 text-xs"
@@ -224,7 +225,7 @@ export function VariableSelector({
           {groupedVariables.size === 0 && !searchQuery.trim() ? (
             <>
               <div className="flex items-center justify-center h-16 text-xs text-muted-foreground">
-                {emptyText}
+                {actualEmptyText}
               </div>
               <DynamicVariableGroup
                 variables={filteredDynamicVariables}
@@ -233,7 +234,7 @@ export function VariableSelector({
             </>
           ) : groupedVariables.size === 0 && filteredDynamicVariables.length === 0 ? (
             <div className="flex items-center justify-center h-20 text-xs text-muted-foreground">
-              {emptyText}
+              {actualEmptyText}
             </div>
           ) : (
             <div className="py-1">

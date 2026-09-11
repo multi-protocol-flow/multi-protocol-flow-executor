@@ -11,6 +11,7 @@ import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { getLL } from '@/i18n/i18n-lazy';
 import { memo } from 'react';
+import { useCurrentLocale } from '@/hooks/useLocale';
 
 /** Assertion 节点数据类型 */
 export interface AssertionNodeData {
@@ -23,6 +24,7 @@ export interface AssertionNodeData {
  * 输入端口 "in"，两个输出端口 "true"(上，断言通过) 和 "false"(下，断言失败)
  */
 export const AssertionNode = memo(function AssertionNode({ id, data, selected }: NodeProps) {
+  useCurrentLocale();
   const nodeData = data as AssertionNodeData;
   const config = nodeData.config;
   const assertionCount = config?.assertions?.length ?? 0;

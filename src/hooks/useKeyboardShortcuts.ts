@@ -9,7 +9,6 @@ import { flowStorage } from '@/services/storage';
 import { useZoomStore } from '@/stores/zoom';
 import { getLL } from '@/i18n/i18n-lazy';
 
-const ll = getLL();
 function getFlowStoreState() {
   return typeof useFlowStore.getState === 'function'
     ? useFlowStore.getState()
@@ -41,6 +40,7 @@ function getUIStoreState() {
  * - Ctrl/Cmd + 0: 重置缩放
  */
 export function useKeyboardShortcuts() {
+  const ll = getLL();
   /**
    * Delete / Backspace 处理（capture 阶段）
    * 在 ReactFlow 处理之前拦截，实现节点删除确认弹窗
