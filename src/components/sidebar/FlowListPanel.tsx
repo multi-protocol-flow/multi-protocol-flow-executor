@@ -12,7 +12,15 @@ import {
 import { toast } from 'sonner';
 import { copyToClipboard } from '@/lib/clipboard';
 import { Button } from '@/components/ui/button';
-import { useFlowListStore, useFlowStore, useUIStore } from '@/stores';
+import {
+  useFlowListStore,
+  useFlowStore,
+  useUIStore,
+  useExecutionStore,
+  useDebugStore,
+  selectIsExecuting,
+  selectIsDebugging,
+} from '@/stores';
 import { useSettingsStore } from '@/stores/settings';
 import { flowStorage } from '@/services/storage';
 import type { FolderInfo } from '@/services/storage';
@@ -26,8 +34,10 @@ import { ValidationErrorDialog } from '@/components/dialogs/ValidationErrorDialo
 
 export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUuid, onCreateFolderTrigger }: { showHeader?: boolean; disabled?: boolean; debugFlowUuid?: string | null; onCreateFolderTrigger?: (fn: () => void) => void }) {
   const { setFlows, addFlow: addFlowToList, removeFlow: removeFlowFromList } = useFlowListStore();
-  const { setFlow, flow: currentFlow, isDirty, markSaved } = useFlowStore();
+  const { setFlow, flow: currentFlow } = useFlowStore();
   const { openNewFlowDialog, showConfirm } = useUIStore();
+  const isExecuting = useExecutionStore(selectIsExecuting);
+  const isDebugging = useDebugStore(selectIsDebugging);
   const flowsDir = useSettingsStore((state) => state.flowsDir);
   const settingsLoading = useSettingsStore((state) => state.isLoading);
   const locale = useCurrentLocale();
@@ -202,19 +212,26 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   }, [refreshAll]);
 
   const handleSelectFlow = async (uuid: string) => {
-    // 切换流程前，自动保存当前流程（如果有未保存的修改）
-    if (currentFlow && isDirty) {
-      await flowStorage.saveFlow(currentFlow);
-      markSaved();
-      // 更新流程列表中的时间戳
-      const flowMetas = await loadFlowList();
-      setFlows(flowMetas.map(mapMetadata));
+    const LL = getLL();
+    if (isExecuting) {
+      toast.info(LL.flow.executing_no_switch());
+      return;
+    }
+    if (isDebugging) {
+      toast.info(LL.flow.debug_no_switch());
+      return;
+    }
+
+    const { tabs, switchTab, openTab } = useFlowStore.getState();
+    if (tabs.some((t) => t.uuid === uuid)) {
+      switchTab(uuid);
+      return;
     }
 
     try {
       const flow = await flowStorage.loadFlow(uuid);
       if (flow) {
-        setFlow(flow);
+        openTab(flow);
         // 验证流程结构
         try {
           const result = await validateFlow(flow);
@@ -514,8 +531,11 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       onConfirm: async () => {
         await flowStorage.deleteFlow(uuid);
         removeFlowFromList(uuid);
-        // 如果删除的是当前流程，清空画布
-        if (currentFlow?.uuid === uuid) {
+        // 如果删除的是打开的流程标签，关闭该标签
+        const { tabs, closeTab } = useFlowStore.getState();
+        if (tabs.some((t) => t.uuid === uuid)) {
+          closeTab(uuid);
+        } else if (currentFlow?.uuid === uuid) {
           setFlow(null);
         }
       },
@@ -608,6 +628,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     if (currentFlowState.flow?.uuid === renamingUuid) {
       currentFlowState.updateFlowName(trimmedName);
     }
+    useFlowStore.getState().updateTabName(renamingUuid, trimmedName);
     // 持久化：加载完整 flow，修改名称后保存
     try {
       const fullFlow = await flowStorage.loadFlow(renamingUuid);

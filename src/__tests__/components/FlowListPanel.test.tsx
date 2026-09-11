@@ -120,8 +120,8 @@ describe('FlowListPanel', () => {
     });
   });
 
-  describe('切换流程时自动保存 (核心修复验证)', () => {
-    it('切换流程时，如果当前流程有未保存修改，应自动保存', async () => {
+  describe('多标签流程切换', () => {
+    it('切换流程时保留原流程草稿状态（多标签会话隔离）', async () => {
       const user = userEvent.setup();
       const currentFlow = createMockFlow('flow-1', '当前流程');
       const modifiedFlow = { ...currentFlow, name: '修改后的流程' };
@@ -129,7 +129,8 @@ describe('FlowListPanel', () => {
       
       const flowMetas = [
         { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpf', folderPath: '' },
-        { uuid: 'flow-2', name: '目标流程', updatedAt: Date.now(), filePath: 'flow-2.mpf', folderPath: '' },      ];
+        { uuid: 'flow-2', name: '目标流程', updatedAt: Date.now(), filePath: 'flow-2.mpf', folderPath: '' },
+      ];
 
       // 设置当前流程为已修改状态
       useFlowStore.getState().setFlow(modifiedFlow);
@@ -143,27 +144,30 @@ describe('FlowListPanel', () => {
         render(<FlowListPanel />);
       });
 
-      // 点击切换到另一个流程
+      // 点击切换到目标流程
       await act(async () => {
         await user.click(screen.getByText('目标流程'));
       });
 
-      // 验证：应调用 saveFlow 保存当前修改
-      expect(mockFlowStorage.saveFlow).toHaveBeenCalledWith(modifiedFlow);
-      // 验证：isDirty 应被重置
-      expect(useFlowStore.getState().isDirty).toBe(false);
-      // 验证：应加载目标流程
+      // 验证：应打开目标流程为当前活跃流程
       expect(useFlowStore.getState().flow).toEqual(targetFlow);
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-2');
+      // 验证：原流程在 tabSessions 中保留草稿与 isDirty 状态
+      const session1 = useFlowStore.getState().tabSessions['flow-1'];
+      expect(session1).toBeDefined();
+      expect(session1?.isDirty).toBe(true);
+      expect(session1?.flow.name).toBe('修改后的流程');
     });
 
-    it('切换流程时，如果当前流程无修改，不调用 saveFlow (点击后)', async () => {
+    it('切换流程时，如果当前流程无修改，正常加载目标流程', async () => {
       const user = userEvent.setup();
       const currentFlow = createMockFlow('flow-1', '当前流程');
       const targetFlow = createMockFlow('flow-2', '目标流程');
       
       const flowMetas = [
         { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpf', folderPath: '' },
-        { uuid: 'flow-2', name: '目标流程', updatedAt: Date.now(), filePath: 'flow-2.mpf', folderPath: '' },      ];
+        { uuid: 'flow-2', name: '目标流程', updatedAt: Date.now(), filePath: 'flow-2.mpf', folderPath: '' },
+      ];
 
       // 设置当前流程，无未保存修改
       useFlowStore.getState().setFlow(currentFlow);
@@ -175,26 +179,14 @@ describe('FlowListPanel', () => {
       await act(async () => {
         render(<FlowListPanel />);
       });
-      
-      // 清除初始化调用
-      mockFlowStorage.saveFlow.mockClear();
 
       await act(async () => {
         await user.click(screen.getByText('目标流程'));
       });
 
-      // 验证：点击后不应调用 saveFlow（因为 isDirty=false）
-      // 注意：只验证点击行为后的调用，不包括组件初始化
-      const saveFlowCalls = mockFlowStorage.saveFlow.mock.calls;
-      const callsAfterClick = saveFlowCalls.filter(
-        (call: { uuid: string }[]) => {
-          const flow = call[0] as Flow;
-          return flow.uuid !== 'demo-flow' && flow.uuid !== 'demo-ws-testing';
-        }
-      );
-      expect(callsAfterClick.length).toBe(0);
       // 验证：应加载目标流程
       expect(useFlowStore.getState().flow).toEqual(targetFlow);
+      expect(useFlowStore.getState().activeTabUuid).toBe('flow-2');
     });
   });
 
