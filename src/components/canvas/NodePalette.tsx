@@ -484,7 +484,7 @@ export function NodePalette() {
                 )}
               >
                 <Settings className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <span className="truncate">{t.plugin_manage()}</span>
+                <span className="truncate flex-1 min-w-0 text-left">{t.plugin_manage()}</span>
               </button>
             </div>
           </div>

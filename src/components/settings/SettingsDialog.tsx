@@ -8,6 +8,7 @@ import { useUIStore } from '@/stores/ui';
 import { useSettingsStore } from '@/stores/settings';
 import { getLL } from '@/i18n/i18n-lazy';
 import { cn } from '@/lib/utils';
+import { useCurrentLocale } from '@/hooks/useLocale';
 import { GeneralSettingsTab } from './GeneralSettingsTab';
 import { StorageSettingsTab } from './StorageSettingsTab';
 import { EngineSettingsTab } from './EngineSettingsTab';
@@ -19,6 +20,7 @@ import { useUpdateStore } from '@/stores/update';
 export type SettingsTabId = 'general' | 'storage' | 'ai' | 'engine' | 'about' | 'shortcuts';
 
 export function SettingsDialog() {
+  useCurrentLocale();
   const showSettingsDialog = useUIStore((s) => s.showSettingsDialog);
   const closeSettingsDialog = useUIStore((s) => s.closeSettingsDialog);
   const settingsDialogTab = useUIStore((s) => s.settingsDialogTab);
@@ -165,7 +167,7 @@ export function SettingsDialog() {
                     )}
                   >
                     <Icon className={cn('h-4 w-4 shrink-0', isCurrent ? 'text-primary' : 'text-muted-foreground')} />
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate flex-1 min-w-0">{item.label}</span>
                   </button>
                 );
               })}

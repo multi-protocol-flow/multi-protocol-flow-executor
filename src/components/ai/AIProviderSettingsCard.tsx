@@ -228,7 +228,7 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
                   onClick={() => handleStartCreate(idx)}
                 >
                   <Zap className="mr-1 h-3 w-3 text-amber-500 shrink-0" />
-                  <span className="truncate">{preset.name}</span>
+                  <span className="truncate flex-1 min-w-0 text-left">{preset.name}</span>
                 </Button>
               ))}
             </div>
