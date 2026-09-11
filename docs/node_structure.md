@@ -266,6 +266,48 @@ pub enum ConditionOperator {
 - 高级表达式：`advanced_expression` 单独提供
 - 不允许同时使用简单条件和高级表达式
 
+
+#### SubFlow 节点配置
+
+```rust
+pub struct SubFlowConfig {
+    /// 目标流程 UUID（GUI 模式工作区流程引用）
+    pub target_flow_id: Option<String>,
+    /// 目标流程文件路径（CLI / 相对文件路径引用）
+    pub target_flow_path: Option<String>,
+    /// 是否继承父流程所有变量（默认 true）
+    pub inherit_all_variables: bool,
+    /// 入参显式映射规则列表（父变量名/表达式 -> 子流程变量名）
+    pub variable_mappings: Vec<VariableMapping>,
+    /// 执行完毕后是否将子流程变量导出回父流程（默认 true）
+    pub export_all_variables: bool,
+    /// 出参显式映射规则列表（子流程变量名 -> 父流程变量名）
+    pub output_mappings: Vec<VariableMapping>,
+}
+
+pub struct VariableMapping {
+    /// 源变量名或表达式
+    pub source: String,
+    /// 目标变量名
+    pub target: String,
+}
+```
+
+**字段说明与校验规则**：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `target_flow_id` | `Option<String>` | `None` | 工作区中目标流程 UUID |
+| `target_flow_path` | `Option<String>` | `None` | 外部 `.mpf` / `.json` 文件路径 |
+| `inherit_all_variables` | `bool` | `true` | 是否自动继承父流程上下文的所有全局/局部变量 |
+| `variable_mappings` | `Vec<VariableMapping>` | `[]` | 显式变量重命名或参数传入（优先级高于自动继承） |
+| `export_all_variables` | `bool` | `true` | 是否将子流程产生的变量全部回传给父流程 |
+| `output_mappings` | `Vec<VariableMapping>` | `[]` | 显式出参回传命名规则（用于避免命名冲突） |
+
+**验证规则**：
+- `target_flow_id` 与 `target_flow_path` 至少提供一个有效引用。
+- 流程加载与编译期执行 DAG 环路检测，直接自引用或间接循环引用将报错拦截。
+- 调试期间支持单步步入（`F11` / `StepInto`）、单步步出（`Shift+F11` / `StepOut`）与 `DebugCallFrame` 调用栈帧追踪。
 ---
 
 ### 4. Connection（连接）
