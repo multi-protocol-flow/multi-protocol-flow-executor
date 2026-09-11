@@ -46,6 +46,7 @@ export {
   selectIsNodeRunning,
   selectRunningNodeUuid,
   selectIsExecutingFlag,
+  selectSubFlowProgress,
 } from './execution';
 
 // UI store selectors
@@ -71,6 +72,9 @@ export {
   selectIsNodeDebugPaused,
   selectIsDebugDataReadOnly,
   selectDebugCurrentNodeUuid,
+  selectCallFrames,
+  selectActiveFrameIndex,
+  selectActiveCallFrame,
 } from './debug';
 
 // StressTest store selectors

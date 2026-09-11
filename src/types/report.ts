@@ -138,6 +138,8 @@ export interface NodeExecutionReport {
   wait_duration_ms?: number;
   /** 插件节点附加数据（SidecarPlugin 上报的 report_data） */
   plugin_data?: unknown;
+  /** 子流程嵌套执行报告树 */
+  sub_flow_report?: FlowExecutionReport;
 }
 
 // ============================================================================

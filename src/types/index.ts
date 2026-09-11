@@ -60,6 +60,8 @@ export type {
   AssertionOutput,
   ScriptNodeConfig,
   NodeData,
+  SubFlowConfig,
+  VariableMapping,
   Node,
   AnyNodeType,
   AnyNodeData,

@@ -3,7 +3,7 @@
  */
 import { create } from 'zustand';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types';
-import type { ExecutionEvent, PluginEventData, NodeStreamData, NodeStreamChunk } from '@/types/execution_event';
+import type { ExecutionEvent, PluginEventData, NodeStreamData, NodeStreamChunk, SubFlowProgress } from '@/types/execution_event';
 import { useWsStreamStore } from './wsStream';
 
 interface ExecutionState {
@@ -33,6 +33,13 @@ interface ExecutionState {
   pluginEvents: PluginEventData[];
   /** 节点实时流式数据 (nodeUuid -> NodeStreamData) */
   nodeStreamMap: Record<string, NodeStreamData>;
+  /**
+   * 子流程实时执行进度 (SubFlow 节点 UUID -> 进度)
+   *
+   * 子流程在顶层流程中只算**一个节点**，其内部节点的执行事件通过
+   * `parentNodeUuid` 归属到这里，用于在 SubFlow 节点上展示嵌套进度。
+   */
+  subFlowProgressMap: Record<string, SubFlowProgress>;
 
   // ===== Actions =====
   /** 开始执行 */
@@ -87,6 +94,7 @@ const initialState = {
   selectedHistoryReport: null as FlowExecutionReport | null,
   pluginEvents: [] as PluginEventData[],
   nodeStreamMap: {} as Record<string, NodeStreamData>,
+  subFlowProgressMap: {} as Record<string, SubFlowProgress>,
 };
 
 export const useExecutionStore = create<ExecutionState>((set, get) => {
@@ -194,8 +202,22 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
 
     handleExecutionEvent: (event: ExecutionEvent) => {
       if ('flowStarted' in event) {
+        const { totalNodes, parentNodeUuid } = event.flowStarted;
+        if (parentNodeUuid) {
+          // 嵌套流程开始：只初始化该 SubFlow 节点的进度，不重置顶层运行状态
+          queueEventUpdate((state) => ({
+            subFlowProgressMap: {
+              ...state.subFlowProgressMap,
+              [parentNodeUuid]: {
+                completed: 0,
+                total: totalNodes,
+                currentNodeName: undefined,
+              },
+            },
+          }));
+          return;
+        }
         flushBuffer();
-        const { totalNodes } = event.flowStarted;
         set({
           isExecuting: true,
           nodeReportsMap: {},
@@ -206,12 +228,47 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           error: null,
           pluginEvents: [],
           nodeStreamMap: {},
+          subFlowProgressMap: {},
         });
       } else if ('nodeStarted' in event) {
-        const { nodeUuid } = event.nodeStarted;
+        const { nodeUuid, nodeName, parentNodeUuid } = event.nodeStarted;
+        if (parentNodeUuid) {
+          // 子流程内部节点开始：SubFlow 节点保持"运行中"，并记录当前子节点名称
+          queueEventUpdate((state) => {
+            const prev = state.subFlowProgressMap[parentNodeUuid];
+            return {
+              subFlowProgressMap: {
+                ...state.subFlowProgressMap,
+                [parentNodeUuid]: {
+                  completed: prev?.completed ?? 0,
+                  total: prev?.total ?? 0,
+                  currentNodeName: nodeName,
+                },
+              },
+            };
+          });
+          return;
+        }
         queueEventUpdate({ currentNodeUuid: nodeUuid });
       } else if ('nodeCompleted' in event) {
-        const { report } = event.nodeCompleted;
+        const { report, parentNodeUuid } = event.nodeCompleted;
+        if (parentNodeUuid) {
+          // 子流程内部节点完成：只累加该 SubFlow 节点的进度，顶层计数不受影响
+          queueEventUpdate((state) => {
+            const prev = state.subFlowProgressMap[parentNodeUuid];
+            return {
+              subFlowProgressMap: {
+                ...state.subFlowProgressMap,
+                [parentNodeUuid]: {
+                  completed: (prev?.completed ?? 0) + 1,
+                  total: prev?.total ?? 0,
+                  currentNodeName: prev?.currentNodeName,
+                },
+              },
+            };
+          });
+          return;
+        }
         queueEventUpdate((state) => ({
           nodeReportsMap: {
             ...state.nodeReportsMap,
@@ -221,6 +278,8 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           currentNodeUuid: null,
         }));
       } else if ('flowCompleted' in event) {
+        // 嵌套流程结束：顶层流程仍在运行，报告树随 SubFlow 节点的 NodeCompleted 到达
+        if (event.flowCompleted.parentNodeUuid) return;
         flushBuffer();
         const { report } = event.flowCompleted;
         set((state) => {
@@ -235,6 +294,8 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           };
         });
       } else if ('flowCancelled' in event) {
+        // 嵌套流程取消：顶层流程的取消事件随后到达，不在此提前结束顶层状态
+        if (event.flowCancelled.parentNodeUuid) return;
         flushBuffer();
         set({ isExecuting: false });
       } else if ('pluginEvent' in event) {
@@ -313,6 +374,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         error: null,
         pluginEvents: [],
         nodeStreamMap: {},
+        subFlowProgressMap: {},
       });
     },
 
@@ -422,3 +484,6 @@ export const selectNodeStream = (state: ExecutionState, nodeUuid?: string | null
 /** 工厂选择器：选择特定节点的实时流式数据 */
 export const selectNodeStreamByUuid = (nodeUuid: string) => (state: ExecutionState) =>
   state.nodeStreamMap[nodeUuid];
+/** 工厂选择器：选择特定 SubFlow 节点的嵌套执行进度 */
+export const selectSubFlowProgress = (nodeUuid: string) => (state: ExecutionState) =>
+  state.subFlowProgressMap[nodeUuid];

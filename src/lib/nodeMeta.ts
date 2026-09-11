@@ -30,6 +30,7 @@ import {
   Braces,
   Shield,
   Square,
+  Workflow,
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -53,6 +54,7 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   entry: { icon: Play, iconBg: 'bg-emerald-500', labelColor: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700' },
   http: { icon: Globe, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
   conditional: { icon: GitBranch, iconBg: 'bg-orange-500', labelColor: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' },
+  sub_flow: { icon: Workflow, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
   script: { icon: Code, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
   assertion: { icon: CheckCircle, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
   ws_connect: { icon: Wifi, iconBg: 'bg-amber-500', labelColor: 'text-amber-600', badge: 'bg-amber-100 text-amber-700' },
@@ -130,6 +132,7 @@ function getStaticDisplayNames(): Record<string, string> {
     variable_extractor: LL.nodes.variable_extractor(),
     proxy: LL.nodes.proxy(),
     end: LL.nodes.end(),
+    sub_flow: LL.nodes.sub_flow(),
   };
 }
 
@@ -144,6 +147,7 @@ export function getNodeDescription(typeId: string): string {
   const descMap: Record<string, () => string> = {
     http: () => LL.nodes.descriptions.http(),
     conditional: () => LL.nodes.descriptions.conditional(),
+    sub_flow: () => LL.nodes.descriptions.sub_flow(),
     script: () => LL.nodes.descriptions.script(),
     assertion: () => LL.nodes.descriptions.assertion(),
     variable_extractor: () => LL.nodes.descriptions.variable_extractor(),

@@ -80,6 +80,15 @@ export function inferDefaults(
         };
       }
       break;
+
+    // ========== SubFlow ==========
+    case 'sub_flow':
+      return {
+        inherit_all_variables: true,
+        export_all_variables: true,
+        variable_mappings: [],
+        output_mappings: [],
+      };
   }
 
   return {};

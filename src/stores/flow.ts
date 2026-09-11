@@ -131,7 +131,14 @@ interface FlowState {
   undo: () => void;
   /** 重做 */
   redo: () => void;
-
+  /** 调试流程栈（用于进入子流程调试时隔离主流程画布状态） */
+  debugFlowStack: Array<{ flow: Flow; parentNodeUuid?: string }>;
+  /** 压入调试子流程（将子流程作为只读流程展示在画布，同时保留主流程） */
+  pushDebugSubflow: (subflow: Flow, parentNodeUuid?: string) => void;
+  /** 弹出调试子流程（画布平滑还原回上一级流程） */
+  popDebugSubflow: () => void;
+  /** 清空调试子流程栈，还原主流程 */
+  clearDebugSubflows: () => void;
   // ===== Computed (Selectors) =====
   /** 获取当前选中的节点 */
   getSelectedNode: () => Node | null;
@@ -157,6 +164,7 @@ const initialState = {
   past: [],
   future: [],
   historyVersion: 0,
+  debugFlowStack: [] as Array<{ flow: Flow; parentNodeUuid?: string }>,
 };
 
 export const useFlowStore = create<FlowState>((set, get) => {
@@ -386,6 +394,44 @@ export const useFlowStore = create<FlowState>((set, get) => {
 
   reset: () => set(initialState),
 
+  pushDebugSubflow: (subflow: Flow, parentNodeUuid?: string) => {
+    const currentFlow = get().flow;
+    if (!currentFlow) return;
+    set((state) => ({
+      debugFlowStack: [...state.debugFlowStack, { flow: currentFlow, parentNodeUuid }],
+      flow: subflow,
+      selectedNodeId: null,
+      isLocked: true,
+      lockReason: 'debugging_subflow',
+    }));
+  },
+
+  popDebugSubflow: () => {
+    const { debugFlowStack } = get();
+    if (debugFlowStack.length === 0) return;
+    const previous = debugFlowStack[debugFlowStack.length - 1];
+    const newStack = debugFlowStack.slice(0, -1);
+    set({
+      debugFlowStack: newStack,
+      flow: previous.flow,
+      selectedNodeId: null,
+      isLocked: newStack.length > 0,
+      lockReason: newStack.length > 0 ? 'debugging_subflow' : null,
+    });
+  },
+
+  clearDebugSubflows: () => {
+    const { debugFlowStack } = get();
+    if (debugFlowStack.length === 0) return;
+    const root = debugFlowStack[0];
+    set({
+      debugFlowStack: [],
+      flow: root.flow,
+      selectedNodeId: null,
+      isLocked: false,
+      lockReason: null,
+    });
+  },
   setPendingAddNodeType: (type) => set({ pendingAddNodeType: type }),
 
   clearPendingAddNodeType: () => set({ pendingAddNodeType: null }),

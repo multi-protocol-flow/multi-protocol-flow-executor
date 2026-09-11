@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getLL } from '@/i18n/i18n-lazy';
 
 /**
@@ -39,6 +39,7 @@ import { NodeListItem } from './NodeListItem';
 import { WsMessageTimeline } from './WsMessageTimeline';
 import { CanvasReportViewer } from './CanvasReportViewer';
 import { cn } from '@/lib/utils';
+import { findNodeReportInTree } from '@/lib/reportTree';
 import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/common';
 /** 统计卡片组件 */
@@ -83,6 +84,12 @@ export function ExecutionReport() {
   const [isWsStreamCollapsed, setIsWsStreamCollapsed] = useState(false);
   const [isStatsCollapsed, setIsStatsCollapsed] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'canvas'>('list');
+  // 在整棵报告树（含任意层级子流程）中检索当前选中的节点报告
+  const activeReport = useMemo(() => {
+    if (!selectedNodeUuid) return null;
+    return findNodeReportInTree(displayReport?.node_reports, selectedNodeUuid);
+  }, [displayReport, selectedNodeUuid]);
+
   const [canvasSelectedUuid, setCanvasSelectedUuid] = useState<string | null>(null);
 
   // 默认选中第一个节点
@@ -113,12 +120,14 @@ export function ExecutionReport() {
       .filter((nr) => nr.status === 'failed')
       .map(
         (nr) =>
-          `【${nr.node_name}】(${nr.node_type}: ${nr.error?.message || 'failed'})`,
+          `[${nr.node_name}] (${nr.node_type}: ${nr.error?.message || 'failed'})`,
       );
     const prompt =
       failedNodes.length > 0
-        ? `当前流程执行失败了，失败节点包括：${failedNodes.join('；')}。请帮我深度诊断报错原因，向我提供修复方向选项并询问我，确认后帮我修复流程。`
-        : `当前流程执行报错了（状态：failed）。请帮我诊断流程中的问题，向我询问修复方向，并在确认后帮我修复。`;
+        ? ll.ai.copilot.prompt_diagnose_flow_failures({
+            failedNodes: failedNodes.join('; '),
+          })
+        : ll.ai.copilot.prompt_diagnose_flow_generic();
     useAIStore.getState().sendMessage(prompt);
   };
 
@@ -443,12 +452,15 @@ export function ExecutionReport() {
                     ) : (
                       <ScrollArea className="h-full w-full">
                         <div className="space-y-1 p-1">
-                          {displayReport.node_reports.map((nodeReport) => (
+                          {displayReport.node_reports.map((nodeReport, idx) => (
                             <NodeListItem
                               key={nodeReport.node_uuid}
                               report={nodeReport}
+                              indexPrefix={`${idx + 1}`}
                               isSelected={selectedNodeUuid === nodeReport.node_uuid}
                               onClick={() => setSelectedNodeUuid(nodeReport.node_uuid)}
+                              selectedNodeUuid={selectedNodeUuid}
+                              onSelectNode={setSelectedNodeUuid}
                             />
                           ))}
                         </div>
@@ -461,11 +473,11 @@ export function ExecutionReport() {
                         <Inbox className="w-12 h-12" />
                         <span>{ll.execution.report.no_nodes()}</span>
                       </div>
-                    ) : selectedNodeUuid ? (
+                    ) : activeReport ? (
                       <ScrollArea className="h-full w-full">
                         <div className="p-2 min-w-0">
                           <NodeExecutionDetails
-                            report={displayReport.node_reports.find(r => r.node_uuid === selectedNodeUuid)!}
+                            report={activeReport}
                           />
                         </div>
                       </ScrollArea>

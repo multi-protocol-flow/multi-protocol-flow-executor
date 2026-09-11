@@ -45,15 +45,45 @@ export interface NodeStreamData {
 }
 
 /**
+ * 子流程实时执行进度（宿主把子流程视为**单个节点**，进度挂在该 SubFlow 节点上）
+ */
+export interface SubFlowProgress {
+  /** 子流程内已完成（执行结束）的节点数量 */
+  completed: number;
+  /** 子流程节点总数（来自嵌套 flowStarted） */
+  total: number;
+  /** 当前正在执行的子节点名称 */
+  currentNodeName?: string;
+}
+
+/**
  * 执行事件（正常模式）
  *
  * Rust 使用 #[serde(rename_all = "camelCase")] 序列化为 tagged union
  * 前端接收到的 JSON 格式为：{ "flowStarted": {...} } 或 { "nodeCompleted": {...} } 等
+ *
+ * `parentNodeUuid` 标记事件来自子流程内部：其值为触发该子流程的 SubFlow 节点 UUID。
+ * 顶层流程的事件不含该字段。消费方必须据此把嵌套事件归属到 SubFlow 节点，
+ * 而不能让它们重置顶层流程的运行状态与节点计数。
  */
 export type ExecutionEvent =
-  | { flowStarted: { flowUuid: string; flowName: string; totalNodes: number } }
-  | { nodeStarted: { nodeUuid: string; nodeName: string; nodeType: string } }
-  | { nodeCompleted: { report: NodeExecutionReport } }
-  | { flowCompleted: { report: FlowExecutionReport } }
-  | { flowCancelled: { flowUuid: string; reason: string } }
+  | {
+      flowStarted: {
+        flowUuid: string;
+        flowName: string;
+        totalNodes: number;
+        parentNodeUuid?: string;
+      };
+    }
+  | {
+      nodeStarted: {
+        nodeUuid: string;
+        nodeName: string;
+        nodeType: string;
+        parentNodeUuid?: string;
+      };
+    }
+  | { nodeCompleted: { report: NodeExecutionReport; parentNodeUuid?: string } }
+  | { flowCompleted: { report: FlowExecutionReport; parentNodeUuid?: string } }
+  | { flowCancelled: { flowUuid: string; reason: string; parentNodeUuid?: string } }
   | { pluginEvent: PluginEventData };

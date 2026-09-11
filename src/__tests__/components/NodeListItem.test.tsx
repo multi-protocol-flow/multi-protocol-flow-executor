@@ -123,4 +123,71 @@ describe('NodeListItem', () => {
 
     expect(screen.getByText('unknown_type')).toBeDefined();
   });
+
+  it('选中深层子流程子节点时逐层自动展开', () => {
+    // 三层报告树：子流程节点 -> 内层子流程节点 -> 深层节点
+    const deepTree: NodeExecutionReport = {
+      ...mockReport,
+      node_type: 'sub_flow',
+      node_name: '外层子流程',
+      sub_flow_report: {
+        uuid: 'report-outer',
+        flow_uuid: 'flow-outer',
+        flow_name: 'Outer',
+        start_time: 0,
+        end_time: 1,
+        duration_ms: 1,
+        total_nodes: 2,
+        executed_count: 2,
+        status: 'success',
+        statistics: { success_count: 2, failed_count: 0 },
+        node_reports: [
+          {
+            ...mockReport,
+            node_uuid: 'inner-subflow',
+            node_type: 'sub_flow',
+            node_name: '内层子流程',
+            sub_flow_report: {
+              uuid: 'report-inner',
+              flow_uuid: 'flow-inner',
+              flow_name: 'Inner',
+              start_time: 0,
+              end_time: 1,
+              duration_ms: 1,
+              total_nodes: 1,
+              executed_count: 1,
+              status: 'success',
+              statistics: { success_count: 1, failed_count: 0 },
+              node_reports: [
+                { ...mockReport, node_uuid: 'deep-node', node_name: '深层节点' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    const onClick = vi.fn();
+    const onSelectNode = vi.fn();
+    const { rerender } = render(
+      <NodeListItem report={deepTree} isSelected={false} onClick={onClick} />
+    );
+
+    // 未选中任何子节点时保持折叠
+    expect(screen.queryByText('深层节点')).toBeNull();
+
+    // 选中深层节点（如从画布/报告树跳转）后自动逐层展开
+    rerender(
+      <NodeListItem
+        report={deepTree}
+        isSelected={false}
+        onClick={onClick}
+        selectedNodeUuid="deep-node"
+        onSelectNode={onSelectNode}
+      />
+    );
+
+    expect(screen.getByText('内层子流程')).toBeDefined();
+    expect(screen.getByText('深层节点')).toBeDefined();
+  });
 });

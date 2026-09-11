@@ -19,6 +19,7 @@ import type { FlowHook } from './hook';
 export type NodeType =
   | 'entry'
   | 'end'
+  | 'sub_flow'
   | 'http'
   | 'conditional'
   | 'ws_connect'
@@ -933,6 +934,35 @@ export interface ScriptNodeOutput {
 }
 
 /**
+ * 子流程变量映射
+ */
+export interface VariableMapping {
+  /** 源变量名或表达式 */
+  source: string;
+  /** 目标变量名 */
+  target: string;
+}
+
+/**
+ * 子流程节点配置
+ */
+export interface SubFlowConfig {
+  type: 'sub_flow';
+  /** 目标流程 UUID（GUI 引用） */
+  target_flow_id?: string;
+  /** 目标流程文件路径（CLI / 相对路径） */
+  target_flow_path?: string;
+  /** 是否继承父流程所有变量（默认 true） */
+  inherit_all_variables?: boolean;
+  /** 自定义输入变量映射 */
+  variable_mappings?: VariableMapping[];
+  /** 是否导出子流程所有变量（默认 true） */
+  export_all_variables?: boolean;
+  /** 指定导出的变量映射（当 export_all_variables 为 false 时使用） */
+  output_mappings?: VariableMapping[];
+}
+
+/**
  * 节点数据配置（判别联合类型）
  */
 export type NodeData =
@@ -962,7 +992,8 @@ export type NodeData =
   | GraphqlIntrospectConfig
   | GraphqlDisconnectConfig
   | VariableExtractorConfig
-  | ProxyConfig;
+  | ProxyConfig
+  | SubFlowConfig;
 
 // ============================================================================
 // 节点结构体

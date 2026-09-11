@@ -16,6 +16,7 @@ import { TcpUdpViewer } from '@/components/execution/viewers/TcpUdpViewer';
 import { SseViewer } from '@/components/execution/viewers/SseViewer';
 import { GraphqlViewer } from '@/components/execution/viewers/GraphqlViewer';
 import { PluginIframeViewer } from '@/components/execution/viewers/PluginIframeViewer';
+import { SubFlowViewer } from '@/components/execution/viewers/SubFlowViewer';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 
 interface ViewerProps {
@@ -43,6 +44,13 @@ function EndNodeViewer({ report }: ViewerProps) {
  */
 export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   end: EndNodeViewer,
+  /**
+   * SubFlowViewer 会经由 `NodeExecutionDetails` 渲染嵌套子节点，从而回到本模块。
+   * 用 getter 把绑定读取推迟到访问时，避免该循环依赖在模块初始化阶段触发 TDZ 错误。
+   */
+  get sub_flow() {
+    return SubFlowViewer;
+  },
   http: HttpNodeViewer,
   ws_connect: WsConnectViewer,
   ws_send_collect: WsSendCollectViewer,

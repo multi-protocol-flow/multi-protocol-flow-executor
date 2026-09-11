@@ -245,6 +245,12 @@ export function createDefaultNodeData(type: AnyNodeType): NodeData {
       return { type: 'variable_extractor', output_mappings: [], source_node_id: undefined };
     case 'proxy':
       return { type: 'proxy', mode: 'clear' };
+    case 'sub_flow':
+      return {
+        type: 'sub_flow',
+        inherit_all_variables: true,
+        export_all_variables: true,
+      };
     case 'entry':
       return { type: 'entry' };
     default:

@@ -984,4 +984,164 @@ describe('ExecutionStore', () => {
       expect(Object.keys(useExecutionStore.getState().nodeStreamMap).length).toBe(0);
     });
   });
+
+  describe('子流程嵌套事件', () => {
+    /** 模拟「父流程 3 节点，其中第 2 个节点是子流程（内部 2 节点）」的事件序列 */
+    function runNestedSequence() {
+      const store = useExecutionStore.getState();
+
+      // 父流程开始
+      store.handleExecutionEvent({
+        flowStarted: { flowUuid: 'parent', flowName: 'Parent', totalNodes: 3 },
+      });
+      // 父节点 1 完成
+      store.handleExecutionEvent({ nodeStarted: { nodeUuid: 'n1', nodeName: 'Entry', nodeType: 'entry' } });
+      store.handleExecutionEvent({ nodeCompleted: { report: createMockNodeReport('n1') } });
+      // 子流程节点开始
+      store.handleExecutionEvent({
+        nodeStarted: { nodeUuid: 'sf', nodeName: 'Call Child', nodeType: 'sub_flow' },
+      });
+    }
+
+    it('嵌套 flowStarted 不重置顶层运行状态与节点总数', () => {
+      runNestedSequence();
+      const before = useExecutionStore.getState();
+
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: {
+          flowUuid: 'child',
+          flowName: 'Child',
+          totalNodes: 2,
+          parentNodeUuid: 'sf',
+        },
+      });
+
+      const after = useExecutionStore.getState();
+      expect(after.isExecuting).toBe(true);
+      expect(after.totalNodes).toBe(before.totalNodes);
+      expect(after.totalNodes).toBe(3);
+      expect(after.completedNodeCount).toBe(1);
+      expect(after.nodeReportsMap).toEqual(before.nodeReportsMap);
+      expect(after.subFlowProgressMap['sf']).toEqual({
+        completed: 0,
+        total: 2,
+        currentNodeName: undefined,
+      });
+    });
+
+    it('嵌套节点事件归属 SubFlow 节点，不计入顶层计数', () => {
+      runNestedSequence();
+      const store = useExecutionStore.getState();
+
+      store.handleExecutionEvent({
+        flowStarted: { flowUuid: 'child', flowName: 'Child', totalNodes: 2, parentNodeUuid: 'sf' },
+      });
+      store.handleExecutionEvent({
+        nodeStarted: {
+          nodeUuid: 'c1',
+          nodeName: 'Child Entry',
+          nodeType: 'entry',
+          parentNodeUuid: 'sf',
+        },
+      });
+
+      // 子流程节点自身保持「运行中」
+      expect(useExecutionStore.getState().currentNodeUuid).toBe('sf');
+      expect(useExecutionStore.getState().subFlowProgressMap['sf'].currentNodeName).toBe('Child Entry');
+
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: { report: createMockNodeReport('c1'), parentNodeUuid: 'sf' },
+      });
+
+      const state = useExecutionStore.getState();
+      expect(state.subFlowProgressMap['sf'].completed).toBe(1);
+      // 子节点不进入顶层报告 map，也不增加顶层已完成计数
+      expect(state.nodeReportsMap['c1']).toBeUndefined();
+      expect(state.completedNodeCount).toBe(1);
+    });
+
+    it('嵌套 flowCompleted 不结束顶层运行、不写入历史', () => {
+      runNestedSequence();
+      const store = useExecutionStore.getState();
+
+      store.handleExecutionEvent({
+        flowCompleted: { report: createMockReport({ flow_uuid: 'child' }), parentNodeUuid: 'sf' },
+      });
+
+      const state = useExecutionStore.getState();
+      expect(state.isExecuting).toBe(true);
+      expect(state.report).toBeNull();
+      expect(state.history).toHaveLength(0);
+    });
+
+    it('子流程节点完成后回归顶层计数，最终报告只统计顶层节点', () => {
+      runNestedSequence();
+      const store = useExecutionStore.getState();
+
+      store.handleExecutionEvent({
+        flowStarted: { flowUuid: 'child', flowName: 'Child', totalNodes: 2, parentNodeUuid: 'sf' },
+      });
+      store.handleExecutionEvent({
+        nodeCompleted: { report: createMockNodeReport('c1'), parentNodeUuid: 'sf' },
+      });
+      store.handleExecutionEvent({
+        nodeCompleted: { report: createMockNodeReport('c2'), parentNodeUuid: 'sf' },
+      });
+      store.handleExecutionEvent({
+        flowCompleted: { report: createMockReport({ flow_uuid: 'child' }), parentNodeUuid: 'sf' },
+      });
+
+      // 子流程节点自身完成（顶层事件）
+      const subFlowReport = createMockNodeReport('sf', {
+        node_type: 'sub_flow',
+        sub_flow_report: createMockReport({ flow_uuid: 'child', total_nodes: 2 }),
+      });
+      store.handleExecutionEvent({ nodeCompleted: { report: subFlowReport } });
+
+      let state = useExecutionStore.getState();
+      expect(state.completedNodeCount).toBe(2);
+      expect(state.currentNodeUuid).toBeNull();
+      expect(state.nodeReportsMap['sf']).toEqual(subFlowReport);
+      expect(Object.keys(state.nodeReportsMap)).toHaveLength(2);
+
+      // 父流程结束
+      store.handleExecutionEvent({
+        nodeCompleted: { report: createMockNodeReport('n3') },
+      });
+      const finalReport = createMockReport({
+        total_nodes: 3,
+        node_reports: [createMockNodeReport('n1'), subFlowReport, createMockNodeReport('n3')],
+      });
+      store.handleExecutionEvent({ flowCompleted: { report: finalReport } });
+
+      state = useExecutionStore.getState();
+      expect(state.isExecuting).toBe(false);
+      expect(state.report).toEqual(finalReport);
+      expect(state.completedNodeCount).toBe(3);
+      expect(state.totalNodes).toBe(3);
+      expect(state.history).toHaveLength(1);
+    });
+
+    it('嵌套 flowCancelled 不提前结束顶层状态', () => {
+      runNestedSequence();
+
+      useExecutionStore.getState().handleExecutionEvent({
+        flowCancelled: { flowUuid: 'child', reason: 'cancelled', parentNodeUuid: 'sf' },
+      });
+
+      expect(useExecutionStore.getState().isExecuting).toBe(true);
+    });
+
+    it('clearExecutionState 清空子流程进度', () => {
+      runNestedSequence();
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'child', flowName: 'Child', totalNodes: 2, parentNodeUuid: 'sf' },
+      });
+      expect(useExecutionStore.getState().subFlowProgressMap['sf']).toBeDefined();
+
+      useExecutionStore.getState().clearExecutionState();
+
+      expect(useExecutionStore.getState().subFlowProgressMap).toEqual({});
+    });
+  });
 });

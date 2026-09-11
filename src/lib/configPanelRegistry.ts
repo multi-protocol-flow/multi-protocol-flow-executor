@@ -16,6 +16,7 @@ type PanelLoader = () => Promise<ComponentType<any>>;
 const panelLoaders: Record<string, PanelLoader> = {
   entry: () => import('@/components/panels/EntryConfig').then(m => m.EntryConfig),
   end: () => import('@/components/panels/EndConfigPanel').then(m => m.EndConfigPanel),
+  sub_flow: () => import('@/components/panels/SubFlowConfig').then(m => m.SubFlowConfig),
   http: () => import('@/components/panels/HttpConfig').then(m => m.HttpConfig),
   conditional: () => import('@/components/panels/ConditionalConfig').then(m => m.ConditionalConfig),
   ws_connect: () => import('@/components/panels/WsConnectConfig').then(m => m.WsConnectConfig),
