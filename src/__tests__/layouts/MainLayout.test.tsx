@@ -28,6 +28,7 @@ vi.mock('@/components/sidebar', () => ({
 
 vi.mock('@/components/canvas', () => ({
   FlowCanvas: () => <div data-testid="flow-canvas">FlowCanvas</div>,
+  FlowTabBar: () => <div data-testid="flow-tab-bar">FlowTabBar</div>,
 }));
 
 vi.mock('@/components/panels', () => ({

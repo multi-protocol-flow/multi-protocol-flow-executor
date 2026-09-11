@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { SandboxBanner } from '@/components/common/SandboxBanner';
 
 import { LeftSidebarPanel } from '@/components/sidebar';
-import { FlowCanvas } from '@/components/canvas';
+import { FlowCanvas, FlowTabBar } from '@/components/canvas';
 import { NodeConfigPanel } from '@/components/panels';
 import { ExecutionReport, ExecutionHistory, ConsolePanel, ExecutionPanel } from '@/components/execution';
 import { FlowCompareDialog } from '@/components/execution/FlowCompareDialog';
@@ -31,7 +31,7 @@ import {
 import { AICopilotPanel, AISpotlightDialog } from '@/components/ai';
 import { useAIStore } from '@/stores/ai';
 
-import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
+import { useUIStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
 import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
@@ -133,8 +133,6 @@ export function MainLayout() {
   // 缩放状态
   const zoomIn = useZoomStore((state) => state.zoomIn);
   const zoomOut = useZoomStore((state) => state.zoomOut);
-  const isDirty = useFlowStore((state) => state.isDirty);
-  const flow = useFlowStore((state) => state.flow);
 
   // 设置 store
   const reportDir = useSettingsStore((state) => state.reportDir);
@@ -354,23 +352,6 @@ export function MainLayout() {
             <text x="148" y="96" fill="currentColor" fontFamily="system-ui,-apple-system,sans-serif" fontSize="15" fontWeight="600" letterSpacing="3" opacity="0.6">MULTI-PROTOCOL FLOW EXECUTOR</text>
           </svg>
 
-          {/* 当前流程名称 */}
-          {flow && (
-            <button
-              type="button"
-              onClick={() => {
-                useFlowStore.getState().selectNode(null);
-                useUIStore.getState().setConfigPanelOpen(true);
-              }}
-              className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent border border-border hover:bg-accent/80 hover:border-primary/40 transition-colors cursor-pointer text-left"
-              title={getLL().flow.flow_properties()}
-            >
-              <span className="text-sm text-muted-foreground hover:text-foreground transition-colors">{flow.name}</span>
-              {isDirty && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title={getLL().flow.unsaved()} />
-              )}
-            </button>
-          )}
         </div>
 
         {/* 右侧：操作按钮 */}
@@ -564,23 +545,25 @@ export function MainLayout() {
           size="icon"
           onClick={toggleFlowListPanel}
           className={cn(
-            'absolute z-20 h-8 w-6 rounded-l-none rounded-r-lg top-0',
-            'bg-background hover:bg-accent border border-l-0 border-border',
-            'transition-colors duration-150'
+            'absolute z-20 h-12 w-5 rounded-l-none rounded-r-md top-1/2 -translate-y-1/2 p-0',
+            'bg-background/90 hover:bg-accent border border-l-0 border-border shadow-xs',
+            'text-muted-foreground/70 hover:text-foreground',
+            'transition-all duration-150 cursor-pointer'
           )}
           style={{ left: isFlowListPanelOpen ? sidebarWidth : 0 }}
           title={isFlowListPanelOpen ? getLL().common.toggle_sidebar_collapse() : getLL().common.toggle_sidebar_expand()}
         >
           {isFlowListPanelOpen ? (
-            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+            <ChevronLeft className="w-3.5 h-3.5" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            <ChevronRight className="w-3.5 h-3.5" />
           )}
         </Button>
 
         {/* ===== 中间画布区 ===== */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           {/* 画布 */}
+          <FlowTabBar />
           <div className="flex-1 relative">
             <FlowCanvas />
           </div>
@@ -798,17 +781,18 @@ export function MainLayout() {
           size="icon"
           onClick={toggleConfigPanel}
           className={cn(
-            'absolute z-20 h-8 w-6 rounded-r-none rounded-l-lg top-0',
-            'bg-background hover:bg-accent border border-r-0 border-border',
-            'transition-colors duration-150'
+            'absolute z-20 h-12 w-5 rounded-r-none rounded-l-md top-1/2 -translate-y-1/2 p-0',
+            'bg-background/90 hover:bg-accent border border-r-0 border-border shadow-xs',
+            'text-muted-foreground/70 hover:text-foreground',
+            'transition-all duration-150 cursor-pointer'
           )}
           style={{ right: isConfigPanelOpen ? configPanelWidth : 0 }}
           title={isConfigPanelOpen ? getLL().common.toggle_config_collapse() : getLL().common.toggle_config_expand()}
         >
           {isConfigPanelOpen ? (
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            <ChevronRight className="w-3.5 h-3.5" />
           ) : (
-            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+            <ChevronLeft className="w-3.5 h-3.5" />
           )}
         </Button>
 
