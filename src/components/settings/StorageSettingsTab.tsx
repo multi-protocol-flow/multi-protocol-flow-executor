@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings2, FolderInput, FolderOpen, FolderCog, Puzzle, ChevronRight } from 'lucide-react';
+import { Settings2, FolderInput, FolderOpen, FolderCog, Puzzle, ChevronRight, RotateCcw, Trash2, Compass } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings';
 import { usePluginsStore } from '@/stores/plugins';
 import { useUIStore } from '@/stores/ui';
@@ -131,6 +131,27 @@ export function StorageSettingsTab() {
     const service = await getSettingsService();
     await service.openDirectory(pluginDirInfo.effectiveDir);
   };
+  const handleResetWelcome = () => {
+    localStorage.removeItem('mpe-welcome-shown');
+    closeSettingsDialog();
+    setTimeout(() => {
+      useUIStore.getState().setWelcomeStep(1);
+      toast.success(ll.settings.reset_welcome_success());
+    }, 150);
+  };
+
+  const handleClearCache = () => {
+    const savedLocale = localStorage.getItem('locale');
+    const savedSettings = localStorage.getItem('app-settings');
+
+    localStorage.clear();
+
+    if (savedLocale) localStorage.setItem('locale', savedLocale);
+    if (savedSettings) localStorage.setItem('app-settings', savedSettings);
+
+    clearNodeMetadataCache();
+    toast.success(ll.settings.clear_cache_success());
+  };
   return (
     <div className="space-y-4">
       {/* 配置文件 */}
@@ -214,6 +235,69 @@ export function StorageSettingsTab() {
         onSelectDirectory={handleSelectLogDir}
         onOpenDirectory={openLogDir}
       />
+      {/* 分隔线 */}
+      <div className="border-t border-border/60 my-4" />
+
+      {/* 本地缓存与引导重置 */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Trash2 className="h-4 w-4 text-muted-foreground" />
+            {ll.settings.cache_and_reset()}
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {ll.settings.cache_and_reset_desc()}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* 卡片 1: 重置新手引导 */}
+          <div className="rounded-xl border border-border/70 bg-card p-3.5 flex flex-col justify-between space-y-3">
+            <div>
+              <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Compass className="h-3.5 w-3.5 text-primary" />
+                {ll.settings.reset_welcome_title()}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                {ll.settings.reset_welcome_desc()}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleResetWelcome}
+              className="w-full text-xs h-8 cursor-pointer gap-1.5"
+            >
+              <RotateCcw className="h-3 w-3" />
+              {ll.settings.reset_welcome_btn()}
+            </Button>
+          </div>
+
+          {/* 卡片 2: 清空本地缓存 */}
+          <div className="rounded-xl border border-border/70 bg-card p-3.5 flex flex-col justify-between space-y-3">
+            <div>
+              <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Trash2 className="h-3.5 w-3.5 text-amber-500" />
+                {ll.settings.clear_cache_title()}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                {ll.settings.clear_cache_desc()}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleClearCache}
+              className="w-full text-xs h-8 cursor-pointer gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+            >
+              <Trash2 className="h-3 w-3" />
+              {ll.settings.clear_cache_btn()}
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -93,6 +93,16 @@ const en_US_settings = {
   official_website: 'Official Website',
   open_source_repo: 'Source Code Repository',
   system_platform: 'Platform',
+  cache_and_reset: 'Local Cache & Tutorial Reset',
+  cache_and_reset_desc: 'Manage front-end local cache, temporary data, and tutorial state',
+  reset_welcome_title: 'Welcome Tutorial',
+  reset_welcome_desc: 'Clear tutorial completion flag to replay the step-by-step introduction.',
+  reset_welcome_btn: 'Replay Tutorial',
+  reset_welcome_success: 'Welcome tutorial has been reset and started',
+  clear_cache_title: 'Clear Local Cache',
+  clear_cache_desc: 'Clean up UI fold preferences, clipboard scratchpad, and tutorial state.',
+  clear_cache_btn: 'Clear Cache',
+  clear_cache_success: 'Local cache cleared successfully',
 };
 
 export default en_US_settings;

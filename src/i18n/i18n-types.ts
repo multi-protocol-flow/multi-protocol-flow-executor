@@ -7579,6 +7579,46 @@ type RootTranslation = {
 		 * 运​行​平​台
 		 */
 		system_platform: string
+		/**
+		 * 本​地​缓​存​与​引​导​重​置
+		 */
+		cache_and_reset: string
+		/**
+		 * 管​理​前​端​本​地​缓​存​、​临​时​数​据​与​新​手​引​导​状​态
+		 */
+		cache_and_reset_desc: string
+		/**
+		 * 新​手​引​导​向​导
+		 */
+		reset_welcome_title: string
+		/**
+		 * 清​除​引​导​已​完​成​标​记​，​重​新​查​看​应​用​核​心​功​能​的​引​导​向​导​。
+		 */
+		reset_welcome_desc: string
+		/**
+		 * 重​新​体​验​引​导
+		 */
+		reset_welcome_btn: string
+		/**
+		 * 新​手​引​导​已​重​置​并​启​动
+		 */
+		reset_welcome_success: string
+		/**
+		 * 清​空​前​端​本​地​缓​存
+		 */
+		clear_cache_title: string
+		/**
+		 * 清​理​折​叠​偏​好​、​剪​切​板​暂​存​及​引​导​状​态​（​保​留​主​题​与​语​言​首​选​项​）​。
+		 */
+		clear_cache_desc: string
+		/**
+		 * 清​空​缓​存
+		 */
+		clear_cache_btn: string
+		/**
+		 * 本​地​缓​存​已​成​功​清​空
+		 */
+		clear_cache_success: string
 	}
 	plugins: {
 		/**
@@ -21235,6 +21275,46 @@ export type TranslationFunctions = {
 		 * 运行平台
 		 */
 		system_platform: () => LocalizedString
+		/**
+		 * 本地缓存与引导重置
+		 */
+		cache_and_reset: () => LocalizedString
+		/**
+		 * 管理前端本地缓存、临时数据与新手引导状态
+		 */
+		cache_and_reset_desc: () => LocalizedString
+		/**
+		 * 新手引导向导
+		 */
+		reset_welcome_title: () => LocalizedString
+		/**
+		 * 清除引导已完成标记，重新查看应用核心功能的引导向导。
+		 */
+		reset_welcome_desc: () => LocalizedString
+		/**
+		 * 重新体验引导
+		 */
+		reset_welcome_btn: () => LocalizedString
+		/**
+		 * 新手引导已重置并启动
+		 */
+		reset_welcome_success: () => LocalizedString
+		/**
+		 * 清空前端本地缓存
+		 */
+		clear_cache_title: () => LocalizedString
+		/**
+		 * 清理折叠偏好、剪切板暂存及引导状态（保留主题与语言首选项）。
+		 */
+		clear_cache_desc: () => LocalizedString
+		/**
+		 * 清空缓存
+		 */
+		clear_cache_btn: () => LocalizedString
+		/**
+		 * 本地缓存已成功清空
+		 */
+		clear_cache_success: () => LocalizedString
 	}
 	plugins: {
 		/**

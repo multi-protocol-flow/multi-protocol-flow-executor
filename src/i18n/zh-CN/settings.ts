@@ -95,6 +95,16 @@ const zh_CN_settings: BaseTranslation = {
   official_website: '官方网站',
   open_source_repo: '开源代码仓库',
   system_platform: '运行平台',
+  cache_and_reset: '本地缓存与引导重置',
+  cache_and_reset_desc: '管理前端本地缓存、临时数据与新手引导状态',
+  reset_welcome_title: '新手引导向导',
+  reset_welcome_desc: '清除引导已完成标记，重新查看应用核心功能的引导向导。',
+  reset_welcome_btn: '重新体验引导',
+  reset_welcome_success: '新手引导已重置并启动',
+  clear_cache_title: '清空前端本地缓存',
+  clear_cache_desc: '清理折叠偏好、剪切板暂存及引导状态（保留主题与语言首选项）。',
+  clear_cache_btn: '清空缓存',
+  clear_cache_success: '本地缓存已成功清空',
 };
 
 export default zh_CN_settings;

@@ -1,12 +1,25 @@
-import { Sun, Moon, Monitor, Check } from 'lucide-react';
+import { Sun, Moon, Monitor, Check, RotateCcw } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings';
 import type { ThemeMode, Locale } from '@/types/settings';
 import { getLL } from '@/i18n/i18n-lazy';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useUIStore } from '@/stores/ui';
+import { toast } from 'sonner';
 
 export function GeneralSettingsTab() {
   const { theme, locale, setTheme, setLocale } = useSettingsStore();
   const ll = getLL();
+  const closeSettingsDialog = useUIStore((s) => s.closeSettingsDialog);
+
+  const handleResetWelcome = () => {
+    localStorage.removeItem('mpe-welcome-shown');
+    closeSettingsDialog();
+    setTimeout(() => {
+      useUIStore.getState().setWelcomeStep(1);
+      toast.success(ll.settings.reset_welcome_success());
+    }, 150);
+  };
 
   const themeOptions: Array<{
     value: ThemeMode;
@@ -149,6 +162,32 @@ export function GeneralSettingsTab() {
               </button>
             );
           })}
+        </div>
+      </div>
+      {/* 分隔线 */}
+      <div className="border-t border-border/60" />
+
+      {/* 新手引导 */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">
+              {ll.settings.reset_welcome_title()}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {ll.settings.reset_welcome_desc()}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleResetWelcome}
+            className="cursor-pointer text-xs h-8 gap-1.5 shrink-0"
+          >
+            <RotateCcw className="h-3 w-3" />
+            {ll.settings.reset_welcome_btn()}
+          </Button>
         </div>
       </div>
     </div>

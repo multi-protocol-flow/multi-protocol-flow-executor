@@ -57,6 +57,16 @@ vi.mock('@/i18n/i18n-lazy', () => ({
       select_dir: () => '选择目录',
       loading: () => '加载中...',
       not_set: () => '未设置',
+      cache_and_reset: () => '本地缓存与引导重置',
+      cache_and_reset_desc: () => '管理前端本地缓存',
+      reset_welcome_title: () => '新手引导向导',
+      reset_welcome_desc: () => '清除引导已完成标记',
+      reset_welcome_btn: () => '重新体验引导',
+      reset_welcome_success: () => '新手引导已重置并启动',
+      clear_cache_title: () => '清空前端本地缓存',
+      clear_cache_desc: () => '清理前端缓存',
+      clear_cache_btn: () => '清空缓存',
+      clear_cache_success: () => '本地缓存已成功清空',
     },
     ai: {
       settings: {
@@ -291,5 +301,39 @@ describe('SettingsDialog', () => {
 
     expect(useUIStore.getState().showSettingsDialog).toBe(false);
     expect(useUIStore.getState().showPluginSettingsDialog).toBe(true);
+  });
+
+  it('在常规 Tab 中点击重新体验引导应关闭设置并重置 welcomeStep 为 1', async () => {
+    vi.useFakeTimers();
+    localStorage.setItem('mpe-welcome-shown', 'true');
+
+    render(<SettingsDialog />);
+
+    const resetBtn = screen.getByRole('button', { name: /重新体验引导/ });
+    fireEvent.click(resetBtn);
+
+    expect(localStorage.getItem('mpe-welcome-shown')).toBeNull();
+    expect(useUIStore.getState().showSettingsDialog).toBe(false);
+
+    vi.advanceTimersByTime(200);
+    expect(useUIStore.getState().welcomeStep).toBe(1);
+    vi.useRealTimers();
+  });
+
+  it('在存储 Tab 中展示本地缓存管理，点击清空缓存能安全清理', () => {
+    localStorage.setItem('temp-cache-key', 'foo');
+    localStorage.setItem('locale', 'zh-CN');
+
+    render(<SettingsDialog />);
+
+    const storageTabBtn = screen.getAllByText('存储与路径')[0];
+    fireEvent.click(storageTabBtn);
+
+    expect(screen.getByText('本地缓存与引导重置')).toBeInTheDocument();
+    const clearBtn = screen.getByRole('button', { name: /清空缓存/ });
+    fireEvent.click(clearBtn);
+
+    expect(localStorage.getItem('temp-cache-key')).toBeNull();
+    expect(localStorage.getItem('locale')).toBe('zh-CN');
   });
 });
