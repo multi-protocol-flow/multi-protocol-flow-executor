@@ -77,15 +77,34 @@ echo "  Bucket: ${R2_BUCKET}"
 echo "  下载基址: ${DOWNLOAD_BASE}"
 echo "========================================="
 CLI_TAR=$(find "$DIST_DIR" -maxdepth 1 -name "mpe-v${VERSION}-linux-x86_64.tar.gz" 2>/dev/null | head -n 1 || true)
-DEB_FILE=$(find "$DIST_DIR" -maxdepth 1 \( -name "*${VERSION}*.deb" -o -name "*amd64.deb" \) 2>/dev/null | head -n 1 || true)
-APPIMAGE_FILE=$(find "$DIST_DIR" -maxdepth 1 \( -name "*${VERSION}*.AppImage" -o -name "*amd64.AppImage" \) 2>/dev/null | head -n 1 || true)
+DEB_FILE=$(find "$DIST_DIR" -maxdepth 1 -name "*_${VERSION}_*.deb" 2>/dev/null | head -n 1 || true)
+APPIMAGE_FILE=$(find "$DIST_DIR" -maxdepth 1 -name "*_${VERSION}_*.AppImage" 2>/dev/null | head -n 1 || true)
 CHECKSUM_FILE=$(find "$DIST_DIR" -maxdepth 1 -name "SHA256SUMS-linux.txt" 2>/dev/null | head -n 1 || true)
 
+# 校验 deb 内部版本号，杜绝把历史版本的安装包当成新版本发布出去
+if [[ -n "$DEB_FILE" ]] && command -v dpkg-deb >/dev/null 2>&1; then
+  DEB_VERSION=$(dpkg-deb -f "$DEB_FILE" Version 2>/dev/null || true)
+  if [[ -n "$DEB_VERSION" && "$DEB_VERSION" != "$VERSION" ]]; then
+    echo "❌ deb 内部版本 (${DEB_VERSION}) 与目标版本 (${VERSION}) 不一致！"
+    echo "   文件: $(basename "$DEB_FILE")"
+    echo "   请先清理 $DIST_DIR 中的历史产物并重新构建。"
+    exit 1
+  fi
+fi
+
 UPLOAD_FILES=()
-[[ -n "$CLI_TAR" && -f "$CLI_TAR" ]] && UPLOAD_FILES+=("$CLI_TAR")
-[[ -n "$DEB_FILE" && -f "$DEB_FILE" ]] && UPLOAD_FILES+=("$DEB_FILE")
-[[ -n "$APPIMAGE_FILE" && -f "$APPIMAGE_FILE" ]] && UPLOAD_FILES+=("$APPIMAGE_FILE")
-[[ -n "$CHECKSUM_FILE" && -f "$CHECKSUM_FILE" ]] && UPLOAD_FILES+=("$CHECKSUM_FILE")
+if [[ -n "$CLI_TAR" && -f "$CLI_TAR" ]]; then
+  UPLOAD_FILES+=("$CLI_TAR")
+fi
+if [[ -n "$DEB_FILE" && -f "$DEB_FILE" ]]; then
+  UPLOAD_FILES+=("$DEB_FILE")
+fi
+if [[ -n "$APPIMAGE_FILE" && -f "$APPIMAGE_FILE" ]]; then
+  UPLOAD_FILES+=("$APPIMAGE_FILE")
+fi
+if [[ -n "$CHECKSUM_FILE" && -f "$CHECKSUM_FILE" ]]; then
+  UPLOAD_FILES+=("$CHECKSUM_FILE")
+fi
 
 # 同时上传同名 .sig 签名文件
 for f in "${UPLOAD_FILES[@]}"; do

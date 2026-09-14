@@ -88,6 +88,29 @@ if [[ -n "$SPECIFIED_VERSION" && "$SPECIFIED_VERSION" != "$CURRENT_VERSION" ]]; 
   echo "  ✓ Cargo.toml (app & mpe-cli)"
 fi
 
+# === 1.5 版本一致性校验 ===
+# tauri.conf.json 决定安装包版本，Cargo.toml 决定程序自报版本（updater 用 CARGO_PKG_VERSION 比对）。
+# 两者不一致会产出“安装包装的是新版、程序自报旧版”的包，导致更新提示反复出现。
+CONSISTENCY_FAILED=false
+for entry in \
+  "package.json|$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json','utf8')).version)")" \
+  "tauri.conf.json|$(node -e "console.log(JSON.parse(require('fs').readFileSync('src-tauri/tauri.conf.json','utf8')).version)")" \
+  "Cargo.toml|$(sed -n 's/^version = "\(.*\)"/\1/p' src-tauri/Cargo.toml | head -n 1)" \
+  "mpe-cli/Cargo.toml|$(sed -n 's/^version = "\(.*\)"/\1/p' src-tauri/crates/mpe-cli/Cargo.toml | head -n 1)"; do
+  name="${entry%%|*}"
+  value="${entry#*|}"
+  if [[ "$value" != "$VERSION" ]]; then
+    echo "❌ 版本号不一致: $name = ${value:-<空>}，目标版本为 $VERSION"
+    CONSISTENCY_FAILED=true
+  fi
+done
+
+if [[ "$CONSISTENCY_FAILED" == "true" ]]; then
+  echo "   请显式传入版本号重新运行（会自动同步各文件），或手动修正后再构建。"
+  exit 1
+fi
+echo "==> 版本一致性校验通过: v$VERSION"
+
 DIST_DIR="$PROJECT_ROOT/dist-release"
 mkdir -p "$DIST_DIR"
 
@@ -138,22 +161,32 @@ if [[ "$TARGET_MODE" == "all" || "$TARGET_MODE" == "gui" ]]; then
   echo "==> 构建前端产物..."
   npm run build
 
+  # 清理历史打包产物：bundle 目录会跨版本累积文件，若残留旧版本包，
+  # 后续按文件名收集时可能误取旧版本产物（曾导致 v0.2.0-beta.2 发布出 beta.1 的 deb）
+  echo "==> 清理历史打包产物 (deb, appimage)..."
+  rm -rf "$PROJECT_ROOT/src-tauri/target/release/bundle/deb" \
+         "$PROJECT_ROOT/src-tauri/target/release/bundle/appimage"
+
   echo "==> 执行 Tauri 打包 (deb, appimage)..."
   npx tauri build --bundles deb,appimage
 
-  # 收集 deb
-  DEB_SRC=$(find "$PROJECT_ROOT/src-tauri/target/release/bundle/deb" -name "*.deb" 2>/dev/null | head -n 1 || true)
-  if [[ -n "$DEB_SRC" && -f "$DEB_SRC" ]]; then
-    cp "$DEB_SRC" "$DIST_DIR/"
-    echo "  ✓ 复制 DEB: $(basename "$DEB_SRC")"
+  # 收集 deb（严格匹配当前版本，避免误取历史构建产物）
+  DEB_SRC=$(find "$PROJECT_ROOT/src-tauri/target/release/bundle/deb" -maxdepth 1 -name "*_${VERSION}_*.deb" 2>/dev/null | head -n 1 || true)
+  if [[ -z "$DEB_SRC" ]]; then
+    echo "❌ bundle/deb 中未找到版本 ${VERSION} 的 deb 产物，拒绝继续"
+    exit 1
   fi
+  cp "$DEB_SRC" "$DIST_DIR/"
+  echo "  ✓ 复制 DEB: $(basename "$DEB_SRC")"
 
-  # 收集 AppImage
-  APPIMAGE_SRC=$(find "$PROJECT_ROOT/src-tauri/target/release/bundle/appimage" -name "*.AppImage" 2>/dev/null | head -n 1 || true)
-  if [[ -n "$APPIMAGE_SRC" && -f "$APPIMAGE_SRC" ]]; then
-    cp "$APPIMAGE_SRC" "$DIST_DIR/"
-    echo "  ✓ 复制 AppImage: $(basename "$APPIMAGE_SRC")"
+  # 收集 AppImage（严格匹配当前版本）
+  APPIMAGE_SRC=$(find "$PROJECT_ROOT/src-tauri/target/release/bundle/appimage" -maxdepth 1 -name "*_${VERSION}_*.AppImage" 2>/dev/null | head -n 1 || true)
+  if [[ -z "$APPIMAGE_SRC" ]]; then
+    echo "❌ bundle/appimage 中未找到版本 ${VERSION} 的 AppImage 产物，拒绝继续"
+    exit 1
   fi
+  cp "$APPIMAGE_SRC" "$DIST_DIR/"
+  echo "  ✓ 复制 AppImage: $(basename "$APPIMAGE_SRC")"
 
   # 收集 sig (若存在)
   find "$PROJECT_ROOT/src-tauri/target/release/bundle" -name "*.sig" -exec cp {} "$DIST_DIR/" \; 2>/dev/null || true
@@ -166,8 +199,21 @@ echo "==> 生成 SHA256 校验清单"
 echo "========================================="
 (
   cd "$DIST_DIR"
-  # 仅为当前版本文件或主要产物计算
-  sha256sum mpe-* *.deb *.AppImage 2>/dev/null > SHA256SUMS-linux.txt || true
+  # 仅为当前版本的产物计算校验和，避免混入历史版本文件
+  CHECKSUM_TARGETS=()
+  if [[ -f "mpe-v${VERSION}-linux-x86_64.tar.gz" ]]; then
+    CHECKSUM_TARGETS+=("mpe-v${VERSION}-linux-x86_64.tar.gz")
+  fi
+  for f in *"_${VERSION}_"*.deb *"_${VERSION}_"*.AppImage; do
+    if [[ -f "$f" ]]; then
+      CHECKSUM_TARGETS+=("$f")
+    fi
+  done
+  if [[ ${#CHECKSUM_TARGETS[@]} -gt 0 ]]; then
+    sha256sum "${CHECKSUM_TARGETS[@]}" > SHA256SUMS-linux.txt
+  else
+    echo "⚠️  未找到版本 ${VERSION} 的产物，跳过校验和生成"
+  fi
 )
 
 echo ""
