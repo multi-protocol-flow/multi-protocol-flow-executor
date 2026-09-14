@@ -41,6 +41,7 @@
 - **State 管理**: 5 个 Session Manager 通过 `app.manage(Arc::new(Mutex::new(...)))` 注入，`tauri::State<T>` 提取。各 Manager 内部维护 `CancelSender` / `GrpcProvider` 等运行态引用。
 - **条件编译**: 协议相关命令（gRPC/Kafka/MCP/MQTT 等）使用 `#[cfg(feature = "protocol-*")]` 门控。
 - **CLI 输出**: 支持 `--format json|table`，统一通过 `cli/output.rs` 控制。
+- **打包命名**: `tauri.conf.json` 的 `productName` = `MPE`，决定安装后可见的应用名（Windows 安装目录/开始菜单/卸载项、`MPE.app`、deb 包名与 AppImage 文件名、`.desktop` 的 `Name`）。主二进制名不由它决定 —— Cargo `[[bin]] name = "mpe"` 决定，`mainBinaryName` 未设置故安装后仍为 `mpe` / `mpe.exe`，CLI 用法不变。`identifier` 必须保持 `com.multi-protocol-flow-executor`：`app_data_dir()` 由它推导（设置/日志/报告），改名等于让老用户数据消失。
 
 ## IPC COMMAND CATEGORIES
 
