@@ -394,7 +394,7 @@ describe('FlowCanvas - Drag and Drop', () => {
     expect(nodeData?.type).toBe('sub_flow');
     if (nodeData?.type === 'sub_flow') {
       expect(nodeData.target_flow_id).toBe('subflow-child-1');
-      expect(nodeData.target_flow_path).toBe('');
+      expect(nodeData.target_flow_path).toBe('/path/to/subflow.mpf');
       expect(nodeData.inherit_all_variables).toBe(true);
       expect(nodeData.export_all_variables).toBe(true);
     }

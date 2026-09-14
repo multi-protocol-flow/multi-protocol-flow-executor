@@ -61,25 +61,35 @@ export const SubFlowNode = memo(function SubFlowNode({ id, data, selected }: Nod
   const isPausedInsideChild = isPaused && Boolean(childFrame);
   // 目标引用二选一：文件路径优先（与后端解析顺序一致），其次为已保存流程名称
   const targetDisplay = useMemo(() => {
-    if (config?.target_flow_path) return config.target_flow_path;
+    if (config?.target_flow_path) {
+      const match = flows.find(
+        (flow) => flow.file_path === config.target_flow_path || flow.uuid === config.target_flow_path
+      );
+      if (match) return match.name;
+      const fileName = config.target_flow_path.split(/[/\\]/).pop()?.replace(/\.mpf$/, '');
+      return fileName || config.target_flow_path;
+    }
     if (config?.target_flow_id) {
-      const match = flows.find((flow) => flow.uuid === config.target_flow_id);
+      const match = flows.find(
+        (flow) => flow.uuid === config.target_flow_id || flow.file_path === config.target_flow_id
+      );
       return match ? match.name : config.target_flow_id;
     }
     return null;
   }, [config?.target_flow_id, config?.target_flow_path, flows]);
 
-  /** 仅已保存流程可直接在标签页打开 */
-  const canOpenTarget = Boolean(config?.target_flow_id) && !config?.target_flow_path;
+  /** 无论配置了 path 还是 id，只要有目标均可在标签页打开 */
+  const canOpenTarget = Boolean(config?.target_flow_path || config?.target_flow_id);
 
   const handleOpenFlow = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!config?.target_flow_id) {
+    const target = config?.target_flow_path || config?.target_flow_id;
+    if (!target) {
       toast.error(ll.panels.subflow.select_target_flow());
       return;
     }
     try {
-      const flow = await flowStorage.loadFlow(config.target_flow_id);
+      const flow = await flowStorage.loadFlow(target);
       if (flow) {
         setFlow(flow);
         toast.success(flow.name);

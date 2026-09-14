@@ -1071,7 +1071,7 @@ function FlowCanvasInner() {
             ...defaultData,
             type: 'sub_flow' as const,
             target_flow_id: subflowData.uuid,
-            target_flow_path: '',
+            target_flow_path: subflowData.filePath || subflowData.uuid,
             inherit_all_variables: true,
             export_all_variables: true,
             variable_mappings: [],

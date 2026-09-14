@@ -132,10 +132,15 @@ export function SubFlowConfig({ data, onSave }: SubFlowConfigProps) {
     };
   }, [flows.length, setStoreFlows]);
 
-  const currentFlow = config.target_flow_id
-    ? flows.find((flow) => flow.uuid === config.target_flow_id)
-    : undefined;
-  const isTargetMissing = Boolean(config.target_flow_id) && flows.length > 0 && !currentFlow;
+  const currentFlow = flows.find(
+    (flow) =>
+      (config.target_flow_id && flow.uuid === config.target_flow_id) ||
+      (config.target_flow_path && (flow.file_path === config.target_flow_path || flow.uuid === config.target_flow_path))
+  );
+  const isTargetMissing =
+    Boolean(config.target_flow_id || config.target_flow_path) &&
+    flows.length > 0 &&
+    !currentFlow;
 
   /** 选择目标流程（文件夹层级树） */
   const flowItems = useMemo(
@@ -193,12 +198,13 @@ export function SubFlowConfig({ data, onSave }: SubFlowConfigProps) {
 
   /** 在新标签页打开目标流程（仅已保存流程可直接打开） */
   const handleOpenFlow = async () => {
-    if (!config.target_flow_id) {
+    const target = config.target_flow_path || config.target_flow_id;
+    if (!target) {
       toast.error(ll.select_target_flow());
       return;
     }
     try {
-      const flow = await flowStorage.loadFlow(config.target_flow_id);
+      const flow = await flowStorage.loadFlow(target);
       if (flow) {
         setFlow(flow);
         toast.success(flow.name);
@@ -285,7 +291,7 @@ export function SubFlowConfig({ data, onSave }: SubFlowConfigProps) {
             <Workflow className="w-4 h-4 text-violet-500" />
             <Label className="font-semibold">{ll.target_flow()}</Label>
           </div>
-          {mode === 'flow' && config.target_flow_id && (
+          {(config.target_flow_id || config.target_flow_path) && (
             <Button
               type="button"
               variant="outline"
@@ -332,9 +338,12 @@ export function SubFlowConfig({ data, onSave }: SubFlowConfigProps) {
             <Label className="text-xs text-muted-foreground">{ll.select_target_flow()}</Label>
             <FlowTreeSelect
               value={config.target_flow_id ?? ''}
-              onValueChange={(uuid) =>
-                update({ target_flow_id: uuid, target_flow_path: '' })
-              }
+              onValueChange={(selectedId) => {
+                update({
+                  target_flow_id: selectedId,
+                  target_flow_path: '',
+                });
+              }}
               items={flowItems}
               placeholder={ll.select_target_flow()}
               searchPlaceholder={ll.search_flow_placeholder()}
