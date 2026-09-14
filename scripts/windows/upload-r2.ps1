@@ -81,14 +81,30 @@ Write-Host "=========================================" -ForegroundColor Cyan
 # === 4. 扫描待上传文件 ===
 $UploadFiles = @()
 
-$ExeFile = Get-ChildItem $DistDir -File | Where-Object { $_.Name -like "*$Version*.exe" -or $_.Name -like "*x64*.exe" } | Select-Object -First 1
+$ExeFile = Get-ChildItem $DistDir -File | Where-Object { $_.Name -like "*$Version*.exe" } | Select-Object -First 1
 $ChecksumFile = Join-Path $DistDir "SHA256SUMS-windows.txt"
 
-if ($ExeFile) {
-    $UploadFiles += $ExeFile.FullName
-    $SigPath = "$($ExeFile.FullName).sig"
-    if (Test-Path $SigPath) { $UploadFiles += $SigPath }
+if (-not $ExeFile) {
+    Write-Host "❌ 在 $DistDir 中未找到版本 $Version 的安装包，拒绝上传！" -ForegroundColor Red
+    Write-Host "   现有文件:" -ForegroundColor Yellow
+    Get-ChildItem $DistDir -File | ForEach-Object { Write-Host "   - $($_.Name)" }
+    exit 1
 }
+
+# 校验安装包内部版本号，杜绝把历史版本的安装包当成新版本发布出去
+$ExeVersion = $ExeFile.VersionInfo.ProductVersion
+if (-not [string]::IsNullOrWhiteSpace($ExeVersion)) {
+    $ExeVersion = $ExeVersion -replace '^v', ''
+    if ($ExeVersion -ne $Version) {
+        Write-Host "❌ 安装包内部版本 ($ExeVersion) 与目标版本 ($Version) 不一致！" -ForegroundColor Red
+        Write-Host "   文件: $($ExeFile.Name)" -ForegroundColor Yellow
+        exit 1
+    }
+}
+
+$UploadFiles += $ExeFile.FullName
+$SigPath = "$($ExeFile.FullName).sig"
+if (Test-Path $SigPath) { $UploadFiles += $SigPath }
 if (Test-Path $ChecksumFile) { $UploadFiles += $ChecksumFile }
 
 if ($UploadFiles.Count -eq 0) {
