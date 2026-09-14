@@ -54,142 +54,181 @@ const customStyles = {
 
 type ViewMode = 'tree' | 'json' | 'raw';
 
-/**
- * JSON & 响应数据展示组件
- * 支持多视图切换（Tree / CodeMirror 虚拟化 JSON / Raw）、自适应展开层级与超大体积防护
- */
-export const RawJsonViewer = memo(function RawJsonViewer({
-  data,
-  showCopy = false,
-  className,
-  variant = 'tabs',
-  defaultView,
-}: RawJsonViewerProps) {
-  const ll = getLL();
+interface ParsedJsonData {
+  isJsonObject: boolean;
+  parsedData: Record<string, unknown> | unknown[] | null;
+  formattedText: string;
+  rawText: string;
+  byteSize: number;
+}
 
-  // 1. 原始值提前处理（null / undefined / number / boolean）
+/** 纯数据解析函数：提取 JSON / 文本 / 大小信息 */
+function parseJsonData(data: unknown): ParsedJsonData {
+  if (typeof data === 'string') {
+    try {
+      const parsed = JSON.parse(data);
+      if (typeof parsed === 'object' && parsed !== null) {
+        const formatted = JSON.stringify(parsed, null, 2);
+        return {
+          isJsonObject: true,
+          parsedData: parsed as Record<string, unknown> | unknown[],
+          formattedText: formatted,
+          rawText: data,
+          byteSize: estimateDataSize(parsed, data),
+        };
+      }
+      return {
+        isJsonObject: false,
+        parsedData: null,
+        formattedText: String(parsed),
+        rawText: data,
+        byteSize: data.length,
+      };
+    } catch {
+      return {
+        isJsonObject: false,
+        parsedData: null,
+        formattedText: data,
+        rawText: data,
+        byteSize: data.length,
+      };
+    }
+  }
+
+  if (typeof data === 'object' && data !== null) {
+    try {
+      const formatted = JSON.stringify(data, null, 2);
+      return {
+        isJsonObject: true,
+        parsedData: data as Record<string, unknown> | unknown[],
+        formattedText: formatted,
+        rawText: formatted,
+        byteSize: estimateDataSize(data, formatted),
+      };
+    } catch {
+      return {
+        isJsonObject: true,
+        parsedData: data as Record<string, unknown> | unknown[],
+        formattedText: '[Circular or Unserializable Object]',
+        rawText: '[Circular or Unserializable Object]',
+        byteSize: 0,
+      };
+    }
+  }
+
+  const str = String(data);
+  return {
+    isJsonObject: false,
+    parsedData: null,
+    formattedText: str,
+    rawText: str,
+    byteSize: str.length,
+  };
+}
+
+interface PrimitiveValueViewerProps {
+  data: null | undefined | number | boolean;
+  showCopy?: boolean;
+  className?: string;
+}
+
+/** 原始值视图（null / undefined / number / boolean） */
+function PrimitiveValueViewer({ data, showCopy, className }: PrimitiveValueViewerProps) {
   const copyButton = showCopy && data !== undefined && (
     <div className="absolute top-1.5 right-1.5 z-10 opacity-70 hover:opacity-100 transition-opacity">
       <CopyButton value={data} format="json" size="xs" />
     </div>
   );
 
+  let content: React.ReactNode = null;
   if (data === null) {
-    return (
-      <div className={cn('raw-json-viewer overflow-hidden relative select-text cursor-text', className)}>
-        {copyButton}
-        <span data-testid="primitive-value" className="text-sm font-mono text-muted-foreground italic">null</span>
-      </div>
-    );
+    content = <span data-testid="primitive-value" className="text-sm font-mono text-muted-foreground italic">null</span>;
+  } else if (data === undefined) {
+    content = <span data-testid="primitive-value" className="text-sm font-mono text-muted-foreground italic">undefined</span>;
+  } else if (typeof data === 'number') {
+    content = <span data-testid="primitive-value" className="text-sm font-mono text-blue-600 dark:text-blue-400">{data}</span>;
+  } else if (typeof data === 'boolean') {
+    content = <span data-testid="primitive-value" className="text-sm font-mono text-purple-600 dark:text-purple-400">{String(data)}</span>;
   }
 
-  if (data === undefined) {
-    return (
-      <div className={cn('raw-json-viewer overflow-hidden relative select-text cursor-text', className)}>
-        {copyButton}
-        <span data-testid="primitive-value" className="text-sm font-mono text-muted-foreground italic">undefined</span>
-      </div>
-    );
-  }
+  return (
+    <div className={cn('raw-json-viewer overflow-hidden relative select-text cursor-text', className)}>
+      {copyButton}
+      {content}
+    </div>
+  );
+}
 
-  if (typeof data === 'number') {
-    return (
-      <div className={cn('raw-json-viewer overflow-hidden relative select-text cursor-text', className)}>
-        {copyButton}
-        <span data-testid="primitive-value" className="text-sm font-mono text-blue-600 dark:text-blue-400">{data}</span>
-      </div>
-    );
-  }
+interface PlainTextViewerProps {
+  rawText: string;
+  showCopy?: boolean;
+  data: unknown;
+  className?: string;
+}
 
-  if (typeof data === 'boolean') {
-    return (
-      <div className={cn('raw-json-viewer overflow-hidden relative select-text cursor-text', className)}>
-        {copyButton}
-        <span data-testid="primitive-value" className="text-sm font-mono text-purple-600 dark:text-purple-400">{String(data)}</span>
-      </div>
-    );
-  }
+/** 纯文本视图 */
+function PlainTextViewer({ rawText, showCopy, data, className }: PlainTextViewerProps) {
+  const copyButton = showCopy && data !== undefined && (
+    <div className="absolute top-1.5 right-1.5 z-10 opacity-70 hover:opacity-100 transition-opacity">
+      <CopyButton value={data} format="json" size="xs" />
+    </div>
+  );
 
-  // 2. 解析与准备数据
-  const { isJsonObject, parsedData, formattedText, rawText, byteSize } = useMemo(() => {
-    if (typeof data === 'string') {
-      try {
-        const parsed = JSON.parse(data);
-        if (typeof parsed === 'object' && parsed !== null) {
-          const formatted = JSON.stringify(parsed, null, 2);
-          return {
-            isJsonObject: true,
-            parsedData: parsed as Record<string, unknown> | unknown[],
-            formattedText: formatted,
-            rawText: data,
-            byteSize: estimateDataSize(parsed, data),
-          };
-        }
-        // 解析为非对象（如字符串字面量、数字等原始值）
-        return {
-          isJsonObject: false,
-          parsedData: null,
-          formattedText: String(parsed),
-          rawText: data,
-          byteSize: data.length,
-        };
-      } catch {
-        // 非 JSON 字符串
-        return {
-          isJsonObject: false,
-          parsedData: null,
-          formattedText: data,
-          rawText: data,
-          byteSize: data.length,
-        };
-      }
-    }
+  return (
+    <div className={cn('raw-json-viewer overflow-hidden relative select-text cursor-text', className)}>
+      {copyButton}
+      <pre data-testid="plain-text-view" className="text-sm font-mono whitespace-pre-wrap break-all">{rawText}</pre>
+    </div>
+  );
+}
 
-    if (typeof data === 'object') {
-      try {
-        const formatted = JSON.stringify(data, null, 2);
-        return {
-          isJsonObject: true,
-          parsedData: data as Record<string, unknown> | unknown[],
-          formattedText: formatted,
-          rawText: formatted,
-          byteSize: estimateDataSize(data, formatted),
-        };
-      } catch {
-        return {
-          isJsonObject: true,
-          parsedData: data as Record<string, unknown> | unknown[],
-          formattedText: '[Circular or Unserializable Object]',
-          rawText: '[Circular or Unserializable Object]',
-          byteSize: 0,
-        };
-      }
-    }
+interface CompactJsonViewerProps {
+  parsed: ParsedJsonData;
+  showCopy?: boolean;
+  data: unknown;
+  className?: string;
+}
 
-    // 兜底
-    const str = String(data);
-    return {
-      isJsonObject: false,
-      parsedData: null,
-      formattedText: str,
-      rawText: str,
-      byteSize: str.length,
-    };
-  }, [data]);
+/** 紧凑 JSON / 树视图 */
+function CompactJsonViewer({ parsed, showCopy, data, className }: CompactJsonViewerProps) {
+  const { isJsonObject, parsedData, rawText, byteSize } = parsed;
+  const expandStrategy = useMemo(() => {
+    return getAdaptiveExpandStrategy(byteSize, null);
+  }, [byteSize]);
 
-  // 非 JSON 对象时，若为紧凑模式或简单纯文本，保持向下兼容的 plain-text-view
-  if (!isJsonObject) {
-    if (variant === 'compact' || byteSize < JSON_VIEWER_THRESHOLDS.SMALL) {
-      return (
-        <div className={cn('raw-json-viewer overflow-hidden relative select-text cursor-text', className)}>
-          {copyButton}
-          <pre data-testid="plain-text-view" className="text-sm font-mono whitespace-pre-wrap break-all">{rawText}</pre>
-        </div>
-      );
-    }
-  }
+  const copyButton = showCopy && data !== undefined && (
+    <div className="absolute top-1.5 right-1.5 z-10 opacity-70 hover:opacity-100 transition-opacity">
+      <CopyButton value={data} format="json" size="xs" />
+    </div>
+  );
 
-  // 3. 确定默认选中的视图
+  return (
+    <div className={cn('raw-json-viewer overflow-hidden relative select-text cursor-text', className)}>
+      {copyButton}
+      {isJsonObject && parsedData ? (
+        <JsonView
+          data={parsedData}
+          shouldExpandNode={expandStrategy}
+          style={customStyles}
+        />
+      ) : (
+        <pre data-testid="plain-text-view" className="text-sm font-mono whitespace-pre-wrap break-all">{rawText}</pre>
+      )}
+    </div>
+  );
+}
+
+interface TabbedJsonViewerProps {
+  parsed: ParsedJsonData;
+  className?: string;
+  defaultView?: 'tree' | 'json' | 'raw';
+}
+
+/** 多 Tab 交互式视图（Tree / JSON CodeMirror / Raw） */
+function TabbedJsonViewer({ parsed, className, defaultView }: TabbedJsonViewerProps) {
+  const ll = getLL();
+  const { isJsonObject, parsedData, formattedText, rawText, byteSize } = parsed;
+
   const initialView: ViewMode = useMemo(() => {
     if (defaultView) {
       return defaultView;
@@ -197,7 +236,6 @@ export const RawJsonViewer = memo(function RawJsonViewer({
     if (!isJsonObject) {
       return 'raw';
     }
-    // 超过 1MB 时默认切到 JSON (CodeMirror) 视图，确保秒开
     if (byteSize >= JSON_VIEWER_THRESHOLDS.MEDIUM) {
       return 'json';
     }
@@ -208,12 +246,10 @@ export const RawJsonViewer = memo(function RawJsonViewer({
   const [expandOverride, setExpandOverride] = useState<'all' | 'collapse' | null>(null);
   const [forceRenderTree, setForceRenderTree] = useState(false);
 
-  // 切换全部展开 / 全部折叠
   const handleToggleExpandAll = useCallback(() => {
     setExpandOverride((prev) => (prev === 'all' ? 'collapse' : 'all'));
   }, []);
 
-  // 下载内容到本地文件
   const handleDownload = useCallback(() => {
     const isJsonFile = activeTab !== 'raw' && isJsonObject;
     const filename = isJsonFile ? 'response.json' : 'response.txt';
@@ -222,28 +258,9 @@ export const RawJsonViewer = memo(function RawJsonViewer({
     downloadContentAsFile(contentToDownload, filename, mime);
   }, [activeTab, isJsonObject, rawText, formattedText]);
 
-  // 展开层级策略
   const expandStrategy = useMemo(() => {
     return getAdaptiveExpandStrategy(byteSize, expandOverride);
   }, [byteSize, expandOverride]);
-
-  // 若为紧凑模式直接渲染树
-  if (variant === 'compact') {
-    return (
-      <div className={cn('raw-json-viewer overflow-hidden relative select-text cursor-text', className)}>
-        {copyButton}
-        {isJsonObject && parsedData ? (
-          <JsonView
-            data={parsedData}
-            shouldExpandNode={expandStrategy}
-            style={customStyles}
-          />
-        ) : (
-          <pre data-testid="plain-text-view" className="text-sm font-mono whitespace-pre-wrap break-all">{rawText}</pre>
-        )}
-      </div>
-    );
-  }
 
   const sizeLabel = formatBytes(byteSize);
   const isExtremeLarge = byteSize >= JSON_VIEWER_THRESHOLDS.EXTREME;
@@ -393,5 +410,74 @@ export const RawJsonViewer = memo(function RawJsonViewer({
         )}
       </div>
     </div>
+  );
+}
+
+interface ParsedContentDispatcherProps {
+  data: unknown;
+  showCopy?: boolean;
+  className?: string;
+  variant?: 'tabs' | 'compact';
+  defaultView?: 'tree' | 'json' | 'raw';
+}
+
+/** 针对非原始值的内容分发器：保证内部只调用恒定数量的 hooks */
+function ParsedContentDispatcher({
+  data,
+  showCopy,
+  className,
+  variant,
+  defaultView,
+}: ParsedContentDispatcherProps) {
+  const parsed = useMemo(() => parseJsonData(data), [data]);
+
+  if (!parsed.isJsonObject && (variant === 'compact' || parsed.byteSize < JSON_VIEWER_THRESHOLDS.SMALL)) {
+    return <PlainTextViewer rawText={parsed.rawText} showCopy={showCopy} data={data} className={className} />;
+  }
+
+  if (variant === 'compact') {
+    return <CompactJsonViewer parsed={parsed} showCopy={showCopy} data={data} className={className} />;
+  }
+
+  return (
+    <TabbedJsonViewer
+      parsed={parsed}
+      className={className}
+      defaultView={defaultView}
+    />
+  );
+}
+
+/**
+ * JSON & 响应数据展示组件
+ * 支持多视图切换（Tree / CodeMirror 虚拟化 JSON / Raw）、自适应展开层级与超大体积防护
+ */
+export const RawJsonViewer = memo(function RawJsonViewer({
+  data,
+  showCopy = false,
+  className,
+  variant = 'tabs',
+  defaultView,
+}: RawJsonViewerProps) {
+  // 1. 原始值提前处理（null / undefined / number / boolean）
+  if (data === null || data === undefined || typeof data === 'number' || typeof data === 'boolean') {
+    return (
+      <PrimitiveValueViewer
+        data={data}
+        showCopy={showCopy}
+        className={className}
+      />
+    );
+  }
+
+  // 2. 复杂数据走内容分发器（确保 Hook 数量与顺序不因分支变化而产生波动）
+  return (
+    <ParsedContentDispatcher
+      data={data}
+      showCopy={showCopy}
+      className={className}
+      variant={variant}
+      defaultView={defaultView}
+    />
   );
 });
