@@ -202,19 +202,34 @@ try {
     $entry = $Changelog | Where-Object { $_.version -eq $Version -or $_.tag -eq $Tag } | Select-Object -First 1
     $isNew = ($null -eq $entry)
 
+    $Notes = "Release $Tag"
+    $ChangelogMdPath = Join-Path $ProjectRoot "CHANGELOG.md"
+    if (Test-Path $ChangelogMdPath) {
+        $ChangelogMd = Get-Content $ChangelogMdPath -Raw -Encoding UTF8
+        $CleanVer = [regex]::Escape($Version.TrimStart('v'))
+        $Pattern = "(?s)## \[(?:v)?$CleanVer\][^\n]*\n(.*?)(?=\n## |\Z)"
+        if ($ChangelogMd -match $Pattern) {
+            $ExtractedNotes = $Matches[1].Trim()
+            if ($ExtractedNotes) {
+                $Notes = $ExtractedNotes
+            }
+        }
+    }
+
     if ($isNew) {
         $isPrerelease = ($Version -match '(beta|alpha)')
         $entry = [PSCustomObject]@{
             version = $Version
             tag = $Tag
             date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-            notes = "Release $Tag"
+            notes = $Notes
             prerelease = [bool]$isPrerelease
             downloads = [PSCustomObject]@{}
         }
         $Changelog = @($entry) + @($Changelog)
+    } elseif ($Notes -and (-not $entry.notes -or $entry.notes.StartsWith("Release "))) {
+        $entry.notes = $Notes
     }
-
     if (-not $entry.downloads) {
         $entry | Add-Member -NotePropertyName "downloads" -NotePropertyValue ([PSCustomObject]@{}) -Force
     }

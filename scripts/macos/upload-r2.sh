@@ -209,7 +209,9 @@ fi
 
 node -e "
 const fs = require('fs');
+const path = require('path');
 const changelogPath = '$REMOTE_CHANGELOG';
+const rootChangelog = path.resolve('$PROJECT_ROOT', 'CHANGELOG.md');
 let changelog = [];
 try {
   changelog = JSON.parse(fs.readFileSync(changelogPath, 'utf8'));
@@ -224,6 +226,21 @@ const downloadBase = '$DOWNLOAD_BASE';
 const prefix = '$PREFIX';
 const dmgName = '$DMG_NAME';
 
+let notes = 'Release ' + tag;
+if (fs.existsSync(rootChangelog)) {
+  try {
+    const md = fs.readFileSync(rootChangelog, 'utf8');
+    const cleanVer = version.replace(/^v/, '').replace(/\./g, '\\\\.');
+    const re = new RegExp('## \\\\[(?:v)?' + cleanVer + '\\\\][^\\\\n]*\\\\n([\\\\s\\\\S]*?)(?=\\\\n## |$)');
+    const match = md.match(re);
+    if (match && match[1].trim()) {
+      notes = match[1].trim();
+    }
+  } catch (err) {
+    console.warn('  ⚠️ 读取 CHANGELOG.md 失败:', err.message);
+  }
+}
+
 let entry = changelog.find(item => item.version === version || item.tag === tag);
 const isNew = !entry;
 
@@ -232,11 +249,13 @@ if (!entry) {
     version: version,
     tag: tag,
     date: new Date().toISOString(),
-    notes: 'Release ' + tag,
+    notes: notes,
     prerelease: /(beta|alpha)/.test(version),
     downloads: {}
   };
   changelog.unshift(entry);
+} else if (notes && (!entry.notes || entry.notes.startsWith('Release '))) {
+  entry.notes = notes;
 }
 
 entry.downloads = entry.downloads || {};

@@ -22,10 +22,25 @@ export AWS_DEFAULT_REGION="auto"
 
 # === 参数 ===
 VERSION="${1:?Usage: ./scripts/upload-release.sh <version> [-n notes]}"
-NOTES="${3:-Release v$VERSION}"
+RAW_NOTES="${3:-}"
 VERSION="${VERSION#v}"
 TAG="v$VERSION"
 
+NOTES="Release $TAG"
+if [ -n "$RAW_NOTES" ]; then
+  NOTES="$RAW_NOTES"
+elif [ -f "$PROJECT_ROOT/CHANGELOG.md" ]; then
+  EXTRACTED_NOTES=$(node -e "
+    const fs = require('fs');
+    const md = fs.readFileSync('$PROJECT_ROOT/CHANGELOG.md', 'utf8');
+    const cleanVer = '$VERSION'.replace(/^v/, '').replace(/\\./g, '\\\\.');
+    const m = md.match(new RegExp('## \\\\[(?:v)?' + cleanVer + '\\\\][^\\\\n]*\\\\n([\\\\s\\\\S]*?)(?=\\\\n## |$)'));
+    if (m && m[1].trim()) process.stdout.write(m[1].trim());
+  " 2>/dev/null || true)
+  if [ -n "$EXTRACTED_NOTES" ]; then
+    NOTES="$EXTRACTED_NOTES"
+  fi
+fi
 R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
 BASE_URL="https://mpe-downloads.sunanzhi.com"
 

@@ -96,7 +96,7 @@ aws s3 cp "s3://${R2_BUCKET}/changelog.json" "$TMP_DIR/changelog.json" \
   --endpoint-url "${R2_ENDPOINT}" --quiet 2>/dev/null || echo "[]" > "$TMP_DIR/changelog.json"
 
 python3 - << 'PYEOF' "$TMP_DIR/changelog.json" "$PLATFORM" "$VERSION" "$PREFIX" "$DOWNLOAD_BASE"
-import json, sys, re
+import json, sys, re, os
 from datetime import datetime, timezone
 
 changelog_path, platform, version, prefix, download_base = sys.argv[1:6]
@@ -112,16 +112,36 @@ with open(changelog_path, 'r', encoding='utf-8') as f:
 tag = f"v{version}"
 entry = next((item for item in changelog if item.get("version") == version or item.get("tag") == tag), None)
 
+notes = f"Release v{version}"
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+changelog_md = os.path.join(repo_root, "CHANGELOG.md")
+if not os.path.exists(changelog_md):
+    # 尝试当前执行目录
+    changelog_md = os.path.abspath("CHANGELOG.md")
+
+if os.path.exists(changelog_md):
+    try:
+        with open(changelog_md, "r", encoding="utf-8") as f:
+            md_text = f.read()
+        clean_ver = re.escape(version.lstrip("v"))
+        m = re.search(rf"## \[(?:v)?{clean_ver}\][^\n]*\n([\s\S]*?)(?=\n## |\Z)", md_text)
+        if m and m.group(1).strip():
+            notes = m.group(1).strip()
+    except Exception as e:
+        print(f"  ⚠️ Failed to parse CHANGELOG.md: {e}", file=sys.stderr)
+
 if not entry:
     entry = {
         "version": version,
         "tag": tag,
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "notes": f"Release v{version}",
+        "notes": notes,
         "prerelease": bool(re.search(r'(beta|alpha)', version)),
         "downloads": {}
     }
     changelog.insert(0, entry)
+elif notes and (not entry.get("notes") or entry.get("notes", "").startswith("Release ")):
+    entry["notes"] = notes
 
 entry.setdefault("downloads", {})
 

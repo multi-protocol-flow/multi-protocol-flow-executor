@@ -36,6 +36,18 @@ $Tag = "v$Version"
 
 if (-not $Notes) {
     $Notes = "Release $Tag"
+    $ChangelogMdPath = Join-Path $ProjectRoot "CHANGELOG.md"
+    if (Test-Path $ChangelogMdPath) {
+        $ChangelogMd = Get-Content $ChangelogMdPath -Raw -Encoding UTF8
+        $CleanVer = [regex]::Escape($Version)
+        $Pattern = "(?s)## \[(?:v)?$CleanVer\][^\n]*\n(.*?)(?=\n## |\Z)"
+        if ($ChangelogMd -match $Pattern) {
+            $ExtractedNotes = $Matches[1].Trim()
+            if ($ExtractedNotes) {
+                $Notes = $ExtractedNotes
+            }
+        }
+    }
 }
 
 Write-Host "=========================================" -ForegroundColor Cyan
