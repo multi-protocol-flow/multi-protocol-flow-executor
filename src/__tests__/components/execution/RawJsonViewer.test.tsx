@@ -6,8 +6,9 @@
  * - JSON 字符串自动解析测试
  */
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { RawJsonViewer } from '@/components/execution/viewers/RawJsonViewer';
+import { JSON_VIEWER_THRESHOLDS } from '@/components/execution/viewers/jsonViewerUtils';
 
 // Mock react-json-view-lite — 在 mock 的 pre 上标记 data-testid
 // RawJsonViewer 组件不再在 wrapper div 上添加 data-testid，所以不会重复
@@ -179,6 +180,70 @@ describe('RawJsonViewer', () => {
 
       const el = screen.getByTestId('plain-text-view');
       expect(el.textContent).toBe(xml);
+    });
+  });
+
+  describe('多视图切换与大体积防护', () => {
+    it('可以在 Tree、JSON 和 Raw 视图之间切换', () => {
+      const data = { hello: 'world', count: 123 };
+      render(<RawJsonViewer data={data} />);
+
+      // 默认应该展示 Tree 视图
+      expect(screen.getByTestId('json-view')).toBeInTheDocument();
+
+      // 点击 JSON 按钮切换至 CodeMirror JSON 视图
+      const jsonTabBtn = screen.getByRole('button', { name: 'JSON 代码' });
+      fireEvent.click(jsonTabBtn);
+      expect(screen.getByTestId('codemirror-json-viewer')).toBeInTheDocument();
+
+      // 点击 Raw 按钮切换至 Raw 视图
+      const rawTabBtn = screen.getByRole('button', { name: '原始文本' });
+      fireEvent.click(rawTabBtn);
+      expect(screen.getByTestId('codemirror-raw-viewer')).toBeInTheDocument();
+
+      // 点击 Tree 按钮切回 Tree 视图
+      const treeTabBtn = screen.getByRole('button', { name: '树视图' });
+      fireEvent.click(treeTabBtn);
+      expect(screen.getByTestId('json-view')).toBeInTheDocument();
+    });
+
+    it('紧凑模式 variant="compact" 不渲染顶部工具栏', () => {
+      const data = { hello: 'world' };
+      render(<RawJsonViewer data={data} variant="compact" />);
+
+      // 应该直接渲染 json-view，且不应该存在视图切换按钮
+      expect(screen.getByTestId('json-view')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '树视图' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'JSON 代码' })).not.toBeInTheDocument();
+    });
+
+    it('超大体积（>= 5MB）且激活 Tree 时展示屏障警示，确认后才渲染树', () => {
+      // 构造超过 5MB 的大字符串
+      const bigString = 'x'.repeat(JSON_VIEWER_THRESHOLDS.EXTREME + 10);
+      const bigObj = { data: bigString };
+      render(<RawJsonViewer data={bigObj} defaultView="tree" />);
+
+      // 应该不直接渲染 json-view，而是渲染警示和确认按钮
+      expect(screen.queryByTestId('json-view')).not.toBeInTheDocument();
+      const forceBtn = screen.getByRole('button', { name: '仍要渲染树视图' });
+      expect(forceBtn).toBeInTheDocument();
+
+      // 点击确认后渲染
+      fireEvent.click(forceBtn);
+      expect(screen.getByTestId('json-view')).toBeInTheDocument();
+    });
+
+    it('Tree 视图支持全部折叠和全部展开切换', () => {
+      const data = { a: { b: { c: 1 } } };
+      render(<RawJsonViewer data={data} />);
+
+      // 初始为小数据，默认展开，切换按钮显示为“全部展开”或“全部折叠”
+      const toggleBtn = screen.getByRole('button', { name: /全部(折叠|展开)/ });
+      expect(toggleBtn).toBeInTheDocument();
+
+      // 点击切换
+      fireEvent.click(toggleBtn);
+      expect(screen.getByRole('button', { name: /全部(折叠|展开)/ })).toBeInTheDocument();
     });
   });
 });
