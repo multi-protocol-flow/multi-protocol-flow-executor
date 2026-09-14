@@ -159,6 +159,9 @@ export const useUpdateStore = create<UpdateStore>((set, get) => ({
       return;
     }
 
+    const ll = getLL();
+    toast.info(ll.settings.installing_update());
+
     try {
       await installUpdatePackage(downloadedFilePath);
     } catch (e) {
