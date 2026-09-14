@@ -140,7 +140,7 @@ export const VariableChangesCard = memo(function VariableChangesCard({ changes, 
                       </div>
                       {typeof change.new_value === 'object' && change.new_value !== null ? (
                         <div className="bg-background/60 rounded p-1.5 max-h-32 overflow-auto">
-                          <RawJsonViewer data={change.new_value} />
+                          <RawJsonViewer data={change.new_value} variant="compact" />
                         </div>
                       ) : (
                         <code className="font-mono text-foreground text-xs select-text cursor-text">
@@ -166,7 +166,7 @@ export const VariableChangesCard = memo(function VariableChangesCard({ changes, 
                           </div>
                           {typeof change.old_value === 'object' && change.old_value !== null ? (
                             <div className="bg-background/60 rounded p-1.5 max-h-32 overflow-auto">
-                              <RawJsonViewer data={change.old_value} />
+                              <RawJsonViewer data={change.old_value} variant="compact" />
                             </div>
                           ) : (
                             <code className="font-mono text-muted-foreground text-xs line-through select-text cursor-text">
