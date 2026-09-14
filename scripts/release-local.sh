@@ -79,10 +79,11 @@ case "$(uname -s)" in
     cargo tauri build --bundles nsis --config src-tauri/tauri.conf.ci.json
     
     NSIS_DIR="src-tauri/target/release/bundle/nsis"
-    cp "$NSIS_DIR"/*.exe "$DIST_DIR/" 2>/dev/null || true
-    cp "$NSIS_DIR"/*.exe.sig "$DIST_DIR/" 2>/dev/null || true
-    
-    ARTIFACT=$(ls "$DIST_DIR"/*.exe 2>/dev/null | head -1)
+    # 仅复制当前版本的产物，避免把 bundle 目录中历史版本的安装包带入发布目录
+    cp "$NSIS_DIR"/*"$VERSION"*.exe "$DIST_DIR/" 2>/dev/null || true
+    cp "$NSIS_DIR"/*"$VERSION"*.exe.sig "$DIST_DIR/" 2>/dev/null || true
+
+    ARTIFACT=$(ls "$DIST_DIR"/*"$VERSION"*.exe 2>/dev/null | head -1)
     ;;
     
   Darwin)
@@ -90,10 +91,11 @@ case "$(uname -s)" in
     cargo tauri build --target universal-apple-darwin --bundles dmg --config src-tauri/tauri.conf.ci.json
     
     DMG_DIR="src-tauri/target/universal-apple-darwin/release/bundle/dmg"
-    cp "$DMG_DIR"/*.dmg "$DIST_DIR/" 2>/dev/null || true
-    cp "$DMG_DIR"/*.dmg.sig "$DIST_DIR/" 2>/dev/null || true
-    
-    ARTIFACT=$(ls "$DIST_DIR"/*.dmg 2>/dev/null | head -1)
+    # 仅复制当前版本的产物
+    cp "$DMG_DIR"/*"$VERSION"*.dmg "$DIST_DIR/" 2>/dev/null || true
+    cp "$DMG_DIR"/*"$VERSION"*.dmg.sig "$DIST_DIR/" 2>/dev/null || true
+
+    ARTIFACT=$(ls "$DIST_DIR"/*"$VERSION"*.dmg 2>/dev/null | head -1)
     ;;
     
   Linux)
@@ -124,6 +126,11 @@ if [ "${UPLOAD_TO_R2:-false}" = "true" ] && [ -n "$R2_ACCOUNT_ID" ]; then
   
   for file in "$DIST_DIR"/*; do
     filename=$(basename "$file")
+    # 仅上传属于当前版本的产物，避免把 dist-release 中历史版本文件一并发布
+    if [[ "$filename" != *"$VERSION"* ]]; then
+      echo "  跳过历史版本产物: $filename"
+      continue
+    fi
     echo "  上传: $filename"
     aws s3 cp "$file" "s3://${R2_BUCKET}/releases/v${VERSION}/${filename}" \
       --endpoint-url "$R2_ENDPOINT" \

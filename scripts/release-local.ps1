@@ -84,8 +84,9 @@ cargo tauri build --bundles nsis --config src-tauri/tauri.conf.ci.json
 if ($LASTEXITCODE -ne 0) { throw "tauri build failed" }
 
 $NsisDir = Join-Path $ProjectRoot "src-tauri\target\release\bundle\nsis"
-Get-ChildItem "$NsisDir\*.exe" | Copy-Item -Destination $DistDir -Force
-Get-ChildItem "$NsisDir\*.exe.sig" | Copy-Item -Destination $DistDir -Force -ErrorAction SilentlyContinue
+# 仅复制当前版本的产物，避免把 bundle 目录中历史版本的安装包带入发布目录
+Get-ChildItem "$NsisDir\*.exe" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*$Version*" } | Copy-Item -Destination $DistDir -Force
+Get-ChildItem "$NsisDir\*.exe.sig" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*$Version*" } | Copy-Item -Destination $DistDir -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
 Write-Host "=========================================" -ForegroundColor Green
@@ -102,6 +103,11 @@ if ($UploadToR2 -and $env:R2_ACCOUNT_ID) {
     $R2Endpoint = "https://$($env:R2_ACCOUNT_ID).r2.cloudflarestorage.com"
     
     Get-ChildItem $DistDir | ForEach-Object {
+        # 仅上传属于当前版本的产物，避免把 dist-release 中历史版本文件一并发布
+        if ($_.Name -notlike "*$Version*") {
+            Write-Host "  跳过历史版本产物: $($_.Name)" -ForegroundColor DarkGray
+            return
+        }
         Write-Host "  上传: $($_.Name)"
         aws s3 cp $_.FullName "s3://$($env:R2_BUCKET)/releases/v$Version/$($_.Name)" --endpoint-url $R2Endpoint --quiet
     }

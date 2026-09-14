@@ -40,26 +40,33 @@ mkdir -p "$DIST_DIR"
 case "$(uname -s)" in
   Linux)
     ARTIFACT_DIR="$PROJECT_ROOT/src-tauri/target/release/bundle/nsis"
-    EXE_FILE=$(ls "$ARTIFACT_DIR"/*.exe 2>/dev/null | head -1)
-    SIG_FILE=$(ls "$ARTIFACT_DIR"/*.exe.sig 2>/dev/null | head -1)
+    EXE_FILE=$(ls "$ARTIFACT_DIR"/*"$VERSION"*.exe 2>/dev/null | head -1)
+    SIG_FILE=$(ls "$ARTIFACT_DIR"/*"$VERSION"*.exe.sig 2>/dev/null | head -1)
     ASSET_EXE="mpe-${VERSION}-x64-setup.exe"
     ASSET_SIG="mpe-${VERSION}-x64-setup.exe.sig"
     ;;
   Darwin)
     ARTIFACT_DIR="$PROJECT_ROOT/src-tauri/target/universal-apple-darwin/release/bundle/dmg"
-    DMG_FILE=$(ls "$ARTIFACT_DIR"/*.dmg 2>/dev/null | head -1)
-    SIG_FILE=$(ls "$ARTIFACT_DIR"/*.dmg.sig 2>/dev/null | head -1)
+    DMG_FILE=$(ls "$ARTIFACT_DIR"/*"$VERSION"*.dmg 2>/dev/null | head -1)
+    SIG_FILE=$(ls "$ARTIFACT_DIR"/*"$VERSION"*.dmg.sig 2>/dev/null | head -1)
     ASSET_DMG="mpe-${VERSION}-universal.dmg"
     ASSET_SIG="mpe-${VERSION}-universal.dmg.sig"
     ;;
   MINGW*|MSYS*|CYGWIN*)
     ARTIFACT_DIR="$PROJECT_ROOT/src-tauri/target/release/bundle/nsis"
-    EXE_FILE=$(ls "$ARTIFACT_DIR"/*.exe 2>/dev/null | head -1)
-    SIG_FILE=$(ls "$ARTIFACT_DIR"/*.exe.sig 2>/dev/null | head -1)
+    EXE_FILE=$(ls "$ARTIFACT_DIR"/*"$VERSION"*.exe 2>/dev/null | head -1)
+    SIG_FILE=$(ls "$ARTIFACT_DIR"/*"$VERSION"*.exe.sig 2>/dev/null | head -1)
     ASSET_EXE="mpe-${VERSION}-x64-setup.exe"
     ASSET_SIG="mpe-${VERSION}-x64-setup.exe.sig"
     ;;
 esac
+
+# 产物必须与目标版本一致，否则拒绝发布（曾出现把历史版本产物当成新版本上传的事故）
+if [ -z "$EXE_FILE" ] && [ -z "$DMG_FILE" ]; then
+  echo "❌ 在 $ARTIFACT_DIR 中未找到版本 $VERSION 的产物，拒绝上传！"
+  ls -lh "$ARTIFACT_DIR" 2>/dev/null || true
+  exit 1
+fi
 
 # === 1. 复制产物 ===
 echo "==> Copying artifacts"
@@ -105,8 +112,8 @@ if [ -f "$DIST_DIR/$ASSET_SIG" ]; then
   WIN_SIG=$(cat "$DIST_DIR/$ASSET_SIG" | tr -d '\n')
 fi
 
-# macOS dmg.sig
-DMG_SIG_FILE=$(ls "$ARTIFACT_DIR"/*.dmg.sig 2>/dev/null | head -1)
+# macOS dmg.sig（仅取当前版本）
+DMG_SIG_FILE=$(ls "$ARTIFACT_DIR"/*"$VERSION"*.dmg.sig 2>/dev/null | head -1)
 if [ -n "$DMG_SIG_FILE" ]; then
   MAC_SIG=$(cat "$DMG_SIG_FILE" | tr -d '\n')
 fi

@@ -56,15 +56,22 @@ if (-not (Test-Path $DistDir)) {
 
 # === 1. 复制产物到 dist-release ===
 Write-Host "==> 复制产物" -ForegroundColor Yellow
-$ExeFile = Get-ChildItem "$NsisDir\*.exe" | Select-Object -First 1
-$SigFile = Get-ChildItem "$NsisDir\*.exe.sig" | Select-Object -First 1
+# 严格匹配当前版本，避免误取 bundle 目录中历史版本的安装包
+$ExeFile = Get-ChildItem "$NsisDir\*.exe" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*$Version*" } | Select-Object -First 1
+if (-not $ExeFile) {
+    throw "在 $NsisDir 中未找到版本 $Version 的安装包"
+}
+$SigFile = Get-ChildItem "$NsisDir\*.exe.sig" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*$Version*" } | Select-Object -First 1
 
 $DestExe = "mpe-$Version-x64-setup.exe"
 $DestSig = "mpe-$Version-x64-setup.exe.sig"
 
 Copy-Item $ExeFile.FullName -Destination (Join-Path $DistDir $DestExe) -Force
-Copy-Item $SigFile.FullName -Destination (Join-Path $DistDir $DestSig) -Force
 Write-Host "  ✓ $DestExe" -ForegroundColor Green
+if (-not $SigFile) {
+    throw "在 $NsisDir 中未找到版本 $Version 的签名文件 ($ExeFile.sig)"
+}
+Copy-Item $SigFile.FullName -Destination (Join-Path $DistDir $DestSig) -Force
 Write-Host "  ✓ $DestSig" -ForegroundColor Green
 
 # === 2. 上传到 R2 ===
