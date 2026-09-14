@@ -96,6 +96,30 @@ describe('AboutSettingsTab - 设置页内更新流程', () => {
     fireEvent.click(screen.getByText('收起更新日志'));
     expect(screen.queryByText(/修复若干已知问题/)).not.toBeInTheDocument();
   });
+  it('当 releaseNotes 仅为占位符时隐藏更新日志展开按钮', () => {
+    useUpdateStore.setState({
+      status: 'available',
+      currentVersion: '0.1.1',
+      updateInfo: {
+        hasUpdate: true,
+        currentVersion: '0.1.1',
+        latestVersion: '0.1.2',
+        releaseDate: '2026-09-01T00:00:00Z',
+        releaseNotes: 'Release v0.1.2',
+        isPrerelease: false,
+        downloadUrl: 'https://example.com/download',
+        platform: 'linux',
+      },
+    });
+
+    render(<AboutSettingsTab />);
+
+    expect(screen.getByText(/发现新版本/)).toBeInTheDocument();
+    // 更新区域内的折叠按钮不应出现，仅保留底部外链卡片中的独立入口
+    expect(screen.getAllByRole('button', { name: /查看完整更新日志/ })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: /收起更新日志/ })).not.toBeInTheDocument();
+  });
+
 
   it('点击立即下载更新触发 startDownload', () => {
     const mockStartDownload = vi.fn().mockResolvedValue('/tmp/update.pkg');
