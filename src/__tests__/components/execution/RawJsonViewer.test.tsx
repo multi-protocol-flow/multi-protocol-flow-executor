@@ -245,5 +245,31 @@ describe('RawJsonViewer', () => {
       fireEvent.click(toggleBtn);
       expect(screen.getByRole('button', { name: /全部(折叠|展开)/ })).toBeInTheDocument();
     });
+
+    it('同一组件实例在原始值、纯文本与复杂 JSON 对象之间切换时不报 Hooks 错误', () => {
+      // 初始为 null
+      const { rerender } = render(<RawJsonViewer data={null} />);
+      expect(screen.getByTestId('primitive-value').textContent).toBe('null');
+
+      // 切换到数字
+      rerender(<RawJsonViewer data={123} />);
+      expect(screen.getByTestId('primitive-value').textContent).toBe('123');
+
+      // 切换到普通字符串
+      rerender(<RawJsonViewer data="hello text" />);
+      expect(screen.getByTestId('plain-text-view').textContent).toBe('hello text');
+
+      // 切换到复杂 JSON 对象
+      rerender(<RawJsonViewer data={{ foo: 'bar', list: [1, 2] }} />);
+      expect(screen.getByTestId('json-view')).toBeInTheDocument();
+
+      // 切回 undefined
+      rerender(<RawJsonViewer data={undefined} />);
+      expect(screen.getByTestId('primitive-value').textContent).toBe('undefined');
+
+      // 切回复杂 JSON
+      rerender(<RawJsonViewer data={{ active: true }} />);
+      expect(screen.getByTestId('json-view')).toBeInTheDocument();
+    });
   });
 });
