@@ -81,6 +81,7 @@ pub use tauri_commands::{
     move_flow_to_folder,
     move_folder,
     open_directory,
+    rename_flow_file,
     rename_folder,
     save_csv_template,
     save_dataset_report,
@@ -531,6 +532,7 @@ pub fn run() {
             save_flow_file,
             delete_flow_file,
             copy_flow_file,
+            rename_flow_file,
             // 文件夹管理命令
             list_folders,
             create_folder,

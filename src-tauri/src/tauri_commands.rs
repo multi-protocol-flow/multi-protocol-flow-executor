@@ -917,6 +917,30 @@ pub fn copy_flow_file(uuid: String, flows_dir: String) -> Result<Flow, String> {
     res
 }
 
+/// 重命名流程文件
+#[tauri::command]
+pub fn rename_flow_file(
+    uuid: String,
+    new_name: String,
+    flows_dir: String,
+) -> Result<flow_engine::storage::FlowMetadata, String> {
+    log::info!(
+        "[IPC::rename_flow_file] uuid/path={}, new_name='{}', flows_dir={}",
+        uuid,
+        new_name,
+        flows_dir
+    );
+    let res = flow_engine::storage::rename_flow_file(
+        &uuid,
+        &new_name,
+        std::path::Path::new(&flows_dir),
+    );
+    if let Err(e) = &res {
+        log::error!("[IPC::rename_flow_file] FAILED: error={}", e);
+    }
+    res
+}
+
 // ============================================================================
 // 文件夹管理命令
 // ============================================================================

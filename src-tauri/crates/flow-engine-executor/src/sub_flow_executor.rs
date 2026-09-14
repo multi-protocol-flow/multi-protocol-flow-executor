@@ -119,21 +119,9 @@ impl SubFlowNodeExecutor {
         let mut searched: Vec<String> = Vec::new();
         for dir in dirs {
             searched.push(dir.display().to_string());
-            let entries = match crate::storage::list_flow_files(dir) {
-                Ok(entries) => entries,
-                // 目录不存在/不可读：继续下一个候选目录
-                Err(_) => continue,
-            };
-            let Some(meta) = entries.into_iter().find(|m| m.uuid == flow_id) else {
-                continue;
-            };
-            return match crate::storage::load_flow(&meta.file_path) {
-                Ok(flow) => Ok((flow, Some(PathBuf::from(meta.file_path)))),
-                Err(e) => Err(ErrorDetail::new(
-                    ErrorKind::Configuration,
-                    format!("Failed to load subflow from {}: {}", meta.file_path, e),
-                )),
-            };
+            if let Ok((flow_file, path)) = crate::storage::load_flow_file_with_path(flow_id, dir) {
+                return Ok((flow_file.flow, Some(path)));
+            }
         }
 
         Err(ErrorDetail::new(
