@@ -76,12 +76,23 @@ echo "  下载基址: ${DOWNLOAD_BASE}"
 echo "========================================="
 
 # === 4. 扫描待上传文件 ===
-DMG_FILE=$(find "$DIST_DIR" -maxdepth 1 -name "*${VERSION}*.dmg" -o -name "*.dmg" 2>/dev/null | head -n 1 || true)
+DMG_FILE=$(find "$DIST_DIR" -maxdepth 1 -name "*_${VERSION}_*.dmg" 2>/dev/null | head -n 1 || true)
 CHECKSUM_FILE=$(find "$DIST_DIR" -maxdepth 1 -name "SHA256SUMS-macos.txt" 2>/dev/null | head -n 1 || true)
 
+if [[ -z "$DMG_FILE" ]]; then
+  echo "❌ 在 $DIST_DIR 中未找到版本 ${VERSION} 的 DMG，拒绝上传！"
+  echo "   现有文件:"
+  ls -lh "$DIST_DIR"
+  exit 1
+fi
+
 UPLOAD_FILES=()
-[[ -n "$DMG_FILE" && -f "$DMG_FILE" ]] && UPLOAD_FILES+=("$DMG_FILE")
-[[ -n "$CHECKSUM_FILE" && -f "$CHECKSUM_FILE" ]] && UPLOAD_FILES+=("$CHECKSUM_FILE")
+if [[ -f "$DMG_FILE" ]]; then
+  UPLOAD_FILES+=("$DMG_FILE")
+fi
+if [[ -n "$CHECKSUM_FILE" && -f "$CHECKSUM_FILE" ]]; then
+  UPLOAD_FILES+=("$CHECKSUM_FILE")
+fi
 
 # 包含签名文件
 if [[ -n "$DMG_FILE" && -f "${DMG_FILE}.sig" ]]; then

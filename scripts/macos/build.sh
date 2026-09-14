@@ -85,6 +85,29 @@ if [[ -n "$SPECIFIED_VERSION" && "$SPECIFIED_VERSION" != "$CURRENT_VERSION" ]]; 
   echo "  ✓ package.json, tauri.conf.json, Cargo.toml 版本同步完成"
 fi
 
+# === 1.5 版本一致性校验 ===
+# tauri.conf.json 决定安装包版本，Cargo.toml 决定程序自报版本（updater 用 CARGO_PKG_VERSION 比对）。
+# 两者不一致会产出“安装包装的是新版、程序自报旧版”的包，导致更新提示反复出现。
+CONSISTENCY_FAILED=false
+for entry in \
+  "package.json|$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json','utf8')).version)")" \
+  "tauri.conf.json|$(node -e "console.log(JSON.parse(require('fs').readFileSync('src-tauri/tauri.conf.json','utf8')).version)")" \
+  "Cargo.toml|$(sed -n 's/^version = "\(.*\)"/\1/p' src-tauri/Cargo.toml | head -n 1)" \
+  "mpe-cli/Cargo.toml|$(sed -n 's/^version = "\(.*\)"/\1/p' src-tauri/crates/mpe-cli/Cargo.toml | head -n 1)"; do
+  name="${entry%%|*}"
+  value="${entry#*|}"
+  if [[ "$value" != "$VERSION" ]]; then
+    echo "❌ 版本号不一致: $name = ${value:-<空>}，目标版本为 $VERSION"
+    CONSISTENCY_FAILED=true
+  fi
+done
+
+if [[ "$CONSISTENCY_FAILED" == "true" ]]; then
+  echo "   请显式传入版本号重新运行（会自动同步各文件），或手动修正后再构建。"
+  exit 1
+fi
+echo "==> 版本一致性校验通过: v$VERSION"
+
 DIST_DIR="$PROJECT_ROOT/dist-release"
 mkdir -p "$DIST_DIR"
 
@@ -115,6 +138,10 @@ npm run typesafe-i18n
 echo "==> 构建前端产物..."
 npm run build
 
+echo "==> 清理历史打包产物 (dmg)..."
+rm -rf "$PROJECT_ROOT/src-tauri/target"/*/release/bundle/dmg \
+       "$PROJECT_ROOT/src-tauri/target/release/bundle/dmg"
+
 echo "==> 执行 Tauri DMG 打包..."
 BUILD_CMD=("npx" "tauri" "build" "--bundles" "dmg" "--config" "src-tauri/tauri.conf.ci.json")
 if [[ -n "$BUILD_TARGET" ]]; then
@@ -124,7 +151,8 @@ fi
 "${BUILD_CMD[@]}"
 
 # === 4. 收集产物 ===
-DMG_SRC=$(find "$PROJECT_ROOT/src-tauri/target" -type f -name "*.dmg" -path "*/release/bundle/dmg/*" 2>/dev/null | head -n 1 || true)
+# 严格匹配当前版本，避免把历史版本的镜像当成新版本发布出去
+DMG_SRC=$(find "$PROJECT_ROOT/src-tauri/target" -type f -name "*_${VERSION}_*.dmg" -path "*/release/bundle/dmg/*" 2>/dev/null | head -n 1 || true)
 if [[ -n "$DMG_SRC" && -f "$DMG_SRC" ]]; then
   cp "$DMG_SRC" "$DIST_DIR/"
   echo "  ✓ 复制 DMG: $(basename "$DMG_SRC")"
@@ -146,10 +174,11 @@ echo "==> 生成 SHA256 校验清单"
 echo "========================================="
 (
   cd "$DIST_DIR"
+  # 仅为当前版本的镜像计算校验和，避免混入历史版本文件
   if command -v shasum &>/dev/null; then
-    shasum -a 256 *.dmg > SHA256SUMS-macos.txt 2>/dev/null || true
+    shasum -a 256 *"_${VERSION}_"*.dmg > SHA256SUMS-macos.txt 2>/dev/null || true
   elif command -v sha256sum &>/dev/null; then
-    sha256sum *.dmg > SHA256SUMS-macos.txt 2>/dev/null || true
+    sha256sum *"_${VERSION}_"*.dmg > SHA256SUMS-macos.txt 2>/dev/null || true
   fi
 )
 
