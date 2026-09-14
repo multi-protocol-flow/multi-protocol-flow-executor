@@ -502,6 +502,16 @@ const en_US_execution = {
     copy_target: 'Copy Target Field',
     copy_actual: 'Copy Actual Value',
     copy_expected: 'Copy Expected Value',
+    tab_tree: 'Tree',
+    tab_json: 'JSON',
+    tab_raw: 'Raw',
+    download_file: 'Download',
+    large_data_warning: 'Large payload ({size}), tree expansion depth limited',
+    extreme_data_warning: 'Payload is very large ({size}). Rendering the full tree may freeze the UI. Code or Raw view is recommended.',
+    force_render_tree: 'Render Tree Anyway',
+    collapse_all: 'Collapse All',
+    expand_all: 'Expand All',
+    size_label: 'Size: {size}',
   },
   // ===== General Toast Messages =====
   toast: {

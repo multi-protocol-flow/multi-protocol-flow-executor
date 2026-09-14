@@ -503,6 +503,16 @@ const zh_CN_execution: BaseTranslation = {
     copy_target: '复制目标字段',
     copy_actual: '复制实际值',
     copy_expected: '复制期望值',
+    tab_tree: '树视图',
+    tab_json: 'JSON 代码',
+    tab_raw: '原始文本',
+    download_file: '下载',
+    large_data_warning: '数据较大 ({size})，已限制树展开层级',
+    extreme_data_warning: '响应体过大 ({size})，渲染完整树可能导致界面卡顿，建议使用代码或原始文本视图。',
+    force_render_tree: '仍要渲染树视图',
+    collapse_all: '全部折叠',
+    expand_all: '全部展开',
+    size_label: '大小: {size}',
   },
   // ===== 通用 Toast 消息 =====
   toast: {

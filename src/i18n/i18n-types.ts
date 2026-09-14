@@ -6646,6 +6646,49 @@ type RootTranslation = {
 			 * 复​制​期​望​值
 			 */
 			copy_expected: string
+			/**
+			 * 树​视​图
+			 */
+			tab_tree: string
+			/**
+			 * J​S​O​N​ ​代​码
+			 */
+			tab_json: string
+			/**
+			 * 原​始​文​本
+			 */
+			tab_raw: string
+			/**
+			 * 下​载
+			 */
+			download_file: string
+			/**
+			 * 数​据​较​大​ ​(​{​s​i​z​e​}​)​，​已​限​制​树​展​开​层​级
+			 * @param {unknown} size
+			 */
+			large_data_warning: RequiredParams<'size'>
+			/**
+			 * 响​应​体​过​大​ ​(​{​s​i​z​e​}​)​，​渲​染​完​整​树​可​能​导​致​界​面​卡​顿​，​建​议​使​用​代​码​或​原​始​文​本​视​图​。
+			 * @param {unknown} size
+			 */
+			extreme_data_warning: RequiredParams<'size'>
+			/**
+			 * 仍​要​渲​染​树​视​图
+			 */
+			force_render_tree: string
+			/**
+			 * 全​部​折​叠
+			 */
+			collapse_all: string
+			/**
+			 * 全​部​展​开
+			 */
+			expand_all: string
+			/**
+			 * 大​小​:​ ​{​s​i​z​e​}
+			 * @param {unknown} size
+			 */
+			size_label: RequiredParams<'size'>
 		}
 		toast: {
 			/**
@@ -20352,6 +20395,46 @@ export type TranslationFunctions = {
 			 * 复制期望值
 			 */
 			copy_expected: () => LocalizedString
+			/**
+			 * 树视图
+			 */
+			tab_tree: () => LocalizedString
+			/**
+			 * JSON 代码
+			 */
+			tab_json: () => LocalizedString
+			/**
+			 * 原始文本
+			 */
+			tab_raw: () => LocalizedString
+			/**
+			 * 下载
+			 */
+			download_file: () => LocalizedString
+			/**
+			 * 数据较大 ({size})，已限制树展开层级
+			 */
+			large_data_warning: (arg: { size: unknown }) => LocalizedString
+			/**
+			 * 响应体过大 ({size})，渲染完整树可能导致界面卡顿，建议使用代码或原始文本视图。
+			 */
+			extreme_data_warning: (arg: { size: unknown }) => LocalizedString
+			/**
+			 * 仍要渲染树视图
+			 */
+			force_render_tree: () => LocalizedString
+			/**
+			 * 全部折叠
+			 */
+			collapse_all: () => LocalizedString
+			/**
+			 * 全部展开
+			 */
+			expand_all: () => LocalizedString
+			/**
+			 * 大小: {size}
+			 */
+			size_label: (arg: { size: unknown }) => LocalizedString
 		}
 		toast: {
 			/**
