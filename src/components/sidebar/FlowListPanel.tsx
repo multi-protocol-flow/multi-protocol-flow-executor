@@ -214,7 +214,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     }
   }, [refreshAll]);
 
-  const handleSelectFlow = async (uuid: string) => {
+  const handleSelectFlow = async (metaOrUuid: string | typeof flows[number]) => {
     const LL = getLL();
     if (isExecuting) {
       toast.info(LL.flow.executing_no_switch());
@@ -225,16 +225,20 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       return;
     }
 
+    const uuid = typeof metaOrUuid === 'string' ? metaOrUuid : metaOrUuid.uuid;
+    const filePath = typeof metaOrUuid === 'string' ? undefined : metaOrUuid.file_path;
+    const loadTarget = filePath || uuid;
+
     const { tabs, switchTab, openTab } = useFlowStore.getState();
-    if (tabs.some((t) => t.uuid === uuid)) {
-      switchTab(uuid);
+    const existingTab = tabs.find((t) => t.uuid === uuid || (filePath && t.filePath === filePath));
+    if (existingTab) {
+      switchTab(existingTab.uuid);
       return;
     }
-
     try {
-      const flow = await flowStorage.loadFlow(uuid);
+      const flow = await flowStorage.loadFlow(loadTarget);
       if (flow) {
-        openTab(flow);
+        openTab(flow, filePath || loadTarget);
         // 验证流程结构
         try {
           const result = await validateFlow(flow);
@@ -532,12 +536,16 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       description: getLL().flow.delete_flow_desc(),
       confirmText: getLL().common.DELETE(),
       onConfirm: async () => {
+        const flowMeta = flows.find((f) => f.uuid === uuid);
         await flowStorage.deleteFlow(uuid);
         removeFlowFromList(uuid);
         // 如果删除的是打开的流程标签，关闭该标签
         const { tabs, closeTab } = useFlowStore.getState();
-        if (tabs.some((t) => t.uuid === uuid)) {
-          closeTab(uuid);
+        const openedTab = tabs.find(
+          (t) => t.uuid === uuid || (flowMeta?.file_path && t.filePath === flowMeta.file_path)
+        );
+        if (openedTab) {
+          closeTab(openedTab.uuid);
         } else if (currentFlow?.uuid === uuid) {
           setFlow(null);
         }
@@ -634,10 +642,18 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     useFlowStore.getState().updateTabName(renamingUuid, trimmedName);
     // 持久化：加载完整 flow，修改名称后保存
     try {
-      const fullFlow = await flowStorage.loadFlow(renamingUuid);
-      if (fullFlow) {
-        await flowStorage.saveFlow({ ...fullFlow, name: trimmedName });
+      const flowMeta = flows.find((f) => f.uuid === renamingUuid);
+      const targetIdentifier = flowMeta?.file_path || renamingUuid;
+      const renamedMeta = await flowStorage.renameFlow(targetIdentifier, trimmedName);
+      if (renamedMeta) {
+        useFlowListStore.getState().updateFlow(renamingUuid, {
+          uuid: renamedMeta.uuid,
+          name: renamedMeta.name,
+          file_path: renamedMeta.filePath,
+          updated_at: renamedMeta.updatedAt,
+        });
       }
+      await refreshAll();
     } catch (err) {
       console.error('[FlowListPanel] 重命名保存失败:', err);
     }
@@ -780,7 +796,8 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
 
   // ===== 渲染流程项 =====
   const renderFlowItem = (flowMeta: typeof flows[number], depth: number) => {
-    const isSelected = currentFlow?.uuid === flowMeta.uuid;
+    const activeTab = useFlowStore.getState().tabs.find((t) => t.uuid === useFlowStore.getState().activeTabUuid);
+    const isSelected = currentFlow?.uuid === flowMeta.uuid || (activeTab?.filePath && flowMeta.file_path && activeTab.filePath === flowMeta.file_path);
     const isDebugFlow = disabled && debugFlowUuid === flowMeta.uuid;
 
     const canDrag = !disabled && renamingUuid !== flowMeta.uuid;
@@ -823,14 +840,14 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           if (disabled) return;
           if (renamingUuid === flowMeta.uuid) return;
           if (isDraggingFlowRef.current) return;
-          handleSelectFlow(flowMeta.uuid);
+          handleSelectFlow(flowMeta);
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             if (disabled) return;
             if (renamingUuid === flowMeta.uuid) return;
-            handleSelectFlow(flowMeta.uuid);
+            handleSelectFlow(flowMeta);
           }
         }}
         title={itemTitle}
