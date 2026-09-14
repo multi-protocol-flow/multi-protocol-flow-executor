@@ -51,6 +51,8 @@ export interface FlowTab {
   name: string;
   /** 是否有未保存的修改 */
   isDirty?: boolean;
+  /** 流程文件路径（可选） */
+  filePath?: string;
 }
 
 /**

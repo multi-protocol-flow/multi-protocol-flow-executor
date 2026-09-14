@@ -140,6 +140,36 @@ export const flowStorage = {
     }
   },
 
+  /** 重命名流程 */
+  async renameFlow(uuidOrPath: string, newName: string): Promise<FlowMetadata> {
+    try {
+      if (isTauriEnv()) {
+        const flowsDir = await getFlowsDir();
+        return await invoke<FlowMetadata>('rename_flow_file', {
+          uuid: uuidOrPath,
+          newName,
+          flowsDir,
+        });
+      }
+      const fullFlow = await this.loadFlow(uuidOrPath);
+      fullFlow.name = newName;
+      await this.saveFlow(fullFlow);
+      return {
+        uuid: uuidOrPath,
+        name: newName,
+        filePath: `mock://flows/${uuidOrPath}.json`,
+        updatedAt: Date.now(),
+        folderPath: '',
+      };
+    } catch (err) {
+      notifyError(getLL().flow.save_flow_failed?.() ?? 'Failed to rename flow', err, {
+        category: 'FlowStorage',
+        flowUuid: uuidOrPath,
+      });
+      throw err;
+    }
+  },
+
   /** 刷新流程列表（与 listFlows 相同，便捷别名） */
   async refreshFlows(): Promise<FlowMetadata[]> {
     if (isTauriEnv()) {

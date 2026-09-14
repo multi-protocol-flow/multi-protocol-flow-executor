@@ -77,7 +77,7 @@ interface FlowState {
 
   // ===== Tab Actions =====
   /** 打开流程标签（若已打开则切换） */
-  openTab: (flow: Flow) => void;
+  openTab: (flow: Flow, filePath?: string) => void;
   /** 切换活跃标签 */
   switchTab: (targetUuid: string) => void;
   /** 关闭指定标签 */
@@ -241,14 +241,19 @@ export const useFlowStore = create<FlowState>((set, get) => {
       return get().openTab(flow);
     },
 
-    openTab: (flow) => {
+    openTab: (flow, filePath) => {
       const state = get();
-      const existingTabIndex = state.tabs.findIndex((t) => t.uuid === flow.uuid);
+      const existingTabIndex = state.tabs.findIndex(
+        (t) => t.uuid === flow.uuid || (filePath && t.filePath === filePath)
+      );
       if (existingTabIndex >= 0) {
-        if (state.activeTabUuid === flow.uuid) {
+        const matchedTab = state.tabs[existingTabIndex];
+        if (state.activeTabUuid === matchedTab.uuid) {
           useExecutionStore.getState().clearExecutionState();
           const updatedTabs = state.tabs.map((t) =>
-            t.uuid === flow.uuid ? { ...t, name: flow.name, isDirty: false } : t
+            t.uuid === matchedTab.uuid
+              ? { ...t, name: flow.name, isDirty: false, filePath: filePath ?? t.filePath }
+              : t
           );
           const updatedSessions = {
             ...state.tabSessions,
@@ -294,12 +299,14 @@ export const useFlowStore = create<FlowState>((set, get) => {
           historyVersion: 0,
         };
         const updatedTabs = state.tabs.map((t) =>
-          t.uuid === flow.uuid ? { ...t, name: flow.name, isDirty: false } : t
+          t.uuid === matchedTab.uuid
+            ? { ...t, name: flow.name, isDirty: false, filePath: filePath ?? t.filePath }
+            : t
         );
         useExecutionStore.getState().clearExecutionState();
         set({
           tabs: updatedTabs,
-          activeTabUuid: flow.uuid,
+          activeTabUuid: matchedTab.uuid,
           tabSessions: updatedSessions,
           flow,
           selectedNodeId: null,
@@ -332,7 +339,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
       };
       const newTabs: FlowTab[] = [
         ...state.tabs,
-        { uuid: flow.uuid, name: flow.name, isDirty: false },
+        { uuid: flow.uuid, name: flow.name, isDirty: false, filePath },
       ];
       useExecutionStore.getState().clearExecutionState();
       set({
