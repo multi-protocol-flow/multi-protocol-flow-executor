@@ -113,6 +113,12 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 - Clippy: all/style/complexity/perf = warn, `too_many_arguments`/`type_complexity` = allow
 - 格式化: `cargo fmt`, edition 2021, min rust 1.82.0
 - 16 个协议 crate 均为可选 feature (`protocol-*`)，默认 `all-protocols` 启用
+### 发布与更新说明 (Release & Changelog)
+
+- **单源变更记录**: 根目录 `CHANGELOG.md` 为版本更新说明的唯一事实来源，统一采用 [Keep a Changelog](https://keepachangelog.com/) 规范，**必须使用英文 (English) 编写**。
+- **发版前置要求**: 任何版本发版（无论本地脚本或 CI）前，**必须先在 `CHANGELOG.md` 顶部增加对应版本条目**（格式如 `## [0.3.0-beta.1] - 2026-09-14`），列明 `### Added`、`### Changed`、`### Fixed` 等核心要点。
+- **自动提取与分发**: 发布脚本（`scripts/linux/upload-r2.sh`、`scripts/macos/upload-r2.sh`、`scripts/windows/upload-r2.ps1`、`.github/scripts/update-manifest.sh`）会在构建发布时自动解析 `CHANGELOG.md` 中对应版本的小节并注入到 Cloudflare R2 的 `changelog.json`。客户端更新检测与官网 `mpe.run/changelog` 均依赖此数据源。禁止发版时跳过该文件导致占位符遗留。
+
 
 ## 反模式 (本项目禁止)
 
@@ -131,6 +137,7 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 - 回滚非自己修改过的代码 → 可能覆盖他人的变更，必须确认后再操作
 - 未完全理解需求就修改代码 → 必须先在 AGENTS.md/文档/代码中确认理解后再动手
 - 修改完代码直接提交 → 修改后必须验证（lint/typecheck/test），确认无误后再提交
+- 发版时未更新根目录 `CHANGELOG.md` → 导致客户端更新面板与官网更新日志缺失实际变更说明，发版前必须先维护好英文 Changelog
 
 ## 命令
 
