@@ -557,6 +557,53 @@ pub fn delete_flow_file(uuid_or_path: &str, flows_dir: &Path) -> Result<(), Stri
     Err(format!("Flow not found: {}", uuid_or_path))
 }
 
+/// 全量重映射流程中的所有 Node 与 Connection UUID，并级联更新内部引用
+pub fn remap_flow_uuids(flow: &mut Flow) {
+    let mut id_map: HashMap<String, String> = HashMap::new();
+
+    // 1. 为每个节点分配全新 UUID，建立旧 ID -> 新 ID 映射表
+    for node in &mut flow.nodes {
+        let old_id = node.uuid.clone();
+        let new_id = uuid::Uuid::new_v4().to_string();
+        id_map.insert(old_id, new_id.clone());
+        node.uuid = new_id;
+    }
+
+    // 2. 为每条连线分配全新 ID，并重映射 source_node_uuid 和 target_node_uuid 节点引用
+    for conn in &mut flow.connections {
+        conn.id = uuid::Uuid::new_v4().to_string();
+        if let Some(new_source) = id_map.get(&conn.source_node_uuid) {
+            conn.source_node_uuid = new_source.clone();
+        }
+        if let Some(new_target) = id_map.get(&conn.target_node_uuid) {
+            conn.target_node_uuid = new_target.clone();
+        }
+    }
+
+    // 3. 级联重映射节点配置内部的跨节点引用（如 connection_id, connection_node_id, source_node_id）
+    for node in &mut flow.nodes {
+        if let Ok(mut val) = serde_json::to_value(&node.data) {
+            if let Some(obj) = val.as_object_mut() {
+                let ref_keys = ["connection_id", "connection_node_id", "source_node_id"];
+                let mut changed = false;
+                for key in ref_keys {
+                    if let Some(serde_json::Value::String(ref_id)) = obj.get(key) {
+                        if let Some(new_ref) = id_map.get(ref_id) {
+                            obj.insert(key.to_string(), serde_json::Value::String(new_ref.clone()));
+                            changed = true;
+                        }
+                    }
+                }
+                if changed {
+                    if let Ok(updated_data) = serde_json::from_value(val) {
+                        node.data = updated_data;
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// 复制流程文件（生成新 UUID 和副本名称）
 pub fn copy_flow_file(uuid_or_path: &str, flows_dir: &Path) -> Result<Flow, String> {
     let original_flow = load_flow_file(uuid_or_path, flows_dir)?;
@@ -583,7 +630,7 @@ pub fn copy_flow_file(uuid_or_path: &str, flows_dir: &Path) -> Result<Flow, Stri
     let mut copied_flow = original_flow.clone();
     copied_flow.uuid = new_uuid;
     copied_flow.name = candidate_name;
-
+    remap_flow_uuids(&mut copied_flow);
     save_flow_file(&copied_flow, flows_dir)?;
 
     Ok(copied_flow)
@@ -2353,6 +2400,49 @@ mod tests {
             "第二次复制的名称应为 (副本 2)"
         );
         assert_ne!(copied2.uuid, copied.uuid, "每次复制应有不同 UUID");
+    }
+
+    /// 测试 `copy_flow_file` 复制流程时节点与连线全量重映射
+    #[test]
+    fn test_copy_flow_file_remaps_nodes_and_connections() {
+        use tempfile::TempDir;
+        use flow_engine_core::connection::Connection;
+        use flow_engine_core::node::Node;
+
+        let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
+        let flows_dir = temp_dir.path();
+
+        let mut flow = create_test_flow("copy-with-nodes", "包含节点的流程");
+        let mut node1 = Node::default();
+        node1.uuid = "node-origin-1".to_string();
+        let mut node2 = Node::default();
+        node2.uuid = "node-origin-2".to_string();
+        let conn = Connection {
+            id: "conn-origin-1".to_string(),
+            source_node_uuid: "node-origin-1".to_string(),
+            target_node_uuid: "node-origin-2".to_string(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        flow.nodes = vec![node1, node2];
+        flow.connections = vec![conn];
+
+        save_flow_file(&flow, flows_dir).unwrap_or_else(|e| panic!("保存原始流程Failed: {e}"));
+
+        let copied = copy_flow_file("copy-with-nodes", flows_dir).unwrap_or_else(|e| panic!("复制失败: {e}"));
+        assert_eq!(copied.nodes.len(), 2);
+        assert_eq!(copied.connections.len(), 1);
+
+        // 节点 UUID 必须被替换，不能相同
+        assert_ne!(copied.nodes[0].uuid, "node-origin-1");
+        assert_ne!(copied.nodes[1].uuid, "node-origin-2");
+        assert_ne!(copied.nodes[0].uuid, copied.nodes[1].uuid);
+
+        // 连线 ID 必须被替换，且 source_node_uuid 与 target_node_uuid 必须指向新的节点 UUID
+        assert_ne!(copied.connections[0].id, "conn-origin-1");
+        assert_eq!(copied.connections[0].source_node_uuid, copied.nodes[0].uuid);
+        assert_eq!(copied.connections[0].target_node_uuid, copied.nodes[1].uuid);
     }
 
     /// 测试 `delete_flow_file` 删除流程
