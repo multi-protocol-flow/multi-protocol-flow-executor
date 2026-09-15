@@ -9,6 +9,7 @@ import type { Flow } from '@/types/flow';
 import { isTauriEnv } from '@/lib/platform';
 import { notifyError } from '@/lib/notify';
 import { getLL } from '@/i18n/i18n-lazy';
+import { remapFlowUuids } from '@/lib/flowRemap';
 export interface FlowMetadata {
   uuid: string;
   name: string;
@@ -129,8 +130,11 @@ export const flowStorage = {
         const flowsDir = await getFlowsDir();
         return await invoke<Flow>('copy_flow_file', { uuid, flowsDir });
       }
-      const { copyFlow: mock } = await import('./flowStorage.mock');
-      return await mock(uuid);
+      const { copyFlow: mock, saveFlow: mockSave } = await import('./flowStorage.mock');
+      const raw = await mock(uuid);
+      const remapped = remapFlowUuids(raw);
+      await mockSave(remapped);
+      return remapped;
     } catch (err) {
       notifyError(getLL().flow.copy_flow_failed?.() ?? 'Failed to copy flow', err, {
         category: 'FlowStorage',

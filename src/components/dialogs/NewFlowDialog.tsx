@@ -19,6 +19,7 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { useUIStore, useFlowStore, useFlowListStore } from '@/stores';
 import { createFlow } from '@/services/tauri';
 import { flowStorage } from '@/services/storage';
+import { remapFlowUuids } from '@/lib/flowRemap';
 import { FLOW_TEMPLATES, type FlowTemplate, type TemplateCategory } from '@/templates/builtinFlows';
 import type { FolderInfo } from '@/services/storage';
 import type { Flow } from '@/types/flow';
@@ -150,13 +151,14 @@ export function NewFlowDialog() {
     setIsLoading(true);
     try {
       const templateFlow = selectedTemplate.flow;
+      const remappedTemplate = remapFlowUuids(templateFlow);
 
       // 使用 createFlow 创建基础结构，然后覆盖模板的节点和连接
       const newFlowBase = await createFlow(selectedTemplate.name);
       const templatedFlow: Flow = {
         ...newFlowBase,
-        nodes: templateFlow.nodes,
-        connections: templateFlow.connections,
+        nodes: remappedTemplate.nodes,
+        connections: remappedTemplate.connections,
         initial_variables: templateFlow.initial_variables,
       };
 
