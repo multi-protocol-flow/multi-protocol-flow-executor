@@ -61,10 +61,11 @@ export {
   selectShowNewFlowDialog,
   selectShowDeleteConfirmDialog,
   selectShowSettingsDialog,
+  selectFlowTabDisplayMode,
 } from './ui';
 
 // UI types
-export type { PanelType, BottomPanelTab, PageType, DatasetReportPageState } from './ui';
+export type { PanelType, BottomPanelTab, PageType, DatasetReportPageState, FlowTabDisplayMode } from './ui';
 
 // Debug store selectors
 export {

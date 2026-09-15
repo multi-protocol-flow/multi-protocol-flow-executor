@@ -11,6 +11,9 @@ export type ConfigPanelMode = 'node' | 'settings' | 'debug';
 /** 底部面板 Tab 类型（空字符串表示未选中） */
 export type BottomPanelTab = '' | 'history' | 'console' | 'running';
 
+/** 流程标签栏显示模式（单行横向滚动 / 多行折行平铺） */
+export type FlowTabDisplayMode = 'scroll' | 'wrap';
+
 /** 页面导航类型 */
 export type PageType = 'canvas' | 'dataset-reports';
 
@@ -121,6 +124,8 @@ interface UIState {
   canvasZoom: number;
   /** 小地图是否显示 */
   showMinimap: boolean;
+  /** 流程标签栏显示模式 */
+  flowTabDisplayMode: FlowTabDisplayMode;
 
   // ===== 节点选择器状态 =====
   /** 节点选择器是否打开 */
@@ -226,6 +231,8 @@ interface UIState {
   setCanvasZoom: (zoom: number) => void;
   /** 切换小地图显隐 */
   toggleMinimap: () => void;
+  /** 设置流程标签栏显示模式 */
+  setFlowTabDisplayMode: (mode: FlowTabDisplayMode) => void;
 
   // ===== 节点选择器 Actions =====
   /** 打开节点选择器（可指定位置，不指定则默认居中） */
@@ -264,6 +271,20 @@ const MIN_BOTTOM_PANEL_HEIGHT = 100;
 const MAX_BOTTOM_PANEL_HEIGHT = 2400;
 const MIN_LEFT_PANEL_HEIGHT = 100;
 const MAX_LEFT_PANEL_HEIGHT = 400;
+
+const TAB_DISPLAY_MODE_KEY = 'mpe_flow_tab_display_mode';
+
+function loadTabDisplayMode(): FlowTabDisplayMode {
+  try {
+    const saved = localStorage.getItem(TAB_DISPLAY_MODE_KEY);
+    if (saved === 'scroll' || saved === 'wrap') {
+      return saved;
+    }
+  } catch {
+    // 忽略
+  }
+  return 'scroll';
+}
 
 const initialState = {
   // 面板状态（启动时流程列表 / 节点列表两个抽屉默认收起）
@@ -318,6 +339,7 @@ const initialState = {
       nodePalettePosition: null,
       // 欢迎引导
       welcomeStep: 0,
+  flowTabDisplayMode: loadTabDisplayMode(),
 };
 
 export const useUIStore = create<UIState>((set) => ({
@@ -462,6 +484,15 @@ export const useUIStore = create<UIState>((set) => ({
       configPanelWidth: Math.max(MIN_CONFIG_WIDTH, Math.min(MAX_CONFIG_WIDTH, width)),
     }),
 
+  setFlowTabDisplayMode: (flowTabDisplayMode) => {
+    try {
+      localStorage.setItem(TAB_DISPLAY_MODE_KEY, flowTabDisplayMode);
+    } catch {
+      // 忽略
+    }
+    set({ flowTabDisplayMode });
+  },
+
   setBottomPanelHeight: (height) =>
     set({
       bottomPanelHeight: Math.max(MIN_BOTTOM_PANEL_HEIGHT, Math.min(MAX_BOTTOM_PANEL_HEIGHT, height)),
@@ -535,6 +566,7 @@ export const useUIStore = create<UIState>((set) => ({
       isNodePaletteOpen: false,
       nodePalettePosition: null,
       showPluginSettingsDialog: false,
+      flowTabDisplayMode: loadTabDisplayMode(),
     }),
 }));
 
@@ -571,3 +603,7 @@ export const selectBottomPanelTab = (state: UIState) =>
 /** 选择欢迎引导步骤 */
 export const selectWelcomeStep = (state: UIState) =>
   state.welcomeStep;
+
+/** 选择流程标签栏显示模式 */
+export const selectFlowTabDisplayMode = (state: UIState) =>
+  state.flowTabDisplayMode;
