@@ -180,6 +180,9 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   // 子组件的 cleanup effect 中持有的 onSave 闭包捕获的是创建时的 uuid，
   // 因此即使节点切换后 cleanup 执行，保存的目标仍是正确的旧节点。
   const renderNodeUuid = selectedNode?.uuid ?? null;
+  // 当前渲染周期的流程 UUID（在渲染阶段同步捕获，防止切标签时卸载保存串扰其他流程）
+  const currentFlow = useFlowStore((s) => s.flow);
+  const renderFlowUuid = currentFlow?.uuid ?? null;
 
   // 稳定数据引用：仅在节点 UUID 变化或 undo/redo 时更新
   // 避免自动保存后 store 更新 → data prop 变化 → 子组件 reset() → 输入框失焦
@@ -265,18 +268,59 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
    * 合并策略：面板输出的 data 只包含该面板已知的字段，
    * 通过 mergeNodeData 与原始节点数据合并，确保未知字段不被丢弃。
    */
-  const saveWith = (data: NodeData, merge: (o: NodeData & Record<string, unknown>, u: NodeData & Record<string, unknown>) => NodeData & Record<string, unknown>) => {
+  const saveWith = (
+    data: NodeData,
+    merge: (o: NodeData & Record<string, unknown>, u: NodeData & Record<string, unknown>) => NodeData & Record<string, unknown>,
+  ) => {
     if (!renderNodeUuid) return;
-    // 使用 getState() 获取调用时刻的最新 store 状态，避免闭包捕获过期 flow
-    const { flow: latestFlow, updateNode: doUpdate } = useFlowStore.getState();
-    if (!latestFlow) return;
-    const node = latestFlow.nodes.find((n) => n.uuid === renderNodeUuid);
-    // 合并：面板输出覆盖原始值，但面板不认识的字段从原始值保留
-    const merged = node ? merge(node.data as NodeData & Record<string, unknown>, data as NodeData & Record<string, unknown>) : data;
-    if (node && deepEqual(node.data, merged as NodeData)) {
+    const { flow: activeFlow, activeTabUuid, tabSessions, updateNode: doUpdate } = useFlowStore.getState();
+
+    // 1. 若当前活跃流程依然是本面板渲染时的流程：正常更新活跃 flow
+    if (activeFlow && activeFlow.uuid === renderFlowUuid && activeTabUuid === renderFlowUuid) {
+      const node = activeFlow.nodes.find((n) => n.uuid === renderNodeUuid);
+      const merged = node
+        ? merge(node.data as NodeData & Record<string, unknown>, data as NodeData & Record<string, unknown>)
+        : data;
+      if (node && deepEqual(node.data, merged as NodeData)) {
+        return;
+      }
+      doUpdate(renderNodeUuid, { data: merged as NodeData });
       return;
     }
-    doUpdate(renderNodeUuid, { data: merged as NodeData });
+
+    // 2. 关键防串写隔离屏障：如果 activeFlow 已经不是 renderFlowUuid（即发生了标签页切换），
+    // 严禁调用当前 activeFlow 的 doUpdate，防止同 UUID 节点被串写！
+    // 此时定向写回其源流程 session：tabSessions[renderFlowUuid]
+    if (renderFlowUuid && tabSessions[renderFlowUuid]) {
+      const targetSession = tabSessions[renderFlowUuid];
+      const targetFlow = targetSession.flow;
+      const node = targetFlow.nodes.find((n) => n.uuid === renderNodeUuid);
+      if (!node) return;
+      const merged = merge(
+        node.data as NodeData & Record<string, unknown>,
+        data as NodeData & Record<string, unknown>,
+      );
+      if (deepEqual(node.data, merged as NodeData)) {
+        return;
+      }
+      const updatedNodes = targetFlow.nodes.map((n) =>
+        n.uuid === renderNodeUuid ? { ...n, data: merged as NodeData } : n,
+      );
+      const updatedFlow = { ...targetFlow, nodes: updatedNodes };
+      useFlowStore.setState((state) => ({
+        tabSessions: {
+          ...state.tabSessions,
+          [renderFlowUuid]: {
+            ...state.tabSessions[renderFlowUuid],
+            flow: updatedFlow,
+            isDirty: true,
+          },
+        },
+        tabs: state.tabs.map((t) =>
+          t.uuid === renderFlowUuid ? { ...t, isDirty: true } : t,
+        ),
+      }));
+    }
   };
   const handleSave = (data: NodeData) => saveWith(data, mergeNodeData);
   /**

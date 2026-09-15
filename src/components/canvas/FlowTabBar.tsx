@@ -219,6 +219,13 @@ export function FlowTabBar() {
         toast.info(LL.flow.debug_no_switch());
         return;
       }
+      // 切换前主动让活跃输入控件失焦并触发表单刷盘，确保当前流程的修改在本流程内落盘
+      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('flush-config-panel'));
+      }
       switchTab(tab.uuid);
     },
     [activeTabUuid, isExecuting, isDebugging, switchTab],

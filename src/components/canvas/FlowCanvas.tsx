@@ -414,6 +414,8 @@ function FlowCanvasInner() {
   // 节点和边状态
   const [nodes, setNodes, onNodesChange] = useNodesState(initialData.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialData.edges);
+  const selectedNodeId = useFlowStore((s) => s.selectedNodeId);
+  const prevFlowUuidRef = useRef<string | null>(flow?.uuid ?? null);
   // 使用 node.uuid 和 conn.id 作为稳定标识，避免属性变化时重置选择状态
   useEffect(() => {
     if (flow) {
@@ -425,38 +427,42 @@ function FlowCanvasInner() {
       const currentEdgeIds = new Set(edges.map(e => e.id));
       const newEdgeIds = new Set(newEdges.map(e => e.id));
       
-      // 检查是否有节点/边的增减（结构变化）
-      const hasStructureChange = 
+      const isSwitchingFlow = flow.uuid !== prevFlowUuidRef.current;
+      prevFlowUuidRef.current = flow.uuid;
+
+      // 检查是否有节点/边的增减（结构变化）或发生了流程切换
+      const hasStructureChange =
+        isSwitchingFlow ||
         currentNodeIds.size !== newNodeIds.size ||
         currentEdgeIds.size !== newEdgeIds.size ||
-        ![...currentNodeIds].every(id => newNodeIds.has(id)) ||
-        ![...currentEdgeIds].every(id => newEdgeIds.has(id));
-      
+        ![...currentNodeIds].every((id) => newNodeIds.has(id)) ||
+        ![...currentEdgeIds].every((id) => newEdgeIds.has(id));
+
       if (hasStructureChange) {
-        // 结构变化时完全重置
-        setNodes(newNodes);
+        // 结构变化或切换流程时完全重置，并严格按当前流程的 selectedNodeId 恢复选中高亮
+        setNodes(newNodes.map((n) => ({ ...n, selected: n.id === selectedNodeId })));
         setEdges(newEdges);
       } else {
-        // 仅属性变化时，只更新节点数据，保留选择状态
-        setNodes(prevNodes => 
-          prevNodes.map(prevNode => {
-            const newNode = newNodes.find(n => n.id === prevNode.id);
+        // 仅属性变化时，更新节点数据并同步选择状态
+        setNodes((prevNodes) =>
+          prevNodes.map((prevNode) => {
+            const newNode = newNodes.find((n) => n.id === prevNode.id);
             if (newNode) {
               return {
                 ...prevNode,
                 position: newNode.position,
                 data: newNode.data,
+                selected: prevNode.id === selectedNodeId,
               };
             }
             return prevNode;
-          })
+          }),
         );
         setEdges(newEdges);
       }
     }
-  // 注意：这里故意不依赖 nodes/edges，避免循环更新
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flow, setNodes, setEdges]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flow, selectedNodeId, setNodes, setEdges]);
 
   // 流程首次加载或切换时触发 fitView
   useEffect(() => {
