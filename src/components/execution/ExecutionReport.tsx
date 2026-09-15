@@ -141,7 +141,7 @@ export function ExecutionReport() {
         hideCloseButton
       >
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-3">
+          <DialogTitle className="flex items-center gap-2">
             {/* 状态图标 */}
             <div
               className={cn(
@@ -163,7 +163,7 @@ export function ExecutionReport() {
             {isDebugMode && (
               <Badge
                 variant="outline"
-                className="bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700 font-medium"
+                className="h-8 px-3 text-xs font-medium inline-flex items-center bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700"
               >
                 {ll.execution.report.badge_debug()}
               </Badge>
@@ -173,7 +173,7 @@ export function ExecutionReport() {
             <Badge
               variant="outline"
               className={cn(
-                'ml-auto font-medium',
+                'ml-auto h-8 px-3 text-xs font-medium inline-flex items-center',
                 isSuccess
                   ? 'bg-emerald-50 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700'
                   : 'bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700'
@@ -186,7 +186,7 @@ export function ExecutionReport() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 text-xs border-red-300 dark:border-red-800 bg-red-50/80 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60 ml-2"
+                className="h-8 px-3 gap-1.5 text-xs font-medium border-red-300 dark:border-red-800 bg-red-50/80 dark:bg-red-950/40 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60"
                 onClick={handleDiagnoseWithAI}
                 title={ll.ai.copilot.diagnose_and_fix_flow()}
               >
@@ -196,14 +196,14 @@ export function ExecutionReport() {
             )}
 
             {/* 视图模式切换 */}
-            <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5 ml-2">
+            <div className="inline-flex h-8 items-center p-0.5 bg-muted/70 rounded-lg border border-border/40 gap-0.5">
               <button
                 type="button"
                 onClick={() => setViewMode('list')}
                 className={cn(
-                  'px-3 py-1 text-xs font-medium rounded-md transition-all',
+                  'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 h-7 text-xs font-medium transition-all cursor-pointer',
                   viewMode === 'list'
-                    ? 'bg-background text-foreground shadow-sm'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
                 disabled={!displayReport?.flow_snapshot && viewMode === 'canvas'}
@@ -215,9 +215,9 @@ export function ExecutionReport() {
                 type="button"
                 onClick={() => setViewMode('canvas')}
                 className={cn(
-                  'px-3 py-1 text-xs font-medium rounded-md transition-all',
+                  'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 h-7 text-xs font-medium transition-all cursor-pointer',
                   viewMode === 'canvas'
-                    ? 'bg-background text-foreground shadow-sm'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
                 disabled={!displayReport?.flow_snapshot}
@@ -234,7 +234,7 @@ export function ExecutionReport() {
               label={ll.execution.report.copy_all()}
               title={ll.execution.report.copy_all()}
               size="sm"
-              className="ml-2 h-8"
+              className="h-8 px-3"
             />
             <Button
               variant="ghost"
