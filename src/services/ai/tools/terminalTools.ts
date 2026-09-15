@@ -22,15 +22,85 @@ export function isSafeTerminalCommand(command: string): boolean {
   const trimmed = command.trim();
   if (!trimmed) return false;
 
-  // 包含任何重定向输出、后台运行或高危拼接符号一律要求用户确认
+  // 1. 严格拦截文件输出重定向、后台符与复合注入符
   if (/[><&;`$()]/.test(trimmed)) {
-    return false;
+    // 允许且仅允许只读管道 '|'
+    if (/[><&;`$()]/.test(trimmed.replace(/\|/g, ''))) {
+      return false;
+    }
   }
 
-  // 分解基础命令与子参数
-  const tokens = trimmed.split(/\s+/);
+  // 2. 如果包含管道 '|'，则所有管道段必须全部属于只读操作
+  if (trimmed.includes('|')) {
+    const stages = trimmed.split('|').map((s) => s.trim());
+    if (stages.some((s) => !s)) return false;
+    // 检查首个命令是否安全
+    if (!isSafeSingleTerminalCommand(stages[0])) return false;
+    // 检查后续管道过滤器是否全部为只读工具
+    const SAFE_PIPE_FILTERS: Record<string, true> = {
+      grep: true,
+      egrep: true,
+      fgrep: true,
+      head: true,
+      tail: true,
+      findstr: true,
+      'select-string': true,
+      jq: true,
+      sort: true,
+      uniq: true,
+      wc: true,
+      less: true,
+      more: true,
+      awk: true,
+      cut: true,
+      tr: true,
+    };
+    for (let i = 1; i < stages.length; i++) {
+      const pipeTokens = stages[i].split(/\s+/);
+      const pipeCmd = pipeTokens[0]?.toLowerCase();
+      if (!pipeCmd || !SAFE_PIPE_FILTERS[pipeCmd]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  return isSafeSingleTerminalCommand(trimmed);
+}
+
+/**
+ * 检查单个不包含管道的命令是否为安全只读/诊断操作
+ */
+function isSafeSingleTerminalCommand(cmdStr: string): boolean {
+  const tokens = cmdStr.split(/\s+/);
   const baseCmd = tokens[0]?.toLowerCase();
   if (!baseCmd) return false;
+
+  // 显式高危命令前缀，命中直接拦截
+  const DANGEROUS_BASE_CMDS: Record<string, true> = {
+    rm: true,
+    del: true,
+    erase: true,
+    rmdir: true,
+    'remove-item': true,
+    ri: true,
+    mv: true,
+    move: true,
+    'move-item': true,
+    chmod: true,
+    chown: true,
+    kill: true,
+    pkill: true,
+    killall: true,
+    'stop-process': true,
+    shutdown: true,
+    reboot: true,
+    'set-content': true,
+    'add-content': true,
+    'out-file': true,
+  };
+  if (DANGEROUS_BASE_CMDS[baseCmd]) return false;
+
   // 1. 版本与环境探测（如 node -v, python --version, cargo -V 等）
   const VERSION_QUERY_CMDS: Record<string, true> = {
     node: true,
@@ -56,14 +126,13 @@ export function isSafeTerminalCommand(command: string): boolean {
     wget: true,
     ping: true,
   };
-
   if (VERSION_QUERY_CMDS[baseCmd]) {
     if (tokens.length === 2 && /^(-v|--version|-V|version)$/i.test(tokens[1])) {
       return true;
     }
   }
 
-  // 2. Git 只读状态查询
+  // 2. Git 只读查询操作
   if (baseCmd === 'git') {
     const gitSubCmd = tokens[1]?.toLowerCase();
     const SAFE_GIT_SUB_CMDS: Record<string, true> = {
@@ -77,11 +146,16 @@ export function isSafeTerminalCommand(command: string): boolean {
       'rev-parse': true,
     };
     if (gitSubCmd && SAFE_GIT_SUB_CMDS[gitSubCmd]) {
+      // 如果 git branch 带 -d 或 -D 删除参数则拦截
+      if (gitSubCmd === 'branch' && tokens.some((t) => t === '-d' || t === '-D')) {
+        return false;
+      }
       return true;
     }
+    return false;
   }
 
-  // 3. 基础目录与文件只读浏览
+  // 3. 基础目录、文件、系统与进程只读查询
   const READ_ONLY_CMDS: Record<string, true> = {
     ls: true,
     dir: true,
@@ -99,37 +173,87 @@ export function isSafeTerminalCommand(command: string): boolean {
     date: true,
     which: true,
     where: true,
+    ps: true,
+    top: true,
+    htop: true,
+    tasklist: true,
+    'get-process': true,
+    'get-service': true,
+    netstat: true,
+    lsof: true,
+    ss: true,
+    uptime: true,
+    free: true,
+    df: true,
+    du: true,
+    env: true,
+    printenv: true,
+    find: true,
+    fd: true,
+    rg: true,
+    grep: true,
+    wc: true,
+    diff: true,
+    'test-netconnection': true,
+    ping: true,
+    traceroute: true,
+    tracert: true,
+    nslookup: true,
   };
-
   if (READ_ONLY_CMDS[baseCmd]) {
     return true;
   }
 
-  // 4. 包管理器只读依赖查看
-  if (['npm', 'pnpm', 'yarn', 'bun'].includes(baseCmd)) {
-    const subCmd = tokens[1]?.toLowerCase();
-    const SAFE_PKG_SUB_CMDS: Record<string, true> = {
-      list: true,
-      ls: true,
-      why: true,
-      outdated: true,
-    };
-    if (subCmd && SAFE_PKG_SUB_CMDS[subCmd]) {
-      return true;
-    }
+  // 4. curl 只读网络探测（不能带 POST/DELETE 或 -d 数据写入参数）
+  if (baseCmd === 'curl') {
+    const hasWriteFlag = tokens.some((t) =>
+      /^(-X|--request)$/i.test(t) ||
+      /^(POST|PUT|DELETE|PATCH)$/i.test(t) ||
+      /^(-d|--data|--data-raw|--data-binary|--data-urlencode|-F|--form)$/i.test(t),
+    );
+    return !hasWriteFlag;
   }
 
-  // 5. Cargo 只读查看
+  // 5. 包管理器只读依赖查看与安全测试运行
+  if (['npm', 'pnpm', 'yarn', 'bun'].includes(baseCmd)) {
+    const subCmd = tokens[1]?.toLowerCase();
+    // 安全只读查看与测试命令
+    if (['list', 'ls', 'why', 'outdated', 'test'].includes(subCmd)) {
+      return true;
+    }
+    // npm run test, npm run lint, npm run typecheck
+    if (subCmd === 'run') {
+      const scriptTarget = tokens[2]?.toLowerCase();
+      if (['test', 'lint', 'typecheck', 'check'].includes(scriptTarget)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // 6. Cargo 只读查看与非破坏性检查测试
   if (baseCmd === 'cargo') {
     const subCmd = tokens[1]?.toLowerCase();
     const SAFE_CARGO_SUB_CMDS: Record<string, true> = {
       tree: true,
       metadata: true,
       'verify-project': true,
+      check: true,
+      clippy: true,
+      test: true,
     };
     if (subCmd && SAFE_CARGO_SUB_CMDS[subCmd]) {
       return true;
     }
+    return false;
+  }
+
+  // 7. TypeScript / 测试框架只读检查
+  if (baseCmd === 'tsc' && tokens.includes('--noEmit')) {
+    return true;
+  }
+  if (['pytest', 'vitest'].includes(baseCmd)) {
+    return true;
   }
 
   return false;

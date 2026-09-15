@@ -358,6 +358,14 @@ export function formatToolTitle(
       }
       break;
     }
+    case 'run_terminal_command': {
+      const cmd = cleanName(args.command);
+      if (cmd) {
+        const truncatedCmd = cmd.length > 40 ? `${cmd.slice(0, 37)}...` : cmd;
+        target = `"${truncatedCmd}"`;
+      }
+      break;
+    }
 
     default:
       break;
