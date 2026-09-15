@@ -13383,6 +13383,23 @@ type RootTranslation = {
 			 * @param {unknown} version
 			 */
 			install_plugin_diff: RequiredParams<'url' | 'version'>
+			/**
+			 * 在​系​统​终​端​中​执​行​命​令​:​ ​{​c​o​m​m​a​n​d​}
+			 * @param {unknown} command
+			 */
+			run_terminal_command_desc: RequiredParams<'command'>
+			/**
+			 * 命​令​:​ ​{​c​o​m​m​a​n​d​}
+			 * @param {unknown} command
+			 */
+			run_terminal_command_diff: RequiredParams<'command'>
+			/**
+			 * 命​令​:​ ​{​c​o​m​m​a​n​d​}​
+		​工​作​目​录​:​ ​{​c​w​d​}
+			 * @param {unknown} command
+			 * @param {unknown} cwd
+			 */
+			run_terminal_command_diff_cwd: RequiredParams<'command' | 'cwd'>
 		}
 		tool_call: {
 			/**
@@ -13459,6 +13476,10 @@ type RootTranslation = {
 			 * 查​看​节​点
 			 */
 			get_node_detail: string
+			/**
+			 * 终​端​命​令
+			 */
+			run_terminal_command: string
 			/**
 			 * 节​点​规​范
 			 */
@@ -27027,6 +27048,19 @@ export type TranslationFunctions = {
 			 * 版本: {version}, 来源: {url}
 			 */
 			install_plugin_diff: (arg: { url: unknown, version: unknown }) => LocalizedString
+			/**
+			 * 在系统终端中执行命令: {command}
+			 */
+			run_terminal_command_desc: (arg: { command: unknown }) => LocalizedString
+			/**
+			 * 命令: {command}
+			 */
+			run_terminal_command_diff: (arg: { command: unknown }) => LocalizedString
+			/**
+			 * 命令: {command}
+		工作目录: {cwd}
+			 */
+			run_terminal_command_diff_cwd: (arg: { command: unknown, cwd: unknown }) => LocalizedString
 		}
 		tool_call: {
 			/**
@@ -27103,6 +27137,10 @@ export type TranslationFunctions = {
 			 * 查看节点
 			 */
 			get_node_detail: () => LocalizedString
+			/**
+			 * 终端命令
+			 */
+			run_terminal_command: () => LocalizedString
 			/**
 			 * 节点规范
 			 */

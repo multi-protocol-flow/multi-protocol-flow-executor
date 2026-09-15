@@ -48,6 +48,9 @@ const ai = {
     delete_nodes_diff: 'Will delete nodes: [{names}]',
     install_plugin_desc: 'Download and install plugin "{name}" from marketplace',
     install_plugin_diff: 'Version: {version}, Source: {url}',
+    run_terminal_command_desc: 'Execute terminal command: {command}',
+    run_terminal_command_diff: 'Command: {command}',
+    run_terminal_command_diff_cwd: 'Command: {command}\nWorking Dir: {cwd}',
   },
 
   tool_call: {
@@ -71,6 +74,7 @@ const ai = {
     clear_canvas: 'Clear Canvas',
     auto_layout: 'Auto Layout',
     get_node_detail: 'Inspect Node',
+    run_terminal_command: 'Terminal Command',
     get_node_type_schema: 'Node Schema',
     get_flow_nodes_config: 'Read Flow Config',
     generate_or_update_script: 'Edit Script',

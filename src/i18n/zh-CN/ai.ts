@@ -48,6 +48,9 @@ const ai = {
     delete_nodes_diff: '将删除节点: [{names}]',
     install_plugin_desc: '从插件市场下载并安装插件 "{name}"',
     install_plugin_diff: '版本: {version}, 来源: {url}',
+    run_terminal_command_desc: '在系统终端中执行命令: {command}',
+    run_terminal_command_diff: '命令: {command}',
+    run_terminal_command_diff_cwd: '命令: {command}\n工作目录: {cwd}',
   },
 
   tool_call: {
@@ -71,6 +74,7 @@ const ai = {
     clear_canvas: '清空画布',
     auto_layout: '自动排版',
     get_node_detail: '查看节点',
+    run_terminal_command: '终端命令',
     get_node_type_schema: '节点规范',
     get_flow_nodes_config: '全流程配置',
     generate_or_update_script: '编写脚本',
