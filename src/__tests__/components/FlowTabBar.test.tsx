@@ -220,4 +220,64 @@ describe('FlowTabBar', () => {
     expect(useFlowStore.getState().tabs).toHaveLength(1);
     expect(useFlowStore.getState().activeTabUuid).toBe('flow-1');
   });
+
+  it('默认单行滚动模式下使用 scrollbar-mini 与横向滚动容器', () => {
+    useFlowStore.getState().openTab(flow1);
+    useFlowStore.getState().openTab(flow2);
+
+    render(<FlowTabBar />);
+
+    const tab = screen.getByText('Flow One');
+    const container = tab.closest('[role="tab"]')?.parentElement;
+    expect(container).toBeDefined();
+    expect(container?.className).toContain('overflow-x-auto');
+    expect(container?.className).toContain('scrollbar-mini');
+  });
+
+  it('切换为多行平铺模式后容器使用 flex-wrap 并且无横向滚动', () => {
+    useFlowStore.getState().openTab(flow1);
+    useFlowStore.getState().openTab(flow2);
+    useUIStore.getState().setFlowTabDisplayMode('wrap');
+
+    render(<FlowTabBar />);
+
+    const tab = screen.getByText('Flow One');
+    const container = tab.closest('[role="tab"]')?.parentElement;
+    expect(container).toBeDefined();
+    expect(container?.className).toContain('flex-wrap');
+    expect(container?.className).not.toContain('overflow-x-auto');
+  });
+
+  it('可以通过标签栏右侧模式切换按钮切换显示模式', async () => {
+    const user = userEvent.setup();
+    useFlowStore.getState().openTab(flow1);
+    useUIStore.getState().setFlowTabDisplayMode('scroll');
+
+    render(<FlowTabBar />);
+
+    const modeButton = screen.getByLabelText('标签显示模式');
+    await user.click(modeButton);
+
+    // 弹出菜单中包含单行滚动与多行平铺选项
+    const wrapOption = screen.getByText('多行平铺');
+    await user.click(wrapOption);
+
+    expect(useUIStore.getState().flowTabDisplayMode).toBe('wrap');
+  });
+
+  it('可以通过右键上下文菜单切换显示模式', async () => {
+    const user = userEvent.setup();
+    useFlowStore.getState().openTab(flow1);
+    useUIStore.getState().setFlowTabDisplayMode('scroll');
+
+    render(<FlowTabBar />);
+
+    const tab = screen.getByRole('tab');
+    fireEvent.contextMenu(tab);
+
+    const wrapMenuBtn = screen.getByText('多行平铺');
+    await user.click(wrapMenuBtn);
+
+    expect(useUIStore.getState().flowTabDisplayMode).toBe('wrap');
+  });
 });

@@ -67,6 +67,12 @@ vi.mock('@/i18n/i18n-lazy', () => ({
       clear_cache_desc: () => '清理前端缓存',
       clear_cache_btn: () => '清空缓存',
       clear_cache_success: () => '本地缓存已成功清空',
+      tab_layout: () => '标签栏布局',
+      tab_layout_desc: () => '控制打开多个流程标签时的排布方式与换行策略',
+      tab_mode_scroll: () => '单行滚动',
+      tab_mode_scroll_desc: () => '超出时横向滚动，保持紧凑画布',
+      tab_mode_wrap: () => '多行平铺',
+      tab_mode_wrap_desc: () => '标签过多时自动折行，全部可见无需滚动',
     },
     ai: {
       settings: {
