@@ -303,6 +303,16 @@ pub fn save_flow_file_with_meta(
     flows_dir: &Path,
     meta: Option<serde_json::Value>,
 ) -> Result<(), String> {
+    save_flow_file_with_meta_and_path(flow, flows_dir, meta, None)
+}
+
+/// 保存流程到指定路径（若指定）或基于 flows_dir 自动定位/生成文件名
+pub fn save_flow_file_with_meta_and_path(
+    flow: &Flow,
+    flows_dir: &Path,
+    meta: Option<serde_json::Value>,
+    target_file_path: Option<&Path>,
+) -> Result<(), String> {
     // 确保目录存在
     fs::create_dir_all(flows_dir)
         .map_err(|e| format!("Failed to create flows directory: {}", e))?;
@@ -318,57 +328,69 @@ pub fn save_flow_file_with_meta(
     let json_string = serde_json::to_string_pretty(&flow_file)
         .map_err(|e| format!("Failed to serialize flow: {}", e))?;
 
-    // 检查是否已存在同 UUID 的文件（更新场景，流式轻量解析）
-    let mut existing_path: Option<PathBuf> = None;
-    let mut mpf_files = Vec::new();
-    let _ = collect_mpf_files(flows_dir, &mut mpf_files);
-    for path in &mpf_files {
-        if let Ok(file) = File::open(path) {
-            let reader = BufReader::new(file);
-            if let Ok(existing) = serde_json::from_reader::<_, FlowFileMeta>(reader) {
-                if existing.flow.uuid == flow.uuid {
-                    existing_path = Some(path.clone());
-                    break;
+    let (target_path, old_path_to_remove) = if let Some(explicit_path) = target_file_path {
+        // 如果调用方明确指定了目标文件路径（如 remap 场景直接覆写当前打开的文件）
+        (explicit_path.to_path_buf(), None)
+    } else {
+        // 检查是否已存在同 UUID 的文件（更新场景，流式轻量解析）
+        let mut existing_path: Option<PathBuf> = None;
+        let mut mpf_files = Vec::new();
+        let _ = collect_mpf_files(flows_dir, &mut mpf_files);
+        for path in &mpf_files {
+            if let Ok(file) = File::open(path) {
+                let reader = BufReader::new(file);
+                if let Ok(existing) = serde_json::from_reader::<_, FlowFileMeta>(reader) {
+                    if existing.flow.uuid == flow.uuid {
+                        existing_path = Some(path.clone());
+                        break;
+                    }
                 }
             }
         }
-    }
-    // 确定目标目录：保持原有文件夹位置，否则使用根目录
-    let target_dir = existing_path
-        .as_ref()
-        .and_then(|p| p.parent().map(|parent| parent.to_path_buf()))
-        .unwrap_or_else(|| flows_dir.to_path_buf());
+        // 确定目标目录：保持原有文件夹位置，否则使用根目录
+        let target_dir = existing_path
+            .as_ref()
+            .and_then(|p| p.parent().map(|parent| parent.to_path_buf()))
+            .unwrap_or_else(|| flows_dir.to_path_buf());
 
-    // 确保目标目录存在
-    if target_dir != flows_dir {
-        fs::create_dir_all(&target_dir)
-            .map_err(|e| format!("Failed to create target directory: {}", e))?;
-    }
-
-    // 生成文件名，处理冲突
-    let safe_name = sanitize_filename(&flow.name);
-    let mut filename = format!("{}.mpf", safe_name);
-    let mut counter = 2u32;
-
-    loop {
-        let candidate_path = target_dir.join(&filename);
-        // 如果目标路径就是旧文件路径（名称未变），直接跳出
-        let is_old_path = existing_path.as_ref() == Some(&candidate_path);
-        if is_old_path
-            || !candidate_path
-                .try_exists()
-                .map_err(|e| format!("failed to check file: {}", e))?
-        {
-            break;
+        // 确保目标目录存在
+        if target_dir != flows_dir {
+            fs::create_dir_all(&target_dir)
+                .map_err(|e| format!("Failed to create target directory: {}", e))?;
         }
-        filename = format!("{}_{}.mpf", safe_name, counter);
-        counter += 1;
-    }
 
-    let target_path = target_dir.join(&filename);
+        // 生成文件名，处理冲突
+        let safe_name = sanitize_filename(&flow.name);
+        let mut filename = format!("{}.mpf", safe_name);
+        let mut counter = 2u32;
+
+        loop {
+            let candidate_path = target_dir.join(&filename);
+            // 如果目标路径就是旧文件路径（名称未变），直接跳出
+            let is_old_path = existing_path.as_ref() == Some(&candidate_path);
+            if is_old_path
+                || !candidate_path
+                    .try_exists()
+                    .map_err(|e| format!("failed to check file: {}", e))?
+            {
+                break;
+            }
+            filename = format!("{}_{}.mpf", safe_name, counter);
+            counter += 1;
+        }
+
+        let computed_path = target_dir.join(&filename);
+        let to_remove = existing_path.filter(|p| *p != computed_path);
+        (computed_path, to_remove)
+    };
+
+    let parent_dir = target_path.parent().unwrap_or(flows_dir);
+    if !parent_dir.exists() {
+        let _ = fs::create_dir_all(parent_dir);
+    }
 
     // 原子写入：先写临时文件，再重命名
-    let mut temp_file = NamedTempFile::new_in(flows_dir)
+    let mut temp_file = NamedTempFile::new_in(parent_dir)
         .map_err(|e| format!("failed to create temporary file: {}", e))?;
 
     temp_file
@@ -380,11 +402,9 @@ pub fn save_flow_file_with_meta(
         .map_err(|e| format!("failed to save flow file: {}", e))?;
 
     // 如果文件名/位置变更，删除旧文件
-    if let Some(ref old_path) = existing_path {
-        if *old_path != target_path {
-            let _ = fs::remove_file(old_path);
-            invalidate_flow_metadata_cache(old_path);
-        }
+    if let Some(ref old_path) = old_path_to_remove {
+        let _ = fs::remove_file(old_path);
+        invalidate_flow_metadata_cache(old_path);
     }
     invalidate_flow_metadata_cache(&target_path);
 
@@ -2140,6 +2160,27 @@ mod tests {
             loaded._meta.unwrap_or_else(|| panic!("expected Some"))["version"],
             5
         );
+    }
+
+    /// 测试 `save_flow_file_with_meta_and_path` 显式写入目标路径（Remap 场景覆写原文件）
+    #[test]
+    fn test_save_flow_file_with_explicit_target_path() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
+        let flows_dir = temp_dir.path();
+        let target_file = flows_dir.join("my_custom_flow_copy.mpf");
+
+        let flow = create_test_flow("remapped-uuid-999", "重映射后的流程");
+        save_flow_file_with_meta_and_path(&flow, flows_dir, None, Some(&target_file))
+            .unwrap_or_else(|e| panic!("保存到指定路径Failed: {e}"));
+
+        assert!(target_file.exists(), "指定路径的文件必须存在");
+
+        let loaded = load_flow_file_raw(target_file.to_str().unwrap(), flows_dir)
+            .unwrap_or_else(|e| panic!("加载覆写文件Failed: {e}"));
+        assert_eq!(loaded.flow.uuid, "remapped-uuid-999");
+        assert_eq!(loaded.flow.name, "重映射后的流程");
     }
 
     /// 测试 `FlowMetadata` 的 `file_path` 字段在 JSON 中为 camelCase

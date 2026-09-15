@@ -865,17 +865,21 @@ pub fn save_flow_file(
     flow: Flow,
     flows_dir: String,
     meta: Option<serde_json::Value>,
+    target_path: Option<String>,
 ) -> Result<(), String> {
     log::info!(
-        "[IPC::save_flow_file] uuid={}, name='{}', flows_dir={}",
+        "[IPC::save_flow_file] uuid={}, name='{}', flows_dir={}, target_path={:?}",
         flow.uuid,
         flow.name,
-        flows_dir
+        flows_dir,
+        target_path
     );
-    let res = flow_engine::storage::save_flow_file_with_meta(
+    let target_path_buf = target_path.map(std::path::PathBuf::from);
+    let res = flow_engine::storage::save_flow_file_with_meta_and_path(
         &flow,
         std::path::Path::new(&flows_dir),
         meta,
+        target_path_buf.as_deref(),
     );
     if let Err(ref e) = res {
         log::error!(
