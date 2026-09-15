@@ -159,5 +159,13 @@ describe('toolTitleFormatter', () => {
       const cancelInfo = formatToolTitle('cancel_flow_execution');
       expect(cancelInfo.toolDisplayName).toBe('终止流程');
     });
+
+    it('正确格式化 run_terminal_command，提取具体命令作为 target', () => {
+      const info = formatToolTitle('run_terminal_command', { command: 'git status' });
+      expect(info.rawName).toBe('run_terminal_command');
+      expect(info.toolDisplayName).toBe('终端命令');
+      expect(info.target).toBe('"git status"');
+      expect(info.fullTitle).toBe('终端命令: "git status"');
+    });
   });
 });

@@ -62,17 +62,28 @@ describe('toolDispatcher', () => {
     // 白名单放行
     expect(isSafeTerminalCommand('git status')).toBe(true);
     expect(isSafeTerminalCommand('git log -n 5')).toBe(true);
+    expect(isSafeTerminalCommand('git log -n 5 | head -n 3')).toBe(true);
+    expect(isSafeTerminalCommand('ps aux | grep node')).toBe(true);
     expect(isSafeTerminalCommand('cargo --version')).toBe(true);
     expect(isSafeTerminalCommand('cargo tree')).toBe(true);
+    expect(isSafeTerminalCommand('cargo check')).toBe(true);
+    expect(isSafeTerminalCommand('cargo test')).toBe(true);
+    expect(isSafeTerminalCommand('npm test')).toBe(true);
+    expect(isSafeTerminalCommand('npm run lint')).toBe(true);
     expect(isSafeTerminalCommand('Get-Location')).toBe(true);
     expect(isSafeTerminalCommand('pwd')).toBe(true);
     expect(isSafeTerminalCommand('type package.json')).toBe(true);
+    expect(isSafeTerminalCommand('curl -I http://localhost:8080')).toBe(true);
 
-    // 复合管道/重定向/高危操作拦截
+    // 复合重定向/高危写操作/删除拦截
     expect(isSafeTerminalCommand('echo dangerous > file.txt')).toBe(false);
     expect(isSafeTerminalCommand('npm install')).toBe(false);
+    expect(isSafeTerminalCommand('npm i axios')).toBe(false);
     expect(isSafeTerminalCommand('git commit -m "feat"')).toBe(false);
+    expect(isSafeTerminalCommand('git push origin main')).toBe(false);
+    expect(isSafeTerminalCommand('git branch -D temp')).toBe(false);
     expect(isSafeTerminalCommand('Remove-Item -Recurse ./node_modules')).toBe(false);
+    expect(isSafeTerminalCommand('curl -X POST http://localhost:8080 -d "data"')).toBe(false);
     expect(isSafeTerminalCommand('')).toBe(false);
   });
 
