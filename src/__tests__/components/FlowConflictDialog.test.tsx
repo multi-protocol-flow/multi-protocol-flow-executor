@@ -10,6 +10,7 @@ import type { Flow, NodeData } from '@/types';
 vi.mock('@/services/storage', () => ({
   flowStorage: {
     saveFlow: vi.fn().mockResolvedValue(undefined),
+    listFlows: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -99,7 +100,10 @@ describe('FlowConflictDialog', () => {
     await user.click(remapBtn);
 
     await waitFor(() => {
-      expect(flowStorage.saveFlow).toHaveBeenCalled();
+      expect(flowStorage.saveFlow).toHaveBeenCalledWith(
+        expect.objectContaining({ name: incomingFlow.name }),
+        '/path/incoming.mpf',
+      );
       const currentTabs = useFlowStore.getState().tabs;
       expect(currentTabs).toHaveLength(2);
       // 新打开的 tab 拥有新的 uuid

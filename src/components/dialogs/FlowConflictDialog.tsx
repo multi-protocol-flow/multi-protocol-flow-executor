@@ -14,7 +14,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useUIStore, useFlowStore, selectFlowConflict } from '@/stores';
+import { useUIStore, useFlowStore, useFlowListStore, selectFlowConflict } from '@/stores';
 import { flowStorage } from '@/services/storage';
 import { remapFlowUuids } from '@/lib/flowRemap';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -45,12 +45,38 @@ export function FlowConflictDialog() {
       const remappedFlow = remapFlowUuids(incomingFlow);
       if (incomingFilePath) {
         try {
-          await flowStorage.saveFlow(remappedFlow);
+          await flowStorage.saveFlow(remappedFlow, incomingFilePath);
+          const { flows, updateFlow, setFlows } = useFlowListStore.getState();
+          const existingMeta = flows.find(
+            (f) => f.file_path === incomingFilePath || f.uuid === incomingFlow.uuid,
+          );
+          if (existingMeta) {
+            updateFlow(existingMeta.uuid, {
+              uuid: remappedFlow.uuid,
+              name: remappedFlow.name,
+              file_path: incomingFilePath,
+              updated_at: Date.now(),
+            });
+          }
+          if (typeof flowStorage.listFlows === 'function') {
+            const freshList = await flowStorage.listFlows();
+            if (freshList && freshList.length > 0) {
+              setFlows(
+                freshList.map((m) => ({
+                  uuid: m.uuid,
+                  name: m.name,
+                  file_path: m.filePath,
+                  updated_at: m.updatedAt,
+                  folder_path: m.folderPath,
+                })),
+              );
+            }
+          }
         } catch (err) {
-          console.warn('[FlowConflict] 保存重映射流程文件失败（非阻塞）:', err);
+          console.warn('[FlowConflict] 保存重映射流程文件失败:', err);
         }
       }
-      openTab(remappedFlow, incomingFilePath);
+      openTab(remappedFlow, incomingFilePath, { force: true });
       toast.success(LL.flow.conflict_remap_success());
       closeFlowConflictDialog();
     } catch (err) {
