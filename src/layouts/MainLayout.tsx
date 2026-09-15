@@ -19,6 +19,7 @@ import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { ShortcutsDialog } from '@/components/dialogs/ShortcutsDialog';
 import { ScriptHelpDialog } from '@/components/dialogs/ScriptHelpDialog';
 import { DynamicVariablesHelpDialog } from '@/components/dialogs/DynamicVariablesHelpDialog';
+import { FlowConflictDialog } from '@/components/dialogs/FlowConflictDialog';
 import { SearchOverlay } from '@/components/dialogs/SearchOverlay';
 import { EnvironmentManagerDialog } from '@/components/panels/EnvironmentManager';
 import {
@@ -857,6 +858,9 @@ export function MainLayout() {
 
       {/* ===== 全局设置对话框 ===== */}
       <SettingsDialog />
+
+      {/* ===== 流程 UUID 冲突决策对话框 ===== */}
+      <FlowConflictDialog />
 
       {/* ===== 全流程搜索面板 ===== */}
 

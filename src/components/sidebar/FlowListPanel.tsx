@@ -238,7 +238,8 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     try {
       const flow = await flowStorage.loadFlow(loadTarget);
       if (flow) {
-        openTab(flow, filePath || loadTarget);
+        const opened = openTab(flow, filePath || loadTarget);
+        if (!opened) return;
         // 验证流程结构
         try {
           const result = await validateFlow(flow);
