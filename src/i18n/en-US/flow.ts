@@ -91,6 +91,12 @@ const en_US_flow = {
   unsaved_tab_confirm_desc: 'Flow "{name:string}" has unsaved changes. Do you want to save before closing?',
   save_and_close: 'Save and Close',
   discard_and_close: 'Discard and Close',
+  tab_layout: 'Tab Bar Layout',
+  tab_display_mode: 'Tab Display Mode',
+  tab_mode_scroll: 'Single Line (Scroll)',
+  tab_mode_scroll_desc: 'Scroll horizontally when overflowing',
+  tab_mode_wrap: 'Multi-line (Wrap)',
+  tab_mode_wrap_desc: 'Wrap into multiple lines without scrollbars',
 
   http_example: 'HTTP Example Flow',
   ws_example: 'WebSocket Example Flow',

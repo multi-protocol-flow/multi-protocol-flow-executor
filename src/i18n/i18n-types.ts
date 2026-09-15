@@ -7662,6 +7662,30 @@ type RootTranslation = {
 		 * 本​地​缓​存​已​成​功​清​空
 		 */
 		clear_cache_success: string
+		/**
+		 * 标​签​栏​布​局
+		 */
+		tab_layout: string
+		/**
+		 * 控​制​打​开​多​个​流​程​标​签​时​的​排​布​方​式​与​换​行​策​略
+		 */
+		tab_layout_desc: string
+		/**
+		 * 单​行​滚​动
+		 */
+		tab_mode_scroll: string
+		/**
+		 * 超​出​时​横​向​滚​动​，​保​持​紧​凑​画​布
+		 */
+		tab_mode_scroll_desc: string
+		/**
+		 * 多​行​平​铺
+		 */
+		tab_mode_wrap: string
+		/**
+		 * 标​签​过​多​时​自​动​折​行​，​全​部​可​见​无​需​滚​动
+		 */
+		tab_mode_wrap_desc: string
 	}
 	plugins: {
 		/**
@@ -8320,6 +8344,30 @@ type RootTranslation = {
 		 * 放​弃​修​改​并​关​闭
 		 */
 		discard_and_close: string
+		/**
+		 * 标​签​栏​布​局
+		 */
+		tab_layout: string
+		/**
+		 * 标​签​显​示​模​式
+		 */
+		tab_display_mode: string
+		/**
+		 * 单​行​滚​动
+		 */
+		tab_mode_scroll: string
+		/**
+		 * 标​签​过​多​时​横​向​滚​动​，​保​持​紧​凑
+		 */
+		tab_mode_scroll_desc: string
+		/**
+		 * 多​行​平​铺
+		 */
+		tab_mode_wrap: string
+		/**
+		 * 标​签​过​多​时​自​动​折​行​，​全​部​可​见​无​需​滚​动
+		 */
+		tab_mode_wrap_desc: string
 		/**
 		 * H​T​T​P​节​点​示​例​流​程
 		 */
@@ -21398,6 +21446,30 @@ export type TranslationFunctions = {
 		 * 本地缓存已成功清空
 		 */
 		clear_cache_success: () => LocalizedString
+		/**
+		 * 标签栏布局
+		 */
+		tab_layout: () => LocalizedString
+		/**
+		 * 控制打开多个流程标签时的排布方式与换行策略
+		 */
+		tab_layout_desc: () => LocalizedString
+		/**
+		 * 单行滚动
+		 */
+		tab_mode_scroll: () => LocalizedString
+		/**
+		 * 超出时横向滚动，保持紧凑画布
+		 */
+		tab_mode_scroll_desc: () => LocalizedString
+		/**
+		 * 多行平铺
+		 */
+		tab_mode_wrap: () => LocalizedString
+		/**
+		 * 标签过多时自动折行，全部可见无需滚动
+		 */
+		tab_mode_wrap_desc: () => LocalizedString
 	}
 	plugins: {
 		/**
@@ -22048,6 +22120,30 @@ export type TranslationFunctions = {
 		 * 放弃修改并关闭
 		 */
 		discard_and_close: () => LocalizedString
+		/**
+		 * 标签栏布局
+		 */
+		tab_layout: () => LocalizedString
+		/**
+		 * 标签显示模式
+		 */
+		tab_display_mode: () => LocalizedString
+		/**
+		 * 单行滚动
+		 */
+		tab_mode_scroll: () => LocalizedString
+		/**
+		 * 标签过多时横向滚动，保持紧凑
+		 */
+		tab_mode_scroll_desc: () => LocalizedString
+		/**
+		 * 多行平铺
+		 */
+		tab_mode_wrap: () => LocalizedString
+		/**
+		 * 标签过多时自动折行，全部可见无需滚动
+		 */
+		tab_mode_wrap_desc: () => LocalizedString
 		/**
 		 * HTTP节点示例流程
 		 */

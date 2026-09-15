@@ -92,6 +92,12 @@ const zh_CN_flow: BaseTranslation = {
   unsaved_tab_confirm_desc: '流程「{name:string}」有未保存的修改。是否在关闭前保存？',
   save_and_close: '保存并关闭',
   discard_and_close: '放弃修改并关闭',
+  tab_layout: '标签栏布局',
+  tab_display_mode: '标签显示模式',
+  tab_mode_scroll: '单行滚动',
+  tab_mode_scroll_desc: '标签过多时横向滚动，保持紧凑',
+  tab_mode_wrap: '多行平铺',
+  tab_mode_wrap_desc: '标签过多时自动折行，全部可见无需滚动',
 
   http_example: 'HTTP节点示例流程',
   ws_example: 'WebSocket节点示例流程',

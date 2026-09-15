@@ -103,6 +103,12 @@ const en_US_settings = {
   clear_cache_desc: 'Clean up UI fold preferences, clipboard scratchpad, and tutorial state.',
   clear_cache_btn: 'Clear Cache',
   clear_cache_success: 'Local cache cleared successfully',
+  tab_layout: 'Tab Bar Layout',
+  tab_layout_desc: 'Control how multiple flow tabs are arranged and wrapped',
+  tab_mode_scroll: 'Single Line (Scroll)',
+  tab_mode_scroll_desc: 'Scroll horizontally when overflowing, keeping canvas compact',
+  tab_mode_wrap: 'Multi-line (Wrap)',
+  tab_mode_wrap_desc: 'Auto-wrap when tabs overflow, all tabs visible',
 };
 
 export default en_US_settings;
