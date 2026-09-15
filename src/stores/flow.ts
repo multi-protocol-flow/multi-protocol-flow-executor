@@ -4,6 +4,8 @@
 import { create } from 'zustand';
 import type { Flow, Node, NodeData, Connection, EnvironmentSet, AnyNodeType, FlowTab, FlowTabSession } from '@/types';
 import { useExecutionStore } from './execution';
+import { useUIStore } from './ui';
+import { checkFlowConflict } from '@/lib/flowConflict';
 /** 深度比较两个值是否相等（属性顺序无关，undefined 值视为缺失） */
 function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
@@ -77,7 +79,7 @@ interface FlowState {
 
   // ===== Tab Actions =====
   /** 打开流程标签（若已打开则切换） */
-  openTab: (flow: Flow, filePath?: string) => void;
+  openTab: (flow: Flow, filePath?: string, options?: { force?: boolean }) => boolean;
   /** 切换活跃标签 */
   switchTab: (targetUuid: string) => void;
   /** 关闭指定标签 */
@@ -241,8 +243,15 @@ export const useFlowStore = create<FlowState>((set, get) => {
       return get().openTab(flow);
     },
 
-    openTab: (flow, filePath) => {
+    openTab: (flow, filePath, options) => {
       const state = get();
+      if (!options?.force) {
+        const conflict = checkFlowConflict(flow, filePath, state.tabs, state.tabSessions);
+        if (conflict) {
+          useUIStore.getState().openFlowConflictDialog(conflict);
+          return false;
+        }
+      }
       const existingTabIndex = state.tabs.findIndex(
         (t) => t.uuid === flow.uuid || (filePath && t.filePath === filePath)
       );
@@ -276,7 +285,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
             future: [],
             historyVersion: 0,
           });
-          return;
+          return true;
         }
 
         const updatedSessions = { ...state.tabSessions };
@@ -315,7 +324,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
           future: [],
           historyVersion: 0,
         });
-        return;
+        return true;
       }
 
       const updatedSessions = { ...state.tabSessions };
@@ -353,6 +362,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         future: [],
         historyVersion: 0,
       });
+      return true;
     },
 
     switchTab: (targetUuid) => {

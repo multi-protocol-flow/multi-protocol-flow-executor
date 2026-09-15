@@ -2,6 +2,7 @@
  * UI 状态管理
  */
 import { create } from 'zustand';
+import type { Flow } from '@/types/flow';
 
 /** 面板类型 */
 export type PanelType = 'flowList' | 'history' | 'config' | 'execution';
@@ -43,6 +44,17 @@ export interface ConfirmDialogConfig {
   onConfirm: () => void | Promise<void>;
   /** 取消/关闭回调 */
   onCancel?: () => void;
+}
+
+/** 流程 UUID 冲突状态定义 */
+export interface FlowConflictState {
+  incomingFlow: Flow;
+  incomingFilePath?: string;
+  conflictingTabUuid: string;
+  conflictingTabName: string;
+  conflictingFilePath?: string;
+  conflictType: 'flow_uuid' | 'node_uuid' | 'both';
+  duplicateNodeCount?: number;
 }
 
 interface UIState {
@@ -104,6 +116,8 @@ interface UIState {
   /** 是否显示动态变量帮助对话框 */
   showDynamicVariablesHelpDialog: boolean;
 
+  /** 流程 UUID / 节点 UUID 冲突状态（非 null 时展示决策弹窗） */
+  flowConflict: FlowConflictState | null;
   // ===== 通用确认对话框状态 =====
   /** 是否显示通用确认对话框 */
   showConfirmDialog: boolean;
@@ -205,6 +219,10 @@ interface UIState {
   /** 关闭动态变量帮助对话框 */
   closeDynamicVariablesHelpDialog: () => void;
 
+  /** 打开流程冲突决策对话框 */
+  openFlowConflictDialog: (flowConflict: FlowConflictState) => void;
+  /** 关闭流程冲突决策对话框 */
+  closeFlowConflictDialog: () => void;
   // ===== 通用确认对话框 Actions =====
   /** 显示确认对话框 */
   showConfirm: (config: ConfirmDialogConfig) => void;
@@ -320,6 +338,7 @@ const initialState = {
   showScriptHelpDialog: false,
   showDynamicVariablesHelpDialog: false,
 
+  flowConflict: null as FlowConflictState | null,
   // 通用确认对话框状态
   showConfirmDialog: false,
   confirmDialogConfig: null,
@@ -410,6 +429,8 @@ export const useUIStore = create<UIState>((set) => ({
     }),
 
   closeSettingsDialog: () => set({ showSettingsDialog: false }),
+  openFlowConflictDialog: (flowConflict) => set({ flowConflict }),
+  closeFlowConflictDialog: () => set({ flowConflict: null }),
 
   setSettingsDialogTab: (settingsDialogTab) => set({ settingsDialogTab }),
   openPluginSettingsDialog: () => set({ showPluginSettingsDialog: true }),
@@ -567,6 +588,7 @@ export const useUIStore = create<UIState>((set) => ({
       nodePalettePosition: null,
       showPluginSettingsDialog: false,
       flowTabDisplayMode: loadTabDisplayMode(),
+      flowConflict: null,
     }),
 }));
 
@@ -607,3 +629,10 @@ export const selectWelcomeStep = (state: UIState) =>
 /** 选择流程标签栏显示模式 */
 export const selectFlowTabDisplayMode = (state: UIState) =>
   state.flowTabDisplayMode;
+
+/** 选择流程冲突状态 */
+export const selectFlowConflict = (state: UIState) =>
+  state.flowConflict;
+/** 选择是否展示流程冲突对话框 */
+export const selectShowFlowConflictDialog = (state: UIState) =>
+  state.flowConflict !== null;

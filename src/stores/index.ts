@@ -62,10 +62,12 @@ export {
   selectShowDeleteConfirmDialog,
   selectShowSettingsDialog,
   selectFlowTabDisplayMode,
+  selectFlowConflict,
+  selectShowFlowConflictDialog,
 } from './ui';
 
 // UI types
-export type { PanelType, BottomPanelTab, PageType, DatasetReportPageState, FlowTabDisplayMode } from './ui';
+export type { PanelType, BottomPanelTab, PageType, DatasetReportPageState, FlowTabDisplayMode, FlowConflictState } from './ui';
 
 // Debug store selectors
 export {
