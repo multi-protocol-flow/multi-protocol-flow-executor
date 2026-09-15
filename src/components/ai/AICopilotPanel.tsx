@@ -103,6 +103,7 @@ export function AICopilotPanel() {
   const [isResizing, setIsResizing] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -123,10 +124,14 @@ export function AICopilotPanel() {
     }
   }, [isCopilotOpen, initSessions]);
 
-  // 自动滚动到底部
+  // 自动滚动到底部 (优先直接操作消息容器 scrollTop，避免 scrollIntoView 冒泡卷动外层浮动容器)
   useEffect(() => {
     if (isCopilotOpen) {
-      messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      } else {
+        messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
+      }
     }
   }, [messages, isCopilotOpen]);
 
@@ -184,32 +189,45 @@ export function AICopilotPanel() {
 
     const startX = e.clientX;
     let hasDetached = false;
+    let currentDragWidth = 0;
+    let currentDragHeight = 0;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = startX - moveEvent.clientX;
-      if (!hasDetached && deltaX > 15) {
-        hasDetached = true;
-        const currentPanelWidth = useAIStore.getState().panelWidth;
-        const initialWidth = Math.max(360, currentPanelWidth);
-        const initialHeight = Math.max(450, window.innerHeight - 120);
-        const initialX = Math.max(20, Math.min(window.innerWidth - initialWidth - 20, moveEvent.clientX - initialWidth / 2));
-        const initialY = Math.max(60, Math.min(window.innerHeight - initialHeight - 20, moveEvent.clientY - 20));
+      if (!hasDetached) {
+        const deltaX = startX - moveEvent.clientX;
+        if (deltaX > 15) {
+          hasDetached = true;
+          const currentPanelWidth = useAIStore.getState().panelWidth;
+          currentDragWidth = Math.max(360, currentPanelWidth);
+          currentDragHeight = Math.max(450, window.innerHeight - 120);
+          const initialX = Math.max(20, Math.min(window.innerWidth - currentDragWidth - 20, moveEvent.clientX - currentDragWidth / 2));
+          const initialY = Math.max(50, Math.min(window.innerHeight - currentDragHeight - 20, moveEvent.clientY - 20));
 
-        setFloatingPosition({
-          x: initialX,
-          y: initialY,
-          width: initialWidth,
-          height: initialHeight,
-        });
-        setFloating(true);
+          setFloatingPosition({
+            x: initialX,
+            y: initialY,
+            width: currentDragWidth,
+            height: currentDragHeight,
+          });
+          setFloating(true);
+        }
+      } else {
+        // 脱离吸附后继续跟随鼠标平滑移动
+        const newX = Math.max(0, Math.min(window.innerWidth - currentDragWidth, moveEvent.clientX - currentDragWidth / 2));
+        const newY = Math.max(20, Math.min(window.innerHeight - 60, moveEvent.clientY - 20));
+        setFloatingPosition({ x: newX, y: newY });
       }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (upEvent: MouseEvent) => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
-    };
 
+      // 如果释放位置贴近屏幕右边缘 (30px 以内)，自动吸附至右侧
+      if (hasDetached && upEvent.clientX >= window.innerWidth - 30) {
+        setFloating(false);
+      }
+    };
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }, [setFloating, setFloatingPosition]);
@@ -232,7 +250,7 @@ export function AICopilotPanel() {
       const deltaX = moveEvent.clientX - startMouseX;
       const deltaY = moveEvent.clientY - startMouseY;
       const newX = Math.max(0, Math.min(window.innerWidth - currentPos.width, startPosX + deltaX));
-      const newY = Math.max(50, Math.min(window.innerHeight - 60, startPosY + deltaY));
+      const newY = Math.max(20, Math.min(window.innerHeight - 60, startPosY + deltaY));
 
       setFloatingPosition({ x: newX, y: newY });
     };
@@ -392,6 +410,8 @@ export function AICopilotPanel() {
               top: `${floatingPosition.y}px`,
               width: `${floatingPosition.width}px`,
               height: `${floatingPosition.height}px`,
+              maxHeight: 'calc(100vh - 20px)',
+              maxWidth: 'calc(100vw - 20px)',
             }
           : { width: `${panelWidth}px` };
 
@@ -400,6 +420,11 @@ export function AICopilotPanel() {
             className={containerClasses}
             style={containerStyle}
             aria-label={isFloating ? 'AI Copilot Floating Panel' : 'AI Copilot Panel'}
+            onScroll={(e) => {
+              if (e.currentTarget.scrollTop !== 0) {
+                e.currentTarget.scrollTop = 0;
+              }
+            }}
           >
             {/* 停靠模式下：左侧可拖拽拉伸边条 */}
             {!isFloating && (
@@ -414,9 +439,9 @@ export function AICopilotPanel() {
               </div>
             )}
 
-            {/* 头部导航栏 */}
+            {/* 头部导航栏 (sticky 锚定在顶部，杜绝内容上顶时滚出视野) */}
             <header
-              className={`h-11 border-b border-border/70 px-2.5 flex items-center justify-between bg-muted/20 shrink-0 relative select-none gap-2 ${
+              className={`h-11 border-b border-border/70 px-2.5 flex items-center justify-between bg-background shrink-0 sticky top-0 z-20 select-none gap-2 ${
                 isFloating ? 'cursor-move' : ''
               }`}
               onMouseDown={isFloating ? handleMouseDownFloatingHeader : handleMouseDownDockedDrag}
@@ -656,8 +681,11 @@ export function AICopilotPanel() {
           </div>
         </header>
 
-        {/* 消息列表区域 (不透明背景) */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-4 text-xs bg-background">
+        {/* 消息列表区域 (不透明背景，独立滚动并添加 min-h-0 防止撑开父容器) */}
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4 text-xs bg-background"
+        >
           {/* 未配置 Provider 提示 */}
           {!activeProvider && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-center space-y-3">
