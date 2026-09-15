@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { MarkdownViewer } from '@/components/ui/MarkdownViewer';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useAIStore } from '@/stores/ai';
@@ -435,14 +436,14 @@ export function AICopilotPanel() {
                 </div>
 
                 {/* 会话选择器与下拉抽屉触发器 */}
-                <div className="relative min-w-0 flex-1 max-w-[200px]" ref={menuRef}>
+                <div className="relative inline-flex items-center min-w-0 max-w-[240px]" ref={menuRef}>
                   <button
                     type="button"
-                    className="flex items-center gap-1 text-xs font-semibold text-foreground hover:bg-muted/60 px-1.5 py-1 rounded-md transition-colors w-full min-w-0"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:bg-muted/60 px-1.5 py-1 rounded-md transition-colors min-w-0 max-w-full"
                     onClick={() => setShowSessionMenu(!showSessionMenu)}
                     title={ll.ai.copilot.sessions_title()}
                   >
-                    <span className="truncate flex-1 min-w-0 text-left">
+                    <span className="truncate min-w-0 text-left">
                       {currentSession?.title || ll.ai.copilot.title()}
                     </span>
                     <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -565,20 +566,38 @@ export function AICopilotPanel() {
           </div>
 
           <div className="flex items-center gap-0.5 shrink-0">
-            {/* 执行到底模式切换开关 */}
-            <button
-              type="button"
+            {/* 执行到底模式 Switch 开关 */}
+            <div
+              className={`flex items-center gap-1.5 h-7 px-2 rounded-md text-[11px] font-medium border transition-colors cursor-pointer select-none ${
+                autoExecuteToGoal
+                  ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-600/40 dark:text-emerald-300'
+                  : 'bg-muted/40 border-border/80 text-muted-foreground hover:bg-muted/60 dark:bg-zinc-900/60 dark:border-zinc-800'
+              }`}
               onClick={toggleAutoExecuteToGoal}
               title={ll.ai.copilot.auto_execute_tip()}
-              className={`flex items-center justify-center h-7 px-1.5 rounded-md text-[11px] font-medium border transition-colors ${
-                autoExecuteToGoal
-                  ? 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/15'
-                  : 'bg-muted/40 border-border/60 text-muted-foreground hover:bg-muted/70'
-              }`}
             >
-              <Zap className={`h-3.5 w-3.5 ${autoExecuteToGoal ? 'fill-primary text-primary' : ''}`} />
-              <span className={panelWidth < 420 ? 'sr-only' : 'hidden sm:inline'}>{ll.ai.copilot.auto_execute()}</span>
-            </button>
+              <Zap
+                className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+                  autoExecuteToGoal
+                    ? 'fill-emerald-500 text-emerald-500 dark:fill-emerald-400 dark:text-emerald-400 scale-105'
+                    : 'text-muted-foreground/70'
+                }`}
+              />
+              <span
+                className={`${
+                  panelWidth < 440 ? 'sr-only' : 'hidden sm:inline font-medium'
+                } ${autoExecuteToGoal ? 'text-emerald-700 dark:text-emerald-300 font-semibold' : 'text-muted-foreground'}`}
+              >
+                {ll.ai.copilot.auto_execute()}
+              </span>
+              <Switch
+                checked={autoExecuteToGoal}
+                onCheckedChange={toggleAutoExecuteToGoal}
+                variant="emerald"
+                className="scale-75 origin-center pointer-events-none"
+                aria-label={ll.ai.copilot.auto_execute()}
+              />
+            </div>
             {/* 停靠 / 脱离浮动切换按钮 */}
             {isFloating ? (
               <Button
@@ -885,7 +904,9 @@ export function AICopilotPanel() {
               <div className="flex items-center gap-2 text-xs text-muted-foreground px-2.5 py-1.5 bg-primary/5 rounded-lg border border-primary/15 animate-in fade-in duration-150">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
                 <span className="truncate">
-                  {activeToolTitle ? `正在执行: ${activeToolTitle}...` : ll.ai.copilot.executing_tools()}
+                  {activeToolTitle
+                    ? ll.ai.copilot.executing_tool_named({ name: activeToolTitle })
+                    : ll.ai.copilot.executing_tools()}
                 </span>
               </div>
             );

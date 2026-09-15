@@ -833,13 +833,23 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
         // 如果没有触发 Tool Calls
         if (!result.tool_calls || result.tool_calls.length === 0) {
-          // 如果开启了"执行到底"模式，且首轮用户明确要求执行操作，而模型仅返回了文本规划而未调用工具：
-          if (autoExecute && isActionPrompt && iteration === 1) {
+          const contentText = result.content || '';
+          const ASK_USER_CONFIRM_REGEX =
+            /(是否需要我|请问是否|您倾向于|确认后再|需要我帮您|要继续吗|要不要我|是否继续|是否帮您|would you like me to|should i proceed|do you want me to)/i;
+          const isAskingForPermission = ASK_USER_CONFIRM_REGEX.test(contentText);
+
+          // 如果开启了"执行到底"模式：
+          // 1. 首轮仅输出方案规划未调工具；
+          // 2. 或多轮执行中途模型停下来反问用户是否继续执行
+          if (
+            autoExecute &&
+            ((isActionPrompt && iteration === 1) || (isAskingForPermission && iteration <= 8))
+          ) {
             const nudgeMessage: AIMessage = {
               id: `msg_${Date.now()}_system_nudge`,
               role: 'user',
               content:
-                '[System Directive: "执行到底"模式已开启。检测到你仅输出了方案说明，尚未实际调用工具。请直接调用相关工具（如 batch_create_pipeline, add_node, connect_nodes, auto_layout, execute_flow 等）将该任务执行到底，无需等待二次确认。]',
+                '[System Directive: "执行到底"模式已开启。无需停下向用户索取权限或询问是否继续，请直接选择最优方案调用相关工具继续执行后续步骤，直到目标完全达成。若已全部完成则请给出最终简要总结。]',
               timestamp: Date.now(),
             };
             set((s) => ({
