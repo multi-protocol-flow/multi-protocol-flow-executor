@@ -8369,6 +8369,64 @@ type RootTranslation = {
 		 */
 		tab_mode_wrap_desc: string
 		/**
+		 * 检​测​到​流​程​标​识​冲​突
+		 */
+		conflict_dialog_title: string
+		/**
+		 * 要​打​开​的​流​程​与​已​打​开​的​标​签​存​在​相​同​的​唯​一​标​识​ ​(​U​U​I​D​)​，​这​通​常​发​生​在​外​部​复​制​流​程​文​件​或​导​入​流​程​时​：
+		 */
+		conflict_dialog_desc: string
+		/**
+		 * 当​前​流​程​与​已​打​开​的​「​{​n​a​m​e​}​」​拥​有​相​同​的​流​程​ ​U​U​I​D​。
+		 * @param {string} name
+		 */
+		conflict_flow_uuid_msg: RequiredParams<'name'>
+		/**
+		 * 当​前​流​程​与​已​打​开​的​「​{​n​a​m​e​}​」​存​在​ ​{​c​o​u​n​t​}​ ​个​相​同​ ​U​U​I​D​ ​的​节​点​。
+		 * @param {number} count
+		 * @param {string} name
+		 */
+		conflict_node_uuid_msg: RequiredParams<'count' | 'name'>
+		/**
+		 * 当​前​流​程​与​已​打​开​的​「​{​n​a​m​e​}​」​拥​有​相​同​的​流​程​ ​U​U​I​D​ ​且​存​在​ ​{​c​o​u​n​t​}​ ​个​相​同​ ​U​U​I​D​ ​的​节​点​。
+		 * @param {number} count
+		 * @param {string} name
+		 */
+		conflict_both_msg: RequiredParams<'count' | 'name'>
+		/**
+		 * 重​构​并​分​配​全​新​唯​一​标​识​（​推​荐​）
+		 */
+		conflict_opt_remap_title: string
+		/**
+		 * 为​该​流​程​重​新​分​配​全​局​唯​一​ ​I​D​，​并​对​其​所​有​节​点​和​连​线​全​量​重​映​射​，​彻​底​杜​绝​数​据​串​扰​。
+		 */
+		conflict_opt_remap_desc: string
+		/**
+		 * 直​接​切​换​到​已​打​开​的​标​签
+		 */
+		conflict_opt_switch_title: string
+		/**
+		 * 放​弃​打​开​新​副​本​，​直​接​跳​转​至​已​打​开​的​流​程​标​签​页​。
+		 */
+		conflict_opt_switch_desc: string
+		/**
+		 * 强​制​原​样​打​开
+		 */
+		conflict_opt_force_title: string
+		/**
+		 * 保​留​现​有​所​有​ ​U​U​I​D​ ​原​样​打​开​，​依​靠​系​统​内​存​屏​障​进​行​隔​离​保​护​。
+		 */
+		conflict_opt_force_desc: string
+		/**
+		 * 流​程​唯​一​标​识​已​重​构​，​已​作​为​独​立​流​程​打​开
+		 */
+		conflict_remap_success: string
+		/**
+		 * 文​件​路​径​:​ ​{​p​a​t​h​}
+		 * @param {string} path
+		 */
+		conflict_file_path: RequiredParams<'path'>
+		/**
 		 * H​T​T​P​节​点​示​例​流​程
 		 */
 		http_example: string
@@ -22170,6 +22228,58 @@ export type TranslationFunctions = {
 		 * 标签过多时自动折行，全部可见无需滚动
 		 */
 		tab_mode_wrap_desc: () => LocalizedString
+		/**
+		 * 检测到流程标识冲突
+		 */
+		conflict_dialog_title: () => LocalizedString
+		/**
+		 * 要打开的流程与已打开的标签存在相同的唯一标识 (UUID)，这通常发生在外部复制流程文件或导入流程时：
+		 */
+		conflict_dialog_desc: () => LocalizedString
+		/**
+		 * 当前流程与已打开的「{name}」拥有相同的流程 UUID。
+		 */
+		conflict_flow_uuid_msg: (arg: { name: string }) => LocalizedString
+		/**
+		 * 当前流程与已打开的「{name}」存在 {count} 个相同 UUID 的节点。
+		 */
+		conflict_node_uuid_msg: (arg: { count: number, name: string }) => LocalizedString
+		/**
+		 * 当前流程与已打开的「{name}」拥有相同的流程 UUID 且存在 {count} 个相同 UUID 的节点。
+		 */
+		conflict_both_msg: (arg: { count: number, name: string }) => LocalizedString
+		/**
+		 * 重构并分配全新唯一标识（推荐）
+		 */
+		conflict_opt_remap_title: () => LocalizedString
+		/**
+		 * 为该流程重新分配全局唯一 ID，并对其所有节点和连线全量重映射，彻底杜绝数据串扰。
+		 */
+		conflict_opt_remap_desc: () => LocalizedString
+		/**
+		 * 直接切换到已打开的标签
+		 */
+		conflict_opt_switch_title: () => LocalizedString
+		/**
+		 * 放弃打开新副本，直接跳转至已打开的流程标签页。
+		 */
+		conflict_opt_switch_desc: () => LocalizedString
+		/**
+		 * 强制原样打开
+		 */
+		conflict_opt_force_title: () => LocalizedString
+		/**
+		 * 保留现有所有 UUID 原样打开，依靠系统内存屏障进行隔离保护。
+		 */
+		conflict_opt_force_desc: () => LocalizedString
+		/**
+		 * 流程唯一标识已重构，已作为独立流程打开
+		 */
+		conflict_remap_success: () => LocalizedString
+		/**
+		 * 文件路径: {path}
+		 */
+		conflict_file_path: (arg: { path: string }) => LocalizedString
 		/**
 		 * HTTP节点示例流程
 		 */
