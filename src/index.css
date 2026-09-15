@@ -256,8 +256,7 @@
   }
 
   .scrollbar-mini {
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) transparent;
+    /* 不设置 scrollbar-width，防止 Chromium/WebKit 忽略 ::-webkit-scrollbar 尺寸声明 */
   }
 
   .scrollbar-mini::-webkit-scrollbar {
@@ -280,13 +279,15 @@
 
   .no-scrollbar,
   .scrollbar-none {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
   }
 
   .no-scrollbar::-webkit-scrollbar,
   .scrollbar-none::-webkit-scrollbar {
-    display: none;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
 }
 

@@ -98,6 +98,89 @@ export function FlowTabBar() {
 
   // 容器横向滚动 ref
   const tabsContainerRef = useRef<HTMLDivElement>(null);
+  // 横向滚动尺寸与位置状态（驱动纯 DOM 3px 超细滚动条）
+  const [scrollMetrics, setScrollMetrics] = useState({
+    scrollLeft: 0,
+    scrollWidth: 0,
+    clientWidth: 0,
+  });
+
+  const updateScrollMetrics = useCallback(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    setScrollMetrics({
+      scrollLeft: el.scrollLeft,
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+    });
+  }, []);
+
+  // 监听容器尺寸与标签增减变动
+  useEffect(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    updateScrollMetrics();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => {
+        updateScrollMetrics();
+      });
+      observer.observe(el);
+      Array.from(el.children).forEach((child) => observer.observe(child));
+      return () => observer.disconnect();
+    }
+  }, [tabs, flowTabDisplayMode, updateScrollMetrics]);
+
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef({ startX: 0, startScrollLeft: 0 });
+
+  const handleThumbMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const container = tabsContainerRef.current;
+    if (!container) return;
+    isDraggingRef.current = true;
+    dragStartRef.current = {
+      startX: e.clientX,
+      startScrollLeft: container.scrollLeft,
+    };
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current || !tabsContainerRef.current) return;
+      const { scrollWidth, clientWidth } = tabsContainerRef.current;
+      const maxScrollLeft = scrollWidth - clientWidth;
+      const currentThumbWidth = Math.max(20, (clientWidth / scrollWidth) * clientWidth);
+      const maxThumbLeft = clientWidth - currentThumbWidth;
+      if (maxThumbLeft <= 0) return;
+
+      const deltaX = ev.clientX - dragStartRef.current.startX;
+      tabsContainerRef.current.scrollLeft =
+        dragStartRef.current.startScrollLeft + (deltaX / maxThumbLeft) * maxScrollLeft;
+      updateScrollMetrics();
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const ratio = clickX / rect.width;
+    const maxScrollLeft = container.scrollWidth - container.clientWidth;
+    container.scrollTo({
+      left: ratio * maxScrollLeft,
+      behavior: 'smooth',
+    });
+  };
 
   // 监听点击外部关闭右键菜单
   useEffect(() => {
@@ -290,6 +373,7 @@ export function FlowTabBar() {
   const handleWheel = (e: React.WheelEvent) => {
     if (flowTabDisplayMode === 'scroll' && e.deltaY !== 0 && tabsContainerRef.current) {
       tabsContainerRef.current.scrollLeft += e.deltaY;
+      updateScrollMetrics();
     }
   };
 
@@ -298,6 +382,20 @@ export function FlowTabBar() {
     : -1;
 
   const LL = getLL();
+  const hasOverflow =
+    flowTabDisplayMode === 'scroll' &&
+    scrollMetrics.scrollWidth > scrollMetrics.clientWidth + 2;
+
+  const thumbWidth =
+    hasOverflow && scrollMetrics.clientWidth > 0
+      ? Math.max(24, (scrollMetrics.clientWidth / scrollMetrics.scrollWidth) * scrollMetrics.clientWidth)
+      : 0;
+
+  const maxScrollLeft = Math.max(1, scrollMetrics.scrollWidth - scrollMetrics.clientWidth);
+  const maxThumbLeft = Math.max(0, scrollMetrics.clientWidth - thumbWidth);
+  const thumbLeft =
+    maxScrollLeft > 0 ? (scrollMetrics.scrollLeft / maxScrollLeft) * maxThumbLeft : 0;
+
 
   return (
     <>
@@ -315,94 +413,116 @@ export function FlowTabBar() {
             : 'min-h-9 h-auto max-h-36 flex items-start justify-between px-2 py-1 gap-1.5 overflow-y-auto scrollbar-mini'
         )}
       >
-        {/* 标签列表区 */}
-        <div
-          ref={tabsContainerRef}
-          onWheel={handleWheel}
-          className={cn(
-            'select-none flex-1 min-w-0',
-            flowTabDisplayMode === 'scroll'
-              ? 'flex items-center gap-1 overflow-x-auto scrollbar-mini py-1'
-              : 'flex flex-wrap items-center gap-x-1 gap-y-1.5 py-0.5'
-          )}
-        >
-          {tabs.map((tab) => {
-            const isActive = tab.uuid === activeTabUuid;
-            const isTabExecuting = isActive && isExecuting;
-            const isTabDebugging = isActive && isDebugging;
+        {/* 标签列表区与超细自定义滚动条容器 */}
+        <div className="relative flex-1 min-w-0 h-full flex flex-col justify-center">
+          <div
+            ref={tabsContainerRef}
+            onWheel={handleWheel}
+            onScroll={updateScrollMetrics}
+            className={cn(
+              'select-none w-full no-scrollbar scrollbar-none scrollbar-mini',
+              flowTabDisplayMode === 'scroll'
+                ? 'flex items-center gap-1 overflow-x-auto py-1'
+                : 'flex flex-wrap items-center gap-x-1 gap-y-1.5 py-0.5'
+            )}
+          >
+            {tabs.map((tab) => {
+              const isActive = tab.uuid === activeTabUuid;
+              const isTabExecuting = isActive && isExecuting;
+              const isTabDebugging = isActive && isDebugging;
 
-            return (
-              <div
-                key={tab.uuid}
-                ref={isActive ? activeTabRef : undefined}
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => handleSelectTab(tab)}
-                onAuxClick={(e) => {
-                  if (e.button === 1) {
+              return (
+                <div
+                  key={tab.uuid}
+                  ref={isActive ? activeTabRef : undefined}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => handleSelectTab(tab)}
+                  onAuxClick={(e) => {
+                    if (e.button === 1) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleCloseTab(tab);
+                    }
+                  }}
+                  onDoubleClick={() => handleOpenProperties(tab)}
+                  onContextMenu={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    handleCloseTab(tab);
-                  }
-                }}
-                onDoubleClick={() => handleOpenProperties(tab)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setContextMenu({ x: e.clientX, y: e.clientY, tab });
-                }}
-                className={cn(
-                  'group relative flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs cursor-pointer transition-all shrink-0 max-w-[190px]',
-                  isActive
-                    ? 'bg-accent text-accent-foreground font-medium shadow-xs border border-border/60'
-                    : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground border border-transparent',
-                )}
-                title={tab.name}
-              >
-                {/* 运行状态指示器 */}
-                {isTabExecuting && (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500 shrink-0" />
-                )}
-                {isTabDebugging && (
-                  <Bug className="w-3.5 h-3.5 text-amber-500 shrink-0 animate-pulse" />
-                )}
-
-                {/* 流程名称 */}
-                <span className="max-w-[120px] truncate">{tab.name}</span>
-
-                {/* 未保存小圆点 */}
-                {tab.isDirty && (
-                  <span
-                    className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 animate-pulse"
-                    title={LL.flow.unsaved()}
-                  />
-                )}
-
-                {/* 关闭按钮 */}
-                <button
-                  type="button"
-                  aria-label={LL.flow.close_tab()}
-                  className="p-0.5 rounded-xs hover:bg-muted-foreground/20 text-muted-foreground hover:text-foreground opacity-60 hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCloseTab(tab);
+                    setContextMenu({ x: e.clientX, y: e.clientY, tab });
                   }}
+                  className={cn(
+                    'group relative flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs cursor-pointer transition-all shrink-0 max-w-[190px]',
+                    isActive
+                      ? 'bg-accent text-accent-foreground font-medium shadow-xs border border-border/60'
+                      : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground border border-transparent',
+                  )}
+                  title={tab.name}
                 >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            );
-          })}
+                  {/* 运行状态指示器 */}
+                  {isTabExecuting && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500 shrink-0" />
+                  )}
+                  {isTabDebugging && (
+                    <Bug className="w-3.5 h-3.5 text-amber-500 shrink-0 animate-pulse" />
+                  )}
 
-          {/* 新建流程按钮 */}
-          <button
-            type="button"
-            onClick={() => openNewFlowDialog()}
-            className="flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 cursor-pointer"
-            title={LL.flow.new_flow()}
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
+                  {/* 流程名称 */}
+                  <span className="max-w-[120px] truncate">{tab.name}</span>
+
+                  {/* 未保存小圆点 */}
+                  {tab.isDirty && (
+                    <span
+                      className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 animate-pulse"
+                      title={LL.flow.unsaved()}
+                    />
+                  )}
+
+                  {/* 关闭按钮 */}
+                  <button
+                    type="button"
+                    aria-label={LL.flow.close_tab()}
+                    className="p-0.5 rounded-xs hover:bg-muted-foreground/20 text-muted-foreground hover:text-foreground opacity-60 hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCloseTab(tab);
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            })}
+
+            {/* 新建流程按钮 */}
+            <button
+              type="button"
+              onClick={() => openNewFlowDialog()}
+              className="flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 cursor-pointer"
+              title={LL.flow.new_flow()}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* 纯 DOM 自定义超细（3px）横向滚动条，彻底消除 Linux GTK / 系统原生粗滚动条 */}
+          {hasOverflow && (
+            <div
+              role="scrollbar"
+              aria-orientation="horizontal"
+              onClick={handleTrackClick}
+              className="absolute bottom-0 left-0 right-0 h-[3px] hover:h-[5px] bg-muted/20 hover:bg-muted/50 rounded-full transition-all cursor-pointer z-20"
+            >
+              <div
+                onMouseDown={handleThumbMouseDown}
+                style={{
+                  width: `${thumbWidth}px`,
+                  transform: `translateX(${thumbLeft}px)`,
+                }}
+                className="h-full rounded-full bg-muted-foreground/35 hover:bg-muted-foreground/70 active:bg-muted-foreground transition-colors cursor-grab active:cursor-grabbing"
+              />
+            </div>
+          )}
         </div>
 
         {/* 标签栏右侧操作区（显示模式切换等） */}
