@@ -64,10 +64,10 @@ export function AISpotlightDialog() {
     }
   }, [isSpotlightOpen]);
 
-  // 新消息滚动
+  // 新消息滚动 (使用 block: 'nearest' 避免向上过度对齐导致祖先容器位移)
   useEffect(() => {
     if (isSpotlightOpen) {
-      scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+      scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [messages, isSpotlightOpen]);
 
