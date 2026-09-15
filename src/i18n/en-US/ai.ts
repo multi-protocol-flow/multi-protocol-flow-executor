@@ -128,6 +128,7 @@ const ai = {
     thought_process: 'Reasoning Process',
     thinking: 'Thinking...',
     executing_tools: 'Executing canvas actions...',
+    executing_tool_named: 'Executing: {name}...',
     input_placeholder: 'Ask MPE Copilot... (Enter to send, Shift+Enter for newline)',
     input_midway_placeholder: 'Executing... Type to add instructions or adjust requirement (Enter to send)',
     input_disabled_placeholder: 'Please configure an AI provider first...',

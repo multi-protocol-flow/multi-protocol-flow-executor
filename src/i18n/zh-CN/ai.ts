@@ -128,6 +128,7 @@ const ai = {
     thought_process: '思考过程 (Reasoning)',
     thinking: '正在思考...',
     executing_tools: '正在执行工具联动画布...',
+    executing_tool_named: '正在执行: {name}...',
     input_placeholder: '给 AI 助手发送指令... (Enter 发送, Shift+Enter 换行)',
     input_midway_placeholder: '正在执行中，输入可补充要求 / 调整指令... (Enter 发送)',
     input_disabled_placeholder: '请先配置激活 AI Provider 后开启对话...',
