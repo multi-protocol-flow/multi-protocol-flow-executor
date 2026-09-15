@@ -930,11 +930,8 @@ pub fn rename_flow_file(
         new_name,
         flows_dir
     );
-    let res = flow_engine::storage::rename_flow_file(
-        &uuid,
-        &new_name,
-        std::path::Path::new(&flows_dir),
-    );
+    let res =
+        flow_engine::storage::rename_flow_file(&uuid, &new_name, std::path::Path::new(&flows_dir));
     if let Err(e) = &res {
         log::error!("[IPC::rename_flow_file] FAILED: error={}", e);
     }
@@ -2154,6 +2151,156 @@ pub fn ai_inspect_api_spec(file_path: String) -> Result<serde_json::Value, Strin
     flow_engine::workspace::inspect_api_spec(path)
 }
 
+/// AI 终端命令执行结果
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct AiCommandExecutionResult {
+    /// 进程退出码 (若超时或被强杀则为 None)
+    pub exit_code: Option<i32>,
+    /// 标准输出内容 (UTF-8，超出上限自动截断)
+    pub stdout: String,
+    /// 标准错误内容 (UTF-8，超出上限自动截断)
+    pub stderr: String,
+    /// 是否由于超时被强行终止
+    pub timed_out: bool,
+    /// 命令执行总耗时 (毫秒)
+    pub duration_ms: u64,
+}
+
+const AI_CMD_MAX_OUTPUT_BYTES: usize = 32 * 1024; // 32KB
+
+fn truncate_ai_cmd_output(bytes: &[u8]) -> String {
+    if bytes.len() <= AI_CMD_MAX_OUTPUT_BYTES {
+        String::from_utf8_lossy(bytes).into_owned()
+    } else {
+        let truncated = &bytes[..AI_CMD_MAX_OUTPUT_BYTES];
+        let mut s = String::from_utf8_lossy(truncated).into_owned();
+        s.push_str("\n\n...[output truncated due to 32KB size limit]");
+        s
+    }
+}
+
+/// 执行操作系统底层命令行/Shell 指令，提供超时与安全输出截断保护
+#[tauri::command]
+pub async fn ai_execute_command(
+    command: String,
+    cwd: Option<String>,
+    timeout_secs: Option<u64>,
+) -> Result<AiCommandExecutionResult, String> {
+    let trimmed = command.trim();
+    if trimmed.is_empty() {
+        return Err("Command string cannot be empty".to_string());
+    }
+
+    let timeout_duration = std::time::Duration::from_secs(timeout_secs.unwrap_or(30).clamp(1, 120));
+
+    #[cfg(windows)]
+    let mut cmd = {
+        let mut c = tokio::process::Command::new("powershell.exe");
+        c.args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            trimmed,
+        ]);
+        c
+    };
+
+    #[cfg(not(windows))]
+    let mut cmd = {
+        let mut c = tokio::process::Command::new("sh");
+        c.args(["-c", trimmed]);
+        c
+    };
+
+    if let Some(dir) = &cwd {
+        let path = std::path::Path::new(dir);
+        if path.is_dir() {
+            cmd.current_dir(path);
+        } else {
+            return Err(format!(
+                "Specified working directory does not exist or is not a directory: {dir}"
+            ));
+        }
+    }
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::piped());
+
+    let start_time = std::time::Instant::now();
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("Failed to spawn command process: {e}"))?;
+    let mut stdout_pipe = child.stdout.take();
+    let mut stderr_pipe = child.stderr.take();
+
+    let stdout_task = tokio::spawn(async move {
+        let mut buf = Vec::new();
+        if let Some(mut out) = stdout_pipe.take() {
+            use tokio::io::AsyncReadExt;
+            let _ = out.read_to_end(&mut buf).await;
+        }
+        buf
+    });
+
+    let stderr_task = tokio::spawn(async move {
+        let mut buf = Vec::new();
+        if let Some(mut err) = stderr_pipe.take() {
+            use tokio::io::AsyncReadExt;
+            let _ = err.read_to_end(&mut buf).await;
+        }
+        buf
+    });
+
+    let timeout_res = tokio::time::timeout(timeout_duration, child.wait()).await;
+    let duration_ms = start_time.elapsed().as_millis() as u64;
+
+    match timeout_res {
+        Ok(Ok(status)) => {
+            let stdout_bytes = stdout_task.await.unwrap_or_default();
+            let stderr_bytes = stderr_task.await.unwrap_or_default();
+            Ok(AiCommandExecutionResult {
+                exit_code: status.code(),
+                stdout: truncate_ai_cmd_output(&stdout_bytes),
+                stderr: truncate_ai_cmd_output(&stderr_bytes),
+                timed_out: false,
+                duration_ms,
+            })
+        }
+        Ok(Err(e)) => Err(format!("Failed to wait for process status: {e}")),
+        Err(_) => {
+            let _ = child.kill().await;
+            let _ = child.wait().await;
+            let stdout_bytes = stdout_task.await.unwrap_or_default();
+            let stderr_bytes = stderr_task.await.unwrap_or_default();
+            let mut err_msg = format!(
+                "Command execution timed out after {} seconds.",
+                timeout_duration.as_secs()
+            );
+            let partial_stderr = truncate_ai_cmd_output(&stderr_bytes);
+            if !partial_stderr.is_empty() {
+                err_msg.push_str("\n--- Stderr output before timeout ---\n");
+                err_msg.push_str(&partial_stderr);
+            }
+            Ok(AiCommandExecutionResult {
+                exit_code: None,
+                stdout: truncate_ai_cmd_output(&stdout_bytes),
+                stderr: err_msg,
+                timed_out: true,
+                duration_ms,
+            })
+        }
+    }
+}
+
 // ============================================================================
 // 版本检查与更新命令
 // ============================================================================
@@ -2488,5 +2635,47 @@ mod tests {
         // 通过函数指针类型检查验证签名
         fn _assert_command_signature(_: fn(tauri::AppHandle) -> Result<String, String>) {}
         _assert_command_signature(get_app_data_dir);
+    }
+
+    #[tokio::test]
+    async fn test_ai_execute_command_success() {
+        let result = ai_execute_command("echo 'hello mpe'".to_string(), None, Some(5))
+            .await
+            .expect("ai_execute_command should succeed");
+
+        assert_eq!(result.exit_code, Some(0));
+        assert!(result.stdout.contains("hello mpe"));
+        assert!(!result.timed_out);
+    }
+
+    #[tokio::test]
+    async fn test_ai_execute_command_empty() {
+        let err = ai_execute_command("   ".to_string(), None, Some(5)).await;
+        assert!(err.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_ai_execute_command_timeout() {
+        // Unix 下使用 sleep 2 测试 1 秒超时
+        #[cfg(not(windows))]
+        {
+            let result = ai_execute_command("sleep 2".to_string(), None, Some(1))
+                .await
+                .expect("ai_execute_command call succeeds even on timeout");
+
+            assert!(result.timed_out);
+            assert_eq!(result.exit_code, None);
+            assert!(result.stderr.contains("timed out"));
+        }
+    }
+
+    #[test]
+    fn test_truncate_ai_cmd_output() {
+        let small = b"hello";
+        assert_eq!(truncate_ai_cmd_output(small), "hello");
+
+        let large = vec![b'a'; 33 * 1024];
+        let truncated = truncate_ai_cmd_output(&large);
+        assert!(truncated.contains("...[output truncated due to 32KB size limit]"));
     }
 }

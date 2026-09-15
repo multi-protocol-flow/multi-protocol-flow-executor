@@ -33,6 +33,7 @@ pub use flow_engine::storage::{
 // 导出 Tauri 命令供 main.rs 使用
 pub use tauri_commands::{
     ai_chat_stream,
+    ai_execute_command,
     ai_fetch_models,
     ai_inspect_api_spec,
     ai_read_code_slice,
@@ -586,6 +587,7 @@ pub fn run() {
             ai_search_code,
             ai_read_code_slice,
             ai_inspect_api_spec,
+            ai_execute_command,
             // 应用更新命令
             get_app_version,
             check_app_update,
