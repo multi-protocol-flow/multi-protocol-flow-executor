@@ -5,7 +5,7 @@
  */
 import { useState, useMemo, useCallback } from 'react';
 import { Search, FileSearch, ArrowRight } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFlowStore } from '@/stores';
@@ -41,9 +41,9 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
 
   // 匹配类型对应的标签样式
   const matchTypeStyles: Record<string, string> = {
-    name: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-    config: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-    variable: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+    name: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50',
+    config: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700',
+    variable: 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-200 dark:border-violet-800/50',
   };
 
   const ll = getLL();
@@ -64,13 +64,15 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
-        className="sm:max-w-[550px] h-[70vh] !gap-0 p-0 flex flex-col overflow-hidden"
+        className="!left-0 !right-0 !top-[10vh] !translate-x-0 !translate-y-0 mx-auto w-[92vw] max-w-[620px] h-[580px] max-h-[75vh] !gap-0 p-0 flex flex-col overflow-hidden border border-border/80 bg-background shadow-2xl rounded-xl data-[state=open]:!zoom-in-100 data-[state=closed]:!zoom-out-100 data-[state=open]:!slide-in-from-top-2 data-[state=closed]:!slide-out-to-top-2 data-[state=open]:!slide-in-from-left-0 data-[state=closed]:!slide-out-to-left-0"
         hideCloseButton
       >
         {/* 标题 */}
         <div className="flex items-center gap-2 px-6 pt-5 pb-3 shrink-0">
           <FileSearch className="w-5 h-5 text-muted-foreground" />
-          <h2 className="text-base font-semibold text-foreground">{getLL().flow.search_flow()}</h2>
+          <DialogTitle className="text-base font-semibold text-foreground">
+            {getLL().flow.search_flow()}
+          </DialogTitle>
         </div>
 
         {/* 搜索框 */}
@@ -105,15 +107,15 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
             </div>
           ) : query.trim() ? (
             <div className="py-12 text-center">
-              <Search className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">{getLL().flow.search_no_results()}</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">{getLL().flow.search_try_other()}</p>
+              <Search className="w-8 h-8 mx-auto text-muted-foreground/60 mb-2" />
+              <p className="text-sm font-medium text-muted-foreground">{getLL().flow.search_no_results()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{getLL().flow.search_try_other()}</p>
             </div>
           ) : (
             <div className="py-12 text-center">
-              <FileSearch className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">{getLL().flow.search_hint()}</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
+              <FileSearch className="w-8 h-8 mx-auto text-muted-foreground/60 mb-2" />
+              <p className="text-sm font-medium text-muted-foreground">{getLL().flow.search_hint()}</p>
+              <p className="text-xs text-muted-foreground mt-1">
                 {getLL().flow.search_hint_detail()}
               </p>
             </div>
@@ -121,7 +123,7 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
         </ScrollArea>
 
         {/* 底部提示 */}
-        <div className="text-[11px] text-muted-foreground/60 text-center px-6 py-2 border-t border-border shrink-0">
+        <div className="text-xs text-muted-foreground text-center px-6 py-2.5 border-t border-border bg-muted/20 shrink-0">
           {getLL().flow.search_close_hint()}
         </div>
       </DialogContent>
@@ -144,49 +146,49 @@ function SearchResultGroup({
   matchTypeLabels: Record<string, string>;
 }) {
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
+    <div className="rounded-lg border border-border/80 overflow-hidden bg-card/40">
       {/* 分组标题（节点名） */}
       <button
         type="button"
         onClick={() => onJump(group.nodeUuid)}
-        className="w-full flex items-center gap-2 px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-left cursor-pointer"
+        className="w-full flex items-center gap-2 px-3.5 py-2 bg-muted/40 hover:bg-muted/70 transition-colors text-left cursor-pointer"
       >
         <span className="text-sm font-medium text-foreground flex-1 truncate">
           {group.nodeName}
         </span>
-        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-mono">
           {getLL().flow.search_match_count({ count: group.matches.length })}
         </span>
         <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
       </button>
 
       {/* 匹配项列表 */}
-      <div className="divide-y divide-border/50">
+      <div className="divide-y divide-border/40">
         {group.matches.slice(0, 8).map((match, i) => (
           <button
             key={i}
             type="button"
             onClick={() => onJump(group.nodeUuid)}
-            className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent/50 transition-colors text-left cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-accent/60 transition-colors text-left cursor-pointer"
           >
             <span
               className={cn(
-                'text-[10px] px-1 py-0.5 rounded font-medium shrink-0',
+                'text-xs px-1.5 py-0.5 rounded font-medium shrink-0',
                 matchTypeStyles[match.matchType]
               )}
             >
               {matchTypeLabels[match.matchType]}
             </span>
-            <span className="text-[11px] text-muted-foreground font-mono shrink-0">
+            <span className="text-xs text-muted-foreground font-mono shrink-0">
               {match.field}
             </span>
-            <span className="text-xs text-foreground truncate flex-1">
+            <span className="text-xs text-foreground truncate flex-1 font-mono">
               {highlightMatch(match.value, query)}
             </span>
           </button>
         ))}
         {group.matches.length > 8 && (
-          <div className="px-3 py-1 text-[11px] text-muted-foreground text-center">
+          <div className="px-3.5 py-1.5 text-xs text-muted-foreground text-center bg-muted/10">
             {getLL().flow.search_more_matches({ count: group.matches.length - 8 })}
           </div>
         )}
@@ -209,7 +211,7 @@ function highlightMatch(text: string, query: string): React.ReactNode {
   return (
     <>
       {text.slice(0, idx)}
-      <mark className="bg-amber-200 dark:bg-amber-800/60 text-foreground rounded-sm px-0.5">
+      <mark className="bg-amber-200 dark:bg-amber-800/80 text-foreground font-medium rounded-sm px-0.5">
         {text.slice(idx, idx + query.length)}
       </mark>
       {text.slice(idx + query.length)}
