@@ -58,7 +58,10 @@ function getStoredFloatingPos(): { x: number; y: number; width: number; height: 
         typeof parsed.width === 'number' &&
         typeof parsed.height === 'number'
       ) {
-        return parsed;
+        const safeY = Math.max(20, parsed.y);
+        const safeWidth = Math.max(340, parsed.width);
+        const safeHeight = Math.max(300, parsed.height);
+        return { x: Math.max(0, parsed.x), y: safeY, width: safeWidth, height: safeHeight };
       }
     }
   } catch {
@@ -214,8 +217,8 @@ export const useAIStore = create<AIStore>((set, get) => ({
   setFloatingPosition: (pos) => {
     const current = get().floatingPosition;
     const updated = {
-      x: pos.x !== undefined ? pos.x : current.x,
-      y: pos.y !== undefined ? pos.y : current.y,
+      x: pos.x !== undefined ? Math.max(0, pos.x) : current.x,
+      y: pos.y !== undefined ? Math.max(20, pos.y) : current.y,
       width: pos.width !== undefined ? Math.max(340, pos.width) : current.width,
       height: pos.height !== undefined ? Math.max(300, pos.height) : current.height,
     };
