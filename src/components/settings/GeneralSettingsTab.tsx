@@ -1,10 +1,11 @@
-import { Sun, Moon, Monitor, Check, RotateCcw } from 'lucide-react';
+import { Sun, Moon, Monitor, Check, RotateCcw, MoveHorizontal, WrapText } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings';
 import type { ThemeMode, Locale } from '@/types/settings';
 import { getLL } from '@/i18n/i18n-lazy';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/stores/ui';
+import type { FlowTabDisplayMode } from '@/stores/ui';
 import { toast } from 'sonner';
 
 export function GeneralSettingsTab() {
@@ -12,6 +13,8 @@ export function GeneralSettingsTab() {
   const ll = getLL();
   const closeSettingsDialog = useUIStore((s) => s.closeSettingsDialog);
 
+  const flowTabDisplayMode = useUIStore((s) => s.flowTabDisplayMode);
+  const setFlowTabDisplayMode = useUIStore((s) => s.setFlowTabDisplayMode);
   const handleResetWelcome = () => {
     localStorage.removeItem('mpe-welcome-shown');
     closeSettingsDialog();
@@ -61,6 +64,26 @@ export function GeneralSettingsTab() {
       value: 'en-US',
       label: 'English',
       sublabel: '英语 (US)',
+    },
+  ];
+
+  const tabLayoutOptions: Array<{
+    value: FlowTabDisplayMode;
+    label: string;
+    desc: string;
+    icon: typeof MoveHorizontal;
+  }> = [
+    {
+      value: 'scroll',
+      label: ll.settings.tab_mode_scroll(),
+      desc: ll.settings.tab_mode_scroll_desc(),
+      icon: MoveHorizontal,
+    },
+    {
+      value: 'wrap',
+      label: ll.settings.tab_mode_wrap(),
+      desc: ll.settings.tab_mode_wrap_desc(),
+      icon: WrapText,
     },
   ];
 
@@ -159,6 +182,64 @@ export function GeneralSettingsTab() {
                     <Check className="h-3 w-3 stroke-[3]" />
                   </span>
                 )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {/* 分隔线 */}
+      <div className="border-t border-border/60" />
+
+      {/* 标签栏布局 */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">
+            {ll.settings.tab_layout()}
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {ll.settings.tab_layout_desc()}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {tabLayoutOptions.map((opt) => {
+            const isSelected = flowTabDisplayMode === opt.value;
+            const Icon = opt.icon;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setFlowTabDisplayMode(opt.value)}
+                className={cn(
+                  'relative flex items-start gap-3 rounded-xl border-2 p-3 text-left transition-all cursor-pointer select-none',
+                  isSelected
+                    ? 'border-primary bg-primary/5 shadow-xs'
+                    : 'border-border/70 hover:border-border hover:bg-muted/40'
+                )}
+              >
+                {isSelected && (
+                  <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Check className="h-2.5 w-2.5 stroke-[3]" />
+                  </span>
+                )}
+                <div
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-lg border shrink-0',
+                    isSelected
+                      ? 'bg-primary/10 border-primary/20 text-primary'
+                      : 'bg-muted/30 border-border text-muted-foreground'
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0 pr-4">
+                  <div className={cn('text-xs font-medium', isSelected ? 'text-primary font-semibold' : 'text-foreground')}>
+                    {opt.label}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                    {opt.desc}
+                  </p>
+                </div>
               </button>
             );
           })}

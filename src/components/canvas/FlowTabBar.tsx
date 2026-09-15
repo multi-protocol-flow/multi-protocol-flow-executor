@@ -12,7 +12,12 @@ import {
   XCircle,
   ArrowRightToLine,
   Layers,
+  MoveHorizontal,
+  WrapText,
+  Check,
+  ChevronDown,
 } from 'lucide-react';
+import * as Popover from '@radix-ui/react-popover';
 import { toast } from 'sonner';
 import {
   useFlowStore,
@@ -24,6 +29,7 @@ import {
   selectTabSessions,
   selectIsExecuting,
   selectIsDebugging,
+  selectFlowTabDisplayMode,
 } from '@/stores';
 import { flowStorage } from '@/services/storage';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -42,7 +48,7 @@ import { Button } from '@/components/ui/button';
 interface TabContextMenuState {
   x: number;
   y: number;
-  tab: FlowTab;
+  tab?: FlowTab;
 }
 
 export function FlowTabBar() {
@@ -63,6 +69,24 @@ export function FlowTabBar() {
 
   const isExecuting = useExecutionStore(selectIsExecuting);
   const isDebugging = useDebugStore(selectIsDebugging);
+  const flowTabDisplayMode = useUIStore(selectFlowTabDisplayMode);
+  const setFlowTabDisplayMode = useUIStore((s) => s.setFlowTabDisplayMode);
+  const [isModePopoverOpen, setIsModePopoverOpen] = useState(false);
+  const activeTabRef = useRef<HTMLDivElement>(null);
+
+  // 当激活标签切换或显示模式改变为单行滚动时，平滑滚动至视野内
+  useEffect(() => {
+    if (
+      flowTabDisplayMode === 'scroll' &&
+      typeof activeTabRef.current?.scrollIntoView === 'function'
+    ) {
+      activeTabRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest',
+      });
+    }
+  }, [activeTabUuid, flowTabDisplayMode]);
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<TabContextMenuState | null>(null);
@@ -262,27 +286,45 @@ export function FlowTabBar() {
     [activeTabUuid, switchTab, selectNode, setConfigPanelOpen],
   );
 
-  // 滚轮横向滚动
+  // 滚轮横向滚动（仅单行滚动模式下生效）
   const handleWheel = (e: React.WheelEvent) => {
-    if (e.deltaY !== 0 && tabsContainerRef.current) {
+    if (flowTabDisplayMode === 'scroll' && e.deltaY !== 0 && tabsContainerRef.current) {
       tabsContainerRef.current.scrollLeft += e.deltaY;
     }
   };
 
-  const targetTabIndex = contextMenu
-    ? tabs.findIndex((t) => t.uuid === contextMenu.tab.uuid)
+  const targetTabIndex = contextMenu?.tab
+    ? tabs.findIndex((t) => t.uuid === contextMenu.tab?.uuid)
     : -1;
 
   const LL = getLL();
 
   return (
     <>
-      <div className="h-9 bg-background border-b border-border flex items-center justify-between px-2 gap-1 select-none shrink-0 z-10">
-        {/* 标签滚动列表 */}
+      <div
+        onContextMenu={(e) => {
+          if (e.target === e.currentTarget || (tabsContainerRef.current && e.target === tabsContainerRef.current)) {
+            e.preventDefault();
+            setContextMenu({ x: e.clientX, y: e.clientY });
+          }
+        }}
+        className={cn(
+          'bg-background border-b border-border select-none shrink-0 z-10 transition-[height] duration-150',
+          flowTabDisplayMode === 'scroll'
+            ? 'h-9 min-h-9 flex items-center justify-between px-2 gap-1.5'
+            : 'min-h-9 h-auto max-h-36 flex items-start justify-between px-2 py-1 gap-1.5 overflow-y-auto scrollbar-mini'
+        )}
+      >
+        {/* 标签列表区 */}
         <div
           ref={tabsContainerRef}
           onWheel={handleWheel}
-          className="flex items-center gap-1 overflow-x-auto select-none no-scrollbar flex-1 min-w-0 py-1"
+          className={cn(
+            'select-none flex-1 min-w-0',
+            flowTabDisplayMode === 'scroll'
+              ? 'flex items-center gap-1 overflow-x-auto scrollbar-mini py-1'
+              : 'flex flex-wrap items-center gap-x-1 gap-y-1.5 py-0.5'
+          )}
         >
           {tabs.map((tab) => {
             const isActive = tab.uuid === activeTabUuid;
@@ -292,6 +334,7 @@ export function FlowTabBar() {
             return (
               <div
                 key={tab.uuid}
+                ref={isActive ? activeTabRef : undefined}
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => handleSelectTab(tab)}
@@ -355,11 +398,94 @@ export function FlowTabBar() {
           <button
             type="button"
             onClick={() => openNewFlowDialog()}
-            className="flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+            className="flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 cursor-pointer"
             title={LL.flow.new_flow()}
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
+        </div>
+
+        {/* 标签栏右侧操作区（显示模式切换等） */}
+        <div className={cn("flex items-center gap-1 shrink-0", flowTabDisplayMode === 'wrap' && "pt-0.5")}>
+          <Popover.Root open={isModePopoverOpen} onOpenChange={setIsModePopoverOpen}>
+            <Popover.Trigger asChild>
+              <button
+                type="button"
+                aria-label={LL.flow.tab_display_mode()}
+                title={`${LL.flow.tab_display_mode()} (${flowTabDisplayMode === 'scroll' ? LL.flow.tab_mode_scroll() : LL.flow.tab_mode_wrap()})`}
+                className={cn(
+                  "flex items-center gap-1 h-6 px-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer shrink-0 border border-transparent",
+                  isModePopoverOpen && "bg-accent text-foreground border-border/60"
+                )}
+              >
+                {flowTabDisplayMode === 'scroll' ? (
+                  <MoveHorizontal className="w-3.5 h-3.5" />
+                ) : (
+                  <WrapText className="w-3.5 h-3.5" />
+                )}
+                <ChevronDown className="w-3 h-3 opacity-60" />
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                side="bottom"
+                align="end"
+                sideOffset={6}
+                className={cn(
+                  "z-50 w-56 rounded-lg border border-border/60 bg-popover p-1.5 text-popover-foreground shadow-xl",
+                  "animate-in fade-in-0 zoom-in-95 duration-100 select-none"
+                )}
+              >
+                <div className="px-2 py-1 text-[11px] font-semibold text-muted-foreground border-b border-border/40 pb-1 mb-1">
+                  {LL.flow.tab_display_mode()}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFlowTabDisplayMode('scroll');
+                    setIsModePopoverOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-start gap-2.5 w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent cursor-pointer outline-none",
+                    flowTabDisplayMode === 'scroll' && "bg-accent/70 font-medium text-accent-foreground"
+                  )}
+                >
+                  <MoveHorizontal className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span>{LL.flow.tab_mode_scroll()}</span>
+                      {flowTabDisplayMode === 'scroll' && <Check className="w-3.5 h-3.5 text-primary" />}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-normal mt-0.5 leading-normal">
+                      {LL.flow.tab_mode_scroll_desc()}
+                    </p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFlowTabDisplayMode('wrap');
+                    setIsModePopoverOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-start gap-2.5 w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent cursor-pointer outline-none mt-0.5",
+                    flowTabDisplayMode === 'wrap' && "bg-accent/70 font-medium text-accent-foreground"
+                  )}
+                >
+                  <WrapText className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span>{LL.flow.tab_mode_wrap()}</span>
+                      {flowTabDisplayMode === 'wrap' && <Check className="w-3.5 h-3.5 text-primary" />}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-normal mt-0.5 leading-normal">
+                      {LL.flow.tab_mode_wrap_desc()}
+                    </p>
+                  </div>
+                </button>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
         </div>
       </div>
 
@@ -378,97 +504,175 @@ export function FlowTabBar() {
           )}
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
-          <div
-            className="px-3 py-1.5 text-xs text-muted-foreground border-b border-border/40 dark:border-white/10 truncate max-w-[200px]"
-            title={contextMenu.tab.name}
+          {contextMenu.tab ? (
+            <>
+              <div
+                className="px-3 py-1.5 text-xs text-muted-foreground border-b border-border/40 dark:border-white/10 truncate max-w-[200px]"
+                title={contextMenu.tab.name}
+              >
+                {contextMenu.tab.name}
+              </div>
+
+              <div className="py-0.5">
+                {/* 关闭当前标签 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tab = contextMenu.tab!;
+                    setContextMenu(null);
+                    handleCloseTab(tab);
+                  }}
+                  className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors cursor-pointer outline-none"
+                >
+                  <X className="w-3.5 h-3.5 text-muted-foreground" />
+                  {LL.flow.close_tab()}
+                </button>
+
+                {/* 关闭其他标签 */}
+                <button
+                  type="button"
+                  disabled={tabs.length <= 1}
+                  onClick={() => {
+                    const tab = contextMenu.tab!;
+                    setContextMenu(null);
+                    handleCloseOtherTabs(tab);
+                  }}
+                  className={cn(
+                    'flex items-center gap-2.5 w-full px-3 py-1.5 text-xs transition-colors outline-none',
+                    tabs.length <= 1
+                      ? 'text-muted-foreground/40 cursor-not-allowed'
+                      : 'text-foreground hover:bg-accent cursor-pointer',
+                  )}
+                >
+                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                  {LL.flow.close_other_tabs()}
+                </button>
+
+                {/* 关闭右侧标签 */}
+                <button
+                  type="button"
+                  disabled={targetTabIndex === -1 || targetTabIndex === tabs.length - 1}
+                  onClick={() => {
+                    const tab = contextMenu.tab!;
+                    setContextMenu(null);
+                    handleCloseTabsToRight(tab);
+                  }}
+                  className={cn(
+                    'flex items-center gap-2.5 w-full px-3 py-1.5 text-xs transition-colors outline-none',
+                    targetTabIndex === -1 || targetTabIndex === tabs.length - 1
+                      ? 'text-muted-foreground/40 cursor-not-allowed'
+                      : 'text-foreground hover:bg-accent cursor-pointer',
+                  )}
+                >
+                  <ArrowRightToLine className="w-3.5 h-3.5 text-muted-foreground" />
+                  {LL.flow.close_tabs_to_right()}
+                </button>
+
+                {/* 关闭所有标签 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu(null);
+                    handleCloseAllTabs();
+                  }}
+                  className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors cursor-pointer outline-none"
+                >
+                  <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                  {LL.flow.close_all_tabs()}
+                </button>
+
+                <div className="my-1 border-t border-border/40 dark:border-white/10" />
+
+                {/* 流程属性 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tab = contextMenu.tab!;
+                    setContextMenu(null);
+                    handleOpenProperties(tab);
+                  }}
+                  className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors cursor-pointer outline-none"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-muted-foreground" />
+                  {LL.flow.flow_properties()}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="py-0.5">
+              {/* 新建流程 */}
+              <button
+                type="button"
+                onClick={() => {
+                  setContextMenu(null);
+                  openNewFlowDialog();
+                }}
+                className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors cursor-pointer outline-none"
+              >
+                <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+                {LL.flow.new_flow()}
+              </button>
+
+              {/* 关闭所有标签 */}
+              {tabs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu(null);
+                    handleCloseAllTabs();
+                  }}
+                  className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors cursor-pointer outline-none"
+                >
+                  <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                  {LL.flow.close_all_tabs()}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* 标签栏布局 */}
+          <div className="my-1 border-t border-border/40 dark:border-white/10" />
+          <div className="px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            {LL.flow.tab_layout()}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setFlowTabDisplayMode('scroll');
+              setContextMenu(null);
+            }}
+            className={cn(
+              'flex items-center justify-between w-full px-3 py-1.5 text-xs hover:bg-accent transition-colors cursor-pointer outline-none',
+              flowTabDisplayMode === 'scroll'
+                ? 'font-medium text-foreground bg-accent/40'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
           >
-            {contextMenu.tab.name}
-          </div>
-
-          <div className="py-0.5">
-            {/* 关闭当前标签 */}
-            <button
-              type="button"
-              onClick={() => {
-                const tab = contextMenu.tab;
-                setContextMenu(null);
-                handleCloseTab(tab);
-              }}
-              className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors cursor-pointer outline-none"
-            >
-              <X className="w-3.5 h-3.5 text-muted-foreground" />
-              {LL.flow.close_tab()}
-            </button>
-
-            {/* 关闭其他标签 */}
-            <button
-              type="button"
-              disabled={tabs.length <= 1}
-              onClick={() => {
-                const tab = contextMenu.tab;
-                setContextMenu(null);
-                handleCloseOtherTabs(tab);
-              }}
-              className={cn(
-                'flex items-center gap-2.5 w-full px-3 py-1.5 text-xs transition-colors outline-none',
-                tabs.length <= 1
-                  ? 'text-muted-foreground/40 cursor-not-allowed'
-                  : 'text-foreground hover:bg-accent cursor-pointer',
-              )}
-            >
-              <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
-              {LL.flow.close_other_tabs()}
-            </button>
-
-            {/* 关闭右侧标签 */}
-            <button
-              type="button"
-              disabled={targetTabIndex === -1 || targetTabIndex === tabs.length - 1}
-              onClick={() => {
-                const tab = contextMenu.tab;
-                setContextMenu(null);
-                handleCloseTabsToRight(tab);
-              }}
-              className={cn(
-                'flex items-center gap-2.5 w-full px-3 py-1.5 text-xs transition-colors outline-none',
-                targetTabIndex === -1 || targetTabIndex === tabs.length - 1
-                  ? 'text-muted-foreground/40 cursor-not-allowed'
-                  : 'text-foreground hover:bg-accent cursor-pointer',
-              )}
-            >
-              <ArrowRightToLine className="w-3.5 h-3.5 text-muted-foreground" />
-              {LL.flow.close_tabs_to_right()}
-            </button>
-
-            {/* 关闭所有标签 */}
-            <button
-              type="button"
-              onClick={() => {
-                setContextMenu(null);
-                handleCloseAllTabs();
-              }}
-              className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors cursor-pointer outline-none"
-            >
-              <Layers className="w-3.5 h-3.5 text-muted-foreground" />
-              {LL.flow.close_all_tabs()}
-            </button>
-
-            <div className="my-1 border-t border-border/40 dark:border-white/10" />
-
-            {/* 流程属性 */}
-            <button
-              type="button"
-              onClick={() => {
-                const tab = contextMenu.tab;
-                setContextMenu(null);
-                handleOpenProperties(tab);
-              }}
-              className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors cursor-pointer outline-none"
-            >
-              <Sliders className="w-3.5 h-3.5 text-muted-foreground" />
-              {LL.flow.flow_properties()}
-            </button>
-          </div>
+            <span className="flex items-center gap-2">
+              <MoveHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
+              {LL.flow.tab_mode_scroll()}
+            </span>
+            {flowTabDisplayMode === 'scroll' && <Check className="w-3.5 h-3.5 text-primary" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setFlowTabDisplayMode('wrap');
+              setContextMenu(null);
+            }}
+            className={cn(
+              'flex items-center justify-between w-full px-3 py-1.5 text-xs hover:bg-accent transition-colors cursor-pointer outline-none',
+              flowTabDisplayMode === 'wrap'
+                ? 'font-medium text-foreground bg-accent/40'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <WrapText className="w-3.5 h-3.5 text-muted-foreground" />
+              {LL.flow.tab_mode_wrap()}
+            </span>
+            {flowTabDisplayMode === 'wrap' && <Check className="w-3.5 h-3.5 text-primary" />}
+          </button>
         </div>
       )}
 
