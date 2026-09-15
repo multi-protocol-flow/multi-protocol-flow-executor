@@ -84,17 +84,22 @@ export const flowStorage = {
   },
 
   /** 保存流程 */
-  async saveFlow(flow: Flow & { _meta?: FlowMeta }): Promise<void> {
+  async saveFlow(flow: Flow & { _meta?: FlowMeta }, targetPath?: string): Promise<void> {
     try {
       if (isTauriEnv()) {
         const flowsDir = await getFlowsDir();
         // 提取 _meta，其余作为 flow 发送
         const { _meta, ...flowData } = flow as Flow & { _meta?: FlowMeta };
-        await invoke<void>('save_flow_file', { flow: flowData, flowsDir, meta: _meta ?? null });
+        await invoke<void>('save_flow_file', {
+          flow: flowData,
+          flowsDir,
+          meta: _meta ?? null,
+          targetPath: targetPath ?? null,
+        });
         return;
       }
       const { saveFlow: mock } = await import('./flowStorage.mock');
-      return await mock(flow);
+      return await mock(flow, targetPath);
     } catch (err) {
       notifyError(getLL().flow.save_flow_failed?.() ?? 'Failed to save flow', err, {
         category: 'FlowStorage',
