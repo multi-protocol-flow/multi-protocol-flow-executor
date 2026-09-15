@@ -23,6 +23,8 @@ describe('contextBuilder', () => {
       expect(prompt).toContain('是否需要我帮您修复？您倾向于按哪个方向修复？');
       expect(prompt).toContain('get_node_type_schema');
       expect(prompt).toContain('get_node_detail');
+      expect(prompt).toContain('run_terminal_command');
+      expect(prompt).toContain('Local Terminal & Shell Execution Protocol');
     });
     it('包含 sub_flow 子流程节点分类、端口规范与配置模式', () => {
       const prompt = buildSystemPrompt();
