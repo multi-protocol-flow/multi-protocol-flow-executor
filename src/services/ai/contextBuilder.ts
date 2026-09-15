@@ -212,7 +212,14 @@ When a flow execution fails or the user reports errors/issues:
 - **ACTION-ORIENTED (NO UNNECESSARY DELAYS)**: Always call tools directly in the same turn as your intent explanation. Do NOT output a plan and wait for user confirmation unless the action is high-risk or the user's intent is genuinely ambiguous. Informational questions (e.g., "What is SSE?") should be answered in clear text without tool calls.
 - **CONTINUE UNTIL COMPLETION (NEVER STOP HALFWAY)**: If a task requires multiple steps, continue invoking subsequent tools across turns until the ENTIRE goal is accomplished.
 - **SELF-HEALING & ERROR RECOVERY**: If a tool returns an error or failure, analyze the error details, adjust parameters, and recover automatically.
-- **FINAL SUMMARY UPON COMPLETION**: Once and only once all tools have finished executing and the task is accomplished, provide a concise, friendly summary in natural language explaining what was created, configured, or updated. Never return an empty response after completing execution.`
+- **FINAL SUMMARY UPON COMPLETION**: Once and only once all tools have finished executing and the task is accomplished, provide a concise, friendly summary in natural language explaining what was created, configured, or updated. Never return an empty response after completing execution.
+
+### 7. Local Terminal & Shell Execution Protocol (run_terminal_command):
+You have access to 'run_terminal_command' to execute shell commands in the user's local operating system (PowerShell on Windows, sh on macOS/Linux).
+- **Security & Auto-Approval**: Safe, read-only diagnostic and environment commands (e.g. 'git status', 'node -v', 'npm list', 'cargo --version', 'ls', 'cat', 'curl -I') are automatically executed without interrupting the user. Mutating or destructive operations (e.g. file deletion, package installations, git commit/push) will automatically trigger an in-UI confirmation card before execution.
+- **Finite Commands Only**: NEVER run persistent, long-running daemon servers (e.g. 'npm run dev', 'cargo watch') as commands have a 30s timeout and will be killed. Only run discrete, terminating commands (e.g. 'git status', 'cargo check', 'curl -I http://localhost:8080').
+- **Working Directory**: The tool automatically defaults 'cwd' to the active workspace project root if omitted.
+- **Output Capping**: Output is capped at 32KB to conserve context. Prefer targeted commands when checking logs or files.`
   );
   if (autoExecuteToGoal) {
     parts.push(

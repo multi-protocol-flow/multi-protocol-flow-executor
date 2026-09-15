@@ -870,7 +870,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
           let toolOutputStr = '';
 
           // 检查是否为高风险操作
-          if (isHighRiskTool(tc.function.name)) {
+          if (isHighRiskTool(tc.function.name, parsedArgs)) {
             const pendingAction = createPendingAction(tc, parsedArgs);
 
             set((s) => ({

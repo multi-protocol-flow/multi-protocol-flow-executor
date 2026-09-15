@@ -27,6 +27,11 @@ import {
   workspaceToolDefinitions,
   workspaceToolHandlers,
 } from './tools/workspaceTools';
+import {
+  terminalToolDefinitions,
+  terminalToolHandlers,
+  isSafeTerminalCommand,
+} from './tools/terminalTools';
 
 /**
  * 获取所有可供 LLM 调用的工具定义列表
@@ -41,6 +46,7 @@ export function getAllAIToolDefinitions(): AIToolDefinition[] {
     ...envAndSettingsToolDefinitions,
     ...executionToolDefinitions,
     ...workspaceToolDefinitions,
+    ...terminalToolDefinitions,
   ];
 }
 
@@ -164,11 +170,22 @@ const ALL_HANDLERS: Record<
     workspaceToolHandlers.inspect_api_spec(
       args as Parameters<typeof workspaceToolHandlers.inspect_api_spec>[0],
     ),
+  run_terminal_command: (args) =>
+    terminalToolHandlers.run_terminal_command(
+      args as Parameters<typeof terminalToolHandlers.run_terminal_command>[0],
+    ),
 };
 /**
  * 判断是否为高风险操作（需 UI 拦截确认）
  */
-export function isHighRiskTool(toolName: string): boolean {
+export function isHighRiskTool(
+  toolName: string,
+  args?: Record<string, unknown>,
+): boolean {
+  if (toolName === 'run_terminal_command') {
+    const command = typeof args?.command === 'string' ? args.command : '';
+    return !isSafeTerminalCommand(command);
+  }
   return [
     'delete_nodes',
     'clear_canvas',
@@ -215,6 +232,16 @@ export function buildActionDescription(
           url: String(args.marketplace_url || 'official marketplace'),
         }),
       };
+    case 'run_terminal_command': {
+      const cmd = String(args.command || '');
+      const cwd = args.cwd ? String(args.cwd) : undefined;
+      return {
+        description: ll.ai.confirm_card.run_terminal_command_desc({ command: cmd }),
+        diffSummary: cwd
+          ? ll.ai.confirm_card.run_terminal_command_diff_cwd({ cwd, command: cmd })
+          : ll.ai.confirm_card.run_terminal_command_diff({ command: cmd }),
+      };
+    }
 
     default:
       return {
