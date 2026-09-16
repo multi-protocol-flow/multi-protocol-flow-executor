@@ -3,6 +3,7 @@
  * 基于 React Flow 的流程编辑器
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import YAML from 'yaml';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -263,16 +264,29 @@ function ImportFlowCard({ wc, onImport }: { wc: ReturnType<typeof getLL>['welcom
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleFile = useCallback((file: File) => {
-    if (!file.name.endsWith('.mpf') && !file.name.endsWith('.json')) return;
+    const lowerName = file.name.toLowerCase();
+    if (
+      !lowerName.endsWith('.mpf') &&
+      !lowerName.endsWith('.json') &&
+      !lowerName.endsWith('.yaml') &&
+      !lowerName.endsWith('.yml')
+    ) {
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string;
-        const data = JSON.parse(text);
+        let data: Record<string, unknown>;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = YAML.parse(text) as Record<string, unknown>;
+        }
         // 支持两种格式：直接 Flow 对象和 FlowFile 包装格式
-        const flowData = data.flow ?? data;
+        const flowData = (data?.flow ?? data) as Record<string, unknown> | undefined;
         if (flowData && flowData.uuid && flowData.nodes) {
-          onImport(flowData as import('@/types/flow').Flow);
+          onImport(flowData as unknown as import('@/types/flow').Flow);
         }
       } catch (err) {
         console.error('[ImportFlow] 解析流程文件失败:', err);
@@ -293,7 +307,7 @@ function ImportFlowCard({ wc, onImport }: { wc: ReturnType<typeof getLL>['welcom
       <input
         ref={fileInputRef}
         type="file"
-        accept=".mpf,.json"
+        accept=".mpf,.json,.yaml,.yml"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

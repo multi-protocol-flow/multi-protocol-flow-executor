@@ -442,3 +442,37 @@ describe('snake_case 字段名验证', () => {
     expect(json).toContain('completion_rate');
   });
 });
+
+describe('YAML 与双格式流程导入解析测试', () => {
+  it('应该正确解析 YAML 格式的 FlowFile 与 Flow 数据', async () => {
+    const YAML = await import('yaml');
+    const yamlText = `
+_version: 1
+flow:
+  uuid: flow-yaml-001
+  name: YAML测试流程
+  nodes:
+    - uuid: node-001
+      type: entry
+      name: 入口
+      position:
+        x: 100
+        y: 200
+      data:
+        type: entry
+  connections: []
+`;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(yamlText);
+    } catch {
+      parsed = YAML.parse(yamlText) as Record<string, unknown>;
+    }
+
+    const flowData = (parsed.flow ?? parsed) as Record<string, unknown>;
+    expect(flowData.uuid).toBe('flow-yaml-001');
+    expect(flowData.name).toBe('YAML测试流程');
+    expect(Array.isArray(flowData.nodes)).toBe(true);
+    expect((flowData.nodes as unknown[]).length).toBe(1);
+  });
+});
