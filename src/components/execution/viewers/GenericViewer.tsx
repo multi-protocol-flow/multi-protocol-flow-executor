@@ -84,7 +84,7 @@ function DataSection({ data, emptyText }: DataSectionProps) {
 export const GenericViewer = memo(function GenericViewer({ report }: GenericViewerProps) {
   const ll = getLL();
   const { node_name, node_type, resolved_config, output_data, variable_changes } = report;
-  const nodeStreamData = useExecutionStore((s) => s.nodeStreamMap[report.node_uuid]);
+  const nodeStreamData = useExecutionStore((s) => s?.nodeStreamMap?.[report.node_uuid]);
   const hasStreamData =
     nodeStreamData &&
     (Boolean(nodeStreamData.fullContent) ||

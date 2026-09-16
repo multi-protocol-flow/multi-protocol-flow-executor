@@ -325,7 +325,7 @@ export const AssertionViewer = memo(function AssertionViewer({ report }: Asserti
         <CollapsibleSection
           title={getLL().execution.viewers.assertion_all_list()}
           icon={<FileCheck className="w-4 h-4" />}
-          defaultOpen={false}
+          defaultOpen={!hasFailures}
           badge={
             <Badge variant="outline" className="font-mono text-xs">
               {getLL().viewer.assert.total_items({count: results.length})}

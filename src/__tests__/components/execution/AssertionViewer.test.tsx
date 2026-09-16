@@ -6,7 +6,7 @@
  * - 失败断言的索引匹配（避免 JSON 反序列化后引用不一致导致的 #0 缺陷）
  */
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { AssertionViewer } from '@/components/execution/viewers/AssertionViewer';
 import type { NodeExecutionReport } from '@/types';
 import type { AssertionOutput } from '@/types/node';
@@ -67,9 +67,7 @@ describe('AssertionViewer', () => {
     const report = createMockReport(output);
     render(<AssertionViewer report={report} />);
 
-    // 点击展开全部断言列表
-    const allListButton = screen.getByRole('button', { name: /全部断言/i });
-    fireEvent.click(allListButton);
+// 无失败时全部断言列表默认已直接展开
 
     expect(screen.getByText('状态码必须为 200')).toBeDefined();
   });
@@ -105,8 +103,7 @@ describe('AssertionViewer', () => {
     const report = createMockReport(output);
     render(<AssertionViewer report={report} />);
 
-    const allListButton = screen.getByRole('button', { name: /全部断言/i });
-    fireEvent.click(allListButton);
+// 无失败时全部断言列表默认已直接展开
 
     expect(screen.getByText('断言 #1')).toBeDefined();
     expect(screen.getByText('断言 #2')).toBeDefined();

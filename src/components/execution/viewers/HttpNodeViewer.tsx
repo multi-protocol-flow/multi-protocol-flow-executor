@@ -604,7 +604,7 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
         <CollapsibleSection
           title={ll.execution.viewers.response_body()}
           icon={<ArrowDownToLine className="w-4 h-4" />}
-          defaultOpen={false}
+          defaultOpen={true}
           extra={
             <CopyButton
               value={body}

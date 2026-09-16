@@ -124,7 +124,7 @@ export const PluginIframeViewer = memo(function PluginIframeViewer({ report }: P
         <CollapsibleSection
           title={ll.execution.viewers.output_data()}
           icon={<ArrowDownToLine className="w-4 h-4" />}
-          defaultOpen={false}
+          defaultOpen={true}
           extra={
             <CopyButton
               value={output_data}
@@ -141,7 +141,7 @@ export const PluginIframeViewer = memo(function PluginIframeViewer({ report }: P
         </CollapsibleSection>
       )}
       {/* 4. 变量变更 */}
-      <VariableChangesCard changes={variable_changes} defaultOpen={false} />
+      <VariableChangesCard changes={variable_changes} defaultOpen={true} />
     </div>
   );
 });
@@ -160,8 +160,8 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
   const grpcStreamMessages = useDebugStore((s) => s.grpcStreamMessages);
   const grpcStreamErrors = useDebugStore((s) => s.grpcStreamErrors);
   const nodeUuid = report.node_uuid;
-  const nodeStreamData = useExecutionStore((s) => s.nodeStreamMap[nodeUuid]);
-  const currentExecutionId = useExecutionStore((s) => s.report?.uuid);
+  const nodeStreamData = useExecutionStore((s) => s?.nodeStreamMap?.[nodeUuid]);
+  const currentExecutionId = useExecutionStore((s) => s?.report?.uuid);
   const lastSentChunkIndexRef = useRef(0);
   const lastSentGrpcIndexRef = useRef(0);
   // 与当前节点相关的实时流消息（GrpcViewer 同款过滤：按 node_uuid）

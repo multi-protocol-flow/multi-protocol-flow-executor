@@ -260,20 +260,16 @@ describe('HttpNodeViewer', () => {
   });
 
   describe('响应体显示', () => {
-    it('显示响应体', () => {
+    it('默认直接显示响应体，无需手动展开', () => {
       const report = createMockReport({
         status: 200,
         body: { data: 'test' }
       });
       render(<HttpNodeViewer report={report} />);
 
-      // 展开响应体面板
-      fireEvent.click(screen.getByRole('button', { name: /响应体/ }));
-
-      // 检查 JSON 视图
+      // 检查 JSON 视图直接可见
       expect(screen.getByTestId('json-view')).toBeDefined();
     });
-
     it('没有响应体时不显示响应体面板', () => {
       const report = createMockReport({ status: 200 });
       render(<HttpNodeViewer report={report} />);
