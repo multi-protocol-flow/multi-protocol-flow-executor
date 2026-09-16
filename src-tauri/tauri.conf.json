@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "MPE",
-  "version": "0.3.0-beta.1",
+  "version": "0.4.0-beta",
   "identifier": "com.multi-protocol-flow-executor",
   "build": {
     "frontendDist": "../dist",
