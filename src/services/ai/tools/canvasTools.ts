@@ -653,7 +653,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
     },
     fields: {
       target_flow_id: { type: 'string', description: 'Target flow UUID (for saved workflow in workspace)' },
-      target_flow_path: { type: 'string', description: 'Target flow file path (relative or absolute .mpf / .json path)' },
+      target_flow_path: { type: 'string', description: 'Target flow file path (relative or absolute .mpf / .yaml / .json path)' },
       inherit_all_variables: { type: 'boolean', default: true, description: 'Whether child flow inherits all variables from parent' },
       variable_mappings: {
         type: 'array',

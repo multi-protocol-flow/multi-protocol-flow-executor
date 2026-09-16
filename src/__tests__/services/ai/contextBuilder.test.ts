@@ -35,6 +35,13 @@ describe('contextBuilder', () => {
       expect(prompt).toContain("inherit_all_variables");
     });
 
+    it('包含强制 YAML 格式流程文件规范与禁止 JSON 说明', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toContain('MANDATORY YAML FORMAT');
+      expect(prompt).toContain('.mpf');
+      expect(prompt).toContain('YAML');
+    });
+
     it('包含内置动态变量规范与常见类别示例', () => {
       const prompt = buildSystemPrompt();
       expect(prompt).toContain('Built-in Dynamic Variables');
