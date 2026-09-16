@@ -1,6 +1,6 @@
 [package]
 name = "mpe-cli"
-version = "0.3.0-beta.1"
+version = "0.4.0-beta"
 description = "Multi-Protocol Executor CLI — standalone binary without GUI dependencies"
 edition = "2021"
 rust-version = "1.82.0"
