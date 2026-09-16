@@ -7,7 +7,7 @@ use flow_engine_core::report::{
 };
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
-use std::io::{BufReader, Read, Write};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
 use std::time::UNIX_EPOCH;
@@ -55,6 +55,69 @@ struct FlowMeta {
     uuid: String,
     #[allow(dead_code)]
     name: String,
+}
+
+/// 流程文件序列化格式
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum FlowFormat {
+    /// JSON 格式
+    Json,
+    /// YAML 格式
+    Yaml,
+}
+
+/// 探测流程文件内容格式（根据有效首字符是否为 '{' 进行区分）
+pub fn detect_flow_format(content: &str) -> FlowFormat {
+    if content.trim_start().starts_with('{') {
+        FlowFormat::Json
+    } else {
+        FlowFormat::Yaml
+    }
+}
+
+/// 从字符串统一反序列化为 FlowFile（自动适配 JSON 与 YAML）
+pub fn deserialize_flow_file(content: &str) -> Result<FlowFile, String> {
+    match detect_flow_format(content) {
+        FlowFormat::Json => serde_json::from_str::<FlowFile>(content).map_err(|e| {
+            format!(
+                "Deserialize FlowFile Failed (JSON): {} (Flow file must use FlowFile wrapper format with _version and flow keys)",
+                e
+            )
+        }),
+        FlowFormat::Yaml => serde_yml::from_str::<FlowFile>(content).map_err(|e| {
+            format!(
+                "Deserialize FlowFile Failed (YAML): {} (Flow file must use FlowFile wrapper format with _version and flow keys)",
+                e
+            )
+        }),
+    }
+}
+
+/// 从字符串快速提取流程元数据（自动适配 JSON 与 YAML）
+fn deserialize_flow_file_meta(content: &str) -> Result<FlowFileMeta, String> {
+    match detect_flow_format(content) {
+        FlowFormat::Json => serde_json::from_str::<FlowFileMeta>(content)
+            .map_err(|e| format!("failed to parse flow metadata (JSON): {}", e)),
+        FlowFormat::Yaml => serde_yml::from_str::<FlowFileMeta>(content)
+            .map_err(|e| format!("failed to parse flow metadata (YAML): {}", e)),
+    }
+}
+
+/// 序列化 `FlowFile` 为指定格式的文本（YAML 格式会自动对节点浮点坐标取整规范化）
+pub fn serialize_flow_file(flow_file: &FlowFile, format: FlowFormat) -> Result<String, String> {
+    match format {
+        FlowFormat::Json => serde_json::to_string_pretty(flow_file)
+            .map_err(|e| format!("failed to serialize flow (JSON): {}", e)),
+        FlowFormat::Yaml => {
+            let mut normalized = flow_file.clone();
+            for node in &mut normalized.flow.nodes {
+                node.position.x = node.position.x.round();
+                node.position.y = node.position.y.round();
+            }
+            serde_yml::to_string(&normalized)
+                .map_err(|e| format!("failed to serialize flow (YAML): {}", e))
+        }
+    }
 }
 
 /// 流程元数据，用于列表展示
@@ -196,21 +259,29 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
         Path::new(".")
     };
 
-    // 包装为 FlowFile 并序列化为 JSON
+    // 包装为 FlowFile 并判定格式
     let flow_file = FlowFile {
         _version: 1,
         flow: flow.clone(),
         _meta: None,
     };
-    let json_string = serde_json::to_string_pretty(&flow_file)
-        .map_err(|e| format!("failed to serialize flow: {}", e))?;
+    let format = if file_path.exists() {
+        if let Ok(content) = fs::read_to_string(&file_path) {
+            detect_flow_format(&content)
+        } else {
+            FlowFormat::Yaml
+        }
+    } else {
+        FlowFormat::Yaml
+    };
+    let output_string = serialize_flow_file(&flow_file, format)?;
 
     // 原子写入：在同目录下创建临时文件并持久化到目标路径
     let mut temp_file = NamedTempFile::new_in(parent_dir)
         .map_err(|e| format!("failed to create temporary file in {:?}: {}", parent_dir, e))?;
 
     temp_file
-        .write_all(json_string.as_bytes())
+        .write_all(output_string.as_bytes())
         .map_err(|e| format!("failed to write temporary file: {}", e))?;
 
     temp_file
@@ -222,7 +293,7 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// 从 JSON 文件加载流程
+/// 从文件加载流程（支持 JSON 与 YAML 双格式透明反序列化）
 ///
 /// # 参数
 /// - `path`: 文件路径（可以是绝对路径或相对于 flows 目录的路径）
@@ -245,18 +316,15 @@ pub fn load_flow(path: &str) -> Result<Flow, String> {
         get_flows_dir()?.join(path)
     };
 
-    // 流式读取文件内容
-    let file = File::open(&file_path)
-        .map_err(|e| format!("Failed to open file {:?}: {}", file_path, e))?;
-    let reader = BufReader::new(file);
+    let content = fs::read_to_string(&file_path)
+        .map_err(|e| format!("Failed to read file {:?}: {}", file_path, e))?;
 
-    // 反序列化为 FlowFile 包装格式（.mpf 文件统一格式）
-    let flow_file: FlowFile = serde_json::from_reader(reader)
-        .map_err(|e| format!("Deserialize FlowFile Failed: {} (Flow file must use FlowFile wrapper format with _version and flow keys)", e))?;
+    let flow_file = deserialize_flow_file(&content)?;
     let flow = flow_file.flow;
 
     Ok(flow)
 }
+
 
 // === .mpf 流程文件管理 ===
 
@@ -324,23 +392,24 @@ pub fn save_flow_file_with_meta_and_path(
         _meta: meta,
     };
 
-    // 序列化为 JSON
-    let json_string = serde_json::to_string_pretty(&flow_file)
-        .map_err(|e| format!("Failed to serialize flow: {}", e))?;
-
-    let (target_path, old_path_to_remove) = if let Some(explicit_path) = target_file_path {
-        // 如果调用方明确指定了目标文件路径（如 remap 场景直接覆写当前打开的文件）
-        (explicit_path.to_path_buf(), None)
+    let (target_path, old_path_to_remove, existing_format) = if let Some(explicit_path) = target_file_path {
+        let format = if explicit_path.exists() {
+            fs::read_to_string(explicit_path).ok().map(|c| detect_flow_format(&c))
+        } else {
+            None
+        };
+        (explicit_path.to_path_buf(), None, format)
     } else {
-        // 检查是否已存在同 UUID 的文件（更新场景，流式轻量解析）
+        // 检查是否已存在同 UUID 的文件（更新场景，轻量解析）
         let mut existing_path: Option<PathBuf> = None;
+        let mut existing_format: Option<FlowFormat> = None;
         let mut mpf_files = Vec::new();
         let _ = collect_mpf_files(flows_dir, &mut mpf_files);
         for path in &mpf_files {
-            if let Ok(file) = File::open(path) {
-                let reader = BufReader::new(file);
-                if let Ok(existing) = serde_json::from_reader::<_, FlowFileMeta>(reader) {
+            if let Ok(content) = fs::read_to_string(path) {
+                if let Ok(existing) = deserialize_flow_file_meta(&content) {
                     if existing.flow.uuid == flow.uuid {
+                        existing_format = Some(detect_flow_format(&content));
                         existing_path = Some(path.clone());
                         break;
                     }
@@ -381,8 +450,11 @@ pub fn save_flow_file_with_meta_and_path(
 
         let computed_path = target_dir.join(&filename);
         let to_remove = existing_path.filter(|p| *p != computed_path);
-        (computed_path, to_remove)
+        (computed_path, to_remove, existing_format)
     };
+
+    let format = existing_format.unwrap_or(FlowFormat::Yaml);
+    let output_string = serialize_flow_file(&flow_file, format)?;
 
     let parent_dir = target_path.parent().unwrap_or(flows_dir);
     if !parent_dir.exists() {
@@ -394,7 +466,7 @@ pub fn save_flow_file_with_meta_and_path(
         .map_err(|e| format!("failed to create temporary file: {}", e))?;
 
     temp_file
-        .write_all(json_string.as_bytes())
+        .write_all(output_string.as_bytes())
         .map_err(|e| format!("failed to write temporary file: {}", e))?;
 
     temp_file
@@ -441,15 +513,12 @@ pub fn load_flow_file_with_path(
             collect_mpf_files(flows_dir, &mut mpf_files)?;
             let mut found = None;
             for path in &mpf_files {
-                let file = match File::open(path) {
-                    Ok(f) => f,
-                    Err(_) => continue,
-                };
-                let reader = BufReader::new(file);
-                if let Ok(meta) = serde_json::from_reader::<_, FlowFileMeta>(reader) {
-                    if meta.flow.uuid == uuid_or_path {
-                        found = Some(path.clone());
-                        break;
+                if let Ok(content) = fs::read_to_string(path) {
+                    if let Ok(meta) = deserialize_flow_file_meta(&content) {
+                        if meta.flow.uuid == uuid_or_path {
+                            found = Some(path.clone());
+                            break;
+                        }
                     }
                 }
             }
@@ -457,9 +526,9 @@ pub fn load_flow_file_with_path(
         }
     };
 
-    let file = File::open(&target_path).map_err(|e| format!("Failed to open file: {}", e))?;
-    let reader = BufReader::new(file);
-    let flow_file: FlowFile = serde_json::from_reader(reader)
+    let content = fs::read_to_string(&target_path)
+        .map_err(|e| format!("Failed to read file: {}", e))?;
+    let flow_file = deserialize_flow_file(&content)
         .map_err(|e| format!("Flow file corrupted: {} - {}", target_path.display(), e))?;
 
     Ok((flow_file, target_path))
@@ -559,17 +628,14 @@ pub fn delete_flow_file(uuid_or_path: &str, flows_dir: &Path) -> Result<(), Stri
     collect_mpf_files(flows_dir, &mut mpf_files)?;
 
     for path in mpf_files {
-        let file = match File::open(&path) {
-            Ok(f) => f,
-            Err(_) => continue,
-        };
-        let reader = BufReader::new(file);
-        if let Ok(meta) = serde_json::from_reader::<_, FlowFileMeta>(reader) {
-            if meta.flow.uuid == uuid_or_path {
-                fs::remove_file(&path)
-                    .map_err(|e| format!("Failed to delete flow file {:?}: {}", path, e))?;
-                invalidate_flow_metadata_cache(&path);
-                return Ok(());
+        if let Ok(content) = fs::read_to_string(&path) {
+            if let Ok(meta) = deserialize_flow_file_meta(&content) {
+                if meta.flow.uuid == uuid_or_path {
+                    fs::remove_file(&path)
+                        .map_err(|e| format!("Failed to delete flow file {:?}: {}", path, e))?;
+                    invalidate_flow_metadata_cache(&path);
+                    return Ok(());
+                }
             }
         }
     }
@@ -675,14 +741,23 @@ pub fn rename_flow_file(
         return Err(format!("File with name '{}.mpf' already exists", safe_new_name));
     }
 
+    let format = if target_path.exists() {
+        if let Ok(content) = fs::read_to_string(&target_path) {
+            detect_flow_format(&content)
+        } else {
+            FlowFormat::Yaml
+        }
+    } else {
+        FlowFormat::Yaml
+    };
+
     flow_file.flow.name = new_name.to_string();
-    let json_string = serde_json::to_string_pretty(&flow_file)
-        .map_err(|e| format!("Failed to serialize flow: {}", e))?;
+    let output_string = serialize_flow_file(&flow_file, format)?;
 
     let mut temp_file = NamedTempFile::new_in(flows_dir)
         .map_err(|e| format!("Failed to create temporary file: {}", e))?;
     temp_file
-        .write_all(json_string.as_bytes())
+        .write_all(output_string.as_bytes())
         .map_err(|e| format!("Failed to write temporary file: {}", e))?;
     temp_file
         .persist(&new_file_path)
@@ -1422,12 +1497,9 @@ pub fn move_flow_to_folder(
     let source_path = mpf_files
         .iter()
         .find(|path| {
-            let mut content = String::new();
-            if let Ok(mut file) = File::open(path) {
-                if file.read_to_string(&mut content).is_ok() {
-                    if let Ok(flow_file) = serde_json::from_str::<FlowFile>(&content) {
-                        return flow_file.flow.uuid == uuid;
-                    }
+            if let Ok(content) = fs::read_to_string(path) {
+                if let Ok(meta) = deserialize_flow_file_meta(&content) {
+                    return meta.flow.uuid == uuid;
                 }
             }
             false
@@ -2599,5 +2671,134 @@ mod tests {
         delete_flow_file("cache-001", flows_dir).unwrap_or_else(|e| panic!("删除Failed: {e}"));
         let list_empty = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列出Failed: {e}"));
         assert_eq!(list_empty.len(), 0);
+    }
+
+    #[test]
+    fn test_detect_flow_format() {
+        assert_eq!(detect_flow_format("{\"_version\": 1}"), FlowFormat::Json);
+        assert_eq!(detect_flow_format("  \n  { \"_version\": 1 }"), FlowFormat::Json);
+        assert_eq!(detect_flow_format("_version: 1\nflow:\n"), FlowFormat::Yaml);
+        assert_eq!(detect_flow_format("---\n_version: 1\n"), FlowFormat::Yaml);
+    }
+
+    #[test]
+    fn test_deserialize_historical_json_fixture() {
+        let fixture_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../tests/fixtures/flows/HTTP_Node_Example_Flow.mpf");
+        let content = fs::read_to_string(&fixture_path)
+            .unwrap_or_else(|e| panic!("读取历史测试夹具Failed: {e}"));
+
+        assert_eq!(detect_flow_format(&content), FlowFormat::Json);
+
+        let flow_file = deserialize_flow_file(&content)
+            .unwrap_or_else(|e| panic!("反序列化历史 JSON 流程Failed: {e}"));
+        assert_eq!(flow_file._version, 1);
+        assert!(!flow_file.flow.uuid.is_empty());
+        assert!(!flow_file.flow.nodes.is_empty());
+        assert!(!flow_file.flow.connections.is_empty());
+    }
+
+    #[test]
+    fn test_yaml_serialization_and_coordinate_rounding() {
+        let mut flow = create_test_flow("yaml-round-01", "坐标取整测试");
+        let mut test_node = flow_engine_core::node::Node::default();
+        test_node.uuid = "node-round-01".to_string();
+        test_node.position.x = 100.499;
+        test_node.position.y = 200.501;
+        flow.nodes.push(test_node);
+
+        let flow_file = FlowFile {
+            _version: 1,
+            flow,
+            _meta: None,
+        };
+
+        let yaml_str = serialize_flow_file(&flow_file, FlowFormat::Yaml)
+            .unwrap_or_else(|e| panic!("YAML 序列化Failed: {e}"));
+        assert_eq!(detect_flow_format(&yaml_str), FlowFormat::Yaml);
+        assert!(yaml_str.contains("100.0") || yaml_str.contains("100"));
+        assert!(yaml_str.contains("201.0") || yaml_str.contains("201"));
+
+        let deserialized = deserialize_flow_file(&yaml_str)
+            .unwrap_or_else(|e| panic!("YAML 反序列化Failed: {e}"));
+        assert_eq!(deserialized.flow.nodes[0].position.x, 100.0);
+        assert_eq!(deserialized.flow.nodes[0].position.y, 201.0);
+    }
+
+    #[test]
+    fn test_yaml_multiline_script_preservation() {
+        use flow_engine_core::node_config::{NodeData, ScriptNodeConfig};
+        let mut flow = create_test_flow("yaml-script-01", "多行脚本YAML测试");
+        let script_code = "const a = 1;\nconst b = 2;\nreturn a + b;\n";
+        let node = flow_engine_core::node::Node {
+            uuid: "script-node-01".to_string(),
+            node_type: "script".to_string(),
+            name: "JS代码".to_string(),
+            position: flow_engine_core::node::NodePosition { x: 100.0, y: 100.0 },
+            data: NodeData::Script(ScriptNodeConfig {
+                script: script_code.to_string(),
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+        flow.nodes.push(node);
+
+        let flow_file = FlowFile {
+            _version: 1,
+            flow,
+            _meta: None,
+        };
+
+        let yaml_str = serialize_flow_file(&flow_file, FlowFormat::Yaml).unwrap();
+        let deserialized = deserialize_flow_file(&yaml_str).unwrap();
+        if let NodeData::Script(cfg) = &deserialized.flow.nodes[0].data {
+            assert_eq!(cfg.script, script_code);
+        } else {
+            panic!("expected Script node data");
+        }
+    }
+
+    #[test]
+    fn test_save_flow_file_preserves_format_and_defaults_to_yaml() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
+        let flows_dir = temp_dir.path();
+
+        // 1. 新建流程默认使用 YAML 格式保存
+        let flow1 = create_test_flow("flow-yaml-default", "新建YAML流程");
+        save_flow_file(&flow1, flows_dir).unwrap_or_else(|e| panic!("保存新流程Failed: {e}"));
+
+        let list = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列表Failed: {e}"));
+        assert_eq!(list.len(), 1);
+        let saved_path = Path::new(&list[0].file_path);
+        let content1 = fs::read_to_string(saved_path).unwrap_or_else(|e| panic!("读取Failed: {e}"));
+        assert_eq!(detect_flow_format(&content1), FlowFormat::Yaml);
+
+        // 2. 模拟老流程：以 JSON 格式手动写入并更新，验证保存时保持 JSON 格式
+        let flow2 = create_test_flow("flow-json-legacy", "历史JSON流程");
+        let flow_file2 = FlowFile {
+            _version: 1,
+            flow: flow2.clone(),
+            _meta: None,
+        };
+        let legacy_json = serde_json::to_string_pretty(&flow_file2).unwrap();
+        let legacy_file_path = flows_dir.join("历史JSON流程.mpf");
+        fs::write(&legacy_file_path, legacy_json).unwrap();
+
+        // 验证读取
+        let loaded_legacy = load_flow_file("flow-json-legacy", flows_dir).unwrap();
+        assert_eq!(loaded_legacy.uuid, "flow-json-legacy");
+
+        // 更新该老流程
+        let mut updated_legacy = flow2.clone();
+        updated_legacy.name = "历史JSON流程已修改".to_string();
+        save_flow_file(&updated_legacy, flows_dir).unwrap();
+
+        let list2 = list_flow_files(flows_dir).unwrap();
+        let legacy_meta = list2.iter().find(|m| m.name.contains("历史JSON流程已修改")).unwrap();
+        let content_legacy_updated = fs::read_to_string(&legacy_meta.file_path).unwrap();
+        assert_eq!(detect_flow_format(&content_legacy_updated), FlowFormat::Json, "历史 JSON 流程更新后应保持 JSON 格式");
     }
 }
