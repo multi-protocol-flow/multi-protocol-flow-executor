@@ -42,7 +42,7 @@ const en_US_settings = {
   dialog_title: 'Global Settings',
   dialog_desc: 'Manage appearance themes, storage locations, AI providers, and engine runtime parameters.',
   config_file_desc: 'Stores global preferences, AI provider credentials, and runtime parameters.',
-  flows_dir_desc: 'Default directory for saving local workflow (.mpf / JSON) files.',
+  flows_dir_desc: 'Default directory for saving local workflow (.mpf / YAML / JSON) files.',
   reports_dir_desc: 'Directory for flow execution history and stress testing reports.',
   logs_dir_desc: 'Directory for application logs and plugin sub-process communication traces.',
   plugins_dir_desc: 'Directory for protocol extensions and sidecar plugin binaries.',

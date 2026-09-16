@@ -7419,7 +7419,7 @@ type RootTranslation = {
 		 */
 		config_file_desc: string
 		/**
-		 * 本​地​流​程​ ​(​.​m​p​f​ ​/​ ​J​S​O​N​)​ ​文​件​的​默​认​持​久​化​目​录
+		 * 本​地​流​程​ ​(​.​m​p​f​ ​/​ ​Y​A​M​L​ ​/​ ​J​S​O​N​)​ ​文​件​的​默​认​持​久​化​目​录
 		 */
 		flows_dir_desc: string
 		/**
@@ -10400,7 +10400,7 @@ type RootTranslation = {
 		 */
 		empty_import_flow: string
 		/**
-		 * 拖​入​或​选​择​ ​.​m​p​f​ ​文​件
+		 * 拖​入​或​选​择​ ​.​m​p​f​ ​/​ ​Y​A​M​L​ ​/​ ​J​S​O​N​ ​文​件
 		 */
 		empty_import_flow_desc: string
 		/**
@@ -10485,11 +10485,11 @@ type RootTranslation = {
 			 */
 			reset_zoom_desc: string
 			/**
-			 * 拖​拽​ ​.​m​p​f​ ​文​件
+			 * 拖​拽​流​程​文​件
 			 */
 			import_file_key: string
 			/**
-			 * 拖​入​窗​口​任​意​位​置​即​可​导​入​流​程
+			 * 拖​入​窗​口​任​意​位​置​即​可​导​入​流​程​ ​(​支​持​ ​.​m​p​f​ ​/​ ​Y​A​M​L​ ​/​ ​J​S​O​N​)
 			 */
 			import_file_desc: string
 			/**
@@ -21287,7 +21287,7 @@ export type TranslationFunctions = {
 		 */
 		config_file_desc: () => LocalizedString
 		/**
-		 * 本地流程 (.mpf / JSON) 文件的默认持久化目录
+		 * 本地流程 (.mpf / YAML / JSON) 文件的默认持久化目录
 		 */
 		flows_dir_desc: () => LocalizedString
 		/**
@@ -24229,7 +24229,7 @@ export type TranslationFunctions = {
 		 */
 		empty_import_flow: () => LocalizedString
 		/**
-		 * 拖入或选择 .mpf 文件
+		 * 拖入或选择 .mpf / YAML / JSON 文件
 		 */
 		empty_import_flow_desc: () => LocalizedString
 		/**
@@ -24314,11 +24314,11 @@ export type TranslationFunctions = {
 			 */
 			reset_zoom_desc: () => LocalizedString
 			/**
-			 * 拖拽 .mpf 文件
+			 * 拖拽流程文件
 			 */
 			import_file_key: () => LocalizedString
 			/**
-			 * 拖入窗口任意位置即可导入流程
+			 * 拖入窗口任意位置即可导入流程 (支持 .mpf / YAML / JSON)
 			 */
 			import_file_desc: () => LocalizedString
 			/**

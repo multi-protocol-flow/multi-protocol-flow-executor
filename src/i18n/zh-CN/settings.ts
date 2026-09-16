@@ -44,7 +44,7 @@ const zh_CN_settings: BaseTranslation = {
   dialog_title: '全局设置',
   dialog_desc: '管理外观主题、本地存储路径、AI 助手服务商及底层引擎性能参数',
   config_file_desc: '持久化存储全局首选项、AI 服务商密钥与核心配置参数',
-  flows_dir_desc: '本地流程 (.mpf / JSON) 文件的默认持久化目录',
+  flows_dir_desc: '本地流程 (.mpf / YAML / JSON) 文件的默认持久化目录',
   reports_dir_desc: '流程执行历史与性能压测报告存储目录',
   logs_dir_desc: '应用程序运行日志与插件子进程通信日志目录',
   plugins_dir_desc: '存放扩展协议插件包与 Sidecar 运行时二进制的目录',
