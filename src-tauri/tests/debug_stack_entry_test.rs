@@ -35,6 +35,7 @@ fn test_debug_stack_entry_fields_exist() {
             },
         ]),
         skip_reason: Some("condition not met".to_string()),
+        sub_flow_report: None,
     };
 
     // serialize
@@ -119,6 +120,7 @@ fn test_debug_stack_entry_skip_serializing_if() {
         resolved_config: None,
         variable_changes: None,
         skip_reason: None,
+        sub_flow_report: None,
     };
 
     let json_str = serde_json::to_string(&entry).expect("serialization failed");
@@ -148,6 +150,7 @@ fn test_debug_stack_entry_partial_fields() {
         resolved_config: Some(json!({"condition": "200 == 200", "result": true})),
         variable_changes: None,
         skip_reason: None,
+        sub_flow_report: None,
     };
 
     let json_str = serde_json::to_string(&entry).expect("serialization failed");
@@ -188,6 +191,7 @@ fn test_debug_stack_entry_full_scenario() {
             new_value: json!(42),
         }]),
         skip_reason: None,
+        sub_flow_report: None,
     };
 
     // 完整往返测试

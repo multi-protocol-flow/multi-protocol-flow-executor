@@ -54,6 +54,7 @@ describe('FlowStorage', () => {
         flow,
         flowsDir: '/test/appdata/flows/',
         meta: null,
+        targetPath: null,
       });
     });
 
@@ -67,6 +68,7 @@ describe('FlowStorage', () => {
         flow: createTestFlow('test-1', '测试流程'),
         flowsDir: '/test/appdata/flows/',
         meta: { version: 5, isBuiltin: true },
+        targetPath: null,
       });
     });
   });

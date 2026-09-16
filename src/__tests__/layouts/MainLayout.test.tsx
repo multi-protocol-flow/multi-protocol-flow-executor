@@ -8,13 +8,19 @@ import { useUIStore, useFlowStore, useDebugStore, usePluginsStore } from '@/stor
 import { useConsoleStore } from '@/stores/console';
 
 // Mock 所有 stores
+interface StoreStateRecord {
+  isDebugging?: boolean;
+  isDebugDataReadOnly?: boolean;
+  flowConflict?: unknown;
+}
 vi.mock('@/stores', () => ({
   useUIStore: vi.fn(),
   useFlowStore: vi.fn(),
   useDebugStore: vi.fn(),
   usePluginsStore: vi.fn(),
-  selectIsDebugging: (state: unknown) => (state as { isDebugging: boolean }).isDebugging,
-  selectIsDebugDataReadOnly: (state: unknown) => (state as { isDebugDataReadOnly: boolean }).isDebugDataReadOnly,
+  selectIsDebugging: (state: StoreStateRecord) => Boolean(state?.isDebugging),
+  selectIsDebugDataReadOnly: (state: StoreStateRecord) => Boolean(state?.isDebugDataReadOnly),
+  selectFlowConflict: (state: StoreStateRecord) => state?.flowConflict ?? null,
 }));
 
 vi.mock('@/stores/console', () => ({

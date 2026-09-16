@@ -291,7 +291,6 @@ describe('FlowCanvas - Drag and Drop', () => {
     const reactFlowElement = container!.querySelector('.react-flow');
     expect(reactFlowElement).toBeNull();
   });
-});
 
   it('节点应该放置在鼠标释放位置，而不是画布中心', async () => {
     useFlowStore.getState().setFlow(mockFlow);
@@ -548,3 +547,4 @@ describe('FlowCanvas - Drag and Drop', () => {
     expect(subflowNode?.type).toBe('sub_flow');
     expect(subflowNode?.name).toBe('降级子流程');
   });
+});

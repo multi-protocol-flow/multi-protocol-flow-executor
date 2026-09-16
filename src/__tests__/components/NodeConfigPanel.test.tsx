@@ -375,13 +375,17 @@ describe('NodeConfigPanel', () => {
         const state = {
           getSelectedNode: () => nodeWithHeaders,
           updateNode: mockUpdateNode,
-          flow: { nodes: [nodeWithHeaders] },
+          flow: { uuid: 'flow-001', nodes: [nodeWithHeaders] },
+          activeTabUuid: 'flow-001',
+          tabSessions: {},
         };
         return selector ? selector(state) : state;
       });
       // handleSave 走 useFlowStore.getState() 取最新 flow —— mock 是纯函数，需挂方法
       (useFlowStore as unknown as { getState: () => unknown }).getState = () => ({
-        flow: { nodes: [nodeWithHeaders] },
+        flow: { uuid: 'flow-001', nodes: [nodeWithHeaders] },
+        activeTabUuid: 'flow-001',
+        tabSessions: {},
         updateNode: mockUpdateNode,
       });
 
