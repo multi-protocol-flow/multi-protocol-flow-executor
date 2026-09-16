@@ -666,11 +666,11 @@ pub fn remap_flow_uuids(flow: &mut Flow) {
         }
     }
 
-    // 3. 级联重映射节点配置内部的跨节点引用（如 connection_id, connection_node_id, source_node_id）
+    // 3. 级联重映射节点配置内部的跨节点引用（如 connection_id, connection_node_id, source_node_id, connection_uuid）
     for node in &mut flow.nodes {
         if let Ok(mut val) = serde_json::to_value(&node.data) {
             if let Some(obj) = val.as_object_mut() {
-                let ref_keys = ["connection_id", "connection_node_id", "source_node_id"];
+                let ref_keys = ["connection_id", "connection_node_id", "source_node_id", "connection_uuid"];
                 let mut changed = false;
                 for key in ref_keys {
                     if let Some(serde_json::Value::String(ref_id)) = obj.get(key) {
@@ -2556,6 +2556,41 @@ mod tests {
         assert_ne!(copied.connections[0].id, "conn-origin-1");
         assert_eq!(copied.connections[0].source_node_uuid, copied.nodes[0].uuid);
         assert_eq!(copied.connections[0].target_node_uuid, copied.nodes[1].uuid);
+    }
+
+    /// 测试 `copy_flow_file` 复制流程时数据库节点内部 connection_uuid 级联重映射
+    #[test]
+    fn test_copy_flow_file_remaps_connection_uuid() {
+        use tempfile::TempDir;
+        use flow_engine_core::node::Node;
+
+        let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
+        let flows_dir = temp_dir.path();
+
+        let mut flow = create_test_flow("copy-db-flow", "包含数据库节点的流程");
+        let mut node1 = Node::default();
+        node1.uuid = "db-conn-origin".to_string();
+
+        let mut node2 = Node::default();
+        node2.uuid = "db-query-origin".to_string();
+        node2.data = serde_json::from_value(serde_json::json!({
+            "type": "db:query",
+            "connection_uuid": "db-conn-origin",
+            "sql": "SELECT 1"
+        })).unwrap_or_else(|e| panic!("反序列化节点数据失败: {e}"));
+
+        flow.nodes = vec![node1, node2];
+
+        save_flow_file(&flow, flows_dir).unwrap_or_else(|e| panic!("保存原始流程Failed: {e}"));
+
+        let copied = copy_flow_file("copy-db-flow", flows_dir).unwrap_or_else(|e| panic!("复制失败: {e}"));
+        assert_eq!(copied.nodes.len(), 2);
+
+        let new_conn_uuid = &copied.nodes[0].uuid;
+        assert_ne!(new_conn_uuid, "db-conn-origin");
+
+        let query_data_val = serde_json::to_value(&copied.nodes[1].data).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(query_data_val["connection_uuid"], *new_conn_uuid);
     }
 
     /// 测试 `delete_flow_file` 删除流程

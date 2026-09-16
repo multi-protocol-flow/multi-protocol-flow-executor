@@ -28,8 +28,8 @@ export function remapFlowUuids(flow: Flow, options?: { newName?: string }): Flow
     };
   });
 
-  // 3. 级联重映射节点配置内部的跨节点引用（如 connection_id, connection_node_id, source_node_id）
-  const refKeys = ['connection_id', 'connection_node_id', 'source_node_id'] as const;
+  // 3. 级联重映射节点配置内部的跨节点引用（如 connection_id, connection_node_id, source_node_id, connection_uuid）
+  const refKeys = ['connection_id', 'connection_node_id', 'source_node_id', 'connection_uuid'] as const;
   for (const node of newNodes) {
     if (node.data && typeof node.data === 'object') {
       const dataObj = node.data as Record<string, unknown>;

@@ -68,4 +68,34 @@ describe('remapFlowUuids', () => {
     expect(node2Data.connection_id).toBe(newNode1.uuid);
     expect(node3Data.source_node_id).toBe(newNode2.uuid);
   });
+
+  it('正确重映射数据库节点的 connection_uuid 字段', () => {
+    const dbFlow: Flow = {
+      uuid: 'flow-db',
+      name: 'DB Flow',
+      nodes: [
+        {
+          uuid: 'db-conn-1',
+          type: 'db:connect',
+          name: 'DB Connect',
+          position: { x: 0, y: 0 },
+          data: { type: 'db:connect', connection_uuid: '' } as unknown as NodeData,
+        },
+        {
+          uuid: 'db-query-1',
+          type: 'db:query',
+          name: 'DB Query',
+          position: { x: 200, y: 0 },
+          data: { type: 'db:query', connection_uuid: 'db-conn-1', sql: 'SELECT 1' } as unknown as NodeData,
+        },
+      ],
+      connections: [],
+    };
+
+    const remapped = remapFlowUuids(dbFlow);
+    const [newConnNode, newQueryNode] = remapped.nodes;
+    expect(newConnNode.uuid).not.toBe('db-conn-1');
+    const queryData = newQueryNode.data as unknown as Record<string, unknown>;
+    expect(queryData.connection_uuid).toBe(newConnNode.uuid);
+  });
 });
