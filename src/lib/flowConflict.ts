@@ -17,16 +17,42 @@ export function checkFlowConflict(
 
   for (const tab of tabs) {
     const isSameFlowUuid = tab.uuid === incomingFlow.uuid;
-    // 如果文件路径完全一致，表示用户只是点击了同一个已经打开的文件，不是外部复制冲突
-    const isSameFile =
-      incomingFilePath && tab.filePath && incomingFilePath === tab.filePath;
-    if (isSameFile) {
+
+    // 情况 1：相同的 flow.uuid
+    // 仅当明确属于不同的两个文件路径（例如文件系统直接复制产生的副本）时，才构成外部文件冲突！
+    // 若两者文件路径一致，或者任一方缺失文件路径（内存切换、首次加载内置模板或尚未落盘），均属于同一流程实例，绝不构成冲突。
+    if (isSameFlowUuid) {
+      const isDifferentFilePath = Boolean(
+        incomingFilePath && tab.filePath && incomingFilePath !== tab.filePath,
+      );
+      if (isDifferentFilePath) {
+        const session = tabSessions[tab.uuid];
+        const existingFlow = session?.flow;
+        let duplicateNodeCount = 0;
+        if (existingFlow) {
+          for (const node of existingFlow.nodes || []) {
+            if (incomingNodeUuids.has(node.uuid)) {
+              duplicateNodeCount++;
+            }
+          }
+        }
+        return {
+          incomingFlow,
+          incomingFilePath,
+          conflictingTabUuid: tab.uuid,
+          conflictingTabName: tab.name,
+          conflictingFilePath: tab.filePath,
+          conflictType: duplicateNodeCount > 0 ? 'both' : 'flow_uuid',
+          duplicateNodeCount: duplicateNodeCount > 0 ? duplicateNodeCount : undefined,
+        };
+      }
+      // 同一流程实例，无需比对节点，直接检查下一个标签
       continue;
     }
 
+    // 情况 2：不同 flow.uuid，但存在跨流程重复的 node.uuid（历史复制遗留脏数据）
     const session = tabSessions[tab.uuid];
     const existingFlow = session?.flow;
-
     let duplicateNodeCount = 0;
     if (existingFlow) {
       for (const node of existingFlow.nodes || []) {
@@ -36,20 +62,6 @@ export function checkFlowConflict(
       }
     }
 
-    // 情况 1：相同的 flow.uuid 但不同文件路径（例如文件系统直接复制），且可能有重复节点
-    if (isSameFlowUuid) {
-      return {
-        incomingFlow,
-        incomingFilePath,
-        conflictingTabUuid: tab.uuid,
-        conflictingTabName: tab.name,
-        conflictingFilePath: tab.filePath,
-        conflictType: duplicateNodeCount > 0 ? 'both' : 'flow_uuid',
-        duplicateNodeCount: duplicateNodeCount > 0 ? duplicateNodeCount : undefined,
-      };
-    }
-
-    // 情况 2：不同 flow.uuid，但存在跨流程重复的 node.uuid（历史复制遗留脏数据）
     if (duplicateNodeCount > 0) {
       return {
         incomingFlow,

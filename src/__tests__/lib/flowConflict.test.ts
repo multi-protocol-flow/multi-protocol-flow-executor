@@ -107,4 +107,46 @@ describe('checkFlowConflict', () => {
     expect(conflict?.duplicateNodeCount).toBe(1);
     expect(conflict?.conflictingTabName).toBe('Flow 1');
   });
+
+  it('同一流程在未分配文件路径时（纯内存/内置模板）重复设置不触发冲突', () => {
+    const existingFlow = createFlow('demo-http-testing', ['entry-001', 'http-001']);
+    const tabs: FlowTab[] = [
+      { uuid: 'demo-http-testing', name: 'HTTP Example', isDirty: false, filePath: undefined },
+    ];
+    const sessions: Record<string, FlowTabSession> = {
+      'demo-http-testing': {
+        flow: existingFlow,
+        selectedNodeId: null,
+        isDirty: false,
+        past: [],
+        future: [],
+        historyVersion: 0,
+      },
+    };
+
+    // 重复 setFlow(existingFlow) 或 updateBuiltinFlow，filePath 均为 undefined
+    const conflict = checkFlowConflict(existingFlow, undefined, tabs, sessions);
+    expect(conflict).toBeNull();
+  });
+
+  it('同一流程已落盘但在内存中无 filePath 切换时不触发冲突', () => {
+    const existingFlow = createFlow('demo-http-testing', ['entry-001', 'http-001']);
+    const tabs: FlowTab[] = [
+      { uuid: 'demo-http-testing', name: 'HTTP Example', isDirty: false, filePath: '/path/demo.mpf' },
+    ];
+    const sessions: Record<string, FlowTabSession> = {
+      'demo-http-testing': {
+        flow: existingFlow,
+        selectedNodeId: null,
+        isDirty: false,
+        past: [],
+        future: [],
+        historyVersion: 0,
+      },
+    };
+
+    // setFlow(existingFlow) 调用 openTab 时 incomingFilePath 为 undefined
+    const conflict = checkFlowConflict(existingFlow, undefined, tabs, sessions);
+    expect(conflict).toBeNull();
+  });
 });
