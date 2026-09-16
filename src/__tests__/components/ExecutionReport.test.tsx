@@ -113,11 +113,13 @@ describe('ExecutionReport', () => {
     isReportDialogOpen: boolean;
     selectedHistoryReport: FlowExecutionReport | null;
     closeReportDialog: ReturnType<typeof vi.fn>;
+    nodeStreamMap: Record<string, unknown>;
   }> = {}) => ({
     report: null as FlowExecutionReport | null,
     isReportDialogOpen: false,
     selectedHistoryReport: null as FlowExecutionReport | null,
     closeReportDialog: mockCloseReportDialog,
+    nodeStreamMap: {},
     ...overrides,
   });
 
@@ -322,5 +324,28 @@ describe('ExecutionReport', () => {
     expect(sentPrompt).toContain('HTTP请求节点');
     expect(sentPrompt).toContain('请求超时');
     sendSpy.mockRestore();
+  });
+
+  it('当报告有失败节点时优先自动选中首个失败节点，并支持快速过滤', () => {
+    mockStoreState(createStoreState({
+      report: failedReport,
+      isReportDialogOpen: true,
+    }));
+
+    render(<ExecutionReport />);
+
+    // 默认选中的是失败节点（node-002: HTTP请求节点），右侧详情展示其错误
+    expect(screen.getByText('请求超时')).toBeDefined();
+
+    // 存在失败过滤按钮
+    const failFilterBtn = screen.getByRole('button', { name: /失败/ });
+    expect(failFilterBtn).toBeDefined();
+
+    // 点击失败过滤
+    fireEvent.click(failFilterBtn);
+    // 入口节点（成功）应该被过滤掉
+    expect(screen.queryByText('入口节点')).toBeNull();
+    // 失败节点依然展示
+    expect(screen.getAllByText('HTTP请求节点').length).toBeGreaterThan(0);
   });
 });

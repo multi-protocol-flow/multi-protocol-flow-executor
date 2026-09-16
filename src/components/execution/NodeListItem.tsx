@@ -103,12 +103,12 @@ function NodeTreeRow({
         onClick={onSelect}
         className={cn(
           'w-full flex items-center gap-1.5 text-left rounded-lg transition-colors cursor-pointer',
-          isTopLevel ? 'p-1.5' : 'p-1 rounded-md',
+          isTopLevel ? 'px-2 py-1.5' : 'px-1.5 py-1 rounded-md',
           isSelected ? (isTopLevel ? 'bg-accent font-medium' : 'bg-accent/80 font-medium') : 'hover:bg-muted/50'
         )}
       >
-        {/* 折叠/展开 Chevron 按钮（仅当有子节点时） */}
-        {hasSubNodes ? (
+        {/* 折叠/展开 Chevron 按钮（仅当有子节点时呈现，避免普通节点左侧产生冗余占位白边） */}
+        {hasSubNodes && (
           <span
             role="button"
             tabIndex={0}
@@ -116,7 +116,7 @@ function NodeTreeRow({
               e.stopPropagation();
               setIsExpanded(!isExpanded);
             }}
-            className="p-0.5 text-muted-foreground hover:text-foreground rounded hover:bg-muted/80 transition-colors shrink-0"
+            className="p-0.5 -ml-1 text-muted-foreground hover:text-foreground rounded hover:bg-muted/80 transition-colors shrink-0"
           >
             {isExpanded ? (
               <ChevronDown className={isTopLevel ? 'w-3.5 h-3.5' : 'w-3 h-3'} />
@@ -124,8 +124,6 @@ function NodeTreeRow({
               <ChevronRight className={isTopLevel ? 'w-3.5 h-3.5' : 'w-3 h-3'} />
             )}
           </span>
-        ) : (
-          <span className={isTopLevel ? 'w-4 shrink-0' : 'w-3.5 shrink-0'} />
         )}
 
         {/* 状态图标 */}

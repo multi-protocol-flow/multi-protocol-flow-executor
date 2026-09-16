@@ -48,23 +48,29 @@ function StatCard({
   label,
   value,
   iconColor,
+  iconBg,
   valueColor,
 }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
   iconColor?: string;
+  iconBg?: string;
   valueColor?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border/50 bg-gradient-to-br from-background to-muted/30 p-4 transition-all">
-      <div className="flex items-center gap-2 mb-2">
-        <Icon className={cn('w-4 h-4', iconColor || 'text-muted-foreground')} />
-        <span className="text-xs text-muted-foreground">{label}</span>
+    <div className="rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/30 px-3 py-2 transition-colors min-w-0">
+      <div className="flex items-center gap-2.5">
+        <div className={cn('p-1.5 rounded-md shrink-0', iconBg || 'bg-muted/60')}>
+          <Icon className={cn('w-3.5 h-3.5', iconColor || 'text-muted-foreground')} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] text-muted-foreground leading-none truncate font-medium">{label}</p>
+          <p className={cn('text-sm font-bold tabular-nums leading-tight mt-1 truncate', valueColor)}>
+            {value}
+          </p>
+        </div>
       </div>
-      <p className={cn('text-xl font-bold tabular-nums', valueColor)}>
-        {value}
-      </p>
     </div>
   );
 }
@@ -84,18 +90,35 @@ export function ExecutionReport() {
   const [isWsStreamCollapsed, setIsWsStreamCollapsed] = useState(false);
   const [isStatsCollapsed, setIsStatsCollapsed] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'canvas'>('list');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'failed'>('all');
+
   // 在整棵报告树（含任意层级子流程）中检索当前选中的节点报告
   const activeReport = useMemo(() => {
     if (!selectedNodeUuid) return null;
     return findNodeReportInTree(displayReport?.node_reports, selectedNodeUuid);
   }, [displayReport, selectedNodeUuid]);
 
+  const failedNodes = useMemo(() => {
+    return displayReport?.node_reports.filter((n) => n.status === 'failed') ?? [];
+  }, [displayReport?.node_reports]);
+
+  const filteredNodeReports = useMemo(() => {
+    if (!displayReport?.node_reports) return [];
+    if (filterStatus === 'failed') {
+      return failedNodes;
+    }
+    return displayReport.node_reports;
+  }, [displayReport?.node_reports, filterStatus, failedNodes]);
+
   const [canvasSelectedUuid, setCanvasSelectedUuid] = useState<string | null>(null);
 
-  // 默认选中第一个节点
+  // 默认选中：优先选中首个失败节点，若全部成功则选中第一个节点（更符合人类排障直觉）
   useEffect(() => {
     if (displayReport?.node_reports && displayReport.node_reports.length > 0) {
-      setSelectedNodeUuid(displayReport.node_reports[0].node_uuid);
+      const firstFailed = displayReport.node_reports.find((n) => n.status === 'failed');
+      const initialUuid = firstFailed?.node_uuid ?? displayReport.node_reports[0].node_uuid;
+      setSelectedNodeUuid(initialUuid);
+      setCanvasSelectedUuid(initialUuid);
     }
   }, [displayReport]);
 
@@ -113,19 +136,15 @@ export function ExecutionReport() {
     displayReport.total_nodes > 0
       ? ((displayReport.statistics.success_count / displayReport.total_nodes) * 100).toFixed(0)
       : 0;
-
   const handleDiagnoseWithAI = () => {
     useAIStore.getState().setCopilotOpen(true);
-    const failedNodes = (displayReport?.node_reports || [])
-      .filter((nr) => nr.status === 'failed')
-      .map(
-        (nr) =>
-          `[${nr.node_name}] (${nr.node_type}: ${nr.error?.message || 'failed'})`,
-      );
+    const failedNodePrompts = failedNodes.map(
+      (nr) => `[${nr.node_name}] (${nr.node_type}: ${nr.error?.message || 'failed'})`,
+    );
     const prompt =
-      failedNodes.length > 0
+      failedNodePrompts.length > 0
         ? ll.ai.copilot.prompt_diagnose_flow_failures({
-            failedNodes: failedNodes.join('; '),
+            failedNodes: failedNodePrompts.join('; '),
           })
         : ll.ai.copilot.prompt_diagnose_flow_generic();
     useAIStore.getState().sendMessage(prompt);
@@ -263,10 +282,9 @@ export function ExecutionReport() {
 
         {/* 主容器：固定布局 */}
         <div className="flex-1 flex flex-col overflow-hidden gap-4">
-          {/* 上半部分：统计信息（可滚动） */}
-          <ScrollArea className={cn("flex-shrink-0", isStatsCollapsed ? "max-h-[80px]" : "max-h-[45%]")}>
+          {/* 上半部分：统计信息（可折叠，控制紧凑高度，把最大视口留给节点报告） */}
+          <ScrollArea className={cn("flex-shrink-0", isStatsCollapsed ? "max-h-[60px]" : "max-h-[220px]")}>
             <div className="flex flex-col gap-4 pr-4 min-w-0">
-              {/* 流程名称 + 折叠按钮 */}
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <button
                   type="button"
@@ -303,55 +321,61 @@ export function ExecutionReport() {
               {/* 展开时显示完整统计 */}
               {!isStatsCollapsed && (
                 <>
-                  {/* 统计卡片网格 */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* 统计指标紧凑单层网格 */}
+                  <div className={cn(
+                    "grid gap-2",
+                    displayReport.statistics.avg_node_duration_ms != null
+                      ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+                      : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+                  )}>
                     <StatCard
                       icon={Timer}
                       label={ll.execution.report.total_duration()}
-                       value={`${displayReport.duration_ms}ms`}
+                      value={`${displayReport.duration_ms}ms`}
                       iconColor="text-violet-500"
-                      valueColor="text-violet-600"
+                      iconBg="bg-violet-50 dark:bg-violet-950/50"
                     />
                     <StatCard
                       icon={BarChart3}
                       label={ll.execution.report.executed_nodes()}
-                       value={`${displayReport.executed_count}/${displayReport.total_nodes}`}
+                      value={`${displayReport.executed_count}/${displayReport.total_nodes}`}
                       iconColor="text-blue-500"
-                      valueColor="text-blue-600"
+                      iconBg="bg-blue-50 dark:bg-blue-950/50"
                     />
                     <StatCard
                       icon={CheckCircle2}
                       label={ll.execution.status.success()}
-                       value={displayReport.statistics.success_count}
+                      value={displayReport.statistics.success_count}
                       iconColor="text-emerald-500"
-                      valueColor="text-emerald-600"
+                      iconBg="bg-emerald-50 dark:bg-emerald-950/50"
+                      valueColor="text-emerald-600 dark:text-emerald-400"
                     />
                     <StatCard
                       icon={XCircle}
                       label={ll.execution.status.failed()}
-                       value={displayReport.statistics.failed_count}
+                      value={displayReport.statistics.failed_count}
                       iconColor="text-red-500"
-                      valueColor="text-red-600"
+                      iconBg="bg-red-50 dark:bg-red-950/50"
+                      valueColor={displayReport.statistics.failed_count > 0 ? "text-red-600 dark:text-red-400" : undefined}
                     />
-                  </div>
-
-                  {/* 额外统计信息 */}
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
-                      <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="text-muted-foreground">{ll.execution.report.success_rate()}</span>
-                      <span className="font-semibold text-foreground">{successRate}%</span>
-                    </div>
+                    <StatCard
+                      icon={Clock}
+                      label={ll.execution.report.success_rate()}
+                      value={`${successRate}%`}
+                      iconColor="text-teal-500"
+                      iconBg="bg-teal-50 dark:bg-teal-950/50"
+                      valueColor={isSuccess ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}
+                    />
                     {displayReport.statistics.avg_node_duration_ms != null && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
-                        <span className="text-muted-foreground">{ll.execution.report.avg_duration()}</span>
-                        <span className="font-semibold text-foreground">
-                          {displayReport.statistics.avg_node_duration_ms!.toFixed(1)}ms
-                        </span>
-                      </div>
+                      <StatCard
+                        icon={Activity}
+                        label={ll.execution.report.avg_duration()}
+                        value={`${displayReport.statistics.avg_node_duration_ms!.toFixed(1)}ms`}
+                        iconColor="text-indigo-500"
+                        iconBg="bg-indigo-50 dark:bg-indigo-950/50"
+                      />
                     )}
                   </div>
-
                   {/* 流程级错误 */}
                   {displayReport.flow_error && (
                     <div className="rounded-xl bg-red-50 dark:bg-red-950/50 p-4 border border-red-200/50 dark:border-red-800/50">
@@ -437,22 +461,56 @@ export function ExecutionReport() {
             </div>
           ) : (
             <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2 flex-shrink-0">
-                <BarChart3 className="w-4 h-4" />
-{ll.execution.report.node_details()}
-              </h3>
+              <div className="flex items-center justify-between mb-2 flex-shrink-0">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  <span>{ll.execution.report.node_details()}</span>
+                </h3>
+
+                {/* 失败节点快捷过滤 */}
+                {failedNodes.length > 0 && (
+                  <div className="inline-flex h-7 items-center p-0.5 bg-muted/70 rounded-md border border-border/40 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setFilterStatus('all')}
+                      className={cn(
+                        'px-2 py-0.5 rounded text-[11px] font-medium transition-all cursor-pointer',
+                        filterStatus === 'all'
+                          ? 'bg-background text-foreground shadow-xs font-semibold'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      全部 ({displayReport.node_reports.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFilterStatus('failed')}
+                      className={cn(
+                        'px-2 py-0.5 rounded text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1',
+                        filterStatus === 'failed'
+                          ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 shadow-xs font-semibold'
+                          : 'text-red-600 dark:text-red-400 hover:text-red-700'
+                      )}
+                    >
+                      <XCircle className="w-3 h-3" />
+                      <span>失败 ({failedNodes.length})</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div className="flex-1 min-h-0">
                 <ResizablePanel
                   leftPanel={
-                    displayReport.node_reports.length === 0 ? (
-                      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
-                        <Inbox className="w-12 h-12" />
+                    filteredNodeReports.length === 0 ? (
+                      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full text-xs">
+                        <Inbox className="w-8 h-8 opacity-60" />
                         <span>{ll.execution.report.no_nodes()}</span>
                       </div>
                     ) : (
                       <ScrollArea className="h-full w-full">
-                        <div className="space-y-1 p-1">
-                          {displayReport.node_reports.map((nodeReport, idx) => (
+                        <div className="space-y-1 p-0.5 pr-2">
+                          {filteredNodeReports.map((nodeReport, idx) => (
                             <NodeListItem
                               key={nodeReport.node_uuid}
                               report={nodeReport}
@@ -475,7 +533,7 @@ export function ExecutionReport() {
                       </div>
                     ) : activeReport ? (
                       <ScrollArea className="h-full w-full">
-                        <div className="p-2 min-w-0">
+                        <div className="p-1 min-w-0">
                           <NodeExecutionDetails
                             report={activeReport}
                           />
@@ -487,9 +545,9 @@ export function ExecutionReport() {
                       </div>
                     )
                   }
-                  defaultWidth={300}
-                  minWidth={200}
-                  maxWidth={500}
+                  defaultWidth={320}
+                  minWidth={220}
+                  maxWidth={560}
                 />
               </div>
             </div>

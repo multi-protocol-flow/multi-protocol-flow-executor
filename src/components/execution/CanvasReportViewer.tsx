@@ -4,7 +4,7 @@
  * 显示 FlowExecutionReport.flow_snapshot 中的流程拓扑，
  * 已执行节点高亮，未执行节点灰显。
  */
-import { useMemo, useEffect, useCallback, type ComponentType } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback, type ComponentType } from 'react';
 import { getLL } from '@/i18n/i18n-lazy';
 import {
   ReactFlow,
@@ -271,8 +271,39 @@ function CanvasReportViewerInner({
   selectedNodeUuid,
   onNodeSelect,
 }: CanvasReportViewerProps) {
-  const { fitView } = useReactFlow();
+  const { fitView, setCenter } = useReactFlow();
+  const [panelWidth, setPanelWidth] = useState(500);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (containerRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const maxWidth = Math.max(400, containerRect.width - 240);
+        const newWidth = Math.max(340, Math.min(maxWidth, containerRect.right - e.clientX));
+        setPanelWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
   // 将 flow_snapshot 转换为增强的 React Flow 节点和边
   const { nodes, edges } = useMemo(() => {
     if (!report.flow_snapshot) return { nodes: [], edges: [] };
@@ -340,17 +371,22 @@ function CanvasReportViewerInner({
       return () => clearTimeout(timer);
     }
   }, [fitView, nodes.length]);
-
-  // 节点点击处理
+  // 节点点击处理：选中并平滑平移可视区域居中聚焦
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: FlowNode) => {
       const d = node.data as Record<string, unknown>;
       const status = d.__execStatus as string;
       // 未执行节点不可选择
       if (status === 'unexecuted') return;
-      onNodeSelect(node.id === selectedNodeUuid ? null : node.id);
+      const nextSelected = node.id === selectedNodeUuid ? null : node.id;
+      onNodeSelect(nextSelected);
+      if (nextSelected) {
+        const x = node.position.x + (node.width ?? 180) / 2;
+        const y = node.position.y + (node.height ?? 40) / 2;
+        setCenter(x, y, { duration: 300 });
+      }
     },
-    [selectedNodeUuid, onNodeSelect],
+    [selectedNodeUuid, onNodeSelect, setCenter],
   );
 
   // 画布空白处点击取消选择
@@ -365,9 +401,12 @@ function CanvasReportViewerInner({
   }, [selectedNodeUuid, report.node_reports]);
 
   return (
-    <div className="flex w-full h-full">
-      {/* 左侧画布 */}
-      <div className="flex-1 h-full min-w-0">
+    <div
+      ref={containerRef}
+      className={cn('flex w-full h-full relative overflow-hidden', isDragging && 'select-none')}
+    >
+      {/* 左侧画布：自适应占据剩余可视区域 */}
+      <div className="flex-1 h-full min-w-0 relative">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -386,12 +425,28 @@ function CanvasReportViewerInner({
         </ReactFlow>
       </div>
 
-      {/* 右侧详情面板 */}
+      {/* 可拖拽分隔手柄 */}
       <div
+        onMouseDown={handleMouseDown}
+        onDoubleClick={() => setPanelWidth(500)}
+        title="拖动调整宽度，双击恢复默认"
+        className="w-3 flex items-center justify-center flex-shrink-0 relative group cursor-col-resize z-10"
+      >
+        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-border group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
+        <div className="relative z-10 flex flex-col items-center gap-0.5 py-2 px-0.5 rounded group-hover:bg-blue-100/50 dark:group-hover:bg-blue-900/40 transition-colors">
+          <div className="w-1 h-1 rounded-full bg-muted-foreground/40 group-hover:bg-blue-500 transition-colors" />
+          <div className="w-1 h-1 rounded-full bg-muted-foreground/40 group-hover:bg-blue-500 transition-colors" />
+          <div className="w-1 h-1 rounded-full bg-muted-foreground/40 group-hover:bg-blue-500 transition-colors" />
+        </div>
+      </div>
+
+      {/* 右侧详情面板（支持自由拖拽调节宽度） */}
+      <div
+        style={{ width: panelWidth }}
         className={cn(
-          'w-[400px] shrink-0 border-l border-border',
+          'shrink-0 border-l border-border',
           'flex flex-col bg-background',
-          'overflow-hidden',
+          'overflow-hidden shadow-xs',
         )}
       >
         {/* 面板头 */}
@@ -411,7 +466,7 @@ function CanvasReportViewerInner({
         </div>
 
         {/* 面板内容 */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-2.5 sm:p-3">
           {selectedNodeUuid && selectedReport ? (
             <NodeExecutionDetails report={selectedReport} />
           ) : (
