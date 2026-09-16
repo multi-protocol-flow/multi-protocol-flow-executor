@@ -154,7 +154,8 @@ export function NewFlowDialog() {
       const remappedTemplate = remapFlowUuids(templateFlow);
 
       // 使用 createFlow 创建基础结构，然后覆盖模板的节点和连接
-      const newFlowBase = await createFlow(selectedTemplate.name);
+      const targetName = flowName.trim() || selectedTemplate.name;
+      const newFlowBase = await createFlow(targetName);
       const templatedFlow: Flow = {
         ...newFlowBase,
         nodes: remappedTemplate.nodes,
