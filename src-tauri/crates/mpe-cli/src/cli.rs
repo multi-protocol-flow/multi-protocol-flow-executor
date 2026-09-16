@@ -184,17 +184,17 @@ pub enum Commands {
         #[command(subcommand)]
         command: PluginCommands,
     },
-    /// 在 MPE GUI 中激活并分析当前项目或执行生成任务
+    /// Activate and analyze the current project or execute AI tasks in MPE GUI
     Ai {
-        /// 输入给 AI 的提示词（例如："分析本项目接口并生成登录流程"）
+        /// Prompt for the AI (e.g. "Analyze APIs and generate login flow")
         prompt: String,
-        /// 目标项目路径（默认为当前工作目录）
+        /// Target workspace directory (defaults to current working directory)
         #[arg(short, long)]
         workspace: Option<PathBuf>,
     },
-    /// 在 MPE GUI 中打开或挂载项目目录
+    /// Open or mount workspace/flow directory in MPE GUI
     Open {
-        /// 项目路径或流程文件路径（默认为当前工作目录 "."）
+        /// Project path or flow file path (defaults to current directory ".")
         #[arg(default_value = ".")]
         path: PathBuf,
     },
@@ -320,6 +320,17 @@ pub enum FlowCommands {
         /// Flow editing subcommand
         #[command(subcommand)]
         command: FlowEditCommands,
+    },
+    /// Format or convert flow files (.mpf) to YAML or JSON
+    Fmt {
+        /// Flow file path or UUID (optional if --all is used)
+        path_or_uuid: Option<String>,
+        /// Target format (yaml or json)
+        #[arg(long, default_value = "yaml")]
+        to: String,
+        /// Format/convert all flow files in flows directory
+        #[arg(long)]
+        all: bool,
     },
 }
 
@@ -562,10 +573,10 @@ async fn async_main() -> Result<(), CliError> {
                     &serde_json::json!({ "path": path_str }),
                 )
                 .await?;
-                println!("[MPE] 已成功发送指令并唤醒 MPE 桌面应用。");
+                println!("[MPE] Command sent successfully. Waking up MPE desktop application.");
                 Ok(())
             } else {
-                println!("[MPE] 未检测到正在运行的 GUI 实例，正在为您启动 MPE 桌面应用...");
+                println!("[MPE] No running GUI instance detected. Launching MPE desktop application...");
                 gui_bridge::launch_gui()?;
                 Ok(())
             }
@@ -590,10 +601,10 @@ async fn async_main() -> Result<(), CliError> {
                     &serde_json::json!({ "workspace": ws_str, "prompt": prompt }),
                 )
                 .await?;
-                println!("[MPE] 已成功发送指令并唤醒 MPE 桌面应用。");
+                println!("[MPE] Command sent successfully. Waking up MPE desktop application.");
                 Ok(())
             } else {
-                println!("[MPE] 未检测到正在运行的 GUI 实例，正在为您启动 MPE 桌面应用...");
+                println!("[MPE] No running GUI instance detected. Launching MPE desktop application...");
                 gui_bridge::launch_gui()?;
                 Ok(())
             }

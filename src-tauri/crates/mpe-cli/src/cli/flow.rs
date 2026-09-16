@@ -20,7 +20,123 @@ pub async fn execute(_format: &str, command: FlowCommands) -> Result<(), CliErro
             // Delegate to flow_edit module
             super::flow_edit::execute(_format, command).await
         }
+        FlowCommands::Fmt {
+            path_or_uuid,
+            to,
+            all,
+        } => execute_fmt(path_or_uuid.as_deref(), &to, all, _format).await,
     }
+}
+
+/// Format or convert flow files (.mpf) to YAML or JSON
+async fn execute_fmt(
+    path_or_uuid: Option<&str>,
+    to_format: &str,
+    all: bool,
+    format_output: &str,
+) -> Result<(), CliError> {
+    let target_format = match to_format.to_lowercase().as_str() {
+        "yaml" | "yml" => flow_engine::storage::FlowFormat::Yaml,
+        "json" => flow_engine::storage::FlowFormat::Json,
+        other => {
+            return Err(CliError::execution(format!(
+                "unsupported target format: '{}', expected 'yaml' or 'json'",
+                other
+            )))
+        }
+    };
+    // 目标路径/目录判定
+    let (target_dir, single_file_target) = match path_or_uuid {
+        Some(target) => {
+            let p = Path::new(target);
+            if p.is_dir() {
+                // 用户指定了目录（例如 mpe flow fmt /path/to/dir/）
+                (Some(p.to_path_buf()), None)
+            } else if p.is_file() {
+                // 用户指定了具体文件
+                (None, Some(p.to_path_buf()))
+            } else if all {
+                let config = AppConfig::load().map_err(CliError::Config)?;
+                (Some(config.flows_dir), None)
+            } else {
+                let config = AppConfig::load().map_err(CliError::Config)?;
+                let (_, target_path) =
+                    flow_engine::storage::load_flow_file_with_path(target, &config.flows_dir)
+                        .map_err(CliError::execution)?;
+                (None, Some(target_path))
+            }
+        }
+        None => {
+            if all {
+                let config = AppConfig::load().map_err(CliError::Config)?;
+                (Some(config.flows_dir), None)
+            } else {
+                return Err(CliError::execution(
+                    "please specify a flow file, directory, UUID, or use --all",
+                ));
+            }
+        }
+    };
+
+    #[derive(serde::Serialize)]
+    struct FmtResult {
+        formatted: usize,
+        format: String,
+        files: Vec<String>,
+    }
+
+    let mut formatted_files = Vec::new();
+
+    if let Some(dir) = target_dir {
+        let list =
+            flow_engine::storage::list_flow_files(&dir).map_err(CliError::execution)?;
+        for meta in list {
+            let path = std::path::PathBuf::from(&meta.file_path);
+            if path.is_file() {
+                let content = std::fs::read_to_string(&path)
+                    .map_err(|e| CliError::Io(format!("failed to read {}: {}", path.display(), e)))?;
+                let flow_file = flow_engine::storage::deserialize_flow_file(&content)
+                    .map_err(CliError::execution)?;
+                let output_content =
+                    flow_engine::storage::serialize_flow_file(&flow_file, target_format)
+                        .map_err(CliError::execution)?;
+                std::fs::write(&path, output_content)
+                    .map_err(|e| CliError::Io(format!("failed to write {}: {}", path.display(), e)))?;
+                formatted_files.push(meta.file_path);
+            }
+        }
+    } else if let Some(target_path) = single_file_target {
+        let content = std::fs::read_to_string(&target_path)
+            .map_err(|e| CliError::Io(format!("failed to read {}: {}", target_path.display(), e)))?;
+        let flow_file = flow_engine::storage::deserialize_flow_file(&content)
+            .map_err(CliError::execution)?;
+        let output_content =
+            flow_engine::storage::serialize_flow_file(&flow_file, target_format)
+                .map_err(CliError::execution)?;
+        std::fs::write(&target_path, output_content).map_err(|e| {
+            CliError::Io(format!("failed to write {}: {}", target_path.display(), e))
+        })?;
+        formatted_files.push(target_path.to_string_lossy().to_string());
+    }
+    let result = FmtResult {
+        formatted: formatted_files.len(),
+        format: to_format.to_lowercase(),
+        files: formatted_files,
+    };
+
+    if format_output == "table" {
+        println!(
+            "Successfully formatted {} flow(s) to {}",
+            result.formatted, result.format
+        );
+        for f in &result.files {
+            println!("  {}", f);
+        }
+    } else {
+        let output = CliOutput::success(result);
+        super::output::output_json(&output);
+    }
+    Ok(())
 }
 
 /// List flows
@@ -180,4 +296,47 @@ async fn execute_import(flow_path: &str, name: &str) -> Result<(), CliError> {
 /// Check if string is a file path (not UUID)
 fn is_file_path(s: &str) -> bool {
     s.contains('/') || s.contains('\\') || s.ends_with(".mpf") || Path::new(s).extension().is_some()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    #[tokio::test]
+    async fn test_execute_fmt_roundtrip() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        let json_content = r#"{
+  "_version": 1,
+  "flow": {
+    "uuid": "test-fmt-001",
+    "name": "Fmt Test Flow",
+    "nodes": [],
+    "connections": []
+  }
+}"#;
+        temp_file.write_all(json_content.as_bytes()).unwrap();
+        let path = temp_file.path().to_str().unwrap();
+
+        // Convert to YAML
+        execute_fmt(Some(path), "yaml", false, "json").await.unwrap();
+
+        let yaml_content = std::fs::read_to_string(path).unwrap();
+        assert_eq!(
+            flow_engine::storage::detect_flow_format(&yaml_content),
+            flow_engine::storage::FlowFormat::Yaml
+        );
+        assert!(yaml_content.contains("test-fmt-001"));
+
+        // Convert back to JSON
+        execute_fmt(Some(path), "json", false, "json").await.unwrap();
+
+        let converted_json = std::fs::read_to_string(path).unwrap();
+        assert_eq!(
+            flow_engine::storage::detect_flow_format(&converted_json),
+            flow_engine::storage::FlowFormat::Json
+        );
+        assert!(converted_json.contains("test-fmt-001"));
+    }
 }
