@@ -173,14 +173,49 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
             {ll.ai.settings.title()}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <Label htmlFor="ai-enabled-toggle" className="text-xs text-muted-foreground cursor-pointer">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => settings.setAiEnabled(!settings.aiEnabled)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              settings.setAiEnabled(!settings.aiEnabled);
+            }
+          }}
+          className={cn(
+            'flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium border transition-colors cursor-pointer select-none',
+            settings.aiEnabled
+              ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-600/40 dark:text-emerald-300'
+              : 'bg-muted/40 border-border/80 text-muted-foreground hover:bg-muted/60 dark:bg-zinc-900/60 dark:border-zinc-800 hover:text-foreground'
+          )}
+          title={settings.aiEnabled ? ll.ai.settings.enabled() : ll.ai.settings.disabled()}
+        >
+          <Zap
+            className={cn(
+              'h-3.5 w-3.5 shrink-0 transition-transform',
+              settings.aiEnabled
+                ? 'fill-emerald-500 text-emerald-500 dark:fill-emerald-400 dark:text-emerald-400 scale-105'
+                : 'text-muted-foreground/70'
+            )}
+          />
+          <span
+            className={cn(
+              'transition-colors',
+              settings.aiEnabled
+                ? 'text-emerald-700 dark:text-emerald-300 font-semibold'
+                : 'text-muted-foreground'
+            )}
+          >
             {settings.aiEnabled ? ll.ai.settings.enabled() : ll.ai.settings.disabled()}
-          </Label>
+          </span>
           <Switch
             id="ai-enabled-toggle"
             checked={settings.aiEnabled}
             onCheckedChange={(val) => settings.setAiEnabled(val)}
+            variant="emerald"
+            className="scale-75 origin-center pointer-events-none"
+            aria-label={settings.aiEnabled ? ll.ai.settings.enabled() : ll.ai.settings.disabled()}
           />
         </div>
       </div>

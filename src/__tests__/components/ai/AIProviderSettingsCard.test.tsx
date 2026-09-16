@@ -98,4 +98,31 @@ describe('AIProviderSettingsCard i18n & styling', () => {
       expect(providers[0].model).toBe('qwen2.5:latest');
     });
   });
+
+  it('5. AI 开关胶囊支持切换并在暗黑模式下具备 emerald 胶囊高亮效果', async () => {
+    const ll = getLL();
+    useSettingsStore.setState({ aiEnabled: true });
+    const { rerender } = render(<AIProviderSettingsCard />);
+
+    // 开启状态验证
+    const enabledTitle = ll.ai.settings.enabled();
+    const toggleBtn = screen.getByTitle(enabledTitle);
+    expect(toggleBtn).toBeInTheDocument();
+    expect(toggleBtn.className).toContain('dark:bg-emerald-950/40');
+    expect(toggleBtn.className).toContain('dark:border-emerald-600/40');
+
+    // 点击切换为关闭状态
+    fireEvent.click(toggleBtn);
+    await waitFor(() => {
+      expect(useSettingsStore.getState().aiEnabled).toBe(false);
+    });
+
+    // 重新渲染验证关闭状态样式
+    rerender(<AIProviderSettingsCard />);
+    const disabledTitle = ll.ai.settings.disabled();
+    const disabledBtn = screen.getByTitle(disabledTitle);
+    expect(disabledBtn).toBeInTheDocument();
+    expect(disabledBtn.className).toContain('dark:bg-zinc-900/60');
+    expect(disabledBtn.className).toContain('dark:border-zinc-800');
+  });
 });
