@@ -166,7 +166,7 @@ export const flowStorage = {
       return {
         uuid: uuidOrPath,
         name: newName,
-        filePath: `mock://flows/${uuidOrPath}.json`,
+        filePath: `mock://flows/${uuidOrPath}.mpf`,
         updatedAt: Date.now(),
         folderPath: '',
       };
