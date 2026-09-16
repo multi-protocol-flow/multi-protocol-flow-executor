@@ -459,7 +459,7 @@ return (
                   </div>
                   {effectiveReport && (
                     <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3">
-                      <NodeExecutionDetails report={effectiveReport} defaultExpanded={true} />
+                      <NodeExecutionDetails report={effectiveReport} />
                     </div>
                   )}
                 </div>
@@ -470,7 +470,7 @@ return (
                   <div className="h-full overflow-y-auto scrollbar-thin">
                     <div className="p-3">
                       {selectedReport && (
-                        <NodeExecutionDetails report={selectedReport} defaultExpanded={true} />
+                        <NodeExecutionDetails report={selectedReport} />
                       )}
                     </div>
                   </div>

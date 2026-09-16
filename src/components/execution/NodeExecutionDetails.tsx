@@ -4,8 +4,6 @@
  */
 import { useState } from 'react';
 import {
-  ChevronDown,
-  ChevronRight,
   CheckCircle2,
   XCircle,
   Loader2,
@@ -23,11 +21,10 @@ import { RawJsonViewer } from './viewers/RawJsonViewer';
 import { getViewerComponent } from '@/lib/viewerRegistry';
 import { ErrorSection } from './viewers/ErrorSection';
 import { CopyButton } from '@/components/common';
-interface NodeExecutionDetailsProps {
+export interface NodeExecutionDetailsProps {
   report: NodeExecutionReport;
-  defaultExpanded?: boolean;
+  className?: string;
 }
-
 /**
  * 将 PascalCase 转换为 snake_case
  */
@@ -47,9 +44,8 @@ function NodeViewerSelector({ report }: NodeExecutionDetailsProps) {
 }
 
 
-export function NodeExecutionDetails({ report, defaultExpanded = false }: NodeExecutionDetailsProps) {
+export function NodeExecutionDetails({ report, className }: NodeExecutionDetailsProps) {
   const ll = getLL();
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [activeTab, setActiveTab] = useState<'structured' | 'raw'>('structured');
 
   const status = report.status;
@@ -62,205 +58,160 @@ export function NodeExecutionDetails({ report, defaultExpanded = false }: NodeEx
   return (
     <div
       className={cn(
-        'border rounded-xl overflow-hidden transition-all duration-200 min-w-0',
+        'border rounded-xl overflow-hidden transition-all duration-200 min-w-0 bg-card',
         isRunning
           ? 'border-blue-300 dark:border-blue-700 shadow-xs'
           : isSuccess
             ? 'border-emerald-200/60 dark:border-emerald-800/60'
             : isCancelled
               ? 'border-amber-200/60 dark:border-amber-800/60'
-              : 'border-red-200/60 dark:border-red-800/60'
+              : 'border-red-200/60 dark:border-red-800/60',
+        className
       )}
     >
-      {/* 标题栏 */}
-      <div
-        className={cn(
-          'w-full flex items-center justify-between p-3 group/header',
-          'hover:bg-muted/50 transition-colors duration-150',
-          'text-left'
-        )}
-      >
-        <button
-          type="button"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex-1 flex items-center gap-2.5 text-left min-w-0"
-        >
-          {/* 展开图标 */}
-          <div className="text-muted-foreground shrink-0">
-            {isExpanded ? (
-              <ChevronDown className="w-4 h-4" />
+      {/* 顶栏 Header：分层自适应排版，确保在任意窄宽度下永不重叠 */}
+      <div className="w-full flex flex-col gap-2 px-3.5 py-2.5 bg-muted/40 border-b border-border/50">
+        {/* 第一行：节点状态 + 名称 + 类型标签 + 耗时 + 快捷复制 */}
+        <div className="flex items-center justify-between gap-2 min-w-0 w-full">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {/* 状态图标 */}
+            {isRunning ? (
+              <Loader2 className="w-4 h-4 text-blue-500 animate-spin shrink-0" />
+            ) : isSuccess ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            ) : isCancelled ? (
+              <Ban className="w-4 h-4 text-amber-500 shrink-0" />
             ) : (
-              <ChevronRight className="w-4 h-4" />
+              <XCircle className="w-4 h-4 text-red-500 shrink-0" />
             )}
+
+            {/* 节点名称（自动截断，防止窄屏撑爆） */}
+            <span
+              className="font-semibold text-foreground text-sm truncate select-text cursor-text min-w-0"
+              title={report.node_name}
+            >
+              {report.node_name}
+            </span>
+
+            {/* 节点类型标签 */}
+            <Badge
+              variant="outline"
+              className={cn('text-xs font-normal border-0 shrink-0', nodeTypeColor)}
+            >
+              {nodeTypeLabel}
+            </Badge>
           </div>
 
-          {/* 状态图标 */}
-          {isRunning ? (
-            <Loader2 className="w-4 h-4 text-blue-500 animate-spin shrink-0" />
-          ) : isSuccess ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-          ) : isCancelled ? (
-            <Ban className="w-4 h-4 text-amber-500 shrink-0" />
-          ) : (
-            <XCircle className="w-4 h-4 text-red-500 shrink-0" />
-          )}
-
-          {/* 节点名称 */}
-          <span className="font-medium text-foreground truncate select-text cursor-text">{report.node_name}</span>
-
-          {/* 节点类型标签 */}
-          <Badge
-            variant="outline"
-            className={cn('text-xs font-normal border-0 shrink-0', nodeTypeColor)}
-          >
-            {nodeTypeLabel}
-          </Badge>
-        </button>
-
-        <div className="flex items-center gap-2 shrink-0 ml-2">
-          {/* 复制节点名按钮 */}
-          <CopyButton
-            value={report.node_name}
-            title={ll.execution.viewers.copy_node_name()}
-            size="xs"
-            className="h-6 px-1.5 opacity-70 hover:opacity-100 transition-opacity"
-          />
-
-          {/* 耗时 */}
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>{report.duration_ms}ms</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 展开内容 */}
-      {isExpanded && (
-        <div className="border-t border-border/50 bg-muted/20 overflow-hidden">
-          {/* Tab 切换栏 */}
-          {/* Tab 切换栏 + 快捷操作 */}
-          <div className="flex items-center justify-between px-4 pt-3 pb-1 border-b border-border/40 bg-muted/30">
-            <div className="inline-flex h-8 items-center p-0.5 bg-muted/70 rounded-lg border border-border/40">
-              <button
-                type="button"
-                onClick={() => setActiveTab('structured')}
-                className={cn(
-                  'inline-flex items-center justify-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-all duration-150 cursor-pointer',
-                  activeTab === 'structured'
-                    ? 'bg-background text-foreground shadow-xs font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <LayoutList className="w-3.5 h-3.5" />
-                <span>{ll.execution.report.tab_structured()}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('raw')}
-                className={cn(
-                  'inline-flex items-center justify-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-all duration-150 cursor-pointer',
-                  activeTab === 'raw'
-                    ? 'bg-background text-foreground shadow-xs font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <FileCode className="w-3.5 h-3.5" />
-                <span>{ll.execution.report.tab_raw_json()}</span>
-              </button>
+          {/* 右侧：耗时 + 复制节点名 */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono">
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              <span>{report.duration_ms}ms</span>
             </div>
+
             <CopyButton
-              value={report}
-              format="json"
-              label={ll.execution.report.copy_node_report()}
-              title={ll.execution.report.copy_node_report()}
+              value={report.node_name}
+              title={ll.execution.viewers.copy_node_name()}
               size="xs"
+              className="h-6 px-1.5 opacity-70 hover:opacity-100 transition-opacity"
             />
           </div>
-          {/* Tab 内容区域 */}
-          <div className="p-4 text-sm overflow-hidden">
-            {activeTab === 'structured' ? (
-              <div className="space-y-3">
-                {/* 节点执行摘要条 */}
-                <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-muted/40 rounded-lg border border-border/40 text-xs">
-                  <div className="flex items-center gap-1">
-                    <span className="font-semibold text-foreground select-text">{report.node_name}</span>
-                    <CopyButton
-                      value={report.node_name}
-                      title={ll.execution.viewers.copy_node_name()}
-                      size="xs"
-                      className="h-5 p-0.5"
-                    />
-                  </div>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="font-semibold text-muted-foreground">{ll.execution.report.status_summary()}:</span>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'font-mono text-xs',
-                      isSuccess
-                        ? 'text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40'
-                        : isCancelled
-                          ? 'text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40'
-                          : 'text-red-700 dark:text-red-300 border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40'
-                    )}
-                  >
-                    {report.status}
-                  </Badge>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="text-muted-foreground">{ll.execution.report.total_duration()}:</span>
-                  <span className="font-mono font-medium">{report.duration_ms}ms</span>
-                  {report.wait_duration_ms != null && report.wait_duration_ms > 0 && (
-                    <>
-                      <span className="text-muted-foreground">•</span>
-                      <span className="text-muted-foreground">{ll.execution.report.wait_duration()}:</span>
-                      <span className="font-mono">{report.wait_duration_ms}ms</span>
-                    </>
-                  )}
-                  {report.used_port_id && (
-                    <>
-                      <span className="text-muted-foreground">•</span>
-                      <span className="text-muted-foreground">{ll.execution.report.used_port()}:</span>
-                      <Badge variant="outline" className="font-mono text-[11px] bg-background">
-                        {report.used_port_id}
-                      </Badge>
-                    </>
-                  )}
-                  {report.variable_changes && report.variable_changes.length > 0 && (
-                    <>
-                      <span className="text-muted-foreground">•</span>
-                      <Badge variant="outline" className="text-[11px] bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800">
-                        {report.variable_changes.length} {ll.execution.viewers.variable_changes()}
-                      </Badge>
-                    </>
-                  )}
-                </div>
+        </div>
 
-                {/* 节点级错误展示（在 viewer 上方，覆盖所有节点类型） */}
-                {report.error && report.status === 'failed' && (
-                  <ErrorSection
-                    error={report.error}
-                    nodeName={report.node_name}
-                    nodeType={report.node_type}
-                    nodeUuid={report.node_uuid}
-                  />
+        {/* 第二行：操作控制栏（Tab 切换 + 完整报告复制） */}
+        <div className="flex items-center justify-between gap-2 w-full pt-1.5 border-t border-border/30">
+          <div className="inline-flex h-7 items-center p-0.5 bg-muted/70 rounded-lg border border-border/40 shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab('structured')}
+              className={cn(
+                'inline-flex items-center justify-center gap-1 px-2.5 h-6 text-xs font-medium rounded-md transition-all duration-150 cursor-pointer',
+                activeTab === 'structured'
+                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <LayoutList className="w-3 h-3 shrink-0" />
+              <span>{ll.execution.report.tab_structured()}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('raw')}
+              className={cn(
+                'inline-flex items-center justify-center gap-1 px-2.5 h-6 text-xs font-medium rounded-md transition-all duration-150 cursor-pointer',
+                activeTab === 'raw'
+                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <FileCode className="w-3 h-3 shrink-0" />
+              <span>{ll.execution.report.tab_raw_json()}</span>
+            </button>
+          </div>
+
+          <CopyButton
+            value={report}
+            format="json"
+            label={ll.execution.report.copy_node_report()}
+            title={ll.execution.report.copy_node_report()}
+            size="xs"
+            className="h-7 px-2 shrink-0 text-xs"
+          />
+        </div>
+      </div>
+      {/* 详情内容区（直接平铺渲染） */}
+      <div className="p-4 text-sm overflow-hidden">
+        {activeTab === 'structured' ? (
+          <div className="space-y-3">
+            {/* 补充执行摘要（等待耗时、出口端口、变量变更） */}
+            {(Boolean(report.wait_duration_ms && report.wait_duration_ms > 0) || Boolean(report.used_port_id) || Boolean(report.variable_changes && report.variable_changes.length > 0)) && (
+              <div className="flex flex-wrap items-center gap-2 px-3 py-1.5 bg-muted/40 rounded-lg border border-border/40 text-xs">
+                {report.wait_duration_ms != null && report.wait_duration_ms > 0 && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-muted-foreground">{ll.execution.report.wait_duration()}:</span>
+                    <span className="font-mono">{report.wait_duration_ms}ms</span>
+                  </div>
                 )}
-                <NodeViewerSelector report={report} />
-              </div>
-            ) : (
-              /* 原始 JSON 视图 */
-              <div className="min-w-0">
-                <div className="overflow-x-auto">
-                  <RawJsonViewer data={report} />
-                </div>
+                {report.used_port_id && (
+                  <div className="flex items-center gap-1">
+                    {report.wait_duration_ms != null && report.wait_duration_ms > 0 && <span className="text-muted-foreground">•</span>}
+                    <span className="text-muted-foreground">{ll.execution.report.used_port()}:</span>
+                    <Badge variant="outline" className="font-mono text-[11px] bg-background">
+                      {report.used_port_id}
+                    </Badge>
+                  </div>
+                )}
+                {report.variable_changes && report.variable_changes.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    {(Boolean(report.wait_duration_ms && report.wait_duration_ms > 0) || Boolean(report.used_port_id)) && <span className="text-muted-foreground">•</span>}
+                    <Badge variant="outline" className="text-[11px] bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800">
+                      {report.variable_changes.length} {ll.execution.viewers.variable_changes()}
+                    </Badge>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* 节点级错误展示（在 viewer 上方，覆盖所有节点类型） */}
+            {report.error && report.status === 'failed' && (
+              <ErrorSection
+                error={report.error}
+                nodeName={report.node_name}
+                nodeType={report.node_type}
+                nodeUuid={report.node_uuid}
+              />
+            )}
+            <NodeViewerSelector report={report} />
           </div>
-        </div>
-      )}
+        ) : (
+          /* 原始 JSON 视图 */
+          <div className="min-w-0">
+            <div className="overflow-x-auto">
+              <RawJsonViewer data={report} />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

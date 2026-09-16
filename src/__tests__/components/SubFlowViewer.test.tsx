@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { SubFlowViewer } from '@/components/execution/viewers/SubFlowViewer';
 import type { NodeExecutionReport } from '@/types';
 
@@ -61,8 +61,8 @@ describe('SubFlowViewer', () => {
     // 检查子流程名称展示
     expect(screen.getByText('Auth SubFlow')).toBeInTheDocument();
     // 检查子流程节点列表渲染
-    expect(screen.getByText('Sub Entry')).toBeInTheDocument();
-    expect(screen.getByText('Generate Token')).toBeInTheDocument();
+    expect(screen.getAllByText('Sub Entry').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Generate Token').length).toBeGreaterThanOrEqual(1);
   });
 
   it('结构化展示调用配置与执行统计', () => {
@@ -175,10 +175,7 @@ describe('SubFlowViewer', () => {
 
     render(<SubFlowViewer report={report} />);
 
-    // 一层子节点默认折叠：先展开它，再验证更深一层可渲染
-    expect(screen.queryByText('Deep Node')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText('Nested Call'));
-
+    // 子节点采用平铺详情展示：嵌套层级直接渲染呈现
     expect(screen.getByText('Deep SubFlow')).toBeInTheDocument();
     expect(screen.getByText('Deep Node')).toBeInTheDocument();
   });
