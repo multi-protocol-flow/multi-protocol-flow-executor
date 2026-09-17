@@ -2,7 +2,7 @@
  * Debug Store 单元测试
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useDebugStore, selectDebugStatus, selectCurrentNodeUuid, selectIsDebugging, selectIsPaused } from '@/stores/debug';
+import { useDebugStore, selectDebugStatus, selectCurrentNodeUuid, selectIsDebugging, selectIsPaused, selectVariableDiff, computeVariableDiff, EMPTY_VARIABLE_DIFF } from '@/stores/debug';
 import { useExecutionStore } from '@/stores/execution';
 import type { DebugEvent, ExecutionStackEntry } from '@/types/debug';
 
@@ -81,7 +81,7 @@ describe('DebugStore', () => {
         const stackEntry: ExecutionStackEntry = {
           node_uuid: 'node-1',
           node_name: 'HTTP Request',
-          node_type: 'http',
+          node_type: 'http:request',
           started_at: 1000,
           ended_at: 2000,
           input: { url: 'https://example.com' },
@@ -134,7 +134,7 @@ describe('DebugStore', () => {
             entry: {
               node_uuid: 'node-1',
               node_name: 'HTTP请求',
-              node_type: 'http',
+              node_type: 'http:request',
               started_at: Date.now(),
               ended_at: Date.now() + 100,
               input: null,
@@ -173,7 +173,7 @@ describe('DebugStore', () => {
         const state = useDebugStore.getState();
         expect(state.currentNodeOutput).toBeNull();
       });
-      it('处理 NodeExecuted 事件（sub_flow 节点保留 sub_flow_report）', () => {
+      it('处理 NodeExecuted 事件（flow:sub 节点保留 sub_flow_report）', () => {
         const mockSubFlowReport = {
           uuid: 'report-child-1',
           flow_uuid: 'child-flow-uuid',
@@ -186,7 +186,7 @@ describe('DebugStore', () => {
           node_reports: [
             {
               node_uuid: 'child-http-node',
-              node_type: 'http',
+              node_type: 'http:request',
               node_name: '登录请求',
               start_time: 1000,
               end_time: 2000,
@@ -203,7 +203,7 @@ describe('DebugStore', () => {
             entry: {
               node_uuid: 'subflow-node-1',
               node_name: '调用子流程',
-              node_type: 'sub_flow',
+              node_type: 'flow:sub',
               started_at: 1000,
               ended_at: 2000,
               input: { target_flow_path: './child.json' },
@@ -279,7 +279,7 @@ describe('DebugStore', () => {
             },
             {
               node_uuid: 'child-2',
-              node_type: 'http',
+              node_type: 'http:request',
               node_name: '请求',
               start_time: 1100,
               end_time: 2000,
@@ -298,7 +298,7 @@ describe('DebugStore', () => {
               {
                 node_uuid: 'subflow-node-1',
                 node_name: '调用子流程',
-                node_type: 'sub_flow',
+                node_type: 'flow:sub',
                 started_at: 1000,
                 ended_at: 2000,
                 success: true,
@@ -1121,6 +1121,115 @@ describe('DebugStore', () => {
 
       expect(mockSendDebugCommand).toHaveBeenCalledWith('StepOut');
       expect(useDebugStore.getState().status).toBe('running');
+    });
+  });
+
+  describe('快照重试与变量 Diff (Snapshot & Diff)', () => {
+    it('retryCurrentNode 发送 RetryCurrentNode 命令并设置 running', async () => {
+      const { sendDebugCommand } = await import('@/services/tauri');
+      const mockSendDebugCommand = sendDebugCommand as ReturnType<typeof vi.fn>;
+      mockSendDebugCommand.mockResolvedValue(undefined);
+      useDebugStore.setState({ status: 'paused', currentNodeUuid: 'node-1' });
+
+      await useDebugStore.getState().retryCurrentNode();
+
+      expect(mockSendDebugCommand).toHaveBeenCalledWith('RetryCurrentNode');
+      expect(useDebugStore.getState().status).toBe('running');
+    });
+
+    it('runFromSnapshot 发送 RunFromSnapshot 命令', async () => {
+      const { sendDebugCommand } = await import('@/services/tauri');
+      const mockSendDebugCommand = sendDebugCommand as ReturnType<typeof vi.fn>;
+      mockSendDebugCommand.mockResolvedValue(undefined);
+      useDebugStore.setState({ status: 'paused' });
+
+      await useDebugStore.getState().runFromSnapshot('node-target');
+
+      expect(mockSendDebugCommand).toHaveBeenCalledWith({
+        RunFromSnapshot: { node_uuid: 'node-target' },
+      });
+    });
+
+    it('handleDebugEvent SnapshotRestored 截断堆栈并更新变量', () => {
+      const dummyEntry = (uuid: string): ExecutionStackEntry => ({
+        node_uuid: uuid,
+        node_name: uuid,
+        node_type: 'entry',
+        started_at: 100,
+        ended_at: 200,
+        success: true,
+      });
+      useDebugStore.setState({
+        executionStack: [dummyEntry('n1'), dummyEntry('n2'), dummyEntry('n3')],
+        variables: { a: 1, b: 2 },
+        currentNodeUuid: 'n3',
+      });
+
+      useDebugStore.getState().handleDebugEvent({
+        SnapshotRestored: {
+          node_uuid: 'n1',
+          restored_variables: { a: 10 },
+          stack_len: 1,
+        },
+      });
+
+      const state = useDebugStore.getState();
+      expect(state.currentNodeUuid).toBe('n1');
+      expect(state.variables).toEqual({ a: 10 });
+      expect(state.executionStack).toHaveLength(1);
+      expect(state.executionStack[0].node_uuid).toBe('n1');
+    });
+
+    it('computeVariableDiff 正确计算新增、修改和删除的变量', () => {
+      const diff = computeVariableDiff(
+        {
+          unchanged: 'same',
+          modified: 'old-val',
+          removed: 123,
+        },
+        {
+          unchanged: 'same',
+          modified: 'new-val',
+          added: true,
+        },
+      );
+
+      expect(diff.added).toEqual(['added']);
+      expect(diff.deleted).toEqual(['removed']);
+      expect(diff.modified).toEqual({
+        modified: { oldVal: 'old-val', newVal: 'new-val' },
+      });
+    });
+
+    it('PausedAtNode 事件同步计算 variableDiff 供 UI 直接订阅', () => {
+      // 第一次暂停：无上一份快照，差异为空
+      useDebugStore.getState().handleDebugEvent({
+        PausedAtNode: {
+          node_uuid: 'n1',
+          reason: { type: 'breakpoint', node_uuid: 'n1' },
+          variables: { order_id: 'OLD_1', kept: 1 },
+          execution_stack: [],
+        },
+      });
+      expect(selectVariableDiff(useDebugStore.getState())).toEqual(EMPTY_VARIABLE_DIFF);
+
+      // 第二次暂停：相对上一次快照，order_id 被修改、extra 为新增
+      useDebugStore.getState().handleDebugEvent({
+        PausedAtNode: {
+          node_uuid: 'n2',
+          reason: { type: 'step_complete', node_uuid: 'n2' },
+          variables: { order_id: 'NEW_123', kept: 1, extra: true },
+          execution_stack: [],
+        },
+      });
+
+      const diff = selectVariableDiff(useDebugStore.getState());
+      expect(diff.added).toEqual(['extra']);
+      expect(diff.modified).toEqual({ order_id: { oldVal: 'OLD_1', newVal: 'NEW_123' } });
+      expect(diff.deleted).toEqual([]);
+
+      // 同一状态下重复取值必须返回同一引用，否则订阅组件会无限重渲染
+      expect(selectVariableDiff(useDebugStore.getState())).toBe(diff);
     });
   });
 });

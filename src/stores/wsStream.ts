@@ -53,6 +53,8 @@ interface WsStreamState {
   handleWsEvent: (event: DebugEvent) => void;
   /** 设置活动 WS 连接 */
   setActiveWsConnection: (connectionId: string | null) => void;
+  /** 向当前或指定长连接发送探针数据帧 */
+  sendLiveFrame: (connectionId: string, payload: string, isBinary?: boolean) => Promise<void>;
   /** 重置 WS 流状态 */
   resetWsStreams: () => void;
   /** 重置全部状态 */
@@ -78,7 +80,7 @@ export const useWsStreamStore = create<WsStreamState>((set, _get) => ({
         segments: [{
           node_uuid: owner_node_uuid,
           node_name: owner_node_name,
-          node_type: 'ws_connect',
+          node_type: 'ws:connect',
           started_at: Date.now(),
           ended_at: null,
           messages: [],
@@ -216,7 +218,7 @@ export const useWsStreamStore = create<WsStreamState>((set, _get) => ({
         const newSegment: WsStreamSegment = {
           node_uuid: to_node_uuid,
           node_name: '',
-          node_type: 'ws_send_collect',
+          node_type: 'ws:send_collect',
           started_at: now,
           ended_at: null,
           messages: [],
@@ -271,6 +273,16 @@ export const useWsStreamStore = create<WsStreamState>((set, _get) => ({
 
   setActiveWsConnection: (connectionId) => set({ activeWsConnectionId: connectionId }),
 
+  sendLiveFrame: async (connectionId: string, payload: string, isBinary?: boolean) => {
+    const { sendDebugCommand } = await import('@/services/tauri');
+    await sendDebugCommand({
+      SendStreamFrame: {
+        connection_id: connectionId,
+        payload,
+        is_binary: !!isBinary,
+      },
+    });
+  },
   resetWsStreams: () => set({
     wsStreams: new Map(),
     activeWsConnectionId: null,

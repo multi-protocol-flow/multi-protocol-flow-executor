@@ -86,9 +86,9 @@ pub enum DebugCommand {
     Continue,
     /// 单步执行
     StepOver,
-    /// 单步步入（遇到 `sub_flow` 节点进入其内部首节点暂停；普通节点行为同 `StepOver`）
+    /// 单步步入（遇到 `flow:sub` 节点进入其内部首节点暂停；普通节点行为同 `StepOver`）
     StepInto,
-    /// 单步步出（执行完当前子流程剩余节点，在父流程该 `sub_flow` 节点的后继节点暂停）
+    /// 单步步出（执行完当前子流程剩余节点，在父流程该 `flow:sub` 节点的后继节点暂停）
     StepOut,
     /// 跳过当前节点
     SkipNode {
@@ -121,6 +121,22 @@ pub enum DebugCommand {
         node_uuid: String,
         /// 是否启用断点
         enabled: bool,
+    },
+    /// 原地重试当前暂停节点（使用修改后的配置或变量重新执行）
+    RetryCurrentNode,
+    /// 从指定历史节点快照恢复并继续暂停/执行
+    RunFromSnapshot {
+        /// 目标节点 UUID
+        node_uuid: String,
+    },
+    /// 向指定长连接发送调试帧
+    SendStreamFrame {
+        /// 连接 ID
+        connection_id: String,
+        /// 载荷内容
+        payload: String,
+        /// 是否为二进制消息（Base64 编码）
+        is_binary: bool,
     },
 }
 /// 调试调用栈帧（用于多层子流程嵌套调试）
@@ -206,6 +222,24 @@ pub enum DebugEvent {
     Error {
         /// Error信息
         message: String,
+    },
+    /// 快照已恢复事件
+    SnapshotRestored {
+        /// 恢复的目标节点 UUID
+        node_uuid: String,
+        /// 恢复后的变量表
+        restored_variables: HashMap<String, serde_json::Value>,
+        /// 截断后的堆栈长度
+        stack_len: usize,
+    },
+    /// 探针发送帧完成事件
+    StreamFrameSent {
+        /// 连接 ID
+        connection_id: String,
+        /// 发送时间戳（毫秒）
+        timestamp_ms: u64,
+        /// 发送的载荷内容
+        payload: String,
     },
     /// 心跳事件（定期发送，用于检测会话是否存活）
     Heartbeat {
@@ -706,5 +740,49 @@ mod tests {
         let deserialized: DebugEvent =
             serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化应Success: {e}"));
         assert_eq!(event, deserialized, "序列化往返应保持一致");
+    }
+
+    #[test]
+    fn test_snapshot_commands_and_events() {
+        let cmd1 = DebugCommand::RetryCurrentNode;
+        let json1 = serde_json::to_string(&cmd1).unwrap_or_else(|e| panic!("{e}"));
+        let des1: DebugCommand = serde_json::from_str(&json1).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(cmd1, des1);
+
+        let cmd2 = DebugCommand::RunFromSnapshot {
+            node_uuid: "node-100".to_string(),
+        };
+        let json2 = serde_json::to_string(&cmd2).unwrap_or_else(|e| panic!("{e}"));
+        let des2: DebugCommand = serde_json::from_str(&json2).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(cmd2, des2);
+
+        let cmd3 = DebugCommand::SendStreamFrame {
+            connection_id: "conn-ws-1".to_string(),
+            payload: r#"{"type":"ping"}"#.to_string(),
+            is_binary: false,
+        };
+        let json3 = serde_json::to_string(&cmd3).unwrap_or_else(|e| panic!("{e}"));
+        let des3: DebugCommand = serde_json::from_str(&json3).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(cmd3, des3);
+
+        let mut vars = HashMap::new();
+        vars.insert("k1".to_string(), serde_json::json!("v1"));
+        let event1 = DebugEvent::SnapshotRestored {
+            node_uuid: "node-100".to_string(),
+            restored_variables: vars,
+            stack_len: 2,
+        };
+        let json_ev1 = serde_json::to_string(&event1).unwrap_or_else(|e| panic!("{e}"));
+        let des_ev1: DebugEvent = serde_json::from_str(&json_ev1).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(event1, des_ev1);
+
+        let event2 = DebugEvent::StreamFrameSent {
+            connection_id: "conn-ws-1".to_string(),
+            timestamp_ms: 1234567,
+            payload: "hello".to_string(),
+        };
+        let json_ev2 = serde_json::to_string(&event2).unwrap_or_else(|e| panic!("{e}"));
+        let des_ev2: DebugEvent = serde_json::from_str(&json_ev2).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(event2, des_ev2);
     }
 }

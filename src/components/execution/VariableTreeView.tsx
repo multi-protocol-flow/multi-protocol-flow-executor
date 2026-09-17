@@ -4,11 +4,12 @@
  * 支持监视模式：执行过程中实时显示变量值变化
  */
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronRight, Copy, Edit2, Check, X, Pin, PinOff } from 'lucide-react';
+import { ChevronDown, ChevronRight, Copy, Edit2, Check, X, Pin, PinOff, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useExecutionStore } from '@/stores/execution';
+import { useDebugStore, selectVariableDiff } from '@/stores/debug';
 
 /** 变量变化记录 */
 interface VariableChange {
@@ -28,6 +29,8 @@ interface VariableTreeViewProps {
   onEdit?: (name: string, value: unknown) => void;
   /** 是否启用监视模式（实时显示执行中的变量变化） */
   watchMode?: boolean;
+  /** 打开变量时间轴回调 */
+  onOpenTimeline?: (name: string) => void;
 }
 
 function VariableItem({
@@ -35,11 +38,17 @@ function VariableItem({
   value,
   depth = 0,
   onEdit,
+  diffType,
+  diffOldVal,
+  onOpenTimeline,
 }: {
   name: string;
   value: unknown;
   depth?: number;
   onEdit?: (name: string, value: unknown) => void;
+  diffType?: 'added' | 'modified';
+  diffOldVal?: unknown;
+  onOpenTimeline?: () => void;
 }) {
   const ll = getLL();
   const [isExpanded, setIsExpanded] = useState(depth < 1);
@@ -93,8 +102,10 @@ function VariableItem({
     <div className="border-b border-border last:border-b-0">
       <div
         className={cn(
-          'flex items-center gap-2 px-2 py-1.5 group',
-          'hover:bg-accent transition-colors'
+          'flex items-center gap-2 px-2 py-1.5 group transition-colors',
+          diffType === 'added' && 'bg-green-500/10 hover:bg-green-500/15 border-l-2 border-l-green-500',
+          diffType === 'modified' && 'bg-amber-500/10 hover:bg-amber-500/15 border-l-2 border-l-amber-500',
+          !diffType && 'hover:bg-accent'
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
@@ -117,6 +128,26 @@ function VariableItem({
           {name}
         </span>
 
+        {diffType === 'added' && (
+          <span
+            className="px-1.5 py-0.5 text-[10px] font-mono font-bold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-950/80 rounded border border-green-300 dark:border-green-800"
+            title={ll.flow.variable_tree_diff_added_title()}
+          >
+            [+]
+          </span>
+        )}
+        {diffType === 'modified' && (
+          <span
+            className="px-1.5 py-0.5 text-[10px] font-mono font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 rounded border border-amber-300 dark:border-amber-800 cursor-help"
+            title={ll.flow.variable_tree_diff_modified_title({
+              oldVal: JSON.stringify(diffOldVal, null, 2),
+              newVal: JSON.stringify(value, null, 2),
+            })}
+          >
+            [~]
+          </span>
+        )}
+
         {!isComplex && !isEditing && (
           <span className="text-sm text-muted-foreground font-mono flex-1 truncate">
             {getSimpleDisplay()}
@@ -138,6 +169,15 @@ function VariableItem({
             >
               <Copy className="w-3 h-3" />
             </button>
+            {onOpenTimeline && (
+              <button
+                onClick={onOpenTimeline}
+                className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-accent-foreground hover:bg-accent rounded"
+                title={ll.flow.variable_timeline_open()}
+              >
+                <History className="w-3 h-3 text-teal-500" />
+              </button>
+            )}
             {onEdit && !isComplex && (
               <button
                 onClick={handleStartEdit}
@@ -217,11 +257,11 @@ function VariableItem({
   );
 }
 
-export function VariableTreeView({ variables, canEdit, onEdit, watchMode = false }: VariableTreeViewProps) {
+export function VariableTreeView({ variables, canEdit, onEdit, watchMode = false, onOpenTimeline }: VariableTreeViewProps) {
   const ll = getLL();
   const editHandler = canEdit ? onEdit : undefined;
   const isExecuting = useExecutionStore((s) => s.isExecuting);
-
+  const varDiff = useDebugStore(selectVariableDiff);
   // 监视模式：追踪变量变化
   const [variableChanges, setVariableChanges] = useState<Map<string, VariableChange>>(new Map());
   const [pinnedVars, setPinnedVars] = useState<Set<string>>(new Set());
@@ -300,14 +340,26 @@ export function VariableTreeView({ variables, canEdit, onEdit, watchMode = false
     return (
       <div className="h-full overflow-y-auto">
         {Object.keys(variables).length > 0 ? (
-          Object.entries(variables).map(([name, value]) => (
-            <VariableItem
-              key={name}
-              name={name}
-              value={value}
-              onEdit={editHandler}
-            />
-          ))
+          Object.entries(variables).map(([name, value]) => {
+            const diffType = varDiff.added.includes(name)
+              ? 'added'
+              : name in varDiff.modified
+              ? 'modified'
+              : undefined;
+            const diffOldVal = varDiff.modified[name]?.oldVal;
+
+            return (
+              <VariableItem
+                key={name}
+                name={name}
+                value={value}
+                diffType={diffType}
+                diffOldVal={diffOldVal}
+                onOpenTimeline={onOpenTimeline ? () => onOpenTimeline(name) : undefined}
+                onEdit={editHandler}
+              />
+            );
+          })
         ) : (
           <div className="p-4 text-sm text-muted-foreground text-center">{ll.execution.viewers.variable_tree_empty()}</div>
         )}

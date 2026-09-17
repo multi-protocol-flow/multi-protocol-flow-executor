@@ -37,6 +37,45 @@ struct SkipNodeResult {
     simulated_output: Option<serde_json::Value>,
 }
 
+/// 通过执行前后快照差异补充变量变更记录（新增、修改与删除）
+///
+/// 仅在节点未产生 pending 变更（版本号未变）时使用：部分执行器直接改写合并视图中的
+/// 变量而不走版本追踪，此时按快照差异兜底，避免时间线漏记。
+/// 删除的变量以 `new_value = Null` 表达，与 pending 变更路径的表示保持一致。
+fn diff_variable_changes(
+    before: &HashMap<String, serde_json::Value>,
+    after: &HashMap<String, serde_json::Value>,
+    changes: &mut Vec<flow_engine_core::report::VariableChange>,
+) {
+    for (k, new_val) in after {
+        match before.get(k) {
+            Some(old_val) if old_val != new_val => {
+                changes.push(flow_engine_core::report::VariableChange {
+                    key: k.clone(),
+                    old_value: Some(old_val.clone()),
+                    new_value: new_val.clone(),
+                });
+            }
+            None => changes.push(flow_engine_core::report::VariableChange {
+                key: k.clone(),
+                old_value: None,
+                new_value: new_val.clone(),
+            }),
+            Some(_) => {}
+        }
+    }
+
+    for (k, old_val) in before {
+        if !after.contains_key(k) {
+            changes.push(flow_engine_core::report::VariableChange {
+                key: k.clone(),
+                old_value: Some(old_val.clone()),
+                new_value: serde_json::Value::Null,
+            });
+        }
+    }
+}
+
 /// 调试单步动作类型
 #[derive(Debug, Clone, PartialEq)]
 enum StepCommandResult {
@@ -46,6 +85,24 @@ enum StepCommandResult {
     StepOut,
     RunToEnd,
     SkipNode(Option<String>, Option<serde_json::Value>),
+    RetryCurrentNode,
+    RunFromSnapshot(String),
+}
+
+/// 上下文快照，用于断点重试与历史快照恢复
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct ContextSnapshot {
+    /// 目标节点 UUID
+    pub node_uuid: String,
+    /// 变量存储快照
+    pub variables: flow_engine_core::context::VariableStorage,
+    /// 堆栈长度快照
+    pub stack_len: usize,
+    /// 已访问节点集合
+    pub visited: std::collections::HashSet<String>,
+    /// 创建时间戳（毫秒）
+    pub timestamp_ms: u64,
 }
 
 /// 调试调用栈帧状态（用于多层子流程嵌套调试）
@@ -60,6 +117,7 @@ struct DebugFrameState {
     subflow_config: Option<flow_engine_core::node_config::SubFlowConfig>,
     visited: std::collections::HashSet<String>,
     subflow_entry_index: Option<usize>,
+    snapshots: HashMap<String, ContextSnapshot>,
 }
 
 fn build_call_frames(call_frames: &[DebugFrameState]) -> Vec<DebugCallFrame> {
@@ -90,6 +148,8 @@ pub struct DebuggableFlowExecutor {
     flow_file_path: Option<PathBuf>,
     /// 节点插件注册表（通过 registry 查找替代 match 分发）
     registry: Arc<NodeRegistry>,
+    /// 附加的自定义 Provider（例如 Ingress Mock 服务的响应回传通道）
+    extra_providers: HashMap<String, Arc<dyn std::any::Any + Send + Sync>>,
 }
 
 impl Default for DebuggableFlowExecutor {
@@ -104,7 +164,18 @@ impl DebuggableFlowExecutor {
         DebuggableFlowExecutor {
             flow_file_path: None,
             registry: Arc::new(crate::default_registry::default_registry()),
+            extra_providers: HashMap::new(),
         }
+    }
+
+    /// 注入自定义 Provider
+    ///
+    /// 与 [`crate::executor::FlowExecutor::with_provider`] 语义一致：注入的 provider
+    /// 会写入调试根上下文，并随调用栈下传到子流程帧，供节点通过
+    /// `context.get_provider::<T>(name)` 取用（例如 Ingress Mock 的响应回传通道）。
+    pub fn with_provider<T: 'static + Send + Sync>(mut self, name: &str, provider: Arc<T>) -> Self {
+        self.extra_providers.insert(name.to_string(), provider);
+        self
     }
 
     /// 设置流程文件路径（用于 CLI 相对路径解析）
@@ -238,15 +309,26 @@ impl DebuggableFlowExecutor {
         }
         .with_default_providers();
 
+        // 注入调用方提供的自定义 provider（如 Ingress Mock 响应回传通道）
+        for (name, provider) in &self.extra_providers {
+            context.set_provider(name.clone(), provider.clone());
+        }
+
         // 记录调试开始时间（用于报告生成）
         let debug_start_time_ms = context.flow_trigger_time;
 
         // 查找开始节点
-        let start_node = match flow
+        // 查找开始节点：与 FlowExecutor/校验器共用同一判定（ENTRY 优先，其次 HTTP_INGRESS）
+        let start_node = flow
             .nodes
             .iter()
             .find(|node| node.node_type == node_types::ENTRY)
-        {
+            .or_else(|| {
+                flow.nodes
+                    .iter()
+                    .find(|node| node_types::is_entry_node_type(&node.node_type))
+            });
+        let start_node = match start_node {
             Some(node) => node,
             None => {
                 // 停止心跳任务
@@ -326,6 +408,18 @@ impl DebuggableFlowExecutor {
                 .push(conn.target_node_uuid.clone());
         }
 
+        let mut root_snapshots = HashMap::new();
+        root_snapshots.insert(
+            start_node.uuid.clone(),
+            ContextSnapshot {
+                node_uuid: start_node.uuid.clone(),
+                variables: context.variables.clone(),
+                stack_len: 0,
+                visited: std::collections::HashSet::new(),
+                timestamp_ms: flow_engine_core::utils::unix_timestamp_ms(),
+            },
+        );
+
         let root_frame = DebugFrameState {
             frame_id: 0,
             flow: root_flow.clone(),
@@ -337,6 +431,7 @@ impl DebuggableFlowExecutor {
             subflow_config: None,
             visited: std::collections::HashSet::new(),
             subflow_entry_index: None,
+            snapshots: root_snapshots,
         };
 
         let mut call_frames: Vec<DebugFrameState> = vec![root_frame];
@@ -409,7 +504,7 @@ impl DebuggableFlowExecutor {
                         }
                     }
 
-                    // 3. 推进父帧游标到该 sub_flow 节点的后继节点
+                    // 3. 推进父帧游标到该 flow:sub 节点的后继节点
                     let parent_next = parent_frame
                         .connection_map
                         .get(&parent_frame.current_node_id)
@@ -574,7 +669,7 @@ impl DebuggableFlowExecutor {
                     }
                     Ok(StepCommandResult::StepInto) => {
                         let is_subflow =
-                            node.node_type == node_types::SUB_FLOW || node.node_type == "sub_flow";
+                            node.node_type == node_types::SUB_FLOW || node.node_type == "flow:sub";
                         if is_subflow {
                             let subflow_config = match &node.data {
                                 NodeData::SubFlow(cfg) => Some(cfg.clone()),
@@ -709,6 +804,10 @@ impl DebuggableFlowExecutor {
                                             call_frames[active_idx].context.log_sender.clone();
                                         child_context.call_stack =
                                             call_frames[active_idx].context.call_stack.clone();
+                                        // Provider 必须随调用栈下传：否则子流程内的长连接探针
+                                        // （SendStreamFrame）与 Ingress 响应节点都取不到共享实例。
+                                        child_context.providers =
+                                            call_frames[active_idx].context.providers.clone();
                                         if !child_flow.uuid.is_empty() {
                                             child_context.call_stack.push(child_flow.uuid.clone());
                                         }
@@ -791,6 +890,7 @@ impl DebuggableFlowExecutor {
                                             subflow_config: Some(cfg),
                                             visited: std::collections::HashSet::new(),
                                             subflow_entry_index: Some(subflow_entry_idx),
+                                            snapshots: HashMap::new(),
                                         };
                                         call_frames.push(child_frame);
 
@@ -821,6 +921,63 @@ impl DebuggableFlowExecutor {
                     Ok(StepCommandResult::RunToEnd) => {
                         debug_state.status = DebugStatus::Running;
                         update_shared_state(debug_state);
+                    }
+                    Ok(StepCommandResult::RetryCurrentNode) => {
+                        let active_frame = &mut call_frames[active_idx];
+                        if let Some(snapshot) = active_frame.snapshots.get(&current_node_id) {
+                            active_frame.context.variables = snapshot.variables.clone();
+                            debug_state.execution_stack.truncate(snapshot.stack_len);
+                            active_frame.visited.remove(&current_node_id);
+                            debug_state.status = DebugStatus::Running;
+                            debug_state.pause_reason = None;
+                            debug_state.variables = active_frame.context.variables.get_merged_variables();
+                            update_shared_state(debug_state);
+                            continue;
+                        } else {
+                            active_frame.visited.remove(&current_node_id);
+                            debug_state.status = DebugStatus::Running;
+                            update_shared_state(debug_state);
+                            continue;
+                        }
+                    }
+                    Ok(StepCommandResult::RunFromSnapshot(target_node_uuid)) => {
+                        let active_frame = &mut call_frames[active_idx];
+                        if let Some(snapshot) = active_frame.snapshots.get(&target_node_uuid).cloned() {
+                            active_frame.context.variables = snapshot.variables.clone();
+                            debug_state.execution_stack.truncate(snapshot.stack_len);
+                            active_frame.visited = snapshot.visited.clone();
+                            active_frame.visited.remove(&target_node_uuid);
+                            active_frame.current_node_id = target_node_uuid.clone();
+                            debug_state.current_node_uuid = Some(target_node_uuid.clone());
+                            debug_state.is_stepping = true;
+                            debug_state.status = DebugStatus::Paused;
+                            let pause_reason = PauseReason::StepComplete {
+                                node_uuid: target_node_uuid.clone(),
+                            };
+                            debug_state.pause_reason = Some(pause_reason.clone());
+                            debug_state.variables = active_frame.context.variables.get_merged_variables();
+                            debug_state.call_frames = build_call_frames(&call_frames);
+                            update_shared_state(debug_state);
+
+                            let _ = event_sender.send(DebugEvent::SnapshotRestored {
+                                node_uuid: target_node_uuid.clone(),
+                                restored_variables: debug_state.variables.clone(),
+                                stack_len: snapshot.stack_len,
+                            });
+                            let _ = event_sender.send(DebugEvent::PausedAtNode {
+                                node_uuid: target_node_uuid,
+                                reason: pause_reason,
+                                variables: debug_state.variables.clone(),
+                                execution_stack: debug_state.execution_stack.clone(),
+                                call_frames: debug_state.call_frames.clone(),
+                            });
+                            continue;
+                        } else {
+                            let _ = event_sender.send(DebugEvent::Error {
+                                message: format!("Snapshot not found for node {}", target_node_uuid),
+                            });
+                            continue;
+                        }
                     }
                     Err(error) => {
                         let reason = if error == "User aborted debugging" {
@@ -855,6 +1012,27 @@ impl DebuggableFlowExecutor {
             let node_start_ms = flow_engine_core::utils::unix_timestamp_ms();
             let resolved_config = serde_json::to_value(&node.data).ok();
 
+            // 记录节点执行前快照（最多保留 32 个快照）
+            if active_frame.snapshots.len() >= 32 {
+                if let Some(oldest_key) = active_frame
+                    .snapshots
+                    .iter()
+                    .min_by_key(|(_, s)| s.timestamp_ms)
+                    .map(|(k, _)| k.clone())
+                {
+                    active_frame.snapshots.remove(&oldest_key);
+                }
+            }
+            active_frame.snapshots.insert(
+                current_node_id.clone(),
+                ContextSnapshot {
+                    node_uuid: current_node_id.clone(),
+                    variables: active_frame.context.variables.clone(),
+                    stack_len: debug_state.execution_stack.len(),
+                    visited: active_frame.visited.clone(),
+                    timestamp_ms: flow_engine_core::utils::unix_timestamp_ms(),
+                },
+            );
             let stack_entry = ExecutionStackEntry {
                 node_uuid: node.uuid.clone(),
                 node_name: node.name.clone(),
@@ -929,7 +1107,7 @@ impl DebuggableFlowExecutor {
 
             active_frame.context.variables.clear_pending_changes();
             let var_version_before = active_frame.context.variables.version();
-
+            let vars_before = active_frame.context.variables.get_merged_variables();
             let node_refs: HashMap<String, &Node> = active_frame
                 .node_map
                 .iter()
@@ -946,12 +1124,16 @@ impl DebuggableFlowExecutor {
                 .await
             {
                 Ok((next_node_ids, output_data)) => {
-                    let variable_changes =
+                    let mut variable_changes =
                         if active_frame.context.variables.version() == var_version_before {
                             Vec::new()
                         } else {
                             active_frame.context.variables.take_pending_changes()
                         };
+                    if variable_changes.is_empty() {
+                        let vars_after = active_frame.context.variables.get_merged_variables();
+                        diff_variable_changes(&vars_before, &vars_after, &mut variable_changes);
+                    }
 
                     let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
                     let type_id = node.data.type_name();
@@ -1011,12 +1193,16 @@ impl DebuggableFlowExecutor {
                     }
                 }
                 Err(error) => {
-                    let variable_changes =
+                    let mut variable_changes =
                         if active_frame.context.variables.version() == var_version_before {
                             Vec::new()
                         } else {
                             active_frame.context.variables.take_pending_changes()
                         };
+                    if variable_changes.is_empty() {
+                        let vars_after = active_frame.context.variables.get_merged_variables();
+                        diff_variable_changes(&vars_before, &vars_after, &mut variable_changes);
+                    }
 
                     let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
                     let route_to_false = node
@@ -1104,27 +1290,150 @@ impl DebuggableFlowExecutor {
                         continue;
                     }
 
+                    // 调试模式下发生未被错误策略捕获的异常时，暂停在当前节点以供原地修改配置/变量并重试
+                    debug_state.status = DebugStatus::Paused;
+                    let pause_reason = PauseReason::Error {
+                        message: error.message.clone(),
+                    };
+                    debug_state.pause_reason = Some(pause_reason.clone());
+                    debug_state.variables = active_frame.context.variables.get_merged_variables();
+                    debug_state.call_frames = build_call_frames(&call_frames);
+                    update_shared_state(debug_state);
+
                     let _ = event_sender.send(DebugEvent::Error {
                         message: error.message.clone(),
                     });
-
-                    debug_state.status = DebugStatus::Ended;
-                    update_shared_state(debug_state);
-                    let report = Self::generate_debug_report(
-                        debug_state,
-                        root_flow,
-                        debug_state.start_time_ms,
-                        &active_frame.context,
-                    )
-                    .await;
-                    let _ = event_sender.send(DebugEvent::SessionEnded {
-                        reason: EndReason::Error {
-                            message: error.message,
-                        },
-                        report: Some(report),
+                    let _ = event_sender.send(DebugEvent::PausedAtNode {
+                        node_uuid: current_node_id.clone(),
+                        reason: pause_reason,
+                        variables: debug_state.variables.clone(),
                         execution_stack: debug_state.execution_stack.clone(),
+                        call_frames: debug_state.call_frames.clone(),
                     });
-                    return debug_state.clone();
+
+                    let active_frame = &mut call_frames[active_idx];
+                    let node_refs: HashMap<String, &Node> = active_frame
+                        .node_map
+                        .iter()
+                        .map(|(k, v)| (k.clone(), v))
+                        .collect();
+                    let flow_clone = active_frame.flow.clone();
+
+                    let command_result = self
+                        .wait_for_command(
+                            debug_state,
+                            &node,
+                            &mut active_frame.context,
+                            &node_refs,
+                            &flow_clone.connections,
+                            &event_sender,
+                            &mut command_receiver,
+                            &flow_clone,
+                        )
+                        .await;
+
+                    match command_result {
+                        // 出错暂停下，继续/单步/执行到底与“原地重试”同义：
+                        // 都用快照回滚当前节点后重新执行，避免用户按 F5/F10/F11 直接结束会话。
+                        Ok(StepCommandResult::RetryCurrentNode)
+                        | Ok(StepCommandResult::Continue)
+                        | Ok(StepCommandResult::StepOver)
+                        | Ok(StepCommandResult::StepInto)
+                        | Ok(StepCommandResult::StepOut)
+                        | Ok(StepCommandResult::RunToEnd) => {
+                            let active_frame = &mut call_frames[active_idx];
+                            if let Some(snapshot) = active_frame.snapshots.get(&current_node_id) {
+                                active_frame.context.variables = snapshot.variables.clone();
+                                debug_state.execution_stack.truncate(snapshot.stack_len);
+                                active_frame.visited.remove(&current_node_id);
+                                debug_state.status = DebugStatus::Running;
+                                debug_state.pause_reason = None;
+                                debug_state.variables = active_frame.context.variables.get_merged_variables();
+                                update_shared_state(debug_state);
+                                continue;
+                            } else {
+                                active_frame.visited.remove(&current_node_id);
+                                debug_state.status = DebugStatus::Running;
+                                update_shared_state(debug_state);
+                                continue;
+                            }
+                        }
+                        Ok(StepCommandResult::RunFromSnapshot(target_node_uuid)) => {
+                            let active_frame = &mut call_frames[active_idx];
+                            if let Some(snapshot) = active_frame.snapshots.get(&target_node_uuid).cloned() {
+                                active_frame.context.variables = snapshot.variables.clone();
+                                debug_state.execution_stack.truncate(snapshot.stack_len);
+                                active_frame.visited = snapshot.visited.clone();
+                                active_frame.visited.remove(&target_node_uuid);
+                                active_frame.current_node_id = target_node_uuid.clone();
+                                debug_state.current_node_uuid = Some(target_node_uuid.clone());
+                                debug_state.is_stepping = true;
+                                debug_state.status = DebugStatus::Paused;
+                                let pause_reason = PauseReason::StepComplete {
+                                    node_uuid: target_node_uuid.clone(),
+                                };
+                                debug_state.pause_reason = Some(pause_reason.clone());
+                                debug_state.variables = active_frame.context.variables.get_merged_variables();
+                                debug_state.call_frames = build_call_frames(&call_frames);
+                                update_shared_state(debug_state);
+
+                                let _ = event_sender.send(DebugEvent::SnapshotRestored {
+                                    node_uuid: target_node_uuid.clone(),
+                                    restored_variables: debug_state.variables.clone(),
+                                    stack_len: snapshot.stack_len,
+                                });
+                                let _ = event_sender.send(DebugEvent::PausedAtNode {
+                                    node_uuid: target_node_uuid,
+                                    reason: pause_reason,
+                                    variables: debug_state.variables.clone(),
+                                    execution_stack: debug_state.execution_stack.clone(),
+                                    call_frames: debug_state.call_frames.clone(),
+                                });
+                                continue;
+                            } else {
+                                // 快照缺失（可能已被 32 条上限淘汰）：保持暂停并提示，不能顺势结束会话
+                                let _ = event_sender.send(DebugEvent::Error {
+                                    message: format!("Snapshot not found for node {}", target_node_uuid),
+                                });
+                                continue;
+                            }
+                        }
+                        Ok(StepCommandResult::SkipNode(next_node_uuid_opt, _)) => {
+                            if let Some(next_node_uuid) = next_node_uuid_opt {
+                                debug_state.status = DebugStatus::Running;
+                                update_shared_state(debug_state);
+                                call_frames[active_idx].current_node_id = next_node_uuid;
+                                continue;
+                            } else {
+                                call_frames[active_idx].current_node_id = String::new();
+                                continue;
+                            }
+                        }
+                        Err(abort) if abort == "User aborted debugging" => {
+                            // EndDebug 已在 wait_for_command 内发出 SessionEnded(UserAbort) 并落盘报告，
+                            // 此处直接返回，避免重复生成报告并把结束原因改写成 Error。
+                            return debug_state.clone();
+                        }
+                        Err(error) => {
+                            debug_state.status = DebugStatus::Ended;
+                            update_shared_state(debug_state);
+                            let report = Self::generate_debug_report(
+                                debug_state,
+                                root_flow,
+                                debug_state.start_time_ms,
+                                &call_frames[active_idx].context,
+                            )
+                            .await;
+                            let _ = event_sender.send(DebugEvent::SessionEnded {
+                                reason: EndReason::Error {
+                                    message: error,
+                                },
+                                report: Some(report),
+                                execution_stack: debug_state.execution_stack.clone(),
+                            });
+                            return debug_state.clone();
+                        }
+                    }
                 }
             }
         }
@@ -1136,6 +1445,7 @@ impl DebuggableFlowExecutor {
         debug_state.status = DebugStatus::Ended;
         debug_state.current_node_uuid = None;
         debug_state.call_frames.clear();
+        debug_state.variables = context.variables.get_merged_variables();
         update_shared_state(debug_state);
         let report =
             Self::generate_debug_report(debug_state, root_flow, debug_state.start_time_ms, context)
@@ -1258,6 +1568,72 @@ impl DebuggableFlowExecutor {
                         event_sender.send(DebugEvent::BreakpointModified { node_uuid, enabled })
                     {
                         log::error!("[Debug] Failed to send BreakpointModified event: {}", e);
+                    }
+                }
+                DebugCommand::RetryCurrentNode => {
+                    return Ok(StepCommandResult::RetryCurrentNode);
+                }
+                DebugCommand::RunFromSnapshot { node_uuid } => {
+                    return Ok(StepCommandResult::RunFromSnapshot(node_uuid));
+                }
+                DebugCommand::SendStreamFrame {
+                    connection_id,
+                    payload,
+                    is_binary,
+                } => {
+                    #[cfg(feature = "protocol-ws")]
+                    {
+                        if let Some(ws_manager) = context
+                            .get_provider::<flow_engine_ws::websocket_manager::WebSocketConnectionManager>("ws")
+                        {
+                            match ws_manager.send(&connection_id, payload.clone(), is_binary, 30_000).await {
+                                Ok(()) => {
+                                    let now = flow_engine_core::utils::unix_timestamp_ms();
+                                    let sent_content = if is_binary {
+                                        flow_engine_core::ws_stream::MessageContent::Binary {
+                                            content: payload.as_bytes().to_vec(),
+                                        }
+                                    } else {
+                                        flow_engine_core::ws_stream::MessageContent::Text {
+                                            content: payload.clone(),
+                                        }
+                                    };
+                                    let sent_msg = flow_engine_core::ws_stream::WsMessage::new(
+                                        flow_engine_core::ws_stream::MessageDirection::Sent,
+                                        sent_content,
+                                    );
+                                    let _ = context.push_ws_message(&connection_id, sent_msg.clone()).await;
+                                    let _ = event_sender.send(DebugEvent::WsMessageSent {
+                                        connection_id: connection_id.clone(),
+                                        owner_node_uuid: current_node.uuid.clone(),
+                                        message: sent_msg,
+                                    });
+                                    let _ = event_sender.send(DebugEvent::StreamFrameSent {
+                                        connection_id,
+                                        timestamp_ms: now,
+                                        payload,
+                                    });
+                                }
+                                Err(err) => {
+                                    let _ = event_sender.send(DebugEvent::Error {
+                                        message: format!("Failed to send stream frame: {err}"),
+                                    });
+                                }
+                            }
+                        } else {
+                            let _ = event_sender.send(DebugEvent::Error {
+                                message: "WebSocket manager provider not available".to_string(),
+                            });
+                        }
+                    }
+                    #[cfg(not(feature = "protocol-ws"))]
+                    {
+                        let _ = is_binary;
+                        let _ = connection_id;
+                        let _ = payload;
+                        let _ = event_sender.send(DebugEvent::Error {
+                            message: "WebSocket protocol feature not enabled".to_string(),
+                        });
                     }
                 }
                 DebugCommand::StartDebug { .. } => {
@@ -2692,7 +3068,7 @@ mod tests {
                 },
                 Node {
                     uuid: "p-subflow".to_string(),
-                    node_type: "sub_flow".to_string(),
+                    node_type: "flow:sub".to_string(),
                     name: "Call Child".to_string(),
                     position: NodePosition::default(),
                     data: NodeData::sub_flow(flow_engine_core::node_config::SubFlowConfig {
@@ -2897,7 +3273,7 @@ mod tests {
                 },
                 Node {
                     uuid: "p-subflow".to_string(),
-                    node_type: "sub_flow".to_string(),
+                    node_type: "flow:sub".to_string(),
                     name: "Call Child".to_string(),
                     position: NodePosition::default(),
                     data: NodeData::sub_flow(flow_engine_core::node_config::SubFlowConfig {
@@ -3082,7 +3458,7 @@ mod tests {
                 },
                 Node {
                     uuid: "p-subflow".to_string(),
-                    node_type: "sub_flow".to_string(),
+                    node_type: "flow:sub".to_string(),
                     name: "Call Child".to_string(),
                     position: NodePosition::default(),
                     data: NodeData::sub_flow(flow_engine_core::node_config::SubFlowConfig {
@@ -3166,5 +3542,599 @@ mod tests {
             original_content, current_content,
             "Subflow file on disk must NOT be modified by debug session"
         );
+    }
+
+    #[tokio::test]
+    async fn test_debug_snapshot_and_retry_current_node() {
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: "start".to_string(),
+            node_type: "entry".to_string(),
+            name: "开始".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let script_node = Node {
+            uuid: "script-fail".to_string(),
+            node_type: "script".to_string(),
+            name: "脚本".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(flow_engine_core::node_config::ScriptNodeConfig {
+                script: "throw new Error('Intentional Failure');".to_string(),
+                timeout_ms: 5000,
+                on_error: flow_engine_core::node_config::ScriptErrorStrategy::Fatal,
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+        let conn = Connection {
+            id: "conn-1".to_string(),
+            source_node_uuid: "start".to_string(),
+            target_node_uuid: "script-fail".to_string(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id,
+            name: "测试快照原地重试".to_string(),
+            description: None,
+            nodes: vec![start_node, script_node],
+            connections: vec![conn],
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec![],
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
+                .await
+        });
+
+        let mut got_error_pause = false;
+        let mut retried = false;
+
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { node_uuid, reason, .. } => {
+                            if let PauseReason::Error { message } = reason {
+                                assert_eq!(node_uuid, "script-fail");
+                                assert!(!message.is_empty());
+                                got_error_pause = true;
+
+                                // 修改节点配置为正确脚本并原地重试
+                                let _ = command_sender.send(DebugCommand::ModifyNodeConfig {
+                                    node_uuid: "script-fail".to_string(),
+                                    config: serde_json::to_value(NodeData::Script(
+                                        flow_engine_core::node_config::ScriptNodeConfig {
+                                            script: "fn.variables.set('fixed', '42');".to_string(),
+                                            timeout_ms: 5000,
+                                            on_error: flow_engine_core::node_config::ScriptErrorStrategy::Recoverable,
+                                            ..Default::default()
+                                        },
+                                    ))
+                                    .unwrap(),
+                                });
+                                let _ = command_sender.send(DebugCommand::RetryCurrentNode);
+                                retried = true;
+                            }
+                        }
+                        DebugEvent::SessionEnded { report, .. } => {
+                            let rep = report.expect("report should exist");
+                            assert_eq!(rep.status, ExecutionStatus::Success);
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => {
+                    panic!("test_debug_snapshot_and_retry_current_node timed out");
+                }
+            }
+        }
+
+        assert!(got_error_pause, "应捕获节点错误暂停");
+        assert!(retried, "应成功触发原地重试");
+        let result_state = handle.await.unwrap();
+        assert_eq!(result_state.variables.get("fixed"), Some(&json!("42")));
+    }
+
+    #[tokio::test]
+    async fn test_debug_run_from_snapshot() {
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: "start".to_string(),
+            node_type: "entry".to_string(),
+            name: "开始".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let script1 = Node {
+            uuid: "script-1".to_string(),
+            node_type: "script".to_string(),
+            name: "脚本1".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(flow_engine_core::node_config::ScriptNodeConfig {
+                script: "fn.variables.set('val', 100); return {};".to_string(),
+                timeout_ms: 5000,
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let script2 = Node {
+            uuid: "script-2".to_string(),
+            node_type: "script".to_string(),
+            name: "脚本2".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(flow_engine_core::node_config::ScriptNodeConfig {
+                script: "fn.variables.set('val', 200); return {};".to_string(),
+                timeout_ms: 5000,
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: Some(true),
+            on_error: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id,
+            name: "测试从快照恢复".to_string(),
+            description: None,
+            nodes: vec![start_node, script1, script2],
+            connections: vec![
+                Connection {
+                    id: "c1".to_string(),
+                    source_node_uuid: "start".to_string(),
+                    target_node_uuid: "script-1".to_string(),
+                    source_port_id: "output".to_string(),
+                    target_port_id: "input".to_string(),
+                },
+                Connection {
+                    id: "c2".to_string(),
+                    source_node_uuid: "script-1".to_string(),
+                    target_node_uuid: "script-2".to_string(),
+                    source_port_id: "output".to_string(),
+                    target_port_id: "input".to_string(),
+                },
+            ],
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec!["script-2".to_string()],
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
+                .await
+        });
+
+        let mut restored_snapshot = false;
+        let mut paused_at_restored = false;
+
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { node_uuid, .. } => {
+                            if node_uuid == "script-2" && !restored_snapshot {
+                                // 在 script-2 暂停时从 script-1 快照恢复
+                                let _ = command_sender.send(DebugCommand::RunFromSnapshot {
+                                    node_uuid: "script-1".to_string(),
+                                });
+                            } else if node_uuid == "script-1" && restored_snapshot {
+                                paused_at_restored = true;
+                                // 恢复暂停后直接结束调试
+                                let _ = command_sender.send(DebugCommand::EndDebug);
+                            }
+                        }
+                        DebugEvent::SnapshotRestored { node_uuid, restored_variables, .. } => {
+                            assert_eq!(node_uuid, "script-1");
+                            assert!(restored_variables.get("val").is_none()); // script-1 执行前尚无 val 变量
+                            restored_snapshot = true;
+                        }
+                        DebugEvent::SessionEnded { .. } => {
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => {
+                    panic!("test_debug_run_from_snapshot timed out");
+                }
+            }
+        }
+
+        assert!(restored_snapshot, "应收到 SnapshotRestored 事件");
+        assert!(paused_at_restored, "快照恢复后应在目标节点暂停");
+        let _ = handle.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_debug_send_stream_frame() {
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: "start".to_string(),
+            node_type: "entry".to_string(),
+            name: "开始".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: Some(true),
+            on_error: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id,
+            name: "测试长连接探针".to_string(),
+            description: None,
+            nodes: vec![start_node],
+            connections: vec![],
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec!["start".to_string()],
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
+                .await
+        });
+
+        let mut error_received = false;
+
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { .. } => {
+                            // 暂停时发送帧到不存在的连接
+                            let _ = command_sender.send(DebugCommand::SendStreamFrame {
+                                connection_id: "nonexistent-ws".to_string(),
+                                payload: "hello probe".to_string(),
+                                is_binary: false,
+                            });
+                        }
+                        DebugEvent::Error { message } => {
+                            if message.contains("nonexistent-ws") {
+                                error_received = true;
+                                let _ = command_sender.send(DebugCommand::EndDebug);
+                            }
+                        }
+                        DebugEvent::SessionEnded { .. } => {
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => {
+                    panic!("test_debug_send_stream_frame timed out");
+                }
+            }
+        }
+
+        assert!(error_received, "应收到无法连接流的错误提示");
+        let _ = handle.await.unwrap();
+    }
+
+    /// 快照差异必须同时覆盖新增、修改与删除三类变更
+    #[test]
+    fn test_diff_variable_changes_covers_add_update_delete() {
+        let before: HashMap<String, serde_json::Value> = HashMap::from([
+            ("kept".to_string(), json!("same")),
+            ("changed".to_string(), json!("old")),
+            ("removed".to_string(), json!(123)),
+        ]);
+        let after: HashMap<String, serde_json::Value> = HashMap::from([
+            ("kept".to_string(), json!("same")),
+            ("changed".to_string(), json!("new")),
+            ("added".to_string(), json!(true)),
+        ]);
+
+        let mut changes = Vec::new();
+        diff_variable_changes(&before, &after, &mut changes);
+
+        let by_key: HashMap<&str, &flow_engine_core::report::VariableChange> =
+            changes.iter().map(|c| (c.key.as_str(), c)).collect();
+
+        assert_eq!(changes.len(), 3, "应为 新增/修改/删除 各一条: {changes:?}");
+        assert_eq!(by_key["added"].old_value, None);
+        assert_eq!(by_key["added"].new_value, json!(true));
+        assert_eq!(by_key["changed"].old_value, Some(json!("old")));
+        assert_eq!(by_key["changed"].new_value, json!("new"));
+        assert_eq!(by_key["removed"].old_value, Some(json!(123)));
+        assert_eq!(by_key["removed"].new_value, serde_json::Value::Null);
+    }
+
+    /// 构造 [entry] -> [script(必然报错)] 的流程，用于错误暂停路径的回归测试
+    fn fatal_error_flow() -> Flow {
+        let start_node = Node {
+            uuid: "start".to_string(),
+            node_type: "entry".to_string(),
+            name: "开始".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+        let script_node = Node {
+            uuid: "script-fail".to_string(),
+            node_type: "script".to_string(),
+            name: "脚本".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(flow_engine_core::node_config::ScriptNodeConfig {
+                script: "throw new Error('boom');".to_string(),
+                timeout_ms: 5000,
+                on_error: flow_engine_core::node_config::ScriptErrorStrategy::Fatal,
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+        Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "错误暂停回归流程".to_string(),
+            description: None,
+            nodes: vec![start_node, script_node],
+            connections: vec![Connection {
+                id: "c1".to_string(),
+                source_node_uuid: "start".to_string(),
+                target_node_uuid: "script-fail".to_string(),
+                source_port_id: "output".to_string(),
+                target_port_id: "input".to_string(),
+            }],
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
+        }
+    }
+
+    /// 错误暂停时按“结束调试”必须只结束一次会话，且原因保持 UserAbort
+    #[tokio::test]
+    async fn test_error_pause_end_debug_ends_session_once() {
+        let flow = fatal_error_flow();
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(&flow_clone, None, vec![], None, event_sender, command_receiver)
+                .await
+        });
+
+        let mut session_ended_reasons: Vec<EndReason> = Vec::new();
+        let mut sent_end = false;
+
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { reason, .. } => {
+                            if matches!(reason, PauseReason::Error { .. }) && !sent_end {
+                                sent_end = true;
+                                let _ = command_sender.send(DebugCommand::EndDebug);
+                            }
+                        }
+                        DebugEvent::SessionEnded { reason, .. } => {
+                            session_ended_reasons.push(reason);
+                            if session_ended_reasons.len() > 1 {
+                                break;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(500)) => {
+                    if !session_ended_reasons.is_empty() {
+                        break;
+                    }
+                }
+            }
+        }
+
+        assert_eq!(
+            session_ended_reasons.len(),
+            1,
+            "错误暂停下结束调试必须只发出一次 SessionEnded，实际: {:?}",
+            session_ended_reasons
+        );
+        assert_eq!(
+            session_ended_reasons[0],
+            EndReason::UserAbort,
+            "结束原因必须保持 UserAbort，不能被改写成 Error"
+        );
+        let _ = handle.await;
+    }
+
+    /// 错误暂停时请求不存在的快照必须保持暂停，不能顺势结束整个会话
+    #[tokio::test]
+    async fn test_error_pause_run_from_missing_snapshot_keeps_session() {
+        let flow = fatal_error_flow();
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(&flow_clone, None, vec![], None, event_sender, command_receiver)
+                .await
+        });
+
+        let mut got_missing_snapshot_error = false;
+        let mut session_ended_before_abort = false;
+        let mut sent_restore = false;
+
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { reason, .. } => {
+                            if matches!(reason, PauseReason::Error { .. }) && !sent_restore {
+                                sent_restore = true;
+                                let _ = command_sender.send(DebugCommand::RunFromSnapshot {
+                                    node_uuid: "does-not-exist".to_string(),
+                                });
+                            }
+                        }
+                        DebugEvent::Error { message } => {
+                            if message.contains("Snapshot not found") {
+                                got_missing_snapshot_error = true;
+                                // 会话必须仍在：此时结束调试应得到 UserAbort 而不是早就结束
+                                let _ = command_sender.send(DebugCommand::EndDebug);
+                            }
+                        }
+                        DebugEvent::SessionEnded { .. } => {
+                            session_ended_before_abort = !got_missing_snapshot_error;
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(3)) => break,
+            }
+        }
+
+        assert!(
+            got_missing_snapshot_error,
+            "缺失快照应收到 Snapshot not found 提示"
+        );
+        assert!(
+            !session_ended_before_abort,
+            "缺失快照不得终止会话，会话应在 EndDebug 后才结束"
+        );
+        let _ = handle.await;
+    }
+
+    /// http:ingress 作为唯一入口的流程必须可以启动调试会话（与校验器/执行器口径一致）
+    #[tokio::test]
+    async fn test_debug_accepts_http_ingress_as_entry() {
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Ingress 入口流程".to_string(),
+            description: None,
+            nodes: vec![Node {
+                uuid: "ingress-1".to_string(),
+                node_type: "http:ingress".to_string(),
+                name: "Ingress".to_string(),
+                position: NodePosition::default(),
+                data: NodeData::HttpIngress(flow_engine_core::node_config::HttpIngressConfig {
+                    port: 9527,
+                    path_pattern: "/*".to_string(),
+                    methods: vec!["POST".to_string()],
+                }),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
+            }],
+            connections: vec![],
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (_command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(&flow_clone, None, vec![], None, event_sender, command_receiver)
+                .await
+        });
+
+        let mut missing_start_node = false;
+        let mut executed_ingress = false;
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::NodeExecuted { entry } => {
+                            if entry.node_uuid == "ingress-1" && entry.success {
+                                executed_ingress = true;
+                            }
+                        }
+                        DebugEvent::SessionEnded { reason, .. } => {
+                            if let EndReason::Error { message } = reason {
+                                if message.contains("missing a start node") {
+                                    missing_start_node = true;
+                                }
+                            }
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(3)) => break,
+            }
+        }
+
+        assert!(
+            !missing_start_node,
+            "http:ingress 入口流程不应报 Flow is missing a start node"
+        );
+        assert!(executed_ingress, "http:ingress 节点应作为起点被调试执行");
+        let _ = handle.await;
     }
 }

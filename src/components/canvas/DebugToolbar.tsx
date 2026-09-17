@@ -3,7 +3,7 @@
  * 调试模式下显示的工具栏，包含调试控制按钮
  */
 import { useState, useEffect } from 'react';
-import { Play, SkipForward, FastForward, Square, ArrowDownToLine, CornerDownRight, CornerUpLeft } from 'lucide-react';
+import { Play, SkipForward, FastForward, Square, ArrowDownToLine, CornerDownRight, CornerUpLeft, RotateCcw } from 'lucide-react';
 import { useDebugStore, selectIsPaused, selectCurrentNodeUuid, useFlowStore } from '@/stores';
 import { SkipNodeDialog } from '@/components/dialogs/SkipNodeDialog';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ export function DebugToolbar() {
   const stepOver = useDebugStore((state) => state.stepOver);
   const stepInto = useDebugStore((state) => state.stepInto);
   const stepOut = useDebugStore((state) => state.stepOut);
+  const retryCurrentNode = useDebugStore((state) => state.retryCurrentNode);
   const rawCallFrames = useDebugStore((state) => state.callFrames);
   const callFrames = rawCallFrames ?? [];
   const skipNode = useDebugStore((state) => state.skipNode);
@@ -50,11 +51,16 @@ export function DebugToolbar() {
         if (isPaused) {
           stepOver();
         }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        if (isPaused && currentNodeUuid) {
+          retryCurrentNode();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPaused, callFrames.length, stepInto, stepOut, stepOver]);
+  }, [isPaused, currentNodeUuid, callFrames.length, stepInto, stepOut, stepOver, retryCurrentNode]);
   const currentNode = flow?.nodes.find((n) => n.uuid === currentNodeUuid);
 
   // 获取当前节点的输出端口
@@ -64,15 +70,15 @@ export function DebugToolbar() {
 // 根据节点类型返回不同的输出端口
     switch (currentNode.type) {
       case 'conditional':
-      case 'ws_connect':
-      case 'ws_send_collect':
-      case 'ws_close':
+      case 'ws:connect':
+      case 'ws:send_collect':
+      case 'ws:close':
         // 这些节点都有 true/false 两个分支
         return [
           { id: 'true', label: 'True Branch' },
           { id: 'false', label: 'False Branch' },
         ];
-      case 'http':
+      case 'http:request':
         return [{ id: 'out', label: 'Output (out)' }];
       case 'entry':
         return [{ id: 'out', label: 'Output' }];
@@ -171,6 +177,21 @@ export function DebugToolbar() {
           )}
         >
           <CornerUpLeft className="w-5 h-5" />
+        </button>
+
+        {/* 重试当前节点按钮 - 青绿色 */}
+        <button
+          onClick={retryCurrentNode}
+          disabled={!isPaused || !currentNodeUuid}
+          title={isPaused && currentNodeUuid ? getLL().flow.debug_retry_available() : getLL().flow.debug_retry_unavailable()}
+          className={cn(
+            'flex items-center justify-center p-2 rounded-lg',
+            'transition-all duration-150',
+            'hover:bg-black/5',
+            isPaused && currentNodeUuid ? 'text-teal-500 cursor-pointer' : 'opacity-40 cursor-not-allowed'
+          )}
+        >
+          <RotateCcw className="w-5 h-5" />
         </button>
 
         {/* 跳过按钮 - 橙色 */}

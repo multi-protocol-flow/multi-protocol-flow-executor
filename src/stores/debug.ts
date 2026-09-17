@@ -37,6 +37,10 @@ interface DebugState {
   pauseReason: PauseReason | null;
   /** 当前上下文变量 */
   variables: Record<string, unknown>;
+  /** 上一次暂停时的变量快照（用于计算单步 Diff） */
+  previousVariables: Record<string, unknown> | null;
+  /** 当前暂停相对上一次暂停的变量差异（随变量更新一次性求值，引用稳定） */
+  variableDiff: VariableDiff;
   /** 执行堆栈 */
   executionStack: ExecutionStackEntry[];
   /** 当前节点输出 */
@@ -80,10 +84,14 @@ interface DebugState {
   continueExecution: () => Promise<void>;
   /** 单步执行 */
   stepOver: () => Promise<void>;
-  /** 单步步入（遇到 sub_flow 节点进入其内部） */
+  /** 单步步入（遇到 flow:sub 节点进入其内部） */
   stepInto: () => Promise<void>;
   /** 单步步出（执行完当前子流程并在父流程暂停） */
   stepOut: () => Promise<void>;
+  /** 原地重试当前暂停节点（使用修改后的配置或变量重新执行） */
+  retryCurrentNode: () => Promise<void>;
+  /** 从指定历史节点快照恢复并继续暂停/执行 */
+  runFromSnapshot: (nodeUuid: string) => Promise<void>;
   /** 切换检视特定栈帧 */
   setActiveFrame: (index: number) => void;
   /** 跳过节点 */
@@ -107,6 +115,55 @@ interface DebugState {
 }
 
 // ============================================================================
+// 变量差异计算（纯函数：在变量更新时一次性求值，避免订阅选择器每次返回新对象）
+// ============================================================================
+
+/** 变量差异对象 */
+export interface VariableDiff {
+  added: string[];
+  modified: Record<string, { oldVal: unknown; newVal: unknown }>;
+  deleted: string[];
+}
+
+/** 空差异常量：始终返回同一引用，避免订阅者因新对象反复重渲染 */
+export const EMPTY_VARIABLE_DIFF: VariableDiff = Object.freeze({
+  added: [],
+  modified: {},
+  deleted: [],
+});
+
+/** 比较两次变量快照，得出新增、修改与删除的变量 */
+export function computeVariableDiff(
+  prev: Record<string, unknown> | null,
+  curr: Record<string, unknown>,
+): VariableDiff {
+  if (!prev) return EMPTY_VARIABLE_DIFF;
+
+  const added: string[] = [];
+  const modified: Record<string, { oldVal: unknown; newVal: unknown }> = {};
+  const deleted: string[] = [];
+
+  for (const [k, v] of Object.entries(curr)) {
+    if (!(k in prev)) {
+      added.push(k);
+    } else if (JSON.stringify(prev[k]) !== JSON.stringify(v)) {
+      modified[k] = { oldVal: prev[k], newVal: v };
+    }
+  }
+
+  for (const k of Object.keys(prev)) {
+    if (!(k in curr)) {
+      deleted.push(k);
+    }
+  }
+
+  if (added.length === 0 && deleted.length === 0 && Object.keys(modified).length === 0) {
+    return EMPTY_VARIABLE_DIFF;
+  }
+  return { added, modified, deleted };
+}
+
+// ============================================================================
 // 初始状态
 // ============================================================================
 
@@ -116,6 +173,8 @@ const initialState = {
   currentNodeUuid: null,
   pauseReason: null,
   variables: {},
+  previousVariables: null as Record<string, unknown> | null,
+  variableDiff: EMPTY_VARIABLE_DIFF,
   executionStack: [],
   currentNodeOutput: null,
   tempNodeConfigs: {},
@@ -413,6 +472,50 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     }
   },
 
+  retryCurrentNode: async () => {
+    const currentStatus = get().status;
+    try {
+      set({
+        isCommandPending: true,
+        previousStatus: currentStatus,
+        pauseReason: null,
+        error: null,
+      });
+
+      await sendDebugCommand('RetryCurrentNode');
+      set({ status: 'running' });
+      startCommandTimeout();
+    } catch (error) {
+      set({
+        status: currentStatus,
+        isCommandPending: false,
+        previousStatus: null,
+        error: (error as Error).message,
+      });
+    }
+  },
+
+  runFromSnapshot: async (nodeUuid: string) => {
+    const currentStatus = get().status;
+    try {
+      set({
+        isCommandPending: true,
+        previousStatus: currentStatus,
+        pauseReason: null,
+        error: null,
+      });
+
+      await sendDebugCommand({ RunFromSnapshot: { node_uuid: nodeUuid } });
+      startCommandTimeout();
+    } catch (error) {
+      set({
+        status: currentStatus,
+        isCommandPending: false,
+        previousStatus: null,
+        error: (error as Error).message,
+      });
+    }
+  },
   setActiveFrame: (index: number) => {
     const { callFrames } = get();
     if (index >= 0 && index < callFrames.length) {
@@ -571,8 +674,12 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       const { node_uuid, reason, variables, execution_stack, call_frames } = event.PausedAtNode;
       const frames = call_frames ?? [];
       const topIndex = frames.length > 0 ? frames.length - 1 : 0;
+      const currentVars = get().variables;
+      const previousVariables = Object.keys(currentVars).length > 0 ? currentVars : null;
       set({
         status: 'paused',
+        previousVariables,
+        variableDiff: computeVariableDiff(previousVariables, variables),
         currentNodeUuid: node_uuid,
         pauseReason: reason,
         variables,
@@ -689,6 +796,15 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         // 没有最终报告时也要标记执行结束
         useExecutionStore.setState({ isExecuting: false });
       }
+    } else if ('SnapshotRestored' in event) {
+      clearCommandTimeout();
+      const { node_uuid, restored_variables, stack_len } = event.SnapshotRestored;
+      set((state) => ({
+        currentNodeUuid: node_uuid,
+        variables: restored_variables,
+        executionStack: state.executionStack.slice(0, stack_len),
+        isCommandPending: false,
+      }));
     } else if ('VariableModified' in event) {
       const { name, value } = event.VariableModified;
       set((state) => ({
@@ -896,3 +1012,6 @@ export const selectActiveFrameIndex = (state: DebugState) => state.activeFrameIn
 /** 选择当前检视的栈帧 */
 export const selectActiveCallFrame = (state: DebugState) =>
   state.callFrames[state.activeFrameIndex] ?? null;
+
+/** 选择当前单步变量与上一暂停状态的 Diff（直接取 store 中已求值的稳定字段） */
+export const selectVariableDiff = (state: DebugState): VariableDiff => state.variableDiff;

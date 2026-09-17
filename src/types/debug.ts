@@ -48,6 +48,9 @@ export type DebugCommand =
   | 'StepOver'
   | 'StepInto'
   | 'StepOut'
+  | 'RetryCurrentNode'
+  | { RunFromSnapshot: { node_uuid: string } }
+  | { SendStreamFrame: { connection_id: string; payload: string; is_binary: boolean } }
   | { SkipNode: { selected_port?: string; simulated_output?: unknown } }
   | 'RunToEnd'
   | 'EndDebug'
@@ -125,6 +128,8 @@ export type DebugEvent =
   | { NodeConfigModified: { node_uuid: string; config: unknown } }
   | { BreakpointModified: { node_uuid: string; enabled: boolean } }
   | { Error: { message: string } }
+  | { SnapshotRestored: { node_uuid: string; restored_variables: Record<string, unknown>; stack_len: number } }
+  | { StreamFrameSent: { connection_id: string; timestamp_ms: number; payload: string } }
   | {
       Heartbeat: {
         status: DebugStatus;

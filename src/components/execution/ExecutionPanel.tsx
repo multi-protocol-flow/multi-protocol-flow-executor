@@ -26,9 +26,11 @@ import { selectIsDebugging, selectCurrentNodeUuid } from '@/stores/debug';
 import { useWsStreamStore } from '@/stores/wsStream';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { NodeExecutionDetails } from './NodeExecutionDetails';
-import { WsMessageTimeline } from './WsMessageTimeline';
+import { StreamInspectorPanel } from './StreamInspectorPanel';
 import { VariableTreeView } from './VariableTreeView';
+import { VariableTimelineDrawer } from './VariableTimelineDrawer';
 import { ExecutionStackView } from './ExecutionStackView';
+import { DebugReplConsole } from './DebugReplConsole';
 import { getNodeMeta } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
 import { sendDebugCommand } from '@/services/tauri';
@@ -128,9 +130,9 @@ const NodeStatusItem = memo(function NodeStatusItem({
 
 function isWsNodeType(nodeType: string): boolean {
   return (
-    nodeType === 'ws_connect' ||
-    nodeType === 'ws_send_collect' ||
-    nodeType === 'ws_close'
+    nodeType === 'ws:connect' ||
+    nodeType === 'ws:send_collect' ||
+    nodeType === 'ws:close'
   );
 }
 
@@ -174,6 +176,7 @@ export function ExecutionPanel() {
 
   // ===== 本地状态 =====
   const [selectedNodeUuid, setSelectedNodeUuid] = useState<string | null>(null);
+  const [selectedTimelineVar, setSelectedTimelineVar] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>('output');
   const nodeListRef = useRef<HTMLDivElement>(null);
   const prevCompletedCountRef = useRef(0);
@@ -290,6 +293,11 @@ export function ExecutionPanel() {
 
     return Array.from(wsStreams.values());
   }, [selectedNodeUuid, nodes, wsStreams]);
+
+  // 未绑定具体节点时展示全部连接流；必须 memo —— 内联构造会让下游订阅组件
+  // 每次渲染都判定 streams 变化，从而不断重启保活心跳等基于 streams 的 effect。
+  const allWsStreams = useMemo(() => Array.from(wsStreams.values()), [wsStreams]);
+  const inspectorStreams = selectedWsStreams.length > 0 ? selectedWsStreams : allWsStreams;
 
   // ===== 变量编辑回调 =====
   const canEditVariables = useDebugStore((state) => state.status === 'paused');
@@ -479,10 +487,10 @@ return (
 
             {hasWsNodes && (
               <TabsContent value="ws" className="m-0 h-full overflow-hidden">
-                {selectedWsStreams.length > 0 ? (
-                  <WsMessageTimeline
-                    streams={selectedWsStreams}
-                    live={isExecuting}
+                {selectedWsStreams.length > 0 || wsStreams.size > 0 ? (
+                  <StreamInspectorPanel
+                    streams={inspectorStreams}
+                    live={isExecuting || isDebugging}
                   />
                 ) : (
                   <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -494,11 +502,16 @@ return (
 
             {showDebugTabs && (
               <>
-                <TabsContent value="variables" className="m-0 h-full overflow-hidden">
+                <TabsContent value="variables" className="m-0 h-full overflow-hidden relative">
                   <VariableTreeView
                     variables={variables}
                     canEdit={canEditVariables}
                     onEdit={handleModifyVariable}
+                    onOpenTimeline={setSelectedTimelineVar}
+                  />
+                  <VariableTimelineDrawer
+                    varName={selectedTimelineVar}
+                    onClose={() => setSelectedTimelineVar(null)}
                   />
                 </TabsContent>
 
@@ -513,6 +526,8 @@ return (
               </>
             )}
           </Tabs>
+
+          {showDebugTabs && <DebugReplConsole />}
         </div>
       }
     />

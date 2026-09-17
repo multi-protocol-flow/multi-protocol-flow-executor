@@ -3,13 +3,13 @@
  * 在鼠标右键点击节点时显示，支持复制、重命名、删除、配置复制/粘贴操作
  */
 import { useEffect, useRef, useState } from 'react';
-import { Copy, Trash2, Pencil, ClipboardCopy, ClipboardPaste, Play } from 'lucide-react';
+import { Copy, Trash2, Pencil, ClipboardCopy, ClipboardPaste, Play, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import { executeSingleNode } from '@/services/tauri/flow';
 import { notifyError } from '@/lib/notify';
-import { useFlowStore, useExecutionStore } from '@/stores';
+import { useFlowStore, useExecutionStore, useDebugStore } from '@/stores';
 import { getActiveVariables } from '@/types/flow';
 import type { FlowExecutionReport } from '@/types';
 
@@ -77,7 +77,9 @@ export function NodeContextMenu({
 
   // 构建菜单项
   const LL = getLL();
-
+  const isDebugPaused = useDebugStore((state) => state.status === 'paused');
+  const executionStack = useDebugStore((state) => state.executionStack);
+  const isNodeInDebugStack = isDebugPaused && executionStack.some((e) => e.node_uuid === nodeId);
   const handleTestNode = async () => {
     setTesting(true);
     const flow = useFlowStore.getState().flow;
@@ -130,6 +132,19 @@ export function NodeContextMenu({
   };
 
   const menuItems: MenuItem[] = [
+    ...(isNodeInDebugStack
+      ? [
+          {
+            key: 'run-from-snapshot',
+            label: LL.flow.context_run_from_snapshot(),
+            icon: <RotateCcw className="w-4 h-4 text-teal-500" />,
+            action: () => {
+              useDebugStore.getState().runFromSnapshot(nodeId);
+              onClose();
+            },
+          },
+        ]
+      : []),
     {
       key: 'copy',
       label: LL.flow.context_copy_node(),
