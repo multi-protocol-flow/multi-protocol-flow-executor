@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { NodePalette } from '@/components/canvas/NodePalette';
 import { useUIStore, useFlowStore } from '@/stores';
-import { buildCatalogGroups } from '@/lib/NodeRegistry';
+import { buildCatalogGroups, convertToCatalogItem } from '@/lib/NodeRegistry';
 import type { NodeMetadata } from '@/types/nodeRegistry';
 
 describe('NodeRegistry Catalog Grouping', () => {
   const sampleMetadata: NodeMetadata[] = [
     {
-      type_id: 'http',
+      type_id: 'http:request',
       display_name: 'HTTP 请求',
       category: 'http',
       icon: 'globe',
@@ -46,7 +46,7 @@ describe('NodeRegistry Catalog Grouping', () => {
   ];
 
   it('正确构建插件分组与核心分类', () => {
-    const groups = buildCatalogGroups(sampleMetadata, ['http']);
+    const groups = buildCatalogGroups(sampleMetadata, ['http:request']);
     expect(groups.length).toBeGreaterThan(0);
 
     const allGroup = groups.find((g) => g.id === 'all');
@@ -61,6 +61,35 @@ describe('NodeRegistry Catalog Grouping', () => {
     expect(redisGroup).toBeDefined();
     expect(redisGroup?.count).toBe(2);
     expect(redisGroup?.name).toContain('Redis');
+  });
+
+  it('内置节点的命名空间前缀不会被误判为插件', () => {
+    // 内置节点使用 `proto:op` 命名空间（http:ingress），与插件 id 形状相同，
+    // 判定必须依据内置目录而非 `:` 字符。
+    const builtin = convertToCatalogItem({
+      type_id: 'http:ingress',
+      display_name: 'HTTP Ingress',
+      category: 'network',
+      icon: 'log-in',
+      color: '#6366F1',
+      ports: [{ id: 'out', label: 'Out', position: 'right' }],
+      default_config: {},
+    });
+    expect(builtin.isPlugin).toBe(false);
+    expect(builtin.pluginId).toBeUndefined();
+    expect(builtin.pluginName).toBeUndefined();
+
+    const plugin = convertToCatalogItem({
+      type_id: 'grpc:connect',
+      display_name: 'gRPC Connect',
+      category: 'grpc',
+      icon: 'plug',
+      color: '#6366F1',
+      ports: [{ id: 'out', label: 'Out', position: 'right' }],
+      default_config: {},
+    });
+    expect(plugin.isPlugin).toBe(true);
+    expect(plugin.pluginName).toBe('Grpc');
   });
 });
 

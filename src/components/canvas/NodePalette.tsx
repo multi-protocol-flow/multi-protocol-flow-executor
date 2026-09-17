@@ -37,19 +37,19 @@ const USAGE_KEY = 'node-palette-usage';
 // ============================================================================
 
 const SEARCH_ALIASES: Record<string, string[]> = {
-  rest: ['http'],
-  api: ['http'],
-  post: ['http'],
-  get: ['http'],
-  put: ['http'],
-  delete: ['http'],
-  stream: ['sse_listen', 'ws_send_collect'],
-  trigger: ['sse_listen'],
-  realtime: ['ws_connect', 'sse_listen'],
-  ws: ['ws_connect', 'ws_send_collect', 'ws_close'],
-  socket: ['ws_connect', 'tcp_connect'],
-  pubsub: ['graphql_subscribe', 'sse_listen'],
-  graphql: ['graphql_query', 'graphql_connect', 'graphql_subscribe'],
+  rest: ['http:request'],
+  api: ['http:request'],
+  post: ['http:request'],
+  get: ['http:request'],
+  put: ['http:request'],
+  delete: ['http:request'],
+  stream: ['sse:listen', 'ws:send_collect'],
+  trigger: ['sse:listen'],
+  realtime: ['ws:connect', 'sse:listen'],
+  ws: ['ws:connect', 'ws:send_collect', 'ws:close'],
+  socket: ['ws:connect', 'tcp:connect'],
+  pubsub: ['graphql:subscribe', 'sse:listen'],
+  graphql: ['graphql:query', 'graphql:connect', 'graphql:subscribe'],
   assertion: ['assertion'],
   assert: ['assertion'],
   check: ['assertion'],
@@ -59,8 +59,8 @@ const SEARCH_ALIASES: Record<string, string[]> = {
   js: ['script'],
   ts: ['script'],
   code: ['script'],
-  extract: ['variable_extractor'],
-  jsonpath: ['variable_extractor'],
+  extract: ['variable:extractor'],
+  jsonpath: ['variable:extractor'],
   proxy: ['proxy'],
 };
 
@@ -517,10 +517,12 @@ export function NodePalette() {
                       onMouseEnter={() => setHoveredItem(item)}
                       onMouseLeave={() => setHoveredItem(null)}
                       className={cn(
-                        'flex items-center justify-between px-3 py-2 rounded-xl text-xs cursor-pointer transition-all',
+                        // 边框宽度恒定（始终 1px），仅切换颜色：避免 hover 时
+                        // border-width 0↔1 被 transition-all 补间成“边框出现又消失”
+                        'flex items-center justify-between px-3 py-2 rounded-xl border text-xs cursor-pointer transition-colors duration-150',
                         isHighlighted
-                          ? 'bg-primary/10 border-primary/30 text-foreground shadow-xs'
-                          : 'hover:bg-accent/60 text-muted-foreground hover:text-foreground border border-transparent',
+                          ? 'bg-primary/10 border-primary/35 text-foreground shadow-xs'
+                          : 'border-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground',
                       )}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -560,9 +562,12 @@ export function NodePalette() {
               )}
             </div>
 
-            {/* 下部：算子微型详情卡片 */}
+            {/* 下部：算子微型详情卡片
+                固定高度：卡片内容随 hover 切换条目而变长变短，若高度自适应会
+                反过来挤压上方列表（flex-1），使光标下的行移出/移入，触发行抖动
+                与高亮闪烁（表现为边框反复出现又消失）。 */}
             {activeItem && (
-              <div className="p-3 border-t border-border/40 bg-muted/25 flex flex-col gap-1.5 shrink-0">
+              <div className="p-3 border-t border-border/40 bg-muted/25 flex flex-col gap-1.5 shrink-0 h-[112px] overflow-hidden">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-foreground">
