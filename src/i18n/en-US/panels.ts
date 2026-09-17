@@ -189,6 +189,37 @@ const en_US_panels = {
     authBearerNotice: 'Will automatically attach header: Authorization: Bearer <Token>',
   },
 
+  httpIngress: {
+    portLabel: 'Listen Port (Port)',
+    portHintBefore: 'TCP port the local mock server listens on (e.g. 9527); external clients access it via ',
+    portHintAfter: '.',
+    pathLabel: 'Path Pattern',
+    pathPlaceholder: '/* or /webhook/stripe',
+    pathHintBefore: 'Wildcard path matching is supported, e.g. ',
+    pathHintMiddle: ' matches every path, or ',
+    pathHintAfter: '.',
+    methodsLabel: 'Allowed HTTP Methods',
+    injectTitle: '💡 Auto-injected request variables',
+    injectDesc: 'Once an external request arrives, its details are injected into the current context variables so later nodes can reference them directly:',
+    injectMethod: 'Request method',
+    injectPath: 'Request path',
+    injectQuery: 'URL query parameters',
+    injectHeaders: 'Request header map',
+    injectBody: 'Request body JSON / string',
+  },
+
+  httpRespond: {
+    statusLabel: 'HTTP Status Code',
+    headersLabel: 'Custom Response Headers',
+    addHeader: 'Add Header',
+    headersEmpty: 'Content-Type is inferred automatically from the body type',
+    headerNamePlaceholder: 'Header Name',
+    headerValuePlaceholder: 'Header value (supports {template:string})',
+    bodyLabel: 'Response Body',
+    bodyVarHintBefore: 'Use ',
+    bodyVarHintAfter: ' to reference any variable or input value in the execution context.',
+  },
+
   script: {
     codeLabel: 'Script Code',
     apiReference: 'API Reference',

@@ -11,7 +11,8 @@ const zh_CN_nodes = {
     assertion: '断言',
     database: 'DB',
     tcp: 'TCP',
-    udp: 'UDP'
+    udp: 'UDP',
+    network: 'Mock 服务'
   },
   superCategory: {
     network: '网络协议',
@@ -23,6 +24,8 @@ const zh_CN_nodes = {
   no_nodes_available: '暂无可用节点',
   entry: '入口',
   http: 'HTTP 请求',
+  http_ingress: 'HTTP Ingress 监听',
+  http_respond: 'HTTP Respond 响应',
   conditional: '条件判断',
   script: '脚本',
   assertion: '断言',
@@ -89,6 +92,8 @@ const zh_CN_nodes = {
   },
   descriptions: {
     http: '发起 HTTP/HTTPS 请求，支持 RESTful API、各种 Method、Header 及 Body 载荷',
+    http_ingress: 'Mock 服务请求入口，拦截外部 HTTP 请求并将参数注入上下文',
+    http_respond: 'Mock 服务响应出口，求值模板并向调用方返回 HTTP 响应',
     conditional: '条件判断与逻辑路由，支持多分支判断与比较表达式',
     script: '执行 JavaScript / TypeScript 脚本进行流程数据变换与自定义逻辑处理',
     assertion: '多字段多条件断言验证（状态码、Header、JSON Path、文本包含等）',

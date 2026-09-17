@@ -191,6 +191,37 @@ const zh_CN_panels: BaseTranslation = {
     authBearerNotice: '发送时将自动附加请求头: Authorization: Bearer <Token>',
   },
 
+  httpIngress: {
+    portLabel: '监听端口 (Port)',
+    portHintBefore: '本地服务监听的 TCP 端口（如 9527），外部客户端通过 ',
+    portHintAfter: ' 访问。',
+    pathLabel: '路由路径模式 (Path Pattern)',
+    pathPlaceholder: '/* 或 /webhook/stripe',
+    pathHintBefore: '支持通配符路径匹配，如 ',
+    pathHintMiddle: ' 拦截所有路径，或 ',
+    pathHintAfter: '。',
+    methodsLabel: '允许的 HTTP 方法 (Methods)',
+    injectTitle: '💡 请求变量自动注入说明',
+    injectDesc: '外部请求到达后，将自动将请求信息注入到当前上下文变量中，后续节点可直接引用：',
+    injectMethod: '请求方法',
+    injectPath: '请求路径',
+    injectQuery: 'URL Query 参数',
+    injectHeaders: '请求头映射',
+    injectBody: '请求体 JSON / 字符串',
+  },
+
+  httpRespond: {
+    statusLabel: 'HTTP 状态码 (Status Code)',
+    headersLabel: '自定义响应头 (Headers)',
+    addHeader: '添加响应头',
+    headersEmpty: '默认包含自动根据类型推断的 Content-Type',
+    headerNamePlaceholder: 'Header 名称',
+    headerValuePlaceholder: 'Header 值 (支持 {template:string})',
+    bodyLabel: '响应体内容 (Response Body)',
+    bodyVarHintBefore: '支持使用 ',
+    bodyVarHintAfter: ' 引用执行上下文中的任意变量或入参值。',
+  },
+
   script: {
     codeLabel: '脚本代码',
     apiReference: 'API 参考',

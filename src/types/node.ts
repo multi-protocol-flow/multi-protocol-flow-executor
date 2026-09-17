@@ -19,32 +19,34 @@ import type { FlowHook } from './hook';
 export type NodeType =
   | 'entry'
   | 'end'
-  | 'sub_flow'
-  | 'http'
+  | 'flow:sub'
+  | 'http:request'
   | 'conditional'
-  | 'ws_connect'
-  | 'ws_send_collect'
-  | 'ws_close'
+  | 'ws:connect'
+  | 'ws:send_collect'
+  | 'ws:close'
   | 'assertion'
   | 'script'
-  | 'tcp_connect'
-  | 'tcp_send'
-  | 'tcp_receive'
-  | 'tcp_close'
-  | 'udp_bind'
-  | 'udp_send_to'
-  | 'udp_recv_from'
-  | 'udp_close'
-  | 'sse_connect'
-  | 'sse_listen'
-  | 'sse_disconnect'
-  | 'graphql_connect'
-  | 'graphql_query'
-  | 'graphql_subscribe'
-  | 'graphql_introspect'
-  | 'graphql_disconnect'
-  | 'variable_extractor'
-  | 'proxy';
+  | 'tcp:connect'
+  | 'tcp:send'
+  | 'tcp:receive'
+  | 'tcp:close'
+  | 'udp:bind'
+  | 'udp:send_to'
+  | 'udp:recv_from'
+  | 'udp:close'
+  | 'sse:connect'
+  | 'sse:listen'
+  | 'sse:disconnect'
+  | 'graphql:connect'
+  | 'graphql:query'
+  | 'graphql:subscribe'
+  | 'graphql:introspect'
+  | 'graphql:disconnect'
+  | 'variable:extractor'
+  | 'proxy'
+  | 'http:ingress'
+  | 'http:respond';
 
 /**
  * 节点位置结构体
@@ -189,7 +191,7 @@ export interface EndConfig {
 }
 
 export interface HttpConfig {
-  type: 'http';
+  type: 'http:request';
   /** 请求 URL */
   url: string;
   /** HTTP 方法（默认 get） */
@@ -405,7 +407,7 @@ export interface WsCollectCondition {
  * WebSocket Connect 节点配置
  */
 export interface WsConnectConfig {
-  type: 'ws_connect';
+  type: 'ws:connect';
   /** WebSocket URL */
   url: string;
   /** 请求头 */
@@ -436,7 +438,7 @@ export interface WsConnectConfig {
  * WebSocket Send+Collect 节点配置
  */
 export interface WsSendCollectConfig {
-  type: 'ws_send_collect';
+  type: 'ws:send_collect';
   /** 连接 ID */
   connection_id: string;
   /** 消息内容 */
@@ -465,7 +467,7 @@ export interface WsSendCollectConfig {
  * WebSocket Close 节点配置
  */
 export interface WsCloseConfig {
-  type: 'ws_close';
+  type: 'ws:close';
   /** 连接 ID */
   connection_id: string;
   /** 关闭码 */
@@ -501,7 +503,7 @@ export interface FramingConfig {
  * TCP Connect 节点配置
  */
 export interface TcpConnectConfig {
-  type: 'tcp_connect';
+  type: 'tcp:connect';
   host: string;
   port: number;
   use_tls?: boolean;
@@ -521,7 +523,7 @@ export interface TcpConnectConfig {
  * TCP Send 节点配置
  */
 export interface TcpSendConfig {
-  type: 'tcp_send';
+  type: 'tcp:send';
   connection_id: string;
   data: string;
   data_encoding?: string;
@@ -536,7 +538,7 @@ export interface TcpSendConfig {
  * TCP Receive 节点配置
  */
 export interface TcpReceiveConfig {
-  type: 'tcp_receive';
+  type: 'tcp:receive';
   /** 连接 ID */
   connection_id: string;
   /** 接收超时（毫秒） */
@@ -551,7 +553,7 @@ export interface TcpReceiveConfig {
  * TCP Close 节点配置
  */
 export interface TcpCloseConfig {
-  type: 'tcp_close';
+  type: 'tcp:close';
   connection_id: string;
   close_timeout_ms?: number;
 }
@@ -560,7 +562,7 @@ export interface TcpCloseConfig {
  * UDP Bind 节点配置
  */
 export interface UdpBindConfig {
-  type: 'udp_bind';
+  type: 'udp:bind';
   local_addr?: string;
   local_port: number;
   reuse_addr?: boolean;
@@ -580,7 +582,7 @@ export interface UdpBindConfig {
  * UDP SendTo 节点配置
  */
 export interface UdpSendToConfig {
-  type: 'udp_send_to';
+  type: 'udp:send_to';
   connection_id: string;
   data: string;
   data_encoding?: string;
@@ -593,7 +595,7 @@ export interface UdpSendToConfig {
  * UDP RecvFrom 节点配置
  */
 export interface UdpRecvFromConfig {
-  type: 'udp_recv_from';
+  type: 'udp:recv_from';
   connection_id: string;
   receive_timeout_ms?: number;
   max_size?: number;
@@ -603,13 +605,13 @@ export interface UdpRecvFromConfig {
  * UDP Close 节点配置
  */
 export interface UdpCloseConfig {
-  type: 'udp_close';
+  type: 'udp:close';
   connection_id: string;
 }
 
 /** SSE 连接节点配置 */
 export interface SseConnectConfig {
-  type: 'sse_connect';
+  type: 'sse:connect';
   url: string;
   headers?: Record<string, string>;
   last_event_id?: string;
@@ -623,7 +625,7 @@ export interface SseConnectConfig {
 
 /** SSE 监听节点配置 */
 export interface SseListenConfig {
-  type: 'sse_listen';
+  type: 'sse:listen';
   connection_id: string;
   event_filter?: string;
   max_events?: number;
@@ -634,7 +636,7 @@ export interface SseListenConfig {
 
 /** SSE 断开连接节点配置 */
 export interface SseDisconnectConfig {
-  type: 'sse_disconnect';
+  type: 'sse:disconnect';
   connection_id: string;
 }
 
@@ -644,7 +646,7 @@ export interface SseDisconnectConfig {
 
 /** GraphQL 连接节点配置 */
 export interface GraphqlConnectConfig {
-  type: 'graphql_connect';
+  type: 'graphql:connect';
   /** HTTP 端点 URL */
   endpoint: string;
   /** WebSocket 端点 URL（用于订阅） */
@@ -667,7 +669,7 @@ export interface GraphqlConnectConfig {
 
 /** GraphQL 查询/变更节点配置 */
 export interface GraphqlQueryConfig {
-  type: 'graphql_query';
+  type: 'graphql:query';
   /** 连接 ID */
   connection_id: string;
   /** GraphQL 查询字符串 */
@@ -684,7 +686,7 @@ export interface GraphqlQueryConfig {
 
 /** GraphQL 订阅节点配置 */
 export interface GraphqlSubscribeConfig {
-  type: 'graphql_subscribe';
+  type: 'graphql:subscribe';
   /** 连接 ID */
   connection_id: string;
   /** GraphQL 订阅字符串 */
@@ -701,7 +703,7 @@ export interface GraphqlSubscribeConfig {
 
 /** GraphQL 内省节点配置 */
 export interface GraphqlIntrospectConfig {
-  type: 'graphql_introspect';
+  type: 'graphql:introspect';
   /** 连接 ID */
   connection_id: string;
   /** 超时（毫秒） */
@@ -710,7 +712,7 @@ export interface GraphqlIntrospectConfig {
 
 /** GraphQL 断开连接节点配置 */
 export interface GraphqlDisconnectConfig {
-  type: 'graphql_disconnect';
+  type: 'graphql:disconnect';
   /** 连接 ID */
   connection_id: string;
 }
@@ -719,7 +721,7 @@ export interface GraphqlDisconnectConfig {
  * 变量提取节点配置
  */
 export interface VariableExtractorConfig {
-  type: 'variable_extractor';
+  type: 'variable:extractor';
   /** 输出变量映射列表 */
   output_mappings?: OutputMapping[];
   /** 可选，指定读取特定上游节点的输出（UUID）。为 undefined 时读取 last_node_output */
@@ -947,7 +949,7 @@ export interface VariableMapping {
  * 子流程节点配置
  */
 export interface SubFlowConfig {
-  type: 'sub_flow';
+  type: 'flow:sub';
   /** 目标流程 UUID（GUI 引用） */
   target_flow_id?: string;
   /** 目标流程文件路径（CLI / 相对路径） */
@@ -962,6 +964,33 @@ export interface SubFlowConfig {
   output_mappings?: VariableMapping[];
 }
 
+/**
+ * HTTP Ingress 节点配置（Mock 服务入口）
+ */
+export interface HttpIngressConfig {
+  type: 'http:ingress';
+  /** 监听端口 */
+  port: number;
+  /** 路由路径模式（例如 /webhook/stripe 或 /*） */
+  path_pattern: string;
+  /** 支持的 HTTP 方法 */
+  methods: string[];
+}
+
+/**
+ * HTTP Respond 节点配置（Mock 服务出口）
+ */
+export interface HttpRespondConfig {
+  type: 'http:respond';
+  /** 响应状态码 */
+  status_code: number;
+  /** 响应头 */
+  headers: Record<string, string>;
+  /** 响应体类型 */
+  body_type: 'json' | 'text' | 'binary' | string;
+  /** 响应内容 */
+  body: string;
+}
 /**
  * 节点数据配置（判别联合类型）
  */
@@ -993,7 +1022,9 @@ export type NodeData =
   | GraphqlDisconnectConfig
   | VariableExtractorConfig
   | ProxyConfig
-  | SubFlowConfig;
+  | SubFlowConfig
+  | HttpIngressConfig
+  | HttpRespondConfig;
 
 // ============================================================================
 // 节点结构体
@@ -1080,7 +1111,7 @@ export function isEndConfig(data: NodeData): data is EndConfig {
  * 判断是否为 HttpConfig
  */
 export function isHttpConfig(data: NodeData): data is HttpConfig {
-  return data.type === 'http';
+  return data.type === 'http:request';
 }
 
 /**
@@ -1094,21 +1125,21 @@ export function isConditionalConfig(data: NodeData): data is ConditionalConfig {
  * 判断是否为 WsConnectConfig
  */
 export function isWsConnectConfig(data: NodeData): data is WsConnectConfig {
-  return data.type === 'ws_connect';
+  return data.type === 'ws:connect';
 }
 
 /**
  * 判断是否为 WsSendCollectConfig
  */
 export function isWsSendCollectConfig(data: NodeData): data is WsSendCollectConfig {
-  return data.type === 'ws_send_collect';
+  return data.type === 'ws:send_collect';
 }
 
 /**
  * 判断是否为 WsCloseConfig
  */
 export function isWsCloseConfig(data: NodeData): data is WsCloseConfig {
-  return data.type === 'ws_close';
+  return data.type === 'ws:close';
 }
 
 /**
@@ -1129,88 +1160,88 @@ export function isScriptConfig(data: NodeData): data is ScriptNodeConfig {
  * 判断是否为 TcpConnectConfig
  */
 export function isTcpConnectConfig(data: NodeData): data is TcpConnectConfig {
-  return data.type === 'tcp_connect';
+  return data.type === 'tcp:connect';
 }
 
 /**
  * 判断是否为 TcpSendConfig
  */
 export function isTcpSendConfig(data: NodeData): data is TcpSendConfig {
-  return data.type === 'tcp_send';
+  return data.type === 'tcp:send';
 }
 
 /**
  * 判断是否为 TcpReceiveConfig
  */
 export function isTcpReceiveConfig(data: NodeData): data is TcpReceiveConfig {
-  return data.type === 'tcp_receive';
+  return data.type === 'tcp:receive';
 }
 
 /**
  * 判断是否为 TcpCloseConfig
  */
 export function isTcpCloseConfig(data: NodeData): data is TcpCloseConfig {
-  return data.type === 'tcp_close';
+  return data.type === 'tcp:close';
 }
 
 /**
  * 判断是否为 UdpBindConfig
  */
 export function isUdpBindConfig(data: NodeData): data is UdpBindConfig {
-  return data.type === 'udp_bind';
+  return data.type === 'udp:bind';
 }
 
 /**
  * 判断是否为 UdpSendToConfig
  */
 export function isUdpSendToConfig(data: NodeData): data is UdpSendToConfig {
-  return data.type === 'udp_send_to';
+  return data.type === 'udp:send_to';
 }
 
 /**
  * 判断是否为 UdpRecvFromConfig
  */
 export function isUdpRecvFromConfig(data: NodeData): data is UdpRecvFromConfig {
-  return data.type === 'udp_recv_from';
+  return data.type === 'udp:recv_from';
 }
 
 /**
  * 判断是否为 UdpCloseConfig
  */
 export function isUdpCloseConfig(data: NodeData): data is UdpCloseConfig {
-  return data.type === 'udp_close';
+  return data.type === 'udp:close';
 }
 
 export function isSseConnectConfig(data: NodeData): data is SseConnectConfig {
-  return data.type === 'sse_connect';
+  return data.type === 'sse:connect';
 }
 
 export function isSseListenConfig(data: NodeData): data is SseListenConfig {
-  return data.type === 'sse_listen';
+  return data.type === 'sse:listen';
 }
 
 export function isSseDisconnectConfig(data: NodeData): data is SseDisconnectConfig {
-  return data.type === 'sse_disconnect';
+  return data.type === 'sse:disconnect';
 }
 
 export function isGraphqlConnectConfig(data: NodeData): data is GraphqlConnectConfig {
-  return data.type === 'graphql_connect';
+  return data.type === 'graphql:connect';
 }
 
 export function isGraphqlQueryConfig(data: NodeData): data is GraphqlQueryConfig {
-  return data.type === 'graphql_query';
+  return data.type === 'graphql:query';
 }
 
 export function isGraphqlSubscribeConfig(data: NodeData): data is GraphqlSubscribeConfig {
-  return data.type === 'graphql_subscribe';
+  return data.type === 'graphql:subscribe';
 }
 
 export function isGraphqlIntrospectConfig(data: NodeData): data is GraphqlIntrospectConfig {
-  return data.type === 'graphql_introspect';
+  return data.type === 'graphql:introspect';
 }
 
 export function isGraphqlDisconnectConfig(data: NodeData): data is GraphqlDisconnectConfig {
-  return data.type === 'graphql_disconnect';
+  return data.type === 'graphql:disconnect';
 }
 
 
@@ -1218,8 +1249,22 @@ export function isGraphqlDisconnectConfig(data: NodeData): data is GraphqlDiscon
 /**
  * 判断是否为 VariableExtractorConfig
  */
+
+/**
+ * 判断是否为 HttpIngressConfig
+ */
+export function isHttpIngressConfig(data: NodeData): data is HttpIngressConfig {
+  return data.type === 'http:ingress';
+}
+
+/**
+ * 判断是否为 HttpRespondConfig
+ */
+export function isHttpRespondConfig(data: NodeData): data is HttpRespondConfig {
+  return data.type === 'http:respond';
+}
 export function isVariableExtractorConfig(data: NodeData): data is VariableExtractorConfig {
-  return data.type === 'variable_extractor';
+  return data.type === 'variable:extractor';
 }
 
 /**

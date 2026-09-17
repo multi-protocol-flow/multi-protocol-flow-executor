@@ -213,6 +213,73 @@ impl Default for HttpConfig {
     }
 }
 
+/// HTTP Ingress 节点配置（Mock 服务入口）
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HttpIngressConfig {
+    /// 监听端口
+    pub port: u16,
+    /// 路由路径匹配模式（例如 "/webhook/stripe" 或 "/*"）
+    #[serde(default = "default_ingress_path")]
+    pub path_pattern: String,
+    /// 允许的 HTTP 方法
+    #[serde(default = "default_ingress_methods")]
+    pub methods: Vec<String>,
+}
+
+fn default_ingress_path() -> String {
+    "/*".to_string()
+}
+
+fn default_ingress_methods() -> Vec<String> {
+    vec!["GET".to_string(), "POST".to_string()]
+}
+
+impl Default for HttpIngressConfig {
+    fn default() -> Self {
+        Self {
+            port: 9527,
+            path_pattern: default_ingress_path(),
+            methods: default_ingress_methods(),
+        }
+    }
+}
+
+/// HTTP Respond 节点配置（Mock 服务响应输出）
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HttpRespondConfig {
+    /// 响应状态码
+    #[serde(default = "default_respond_status")]
+    pub status_code: u16,
+    /// 响应头
+    #[serde(default)]
+    pub headers: HashMap<String, String>,
+    /// 响应体类型（"json", "text", "binary"）
+    #[serde(default = "default_respond_body_type")]
+    pub body_type: String,
+    /// 响应内容
+    #[serde(default)]
+    pub body: String,
+}
+
+fn default_respond_status() -> u16 {
+    200
+}
+
+fn default_respond_body_type() -> String {
+    "json".to_string()
+}
+
+impl Default for HttpRespondConfig {
+    fn default() -> Self {
+        Self {
+            status_code: default_respond_status(),
+            headers: HashMap::new(),
+            body_type: default_respond_body_type(),
+            body: r#"{"success": true}"#.to_string(),
+        }
+    }
+}
+
 /// HTTP 认证类型
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -869,7 +936,7 @@ impl Default for TcpConnectConfig {
 /// TCP Send 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TcpSendConfig {
-    /// 连接 ID（引用 `tcp_connect` 节点的 UUID）
+    /// 连接 ID（引用 `tcp:connect` 节点的 UUID）
     pub connection_id: String,
     /// 要发送的数据
     pub data: String,
@@ -915,7 +982,7 @@ impl Default for TcpSendConfig {
 /// TCP Close 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TcpCloseConfig {
-    /// 连接 ID（引用 `tcp_connect` 节点的 UUID）
+    /// 连接 ID（引用 `tcp:connect` 节点的 UUID）
     pub connection_id: String,
     /// 关闭超时（毫秒）
     #[serde(default = "default_tcp_close_timeout")]
@@ -938,7 +1005,7 @@ impl Default for TcpCloseConfig {
 /// TCP Receive 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TcpReceiveConfig {
-    /// 连接 ID（引用 `tcp_connect` 节点的 UUID）
+    /// 连接 ID（引用 `tcp:connect` 节点的 UUID）
     pub connection_id: String,
     /// 接收超时（毫秒）
     #[serde(default = "default_tcp_receive_timeout")]
@@ -1024,7 +1091,7 @@ impl Default for UdpBindConfig {
 /// UDP `SendTo` 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UdpSendToConfig {
-    /// 连接 ID（引用 `udp_bind` 节点的 UUID）
+    /// 连接 ID（引用 `udp:bind` 节点的 UUID）
     pub connection_id: String,
     /// 要发送的数据
     pub data: String,
@@ -1060,7 +1127,7 @@ impl Default for UdpSendToConfig {
 /// UDP `RecvFrom` 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UdpRecvFromConfig {
-    /// 连接 ID（引用 `udp_bind` 节点的 UUID）
+    /// 连接 ID（引用 `udp:bind` 节点的 UUID）
     pub connection_id: String,
     /// 接收超时（毫秒）
     #[serde(default = "default_udp_recv_timeout")]
@@ -1091,7 +1158,7 @@ impl Default for UdpRecvFromConfig {
 /// UDP Close 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct UdpCloseConfig {
-    /// 连接 ID（引用 `udp_bind` 节点的 UUID）
+    /// 连接 ID（引用 `udp:bind` 节点的 UUID）
     pub connection_id: String,
 }
 
@@ -1129,7 +1196,7 @@ pub struct SseConnectConfig {
 /// SSE 监听事件节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct SseListenConfig {
-    /// 连接 ID（引用 `sse_connect` 节点的 UUID）
+    /// 连接 ID（引用 `sse:connect` 节点的 UUID）
     pub connection_id: String,
     /// 事件过滤（仅接收匹配的事件名）
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1151,7 +1218,7 @@ pub struct SseListenConfig {
 /// SSE 断开连接节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct SseDisconnectConfig {
-    /// 连接 ID（引用 `sse_connect` 节点的 UUID）
+    /// 连接 ID（引用 `sse:connect` 节点的 UUID）
     pub connection_id: String,
 }
 
@@ -1200,7 +1267,7 @@ pub struct GraphqlFileUpload {
 /// GraphQL 查询节点配置（Query + Mutation）
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GraphqlQueryConfig {
-    /// 连接 ID（引用 `graphql_connect` 节点的 UUID）
+    /// 连接 ID（引用 `graphql:connect` 节点的 UUID）
     pub connection_id: String,
     /// GraphQL 查询/变更语句
     pub query: String,
@@ -1221,7 +1288,7 @@ pub struct GraphqlQueryConfig {
 /// GraphQL 订阅节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GraphqlSubscribeConfig {
-    /// 连接 ID（引用 `graphql_connect` 节点的 UUID）
+    /// 连接 ID（引用 `graphql:connect` 节点的 UUID）
     pub connection_id: String,
     /// GraphQL 订阅语句
     pub subscription: String,
@@ -1242,7 +1309,7 @@ pub struct GraphqlSubscribeConfig {
 /// GraphQL Schema 探索节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GraphqlIntrospectConfig {
-    /// 连接 ID（引用 `graphql_connect` 节点的 UUID）
+    /// 连接 ID（引用 `graphql:connect` 节点的 UUID）
     pub connection_id: String,
     /// 探索超时（毫秒）
     #[serde(default)]
@@ -1252,7 +1319,7 @@ pub struct GraphqlIntrospectConfig {
 /// GraphQL 断开连接节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GraphqlDisconnectConfig {
-    /// 连接 ID（引用 `graphql_connect` 节点的 UUID）
+    /// 连接 ID（引用 `graphql:connect` 节点的 UUID）
     pub connection_id: String,
 }
 
@@ -1324,7 +1391,7 @@ pub struct VariableExtractorConfig {
 }
 
 fn default_variable_extractor_type() -> String {
-    "variable_extractor".to_string()
+    "variable:extractor".to_string()
 }
 
 // ============================================================================
@@ -1400,17 +1467,24 @@ pub enum NodeData {
     /// 入口节点配置
     Entry(EntryConfig),
     /// HTTP 请求节点配置
+    #[serde(rename = "http:request")]
     Http(HttpConfig),
+    /// HTTP Ingress 监听节点配置
+    #[serde(rename = "http:ingress")]
+    HttpIngress(HttpIngressConfig),
+    /// HTTP Respond 响应节点配置
+    #[serde(rename = "http:respond")]
+    HttpRespond(HttpRespondConfig),
     /// 条件分支节点配置
     Conditional(ConditionalConfig),
     /// WebSocket 连接节点配置
-    #[serde(rename = "ws_connect")]
+    #[serde(rename = "ws:connect")]
     WsConnect(WsConnectConfig),
     /// WebSocket 发送采集节点配置
-    #[serde(rename = "ws_send_collect")]
+    #[serde(rename = "ws:send_collect")]
     WsSendCollect(WsSendCollectConfig),
     /// WebSocket 关闭节点配置
-    #[serde(rename = "ws_close")]
+    #[serde(rename = "ws:close")]
     WsClose(WsCloseConfig),
     /// 断言节点配置
     Assertion(AssertionConfig),
@@ -1418,64 +1492,64 @@ pub enum NodeData {
     #[serde(rename = "script")]
     Script(ScriptNodeConfig),
     /// TCP 连接节点配置
-    #[serde(rename = "tcp_connect")]
+    #[serde(rename = "tcp:connect")]
     TcpConnect(TcpConnectConfig),
     /// TCP 发送节点配置
-    #[serde(rename = "tcp_send")]
+    #[serde(rename = "tcp:send")]
     TcpSend(TcpSendConfig),
     /// TCP 接收节点配置
-    #[serde(rename = "tcp_receive")]
+    #[serde(rename = "tcp:receive")]
     TcpReceive(TcpReceiveConfig),
     /// TCP 关闭节点配置
-    #[serde(rename = "tcp_close")]
+    #[serde(rename = "tcp:close")]
     TcpClose(TcpCloseConfig),
     /// UDP 绑定节点配置
-    #[serde(rename = "udp_bind")]
+    #[serde(rename = "udp:bind")]
     UdpBind(UdpBindConfig),
     /// UDP 发送节点配置
-    #[serde(rename = "udp_send_to")]
+    #[serde(rename = "udp:send_to")]
     UdpSendTo(UdpSendToConfig),
     /// UDP 接收节点配置
-    #[serde(rename = "udp_recv_from")]
+    #[serde(rename = "udp:recv_from")]
     UdpRecvFrom(UdpRecvFromConfig),
     /// UDP 关闭节点配置
-    #[serde(rename = "udp_close")]
+    #[serde(rename = "udp:close")]
     UdpClose(UdpCloseConfig),
     /// SSE 连接节点配置
-    #[serde(rename = "sse_connect")]
+    #[serde(rename = "sse:connect")]
     SseConnect(SseConnectConfig),
     /// SSE 监听事件节点配置
-    #[serde(rename = "sse_listen")]
+    #[serde(rename = "sse:listen")]
     SseListen(SseListenConfig),
     /// SSE 断开连接节点配置
-    #[serde(rename = "sse_disconnect")]
+    #[serde(rename = "sse:disconnect")]
     SseDisconnect(SseDisconnectConfig),
     // GraphQL 节点
     /// GraphQL 连接节点配置
-    #[serde(rename = "graphql_connect")]
+    #[serde(rename = "graphql:connect")]
     GraphqlConnect(GraphqlConnectConfig),
     /// GraphQL 查询节点配置
-    #[serde(rename = "graphql_query")]
+    #[serde(rename = "graphql:query")]
     GraphqlQuery(GraphqlQueryConfig),
     /// GraphQL 订阅节点配置
-    #[serde(rename = "graphql_subscribe")]
+    #[serde(rename = "graphql:subscribe")]
     GraphqlSubscribe(GraphqlSubscribeConfig),
     /// GraphQL Schema 探索节点配置
-    #[serde(rename = "graphql_introspect")]
+    #[serde(rename = "graphql:introspect")]
     GraphqlIntrospect(GraphqlIntrospectConfig),
     /// GraphQL 断开连接节点配置
-    #[serde(rename = "graphql_disconnect")]
+    #[serde(rename = "graphql:disconnect")]
     GraphqlDisconnect(GraphqlDisconnectConfig),
     /// 代理设置节点配置
     #[serde(rename = "proxy")]
     Proxy(ProxyConfig),
     /// 变量提取节点配置
-    #[serde(rename = "variable_extractor")]
+    #[serde(rename = "variable:extractor")]
     VariableExtractor(VariableExtractorConfig),
     /// 结束节点配置
     End(EndConfig),
     /// 子流程节点配置
-    #[serde(rename = "sub_flow")]
+    #[serde(rename = "flow:sub")]
     SubFlow(SubFlowConfig),
     /// 插件节点配置（未知类型的兜底捕获）
     ///
@@ -1500,19 +1574,25 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "entry" => serde_json::from_value::<EntryConfig>(value.clone())
                 .map(NodeData::Entry)
                 .map_err(serde::de::Error::custom),
-            "http" => serde_json::from_value::<HttpConfig>(value.clone())
+            "http:request" => serde_json::from_value::<HttpConfig>(value.clone())
                 .map(NodeData::Http)
+                .map_err(serde::de::Error::custom),
+            "http:ingress" => serde_json::from_value::<HttpIngressConfig>(value.clone())
+                .map(NodeData::HttpIngress)
+                .map_err(serde::de::Error::custom),
+            "http:respond" => serde_json::from_value::<HttpRespondConfig>(value.clone())
+                .map(NodeData::HttpRespond)
                 .map_err(serde::de::Error::custom),
             "conditional" => serde_json::from_value::<ConditionalConfig>(value.clone())
                 .map(NodeData::Conditional)
                 .map_err(serde::de::Error::custom),
-            "ws_connect" => serde_json::from_value::<WsConnectConfig>(value.clone())
+            "ws:connect" => serde_json::from_value::<WsConnectConfig>(value.clone())
                 .map(NodeData::WsConnect)
                 .map_err(serde::de::Error::custom),
-            "ws_send_collect" => serde_json::from_value::<WsSendCollectConfig>(value.clone())
+            "ws:send_collect" => serde_json::from_value::<WsSendCollectConfig>(value.clone())
                 .map(NodeData::WsSendCollect)
                 .map_err(serde::de::Error::custom),
-            "ws_close" => serde_json::from_value::<WsCloseConfig>(value.clone())
+            "ws:close" => serde_json::from_value::<WsCloseConfig>(value.clone())
                 .map(NodeData::WsClose)
                 .map_err(serde::de::Error::custom),
             "assertion" => serde_json::from_value::<AssertionConfig>(value.clone())
@@ -1521,55 +1601,55 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "script" => serde_json::from_value::<ScriptNodeConfig>(value.clone())
                 .map(NodeData::Script)
                 .map_err(serde::de::Error::custom),
-            "tcp_connect" => serde_json::from_value::<TcpConnectConfig>(value.clone())
+            "tcp:connect" => serde_json::from_value::<TcpConnectConfig>(value.clone())
                 .map(NodeData::TcpConnect)
                 .map_err(serde::de::Error::custom),
-            "tcp_send" => serde_json::from_value::<TcpSendConfig>(value.clone())
+            "tcp:send" => serde_json::from_value::<TcpSendConfig>(value.clone())
                 .map(NodeData::TcpSend)
                 .map_err(serde::de::Error::custom),
-            "tcp_receive" => serde_json::from_value::<TcpReceiveConfig>(value.clone())
+            "tcp:receive" => serde_json::from_value::<TcpReceiveConfig>(value.clone())
                 .map(NodeData::TcpReceive)
                 .map_err(serde::de::Error::custom),
-            "tcp_close" => serde_json::from_value::<TcpCloseConfig>(value.clone())
+            "tcp:close" => serde_json::from_value::<TcpCloseConfig>(value.clone())
                 .map(NodeData::TcpClose)
                 .map_err(serde::de::Error::custom),
-            "udp_bind" => serde_json::from_value::<UdpBindConfig>(value.clone())
+            "udp:bind" => serde_json::from_value::<UdpBindConfig>(value.clone())
                 .map(NodeData::UdpBind)
                 .map_err(serde::de::Error::custom),
-            "udp_send_to" => serde_json::from_value::<UdpSendToConfig>(value.clone())
+            "udp:send_to" => serde_json::from_value::<UdpSendToConfig>(value.clone())
                 .map(NodeData::UdpSendTo)
                 .map_err(serde::de::Error::custom),
-            "udp_recv_from" => serde_json::from_value::<UdpRecvFromConfig>(value.clone())
+            "udp:recv_from" => serde_json::from_value::<UdpRecvFromConfig>(value.clone())
                 .map(NodeData::UdpRecvFrom)
                 .map_err(serde::de::Error::custom),
-            "udp_close" => serde_json::from_value::<UdpCloseConfig>(value.clone())
+            "udp:close" => serde_json::from_value::<UdpCloseConfig>(value.clone())
                 .map(NodeData::UdpClose)
                 .map_err(serde::de::Error::custom),
-            "sse_connect" => serde_json::from_value::<SseConnectConfig>(value.clone())
+            "sse:connect" => serde_json::from_value::<SseConnectConfig>(value.clone())
                 .map(NodeData::SseConnect)
                 .map_err(serde::de::Error::custom),
-            "sse_listen" => serde_json::from_value::<SseListenConfig>(value.clone())
+            "sse:listen" => serde_json::from_value::<SseListenConfig>(value.clone())
                 .map(NodeData::SseListen)
                 .map_err(serde::de::Error::custom),
-            "sse_disconnect" => serde_json::from_value::<SseDisconnectConfig>(value.clone())
+            "sse:disconnect" => serde_json::from_value::<SseDisconnectConfig>(value.clone())
                 .map(NodeData::SseDisconnect)
                 .map_err(serde::de::Error::custom),
             // GraphQL 节点
-            "graphql_connect" => serde_json::from_value::<GraphqlConnectConfig>(value.clone())
+            "graphql:connect" => serde_json::from_value::<GraphqlConnectConfig>(value.clone())
                 .map(NodeData::GraphqlConnect)
                 .map_err(serde::de::Error::custom),
-            "graphql_query" => serde_json::from_value::<GraphqlQueryConfig>(value.clone())
+            "graphql:query" => serde_json::from_value::<GraphqlQueryConfig>(value.clone())
                 .map(NodeData::GraphqlQuery)
                 .map_err(serde::de::Error::custom),
-            "graphql_subscribe" => serde_json::from_value::<GraphqlSubscribeConfig>(value.clone())
+            "graphql:subscribe" => serde_json::from_value::<GraphqlSubscribeConfig>(value.clone())
                 .map(NodeData::GraphqlSubscribe)
                 .map_err(serde::de::Error::custom),
-            "graphql_introspect" => {
+            "graphql:introspect" => {
                 serde_json::from_value::<GraphqlIntrospectConfig>(value.clone())
                     .map(NodeData::GraphqlIntrospect)
                     .map_err(serde::de::Error::custom)
             }
-            "graphql_disconnect" => {
+            "graphql:disconnect" => {
                 serde_json::from_value::<GraphqlDisconnectConfig>(value.clone())
                     .map(NodeData::GraphqlDisconnect)
                     .map_err(serde::de::Error::custom)
@@ -1577,13 +1657,13 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "proxy" => serde_json::from_value::<ProxyConfig>(value.clone())
                 .map(NodeData::Proxy)
                 .map_err(serde::de::Error::custom),
-            "variable_extractor" => {
+            "variable:extractor" => {
                 serde_json::from_value::<VariableExtractorConfig>(value.clone())
                     .map(NodeData::VariableExtractor)
                     .map_err(serde::de::Error::custom)
             }
             "end" => Ok(NodeData::End(EndConfig)),
-            "sub_flow" => serde_json::from_value::<SubFlowConfig>(value.clone())
+            "flow:sub" => serde_json::from_value::<SubFlowConfig>(value.clone())
                 .map(NodeData::SubFlow)
                 .map_err(serde::de::Error::custom),
             // 未知 type → 兜底到 Plugin
@@ -1597,34 +1677,36 @@ impl NodeData {
     pub fn type_name(&self) -> String {
         match self {
             NodeData::Entry(_) => "entry".to_string(),
-            NodeData::Http(_) => "http".to_string(),
+            NodeData::Http(_) => "http:request".to_string(),
+            NodeData::HttpIngress(_) => "http:ingress".to_string(),
+            NodeData::HttpRespond(_) => "http:respond".to_string(),
             NodeData::Conditional(_) => "conditional".to_string(),
-            NodeData::WsConnect(_) => "ws_connect".to_string(),
-            NodeData::WsSendCollect(_) => "ws_send_collect".to_string(),
-            NodeData::WsClose(_) => "ws_close".to_string(),
+            NodeData::WsConnect(_) => "ws:connect".to_string(),
+            NodeData::WsSendCollect(_) => "ws:send_collect".to_string(),
+            NodeData::WsClose(_) => "ws:close".to_string(),
             NodeData::Assertion(_) => "assertion".to_string(),
             NodeData::Script(_) => "script".to_string(),
-            NodeData::TcpConnect(_) => "tcp_connect".to_string(),
-            NodeData::TcpSend(_) => "tcp_send".to_string(),
-            NodeData::TcpReceive(_) => "tcp_receive".to_string(),
-            NodeData::TcpClose(_) => "tcp_close".to_string(),
-            NodeData::UdpBind(_) => "udp_bind".to_string(),
-            NodeData::UdpSendTo(_) => "udp_send_to".to_string(),
-            NodeData::UdpRecvFrom(_) => "udp_recv_from".to_string(),
-            NodeData::UdpClose(_) => "udp_close".to_string(),
-            NodeData::SseConnect(_) => "sse_connect".to_string(),
-            NodeData::SseListen(_) => "sse_listen".to_string(),
-            NodeData::SseDisconnect(_) => "sse_disconnect".to_string(),
+            NodeData::TcpConnect(_) => "tcp:connect".to_string(),
+            NodeData::TcpSend(_) => "tcp:send".to_string(),
+            NodeData::TcpReceive(_) => "tcp:receive".to_string(),
+            NodeData::TcpClose(_) => "tcp:close".to_string(),
+            NodeData::UdpBind(_) => "udp:bind".to_string(),
+            NodeData::UdpSendTo(_) => "udp:send_to".to_string(),
+            NodeData::UdpRecvFrom(_) => "udp:recv_from".to_string(),
+            NodeData::UdpClose(_) => "udp:close".to_string(),
+            NodeData::SseConnect(_) => "sse:connect".to_string(),
+            NodeData::SseListen(_) => "sse:listen".to_string(),
+            NodeData::SseDisconnect(_) => "sse:disconnect".to_string(),
             // GraphQL 节点
-            NodeData::GraphqlConnect(_) => "graphql_connect".to_string(),
-            NodeData::GraphqlQuery(_) => "graphql_query".to_string(),
-            NodeData::GraphqlSubscribe(_) => "graphql_subscribe".to_string(),
-            NodeData::GraphqlIntrospect(_) => "graphql_introspect".to_string(),
-            NodeData::GraphqlDisconnect(_) => "graphql_disconnect".to_string(),
+            NodeData::GraphqlConnect(_) => "graphql:connect".to_string(),
+            NodeData::GraphqlQuery(_) => "graphql:query".to_string(),
+            NodeData::GraphqlSubscribe(_) => "graphql:subscribe".to_string(),
+            NodeData::GraphqlIntrospect(_) => "graphql:introspect".to_string(),
+            NodeData::GraphqlDisconnect(_) => "graphql:disconnect".to_string(),
             NodeData::Proxy(_) => "proxy".to_string(),
-            NodeData::VariableExtractor(_) => "variable_extractor".to_string(),
+            NodeData::VariableExtractor(_) => "variable:extractor".to_string(),
             NodeData::End(_) => "end".to_string(),
-            NodeData::SubFlow(_) => "sub_flow".to_string(),
+            NodeData::SubFlow(_) => "flow:sub".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
                 .and_then(|v| v.as_str())
@@ -1895,7 +1977,10 @@ mod tests {
     #[test]
     fn test_node_data_type_name() {
         assert_eq!(NodeData::entry().type_name(), "entry");
-        assert_eq!(NodeData::http("https://example.com").type_name(), "http");
+        assert_eq!(
+            NodeData::http("https://example.com").type_name(),
+            "http:request"
+        );
         assert_eq!(
             NodeData::conditional_simple("field", ConditionOperator::Equal, json!(1)).type_name(),
             "conditional"
@@ -1906,7 +1991,7 @@ mod tests {
     fn test_node_data_serialization_with_tag() {
         let data = NodeData::http("https://api.example.com");
         let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
-        assert!(json.contains(r#""type":"http""#));
+        assert!(json.contains(r#""type":"http:request""#));
         assert!(json.contains("https://api.example.com"));
 
         // 反序列化测试
@@ -2127,10 +2212,10 @@ mod tests {
     #[test]
     fn test_node_data_ws_connect() {
         let data = NodeData::ws_connect("wss://example.com/ws");
-        assert_eq!(data.type_name(), "ws_connect");
+        assert_eq!(data.type_name(), "ws:connect");
 
         let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
-        assert!(json.contains(r#""type":"ws_connect""#));
+        assert!(json.contains(r#""type":"ws:connect""#));
         assert!(json.contains("wss://example.com/ws"));
 
         let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
@@ -2145,10 +2230,10 @@ mod tests {
     #[test]
     fn test_node_data_ws_send_collect() {
         let data = NodeData::ws_send_collect("conn-123", r#"{"type":"ping"}"#);
-        assert_eq!(data.type_name(), "ws_send_collect");
+        assert_eq!(data.type_name(), "ws:send_collect");
 
         let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
-        assert!(json.contains(r#""type":"ws_send_collect""#));
+        assert!(json.contains(r#""type":"ws:send_collect""#));
         assert!(json.contains("conn-123"));
 
         let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
@@ -2164,10 +2249,10 @@ mod tests {
     #[test]
     fn test_node_data_ws_close() {
         let data = NodeData::ws_close("conn-456");
-        assert_eq!(data.type_name(), "ws_close");
+        assert_eq!(data.type_name(), "ws:close");
 
         let json = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
-        assert!(json.contains(r#""type":"ws_close""#));
+        assert!(json.contains(r#""type":"ws:close""#));
         assert!(json.contains("conn-456"));
 
         let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
@@ -2177,6 +2262,50 @@ mod tests {
                 assert_eq!(config.close_code, 1000); // default
             }
             _ => panic!("Expected WsClose variant"),
+        }
+    }
+
+    /// 内置命名空间 id（`proto:op`）必须与 `NodeData` 变体双向对应：
+    /// 流程文件里的 `type` 字符串直接决定节点配置能否反序列化。
+    #[test]
+    fn test_node_data_http_mock_namespaced_ids() {
+        let ingress = NodeData::HttpIngress(HttpIngressConfig {
+            port: 8080,
+            path_pattern: "/webhook/*".to_string(),
+            methods: vec!["POST".to_string()],
+        });
+        assert_eq!(ingress.type_name(), "http:ingress");
+
+        let json = serde_json::to_string(&ingress).unwrap_or_else(|e| panic!("{e}"));
+        assert!(json.contains(r#""type":"http:ingress""#));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        match deserialized {
+            NodeData::HttpIngress(config) => {
+                assert_eq!(config.port, 8080);
+                assert_eq!(config.path_pattern, "/webhook/*");
+            }
+            _ => panic!("Expected HttpIngress variant"),
+        }
+
+        let respond = NodeData::HttpRespond(HttpRespondConfig {
+            status_code: 201,
+            headers: HashMap::new(),
+            body_type: "json".to_string(),
+            body: r#"{"ok":true}"#.to_string(),
+        });
+        assert_eq!(respond.type_name(), "http:respond");
+
+        let json = serde_json::to_string(&respond).unwrap_or_else(|e| panic!("{e}"));
+        assert!(json.contains(r#""type":"http:respond""#));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        match deserialized {
+            NodeData::HttpRespond(config) => {
+                assert_eq!(config.status_code, 201);
+                assert_eq!(config.body, r#"{"ok":true}"#);
+            }
+            _ => panic!("Expected HttpRespond variant"),
         }
     }
 
@@ -2316,15 +2445,15 @@ mod tests {
     #[test]
     fn test_node_data_existing_types_unchanged() {
         // HTTP 应正常反序列化
-        let json = r#"{"type":"http","url":"https://example.com","method":"get"}"#;
+        let json = r#"{"type":"http:request","url":"https://example.com","method":"get"}"#;
         let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         match data {
             NodeData::Http(config) => assert_eq!(config.url, "https://example.com"),
             _ => panic!("Expected Http variant"),
         }
 
-        // ws_connect 应正常反序列化
-        let json = r#"{"type":"ws_connect","url":"wss://example.com"}"#;
+        // ws:connect 应正常反序列化
+        let json = r#"{"type":"ws:connect","url":"wss://example.com"}"#;
         let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
         match data {
             NodeData::WsConnect(config) => assert_eq!(config.url, "wss://example.com"),
@@ -2431,7 +2560,7 @@ mod tests {
         // 已知类型序列化格式不应改变
         let node = Node {
             uuid: "test-http".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP Request".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -2442,12 +2571,12 @@ mod tests {
 
         let json = serde_json::to_string(&node).unwrap_or_else(|e| panic!("{e}"));
 
-        // 序列化后 JSON 应包含 "type":"http"
-        assert!(json.contains(r#""type":"http""#));
+        // 序列化后 JSON 应包含 "type":"http:request"
+        assert!(json.contains(r#""type":"http:request""#));
 
         // 往返验证
         let back: Node = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(back.node_type, "http");
+        assert_eq!(back.node_type, "http:request");
         assert_eq!(back.uuid, "test-http");
     }
 
@@ -2572,9 +2701,9 @@ mod tests {
 
     #[test]
     fn test_node_data_tcp_connect_roundtrip() {
-        let json = r#"{"type":"tcp_connect","host":"127.0.0.1","port":8080,"use_tls":false,"tls_skip_verify":false,"connect_timeout_ms":30000,"framing_mode":{"length_prefix":{"prefix_bytes":4}},"framing_config":{"mode":{"length_prefix":{"prefix_bytes":4}},"max_frame_size":1048576,"include_framing_in_data":false}}"#;
+        let json = r#"{"type":"tcp:connect","host":"127.0.0.1","port":8080,"use_tls":false,"tls_skip_verify":false,"connect_timeout_ms":30000,"framing_mode":{"length_prefix":{"prefix_bytes":4}},"framing_config":{"mode":{"length_prefix":{"prefix_bytes":4}},"max_frame_size":1048576,"include_framing_in_data":false}}"#;
         let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(data.type_name(), "tcp_connect");
+        assert_eq!(data.type_name(), "tcp:connect");
         match &data {
             NodeData::TcpConnect(cfg) => {
                 assert_eq!(cfg.host, "127.0.0.1");
@@ -2585,14 +2714,14 @@ mod tests {
         // 往返验证
         let serialized = serde_json::to_string(&data).unwrap_or_else(|e| panic!("{e}"));
         let back: NodeData = serde_json::from_str(&serialized).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(back.type_name(), "tcp_connect");
+        assert_eq!(back.type_name(), "tcp:connect");
     }
 
     #[test]
     fn test_node_data_tcp_send_roundtrip() {
-        let json = r#"{"type":"tcp_send","connection_id":"c1","data":"hello","data_encoding":"text","send_timeout_ms":30000}"#;
+        let json = r#"{"type":"tcp:send","connection_id":"c1","data":"hello","data_encoding":"text","send_timeout_ms":30000}"#;
         let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(data.type_name(), "tcp_send");
+        assert_eq!(data.type_name(), "tcp:send");
         match &data {
             NodeData::TcpSend(cfg) => {
                 assert_eq!(cfg.connection_id, "c1");
@@ -2604,9 +2733,9 @@ mod tests {
 
     #[test]
     fn test_node_data_tcp_close_roundtrip() {
-        let json = r#"{"type":"tcp_close","connection_id":"c1","close_timeout_ms":5000}"#;
+        let json = r#"{"type":"tcp:close","connection_id":"c1","close_timeout_ms":5000}"#;
         let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(data.type_name(), "tcp_close");
+        assert_eq!(data.type_name(), "tcp:close");
         match &data {
             NodeData::TcpClose(cfg) => {
                 assert_eq!(cfg.connection_id, "c1");
@@ -2618,9 +2747,9 @@ mod tests {
     #[test]
     fn test_node_data_udp_bind_roundtrip() {
         let json =
-            r#"{"type":"udp_bind","local_addr":"0.0.0.0","local_port":9090,"reuse_addr":true}"#;
+            r#"{"type":"udp:bind","local_addr":"0.0.0.0","local_port":9090,"reuse_addr":true}"#;
         let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(data.type_name(), "udp_bind");
+        assert_eq!(data.type_name(), "udp:bind");
         match &data {
             NodeData::UdpBind(cfg) => {
                 assert_eq!(cfg.local_port, 9090);
@@ -2631,9 +2760,9 @@ mod tests {
 
     #[test]
     fn test_node_data_udp_send_to_roundtrip() {
-        let json = r#"{"type":"udp_send_to","connection_id":"c1","data":"ping","target_addr":"10.0.0.1","target_port":5000,"send_timeout_ms":30000}"#;
+        let json = r#"{"type":"udp:send_to","connection_id":"c1","data":"ping","target_addr":"10.0.0.1","target_port":5000,"send_timeout_ms":30000}"#;
         let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(data.type_name(), "udp_send_to");
+        assert_eq!(data.type_name(), "udp:send_to");
         match &data {
             NodeData::UdpSendTo(cfg) => {
                 assert_eq!(cfg.target_addr, "10.0.0.1");
@@ -2645,9 +2774,9 @@ mod tests {
 
     #[test]
     fn test_node_data_udp_recv_from_roundtrip() {
-        let json = r#"{"type":"udp_recv_from","connection_id":"c1","receive_timeout_ms":5000,"max_size":65536}"#;
+        let json = r#"{"type":"udp:recv_from","connection_id":"c1","receive_timeout_ms":5000,"max_size":65536}"#;
         let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(data.type_name(), "udp_recv_from");
+        assert_eq!(data.type_name(), "udp:recv_from");
         match &data {
             NodeData::UdpRecvFrom(cfg) => {
                 assert_eq!(cfg.receive_timeout_ms, 5000);
@@ -2659,9 +2788,9 @@ mod tests {
 
     #[test]
     fn test_node_data_udp_close_roundtrip() {
-        let json = r#"{"type":"udp_close","connection_id":"c1"}"#;
+        let json = r#"{"type":"udp:close","connection_id":"c1"}"#;
         let data: NodeData = serde_json::from_str(json).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(data.type_name(), "udp_close");
+        assert_eq!(data.type_name(), "udp:close");
         match &data {
             NodeData::UdpClose(cfg) => {
                 assert_eq!(cfg.connection_id, "c1");

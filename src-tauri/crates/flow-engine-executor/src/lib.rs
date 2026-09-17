@@ -19,6 +19,8 @@ pub mod default_registry;
 pub mod entry_executor;
 /// 主执行器，驱动流程节点的遍历与执行
 pub mod executor;
+/// Ingress 流程级 Mock 监听服务模块
+pub mod ingress;
 /// 默认钩子执行器，提供 Webhook/Script/Notify 三种动作的日志执行
 pub mod hook_runner;
 /// 条件分支节点插件

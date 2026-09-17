@@ -126,6 +126,9 @@ pub use flow_engine_executor::dataset_executor;
 pub use flow_engine_core::hook;
 pub use flow_engine_executor::hook_runner;
 
+// Ingress 流程级 Mock 服务模块
+pub use flow_engine_executor::ingress;
+
 // Re-exports
 pub use traits::{
     AppDirProvider, ConsoleLogSender, DefaultAppDirProvider, DirectoryOpener, ExecutionEventSender,

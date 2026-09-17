@@ -107,7 +107,7 @@ impl FlowValidator {
         let entry_nodes: Vec<&Node> = flow
             .nodes
             .iter()
-            .filter(|node| node.node_type == node_types::ENTRY)
+            .filter(|node| node_types::is_entry_node_type(&node.node_type))
             .collect();
 
         if entry_nodes.is_empty() {
@@ -169,7 +169,10 @@ impl FlowValidator {
 
         if end_nodes.is_empty() {
             // 仅在流程有 Entry node（非空流程）时发出警告
-            let has_entry = flow.nodes.iter().any(|n| n.node_type == node_types::ENTRY);
+            let has_entry = flow
+                .nodes
+                .iter()
+                .any(|n| node_types::is_entry_node_type(&n.node_type));
             if has_entry {
                 warnings.push(
                     "Flow has no End node; execution status will remain 'success' on completion. Consider adding an End node to explicitly terminate the flow."
@@ -193,7 +196,7 @@ impl FlowValidator {
         }
         // 兼容自引用直接判断（若子流程尚未保存到磁盘或无 search_dirs）
         for node in &flow.nodes {
-            if node.node_type == node_types::SUB_FLOW || node.node_type == "sub_flow" {
+            if node.node_type == node_types::SUB_FLOW || node.node_type == "flow:sub" {
                 if let NodeData::SubFlow(cfg) = &node.data {
                     if let Some(target_id) = &cfg.target_flow_id {
                         if !flow.uuid.is_empty()
@@ -894,7 +897,7 @@ impl FlowValidator {
         let entry_uuids: Vec<&str> = flow
             .nodes
             .iter()
-            .filter(|n| n.node_type == node_types::ENTRY)
+            .filter(|n| node_types::is_entry_node_type(&n.node_type))
             .map(|n| n.uuid.as_str())
             .collect();
 
@@ -1071,7 +1074,7 @@ fn dfs_subflow_cycles(
     errors: &mut Vec<ValidationEntry>,
 ) {
     for node in &current_flow.nodes {
-        if node.node_type != node_types::SUB_FLOW && node.node_type != "sub_flow" {
+        if node.node_type != node_types::SUB_FLOW && node.node_type != "flow:sub" {
             continue;
         }
 
@@ -1318,7 +1321,7 @@ mod tests {
         // 创建没有 Entry node的流程（新架构只检查是否有 Entry node）
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -1382,7 +1385,7 @@ mod tests {
         // 创建没有 Entry node的流程
         let http_node1 = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 节点 1".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com/1"),
@@ -1392,7 +1395,7 @@ mod tests {
         };
         let http_node2 = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 节点 2".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/2"),
@@ -1479,7 +1482,7 @@ mod tests {
         let start_node = create_entry_node();
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -1519,7 +1522,7 @@ mod tests {
         let start_node = create_entry_node();
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -1605,7 +1608,7 @@ mod tests {
         // 创建不匹配的连接（source 不是 start_node.uuid）
         let other_node = Node {
             uuid: "other-node-uuid".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "其他节点".to_string(),
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::http("https://example.com/other"),
@@ -1659,7 +1662,7 @@ mod tests {
         // 新架构：测试缺少 Entry node的Error消息
         let http_node = Node {
             uuid: "error-test-http".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -1787,7 +1790,7 @@ mod tests {
         let start_node = create_entry_node();
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -1856,7 +1859,7 @@ mod tests {
         let start_node = create_entry_node();
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 节点".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -1946,7 +1949,7 @@ mod tests {
         };
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP Success".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/success"),
@@ -2013,7 +2016,7 @@ mod tests {
         };
         let node_b = Node {
             uuid: "node-b".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "节点B".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -2050,7 +2053,7 @@ mod tests {
         let node_a = create_entry_node();
         let node_b = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "节点B".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -2097,7 +2100,7 @@ mod tests {
                 node_type: if i == 0 {
                     "entry".to_string()
                 } else {
-                    "http".to_string()
+                    "http:request".to_string()
                 },
                 name: name.to_string(),
                 position: NodePosition {

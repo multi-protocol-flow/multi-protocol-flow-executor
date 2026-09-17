@@ -2344,6 +2344,161 @@ pub fn install_update_package(app: tauri::AppHandle, file_path: String) -> Resul
     crate::updater::launch_installer(path, &app)
 }
 
+/// 启动 Ingress Mock 监听服务
+///
+/// `debug = true` 时启用调试启动器：外部请求经可调试执行器运行，流程内断点生效，
+/// 客户端连接保持挂起直到 `http:respond` 执行；调试事件/日志复用调试面板的 Channel。
+/// `debug = false` 时请求走普通执行器。
+#[tauri::command]
+pub async fn start_ingress_listener(
+    port: u16,
+    flow: Flow,
+    debug: bool,
+    on_event: Channel<DebugEvent>,
+    on_log: Channel<LogEvent>,
+    app: tauri::AppHandle,
+    ingress_manager: State<'_, Arc<flow_engine::ingress::IngressManager>>,
+    debug_state: State<'_, Arc<tokio::sync::Mutex<DebugSessionManager>>>,
+    node_registry: State<'_, NodeRegistryState>,
+) -> Result<(), String> {
+    let registry = node_registry.snapshot().registry.clone();
+
+    let (debug_launcher, request_timeout) = if debug {
+        let launcher = Arc::new(TauriIngressDebugLauncher {
+            events: on_event,
+            logs: on_log,
+            debug_state: debug_state.inner().clone(),
+            app: app.clone(),
+        });
+        // 调试模式等待人工单步，放宽客户端等待上限
+        (
+            Some(launcher as Arc<dyn flow_engine::ingress::IngressDebugLauncher>),
+            Duration::from_secs(600),
+        )
+    } else {
+        (None, Duration::from_secs(60))
+    };
+
+    ingress_manager
+        .start_listener(
+            port,
+            flow_engine::ingress::IngressListenerConfig {
+                flow,
+                registry,
+                debug_launcher,
+                request_timeout,
+            },
+        )
+        .await
+}
+
+/// Ingress 请求的调试启动器实现
+///
+/// 复用调试面板既有的 Channel 与 `DebugSessionManager`：会话启动期间
+/// `send_debug_command`/`end_debug` 等前端调试操作对该会话同样生效。
+struct TauriIngressDebugLauncher {
+    events: Channel<DebugEvent>,
+    logs: Channel<LogEvent>,
+    debug_state: Arc<tokio::sync::Mutex<DebugSessionManager>>,
+    app: tauri::AppHandle,
+}
+
+#[async_trait::async_trait]
+impl flow_engine::ingress::IngressDebugLauncher for TauriIngressDebugLauncher {
+    fn is_available(&self) -> bool {
+        // 已有会话占用命令通道时让调用方回退到普通执行，避免争抢同一命令流
+        self.debug_state
+            .try_lock()
+            .map(|manager| manager.command_sender.is_none())
+            .unwrap_or(false)
+    }
+
+    async fn launch(
+        &self,
+        request: flow_engine::ingress::IngressRequest,
+    ) -> Result<(), String> {
+        // 子流程按 ID 解析需要与前端列表同一流程目录
+        crate::sync_flows_dir_override(&self.app);
+
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+        {
+            let mut manager = self.debug_state.lock().await;
+            if manager.command_sender.is_some() {
+                return Err("A debug session is already running".to_string());
+            }
+            manager.command_sender = Some(command_sender);
+        }
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel::<DebugEvent>();
+        let on_event = self.events.clone();
+        // 记录会话结束原因：Ingress 侧据此把失败会话映射为 500（而非“未响应”）
+        let end_reason: Arc<tokio::sync::Mutex<Option<flow_engine::debug::EndReason>>> =
+            Arc::new(tokio::sync::Mutex::new(None));
+        let end_reason_recorder = end_reason.clone();
+        let forwarder = tokio::spawn(async move {
+            while let Some(event) = event_receiver.recv().await {
+                if let DebugEvent::SessionEnded { reason, .. } = &event {
+                    *end_reason_recorder.lock().await = Some(reason.clone());
+                }
+                let _ = on_event.send(event);
+            }
+        });
+
+        let (log_sender, log_worker) = create_log_sender(self.logs.clone());
+        tokio::spawn(log_worker);
+
+        let executor = flow_engine::debug::DebuggableFlowExecutor::new()
+            .with_registry(request.registry.clone())
+            .with_provider(
+                flow_engine::ingress::INGRESS_RESPONSE_PROVIDER,
+                request.response_channel.clone(),
+            );
+
+        executor
+            .start_debug(
+                &request.flow,
+                Some(request.variables.clone()),
+                request.breakpoints.clone(),
+                Some(log_sender),
+                event_sender,
+                command_receiver,
+            )
+            .await;
+
+        // 会话结束后 event_sender 已随 start_debug 一起释放，等待转发任务排空，
+        // 保证结束原因已被记录
+        let _ = forwarder.await;
+        let session_end_reason = end_reason.lock().await.clone();
+
+        self.debug_state.lock().await.command_sender = None;
+
+        match session_end_reason {
+            Some(flow_engine::debug::EndReason::Error { message }) => Err(message),
+            Some(flow_engine::debug::EndReason::UserAbort) => {
+                Err("debug session aborted by user".to_string())
+            }
+            _ => Ok(()),
+        }
+    }
+}
+
+/// 停止 Ingress Mock 监听服务
+#[tauri::command]
+pub async fn stop_ingress_listener(
+    port: u16,
+    ingress_manager: State<'_, Arc<flow_engine::ingress::IngressManager>>,
+) -> Result<(), String> {
+    ingress_manager.stop_listener(port).await
+}
+
+/// 获取活跃的 Ingress 监听端口
+#[tauri::command]
+pub async fn get_active_ingress_ports(
+    ingress_manager: State<'_, Arc<flow_engine::ingress::IngressManager>>,
+) -> Result<Vec<u16>, String> {
+    Ok(ingress_manager.get_active_ports().await)
+}
+
 // ============================================================================
 // 单元测试
 // ============================================================================
@@ -2519,7 +2674,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP Request".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),

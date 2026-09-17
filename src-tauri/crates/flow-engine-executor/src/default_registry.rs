@@ -17,31 +17,33 @@ use flow_engine_plugin::manager::PluginManager;
 /// |------|------|---------|
 /// | Logic | EntryPlugin | `entry` |
 /// | Logic | ConditionalPlugin | `conditional` |
-/// | HTTP | HttpPlugin | `http` |
-/// | Logic | SubFlowPlugin | `sub_flow` |
-/// | WebSocket | WsConnectPlugin | `ws_connect` |
-/// | WebSocket | WsSendCollectPlugin | `ws_send_collect` |
-/// | WebSocket | WsClosePlugin | `ws_close` |
+/// | HTTP | HttpPlugin | `http:request` |
+/// | HTTP | HttpIngressPlugin | `http:ingress` |
+/// | HTTP | HttpRespondPlugin | `http:respond` |
+/// | Logic | SubFlowPlugin | `flow:sub` |
+/// | WebSocket | WsConnectPlugin | `ws:connect` |
+/// | WebSocket | WsSendCollectPlugin | `ws:send_collect` |
+/// | WebSocket | WsClosePlugin | `ws:close` |
 /// | Script | ScriptPlugin | `script` |
 /// | Assertion | AssertionPlugin | `assertion` |
-/// | TCP | TcpConnectPlugin | `tcp_connect` |
-/// | TCP | TcpSendPlugin | `tcp_send` |
-/// | TCP | TcpReceivePlugin | `tcp_receive` |
-/// | TCP | TcpClosePlugin | `tcp_close` |
-/// | UDP | UdpBindPlugin | `udp_bind` |
-/// | UDP | UdpSendToPlugin | `udp_send_to` |
-/// | UDP | UdpRecvFromPlugin | `udp_recv_from` |
-/// | UDP | UdpClosePlugin | `udp_close` |
-/// | SSE | SseConnectPlugin | `sse_connect` |
-/// | SSE | SseListenPlugin | `sse_listen` |
-/// | SSE | SseDisconnectPlugin | `sse_disconnect` |
-/// | GraphQL | GraphqlConnectPlugin | `graphql_connect` |
-/// | GraphQL | GraphqlQueryPlugin | `graphql_query` |
-/// | GraphQL | GraphqlSubscribePlugin | `graphql_subscribe` |
-/// | GraphQL | GraphqlIntrospectPlugin | `graphql_introspect` |
-/// | GraphQL | GraphqlDisconnectPlugin | `graphql_disconnect` |
+/// | TCP | TcpConnectPlugin | `tcp:connect` |
+/// | TCP | TcpSendPlugin | `tcp:send` |
+/// | TCP | TcpReceivePlugin | `tcp:receive` |
+/// | TCP | TcpClosePlugin | `tcp:close` |
+/// | UDP | UdpBindPlugin | `udp:bind` |
+/// | UDP | UdpSendToPlugin | `udp:send_to` |
+/// | UDP | UdpRecvFromPlugin | `udp:recv_from` |
+/// | UDP | UdpClosePlugin | `udp:close` |
+/// | SSE | SseConnectPlugin | `sse:connect` |
+/// | SSE | SseListenPlugin | `sse:listen` |
+/// | SSE | SseDisconnectPlugin | `sse:disconnect` |
+/// | GraphQL | GraphqlConnectPlugin | `graphql:connect` |
+/// | GraphQL | GraphqlQueryPlugin | `graphql:query` |
+/// | GraphQL | GraphqlSubscribePlugin | `graphql:subscribe` |
+/// | GraphQL | GraphqlIntrospectPlugin | `graphql:introspect` |
+/// | GraphQL | GraphqlDisconnectPlugin | `graphql:disconnect` |
 /// | Tools | EndPlugin | `end` |
-/// | Utility | VariableExtractorPlugin | `variable_extractor` |
+/// | Utility | VariableExtractorPlugin | `variable:extractor` |
 /// | Utility | ProxyPlugin | `proxy` |
 pub fn default_registry() -> NodeRegistry {
     let mut registry = NodeRegistry::new();
@@ -99,6 +101,10 @@ pub fn default_registry() -> NodeRegistry {
 
     // Proxy (flow-engine-executor 内置)
     registry.register(std::sync::Arc::new(crate::plugin_proxy::ProxyPlugin));
+
+    // HTTP Ingress & Respond (flow-engine-executor 内置 Mock 服务)
+    registry.register(std::sync::Arc::new(crate::ingress::HttpIngressPlugin));
+    registry.register(std::sync::Arc::new(crate::ingress::HttpRespondPlugin));
 
     registry
 }
@@ -164,7 +170,7 @@ mod tests {
     fn test_plugin_count_matches_features() {
         let registry = default_registry();
         let count = registry.len();
-        let mut expected = 6usize; // always-on: entry, conditional, sub_flow, end, variable_extractor, proxy
+        let mut expected = 8usize; // always-on: entry, conditional, flow:sub, end, variable:extractor, proxy, http:ingress, http:respond
 
         #[cfg(feature = "protocol-http")]
         {
@@ -211,28 +217,36 @@ mod tests {
         // Always present
         assert!(type_ids.contains(&"entry"));
         assert!(type_ids.contains(&"conditional"));
-        assert!(type_ids.contains(&"sub_flow"));
+        assert!(type_ids.contains(&"flow:sub"));
         assert!(type_ids.contains(&"end"));
-        assert!(type_ids.contains(&"variable_extractor"));
+        assert!(type_ids.contains(&"variable:extractor"));
         assert!(type_ids.contains(&"proxy"));
+        assert!(type_ids.contains(&"http:ingress"));
+        assert!(type_ids.contains(&"http:respond"));
 
         // Conditional on features
         #[cfg(feature = "protocol-http")]
         {
-            assert!(type_ids.contains(&"http"), "http should be registered");
+            assert!(
+                type_ids.contains(&"http:request"),
+                "http should be registered"
+            );
         }
         #[cfg(not(feature = "protocol-http"))]
         {
-            assert!(!type_ids.contains(&"http"), "http should NOT be registered");
+            assert!(
+                !type_ids.contains(&"http:request"),
+                "http should NOT be registered"
+            );
         }
 
         #[cfg(feature = "protocol-ws")]
         {
-            assert!(type_ids.contains(&"ws_connect"));
+            assert!(type_ids.contains(&"ws:connect"));
         }
         #[cfg(not(feature = "protocol-ws"))]
         {
-            assert!(!type_ids.contains(&"ws_connect"));
+            assert!(!type_ids.contains(&"ws:connect"));
         }
 
         #[cfg(feature = "protocol-script")]

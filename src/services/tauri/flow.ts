@@ -15,6 +15,7 @@ import type {
   ValidationResult,
 } from '@/types/ipc';
 import type { LogEvent } from '@/types/events';
+import type { DebugEvent } from '@/types/debug';
 import type { ExecutionEvent } from '@/types/execution_event';
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -188,9 +189,9 @@ export async function validateFlow(flow: Flow): Promise<ValidationResult> {
  * 执行单个节点（连接性验证）
  * 调用后端 execute_single_node IPC 命令
  *
- * 支持的节点类型: http, script, assertion,
- * ws_connect, sse_connect,
- * graphql_connect, tcp_connect, 以及声明了
+ * 支持的节点类型: http:request, script, assertion,
+ * ws:connect, sse:connect,
+ * graphql:connect, tcp:connect, 以及声明了
  * capabilities.single_node 的插件节点（如 redis:connect / mcp:connect）
  *
  * @param node - 要执行的节点
@@ -209,5 +210,64 @@ export async function executeSingleNode(
     });
   } catch (error) {
     throw formatError(error, 'execute_single_node');
+  }
+}
+
+/**
+ * 启动 Ingress Mock 监听服务
+ *
+ * `debug` 为 true 时，外部请求经由可调试执行器运行：流程内断点生效，
+ * HTTP 连接保持挂起，直到开发者单步执行到 `http:respond` 才返回响应；
+ * 调试事件与日志经同一组 Channel 推送到现有调试面板。
+ */
+export async function startIngressListener(
+  port: number,
+  flow: Flow,
+  debug: boolean,
+  onEvent: (event: DebugEvent) => void,
+  onLog: (event: LogEvent) => void
+): Promise<void> {
+  try {
+    const eventChannel = new Channel<DebugEvent>();
+    eventChannel.onmessage = (event) => {
+      onEvent(event);
+    };
+
+    const logChannel = new Channel<LogEvent>();
+    logChannel.onmessage = (event) => {
+      onLog(event);
+    };
+
+    await invoke('start_ingress_listener', {
+      port,
+      flow,
+      debug,
+      onEvent: eventChannel,
+      onLog: logChannel,
+    });
+  } catch (error) {
+    throw formatError(error, 'start_ingress_listener');
+  }
+}
+
+/**
+ * 停止 Ingress Mock 监听服务
+ */
+export async function stopIngressListener(port: number): Promise<void> {
+  try {
+    await invoke('stop_ingress_listener', { port });
+  } catch (error) {
+    throw formatError(error, 'stop_ingress_listener');
+  }
+}
+
+/**
+ * 获取活跃的 Ingress 监听端口
+ */
+export async function getActiveIngressPorts(): Promise<number[]> {
+  try {
+    return await invoke<number[]>('get_active_ingress_ports');
+  } catch (error) {
+    throw formatError(error, 'get_active_ingress_ports');
   }
 }

@@ -90,7 +90,7 @@ export const CATEGORY_NAMES: Record<string, string> = {
  * 其他: database(40), tcp(42), udp(43)
  */
 export const CATEGORY_ORDER: Record<string, number> = {
-  http: 0,
+  'http:request': 0,
   websocket: 1,
   sse: 2,
   graphql: 3,
@@ -110,45 +110,47 @@ export const CATEGORY_ORDER: Record<string, number> = {
  * 工具类: 条件判断 → 脚本 → 断言
  */
 const NODE_TYPE_ORDER: Record<string, number> = {
-  // HTTP (单项，无排序需求)
-  http: 0,
+  // HTTP & Mock Ingress
+  'http:request': 0,
+  'http:ingress': 1,
+  'http:respond': 2,
 
   // WebSocket: 连接 → 发送采集 → 关闭
-  ws_connect: 0,
-  ws_send_collect: 1,
-  ws_close: 2,
+  'ws:connect': 0,
+  'ws:send_collect': 1,
+  'ws:close': 2,
 
   // SSE: 连接 → 监听 → 断开
-  sse_connect: 0,
-  sse_listen: 1,
-  sse_disconnect: 2,
+  'sse:connect': 0,
+  'sse:listen': 1,
+  'sse:disconnect': 2,
 
   // GraphQL: 连接 → 查询 → 订阅 → 内省 → 断开
-  graphql_connect: 0,
-  graphql_query: 1,
-  graphql_subscribe: 2,
-  graphql_introspect: 3,
-  graphql_disconnect: 4,
+  'graphql:connect': 0,
+  'graphql:query': 1,
+  'graphql:subscribe': 2,
+  'graphql:introspect': 3,
+  'graphql:disconnect': 4,
 
 
   // TCP: 连接 → 发送 → 接收 → 关闭
-  tcp_connect: 0,
-  tcp_send: 1,
-  tcp_receive: 2,
-  tcp_close: 3,
+  'tcp:connect': 0,
+  'tcp:send': 1,
+  'tcp:receive': 2,
+  'tcp:close': 3,
 
   // UDP: 绑定 → 发送 → 接收 → 关闭
-  udp_bind: 0,
-  udp_send_to: 1,
-  udp_recv_from: 2,
-  udp_close: 3,
+  'udp:bind': 0,
+  'udp:send_to': 1,
+  'udp:recv_from': 2,
+  'udp:close': 3,
 
 
   // 工具: 条件判断 → 脚本 → 断言 → 变量提取 → 代理 → 结束
   conditional: 0,
   script: 1,
   assertion: 2,
-  variable_extractor: 3,
+  'variable:extractor': 3,
   proxy: 4,
   end: 5,
 };
@@ -165,32 +167,32 @@ const NODE_TYPE_ORDER: Record<string, number> = {
 export function getBadgeClassForType(typeId: string): string {
   const badgeMap: Record<string, string> = {
     entry: 'bg-emerald-100 text-emerald-700',
-    http: 'bg-blue-100 text-blue-700',
+    'http:request': 'bg-blue-100 text-blue-700',
     conditional: 'bg-orange-100 text-orange-700',
     script: 'bg-indigo-100 text-indigo-700',
     assertion: 'bg-purple-100 text-purple-700',
-    ws_connect: 'bg-amber-100 text-amber-700',
-    ws_send_collect: 'bg-teal-100 text-teal-700',
-    ws_close: 'bg-rose-100 text-rose-700',
-    variable_extractor: 'bg-amber-100 text-amber-700',
+    'ws:connect': 'bg-amber-100 text-amber-700',
+    'ws:send_collect': 'bg-teal-100 text-teal-700',
+    'ws:close': 'bg-rose-100 text-rose-700',
+    'variable:extractor': 'bg-amber-100 text-amber-700',
     proxy: 'bg-lime-100 text-lime-700',
     end: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-    tcp_connect: 'bg-emerald-100 text-emerald-700',
-    tcp_send: 'bg-emerald-100 text-emerald-700',
-    tcp_receive: 'bg-emerald-100 text-emerald-700',
-    tcp_close: 'bg-emerald-100 text-emerald-700',
-    udp_bind: 'bg-orange-100 text-orange-700',
-    udp_send_to: 'bg-orange-100 text-orange-700',
-    udp_recv_from: 'bg-orange-100 text-orange-700',
-    udp_close: 'bg-orange-100 text-orange-700',
-    sse_connect: 'bg-rose-100 text-rose-700',
-    sse_listen: 'bg-rose-100 text-rose-700',
-    sse_disconnect: 'bg-rose-100 text-rose-700',
-    graphql_connect: 'bg-indigo-100 text-indigo-700',
-    graphql_query: 'bg-indigo-100 text-indigo-700',
-    graphql_subscribe: 'bg-indigo-100 text-indigo-700',
-    graphql_introspect: 'bg-indigo-100 text-indigo-700',
-    graphql_disconnect: 'bg-indigo-100 text-indigo-700',
+    'tcp:connect': 'bg-emerald-100 text-emerald-700',
+    'tcp:send': 'bg-emerald-100 text-emerald-700',
+    'tcp:receive': 'bg-emerald-100 text-emerald-700',
+    'tcp:close': 'bg-emerald-100 text-emerald-700',
+    'udp:bind': 'bg-orange-100 text-orange-700',
+    'udp:send_to': 'bg-orange-100 text-orange-700',
+    'udp:recv_from': 'bg-orange-100 text-orange-700',
+    'udp:close': 'bg-orange-100 text-orange-700',
+    'sse:connect': 'bg-rose-100 text-rose-700',
+    'sse:listen': 'bg-rose-100 text-rose-700',
+    'sse:disconnect': 'bg-rose-100 text-rose-700',
+    'graphql:connect': 'bg-indigo-100 text-indigo-700',
+    'graphql:query': 'bg-indigo-100 text-indigo-700',
+    'graphql:subscribe': 'bg-indigo-100 text-indigo-700',
+    'graphql:introspect': 'bg-indigo-100 text-indigo-700',
+    'graphql:disconnect': 'bg-indigo-100 text-indigo-700',
   };
   return badgeMap[typeId] ?? 'bg-slate-100 text-slate-700';
 }
@@ -254,7 +256,7 @@ export function getCachedNodeMeta(typeId: string): NodeMetadata | null {
 
 /** 节点算子目录条目 */
 export interface CatalogItem {
-  /** 节点类型标识，如 "http", "redis:command" */
+  /** 节点类型标识，如 "http:request", "redis:command" */
   typeId: string;
   /** 显示名称 */
   name: string;
@@ -299,79 +301,89 @@ const CORE_LOGIC_TYPES = [
   'conditional',
   'script',
   'assertion',
-  'variable_extractor',
+  'variable:extractor',
   'proxy',
   'end',
 ];
 
 /** 内置网络协议节点类型列表 */
 const CORE_NETWORK_TYPES = [
-  'http',
-  'ws_connect',
-  'ws_send_collect',
-  'ws_close',
-  'sse_connect',
-  'sse_listen',
-  'sse_disconnect',
-  'graphql_connect',
-  'graphql_query',
-  'graphql_subscribe',
-  'graphql_introspect',
-  'graphql_disconnect',
-  'tcp_connect',
-  'tcp_send',
-  'tcp_receive',
-  'tcp_close',
-  'udp_bind',
-  'udp_send_to',
-  'udp_recv_from',
-  'udp_close',
+  'http:request',
+  'http:ingress',
+  'http:respond',
+  'ws:connect',
+  'ws:send_collect',
+  'ws:close',
+  'sse:connect',
+  'sse:listen',
+  'sse:disconnect',
+  'graphql:connect',
+  'graphql:query',
+  'graphql:subscribe',
+  'graphql:introspect',
+  'graphql:disconnect',
+  'tcp:connect',
+  'tcp:send',
+  'tcp:receive',
+  'tcp:close',
+  'udp:bind',
+  'udp:send_to',
+  'udp:recv_from',
+  'udp:close',
 ];
 
 /** 内置节点默认兜底列表（用于 Mock 或离线模式） */
 export const BUILTIN_FALLBACK_METADATA: NodeMetadata[] = [
-  { type_id: 'http', display_name: 'HTTP 请求', category: 'http', icon: 'globe', color: '#3B82F6', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }, { id: 'false', label: 'False', position: 'bottom' }], default_config: {} },
+  { type_id: 'http:request', display_name: 'HTTP 请求', category: 'http', icon: 'globe', color: '#3B82F6', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }, { id: 'false', label: 'False', position: 'bottom' }], default_config: {} },
+  { type_id: 'http:ingress', display_name: 'HTTP Ingress 监听', category: 'network', icon: 'log-in', color: '#6366F1', ports: [{ id: 'out', label: 'Out', position: 'right' }], default_config: { port: 9527, path_pattern: '/*', methods: ['GET', 'POST'] } },
+  { type_id: 'http:respond', display_name: 'HTTP Respond 响应', category: 'network', icon: 'log-out', color: '#14B8A6', ports: [{ id: 'in', label: 'In', position: 'left' }, { id: 'out', label: 'Out', position: 'right' }], default_config: { status_code: 200, headers: {}, body_type: 'json', body: '{"success": true}' } },
   { type_id: 'conditional', display_name: '条件判断', category: 'logic', icon: 'git-branch', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }, { id: 'false', label: 'False', position: 'bottom' }], default_config: {} },
   { type_id: 'script', display_name: '脚本', category: 'script', icon: 'code', color: '#6366F1', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
   { type_id: 'assertion', display_name: '断言', category: 'assertion', icon: 'check-circle', color: '#A855F7', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }, { id: 'false', label: 'False', position: 'bottom' }], default_config: {} },
-  { type_id: 'variable_extractor', display_name: '变量提取', category: 'tools', icon: 'braces', color: '#F59E0B', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'variable:extractor', display_name: '变量提取', category: 'tools', icon: 'braces', color: '#F59E0B', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
   { type_id: 'proxy', display_name: '代理设置', category: 'tools', icon: 'shield', color: '#84CC16', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
   { type_id: 'end', display_name: '终止', category: 'tools', icon: 'square', color: '#8B5CF6', ports: [{ id: 'flow_in', label: 'In', position: 'top' }], default_config: {} },
-  { type_id: 'ws_connect', display_name: 'WS-连接', category: 'websocket', icon: 'wifi', color: '#F59E0B', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'ws_send_collect', display_name: 'WS-发送采集', category: 'websocket', icon: 'send', color: '#14B8A6', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'ws_close', display_name: 'WS-关闭', category: 'websocket', icon: 'plug', color: '#F43F5E', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'sse_connect', display_name: 'SSE 连接', category: 'sse', icon: 'radio-tower', color: '#F43F5E', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'sse_listen', display_name: 'SSE 监听', category: 'sse', icon: 'ear', color: '#F43F5E', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'sse_disconnect', display_name: 'SSE 断开', category: 'sse', icon: 'unplug', color: '#F43F5E', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'graphql_connect', display_name: 'GraphQL 连接', category: 'graphql', icon: 'plug', color: '#6366F1', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'graphql_query', display_name: 'GraphQL 查询', category: 'graphql', icon: 'search', color: '#6366F1', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'graphql_subscribe', display_name: 'GraphQL 订阅', category: 'graphql', icon: 'eye', color: '#6366F1', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'graphql_introspect', display_name: 'GraphQL 内省', category: 'graphql', icon: 'file-search', color: '#6366F1', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'graphql_disconnect', display_name: 'GraphQL 断开', category: 'graphql', icon: 'unplug', color: '#6366F1', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'tcp_connect', display_name: 'TCP 连接', category: 'tcp', icon: 'cable', color: '#10B981', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'tcp_send', display_name: 'TCP 发送', category: 'tcp', icon: 'send', color: '#10B981', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'tcp_receive', display_name: 'TCP 接收', category: 'tcp', icon: 'download', color: '#10B981', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'tcp_close', display_name: 'TCP 关闭', category: 'tcp', icon: 'unplug', color: '#10B981', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'udp_bind', display_name: 'UDP 绑定', category: 'udp', icon: 'radio', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'udp_send_to', display_name: 'UDP 发送', category: 'udp', icon: 'arrow-up-right', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'udp_recv_from', display_name: 'UDP 接收', category: 'udp', icon: 'arrow-down-left', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
-  { type_id: 'udp_close', display_name: 'UDP 关闭', category: 'udp', icon: 'unplug', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'ws:connect', display_name: 'WS-连接', category: 'websocket', icon: 'wifi', color: '#F59E0B', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'ws:send_collect', display_name: 'WS-发送采集', category: 'websocket', icon: 'send', color: '#14B8A6', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'ws:close', display_name: 'WS-关闭', category: 'websocket', icon: 'plug', color: '#F43F5E', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'sse:connect', display_name: 'SSE 连接', category: 'sse', icon: 'radio-tower', color: '#F43F5E', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'sse:listen', display_name: 'SSE 监听', category: 'sse', icon: 'ear', color: '#F43F5E', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'sse:disconnect', display_name: 'SSE 断开', category: 'sse', icon: 'unplug', color: '#F43F5E', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'graphql:connect', display_name: 'GraphQL 连接', category: 'graphql', icon: 'plug', color: '#6366F1', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'graphql:query', display_name: 'GraphQL 查询', category: 'graphql', icon: 'search', color: '#6366F1', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'graphql:subscribe', display_name: 'GraphQL 订阅', category: 'graphql', icon: 'eye', color: '#6366F1', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'graphql:introspect', display_name: 'GraphQL 内省', category: 'graphql', icon: 'file-search', color: '#6366F1', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'graphql:disconnect', display_name: 'GraphQL 断开', category: 'graphql', icon: 'unplug', color: '#6366F1', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'tcp:connect', display_name: 'TCP 连接', category: 'tcp', icon: 'cable', color: '#10B981', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'tcp:send', display_name: 'TCP 发送', category: 'tcp', icon: 'send', color: '#10B981', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'tcp:receive', display_name: 'TCP 接收', category: 'tcp', icon: 'download', color: '#10B981', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'tcp:close', display_name: 'TCP 关闭', category: 'tcp', icon: 'unplug', color: '#10B981', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'udp:bind', display_name: 'UDP 绑定', category: 'udp', icon: 'radio', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'udp:send_to', display_name: 'UDP 发送', category: 'udp', icon: 'arrow-up-right', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'udp:recv_from', display_name: 'UDP 接收', category: 'udp', icon: 'arrow-down-left', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'udp:close', display_name: 'UDP 关闭', category: 'udp', icon: 'unplug', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
 ];
 
 /**
  * 将 NodeMetadata 转换为 CatalogItem
  */
 export function convertToCatalogItem(meta: NodeMetadata): CatalogItem {
-  const isPlugin = meta.type_id.includes(':') || (!CORE_LOGIC_TYPES.includes(meta.type_id) && !CORE_NETWORK_TYPES.includes(meta.type_id));
+  // 插件判定只看「是否属于内置目录」：type_id 里的 `:` 是命名空间分隔符，
+  // 内置节点 `http:ingress` / `http:respond` 同样带 `:`，不能据此判为插件
+  // （否则会在选择器里被标成插件并显示插件徽章）。
+  const isPlugin =
+    !CORE_LOGIC_TYPES.includes(meta.type_id) && !CORE_NETWORK_TYPES.includes(meta.type_id);
   let pluginId: string | undefined;
   let pluginName: string | undefined;
 
-  if (meta.type_id.includes(':')) {
-    pluginId = meta.type_id.split(':')[0];
-    pluginName = pluginId.charAt(0).toUpperCase() + pluginId.slice(1);
-  } else if (isPlugin) {
-    pluginId = meta.category;
-    pluginName = meta.category;
+  if (isPlugin) {
+    if (meta.type_id.includes(':')) {
+      pluginId = meta.type_id.split(':')[0];
+      pluginName = pluginId.charAt(0).toUpperCase() + pluginId.slice(1);
+    } else {
+      pluginId = meta.category;
+      pluginName = meta.category;
+    }
   }
 
   const icon = ICON_MAP[meta.type_id]?.icon ?? resolveBackendIcon(meta.icon) ?? BACKEND_ICON_MAP[meta.icon] ?? Puzzle;

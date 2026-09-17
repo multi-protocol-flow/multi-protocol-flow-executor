@@ -11,7 +11,8 @@ const en_US_nodes = {
     assertion: 'Assertion',
     database: 'DB',
     tcp: 'TCP',
-    udp: 'UDP'
+    udp: 'UDP',
+    network: 'Mock Service'
   },
   superCategory: {
     network: 'Network',
@@ -23,6 +24,8 @@ const en_US_nodes = {
   no_nodes_available: 'No nodes available',
   entry: 'Entry',
   http: 'HTTP Request',
+  http_ingress: 'HTTP Ingress',
+  http_respond: 'HTTP Respond',
   conditional: 'Conditional',
   script: 'Script',
   assertion: 'Assertion',
@@ -89,6 +92,8 @@ const en_US_nodes = {
   },
   descriptions: {
     http: 'Send HTTP/HTTPS requests with full RESTful method, headers, and body support',
+    http_ingress: 'Mock service entry point, intercepts HTTP requests and injects variables into context',
+    http_respond: 'Mock service response exit, evaluates template and returns HTTP response to client',
     conditional: 'Branching logic with expression comparison and conditional routing',
     script: 'Execute custom JavaScript / TypeScript scripts for data transformation',
     assertion: 'Multi-field assertion validation (status code, headers, JSONPath, text match)',

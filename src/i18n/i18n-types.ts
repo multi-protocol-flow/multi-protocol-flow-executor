@@ -201,6 +201,10 @@ type RootTranslation = {
 			 * U​D​P
 			 */
 			udp: string
+			/**
+			 * M​o​c​k​ ​服​务
+			 */
+			network: string
 		}
 		superCategory: {
 			/**
@@ -236,6 +240,14 @@ type RootTranslation = {
 		 * H​T​T​P​ ​请​求
 		 */
 		http: string
+		/**
+		 * H​T​T​P​ ​I​n​g​r​e​s​s​ ​监​听
+		 */
+		http_ingress: string
+		/**
+		 * H​T​T​P​ ​R​e​s​p​o​n​d​ ​响​应
+		 */
+		http_respond: string
 		/**
 		 * 条​件​判​断
 		 */
@@ -453,6 +465,14 @@ type RootTranslation = {
 			 * 发​起​ ​H​T​T​P​/​H​T​T​P​S​ ​请​求​，​支​持​ ​R​E​S​T​f​u​l​ ​A​P​I​、​各​种​ ​M​e​t​h​o​d​、​H​e​a​d​e​r​ ​及​ ​B​o​d​y​ ​载​荷
 			 */
 			http: string
+			/**
+			 * M​o​c​k​ ​服​务​请​求​入​口​，​拦​截​外​部​ ​H​T​T​P​ ​请​求​并​将​参​数​注​入​上​下​文
+			 */
+			http_ingress: string
+			/**
+			 * M​o​c​k​ ​服​务​响​应​出​口​，​求​值​模​板​并​向​调​用​方​返​回​ ​H​T​T​P​ ​响​应
+			 */
+			http_respond: string
 			/**
 			 * 条​件​判​断​与​逻​辑​路​由​，​支​持​多​分​支​判​断​与​比​较​表​达​式
 			 */
@@ -1323,6 +1343,111 @@ type RootTranslation = {
 			 * 发​送​时​将​自​动​附​加​请​求​头​:​ ​A​u​t​h​o​r​i​z​a​t​i​o​n​:​ ​B​e​a​r​e​r​ ​<​T​o​k​e​n​>
 			 */
 			authBearerNotice: string
+		}
+		httpIngress: {
+			/**
+			 * 监​听​端​口​ ​(​P​o​r​t​)
+			 */
+			portLabel: string
+			/**
+			 * 本​地​服​务​监​听​的​ ​T​C​P​ ​端​口​（​如​ ​9​5​2​7​）​，​外​部​客​户​端​通​过​ 
+			 */
+			portHintBefore: string
+			/**
+			 *  ​访​问​。
+			 */
+			portHintAfter: string
+			/**
+			 * 路​由​路​径​模​式​ ​(​P​a​t​h​ ​P​a​t​t​e​r​n​)
+			 */
+			pathLabel: string
+			/**
+			 * /​*​ ​或​ ​/​w​e​b​h​o​o​k​/​s​t​r​i​p​e
+			 */
+			pathPlaceholder: string
+			/**
+			 * 支​持​通​配​符​路​径​匹​配​，​如​ 
+			 */
+			pathHintBefore: string
+			/**
+			 *  ​拦​截​所​有​路​径​，​或​ 
+			 */
+			pathHintMiddle: string
+			/**
+			 * 。
+			 */
+			pathHintAfter: string
+			/**
+			 * 允​许​的​ ​H​T​T​P​ ​方​法​ ​(​M​e​t​h​o​d​s​)
+			 */
+			methodsLabel: string
+			/**
+			 * �​�​ ​请​求​变​量​自​动​注​入​说​明
+			 */
+			injectTitle: string
+			/**
+			 * 外​部​请​求​到​达​后​，​将​自​动​将​请​求​信​息​注​入​到​当​前​上​下​文​变​量​中​，​后​续​节​点​可​直​接​引​用​：
+			 */
+			injectDesc: string
+			/**
+			 * 请​求​方​法
+			 */
+			injectMethod: string
+			/**
+			 * 请​求​路​径
+			 */
+			injectPath: string
+			/**
+			 * U​R​L​ ​Q​u​e​r​y​ ​参​数
+			 */
+			injectQuery: string
+			/**
+			 * 请​求​头​映​射
+			 */
+			injectHeaders: string
+			/**
+			 * 请​求​体​ ​J​S​O​N​ ​/​ ​字​符​串
+			 */
+			injectBody: string
+		}
+		httpRespond: {
+			/**
+			 * H​T​T​P​ ​状​态​码​ ​(​S​t​a​t​u​s​ ​C​o​d​e​)
+			 */
+			statusLabel: string
+			/**
+			 * 自​定​义​响​应​头​ ​(​H​e​a​d​e​r​s​)
+			 */
+			headersLabel: string
+			/**
+			 * 添​加​响​应​头
+			 */
+			addHeader: string
+			/**
+			 * 默​认​包​含​自​动​根​据​类​型​推​断​的​ ​C​o​n​t​e​n​t​-​T​y​p​e
+			 */
+			headersEmpty: string
+			/**
+			 * H​e​a​d​e​r​ ​名​称
+			 */
+			headerNamePlaceholder: string
+			/**
+			 * H​e​a​d​e​r​ ​值​ ​(​支​持​ ​{​t​e​m​p​l​a​t​e​}​)
+			 * @param {string} template
+			 */
+			headerValuePlaceholder: RequiredParams<'template'>
+			/**
+			 * 响​应​体​内​容​ ​(​R​e​s​p​o​n​s​e​ ​B​o​d​y​)
+			 */
+			bodyLabel: string
+			/**
+			 * 支​持​使​用​ 
+			 */
+			bodyVarHintBefore: string
+			/**
+			 *  ​引​用​执​行​上​下​文​中​的​任​意​变​量​或​入​参​值​。
+			 */
+			bodyVarHintAfter: string
 		}
 		script: {
 			/**
@@ -8560,6 +8685,207 @@ type RootTranslation = {
 		 */
 		debug_step_unavailable: string
 		/**
+		 * 原​地​重​试​当​前​节​点​ ​(​C​t​r​l​+​R​)
+		 */
+		debug_retry_available: string
+		/**
+		 * 重​试​（​仅​在​暂​停​时​可​用​）
+		 */
+		debug_retry_unavailable: string
+		/**
+		 * 变​量​变​更​历​史​:​ ​{​n​a​m​e​}
+		 * @param {string} name
+		 */
+		variable_timeline_title: RequiredParams<'name'>
+		/**
+		 * 暂​无​该​变​量​的​时​空​变​更​记​录
+		 */
+		variable_timeline_empty: string
+		/**
+		 * 定​位​节​点
+		 */
+		variable_timeline_locate: string
+		/**
+		 * 初​始​创​建
+		 */
+		variable_timeline_created: string
+		/**
+		 * 变​量​更​新
+		 */
+		variable_timeline_updated: string
+		/**
+		 * 旧​值
+		 */
+		variable_timeline_old_val: string
+		/**
+		 * 新​值
+		 */
+		variable_timeline_new_val: string
+		/**
+		 * 查​看​变​量​变​更​历​史​ ​(​T​i​m​e​l​i​n​e​)
+		 */
+		variable_timeline_open: string
+		/**
+		 * 当​前​单​步​新​增​变​量
+		 */
+		variable_tree_diff_added_title: string
+		/**
+		 * 修​改​前​:​ ​{​o​l​d​V​a​l​}​
+	​当​前​值​:​ ​{​n​e​w​V​a​l​}
+		 * @param {string} newVal
+		 * @param {string} oldVal
+		 */
+		variable_tree_diff_modified_title: RequiredParams<'newVal' | 'oldVal'>
+		/**
+		 * 断​点​即​时​ ​R​E​P​L​ ​求​值​器
+		 */
+		debug_repl_title: string
+		/**
+		 * 已​暂​停​ ​·​ ​可​即​时​求​值
+		 */
+		debug_repl_paused_ready: string
+		/**
+		 * 运​行​中​ ​·​ ​仅​在​暂​停​时​可​求​值
+		 */
+		debug_repl_running_disabled: string
+		/**
+		 * 输​入​表​达​式​，​如​ ​$​.​t​o​k​e​n​ ​或​ ​s​t​a​t​u​s​ ​=​=​=​ ​2​0​0​ ​(​E​n​t​e​r​ ​求​值​，​↑​/​↓​ ​浏​览​历​史​)​.​.​.
+		 */
+		debug_repl_placeholder: string
+		/**
+		 * 求​值
+		 */
+		debug_repl_eval_btn: string
+		/**
+		 * 清​空
+		 */
+		debug_repl_clear_btn: string
+		/**
+		 * 复​制​为​变​量​提​取​表​达​式
+		 */
+		debug_repl_copy_expr: string
+		/**
+		 * 已​复​制​表​达​式​到​剪​贴​板
+		 */
+		debug_repl_copy_success: string
+		/**
+		 * J​a​v​a​S​c​r​i​p​t​ ​模​式
+		 */
+		debug_repl_mode_js: string
+		/**
+		 * J​S​O​N​P​a​t​h​ ​模​式
+		 */
+		debug_repl_mode_jsonpath: string
+		/**
+		 * 长​连​接​实​时​探​针
+		 */
+		stream_probe_title: string
+		/**
+		 * 选​择​ ​W​e​b​S​o​c​k​e​t​ ​连​接
+		 */
+		stream_probe_conn_select: string
+		/**
+		 * 发​送​帧
+		 */
+		stream_probe_send: string
+		/**
+		 * 发​送​ ​P​i​n​g
+		 */
+		stream_probe_ping: string
+		/**
+		 * 发​送​ ​P​o​n​g
+		 */
+		stream_probe_pong: string
+		/**
+		 * J​S​O​N
+		 */
+		stream_probe_format_json: string
+		/**
+		 * T​e​x​t
+		 */
+		stream_probe_format_text: string
+		/**
+		 * B​i​n​a​r​y
+		 */
+		stream_probe_format_bin: string
+		/**
+		 * 输​入​要​发​送​的​数​据​帧​内​容​ ​(​C​t​r​l​+​E​n​t​e​r​ ​发​送​)​.​.​.
+		 */
+		stream_probe_placeholder: string
+		/**
+		 * 以​此​数​据​生​成​断​言​表​达​式
+		 */
+		stream_probe_copy_filter: string
+		/**
+		 * 已​复​制​断​言​表​达​式​:​ ​{​e​x​p​r​}
+		 * @param {string} expr
+		 */
+		stream_probe_copy_filter_success: RequiredParams<'expr'>
+		/**
+		 * 暂​无​可​交​互​的​长​连​接
+		 */
+		stream_probe_no_conns: string
+		/**
+		 * 自​动​保​活​心​跳​ ​(​1​5​s​)
+		 */
+		stream_probe_keepalive: string
+		/**
+		 * 已​连​接
+		 */
+		stream_probe_status_connected: string
+		/**
+		 * 已​关​闭
+		 */
+		stream_probe_status_closed: string
+		/**
+		 * 实​时
+		 */
+		stream_probe_live_badge: string
+		/**
+		 * 探​针​已​激​活
+		 */
+		stream_probe_active_badge: string
+		/**
+		 * 暂​无​捕​获​的​数​据​帧
+		 */
+		stream_probe_no_frames: string
+		/**
+		 * 过​滤​帧​.​.​.
+		 */
+		stream_probe_filter_placeholder: string
+		/**
+		 * 复​制​帧​内​容
+		 */
+		stream_probe_copy_frame: string
+		/**
+		 * 已​复​制​消​息​内​容
+		 */
+		stream_probe_copy_frame_success: string
+		/**
+		 * [​二​进​制​ ​{​c​o​u​n​t​}​ ​字​节​]
+		 * @param {number} count
+		 */
+		stream_probe_binary_bytes: RequiredParams<'count'>
+		/**
+		 * M​o​c​k​ ​服​务​已​启​动​:​ ​h​t​t​p​:​/​/​1​2​7​.​0​.​0​.​1​:​{​p​o​r​t​}
+		 * @param {number} port
+		 */
+		ingress_listener_started: RequiredParams<'port'>
+		/**
+		 * M​o​c​k​ ​服​务​已​停​止​:​ ​端​口​ ​{​p​o​r​t​}
+		 * @param {number} port
+		 */
+		ingress_listener_stopped: RequiredParams<'port'>
+		/**
+		 * 启​动​ ​I​n​g​r​e​s​s​ ​M​o​c​k​ ​监​听
+		 */
+		ingress_listener_start_hint: string
+		/**
+		 * 停​止​ ​I​n​g​r​e​s​s​ ​M​o​c​k​ ​监​听​ ​(​端​口​ ​{​p​o​r​t​}​)
+		 * @param {number} port
+		 */
+		ingress_listener_stop_hint: RequiredParams<'port'>
+		/**
 		 * 步​入​子​流​程​ ​(​F​1​1​)
 		 */
 		debug_step_into_available: string
@@ -8654,6 +8980,10 @@ type RootTranslation = {
 		 * 设​置​断​点
 		 */
 		breakpoint_unset_aria: string
+		/**
+		 * 从​该​节​点​快​照​重​新​执​行
+		 */
+		context_run_from_snapshot: string
 		/**
 		 * 复​制​节​点
 		 */
@@ -14151,6 +14481,10 @@ export type TranslationFunctions = {
 			 * UDP
 			 */
 			udp: () => LocalizedString
+			/**
+			 * Mock 服务
+			 */
+			network: () => LocalizedString
 		}
 		superCategory: {
 			/**
@@ -14186,6 +14520,14 @@ export type TranslationFunctions = {
 		 * HTTP 请求
 		 */
 		http: () => LocalizedString
+		/**
+		 * HTTP Ingress 监听
+		 */
+		http_ingress: () => LocalizedString
+		/**
+		 * HTTP Respond 响应
+		 */
+		http_respond: () => LocalizedString
 		/**
 		 * 条件判断
 		 */
@@ -14401,6 +14743,14 @@ export type TranslationFunctions = {
 			 * 发起 HTTP/HTTPS 请求，支持 RESTful API、各种 Method、Header 及 Body 载荷
 			 */
 			http: () => LocalizedString
+			/**
+			 * Mock 服务请求入口，拦截外部 HTTP 请求并将参数注入上下文
+			 */
+			http_ingress: () => LocalizedString
+			/**
+			 * Mock 服务响应出口，求值模板并向调用方返回 HTTP 响应
+			 */
+			http_respond: () => LocalizedString
 			/**
 			 * 条件判断与逻辑路由，支持多分支判断与比较表达式
 			 */
@@ -15260,6 +15610,110 @@ export type TranslationFunctions = {
 			 * 发送时将自动附加请求头: Authorization: Bearer <Token>
 			 */
 			authBearerNotice: () => LocalizedString
+		}
+		httpIngress: {
+			/**
+			 * 监听端口 (Port)
+			 */
+			portLabel: () => LocalizedString
+			/**
+			 * 本地服务监听的 TCP 端口（如 9527），外部客户端通过 
+			 */
+			portHintBefore: () => LocalizedString
+			/**
+			 *  访问。
+			 */
+			portHintAfter: () => LocalizedString
+			/**
+			 * 路由路径模式 (Path Pattern)
+			 */
+			pathLabel: () => LocalizedString
+			/**
+			 * /* 或 /webhook/stripe
+			 */
+			pathPlaceholder: () => LocalizedString
+			/**
+			 * 支持通配符路径匹配，如 
+			 */
+			pathHintBefore: () => LocalizedString
+			/**
+			 *  拦截所有路径，或 
+			 */
+			pathHintMiddle: () => LocalizedString
+			/**
+			 * 。
+			 */
+			pathHintAfter: () => LocalizedString
+			/**
+			 * 允许的 HTTP 方法 (Methods)
+			 */
+			methodsLabel: () => LocalizedString
+			/**
+			 * 💡 请求变量自动注入说明
+			 */
+			injectTitle: () => LocalizedString
+			/**
+			 * 外部请求到达后，将自动将请求信息注入到当前上下文变量中，后续节点可直接引用：
+			 */
+			injectDesc: () => LocalizedString
+			/**
+			 * 请求方法
+			 */
+			injectMethod: () => LocalizedString
+			/**
+			 * 请求路径
+			 */
+			injectPath: () => LocalizedString
+			/**
+			 * URL Query 参数
+			 */
+			injectQuery: () => LocalizedString
+			/**
+			 * 请求头映射
+			 */
+			injectHeaders: () => LocalizedString
+			/**
+			 * 请求体 JSON / 字符串
+			 */
+			injectBody: () => LocalizedString
+		}
+		httpRespond: {
+			/**
+			 * HTTP 状态码 (Status Code)
+			 */
+			statusLabel: () => LocalizedString
+			/**
+			 * 自定义响应头 (Headers)
+			 */
+			headersLabel: () => LocalizedString
+			/**
+			 * 添加响应头
+			 */
+			addHeader: () => LocalizedString
+			/**
+			 * 默认包含自动根据类型推断的 Content-Type
+			 */
+			headersEmpty: () => LocalizedString
+			/**
+			 * Header 名称
+			 */
+			headerNamePlaceholder: () => LocalizedString
+			/**
+			 * Header 值 (支持 {template})
+			 */
+			headerValuePlaceholder: (arg: { template: string }) => LocalizedString
+			/**
+			 * 响应体内容 (Response Body)
+			 */
+			bodyLabel: () => LocalizedString
+			/**
+			 * 支持使用 
+			 */
+			bodyVarHintBefore: () => LocalizedString
+			/**
+			 *  引用执行上下文中的任意变量或入参值。
+			 */
+			bodyVarHintAfter: () => LocalizedString
 		}
 		script: {
 			/**
@@ -22413,6 +22867,199 @@ export type TranslationFunctions = {
 		 */
 		debug_step_unavailable: () => LocalizedString
 		/**
+		 * 原地重试当前节点 (Ctrl+R)
+		 */
+		debug_retry_available: () => LocalizedString
+		/**
+		 * 重试（仅在暂停时可用）
+		 */
+		debug_retry_unavailable: () => LocalizedString
+		/**
+		 * 变量变更历史: {name}
+		 */
+		variable_timeline_title: (arg: { name: string }) => LocalizedString
+		/**
+		 * 暂无该变量的时空变更记录
+		 */
+		variable_timeline_empty: () => LocalizedString
+		/**
+		 * 定位节点
+		 */
+		variable_timeline_locate: () => LocalizedString
+		/**
+		 * 初始创建
+		 */
+		variable_timeline_created: () => LocalizedString
+		/**
+		 * 变量更新
+		 */
+		variable_timeline_updated: () => LocalizedString
+		/**
+		 * 旧值
+		 */
+		variable_timeline_old_val: () => LocalizedString
+		/**
+		 * 新值
+		 */
+		variable_timeline_new_val: () => LocalizedString
+		/**
+		 * 查看变量变更历史 (Timeline)
+		 */
+		variable_timeline_open: () => LocalizedString
+		/**
+		 * 当前单步新增变量
+		 */
+		variable_tree_diff_added_title: () => LocalizedString
+		/**
+		 * 修改前: {oldVal}
+	当前值: {newVal}
+		 */
+		variable_tree_diff_modified_title: (arg: { newVal: string, oldVal: string }) => LocalizedString
+		/**
+		 * 断点即时 REPL 求值器
+		 */
+		debug_repl_title: () => LocalizedString
+		/**
+		 * 已暂停 · 可即时求值
+		 */
+		debug_repl_paused_ready: () => LocalizedString
+		/**
+		 * 运行中 · 仅在暂停时可求值
+		 */
+		debug_repl_running_disabled: () => LocalizedString
+		/**
+		 * 输入表达式，如 $.token 或 status === 200 (Enter 求值，↑/↓ 浏览历史)...
+		 */
+		debug_repl_placeholder: () => LocalizedString
+		/**
+		 * 求值
+		 */
+		debug_repl_eval_btn: () => LocalizedString
+		/**
+		 * 清空
+		 */
+		debug_repl_clear_btn: () => LocalizedString
+		/**
+		 * 复制为变量提取表达式
+		 */
+		debug_repl_copy_expr: () => LocalizedString
+		/**
+		 * 已复制表达式到剪贴板
+		 */
+		debug_repl_copy_success: () => LocalizedString
+		/**
+		 * JavaScript 模式
+		 */
+		debug_repl_mode_js: () => LocalizedString
+		/**
+		 * JSONPath 模式
+		 */
+		debug_repl_mode_jsonpath: () => LocalizedString
+		/**
+		 * 长连接实时探针
+		 */
+		stream_probe_title: () => LocalizedString
+		/**
+		 * 选择 WebSocket 连接
+		 */
+		stream_probe_conn_select: () => LocalizedString
+		/**
+		 * 发送帧
+		 */
+		stream_probe_send: () => LocalizedString
+		/**
+		 * 发送 Ping
+		 */
+		stream_probe_ping: () => LocalizedString
+		/**
+		 * 发送 Pong
+		 */
+		stream_probe_pong: () => LocalizedString
+		/**
+		 * JSON
+		 */
+		stream_probe_format_json: () => LocalizedString
+		/**
+		 * Text
+		 */
+		stream_probe_format_text: () => LocalizedString
+		/**
+		 * Binary
+		 */
+		stream_probe_format_bin: () => LocalizedString
+		/**
+		 * 输入要发送的数据帧内容 (Ctrl+Enter 发送)...
+		 */
+		stream_probe_placeholder: () => LocalizedString
+		/**
+		 * 以此数据生成断言表达式
+		 */
+		stream_probe_copy_filter: () => LocalizedString
+		/**
+		 * 已复制断言表达式: {expr}
+		 */
+		stream_probe_copy_filter_success: (arg: { expr: string }) => LocalizedString
+		/**
+		 * 暂无可交互的长连接
+		 */
+		stream_probe_no_conns: () => LocalizedString
+		/**
+		 * 自动保活心跳 (15s)
+		 */
+		stream_probe_keepalive: () => LocalizedString
+		/**
+		 * 已连接
+		 */
+		stream_probe_status_connected: () => LocalizedString
+		/**
+		 * 已关闭
+		 */
+		stream_probe_status_closed: () => LocalizedString
+		/**
+		 * 实时
+		 */
+		stream_probe_live_badge: () => LocalizedString
+		/**
+		 * 探针已激活
+		 */
+		stream_probe_active_badge: () => LocalizedString
+		/**
+		 * 暂无捕获的数据帧
+		 */
+		stream_probe_no_frames: () => LocalizedString
+		/**
+		 * 过滤帧...
+		 */
+		stream_probe_filter_placeholder: () => LocalizedString
+		/**
+		 * 复制帧内容
+		 */
+		stream_probe_copy_frame: () => LocalizedString
+		/**
+		 * 已复制消息内容
+		 */
+		stream_probe_copy_frame_success: () => LocalizedString
+		/**
+		 * [二进制 {count} 字节]
+		 */
+		stream_probe_binary_bytes: (arg: { count: number }) => LocalizedString
+		/**
+		 * Mock 服务已启动: http://127.0.0.1:{port}
+		 */
+		ingress_listener_started: (arg: { port: number }) => LocalizedString
+		/**
+		 * Mock 服务已停止: 端口 {port}
+		 */
+		ingress_listener_stopped: (arg: { port: number }) => LocalizedString
+		/**
+		 * 启动 Ingress Mock 监听
+		 */
+		ingress_listener_start_hint: () => LocalizedString
+		/**
+		 * 停止 Ingress Mock 监听 (端口 {port})
+		 */
+		ingress_listener_stop_hint: (arg: { port: number }) => LocalizedString
+		/**
 		 * 步入子流程 (F11)
 		 */
 		debug_step_into_available: () => LocalizedString
@@ -22504,6 +23151,10 @@ export type TranslationFunctions = {
 		 * 设置断点
 		 */
 		breakpoint_unset_aria: () => LocalizedString
+		/**
+		 * 从该节点快照重新执行
+		 */
+		context_run_from_snapshot: () => LocalizedString
 		/**
 		 * 复制节点
 		 */

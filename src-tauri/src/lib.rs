@@ -91,6 +91,10 @@ pub use tauri_commands::{
     save_stress_test_report,
     send_debug_command,
     start_debug,
+    // Ingress Mock 服务命令
+    start_ingress_listener,
+    stop_ingress_listener,
+    get_active_ingress_ports,
     // 压力测试命令
     start_stress_test,
     stop_stress_test,
@@ -447,6 +451,9 @@ pub fn run() {
             // 注册数据驱动执行会话管理器状态（用于取消数据驱动执行）
             app.manage(DatasetExecutionSessionManager::new());
 
+
+            // 注册 Ingress 流程级 Mock 服务监听管理器
+            app.manage(Arc::new(flow_engine::ingress::IngressManager::new()));
             // 从 store 读取日志目录配置
             let log_dir = match app.store("store/settings.bin") {
                 Ok(store) => store
@@ -504,6 +511,10 @@ pub fn run() {
             end_debug,
             get_debug_status,
             force_end_debug,
+            // Ingress Mock 监听服务命令
+            start_ingress_listener,
+            stop_ingress_listener,
+            get_active_ingress_ports,
             // 压力测试命令
             start_stress_test,
             stop_stress_test,

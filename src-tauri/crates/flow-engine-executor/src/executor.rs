@@ -78,13 +78,13 @@ fn build_input_data_from_node_config(
 /// declaration (see [`NodePlugin::supports_single_node`]) — third-party
 /// connect nodes like `redis:connect` need no entry here.
 pub const SUPPORTED_SINGLE_NODE_TYPES: &[&str] = &[
-    "http",
+    "http:request",
     "script",
     "assertion",
-    "ws_connect",
-    "sse_connect",
-    "graphql_connect",
-    "tcp_connect",
+    "ws:connect",
+    "sse:connect",
+    "graphql:connect",
+    "tcp:connect",
 ];
 
 /// Whether a node type may run via the single-node path.
@@ -127,6 +127,8 @@ pub struct FlowExecutor {
     /// 会被盖章到本流程发出的所有 [`flow_engine_core::execution_event::ExecutionEvent`] 上，
     /// 前端据此把子流程内部的节点事件归属到 SubFlow 节点，而非顶层流程。
     parent_node_uuid: Option<String>,
+    /// 附加的自定义 Provider
+    extra_providers: HashMap<String, Arc<dyn std::any::Any + Send + Sync>>,
 }
 impl Default for FlowExecutor {
     fn default() -> Self {
@@ -147,12 +149,19 @@ impl FlowExecutor {
             fallback_timeout: std::time::Duration::from_millis(FALLBACK_TIMEOUT_MS),
             call_stack: Vec::new(),
             parent_node_uuid: None,
+            extra_providers: HashMap::new(),
         }
     }
 
     /// 设置节点无配置超时时的兜底超时
     pub fn with_fallback_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.fallback_timeout = timeout;
+        self
+    }
+
+    /// 注入自定义 Provider
+    pub fn with_provider<T: 'static + Send + Sync>(mut self, name: &str, provider: Arc<T>) -> Self {
+        self.extra_providers.insert(name.to_string(), provider);
         self
     }
 
@@ -300,7 +309,9 @@ impl FlowExecutor {
         .with_default_providers();
 
         context.set_provider("node_registry", self.registry.clone());
-
+        for (name, provider) in &self.extra_providers {
+            context.set_provider(name, provider.clone());
+        }
         // 集成流程验证器
         let validator = crate::validator::FlowValidator::new();
         let validation = validator.validate(flow);
@@ -340,11 +351,17 @@ impl FlowExecutor {
         };
 
         // 查找开始节点
-        let start_node = match flow
+        // 查找开始节点：优先标准 entry 节点，缺失时回退到 http:ingress（Mock 服务入口）
+        let start_node = flow
             .nodes
             .iter()
             .find(|node| node.node_type == node_types::ENTRY)
-        {
+            .or_else(|| {
+                flow.nodes
+                    .iter()
+                    .find(|node| node_types::is_entry_node_type(&node.node_type))
+            });
+        let start_node = match start_node {
             Some(node) => node,
             None => {
                 return ExecutionResult {
@@ -1649,7 +1666,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),

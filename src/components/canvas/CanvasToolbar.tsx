@@ -2,8 +2,8 @@
  * CanvasToolbar - 画布悬浮工具栏
  * 位于画布顶部居中，包含撤销/重做、执行按钮、变量按钮
  */
-import { useState, useMemo } from 'react';
-import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2, Database, Plus } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2, Database, Plus, Radio } from 'lucide-react';
 import { toast } from 'sonner';
 import * as Popover from '@radix-ui/react-popover';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging, selectCanUndo, selectCanRedo, selectFlow, selectNodes } from '@/stores';
@@ -13,6 +13,8 @@ import { useSettingsStore } from '@/stores/settings';
 import { useWsStreamStore } from '@/stores/wsStream';
 import { useStressTestStore, selectIsStressTestRunning } from '@/stores/stressTest';
 import { executeFlowWithChannel, saveFlowReport, validateFlow } from '@/services/tauri';
+import { startIngressListener, stopIngressListener, getActiveIngressPorts } from '@/services/tauri/flow';
+import { isHttpIngressConfig } from '@/types';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
@@ -62,6 +64,60 @@ export function CanvasToolbar() {
   const showDatasetExecutionPanel = useUIStore((state) => state.showDatasetExecutionPanel);
   const openDatasetExecutionPanel = useUIStore((state) => state.openDatasetExecutionPanel);
   const closeDatasetExecutionPanel = useUIStore((state) => state.closeDatasetExecutionPanel);
+  // Ingress 流程级 Mock 监听状态
+  const ingressNode = flow?.nodes.find((n) => n.type === 'http:ingress');
+  const configuredIngressPort = ingressNode && isHttpIngressConfig(ingressNode.data)
+    ? ingressNode.data.port
+    : 9527;
+  // 后端“实际在监听”的端口。必须记住它而不是只记布尔值：用户监听后改端口时，
+  // 旧监听仍在运行，此时停止必须停旧端口，否则会漏掉一个常驻监听。
+  const [listeningPort, setListeningPort] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getActiveIngressPorts()
+      .then((ports) => {
+        if (cancelled) return;
+        setListeningPort((prev) => {
+          if (ports.includes(configuredIngressPort)) return configuredIngressPort;
+          // 端口被改动时旧监听仍在运行：保留原有在听端口，不要误显示为“未监听”
+          if (prev !== null && ports.includes(prev)) return prev;
+          return null;
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setListeningPort(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [configuredIngressPort]);
+
+  const handleToggleIngress = async () => {
+    if (!flow || !ingressNode) return;
+    try {
+      if (listeningPort !== null) {
+        await stopIngressListener(listeningPort);
+        toast.success(ll.flow.ingress_listener_stopped({ port: listeningPort }));
+        setListeningPort(null);
+      } else {
+        const port = configuredIngressPort;
+        // 流程含断点时以调试模式启动：外部请求挂起等待人工单步，直到 http:respond 执行
+        const useDebug = flow.nodes.some((n) => n.hasBreakpoint === true);
+        await startIngressListener(
+          port,
+          flow,
+          useDebug,
+          (event) => useDebugStore.getState().handleDebugEvent(event),
+          (logEvent) => useConsoleStore.getState().addLog(logEvent)
+        );
+        setListeningPort(port);
+        toast.success(ll.flow.ingress_listener_started({ port }));
+      }
+    } catch (err) {
+      toast.error(String(err));
+    }
+  };
   const isDatasetExecuting = useDatasetExecutionStore((s) => s.isExecuting);
 
   // 是否有活跃的执行/调试/压测/数据驱动
@@ -344,6 +400,27 @@ export function CanvasToolbar() {
         >
           <Bug className="w-6 h-6" />
         </button>
+
+        {/* Ingress Mock 服务按钮（仅当流程包含 http:ingress 节点时展示） */}
+        {ingressNode && (
+          <button
+            type="button"
+            onClick={handleToggleIngress}
+            title={
+              listeningPort !== null
+                ? ll.flow.ingress_listener_stop_hint({ port: listeningPort })
+                : ll.flow.ingress_listener_start_hint()
+            }
+            className={cn(
+              'flex items-center justify-center p-1 rounded-lg transition-all duration-150',
+              listeningPort !== null
+                ? 'text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20'
+                : 'text-indigo-500 hover:text-indigo-600 hover:scale-110 cursor-pointer'
+            )}
+          >
+            <Radio className={cn('w-5 h-5', listeningPort !== null && 'animate-pulse')} />
+          </button>
+        )}
 
         {/* 压测按钮 */}
         <button
