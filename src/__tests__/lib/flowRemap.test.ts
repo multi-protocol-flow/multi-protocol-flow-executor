@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { remapFlowUuids } from '@/lib/flowRemap';
-import type { Flow, NodeData } from '@/types';
+import type { Flow, NodeData, NodeType } from '@/types';
 
 describe('remapFlowUuids', () => {
   it('生成全新的 Flow UUID 与节点/连线 UUID，并重映射关联引用', () => {
@@ -76,14 +76,14 @@ describe('remapFlowUuids', () => {
       nodes: [
         {
           uuid: 'db-conn-1',
-          type: 'db:connect',
+          type: 'db:connect' as unknown as NodeType,
           name: 'DB Connect',
           position: { x: 0, y: 0 },
           data: { type: 'db:connect', connection_uuid: '' } as unknown as NodeData,
         },
         {
           uuid: 'db-query-1',
-          type: 'db:query',
+          type: 'db:query' as unknown as NodeType,
           name: 'DB Query',
           position: { x: 200, y: 0 },
           data: { type: 'db:query', connection_uuid: 'db-conn-1', sql: 'SELECT 1' } as unknown as NodeData,
