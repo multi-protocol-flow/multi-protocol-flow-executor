@@ -32,6 +32,16 @@ const PALETTE_WIDTH = 580;
 const PALETTE_HEIGHT = 440;
 const USAGE_KEY = 'node-palette-usage';
 
+/**
+ * 底部详情卡片浮层的预留高度（px）
+ *
+ * 列表以此值做 padding-bottom，保证最后一行能滚到卡片上方而不被浮层盖住。
+ * 取值 ≈ 卡片最大内容高度（标题 + 两行描述 + 一行端口，实测 109.4px）：取值偏小
+ * 会在滚到最底时遮住最后一行底部（端口换行的插件卡片至多压掉行内边距），取值偏大
+ * 则会在列表行与卡片之间露出「预留值 − 卡片高度」的空白。
+ */
+const DETAIL_CARD_RESERVE = 110;
+
 // ============================================================================
 // 搜索别名映射
 // ============================================================================
@@ -489,12 +499,18 @@ export function NodePalette() {
             </div>
           </div>
 
-          {/* 右栏：节点算子列表 + 下方详情卡片 */}
-          <div className="flex-1 flex flex-col min-w-0 bg-background/50">
-            {/* 上部：节点算子列表 */}
+          {/* 右栏：节点算子列表 + 底部浮层详情卡片
+              卡片做成 absolute 浮层而非列表下方的占位块（flex 子项），列表可视高度
+              因此恒定：卡片高度随 hover 内容变化，若它参与布局，列表高度会跟着变，
+              列表恰在滚动末端时浏览器会钳制 scrollTop 使行位移，位移又反过来改写
+              hover 并再次改变高度 —— 抖动循环（表现为高亮/边框反复闪烁）。
+              代价：浮层盖住列表滚动条末端约 110px，滚到最底时滑块被盖住不可见。 */}
+          <div className="flex-1 flex flex-col min-w-0 bg-background/50 relative">
+            {/* 算子列表（占满整列，底部预留浮层高度使最后一行可滚到卡片上方） */}
             <div
               ref={itemListRef}
-              className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin min-h-[220px]"
+              className="flex-1 overflow-y-auto px-2 pt-2 space-y-1 scrollbar-thin"
+              style={{ paddingBottom: DETAIL_CARD_RESERVE }}
             >
               {displayItems.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-10">
@@ -562,47 +578,50 @@ export function NodePalette() {
               )}
             </div>
 
-            {/* 下部：算子微型详情卡片
-                固定高度：卡片内容随 hover 切换条目而变长变短，若高度自适应会
-                反过来挤压上方列表（flex-1），使光标下的行移出/移入，触发行抖动
-                与高亮闪烁（表现为边框反复出现又消失）。 */}
+            {/* 下部：算子微型详情卡片（贴底浮层，高度随内容自适应）
+                内容少的节点不再留下空白：卡片高度 = 内容高度并锚定弹窗底部，
+                列表可视区域恒定，多出的高度直接露出更多列表行。
+                外层 bg-background 保证不透明：bg-muted/25 是半透明色，浮层若半透明
+                会透出下方被盖住的行文本。 */}
             {activeItem && (
-              <div className="p-3 border-t border-border/40 bg-muted/25 flex flex-col gap-1.5 shrink-0 h-[112px] overflow-hidden">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-foreground">
-                      {activeItem.name}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground/70 font-mono">
-                      ({activeItem.typeId})
-                    </span>
+              <div className="absolute inset-x-0 bottom-0 border-t border-border/40 bg-background">
+                <div className="p-3 flex flex-col gap-1.5 bg-muted/25">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-foreground">
+                        {activeItem.name}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/70 font-mono">
+                        ({activeItem.typeId})
+                      </span>
+                    </div>
+                    {activeItem.pluginName && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {t.source_prefix({ name: activeItem.pluginName })}
+                      </span>
+                    )}
                   </div>
-                  {activeItem.pluginName && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {t.source_prefix({ name: activeItem.pluginName })}
-                    </span>
+
+                  <p className="text-[11.5px] text-muted-foreground leading-relaxed line-clamp-2">
+                    {activeItem.description}
+                  </p>
+
+                  {activeItem.ports && activeItem.ports.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground/80 pt-0.5">
+                      <span className="text-muted-foreground/60">{t.ports_label()}</span>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {activeItem.ports.map((port) => (
+                          <span
+                            key={port.id}
+                            className="px-1.5 py-0.2 rounded bg-background/80 border border-border/50 text-[10px] font-mono"
+                          >
+                            {port.label || port.id}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
-
-                <p className="text-[11.5px] text-muted-foreground leading-relaxed line-clamp-2">
-                  {activeItem.description}
-                </p>
-
-                {activeItem.ports && activeItem.ports.length > 0 && (
-                  <div className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground/80 pt-0.5">
-                    <span className="text-muted-foreground/60">{t.ports_label()}</span>
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {activeItem.ports.map((port) => (
-                        <span
-                          key={port.id}
-                          className="px-1.5 py-0.2 rounded bg-background/80 border border-border/50 text-[10px] font-mono"
-                        >
-                          {port.label || port.id}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
