@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AIProviderSettingsCard } from '@/components/ai/AIProviderSettingsCard';
 import { useSettingsStore } from '@/stores/settings';
@@ -124,5 +124,144 @@ describe('AIProviderSettingsCard i18n & styling', () => {
     expect(disabledBtn).toBeInTheDocument();
     expect(disabledBtn.className).toContain('dark:bg-zinc-900/60');
     expect(disabledBtn.className).toContain('dark:border-zinc-800');
+  });
+
+  it('6. 多个 Provider 时，点击第一个 Provider 的编辑按钮，表单在第一个 Provider 卡片内就地展开且位于第二个 Provider 上方', () => {
+    const ll = getLL();
+    useSettingsStore.setState({
+      aiProviders: [
+        {
+          id: 'prov-1',
+          name: 'Provider One',
+          baseUrl: 'https://api.one.com/v1',
+          apiKey: 'sk-1',
+          model: 'model-1',
+        },
+        {
+          id: 'prov-2',
+          name: 'Provider Two',
+          baseUrl: 'https://api.two.com/v1',
+          apiKey: 'sk-2',
+          model: 'model-2',
+        },
+      ],
+      activeAiProviderId: 'prov-1',
+    });
+
+    render(<AIProviderSettingsCard />);
+
+    // 确认两个 Provider 都正常展示，且编辑表单初始未展示
+    expect(screen.getByText('Provider One')).toBeInTheDocument();
+    expect(screen.getByText('Provider Two')).toBeInTheDocument();
+    expect(screen.queryByText(ll.ai.settings.form_edit_title())).not.toBeInTheDocument();
+
+    // 点击第一个 Provider 的编辑按钮
+    const editButtons = screen.getAllByTitle(ll.ai.settings.edit());
+    expect(editButtons).toHaveLength(2);
+    fireEvent.click(editButtons[0]);
+
+    // 编辑表单展开
+    const editTitle = screen.getByText(ll.ai.settings.form_edit_title());
+    expect(editTitle).toBeInTheDocument();
+
+    // 验证 DOM 相对位置：编辑表单位于 Provider Two 之前（随第一个 Provider 就地展开）
+    const providerTwo = screen.getByText('Provider Two');
+    expect(editTitle.compareDocumentPosition(providerTwo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // 再次点击第一个 Provider 的编辑/取消按钮支持折叠收起
+    const cancelIconBtn = screen.getByTitle(ll.ai.settings.cancel());
+    fireEvent.click(cancelIconBtn);
+    expect(screen.queryByText(ll.ai.settings.form_edit_title())).not.toBeInTheDocument();
+  });
+
+  it('7. 切换编辑不同 Provider 时，前一个 Provider 自动收起，后一个 Provider 就地展开', () => {
+    const ll = getLL();
+    useSettingsStore.setState({
+      aiProviders: [
+        {
+          id: 'prov-1',
+          name: 'Provider One',
+          baseUrl: 'https://api.one.com/v1',
+          apiKey: 'sk-1',
+          model: 'model-1',
+        },
+        {
+          id: 'prov-2',
+          name: 'Provider Two',
+          baseUrl: 'https://api.two.com/v1',
+          apiKey: 'sk-2',
+          model: 'model-2',
+        },
+      ],
+      activeAiProviderId: 'prov-1',
+    });
+
+    render(<AIProviderSettingsCard />);
+
+    // 点击第一个 Provider 编辑
+    const editButtons1 = screen.getAllByTitle(ll.ai.settings.edit());
+    fireEvent.click(editButtons1[0]);
+    expect(screen.getByDisplayValue('Provider One')).toBeInTheDocument();
+
+    // 直接点击第二个 Provider 的编辑按钮
+    const editBtn2 = screen.getByTitle(ll.ai.settings.edit());
+    fireEvent.click(editBtn2);
+
+    // 现在表单内容切换为 Provider Two，Provider One 收起
+    expect(screen.queryByDisplayValue('Provider One')).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue('Provider Two')).toBeInTheDocument();
+
+    // 验证 DOM 相对位置：编辑表单在 Provider Two 后面展开，位于 Provider One 之后
+    const providerOne = screen.getByText('Provider One');
+    const editTitle = screen.getByText(ll.ai.settings.form_edit_title());
+    expect(providerOne.compareDocumentPosition(editTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('8. 测试连通性时显示标准的 Loader2 旋转加载图标', async () => {
+    const ll = getLL();
+    useSettingsStore.setState({
+      aiProviders: [
+        {
+          id: 'prov-1',
+          name: 'Provider One',
+          baseUrl: 'https://api.one.com/v1',
+          apiKey: 'sk-1',
+          model: 'model-1',
+        },
+      ],
+      activeAiProviderId: 'prov-1',
+    });
+
+    let resolvePromise: (val: unknown) => void;
+    const pendingPromise = new Promise<unknown>((resolve) => {
+      resolvePromise = resolve;
+    });
+
+    const origFetch = global.fetch;
+    global.fetch = vi.fn().mockReturnValue(pendingPromise);
+
+    try {
+      render(<AIProviderSettingsCard />);
+      const testBtn = screen.getByTitle(ll.ai.settings.test_connection());
+      fireEvent.click(testBtn);
+
+      // 正在测试时，按钮被禁用且展示 animate-spin 的 Loader2 图标（类名包含 lucide-loader-2）
+      expect(testBtn).toBeDisabled();
+      const spinner = testBtn.querySelector('.animate-spin');
+      expect(spinner).toBeInTheDocument();
+      expect(spinner?.classList.contains('lucide-loader-circle')).toBe(true);
+      expect(spinner?.classList.contains('lucide-activity')).toBe(false);
+      // 完成后恢复
+      resolvePromise!({
+        ok: true,
+        json: async () => ({ data: [] }),
+      });
+
+      await waitFor(() => {
+        expect(testBtn).not.toBeDisabled();
+      });
+    } finally {
+      global.fetch = origFetch;
+    }
   });
 });
