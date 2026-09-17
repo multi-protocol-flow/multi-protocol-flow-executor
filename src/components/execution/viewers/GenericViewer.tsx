@@ -106,7 +106,7 @@ export const GenericViewer = memo(function GenericViewer({ report }: GenericView
                   <Terminal className="w-3.5 h-3.5 text-purple-500" />
                   <span>{ll.execution.viewers.thinking_process()}</span>
                 </div>
-                <div className="text-xs text-muted-foreground/90 font-mono whitespace-pre-wrap leading-relaxed">
+                <div className="text-xs text-muted-foreground/90 font-mono whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto [contain:content]">
                   {nodeStreamData.fullReasoning}
                   {isRunning && !nodeStreamData.fullContent && (
                     <span className="inline-block w-1.5 h-3.5 bg-purple-500 ml-1 animate-pulse align-middle" />

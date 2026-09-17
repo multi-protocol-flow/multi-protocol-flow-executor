@@ -107,6 +107,7 @@ export function AICopilotPanel() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const activeStreamingThoughtRef = useRef<HTMLDivElement | null>(null);
 
   const activeProvider = aiProviders.find((p) => p.id === activeAiProviderId);
   const currentSession = sessions.find((s) => s.id === currentSessionId);
@@ -115,8 +116,14 @@ export function AICopilotPanel() {
     agentStatus === 'executing_tools' ||
     agentStatus === 'waiting_confirmation';
 
-  const latestAssistantMsg = [...messages].reverse().find((m) => m.role === 'assistant');
+  const latestAssistantMsg = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant') return messages[i];
+    }
+    return undefined;
+  })();
   const latestAssistantMsgId = latestAssistantMsg?.id;
+
   // 初始化会话列表
   useEffect(() => {
     if (isCopilotOpen) {
@@ -124,15 +131,26 @@ export function AICopilotPanel() {
     }
   }, [isCopilotOpen, initSessions]);
 
-  // 自动滚动到底部 (优先直接操作消息容器 scrollTop，避免 scrollIntoView 冒泡卷动外层浮动容器)
+  // 自动滚动到底部 (使用 requestAnimationFrame 防抖调度，避免强制同步布局 Layout Thrashing)
   useEffect(() => {
-    if (isCopilotOpen) {
-      if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-      } else {
-        messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
-      }
+    if (!isCopilotOpen) return;
+    const container = messagesContainerRef.current;
+    if (!container) {
+      messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
+      return;
     }
+
+    let rafId: number;
+    rafId = requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
+      if (activeStreamingThoughtRef.current) {
+        activeStreamingThoughtRef.current.scrollTop = activeStreamingThoughtRef.current.scrollHeight;
+      }
+    });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
   }, [messages, isCopilotOpen]);
 
   // 打开面板时自动聚焦输入框
@@ -865,7 +883,10 @@ export function AICopilotPanel() {
                           )}
                         </button>
                         {thoughtOpen && (
-                          <div className="border-t border-border/40 p-2 text-[11px] font-mono text-muted-foreground/90 whitespace-pre-wrap break-words bg-background/40 max-h-48 overflow-y-auto">
+                          <div
+                            ref={isStreamingThis ? activeStreamingThoughtRef : undefined}
+                            className="border-t border-border/40 p-2 text-[11px] font-mono text-muted-foreground/90 whitespace-pre-wrap break-words bg-background/40 max-h-48 overflow-y-auto [contain:content]"
+                          >
                             {msg.thought}
                           </div>
                         )}

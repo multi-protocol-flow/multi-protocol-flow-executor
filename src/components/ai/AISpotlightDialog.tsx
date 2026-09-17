@@ -26,6 +26,7 @@ import { AIToolCallItem } from './AIToolCallItem';
 import { AIConfirmCard } from './AIConfirmCard';
 import { AIErrorMessageCard } from './AIErrorMessageCard';
 import { getLL } from '@/i18n/i18n-lazy';
+import type { AIMessage } from '@/types/ai';
 
 export function AISpotlightDialog() {
   const ll = getLL();
@@ -64,11 +65,16 @@ export function AISpotlightDialog() {
     }
   }, [isSpotlightOpen]);
 
-  // 新消息滚动 (使用 block: 'nearest' 避免向上过度对齐导致祖先容器位移)
+  // 新消息滚动 (使用 requestAnimationFrame 防抖调度，避免强制同步重排)
   useEffect(() => {
-    if (isSpotlightOpen) {
+    if (!isSpotlightOpen) return;
+    let rafId: number;
+    rafId = requestAnimationFrame(() => {
       scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
   }, [messages, isSpotlightOpen]);
 
   const handleSend = () => {
@@ -216,7 +222,13 @@ export function AISpotlightDialog() {
                     <div className="flex-1 space-y-1.5 min-w-0">
                       {/* 深度思考过程展示 (DeepSeek R1 / Reasoning) */}
                       {msg.thought && (() => {
-                        const latestAssistantMsg = [...recentMessages].reverse().find((m) => m.role === 'assistant');
+                        let latestAssistantMsg: AIMessage | undefined;
+                        for (let i = recentMessages.length - 1; i >= 0; i--) {
+                          if (recentMessages[i].role === 'assistant') {
+                            latestAssistantMsg = recentMessages[i];
+                            break;
+                          }
+                        }
                         const isLatestAssistant = latestAssistantMsg?.id === msg.id;
                         const thoughtOpen =
                           openThoughts[msg.id] !== undefined
@@ -249,7 +261,7 @@ export function AISpotlightDialog() {
                               )}
                             </button>
                             {thoughtOpen && (
-                              <div className="border-t border-border/40 p-2 text-[10px] font-mono text-muted-foreground/90 whitespace-pre-wrap break-words bg-background/40 max-h-36 overflow-y-auto">
+                              <div className="border-t border-border/40 p-2 text-[10px] font-mono text-muted-foreground/90 whitespace-pre-wrap break-words bg-background/40 max-h-36 overflow-y-auto [contain:content]">
                                 {msg.thought}
                               </div>
                             )}
