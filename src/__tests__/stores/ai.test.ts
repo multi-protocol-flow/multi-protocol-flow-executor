@@ -3,6 +3,7 @@ import { useAIStore } from '@/stores/ai';
 import { useSettingsStore } from '@/stores/settings';
 import { useFlowStore } from '@/stores/flow';
 import { aiSessionStorage } from '@/services/storage/aiSessionStorage';
+import * as openaiClientModule from '@/services/ai/openaiClient';
 
 describe('aiStore', () => {
   beforeEach(async () => {
@@ -266,5 +267,35 @@ describe('aiStore', () => {
     // 切回原会话，工作区自动恢复
     await useAIStore.getState().switchSession(currentId!);
     expect(useAIStore.getState().activeWorkspace).toEqual(ws);
+  });
+
+  it('流式生成时高频推送大量 thinking chunk 能被平滑缓冲并最终完整落库', async () => {
+    const streamSpy = vi
+      .spyOn(openaiClientModule, 'streamChatCompletion')
+      .mockImplementation(async (_cfg, _msgs, _tools, callbacks) => {
+        // 模拟数千甚至上万字的大量高频 thinking chunk
+        for (let i = 0; i < 20; i++) {
+          callbacks?.onThoughtChunk?.(`thinking chunk ${i}; `);
+        }
+        callbacks?.onContentChunk?.('Final content answer.');
+
+        return {
+          content: 'Final content answer.',
+          thought: Array.from({ length: 20 }, (_, i) => `thinking chunk ${i}; `).join(''),
+        };
+      });
+
+    await useAIStore.getState().sendMessage('请深度推理');
+
+    const messages = useAIStore.getState().messages;
+    expect(messages.length).toBeGreaterThanOrEqual(2);
+    const assistantMsg = messages.find((m) => m.role === 'assistant');
+    expect(assistantMsg).toBeDefined();
+    expect(assistantMsg?.content).toBe('Final content answer.');
+    expect(assistantMsg?.thought).toContain('thinking chunk 0;');
+    expect(assistantMsg?.thought).toContain('thinking chunk 19;');
+    expect(assistantMsg?.status).toBe('done');
+
+    streamSpy.mockRestore();
   });
 });

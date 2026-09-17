@@ -8,6 +8,7 @@ import type {
   AIMessage,
   AISession,
   AIWorkspaceContext,
+  AIToolCall,
 } from '@/types/ai';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useSettingsStore } from './settings';
@@ -732,6 +733,48 @@ export const useAIStore = create<AIStore>((set, get) => ({
         let result: ChatCompletionResult | null = null;
         let iterationInterrupted = false;
 
+        // 流式批处理缓冲器：聚合高频 chunk（尤其是上万字深度推理过程），避免主线程任务风暴与频繁同步重排
+        let pendingContent = '';
+        let pendingThought = '';
+        let pendingToolCalls: AIToolCall[] | null = null;
+        let streamFlushTimer: number | NodeJS.Timeout | null = null;
+
+        const flushStreamBuffer = () => {
+          if (streamFlushTimer) {
+            clearTimeout(streamFlushTimer);
+            streamFlushTimer = null;
+          }
+          if (!pendingContent && !pendingThought && !pendingToolCalls) {
+            return;
+          }
+          const addContent = pendingContent;
+          const addThought = pendingThought;
+          const newToolCalls = pendingToolCalls;
+          pendingContent = '';
+          pendingThought = '';
+          pendingToolCalls = null;
+
+          set((s) => ({
+            messages: s.messages.map((m) => {
+              if (m.id !== assistantMsgId) return m;
+              return {
+                ...m,
+                content: addContent ? m.content + addContent : m.content,
+                thought: addThought ? (m.thought || '') + addThought : m.thought,
+                tool_calls: newToolCalls ?? m.tool_calls,
+              };
+            }),
+          }));
+        };
+
+        const scheduleStreamFlush = () => {
+          if (!streamFlushTimer) {
+            streamFlushTimer = setTimeout(() => {
+              flushStreamBuffer();
+            }, 50); // ~20fps 批处理频率，兼顾平滑视觉流出与主线程响应性
+          }
+        };
+
         try {
           result = await streamChatCompletion(
             activeProvider,
@@ -739,29 +782,16 @@ export const useAIStore = create<AIStore>((set, get) => ({
             tools,
             {
               onContentChunk: (chunk) => {
-                set((s) => ({
-                  messages: s.messages.map((m) =>
-                    m.id === assistantMsgId
-                      ? { ...m, content: m.content + chunk }
-                      : m,
-                  ),
-                }));
+                pendingContent += chunk;
+                scheduleStreamFlush();
               },
               onThoughtChunk: (chunk) => {
-                set((s) => ({
-                  messages: s.messages.map((m) =>
-                    m.id === assistantMsgId
-                      ? { ...m, thought: (m.thought || '') + chunk }
-                      : m,
-                  ),
-                }));
+                pendingThought += chunk;
+                scheduleStreamFlush();
               },
               onToolCallsUpdate: (toolCalls) => {
-                set((s) => ({
-                  messages: s.messages.map((m) =>
-                    m.id === assistantMsgId ? { ...m, tool_calls: toolCalls } : m,
-                  ),
-                }));
+                pendingToolCalls = toolCalls;
+                scheduleStreamFlush();
               },
             },
             iterationSignal,
@@ -776,6 +806,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
             throw err;
           }
         } finally {
+          flushStreamBuffer();
           currentIterationAbortController = null;
         }
 
