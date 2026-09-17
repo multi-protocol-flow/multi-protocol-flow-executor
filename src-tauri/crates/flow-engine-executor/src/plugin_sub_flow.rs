@@ -15,7 +15,7 @@ pub struct SubFlowPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for SubFlowPlugin {
     fn type_id(&self) -> &str {
-        "sub_flow"
+        "flow:sub"
     }
 
     fn display_name(&self) -> &str {
@@ -56,7 +56,7 @@ impl NodePlugin for SubFlowPlugin {
 
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({
-            "type": "sub_flow",
+            "type": "flow:sub",
             "target_flow_id": null,
             "target_flow_path": null,
             "inherit_all_variables": true,

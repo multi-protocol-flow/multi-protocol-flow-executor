@@ -30,7 +30,7 @@ interface UdpRecvFromConfigProps {
  */
 function toFormData(data: UdpRecvFromConfigType): UdpRecvFromConfigFormData {
   return {
-    type: 'udp_recv_from',
+    type: 'udp:recv_from',
     connection_id: data.connection_id || '',
     receive_timeout_ms: data.receive_timeout_ms ?? 5000,
     max_size: data.max_size ?? 65536,
@@ -42,7 +42,7 @@ function toFormData(data: UdpRecvFromConfigType): UdpRecvFromConfigFormData {
  */
 function fromFormData(formData: UdpRecvFromConfigFormData): UdpRecvFromConfigType {
   return {
-    type: 'udp_recv_from',
+    type: 'udp:recv_from',
     connection_id: formData.connection_id,
     receive_timeout_ms: formData.receive_timeout_ms,
     max_size: formData.max_size,
@@ -68,7 +68,7 @@ export function UdpRecvFromConfig({ data, onSave }: UdpRecvFromConfigProps) {
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
 
-  // 获取 flow 并提取 udp_bind 节点
+  // 获取 flow 并提取 udp:bind 节点
   const flow = useFlowStore((state) => state.flow);
 
   // 提取可用的 UDP 连接

@@ -23,13 +23,13 @@ export function createNode(overrides: Partial<Node> = {}): Node {
  */
 export function createHttpNode(overrides: Partial<Node> = {}): Node {
   const defaultData: NodeData = {
-    type: 'http',
+    type: 'http:request',
     url: 'https://example.com/api',
     method: 'get',
   };
 
   return createNode({
-    type: 'http',
+    type: 'http:request',
     name: 'HTTP Request',
     data: defaultData,
     ...overrides,

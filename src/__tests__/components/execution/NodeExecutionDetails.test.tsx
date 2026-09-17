@@ -21,7 +21,7 @@ vi.mock('react-json-view-lite', () => ({
 describe('NodeExecutionDetails', () => {
   const createMockReport = (overrides?: Partial<NodeExecutionReport>): NodeExecutionReport => ({
     node_uuid: 'node-001',
-    node_type: 'http',
+    node_type: 'http:request',
     node_name: '测试节点',
     start_time: Date.now() - 100,
     end_time: Date.now(),
@@ -74,7 +74,7 @@ describe('NodeExecutionDetails', () => {
 
     it('HTTP 节点结构化视图显示 HTTP 特定内容', () => {
       const report = createMockReport({
-        node_type: 'http',
+        node_type: 'http:request',
         input_data: { url: 'https://test.com' },
         output_data: { status: 200, request: { url: 'https://test.com' } },
       });
@@ -214,7 +214,7 @@ describe('NodeExecutionDetails', () => {
 
   describe('节点类型标签', () => {
     it('显示 HTTP 节点类型标签', () => {
-      const report = createMockReport({ node_type: 'http' });
+      const report = createMockReport({ node_type: 'http:request' });
       render(<NodeExecutionDetails report={report} />);
 
       expect(screen.getByText('HTTP 请求')).toBeDefined();
@@ -235,7 +235,7 @@ describe('NodeExecutionDetails', () => {
     });
 
     it('显示未知节点类型的原始值', () => {
-      const report = createMockReport({ node_type: 'unknown_type' as 'http' });
+      const report = createMockReport({ node_type: 'unknown_type' as 'http:request' });
       render(<NodeExecutionDetails report={report} />);
       expect(screen.getAllByText('unknown_type').length).toBeGreaterThanOrEqual(1);
     });

@@ -152,7 +152,7 @@ impl NodeExecutor for TcpSendExecutor {
 
         // 4. 日志：start execution
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: tcp_send, ConnectionID: {}, DataEncoding: {}, DataLength: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: tcp:send, ConnectionID: {}, DataEncoding: {}, DataLength: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -480,7 +480,7 @@ mod tests {
     ) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "tcp_send".to_string(),
+            node_type: "tcp:send".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::TcpSend(TcpSendConfig {
@@ -853,7 +853,7 @@ mod tests {
 
         let node = Node {
             uuid: "node-var".to_string(),
-            node_type: "tcp_send".to_string(),
+            node_type: "tcp:send".to_string(),
             name: "变量替换测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::TcpSend(TcpSendConfig {
@@ -909,7 +909,7 @@ mod tests {
 
         let node = Node {
             uuid: "node-invalid-enc".to_string(),
-            node_type: "tcp_send".to_string(),
+            node_type: "tcp:send".to_string(),
             name: "无效编码测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::TcpSend(TcpSendConfig {
@@ -1059,7 +1059,7 @@ mod tests {
 
         let node = Node {
             uuid: "node-wrong".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),

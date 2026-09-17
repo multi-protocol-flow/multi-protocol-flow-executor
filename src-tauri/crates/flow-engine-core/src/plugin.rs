@@ -45,11 +45,11 @@ pub struct FrontendMetadata {
 /// 节点元数据（给前端展示用）
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NodeMetadata {
-    /// 节点类型标识，如 `"http"`、`"db_connect"`
+    /// 节点类型标识，如 `"http:request"`、`"db_connect"`
     pub type_id: String,
     /// 显示名称，如 "HTTP 请求"
     pub display_name: String,
-    /// 分组分类，如 "http"、"database"、"logic"、"websocket"、"tools"
+    /// 分组分类，如 "http:request"、"database"、"logic"、"websocket"、"tools"
     pub category: String,
     /// 图标标识
     pub icon: String,
@@ -308,7 +308,7 @@ mod tests {
     #[test]
     fn test_node_metadata_serialization() {
         let metadata = NodeMetadata {
-            type_id: "http".to_string(),
+            type_id: "http:request".to_string(),
             display_name: "HTTP 请求".to_string(),
             category: "http".to_string(),
             icon: "globe".to_string(),
@@ -343,7 +343,7 @@ mod tests {
         let json = serde_json::to_string(&metadata).unwrap_or_else(|e| panic!("{e}"));
         let deserialized: NodeMetadata =
             serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(deserialized.type_id, "http");
+        assert_eq!(deserialized.type_id, "http:request");
         assert_eq!(deserialized.display_name, "HTTP 请求");
         assert_eq!(deserialized.ports.len(), 2);
         assert_eq!(deserialized.ports[0].id, "true");

@@ -12,14 +12,14 @@ describe('toolTitleFormatter', () => {
           {
             uuid: 'node-auth-123',
             name: '用户登录',
-            type: 'http',
+            type: 'http:request',
             position: { x: 0, y: 0 },
             data: {} as never,
           },
           {
             uuid: 'node-order-456',
             name: '创建订单',
-            type: 'http',
+            type: 'http:request',
             position: { x: 100, y: 0 },
             data: {} as never,
           },

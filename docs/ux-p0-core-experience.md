@@ -292,7 +292,7 @@ function withExecutionState(WrappedNode: ComponentType<NodeProps>) {
 // 接收 isActive 属性
 interface CustomEdgeData {
   isActive?: boolean;
-  dataType?: string;   // 'http' | 'variable' | 'control'
+  dataType?: string;   // 'http:request' | 'variable' | 'control'
 }
 ```
 

@@ -216,15 +216,15 @@ export const GraphqlViewer = memo(function GraphqlViewer({ report }: GraphqlView
   const ll = getLL();
 
   switch (nodeType) {
-    case 'graphql_connect':
+    case 'graphql:connect':
       return <GraphqlConnectView report={report} />;
-    case 'graphql_query':
+    case 'graphql:query':
       return <GraphqlQueryView report={report} />;
-    case 'graphql_subscribe':
+    case 'graphql:subscribe':
       return <GraphqlSubscribeView report={report} />;
-    case 'graphql_introspect':
+    case 'graphql:introspect':
       return <GraphqlIntrospectView report={report} />;
-    case 'graphql_disconnect':
+    case 'graphql:disconnect':
       return <GraphqlDisconnectView report={report} />;
     default:
       return (

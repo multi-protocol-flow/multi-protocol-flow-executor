@@ -72,16 +72,16 @@ describe('WebSocket Types', () => {
   describe('WsConnectConfig', () => {
     it('should create a minimal WsConnectConfig with required fields', () => {
       const config: WsConnectConfig = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/ws',
       };
-      expect(config.type).toBe('ws_connect');
+      expect(config.type).toBe('ws:connect');
       expect(config.url).toBe('wss://example.com/ws');
     });
 
     it('should create a full WsConnectConfig with all fields', () => {
       const config: WsConnectConfig = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://api.example.com/stream',
         headers: [
           { key: 'Authorization', value: 'Bearer token' },
@@ -110,19 +110,19 @@ describe('WebSocket Types', () => {
   describe('WsSendCollectConfig', () => {
     it('should create a minimal WsSendCollectConfig with required fields', () => {
       const config: WsSendCollectConfig = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'conn-123',
         message: '{"action": "ping"}',
         collect_response: false,
       };
-      expect(config.type).toBe('ws_send_collect');
+      expect(config.type).toBe('ws:send_collect');
       expect(config.connection_id).toBe('conn-123');
       expect(config.message).toBe('{"action": "ping"}');
     });
 
     it('should create a full WsSendCollectConfig with all fields', () => {
       const config: WsSendCollectConfig = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'conn-456',
         message: '{"request": "data"}',
         message_type: 'binary',
@@ -148,16 +148,16 @@ describe('WebSocket Types', () => {
   describe('WsCloseConfig', () => {
     it('should create a minimal WsCloseConfig with required fields', () => {
       const config: WsCloseConfig = {
-        type: 'ws_close',
+        type: 'ws:close',
         connection_id: 'conn-789',
       };
-      expect(config.type).toBe('ws_close');
+      expect(config.type).toBe('ws:close');
       expect(config.connection_id).toBe('conn-789');
     });
 
     it('should create a full WsCloseConfig with all fields', () => {
       const config: WsCloseConfig = {
-        type: 'ws_close',
+        type: 'ws:close',
         connection_id: 'conn-abc',
         close_code: 1000,
         close_reason: 'Normal closure',
@@ -173,7 +173,7 @@ describe('WebSocket Types', () => {
   describe('Type Guards', () => {
     it('should correctly identify WsConnectConfig', () => {
       const config: NodeData = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com',
       };
       expect(isWsConnectConfig(config)).toBe(true);
@@ -184,7 +184,7 @@ describe('WebSocket Types', () => {
 
     it('should correctly identify WsSendCollectConfig', () => {
       const config: NodeData = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'conn-1',
         message: 'test',
         collect_response: false,
@@ -197,7 +197,7 @@ describe('WebSocket Types', () => {
 
     it('should correctly identify WsCloseConfig', () => {
       const config: NodeData = {
-        type: 'ws_close',
+        type: 'ws:close',
         connection_id: 'conn-2',
       };
       expect(isWsCloseConfig(config)).toBe(true);
@@ -208,7 +208,7 @@ describe('WebSocket Types', () => {
 
     it('should not confuse WebSocket types with other types', () => {
       const httpConfig: NodeData = {
-        type: 'http',
+        type: 'http:request',
         url: 'https://example.com',
       };
       expect(isWsConnectConfig(httpConfig)).toBe(false);

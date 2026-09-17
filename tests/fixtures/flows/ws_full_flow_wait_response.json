@@ -20,14 +20,14 @@
       },
       {
         "uuid": "ws-connect-full-wait",
-        "type": "ws_connect",
+        "type": "ws:connect",
         "name": "WS Connect (Collect First Message)",
         "position": {
           "x": 200,
           "y": 0
         },
         "data": {
-          "type": "ws_connect",
+          "type": "ws:connect",
           "url": "wss://echo.websocket.org",
           "headers": [],
           "subprotocols": [],
@@ -41,14 +41,14 @@
       },
       {
         "uuid": "ws-send-wait-full-wait",
-        "type": "ws_send_collect",
+        "type": "ws:send_collect",
         "name": "WS Send Collect (Collect Response)",
         "position": {
           "x": 400,
           "y": 0
         },
         "data": {
-          "type": "ws_send_collect",
+          "type": "ws:send_collect",
           "connection_id": "ws-connect-full-wait",
           "message": "Hello from full flow test!",
           "message_type": "text",
@@ -62,14 +62,14 @@
       },
       {
         "uuid": "ws-close-full-wait",
-        "type": "ws_close",
+        "type": "ws:close",
         "name": "WS Close",
         "position": {
           "x": 600,
           "y": 0
         },
         "data": {
-          "type": "ws_close",
+          "type": "ws:close",
           "connection_id": "ws-connect-full-wait",
           "close_code": 1000,
           "close_reason": "Full flow test complete",

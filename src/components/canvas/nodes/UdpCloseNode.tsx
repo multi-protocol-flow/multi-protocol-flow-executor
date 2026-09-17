@@ -70,10 +70,10 @@ export const UdpCloseNode = memo(function UdpCloseNode({ id, data, selected }: N
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-orange-600 font-medium tracking-wide">
-            {getNodeDisplayName('udp_close')}
+            {getNodeDisplayName('udp:close')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('udp_close')}
+            {nodeData.label || getNodeDisplayName('udp:close')}
           </span>
         </div>
       </div>

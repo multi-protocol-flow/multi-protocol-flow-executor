@@ -90,7 +90,7 @@ describe('openaiClient', () => {
     it('正确解析 Tool Calls delta 流式分块', async () => {
       const ssePayload = [
         'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_123","function":{"name":"add_node","arguments":"{\\"type\\":\\""}}]}}]}\n\n',
-        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"http\\"}"}}]}}]}\n\n',
+        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"http:request\\"}"}}]}}]}\n\n',
         'data: [DONE]\n\n',
       ].join('');
 
@@ -115,7 +115,7 @@ describe('openaiClient', () => {
         type: 'function',
         function: {
           name: 'add_node',
-          arguments: '{"type":"http"}',
+          arguments: '{"type":"http:request"}',
         },
       });
     });

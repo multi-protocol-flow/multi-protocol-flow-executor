@@ -9,7 +9,7 @@ This directory contains test data files for the CLI tool, used to verify the mul
 | Type | Description | data Config |
 |------|-------------|-------------|
 | `entry` | Entry node | Empty object `{}` |
-| `http` | HTTP request node | url, method, headers, body |
+| `http:request` | HTTP request node | url, method, headers, body |
 | `conditional` | Conditional branch node | condition_type, field_path, operator, expected_value / advanced_expression |
 
 ### Flow Structure
@@ -35,7 +35,7 @@ Flow files use the **FlowFile wrapping format**:
 ```json
 {
   "uuid": "node-001",
-  "type": "entry|http|conditional",
+  "type": "entry|http:request|conditional",
   "name": "Node Name",
   "position": { "x": 0.0, "y": 0.0 },
   "data": { ... },

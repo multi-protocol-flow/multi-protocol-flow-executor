@@ -92,7 +92,7 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
 
         // 3. 日志：开始探索
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql_introspect, connection_id: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql:introspect, connection_id: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -480,7 +480,7 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "graphql_introspect".to_string(),
+            node_type: "graphql:introspect".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlIntrospect(GraphqlIntrospectConfig {
@@ -548,7 +548,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-wrong".to_string(),
-            node_type: "graphql_connect".to_string(),
+            node_type: "graphql:connect".to_string(),
             name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlConnect(GraphqlConnectConfig::default()),

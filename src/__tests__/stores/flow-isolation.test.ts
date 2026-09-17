@@ -9,10 +9,10 @@ describe('多标签与跨流程节点隔离 (Cross-Flow Isolation)', () => {
     nodes: [
       {
         uuid: 'node-same',
-        type: 'http',
+        type: 'http:request',
         name: 'Node Same A',
         position: { x: 0, y: 0 },
-        data: { type: 'http', url: 'https://a.com' } as unknown as NodeData,
+        data: { type: 'http:request', url: 'https://a.com' } as unknown as NodeData,
       },
     ],
     connections: [],
@@ -24,10 +24,10 @@ describe('多标签与跨流程节点隔离 (Cross-Flow Isolation)', () => {
     nodes: [
       {
         uuid: 'node-same',
-        type: 'http',
+        type: 'http:request',
         name: 'Node Same B',
         position: { x: 100, y: 100 },
-        data: { type: 'http', url: 'https://b.com' } as unknown as NodeData,
+        data: { type: 'http:request', url: 'https://b.com' } as unknown as NodeData,
       },
     ],
     connections: [],
@@ -78,7 +78,7 @@ describe('多标签与跨流程节点隔离 (Cross-Flow Isolation)', () => {
     // 模拟 NodeConfigPanel 的安全隔离写入逻辑
     const renderFlowUuid = 'flow-a';
     const renderNodeUuid = 'node-same';
-    const newDirtyData = { type: 'http', url: 'https://modified-in-a.com' } as unknown as NodeData;
+    const newDirtyData = { type: 'http:request', url: 'https://modified-in-a.com' } as unknown as NodeData;
 
     const { flow: activeFlow, tabSessions } = useFlowStore.getState();
     // activeFlow 是 flow-b，不等于 renderFlowUuid

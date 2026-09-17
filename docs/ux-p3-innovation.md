@@ -96,7 +96,7 @@ function suggestNextNodes(context: SuggestionContext): NodeSuggestion[] {
   if (!selectedNode) return [];
 
   switch (selectedNode.type) {
-    case 'http':
+    case 'http:request':
       suggestions.push(
         { type: 'conditional', reason: '根据 HTTP 响应做分支判断', confidence: 0.9 },
         { type: 'assertion', reason: '验证响应数据是否符合预期', confidence: 0.7 },

@@ -20,14 +20,14 @@
       },
       {
         "uuid": "ws-connect-send-wait-timeout",
-        "type": "ws_connect",
+        "type": "ws:connect",
         "name": "WS Connect",
         "position": {
           "x": 200,
           "y": 0
         },
         "data": {
-          "type": "ws_connect",
+          "type": "ws:connect",
           "url": "wss://echo.websocket.org",
           "headers": [],
           "subprotocols": [],
@@ -41,14 +41,14 @@
       },
       {
         "uuid": "ws-send-wait-timeout-test",
-        "type": "ws_send_collect",
+        "type": "ws:send_collect",
         "name": "WS Send Collect (Short Timeout)",
         "position": {
           "x": 400,
           "y": 0
         },
         "data": {
-          "type": "ws_send_collect",
+          "type": "ws:send_collect",
           "connection_id": "ws-connect-send-wait-timeout",
           "message": "Test timeout message",
           "message_type": "text",

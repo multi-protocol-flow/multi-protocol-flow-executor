@@ -24,21 +24,21 @@ function createNodeData(type: NodeData['type']): NodeData {
   switch (type) {
     case 'entry':
       return { type: 'entry' };
-    case 'http':
-      return { type: 'http', url: 'https://example.com' };
+    case 'http:request':
+      return { type: 'http:request', url: 'https://example.com' };
     case 'conditional':
       return { type: 'conditional' };
-    case 'ws_connect':
-      return { type: 'ws_connect', url: 'wss://example.com' };
-    case 'ws_send_collect':
+    case 'ws:connect':
+      return { type: 'ws:connect', url: 'wss://example.com' };
+    case 'ws:send_collect':
       return {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'conn-1',
         collect_response: true,
         message: 'test message',
       };
-    case 'ws_close':
-      return { type: 'ws_close', connection_id: 'conn-1' };
+    case 'ws:close':
+      return { type: 'ws:close', connection_id: 'conn-1' };
     case 'assertion':
       return {
         type: 'assertion',
@@ -49,39 +49,39 @@ function createNodeData(type: NodeData['type']): NodeData {
       };
     case 'script':
       return { type: 'script', script: '// test script' };
-    case 'tcp_connect':
-      return { type: 'tcp_connect', host: '127.0.0.1', port: 8080 };
-    case 'tcp_send':
-      return { type: 'tcp_send', connection_id: 'tcp-conn-1', data: 'hello' };
-    case 'tcp_close':
-      return { type: 'tcp_close', connection_id: 'tcp-conn-1' };
-    case 'udp_bind':
-      return { type: 'udp_bind', local_port: 9090 };
-    case 'udp_send_to':
-      return { type: 'udp_send_to', connection_id: 'udp-conn-1', data: 'hello', target_addr: '127.0.0.1', target_port: 9090 };
-    case 'udp_recv_from':
-      return { type: 'udp_recv_from', connection_id: 'udp-conn-1' };
-    case 'udp_close':
-      return { type: 'udp_close', connection_id: 'udp-conn-1' };
-    case 'sse_connect':
-      return { type: 'sse_connect', url: 'https://example.com/sse' };
-    case 'sse_listen':
-      return { type: 'sse_listen', connection_id: 'sse-conn-1' };
-    case 'sse_disconnect':
-      return { type: 'sse_disconnect', connection_id: 'sse-conn-1' };
-    case 'graphql_connect':
-      return { type: 'graphql_connect', endpoint: 'http://localhost:4000/graphql' };
-    case 'graphql_query':
-      return { type: 'graphql_query', connection_id: 'gql-conn-1', query: '{ __typename }' };
-    case 'graphql_subscribe':
-      return { type: 'graphql_subscribe', connection_id: 'gql-conn-1', subscription: 'subscription { test }' };
-    case 'graphql_introspect':
-      return { type: 'graphql_introspect', connection_id: 'gql-conn-1' };
-    case 'graphql_disconnect':
-      return { type: 'graphql_disconnect', connection_id: 'gql-conn-1' };
+    case 'tcp:connect':
+      return { type: 'tcp:connect', host: '127.0.0.1', port: 8080 };
+    case 'tcp:send':
+      return { type: 'tcp:send', connection_id: 'tcp-conn-1', data: 'hello' };
+    case 'tcp:close':
+      return { type: 'tcp:close', connection_id: 'tcp-conn-1' };
+    case 'udp:bind':
+      return { type: 'udp:bind', local_port: 9090 };
+    case 'udp:send_to':
+      return { type: 'udp:send_to', connection_id: 'udp-conn-1', data: 'hello', target_addr: '127.0.0.1', target_port: 9090 };
+    case 'udp:recv_from':
+      return { type: 'udp:recv_from', connection_id: 'udp-conn-1' };
+    case 'udp:close':
+      return { type: 'udp:close', connection_id: 'udp-conn-1' };
+    case 'sse:connect':
+      return { type: 'sse:connect', url: 'https://example.com/sse' };
+    case 'sse:listen':
+      return { type: 'sse:listen', connection_id: 'sse-conn-1' };
+    case 'sse:disconnect':
+      return { type: 'sse:disconnect', connection_id: 'sse-conn-1' };
+    case 'graphql:connect':
+      return { type: 'graphql:connect', endpoint: 'http://localhost:4000/graphql' };
+    case 'graphql:query':
+      return { type: 'graphql:query', connection_id: 'gql-conn-1', query: '{ __typename }' };
+    case 'graphql:subscribe':
+      return { type: 'graphql:subscribe', connection_id: 'gql-conn-1', subscription: 'subscription { test }' };
+    case 'graphql:introspect':
+      return { type: 'graphql:introspect', connection_id: 'gql-conn-1' };
+    case 'graphql:disconnect':
+      return { type: 'graphql:disconnect', connection_id: 'gql-conn-1' };
 
-    case 'variable_extractor':
-      return { type: 'variable_extractor' };
+    case 'variable:extractor':
+      return { type: 'variable:extractor' };
     default:
       return { type: 'entry' } as NodeData;
   }
@@ -95,11 +95,11 @@ describe('isEntryConfig', () => {
 
   it('应该对其他类型返回 false', () => {
     const otherTypes: NodeData['type'][] = [
-      'http',
+      'http:request',
       'conditional',
-      'ws_connect',
-      'ws_send_collect',
-      'ws_close',
+      'ws:connect',
+      'ws:send_collect',
+      'ws:close',
     ];
     otherTypes.forEach((type) => {
       const data = createNodeData(type);
@@ -110,7 +110,7 @@ describe('isEntryConfig', () => {
 
 describe('isHttpConfig', () => {
   it('应该对 http 类型返回 true', () => {
-    const data = createNodeData('http');
+    const data = createNodeData('http:request');
     expect(isHttpConfig(data)).toBe(true);
   });
 
@@ -118,9 +118,9 @@ describe('isHttpConfig', () => {
     const otherTypes: NodeData['type'][] = [
       'entry',
       'conditional',
-      'ws_connect',
-      'ws_send_collect',
-      'ws_close',
+      'ws:connect',
+      'ws:send_collect',
+      'ws:close',
     ];
     otherTypes.forEach((type) => {
       const data = createNodeData(type);
@@ -138,10 +138,10 @@ describe('isConditionalConfig', () => {
   it('应该对其他类型返回 false', () => {
     const otherTypes: NodeData['type'][] = [
       'entry',
-      'http',
-      'ws_connect',
-      'ws_send_collect',
-      'ws_close',
+      'http:request',
+      'ws:connect',
+      'ws:send_collect',
+      'ws:close',
     ];
     otherTypes.forEach((type) => {
       const data = createNodeData(type);
@@ -151,18 +151,18 @@ describe('isConditionalConfig', () => {
 });
 
 describe('isWsConnectConfig', () => {
-  it('应该对 ws_connect 类型返回 true', () => {
-    const data = createNodeData('ws_connect');
+  it('应该对 ws:connect 类型返回 true', () => {
+    const data = createNodeData('ws:connect');
     expect(isWsConnectConfig(data)).toBe(true);
   });
 
   it('应该对其他类型返回 false', () => {
     const otherTypes: NodeData['type'][] = [
       'entry',
-      'http',
+      'http:request',
       'conditional',
-      'ws_send_collect',
-      'ws_close',
+      'ws:send_collect',
+      'ws:close',
     ];
     otherTypes.forEach((type) => {
       const data = createNodeData(type);
@@ -173,17 +173,17 @@ describe('isWsConnectConfig', () => {
 
 describe('isWsSendCollectConfig', () => {
   it('应该对 ws_send_wait 类型返回 true', () => {
-    const data = createNodeData('ws_send_collect');
+    const data = createNodeData('ws:send_collect');
     expect(isWsSendCollectConfig(data)).toBe(true);
   });
 
   it('应该对其他类型返回 false', () => {
     const otherTypes: NodeData['type'][] = [
       'entry',
-      'http',
+      'http:request',
       'conditional',
-      'ws_connect',
-      'ws_close',
+      'ws:connect',
+      'ws:close',
     ];
     otherTypes.forEach((type) => {
       const data = createNodeData(type);
@@ -193,18 +193,18 @@ describe('isWsSendCollectConfig', () => {
 });
 
 describe('isWsCloseConfig', () => {
-  it('应该对 ws_close 类型返回 true', () => {
-    const data = createNodeData('ws_close');
+  it('应该对 ws:close 类型返回 true', () => {
+    const data = createNodeData('ws:close');
     expect(isWsCloseConfig(data)).toBe(true);
   });
 
   it('应该对其他类型返回 false', () => {
     const otherTypes: NodeData['type'][] = [
       'entry',
-      'http',
+      'http:request',
       'conditional',
-      'ws_connect',
-      'ws_send_collect',
+      'ws:connect',
+      'ws:send_collect',
       'assertion',
     ];
     otherTypes.forEach((type) => {
@@ -223,11 +223,11 @@ describe('isAssertionConfig', () => {
   it('应该对其他类型返回 false', () => {
     const otherTypes: NodeData['type'][] = [
       'entry',
-      'http',
+      'http:request',
       'conditional',
-      'ws_connect',
-      'ws_send_collect',
-      'ws_close',
+      'ws:connect',
+      'ws:send_collect',
+      'ws:close',
     ];
     otherTypes.forEach((type) => {
       const data = createNodeData(type);
@@ -243,7 +243,7 @@ describe('isScriptConfig', () => {
   });
 
   it('应该对其他类型返回 false', () => {
-    const otherTypes: NodeData['type'][] = ['entry', 'http', 'conditional', 'assertion'];
+    const otherTypes: NodeData['type'][] = ['entry', 'http:request', 'conditional', 'assertion'];
     otherTypes.forEach((type) => {
       const data = createNodeData(type);
       expect(isScriptConfig(data)).toBe(false);
@@ -263,10 +263,10 @@ describe('类型守卫类型缩窄', () => {
   });
 
   it('isHttpConfig 应该正确缩窄类型', () => {
-    const data: NodeData = createNodeData('http');
+    const data: NodeData = createNodeData('http:request');
     if (isHttpConfig(data)) {
       // TypeScript 应该识别 data 为 HttpConfig
-      expect(data.type).toBe('http');
+      expect(data.type).toBe('http:request');
       expect(data.url).toBe('https://example.com');
       // 可选字段应该可以访问
       expect(data.method).toBeUndefined();
@@ -274,10 +274,10 @@ describe('类型守卫类型缩窄', () => {
   });
 
   it('isWsSendCollectConfig 应该正确缩窄类型', () => {
-    const data: NodeData = createNodeData('ws_send_collect');
+    const data: NodeData = createNodeData('ws:send_collect');
     if (isWsSendCollectConfig(data)) {
       // TypeScript 应该识别 data 为 WsSendCollectConfig
-      expect(data.type).toBe('ws_send_collect');
+      expect(data.type).toBe('ws:send_collect');
       expect(data.connection_id).toBe('conn-1');
       expect(data.collect_response).toBe(true);
       expect(data.message).toBe('test message');
@@ -285,15 +285,15 @@ describe('类型守卫类型缩窄', () => {
   });
 
   it('isVariableExtractorConfig 应该正确缩窄类型', () => {
-    const data: NodeData = createNodeData('variable_extractor');
+    const data: NodeData = createNodeData('variable:extractor');
     expect(isVariableExtractorConfig(data)).toBe(true);
     if (isVariableExtractorConfig(data)) {
-      expect(data.type).toBe('variable_extractor');
+      expect(data.type).toBe('variable:extractor');
       expect(data.output_mappings).toBeUndefined();
       expect(data.source_node_id).toBeUndefined();
     }
-    // 非 variable_extractor 类型应返回 false
-    const httpData: NodeData = createNodeData('http');
+    // 非 variable:extractor 类型应返回 false
+    const httpData: NodeData = createNodeData('http:request');
     expect(isVariableExtractorConfig(httpData)).toBe(false);
   });
 });

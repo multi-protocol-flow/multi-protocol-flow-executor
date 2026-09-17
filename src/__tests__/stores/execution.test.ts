@@ -48,7 +48,7 @@ function createMockNodeReport(
 ): NodeExecutionReport {
   return {
     node_uuid: nodeUuid,
-    node_type: 'http',
+    node_type: 'http:request',
     node_name: 'HTTP请求',
     start_time: 1000,
     end_time: 1500,
@@ -438,7 +438,7 @@ describe('ExecutionStore', () => {
 
       const nodeReport: NodeExecutionReport = {
         node_uuid: 'n1',
-        node_type: 'http',
+        node_type: 'http:request',
         node_name: 'HTTP Request',
         start_time: 1000,
         end_time: 2000,
@@ -520,7 +520,7 @@ describe('ExecutionStore', () => {
       handleExecutionEvent({
         nodeCompleted: {
           report: {
-            node_uuid: 'n2', node_type: 'http', node_name: 'HTTP',
+            node_uuid: 'n2', node_type: 'http:request', node_name: 'HTTP',
             start_time: 1100, end_time: 1500, duration_ms: 400,
             status: 'failed', input_data: null, output_data: null,
             error: { error_kind: 'connection', message: 'Connection refused' },
@@ -544,7 +544,7 @@ describe('ExecutionStore', () => {
                 status: 'success', input_data: null, output_data: null,
               },
               {
-                node_uuid: 'n2', node_type: 'http', node_name: 'HTTP',
+                node_uuid: 'n2', node_type: 'http:request', node_name: 'HTTP',
                 start_time: 1100, end_time: 1500, duration_ms: 400,
                 status: 'failed', input_data: null, output_data: null,
                 error: { error_kind: 'connection', message: 'Connection refused' },
@@ -568,7 +568,7 @@ describe('ExecutionStore', () => {
       useExecutionStore.getState().handleExecutionEvent({
         nodeCompleted: {
           report: {
-            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            node_uuid: 'n1', node_type: 'http:request', node_name: 'HTTP',
             start_time: 1000, end_time: 2000, duration_ms: 1000,
             status: 'success', input_data: null, output_data: null,
           },
@@ -653,7 +653,7 @@ describe('ExecutionStore', () => {
       useExecutionStore.getState().handleExecutionEvent({
         nodeCompleted: {
           report: {
-            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            node_uuid: 'n1', node_type: 'http:request', node_name: 'HTTP',
             start_time: 1000, end_time: 2000, duration_ms: 1000,
             status: 'success', input_data: null, output_data: null,
           },
@@ -669,7 +669,7 @@ describe('ExecutionStore', () => {
       useExecutionStore.getState().handleExecutionEvent({
         nodeCompleted: {
           report: {
-            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            node_uuid: 'n1', node_type: 'http:request', node_name: 'HTTP',
             start_time: 1000, end_time: 2000, duration_ms: 1000,
             status: 'failed', input_data: null, output_data: null,
           },
@@ -692,7 +692,7 @@ describe('ExecutionStore', () => {
       useExecutionStore.getState().handleExecutionEvent({
         nodeCompleted: {
           report: {
-            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            node_uuid: 'n1', node_type: 'http:request', node_name: 'HTTP',
             start_time: 1000, end_time: 2000, duration_ms: 1000,
             status: 'success', input_data: null, output_data: null,
           },
@@ -766,7 +766,7 @@ describe('ExecutionStore', () => {
       useExecutionStore.getState().handleExecutionEvent({
         nodeCompleted: {
           report: {
-            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            node_uuid: 'n1', node_type: 'http:request', node_name: 'HTTP',
             start_time: 1000, end_time: 2000, duration_ms: 1000,
             status: 'success', input_data: null, output_data: null,
           },
@@ -786,7 +786,7 @@ describe('ExecutionStore', () => {
       useExecutionStore.getState().handleExecutionEvent({
         nodeCompleted: {
           report: {
-            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            node_uuid: 'n1', node_type: 'http:request', node_name: 'HTTP',
             start_time: 1000, end_time: 2000, duration_ms: 1000,
             status: 'success', input_data: null, output_data: null,
           },
@@ -851,7 +851,7 @@ describe('ExecutionStore', () => {
       useExecutionStore.getState().handleExecutionEvent({
         nodeCompleted: {
           report: {
-            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            node_uuid: 'n1', node_type: 'http:request', node_name: 'HTTP',
             start_time: 1000, end_time: 2000, duration_ms: 1000,
             status: 'success', input_data: null, output_data: null,
           },
@@ -999,7 +999,7 @@ describe('ExecutionStore', () => {
       store.handleExecutionEvent({ nodeCompleted: { report: createMockNodeReport('n1') } });
       // 子流程节点开始
       store.handleExecutionEvent({
-        nodeStarted: { nodeUuid: 'sf', nodeName: 'Call Child', nodeType: 'sub_flow' },
+        nodeStarted: { nodeUuid: 'sf', nodeName: 'Call Child', nodeType: 'flow:sub' },
       });
     }
 
@@ -1093,7 +1093,7 @@ describe('ExecutionStore', () => {
 
       // 子流程节点自身完成（顶层事件）
       const subFlowReport = createMockNodeReport('sf', {
-        node_type: 'sub_flow',
+        node_type: 'flow:sub',
         sub_flow_report: createMockReport({ flow_uuid: 'child', total_nodes: 2 }),
       });
       store.handleExecutionEvent({ nodeCompleted: { report: subFlowReport } });

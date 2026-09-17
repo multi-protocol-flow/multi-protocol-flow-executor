@@ -94,7 +94,7 @@ impl NodeExecutor for GraphqlConnectExecutor {
 
         // 3. 日志：开始连接
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql_connect, endpoint: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql:connect, endpoint: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -449,7 +449,7 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, endpoint: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "graphql_connect".to_string(),
+            node_type: "graphql:connect".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlConnect(GraphqlConnectConfig {
@@ -551,7 +551,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-wrong".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
@@ -581,7 +581,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-var".to_string(),
-            node_type: "graphql_connect".to_string(),
+            node_type: "graphql:connect".to_string(),
             name: "变量替换测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlConnect(GraphqlConnectConfig {
@@ -639,7 +639,7 @@ mod tests {
         // 创建不指定 connection_id 的节点
         let node = Node {
             uuid: "node-uuid-123".to_string(),
-            node_type: "graphql_connect".to_string(),
+            node_type: "graphql:connect".to_string(),
             name: "默认ID测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlConnect(GraphqlConnectConfig {
@@ -720,7 +720,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-report".to_string(),
-            node_type: "graphql_connect".to_string(),
+            node_type: "graphql:connect".to_string(),
             name: "报告结构测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlConnect(GraphqlConnectConfig {

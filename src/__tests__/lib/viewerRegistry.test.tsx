@@ -27,13 +27,13 @@ function makeReport(overrides: Partial<NodeExecutionReport> = {}): NodeExecution
 
 describe('getViewerComponent', () => {
   it('getViewerComponent_known_builtin_resolves_exact_viewer', () => {
-    expect(getViewerComponent('http')).toBe(HttpNodeViewer);
+    expect(getViewerComponent('http:request')).toBe(HttpNodeViewer);
   });
 
   it('getViewerComponent_known_builtin_with_plugin_data_not_hijacked', () => {
     // 即使报告携带 plugin_data，已注册的内置类型仍解析到精确 viewer
-    const report = makeReport({ node_type: 'http', plugin_data: { anything: true } });
-    expect(getViewerComponent('http', report)).toBe(HttpNodeViewer);
+    const report = makeReport({ node_type: 'http:request', plugin_data: { anything: true } });
+    expect(getViewerComponent('http:request', report)).toBe(HttpNodeViewer);
   });
 
   it('getViewerComponent_unknown_type_without_report_falls_back_to_generic', () => {

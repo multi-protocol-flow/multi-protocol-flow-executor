@@ -93,7 +93,7 @@ describe('FlowCanvas - Drag and Drop', () => {
       preventDefault: vi.fn(),
       dataTransfer: {
         getData: (key: string) => {
-          if (key === 'application/reactflow/nodeType') return 'http';
+          if (key === 'application/reactflow/nodeType') return 'http:request';
           return '';
         },
       },
@@ -107,7 +107,7 @@ describe('FlowCanvas - Drag and Drop', () => {
 
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
-    expect(state.flow?.nodes[1].type).toBe('http');
+    expect(state.flow?.nodes[1].type).toBe('http:request');
     // 验证节点位置使用鼠标释放位置
     expect(state.flow?.nodes[1].position).toEqual({ x: 200, y: 150 });
   });
@@ -154,7 +154,7 @@ describe('FlowCanvas - Drag and Drop', () => {
     expect(state.flow?.nodes[1].position).toEqual({ x: 300, y: 200 });
   });
 
-  it('应该添加 WS Connect 节点当拖放 ws_connect 类型时', async () => {
+  it('应该添加 WS Connect 节点当拖放 ws:connect 类型时', async () => {
     useFlowStore.getState().setFlow(mockFlow);
 
     let container: HTMLElement;
@@ -177,7 +177,7 @@ describe('FlowCanvas - Drag and Drop', () => {
       preventDefault: vi.fn(),
       dataTransfer: {
         getData: (key: string) => {
-          if (key === 'application/reactflow/nodeType') return 'ws_connect';
+          if (key === 'application/reactflow/nodeType') return 'ws:connect';
           return '';
         },
       },
@@ -191,11 +191,11 @@ describe('FlowCanvas - Drag and Drop', () => {
 
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
-    expect(state.flow?.nodes[1].type).toBe('ws_connect');
+    expect(state.flow?.nodes[1].type).toBe('ws:connect');
     expect(state.flow?.nodes[1].position).toEqual({ x: 250, y: 180 });
   });
 
-  it('应该添加 WS SendCollect 节点当拖放 ws_send_collect 类型时', async () => {
+  it('应该添加 WS SendCollect 节点当拖放 ws:send_collect 类型时', async () => {
     useFlowStore.getState().setFlow(mockFlow);
 
     let container: HTMLElement;
@@ -218,7 +218,7 @@ describe('FlowCanvas - Drag and Drop', () => {
       preventDefault: vi.fn(),
       dataTransfer: {
         getData: (key: string) => {
-          if (key === 'application/reactflow/nodeType') return 'ws_send_collect';
+          if (key === 'application/reactflow/nodeType') return 'ws:send_collect';
           return '';
         },
       },
@@ -232,11 +232,11 @@ describe('FlowCanvas - Drag and Drop', () => {
 
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
-    expect(state.flow?.nodes[1].type).toBe('ws_send_collect');
+    expect(state.flow?.nodes[1].type).toBe('ws:send_collect');
     expect(state.flow?.nodes[1].position).toEqual({ x: 350, y: 220 });
   });
 
-  it('应该添加 WS Close 节点当拖放 ws_close 类型时', async () => {
+  it('应该添加 WS Close 节点当拖放 ws:close 类型时', async () => {
     useFlowStore.getState().setFlow(mockFlow);
 
     let container: HTMLElement;
@@ -259,7 +259,7 @@ describe('FlowCanvas - Drag and Drop', () => {
       preventDefault: vi.fn(),
       dataTransfer: {
         getData: (key: string) => {
-          if (key === 'application/reactflow/nodeType') return 'ws_close';
+          if (key === 'application/reactflow/nodeType') return 'ws:close';
           return '';
         },
       },
@@ -273,7 +273,7 @@ describe('FlowCanvas - Drag and Drop', () => {
 
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
-    expect(state.flow?.nodes[1].type).toBe('ws_close');
+    expect(state.flow?.nodes[1].type).toBe('ws:close');
     expect(state.flow?.nodes[1].position).toEqual({ x: 450, y: 280 });
   });
   it('当没有流程时不应该添加节点', async () => {
@@ -323,7 +323,7 @@ describe('FlowCanvas - Drag and Drop', () => {
         preventDefault: vi.fn(),
         dataTransfer: {
           getData: (key: string) => {
-            if (key === 'application/reactflow/nodeType') return 'http';
+            if (key === 'application/reactflow/nodeType') return 'http:request';
             return '';
           },
         },
@@ -385,13 +385,13 @@ describe('FlowCanvas - Drag and Drop', () => {
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
     const subflowNode = state.flow?.nodes[1];
-    expect(subflowNode?.type).toBe('sub_flow');
+    expect(subflowNode?.type).toBe('flow:sub');
     expect(subflowNode?.name).toBe('认证子流程');
     expect(subflowNode?.position).toEqual({ x: 260, y: 190 });
 
     const nodeData = subflowNode?.data;
-    expect(nodeData?.type).toBe('sub_flow');
-    if (nodeData?.type === 'sub_flow') {
+    expect(nodeData?.type).toBe('flow:sub');
+    if (nodeData?.type === 'flow:sub') {
       expect(nodeData.target_flow_id).toBe('subflow-child-1');
       expect(nodeData.target_flow_path).toBe('/path/to/subflow.mpf');
       expect(nodeData.inherit_all_variables).toBe(true);
@@ -544,7 +544,7 @@ describe('FlowCanvas - Drag and Drop', () => {
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
     const subflowNode = state.flow?.nodes[1];
-    expect(subflowNode?.type).toBe('sub_flow');
+    expect(subflowNode?.type).toBe('flow:sub');
     expect(subflowNode?.name).toBe('降级子流程');
   });
 });

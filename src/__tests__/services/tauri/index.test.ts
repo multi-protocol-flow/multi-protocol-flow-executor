@@ -62,15 +62,15 @@ describe('createFlow 服务包装器', () => {
     const flowWithHttp = backendFlow('测试流程');
     flowWithHttp.nodes.push({
       uuid: 'http-flow-uuid',
-      type: 'http',
+      type: 'http:request',
       name: '我的请求',
       position: { x: 200, y: 0 },
-      data: { type: 'http', method: 'get', url: '' },
+      data: { type: 'http:request', method: 'get', url: '' },
     });
     vi.mocked(invoke).mockResolvedValueOnce({ flow: flowWithHttp });
 
     const flow = await createFlow('测试流程');
-    const httpNode = flow.nodes.find((n) => n.type === 'http');
+    const httpNode = flow.nodes.find((n) => n.type === 'http:request');
 
     expect(httpNode?.name).toBe('我的请求');
   });

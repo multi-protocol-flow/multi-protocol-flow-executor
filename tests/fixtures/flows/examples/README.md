@@ -50,9 +50,9 @@
 **JSON 示例：**
 ```json
 {
-  "type": "http",
+  "type": "http:request",
   "data": {
-    "type": "http",
+    "type": "http:request",
     "url": "https://api.example.com/users",
     "method": "get",
     "headers": {

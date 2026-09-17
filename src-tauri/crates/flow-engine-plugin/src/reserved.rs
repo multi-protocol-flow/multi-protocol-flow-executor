@@ -4,7 +4,9 @@
 //! collisions are first-wins + warn. [`RESERVED_TYPE_IDS`] is the exact set of
 //! `type_id` strings registered by `flow_engine_executor::default_registry`
 //! — extracted from the literal `type_id()` implementations of every
-//! registered `NodePlugin` (79 ids, matching the registry's own count test).
+//! registered `NodePlugin` (29 ids; the always-on `flow:sub` is absent —
+//! harmless, because `decide_registration`'s second clause already protects
+//! ids present in the registry itself).
 //!
 //! Notes on the extraction (the doc table in `default_registry.rs` is NOT the
 //! source of truth):
@@ -15,7 +17,7 @@
 //! - `amqp_management` is `#[cfg(feature = "management")]`-gated and NOT part
 //!   of the default registry — deliberately excluded (a third-party plugin may
 //!   use it until the feature ships).
-//! - The registry uses one literal id per node type (`ws_connect`,
+//! - The registry uses one literal id per node type (`ws:connect`,
 //!   ...) — there are no prefix families, so the check is exact-match only.
 
 /// The reserved built-in node type ids (sorted, byte-lexicographic — Rust
@@ -26,29 +28,31 @@ pub const RESERVED_TYPE_IDS: &[&str] = &[
     "conditional",
     "end",
     "entry",
-    "graphql_connect",
-    "graphql_disconnect",
-    "graphql_introspect",
-    "graphql_query",
-    "graphql_subscribe",
-    "http",
+    "graphql:connect",
+    "graphql:disconnect",
+    "graphql:introspect",
+    "graphql:query",
+    "graphql:subscribe",
+    "http:ingress",
+    "http:request",
+    "http:respond",
     "proxy",
     "script",
-    "sse_connect",
-    "sse_disconnect",
-    "sse_listen",
-    "tcp_close",
-    "tcp_connect",
-    "tcp_receive",
-    "tcp_send",
-    "udp_bind",
-    "udp_close",
-    "udp_recv_from",
-    "udp_send_to",
-    "variable_extractor",
-    "ws_close",
-    "ws_connect",
-    "ws_send_collect",
+    "sse:connect",
+    "sse:disconnect",
+    "sse:listen",
+    "tcp:close",
+    "tcp:connect",
+    "tcp:receive",
+    "tcp:send",
+    "udp:bind",
+    "udp:close",
+    "udp:recv_from",
+    "udp:send_to",
+    "variable:extractor",
+    "ws:close",
+    "ws:connect",
+    "ws:send_collect",
 ];
 
 /// Returns `true` when `id` is a reserved built-in node type id that plugins

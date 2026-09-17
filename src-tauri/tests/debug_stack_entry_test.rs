@@ -12,7 +12,7 @@ fn test_debug_stack_entry_fields_exist() {
     let entry = ExecutionStackEntry {
         node_uuid: "node-001".to_string(),
         node_name: "HTTP Request".to_string(),
-        node_type: "http".to_string(),
+        node_type: "http:request".to_string(),
         started_at: 1234567890,
         ended_at: Some(1234567895),
         input: Some(json!({"url": "https://example.com"})),
@@ -76,7 +76,7 @@ fn test_debug_stack_entry_backward_compat() {
     let old_json = r#"{
         "node_uuid": "node-001",
         "node_name": "HTTP Request",
-        "node_type": "http",
+        "node_type": "http:request",
         "started_at": 1234567890,
         "ended_at": 1234567895,
         "input": {"url": "https://example.com"},
@@ -93,7 +93,7 @@ fn test_debug_stack_entry_backward_compat() {
     // 验证基本字段
     assert_eq!(entry.node_uuid, "node-001");
     assert_eq!(entry.node_name, "HTTP Request");
-    assert_eq!(entry.node_type, "http");
+    assert_eq!(entry.node_type, "http:request");
     assert!(entry.success);
 
     // 验证新字段为 None（默认值）

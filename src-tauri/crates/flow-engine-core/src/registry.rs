@@ -155,15 +155,15 @@ mod tests {
     #[test]
     fn test_register_and_get() {
         let mut registry = NodeRegistry::new();
-        let plugin = Arc::new(MockPlugin::new("http", "HTTP 请求", "http"));
+        let plugin = Arc::new(MockPlugin::new("http:request", "HTTP 请求", "http"));
 
         registry.register(plugin);
 
-        let found = registry.get("http");
+        let found = registry.get("http:request");
         assert!(found.is_some());
         assert_eq!(
             found.unwrap_or_else(|| panic!("expected Some")).type_id(),
-            "http"
+            "http:request"
         );
         assert_eq!(
             found
@@ -178,9 +178,13 @@ mod tests {
     fn test_all_metadata() {
         let mut registry = NodeRegistry::new();
 
-        registry.register(Arc::new(MockPlugin::new("http", "HTTP 请求", "http")));
+        registry.register(Arc::new(MockPlugin::new(
+            "http:request",
+            "HTTP 请求",
+            "http",
+        )));
 
-        registry.register(Arc::new(MockPlugin::new("tcp_connect", "TCP 连接", "tcp")));
+        registry.register(Arc::new(MockPlugin::new("tcp:connect", "TCP 连接", "tcp")));
 
         let metadata = registry.all_metadata();
         assert_eq!(metadata.len(), 2);
@@ -188,7 +192,7 @@ mod tests {
         // 验证元数据内容（不依赖顺序）
         let http_meta = metadata
             .iter()
-            .find(|m| m.type_id == "http")
+            .find(|m| m.type_id == "http:request")
             .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(http_meta.display_name, "HTTP 请求");
         assert_eq!(http_meta.category, "http");
@@ -199,7 +203,7 @@ mod tests {
 
         let tcp_meta = metadata
             .iter()
-            .find(|m| m.type_id == "tcp_connect")
+            .find(|m| m.type_id == "tcp:connect")
             .unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(tcp_meta.display_name, "TCP 连接");
         assert_eq!(tcp_meta.category, "tcp");
@@ -220,7 +224,11 @@ mod tests {
         registry.register(Arc::new(plugin));
 
         // 无前端的内置节点
-        registry.register(Arc::new(MockPlugin::new("http", "HTTP 请求", "http")));
+        registry.register(Arc::new(MockPlugin::new(
+            "http:request",
+            "HTTP 请求",
+            "http",
+        )));
 
         let metadata = registry.all_metadata();
         let plugin_meta = metadata
@@ -240,7 +248,7 @@ mod tests {
         // 内置节点无 frontend
         let http_meta = metadata
             .iter()
-            .find(|m| m.type_id == "http")
+            .find(|m| m.type_id == "http:request")
             .unwrap_or_else(|| panic!("expected Some"));
         assert!(http_meta.frontend.is_none());
     }
@@ -249,7 +257,11 @@ mod tests {
     #[test]
     fn test_get_unknown_returns_none() {
         let mut registry = NodeRegistry::new();
-        registry.register(Arc::new(MockPlugin::new("http", "HTTP 请求", "http")));
+        registry.register(Arc::new(MockPlugin::new(
+            "http:request",
+            "HTTP 请求",
+            "http",
+        )));
 
         assert!(registry.get("nonexistent").is_none());
     }
@@ -259,24 +271,24 @@ mod tests {
     fn test_register_overwrites() {
         let mut registry = NodeRegistry::new();
 
-        registry.register(Arc::new(MockPlugin::new("http", "旧 HTTP", "http")));
+        registry.register(Arc::new(MockPlugin::new("http:request", "旧 HTTP", "http")));
 
         assert_eq!(registry.len(), 1);
         assert_eq!(
             registry
-                .get("http")
+                .get("http:request")
                 .unwrap_or_else(|| panic!("expected Some"))
                 .display_name(),
             "旧 HTTP"
         );
 
         // 注册同 type_id 的新插件
-        registry.register(Arc::new(MockPlugin::new("http", "新 HTTP", "http")));
+        registry.register(Arc::new(MockPlugin::new("http:request", "新 HTTP", "http")));
 
         assert_eq!(registry.len(), 1);
         assert_eq!(
             registry
-                .get("http")
+                .get("http:request")
                 .unwrap_or_else(|| panic!("expected Some"))
                 .display_name(),
             "新 HTTP"
@@ -290,7 +302,11 @@ mod tests {
         assert!(registry.is_empty());
         assert_eq!(registry.len(), 0);
 
-        registry.register(Arc::new(MockPlugin::new("http", "HTTP 请求", "http")));
+        registry.register(Arc::new(MockPlugin::new(
+            "http:request",
+            "HTTP 请求",
+            "http",
+        )));
 
         assert!(!registry.is_empty());
         assert_eq!(registry.len(), 1);

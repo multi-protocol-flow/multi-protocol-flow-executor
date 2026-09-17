@@ -44,11 +44,11 @@ describe('ConditionalConfig', () => {
       },
       {
         uuid: 'http-1',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 200, y: 0 },
         data: {
-          type: 'http',
+          type: 'http:request',
           url: '{{api_base}}/users',
           method: 'get',
           output_mappings: [

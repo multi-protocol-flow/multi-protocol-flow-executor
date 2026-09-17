@@ -19,14 +19,14 @@
       },
       {
         "uuid": "http-001",
-        "type": "http",
+        "type": "http:request",
         "name": "HTTP POST File Upload",
         "position": {
           "x": 100,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/post",
           "method": "post",
           "body_type": "form-data",

@@ -11,7 +11,7 @@ fn test_node_report_fields_exist() {
     let report = NodeExecutionReport {
         sub_flow_report: None,
         node_uuid: "test-uuid".to_string(),
-        node_type: "http".to_string(),
+        node_type: "http:request".to_string(),
         node_name: "测试节点".to_string(),
         start_time: 1000,
         end_time: 2000,
@@ -96,7 +96,7 @@ fn test_node_report_skip_serializing_if() {
     let report = NodeExecutionReport {
         sub_flow_report: None,
         node_uuid: "test-uuid".to_string(),
-        node_type: "http".to_string(),
+        node_type: "http:request".to_string(),
         node_name: "测试".to_string(),
         start_time: 1000,
         end_time: 2000,
@@ -130,7 +130,7 @@ fn test_node_report_skipped_with_reason() {
     let report = NodeExecutionReport {
         sub_flow_report: None,
         node_uuid: "skipped-uuid".to_string(),
-        node_type: "http".to_string(),
+        node_type: "http:request".to_string(),
         node_name: "被跳过的节点".to_string(),
         start_time: 1000,
         end_time: 1000,

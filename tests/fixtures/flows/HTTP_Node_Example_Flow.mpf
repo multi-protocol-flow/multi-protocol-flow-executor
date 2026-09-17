@@ -21,14 +21,14 @@
       },
       {
         "uuid": "http-get-001",
-        "type": "http",
+        "type": "http:request",
         "name": "HTTP GET Example",
         "position": {
           "x": 250.0,
           "y": 0.0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/get",
           "method": "get",
           "headers": null,
@@ -60,14 +60,14 @@
       },
       {
         "uuid": "http-post-001",
-        "type": "http",
+        "type": "http:request",
         "name": "HTTP POST Example",
         "position": {
           "x": 750.0,
           "y": 0.0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/post",
           "method": "post",
           "headers": null,

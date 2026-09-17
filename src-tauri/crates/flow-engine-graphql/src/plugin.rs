@@ -28,7 +28,7 @@ pub struct GraphqlConnectPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for GraphqlConnectPlugin {
     fn type_id(&self) -> &str {
-        "graphql_connect"
+        "graphql:connect"
     }
 
     fn display_name(&self) -> &str {
@@ -134,7 +134,7 @@ pub struct GraphqlQueryPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for GraphqlQueryPlugin {
     fn type_id(&self) -> &str {
-        "graphql_query"
+        "graphql:query"
     }
 
     fn display_name(&self) -> &str {
@@ -246,7 +246,7 @@ pub struct GraphqlSubscribePlugin;
 #[async_trait::async_trait]
 impl NodePlugin for GraphqlSubscribePlugin {
     fn type_id(&self) -> &str {
-        "graphql_subscribe"
+        "graphql:subscribe"
     }
 
     fn display_name(&self) -> &str {
@@ -359,7 +359,7 @@ pub struct GraphqlIntrospectPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for GraphqlIntrospectPlugin {
     fn type_id(&self) -> &str {
-        "graphql_introspect"
+        "graphql:introspect"
     }
 
     fn display_name(&self) -> &str {
@@ -463,7 +463,7 @@ pub struct GraphqlDisconnectPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for GraphqlDisconnectPlugin {
     fn type_id(&self) -> &str {
-        "graphql_disconnect"
+        "graphql:disconnect"
     }
 
     fn display_name(&self) -> &str {
@@ -572,7 +572,7 @@ mod tests {
     #[test]
     fn test_graphql_connect_plugin_metadata() {
         let plugin = GraphqlConnectPlugin;
-        assert_eq!(plugin.type_id(), "graphql_connect");
+        assert_eq!(plugin.type_id(), "graphql:connect");
         assert_eq!(plugin.display_name(), "GraphQL Connect");
         assert_eq!(plugin.category(), "graphql");
         assert_eq!(plugin.icon(), "plug");
@@ -592,7 +592,7 @@ mod tests {
     #[test]
     fn test_graphql_query_plugin_metadata() {
         let plugin = GraphqlQueryPlugin;
-        assert_eq!(plugin.type_id(), "graphql_query");
+        assert_eq!(plugin.type_id(), "graphql:query");
         assert_eq!(plugin.display_name(), "GraphQL Query");
         assert_eq!(plugin.category(), "graphql");
         assert_eq!(plugin.icon(), "search");
@@ -612,7 +612,7 @@ mod tests {
     #[test]
     fn test_graphql_subscribe_plugin_metadata() {
         let plugin = GraphqlSubscribePlugin;
-        assert_eq!(plugin.type_id(), "graphql_subscribe");
+        assert_eq!(plugin.type_id(), "graphql:subscribe");
         assert_eq!(plugin.display_name(), "GraphQL Subscribe");
         assert_eq!(plugin.category(), "graphql");
         assert_eq!(plugin.icon(), "eye");
@@ -632,7 +632,7 @@ mod tests {
     #[test]
     fn test_graphql_introspect_plugin_metadata() {
         let plugin = GraphqlIntrospectPlugin;
-        assert_eq!(plugin.type_id(), "graphql_introspect");
+        assert_eq!(plugin.type_id(), "graphql:introspect");
         assert_eq!(plugin.display_name(), "GraphQL Schema Introspection");
         assert_eq!(plugin.category(), "graphql");
         assert_eq!(plugin.icon(), "file-search");
@@ -652,7 +652,7 @@ mod tests {
     #[test]
     fn test_graphql_disconnect_plugin_metadata() {
         let plugin = GraphqlDisconnectPlugin;
-        assert_eq!(plugin.type_id(), "graphql_disconnect");
+        assert_eq!(plugin.type_id(), "graphql:disconnect");
         assert_eq!(plugin.display_name(), "GraphQL Disconnect");
         assert_eq!(plugin.category(), "graphql");
         assert_eq!(plugin.icon(), "unplug");
@@ -846,10 +846,10 @@ mod tests {
         GraphqlPluginGroup::register_all(&mut registry);
         assert_eq!(registry.len(), 5);
 
-        assert!(registry.get("graphql_connect").is_some());
-        assert!(registry.get("graphql_query").is_some());
-        assert!(registry.get("graphql_subscribe").is_some());
-        assert!(registry.get("graphql_introspect").is_some());
-        assert!(registry.get("graphql_disconnect").is_some());
+        assert!(registry.get("graphql:connect").is_some());
+        assert!(registry.get("graphql:query").is_some());
+        assert!(registry.get("graphql:subscribe").is_some());
+        assert!(registry.get("graphql:introspect").is_some());
+        assert!(registry.get("graphql:disconnect").is_some());
     }
 }

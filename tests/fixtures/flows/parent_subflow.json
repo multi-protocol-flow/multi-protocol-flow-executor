@@ -14,11 +14,11 @@
       },
       {
         "uuid": "parent-subflow-node",
-        "type": "sub_flow",
+        "type": "flow:sub",
         "name": "Call Child Subflow",
         "position": { "x": 200, "y": 0 },
         "data": {
-          "type": "sub_flow",
+          "type": "flow:sub",
           "target_flow_path": "child_subflow.json",
           "inherit_all_variables": true,
           "export_all_variables": true,

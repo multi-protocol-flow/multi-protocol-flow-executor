@@ -91,7 +91,7 @@ mod tests {
     fn make_node(config: VariableExtractorConfig) -> Node {
         Node {
             uuid: "ve-node-1".to_string(),
-            node_type: "variable_extractor".to_string(),
+            node_type: "variable:extractor".to_string(),
             name: "Variable Extraction".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::VariableExtractor(config),
@@ -105,7 +105,7 @@ mod tests {
     #[tokio::test]
     async fn test_variable_extractor_basic() {
         let config = VariableExtractorConfig {
-            r#type: "variable_extractor".to_string(),
+            r#type: "variable:extractor".to_string(),
             output_mappings: vec![
                 OutputMapping {
                     source: "$.status".to_string(),
@@ -168,7 +168,7 @@ mod tests {
     #[tokio::test]
     async fn test_variable_extractor_no_upstream_output() {
         let config = VariableExtractorConfig {
-            r#type: "variable_extractor".to_string(),
+            r#type: "variable:extractor".to_string(),
             output_mappings: vec![],
             source_node_id: None,
         };
@@ -198,7 +198,7 @@ mod tests {
     #[tokio::test]
     async fn test_variable_extractor_source_node_not_found() {
         let config = VariableExtractorConfig {
-            r#type: "variable_extractor".to_string(),
+            r#type: "variable:extractor".to_string(),
             output_mappings: vec![],
             source_node_id: Some("nonexistent".to_string()),
         };
@@ -231,7 +231,7 @@ mod tests {
         use flow_engine_core::report::{ExecutionStatus, NodeExecutionReport};
 
         let config = VariableExtractorConfig {
-            r#type: "variable_extractor".to_string(),
+            r#type: "variable:extractor".to_string(),
             output_mappings: vec![OutputMapping {
                 source: "$.token".to_string(),
                 target: "extracted_token".to_string(),
@@ -246,7 +246,7 @@ mod tests {
         // 在 node_reports 中插入 http-node-1 的执行结果
         context.node_reports.push(NodeExecutionReport {
             node_uuid: "http-node-1".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             node_name: "HTTP 请求".to_string(),
             start_time: 0,
             end_time: 0,
@@ -288,7 +288,7 @@ mod tests {
     #[tokio::test]
     async fn test_variable_extractor_routing() {
         let config = VariableExtractorConfig {
-            r#type: "variable_extractor".to_string(),
+            r#type: "variable:extractor".to_string(),
             output_mappings: vec![],
             source_node_id: None,
         };

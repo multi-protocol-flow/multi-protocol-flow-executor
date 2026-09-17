@@ -20,14 +20,14 @@
       },
       {
         "uuid": "http-1",
-        "type": "http",
+        "type": "http:request",
         "name": "Fetch JSON Data",
         "position": {
           "x": 200,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/json",
           "method": "get"
         },
@@ -71,14 +71,14 @@
       },
       {
         "uuid": "http-success",
-        "type": "http",
+        "type": "http:request",
         "name": "Success-Confirm",
         "position": {
           "x": 800,
           "y": -50
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/status/200",
           "method": "get"
         },
@@ -86,14 +86,14 @@
       },
       {
         "uuid": "http-fail",
-        "type": "http",
+        "type": "http:request",
         "name": "Failure-Log",
         "position": {
           "x": 800,
           "y": 50
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/status/400",
           "method": "get"
         },

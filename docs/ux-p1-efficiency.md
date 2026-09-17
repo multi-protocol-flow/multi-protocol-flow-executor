@@ -25,7 +25,7 @@
 **目标**：高频节点类型提供 2-3 个"一键填充"的配置预设，减少重复劳动。
 
 **优先覆盖节点**（按使用频率排序）：
-- HTTP (`http`) — 最高频，预设 3 个
+- HTTP (`http:request`) — 最高频，预设 3 个
 - Kafka (`kafka_produce`, `kafka_consume`)
 - MQTT (`mqtt_publish`, `mqtt_subscribe`)
 - gRPC (`grpc_call`)
@@ -56,7 +56,7 @@ const HTTP_PRESETS: NodePreset[] = [
     id: 'http-get-users',
     name: 'GET /api/users',
     description: ll.nodes.preset.getUsers(), // '获取用户列表 - REST API 典型 GET 请求'
-    nodeType: 'http',
+    nodeType: 'http:request',
     data: {
       method: 'get',
       url: 'https://jsonplaceholder.typicode.com/users',
@@ -115,9 +115,9 @@ function inferDefaults(
 
   switch (targetType) {
     // HTTP → ...
-    case 'http':
-      // 如果上游也是 http，继承 base_url
-      if (upstreamNode.type === 'http') {
+    case 'http:request':
+      // 如果上游也是 http:request，继承 base_url
+      if (upstreamNode.type === 'http:request') {
         const baseUrl = extractBaseUrl(upstreamNode.data.url as string);
         if (baseUrl) return { url: baseUrl };
       }
@@ -176,9 +176,9 @@ function inferDefaults(
       }
       break;
 
-    // TCP: tcp_connect → tcp_send
-    case 'tcp_send':
-      if (upstreamNode.type === 'tcp_connect') {
+    // TCP: tcp:connect → tcp:send
+    case 'tcp:send':
+      if (upstreamNode.type === 'tcp:connect') {
         return { host: upstreamNode.data.host, port: upstreamNode.data.port };
       }
       break;
@@ -198,17 +198,17 @@ function inferDefaults(
       }
       break;
 
-    // GraphQL: graphql_connect → graphql_query/graphql_subscribe
-    case 'graphql_query':
-    case 'graphql_subscribe':
-      if (upstreamNode.type === 'graphql_connect') {
+    // GraphQL: graphql:connect → graphql:query/graphql:subscribe
+    case 'graphql:query':
+    case 'graphql:subscribe':
+      if (upstreamNode.type === 'graphql:connect') {
         return { url: upstreamNode.data.url };
       }
       break;
 
-    // SSE: sse_connect → sse_listen
-    case 'sse_listen':
-      if (upstreamNode.type === 'sse_connect') {
+    // SSE: sse:connect → sse:listen
+    case 'sse:listen':
+      if (upstreamNode.type === 'sse:connect') {
         return { url: upstreamNode.data.url };
       }
       break;
@@ -564,22 +564,22 @@ async function globalSearch(query: string): Promise<GlobalSearchResult[]> {
 **现状**（`src/components/canvas/NodePalette.tsx`）：
 - **搜索范围**：仅在当前超级分类（network/services/messaging/tools/other）下搜索 ❌
 - **搜索字段**：仅匹配 `item.name` 和 `item.type`，不搜索别名 ❌
-- **无模糊匹配**：`hhtp` 无法匹配 `http` ❌
-- **无关键词别名**：`rest` → 无法找到 `http` ❌
+- **无模糊匹配**：`hhtp` 无法匹配 `http:request` ❌
+- **无关键词别名**：`rest` → 无法找到 `http:request` ❌
 
 **改进**：
 
 - 搜索时合并 **所有** 超级分类的结果，不再限制当前 Tab
 - 支持模糊匹配（编辑距离 ≤ 2，使用 `fuzzysort` 或类似库）
-- 支持关键词别名映射表（`rest` → `http`，`pubsub` → `mqtt/kafka`）
+- 支持关键词别名映射表（`rest` → `http:request`，`pubsub` → `mqtt/kafka`）
 - 最近/最常用节点置顶（基于 `localStorage` 计数）
 
 ```typescript
 // 关键词别名映射
 const SEARCH_ALIASES: Record<string, string[]> = {
-  rest: ['http'],
+  rest: ['http:request'],
   pubsub: ['mqtt', 'kafka'],
-  stream: ['kafka', 'sse', 'ws_connect'],
+  stream: ['kafka', 'sse', 'ws:connect'],
   queue: ['mqtt', 'amqp', 'kafka'],
   trigger: ['mqtt', 'kafka'],
   sql: ['db_query'],

@@ -128,10 +128,10 @@ describe('FlowStore', () => {
 
       const node: Node = {
         uuid: 'node-1',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 100, y: 100 },
-        data: { type: 'http', url: 'https://example.com' },
+        data: { type: 'http:request', url: 'https://example.com' },
       };
       useFlowStore.getState().addNode(node);
 
@@ -149,10 +149,10 @@ describe('FlowStore', () => {
       useFlowStore.getState().setFlow(flow);
       useFlowStore.getState().addNode({
         uuid: 'node-1',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 100, y: 100 },
-        data: { type: 'http', url: 'https://example.com' },
+        data: { type: 'http:request', url: 'https://example.com' },
       });
       expect(useFlowStore.getState().isDirty).toBe(true);
     });
@@ -162,10 +162,10 @@ describe('FlowStore', () => {
     it('可以更新节点', () => {
       const node: Node = {
         uuid: 'node-1',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 100, y: 100 },
-        data: { type: 'http', url: 'https://example.com' },
+        data: { type: 'http:request', url: 'https://example.com' },
       };
       const flow: Flow = {
         uuid: 'test-flow-1',
@@ -184,10 +184,10 @@ describe('FlowStore', () => {
     it('更新不存在的节点时不变', () => {
       const node: Node = {
         uuid: 'node-1',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 100, y: 100 },
-        data: { type: 'http', url: 'https://example.com' },
+        data: { type: 'http:request', url: 'https://example.com' },
       };
       const flow: Flow = {
         uuid: 'test-flow-1',
@@ -208,10 +208,10 @@ describe('FlowStore', () => {
     it('可以移除节点', () => {
       const node: Node = {
         uuid: 'node-1',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 100, y: 100 },
-        data: { type: 'http', url: 'https://example.com' },
+        data: { type: 'http:request', url: 'https://example.com' },
       };
       const flow: Flow = {
         uuid: 'test-flow-1',
@@ -236,10 +236,10 @@ describe('FlowStore', () => {
       };
       const node2: Node = {
         uuid: 'node-2',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 100, y: 100 },
-        data: { type: 'http', url: 'https://example.com' },
+        data: { type: 'http:request', url: 'https://example.com' },
       };
       const connection: Connection = {
         id: 'conn-1',
@@ -265,10 +265,10 @@ describe('FlowStore', () => {
     it('移除选中的节点时清除选中状态', () => {
       const node: Node = {
         uuid: 'node-1',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 100, y: 100 },
-        data: { type: 'http', url: 'https://example.com' },
+        data: { type: 'http:request', url: 'https://example.com' },
       };
       const flow: Flow = {
         uuid: 'test-flow-1',
@@ -393,10 +393,10 @@ describe('FlowStore', () => {
       };
       const node2: Node = {
         uuid: 'node-2',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 100, y: 100 },
-        data: { type: 'http', url: 'https://example.com' },
+        data: { type: 'http:request', url: 'https://example.com' },
       };
       const flow: Flow = {
         uuid: 'test-flow-1',
@@ -433,10 +433,10 @@ describe('FlowStore', () => {
     it('根据 UUID 返回节点', () => {
       const node: Node = {
         uuid: 'node-1',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 100, y: 100 },
-        data: { type: 'http', url: 'https://example.com' },
+        data: { type: 'http:request', url: 'https://example.com' },
       };
       const flow: Flow = {
         uuid: 'test-flow-1',
@@ -472,10 +472,10 @@ describe('FlowStore', () => {
     it('selectNodes 返回节点数组', () => {
       const node: Node = {
         uuid: 'node-1',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 100, y: 100 },
-        data: { type: 'http', url: 'https://example.com' },
+        data: { type: 'http:request', url: 'https://example.com' },
       };
       const flow: Flow = {
         uuid: 'test-flow-1',
@@ -500,10 +500,10 @@ describe('FlowStore', () => {
       it('可以切换断点状态（从无到有）', () => {
         const node: Node = {
           uuid: 'node-1',
-          type: 'http',
+          type: 'http:request',
           name: 'HTTP请求',
           position: { x: 100, y: 100 },
-          data: { type: 'http', url: 'https://example.com' },
+          data: { type: 'http:request', url: 'https://example.com' },
         };
         const flow: Flow = {
           uuid: 'test-flow-1',
@@ -522,10 +522,10 @@ describe('FlowStore', () => {
       it('可以切换断点状态（从有到无）', () => {
         const node: Node = {
           uuid: 'node-1',
-          type: 'http',
+          type: 'http:request',
           name: 'HTTP请求',
           position: { x: 100, y: 100 },
-          data: { type: 'http', url: 'https://example.com' },
+          data: { type: 'http:request', url: 'https://example.com' },
           hasBreakpoint: true,
         };
         const flow: Flow = {
@@ -544,10 +544,10 @@ describe('FlowStore', () => {
       it('切换不存在的节点时不变', () => {
         const node: Node = {
           uuid: 'node-1',
-          type: 'http',
+          type: 'http:request',
           name: 'HTTP请求',
           position: { x: 100, y: 100 },
-          data: { type: 'http', url: 'https://example.com' },
+          data: { type: 'http:request', url: 'https://example.com' },
         };
         const flow: Flow = {
           uuid: 'test-flow-1',
@@ -574,10 +574,10 @@ describe('FlowStore', () => {
       it('可以设置断点为 true', () => {
         const node: Node = {
           uuid: 'node-1',
-          type: 'http',
+          type: 'http:request',
           name: 'HTTP请求',
           position: { x: 100, y: 100 },
-          data: { type: 'http', url: 'https://example.com' },
+          data: { type: 'http:request', url: 'https://example.com' },
         };
         const flow: Flow = {
           uuid: 'test-flow-1',
@@ -596,10 +596,10 @@ describe('FlowStore', () => {
       it('可以设置断点为 false', () => {
         const node: Node = {
           uuid: 'node-1',
-          type: 'http',
+          type: 'http:request',
           name: 'HTTP请求',
           position: { x: 100, y: 100 },
-          data: { type: 'http', url: 'https://example.com' },
+          data: { type: 'http:request', url: 'https://example.com' },
           hasBreakpoint: true,
         };
         const flow: Flow = {
@@ -626,10 +626,10 @@ describe('FlowStore', () => {
       it('返回 true 当节点有断点时', () => {
         const node: Node = {
           uuid: 'node-1',
-          type: 'http',
+          type: 'http:request',
           name: 'HTTP请求',
           position: { x: 100, y: 100 },
-          data: { type: 'http', url: 'https://example.com' },
+          data: { type: 'http:request', url: 'https://example.com' },
           hasBreakpoint: true,
         };
         const flow: Flow = {
@@ -646,10 +646,10 @@ describe('FlowStore', () => {
       it('返回 false 当节点无断点时', () => {
         const node: Node = {
           uuid: 'node-1',
-          type: 'http',
+          type: 'http:request',
           name: 'HTTP请求',
           position: { x: 100, y: 100 },
-          data: { type: 'http', url: 'https://example.com' },
+          data: { type: 'http:request', url: 'https://example.com' },
         };
         const flow: Flow = {
           uuid: 'test-flow-1',
@@ -687,10 +687,10 @@ describe('FlowStore', () => {
       nodes: [
         {
           uuid: 'node-a1',
-          type: 'http',
+          type: 'http:request',
           name: 'HTTP A1',
           position: { x: 0, y: 0 },
-          data: { type: 'http', url: 'https://a.com' },
+          data: { type: 'http:request', url: 'https://a.com' },
         },
       ],
       connections: [],
@@ -702,10 +702,10 @@ describe('FlowStore', () => {
       nodes: [
         {
           uuid: 'node-b1',
-          type: 'http',
+          type: 'http:request',
           name: 'HTTP B1',
           position: { x: 100, y: 100 },
-          data: { type: 'http', url: 'https://b.com' },
+          data: { type: 'http:request', url: 'https://b.com' },
         },
       ],
       connections: [],

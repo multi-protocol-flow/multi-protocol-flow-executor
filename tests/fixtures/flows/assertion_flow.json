@@ -20,14 +20,14 @@
       },
       {
         "uuid": "http-node",
-        "type": "http",
+        "type": "http:request",
         "name": "HTTP Request",
         "position": {
           "x": 200,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/status/200",
           "method": "get"
         },
@@ -62,14 +62,14 @@
       },
       {
         "uuid": "true-branch-http",
-        "type": "http",
+        "type": "http:request",
         "name": "True Branch Marker",
         "position": {
           "x": 600,
           "y": -100
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/status/201",
           "method": "get"
         },
@@ -77,14 +77,14 @@
       },
       {
         "uuid": "false-branch-http",
-        "type": "http",
+        "type": "http:request",
         "name": "False Branch Marker",
         "position": {
           "x": 600,
           "y": 100
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/status/400",
           "method": "get"
         },

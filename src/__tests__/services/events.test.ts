@@ -42,7 +42,7 @@ describe('executeFlowWithChannel (Mock)', () => {
       const flow: Flow = {
         uuid: 'test-flow',
         name: '测试流程',
-        nodes: [{ uuid: 'http-1', type: 'http', name: 'HTTP', position: { x: 0, y: 0 }, data: { type: 'http', url: 'https://example.com', method: 'get' } }],
+        nodes: [{ uuid: 'http-1', type: 'http:request', name: 'HTTP', position: { x: 0, y: 0 }, data: { type: 'http:request', url: 'https://example.com', method: 'get' } }],
         connections: [],
         initial_variables: {},
       };

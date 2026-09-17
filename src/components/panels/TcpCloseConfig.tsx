@@ -27,7 +27,7 @@ interface TcpCloseConfigProps {
  */
 function toFormData(data: TcpCloseConfigType): TcpCloseConfigFormData {
   return {
-    type: 'tcp_close',
+    type: 'tcp:close',
     connection_id: data.connection_id || '',
     close_timeout_ms: data.close_timeout_ms ?? 5000,
   };
@@ -38,7 +38,7 @@ function toFormData(data: TcpCloseConfigType): TcpCloseConfigFormData {
  */
 function fromFormData(formData: TcpCloseConfigFormData): TcpCloseConfigType {
   return {
-    type: 'tcp_close',
+    type: 'tcp:close',
     connection_id: formData.connection_id,
     close_timeout_ms: formData.close_timeout_ms,
   };
@@ -63,7 +63,7 @@ export function TcpCloseConfig({ data, onSave }: TcpCloseConfigProps) {
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
 
-  // 获取 flow 并提取 tcp_connect 节点
+  // 获取 flow 并提取 tcp:connect 节点
   const flow = useFlowStore((state) => state.flow);
 
   // 提取可用的 TCP 连接

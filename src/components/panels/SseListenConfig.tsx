@@ -26,7 +26,7 @@ interface SseListenConfigProps {
 
 function toFormData(data: SseListenConfigType): SseListenConfigFormData {
   return {
-    type: 'sse_listen',
+    type: 'sse:listen',
     connection_id: data.connection_id || '',
     event_filter: data.event_filter || '',
     max_events: data.max_events ?? 0,
@@ -38,7 +38,7 @@ function toFormData(data: SseListenConfigType): SseListenConfigFormData {
 
 function fromFormData(formData: SseListenConfigFormData): SseListenConfigType {
   return {
-    type: 'sse_listen',
+    type: 'sse:listen',
     connection_id: formData.connection_id,
     event_filter: formData.event_filter || undefined,
     max_events: formData.max_events || undefined,

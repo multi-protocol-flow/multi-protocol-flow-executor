@@ -30,10 +30,10 @@ describe('FlowConflictDialog', () => {
     nodes: [
       {
         uuid: 'node-same',
-        type: 'http',
+        type: 'http:request',
         name: 'Node 1',
         position: { x: 0, y: 0 },
-        data: { type: 'http', url: 'https://example.com' } as unknown as NodeData,
+        data: { type: 'http:request', url: 'https://example.com' } as unknown as NodeData,
       },
     ],
     connections: [],
@@ -45,10 +45,10 @@ describe('FlowConflictDialog', () => {
     nodes: [
       {
         uuid: 'node-same',
-        type: 'http',
+        type: 'http:request',
         name: 'Node 1 Duplicate',
         position: { x: 10, y: 10 },
-        data: { type: 'http', url: 'https://example.com' } as unknown as NodeData,
+        data: { type: 'http:request', url: 'https://example.com' } as unknown as NodeData,
       },
     ],
     connections: [],

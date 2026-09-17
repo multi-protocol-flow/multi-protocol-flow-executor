@@ -23,14 +23,14 @@
       },
       {
         "uuid": "http-001",
-        "type": "http",
+        "type": "http:request",
         "name": "Fetch User Data",
         "position": {
           "x": 100,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "{{initial_variables.api_base}}/get",
           "method": "get",
           "headers": {
@@ -56,14 +56,14 @@
       },
       {
         "uuid": "http-002",
-        "type": "http",
+        "type": "http:request",
         "name": "Success Handler",
         "position": {
           "x": 300,
           "y": -50
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "{{initial_variables.api_base}}/post",
           "method": "post",
           "body": {
@@ -75,14 +75,14 @@
       },
       {
         "uuid": "http-003",
-        "type": "http",
+        "type": "http:request",
         "name": "Error Handler",
         "position": {
           "x": 300,
           "y": 50
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "{{initial_variables.api_base}}/post",
           "method": "post",
           "body": {

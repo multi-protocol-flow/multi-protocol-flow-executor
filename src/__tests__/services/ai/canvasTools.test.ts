@@ -11,19 +11,19 @@ import type { Flow } from '@/types';
 
 describe('resolveDefaultPorts', () => {
   it('entry -> http: 应该将源端口解析为 out，目标端口解析为 in', () => {
-    const { sourcePort, targetPort } = resolveDefaultPorts('entry', 'http');
+    const { sourcePort, targetPort } = resolveDefaultPorts('entry', 'http:request');
     expect(sourcePort).toBe('out');
     expect(targetPort).toBe('in');
   });
 
   it('http -> assertion: 默认源端口应为 true，目标端口应为 in', () => {
-    const { sourcePort, targetPort } = resolveDefaultPorts('http', 'assertion');
+    const { sourcePort, targetPort } = resolveDefaultPorts('http:request', 'assertion');
     expect(sourcePort).toBe('true');
     expect(targetPort).toBe('in');
   });
 
   it('智能纠偏：如果源节点是 http 且模型传入 out，应自动纠偏为 true', () => {
-    const { sourcePort, targetPort } = resolveDefaultPorts('http', 'script', 'out', 'default');
+    const { sourcePort, targetPort } = resolveDefaultPorts('http:request', 'script', 'out', 'default');
     expect(sourcePort).toBe('true');
     expect(targetPort).toBe('in');
   });
@@ -35,24 +35,24 @@ describe('resolveDefaultPorts', () => {
   });
 
   it('保留显式指定的 false 失败/异常分支端口', () => {
-    const { sourcePort, targetPort } = resolveDefaultPorts('conditional', 'http', 'false', 'in');
+    const { sourcePort, targetPort } = resolveDefaultPorts('conditional', 'http:request', 'false', 'in');
     expect(sourcePort).toBe('false');
     expect(targetPort).toBe('in');
   });
 
-  it('variable_extractor -> end: 源端口为 out，目标端口为 in', () => {
-    const { sourcePort, targetPort } = resolveDefaultPorts('variable_extractor', 'end');
+  it('variable:extractor -> end: 源端口为 out，目标端口为 in', () => {
+    const { sourcePort, targetPort } = resolveDefaultPorts('variable:extractor', 'end');
     expect(sourcePort).toBe('out');
     expect(targetPort).toBe('in');
   });
-  it('sub_flow -> http: 源端口默认应为 out，目标端口为 in', () => {
-    const { sourcePort, targetPort } = resolveDefaultPorts('sub_flow', 'http');
+  it('flow:sub -> http: 源端口默认应为 out，目标端口为 in', () => {
+    const { sourcePort, targetPort } = resolveDefaultPorts('flow:sub', 'http:request');
     expect(sourcePort).toBe('out');
     expect(targetPort).toBe('in');
   });
 
-  it('智能纠偏：如果模型给 sub_flow 传入 true 端口，应自动纠偏为 out', () => {
-    const { sourcePort, targetPort } = resolveDefaultPorts('sub_flow', 'script', 'true', 'in');
+  it('智能纠偏：如果模型给 flow:sub 传入 true 端口，应自动纠偏为 out', () => {
+    const { sourcePort, targetPort } = resolveDefaultPorts('flow:sub', 'script', 'true', 'in');
     expect(sourcePort).toBe('out');
     expect(targetPort).toBe('in');
   });
@@ -60,13 +60,13 @@ describe('resolveDefaultPorts', () => {
 
 describe('buildDefaultNodeData 格式规范化与容错', () => {
   it('HTTP 节点：方法大写自动转小写，自动推断 body_type', () => {
-    const data = buildDefaultNodeData('http', {
+    const data = buildDefaultNodeData('http:request', {
       method: 'POST',
       url: 'https://example.com/api',
       body: '{"username":"alice"}',
     }) as unknown as Record<string, unknown>;
 
-    expect(data.type).toBe('http');
+    expect(data.type).toBe('http:request');
     expect(data.method).toBe('post');
     expect(data.body_type).toBe('body');
     expect(data.url).toBe('https://example.com/api');
@@ -104,14 +104,14 @@ describe('buildDefaultNodeData 格式规范化与容错', () => {
   });
 
   it('VariableExtractor 节点：extractions 自动纠偏为 output_mappings 并补齐 $. 前缀', () => {
-    const data = buildDefaultNodeData('variable_extractor', {
+    const data = buildDefaultNodeData('variable:extractor', {
       extractions: [
         { field: 'body.data.token', name: 'auth_token' },
         { field: '$.status', name: 'http_status' },
       ],
     }) as unknown as Record<string, unknown>;
 
-    expect(data.type).toBe('variable_extractor');
+    expect(data.type).toBe('variable:extractor');
     const mappings = data.output_mappings as Array<{ source: string; target: string }>;
     expect(mappings).toHaveLength(2);
     expect(mappings[0].source).toBe('$.body.data.token');
@@ -119,12 +119,12 @@ describe('buildDefaultNodeData 格式规范化与容错', () => {
     expect(mappings[1].source).toBe('$.status');
     expect(mappings[1].target).toBe('http_status');
   });
-  it('sub_flow 节点：配置标准化与默认继承配置', () => {
-    const data = buildDefaultNodeData('sub_flow', {
+  it('flow:sub 节点：配置标准化与默认继承配置', () => {
+    const data = buildDefaultNodeData('flow:sub', {
       target_flow_path: './subflows/auth.json',
     }) as unknown as Record<string, unknown>;
 
-    expect(data.type).toBe('sub_flow');
+    expect(data.type).toBe('flow:sub');
     expect(data.target_flow_path).toBe('./subflows/auth.json');
     expect(data.inherit_all_variables).toBe(true);
     expect(data.export_all_variables).toBe(true);
@@ -162,7 +162,7 @@ describe('canvasToolHandlers 集成测试', () => {
 
   it('connect_nodes: 自动推断并在 entry 和 http 间建立有效连线', async () => {
     const httpRes = await canvasToolHandlers.add_node({
-      type: 'http',
+      type: 'http:request',
       name: 'Get User',
       config: { url: 'https://api.example.com/user' },
     });
@@ -183,7 +183,7 @@ describe('canvasToolHandlers 集成测试', () => {
     const result = await canvasToolHandlers.batch_create_pipeline({
       nodes: [
         {
-          type: 'http',
+          type: 'http:request',
           name: 'Fetch Data',
           config: { method: 'get', url: 'https://httpbin.org/json' },
         },
@@ -195,7 +195,7 @@ describe('canvasToolHandlers 集成测试', () => {
           },
         },
         {
-          type: 'variable_extractor',
+          type: 'variable:extractor',
           name: 'Extract Token',
           config: {
             output_mappings: [{ source: 'body.token', target: 'token' }],
@@ -237,7 +237,7 @@ describe('canvasToolHandlers 集成测试', () => {
 
   it('get_node_detail: 获取指定节点的完整配置、连接和执行报告', async () => {
     const httpRes = await canvasToolHandlers.add_node({
-      type: 'http',
+      type: 'http:request',
       name: 'Get User',
       config: { url: 'https://api.example.com/user', method: 'get' },
     });
@@ -257,7 +257,7 @@ describe('canvasToolHandlers 集成测试', () => {
   });
 
   it('get_node_type_schema: 获取内置节点与未知节点的 Schema', async () => {
-    const httpSchema = await canvasToolHandlers.get_node_type_schema({ node_type: 'http' });
+    const httpSchema = await canvasToolHandlers.get_node_type_schema({ node_type: 'http:request' });
     expect(httpSchema.success).toBe(true);
     expect(httpSchema.builtin_schema).toBeDefined();
     expect(httpSchema.default_config).toBeDefined();
@@ -266,14 +266,14 @@ describe('canvasToolHandlers 集成测试', () => {
     expect(customSchema.success).toBe(true);
     expect(customSchema.hint).toBeDefined();
 
-    const subflowSchema = await canvasToolHandlers.get_node_type_schema({ node_type: 'sub_flow' });
+    const subflowSchema = await canvasToolHandlers.get_node_type_schema({ node_type: 'flow:sub' });
     expect(subflowSchema.success).toBe(true);
     expect(subflowSchema.builtin_schema).toBeDefined();
     const schema = subflowSchema.builtin_schema;
     if (schema && typeof schema === 'object' && 'display_name' in schema) {
       expect(schema.display_name).toBe('SubFlow');
     } else {
-      expect.fail('sub_flow builtin_schema missing display_name');
+      expect.fail('flow:sub builtin_schema missing display_name');
     }
   });
   it('get_flow_nodes_config: 批量获取节点完整配置', async () => {

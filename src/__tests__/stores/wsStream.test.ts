@@ -42,7 +42,7 @@ describe('WsStreamStore', () => {
       expect(stream).toBeDefined();
       expect(stream?.url).toBe('ws://localhost:8080/ws');
       expect(stream?.segments).toHaveLength(1);
-      expect(stream?.segments[0].node_type).toBe('ws_connect');
+      expect(stream?.segments[0].node_type).toBe('ws:connect');
       expect(stream?.segments[0].ended_at).toBeNull();
       expect(stream?.is_closed).toBe(false);
       expect(activeWsConnectionId).toBe('conn-1');
@@ -94,7 +94,7 @@ describe('WsStreamStore', () => {
       const newSegment: WsStreamSegment = {
         node_uuid: 'node-b',
         node_name: 'WS 收集',
-        node_type: 'ws_send_collect',
+        node_type: 'ws:send_collect',
         started_at: 2000,
         ended_at: null,
         messages: [],
@@ -123,7 +123,7 @@ describe('WsStreamStore', () => {
       const stream = useWsStreamStore.getState().wsStreams.get('conn-1');
       expect(stream?.segments).toHaveLength(2);
       expect(stream?.segments[0].ended_at).not.toBeNull();
-      expect(stream?.segments[1].node_type).toBe('ws_send_collect');
+      expect(stream?.segments[1].node_type).toBe('ws:send_collect');
       expect(stream?.current_owner_node_uuid).toBe('node-b');
     });
 
@@ -132,7 +132,7 @@ describe('WsStreamStore', () => {
       const endedSegment: WsStreamSegment = {
         node_uuid: 'node-a',
         node_name: 'WS 连接',
-        node_type: 'ws_connect',
+        node_type: 'ws:connect',
         started_at: expect.any(Number) as unknown as number,
         ended_at: 3000,
         messages: [],

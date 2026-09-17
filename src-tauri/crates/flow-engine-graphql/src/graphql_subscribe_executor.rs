@@ -120,7 +120,7 @@ impl NodeExecutor for GraphqlSubscribeExecutor {
 
         // 3. 日志：开始订阅
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql_subscribe, connection_id: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql:subscribe, connection_id: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -506,7 +506,7 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, subscription: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "graphql_subscribe".to_string(),
+            node_type: "graphql:subscribe".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlSubscribe(GraphqlSubscribeConfig {
@@ -583,7 +583,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-wrong".to_string(),
-            node_type: "graphql_connect".to_string(),
+            node_type: "graphql:connect".to_string(),
             name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlConnect(GraphqlConnectConfig::default()),
@@ -613,7 +613,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-var".to_string(),
-            node_type: "graphql_subscribe".to_string(),
+            node_type: "graphql:subscribe".to_string(),
             name: "变量替换测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlSubscribe(GraphqlSubscribeConfig {
@@ -709,7 +709,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-report".to_string(),
-            node_type: "graphql_subscribe".to_string(),
+            node_type: "graphql:subscribe".to_string(),
             name: "报告结构测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlSubscribe(GraphqlSubscribeConfig {

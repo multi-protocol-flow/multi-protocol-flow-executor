@@ -288,7 +288,7 @@ export type WsCollectConditionFormData = z.infer<typeof wsCollectConditionSchema
  * WebSocket Connect 配置表单 Schema
  */
 export const wsConnectConfigSchema = z.object({
-  type: z.literal('ws_connect'),
+  type: z.literal('ws:connect'),
   url: z.string().min(1, getLL().validation.url_required()),
   headers: z.array(formFieldSchema).optional(),
   subprotocols: z.array(z.string()).optional(),
@@ -315,7 +315,7 @@ export type WsConnectConfigFormData = z.infer<typeof wsConnectConfigSchema>;
  * WebSocket Send+Collect 配置表单 Schema
  */
 export const wsSendCollectConfigSchema = z.object({
-  type: z.literal('ws_send_collect'),
+  type: z.literal('ws:send_collect'),
   connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   message: z.string().min(1, getLL().validation.ws_message_required()),
   message_type: wsMessageTypeSchema.optional(),
@@ -336,7 +336,7 @@ export type WsSendCollectConfigFormData = z.infer<typeof wsSendCollectConfigSche
  * WebSocket Close 配置表单 Schema
  */
 export const wsCloseConfigSchema = z.object({
-  type: z.literal('ws_close'),
+  type: z.literal('ws:close'),
   connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   close_code: z.number().optional(),
   close_reason: z.string().optional(),
@@ -476,7 +476,7 @@ export type TcpFramingConfigFormData = z.infer<typeof tcpFramingConfigSchema>;
  * TCP Connect 配置表单 Schema
  */
 export const tcpConnectConfigSchema = z.object({
-  type: z.literal('tcp_connect'),
+  type: z.literal('tcp:connect'),
   host: z.string().min(1, getLL().validation.host_required()),
   port: z.number().int().min(1).max(65535, getLL().validation.port_range()),
   use_tls: z.boolean().optional(),
@@ -502,7 +502,7 @@ export type TcpConnectConfigFormData = z.infer<typeof tcpConnectConfigSchema>;
  * TCP Send 配置表单 Schema
  */
 export const tcpSendConfigSchema = z.object({
-  type: z.literal('tcp_send'),
+  type: z.literal('tcp:send'),
   connection_id: z.string().min(1, getLL().validation.connection_select_required()),
   data: z.string(),
   data_encoding: z.enum(['text', 'hex', 'base64']).optional(),
@@ -519,7 +519,7 @@ export type TcpSendConfigFormData = z.infer<typeof tcpSendConfigSchema>;
  * TCP Close 配置表单 Schema
  */
 export const tcpCloseConfigSchema = z.object({
-  type: z.literal('tcp_close'),
+  type: z.literal('tcp:close'),
   connection_id: z.string().min(1, getLL().validation.connection_select_required()),
   close_timeout_ms: z.number().int().positive().optional(),
 });
@@ -530,7 +530,7 @@ export type TcpCloseConfigFormData = z.infer<typeof tcpCloseConfigSchema>;
  * TCP Receive 配置表单 Schema
  */
 export const tcpReceiveConfigSchema = z.object({
-  type: z.literal('tcp_receive'),
+  type: z.literal('tcp:receive'),
   connection_id: z.string().min(1, getLL().validation.connection_select_required()),
   receive_timeout_ms: z.number().int().positive(),
   framing_mode: tcpFramingConfigSchema.shape.mode.optional(),
@@ -543,7 +543,7 @@ export type TcpReceiveConfigFormData = z.infer<typeof tcpReceiveConfigSchema>;
  * UDP Bind 配置表单 Schema
  */
 export const udpBindConfigSchema = z.object({
-  type: z.literal('udp_bind'),
+  type: z.literal('udp:bind'),
   local_addr: z.string().optional(),
   local_port: z.number().int().min(0).max(65535),
   reuse_addr: z.boolean().optional(),
@@ -565,7 +565,7 @@ export type UdpBindConfigFormData = z.infer<typeof udpBindConfigSchema>;
  * UDP SendTo 配置表单 Schema
  */
 export const udpSendToConfigSchema = z.object({
-  type: z.literal('udp_send_to'),
+  type: z.literal('udp:send_to'),
   connection_id: z.string().min(1, getLL().validation.connection_select_required()),
   data: z.string(),
   data_encoding: z.enum(['text', 'hex', 'base64']).optional(),
@@ -580,7 +580,7 @@ export type UdpSendToConfigFormData = z.infer<typeof udpSendToConfigSchema>;
  * UDP RecvFrom 配置表单 Schema
  */
 export const udpRecvFromConfigSchema = z.object({
-  type: z.literal('udp_recv_from'),
+  type: z.literal('udp:recv_from'),
   connection_id: z.string().min(1, getLL().validation.connection_select_required()),
   receive_timeout_ms: z.number().int().positive().optional(),
   max_size: z.number().int().positive().optional(),
@@ -592,7 +592,7 @@ export type UdpRecvFromConfigFormData = z.infer<typeof udpRecvFromConfigSchema>;
  * UDP Close 配置表单 Schema
  */
 export const udpCloseConfigSchema = z.object({
-  type: z.literal('udp_close'),
+  type: z.literal('udp:close'),
   connection_id: z.string().min(1, getLL().validation.connection_select_required()),
 });
 
@@ -606,7 +606,7 @@ export type UdpCloseConfigFormData = z.infer<typeof udpCloseConfigSchema>;
  * SSE Connect 配置表单 Schema
  */
 export const sseConnectConfigSchema = z.object({
-  type: z.literal('sse_connect'),
+  type: z.literal('sse:connect'),
   url: z.string().min(1, getLL().validation.url_required()),
   headers: z.record(z.string(), z.string()).optional(),
   last_event_id: z.string().optional(),
@@ -623,7 +623,7 @@ export type SseConnectConfigFormData = z.infer<typeof sseConnectConfigSchema>;
  * SSE Listen 配置表单 Schema
  */
 export const sseListenConfigSchema = z.object({
-  type: z.literal('sse_listen'),
+  type: z.literal('sse:listen'),
   connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   event_filter: z.string().optional(),
   max_events: z.number().min(0).optional(),
@@ -638,7 +638,7 @@ export type SseListenConfigFormData = z.infer<typeof sseListenConfigSchema>;
  * SSE Disconnect 配置表单 Schema
  */
 export const sseDisconnectConfigSchema = z.object({
-  type: z.literal('sse_disconnect'),
+  type: z.literal('sse:disconnect'),
   connection_id: z.string().min(1, getLL().validation.connection_id_required()),
 });
 
@@ -652,7 +652,7 @@ export type SseDisconnectConfigFormData = z.infer<typeof sseDisconnectConfigSche
  * GraphQL Connect 配置表单 Schema
  */
 export const graphqlConnectConfigSchema = z.object({
-  type: z.literal('graphql_connect'),
+  type: z.literal('graphql:connect'),
   endpoint: z.string().min(1, getLL().validation.graphql_endpoint_required()),
   ws_endpoint: z.string().optional(),
   headers: z.record(z.string(), z.string()).optional(),
@@ -666,7 +666,7 @@ export type GraphqlConnectConfigFormData = z.infer<typeof graphqlConnectConfigSc
  * GraphQL Query 配置表单 Schema
  */
 export const graphqlQueryConfigSchema = z.object({
-  type: z.literal('graphql_query'),
+  type: z.literal('graphql:query'),
   connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   query: z.string().min(1, getLL().validation.graphql_query_required()),
   variables: z.string().optional(),
@@ -684,7 +684,7 @@ export type GraphqlQueryConfigFormData = z.infer<typeof graphqlQueryConfigSchema
  * GraphQL Subscribe 配置表单 Schema
  */
 export const graphqlSubscribeConfigSchema = z.object({
-  type: z.literal('graphql_subscribe'),
+  type: z.literal('graphql:subscribe'),
   connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   subscription: z.string().min(1, getLL().validation.graphql_subscription_required()),
   variables: z.string().optional(),
@@ -699,7 +699,7 @@ export type GraphqlSubscribeConfigFormData = z.infer<typeof graphqlSubscribeConf
  * GraphQL Introspect 配置表单 Schema
  */
 export const graphqlIntrospectConfigSchema = z.object({
-  type: z.literal('graphql_introspect'),
+  type: z.literal('graphql:introspect'),
   connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   timeout_ms: z.number().min(1000).max(300000).optional(),
 });
@@ -710,7 +710,7 @@ export type GraphqlIntrospectConfigFormData = z.infer<typeof graphqlIntrospectCo
  * GraphQL Disconnect 配置表单 Schema
  */
 export const graphqlDisconnectConfigSchema = z.object({
-  type: z.literal('graphql_disconnect'),
+  type: z.literal('graphql:disconnect'),
   connection_id: z.string().min(1, getLL().validation.connection_id_required()),
 });
 
@@ -724,7 +724,7 @@ export type GraphqlDisconnectConfigFormData = z.infer<typeof graphqlDisconnectCo
  * Variable Extractor 配置表单 Schema
  */
 export const variableExtractorConfigSchema = z.object({
-  type: z.literal('variable_extractor'),
+  type: z.literal('variable:extractor'),
   output_mappings: z.array(outputMappingSchema).optional(),
   source_node_id: z.string().optional(),
 }).refine(data => {

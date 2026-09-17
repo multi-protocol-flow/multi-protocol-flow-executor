@@ -151,10 +151,10 @@ describe('ExecuteButton', () => {
       nodes: [
         {
           uuid: 'http-1',
-          type: 'http' as const,
+          type: 'http:request' as const,
           name: 'HTTP',
           position: { x: 0, y: 0 },
-          data: { type: 'http' as const, url: '', method: 'get' as const },
+          data: { type: 'http:request' as const, url: '', method: 'get' as const },
         },
       ],
       connections: [],

@@ -74,7 +74,7 @@ function getNodeOutputVariables(node: Node): string[] {
   }
 
   // VariableExtractor 节点的 output_mappings
-  if (node.type === 'variable_extractor' || node.type === 'script') {
+  if (node.type === 'variable:extractor' || node.type === 'script') {
     const outputMappings = data.output_mappings as Array<{ target: string }> | undefined;
     if (outputMappings) {
       for (const om of outputMappings) {
@@ -84,7 +84,7 @@ function getNodeOutputVariables(node: Node): string[] {
   }
 
   // 通用输出变量约定：body.*, status, headers.*
-  if (['http'].includes(node.type)) {
+  if (['http:request'].includes(node.type)) {
     vars.push('status');
     vars.push('body');
     vars.push('headers');

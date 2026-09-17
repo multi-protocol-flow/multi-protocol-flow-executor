@@ -23,7 +23,7 @@ interface VariableExtractorConfigProps {
 /** 不应出现在数据来源下拉中的节点类型（无输出数据或无意义） */
 const EXCLUDED_SOURCE_TYPES: Set<string> = new Set([
   'entry',
-  'variable_extractor',
+  'variable:extractor',
 ]);
 
 /**
@@ -31,7 +31,7 @@ const EXCLUDED_SOURCE_TYPES: Set<string> = new Set([
  */
 function toFormData(data: VariableExtractorConfigType): VariableExtractorConfigFormData {
   return {
-    type: 'variable_extractor',
+    type: 'variable:extractor',
     output_mappings: data.output_mappings || [],
     source_node_id: data.source_node_id || undefined,
   };
@@ -42,7 +42,7 @@ function toFormData(data: VariableExtractorConfigType): VariableExtractorConfigF
  */
 function fromFormData(formData: VariableExtractorConfigFormData): VariableExtractorConfigType {
   return {
-    type: 'variable_extractor',
+    type: 'variable:extractor',
     output_mappings: formData.output_mappings && formData.output_mappings.length > 0
       ? formData.output_mappings
       : undefined,

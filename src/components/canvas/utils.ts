@@ -184,8 +184,8 @@ export function createDefaultNodeData(type: AnyNodeType): NodeData {
   }
   // 兜底：静态默认配置
   switch (type) {
-    case 'http':
-      return { type: 'http', url: '', method: 'get', headers: {}, body: '' };
+    case 'http:request':
+      return { type: 'http:request', url: '', method: 'get', headers: {}, body: '' };
     case 'conditional':
       return {
         type: 'conditional',
@@ -194,12 +194,12 @@ export function createDefaultNodeData(type: AnyNodeType): NodeData {
         operator: 'equal',
         expected_value: '',
       };
-    case 'ws_connect':
-      return { type: 'ws_connect', url: '' };
-    case 'ws_send_collect':
-      return { type: 'ws_send_collect', connection_id: '', message: '', collect_response: false };
-    case 'ws_close':
-      return { type: 'ws_close', connection_id: '' };
+    case 'ws:connect':
+      return { type: 'ws:connect', url: '' };
+    case 'ws:send_collect':
+      return { type: 'ws:send_collect', connection_id: '', message: '', collect_response: false };
+    case 'ws:close':
+      return { type: 'ws:close', connection_id: '' };
     case 'assertion':
       return {
         type: 'assertion',
@@ -210,44 +210,44 @@ export function createDefaultNodeData(type: AnyNodeType): NodeData {
       };
     case 'script':
       return { type: 'script', script: '' };
-    case 'tcp_connect':
-      return { type: 'tcp_connect', host: '', port: 0 };
-    case 'tcp_send':
-      return { type: 'tcp_send', connection_id: '', data: '' };
-    case 'tcp_close':
-      return { type: 'tcp_close', connection_id: '' };
-    case 'udp_bind':
-      return { type: 'udp_bind', local_port: 0 };
-    case 'udp_send_to':
-      return { type: 'udp_send_to', connection_id: '', data: '', target_addr: '', target_port: 0 };
-    case 'udp_recv_from':
-      return { type: 'udp_recv_from', connection_id: '' };
-    case 'udp_close':
-      return { type: 'udp_close', connection_id: '' };
-    case 'sse_connect':
-      return { type: 'sse_connect', url: '' };
-    case 'sse_listen':
-      return { type: 'sse_listen', connection_id: '' };
-    case 'sse_disconnect':
-      return { type: 'sse_disconnect', connection_id: '' };
-    case 'graphql_connect':
-      return { type: 'graphql_connect', endpoint: '' };
-    case 'graphql_query':
-      return { type: 'graphql_query', connection_id: '', query: '' };
-    case 'graphql_subscribe':
-      return { type: 'graphql_subscribe', connection_id: '', subscription: '' };
-    case 'graphql_introspect':
-      return { type: 'graphql_introspect', connection_id: '' };
-    case 'graphql_disconnect':
-      return { type: 'graphql_disconnect', connection_id: '' };
+    case 'tcp:connect':
+      return { type: 'tcp:connect', host: '', port: 0 };
+    case 'tcp:send':
+      return { type: 'tcp:send', connection_id: '', data: '' };
+    case 'tcp:close':
+      return { type: 'tcp:close', connection_id: '' };
+    case 'udp:bind':
+      return { type: 'udp:bind', local_port: 0 };
+    case 'udp:send_to':
+      return { type: 'udp:send_to', connection_id: '', data: '', target_addr: '', target_port: 0 };
+    case 'udp:recv_from':
+      return { type: 'udp:recv_from', connection_id: '' };
+    case 'udp:close':
+      return { type: 'udp:close', connection_id: '' };
+    case 'sse:connect':
+      return { type: 'sse:connect', url: '' };
+    case 'sse:listen':
+      return { type: 'sse:listen', connection_id: '' };
+    case 'sse:disconnect':
+      return { type: 'sse:disconnect', connection_id: '' };
+    case 'graphql:connect':
+      return { type: 'graphql:connect', endpoint: '' };
+    case 'graphql:query':
+      return { type: 'graphql:query', connection_id: '', query: '' };
+    case 'graphql:subscribe':
+      return { type: 'graphql:subscribe', connection_id: '', subscription: '' };
+    case 'graphql:introspect':
+      return { type: 'graphql:introspect', connection_id: '' };
+    case 'graphql:disconnect':
+      return { type: 'graphql:disconnect', connection_id: '' };
 
-    case 'variable_extractor':
-      return { type: 'variable_extractor', output_mappings: [], source_node_id: undefined };
+    case 'variable:extractor':
+      return { type: 'variable:extractor', output_mappings: [], source_node_id: undefined };
     case 'proxy':
       return { type: 'proxy', mode: 'clear' };
-    case 'sub_flow':
+    case 'flow:sub':
       return {
-        type: 'sub_flow',
+        type: 'flow:sub',
         inherit_all_variables: true,
         export_all_variables: true,
       };

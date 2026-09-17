@@ -89,7 +89,7 @@ const a = 1;
               type: 'function',
               function: {
                 name: 'add_node',
-                arguments: '{"type":"http"}',
+                arguments: '{"type":"http:request"}',
               },
             },
           ],

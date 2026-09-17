@@ -25,14 +25,14 @@ interface GraphqlDisconnectConfigProps {
 
 function toFormData(data: GraphqlDisconnectConfigType): GraphqlDisconnectConfigFormData {
   return {
-    type: 'graphql_disconnect',
+    type: 'graphql:disconnect',
     connection_id: data.connection_id || '',
   };
 }
 
 function fromFormData(formData: GraphqlDisconnectConfigFormData): GraphqlDisconnectConfigType {
   return {
-    type: 'graphql_disconnect',
+    type: 'graphql:disconnect',
     connection_id: formData.connection_id,
   };
 }

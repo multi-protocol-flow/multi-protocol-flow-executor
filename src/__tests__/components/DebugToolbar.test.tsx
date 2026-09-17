@@ -101,48 +101,48 @@ describe('DebugToolbar', () => {
     });
   });
 
-  describe('跳过节点 - WebSocket 连接节点 (ws_connect)', () => {
+  describe('跳过节点 - WebSocket 连接节点 (ws:connect)', () => {
     it('应该显示对话框，并有 true/false 两个端口选项', () => {
-      mockFlowStoreWithNode('ws_connect', 'node-1');
+      mockFlowStoreWithNode('ws:connect', 'node-1');
       render(<DebugToolbar />);
 
       const skipButton = screen.getByTitle('跳过当前节点');
       fireEvent.click(skipButton);
 
       expect(screen.getByTestId('skip-dialog')).toBeInTheDocument();
-      expect(screen.getByTestId('skip-dialog')).toHaveAttribute('data-node-type', 'ws_connect');
+      expect(screen.getByTestId('skip-dialog')).toHaveAttribute('data-node-type', 'ws:connect');
       expect(screen.getByTestId('port-count')).toHaveTextContent('2');
       expect(screen.getByTestId('port-true')).toBeInTheDocument();
       expect(screen.getByTestId('port-false')).toBeInTheDocument();
     });
   });
 
-  describe('跳过节点 - WebSocket 发送等待节点 (ws_send_collect)', () => {
+  describe('跳过节点 - WebSocket 发送等待节点 (ws:send_collect)', () => {
     it('应该显示对话框，并有 true/false 两个端口选项', () => {
-      mockFlowStoreWithNode('ws_send_collect', 'node-1');
+      mockFlowStoreWithNode('ws:send_collect', 'node-1');
       render(<DebugToolbar />);
 
       const skipButton = screen.getByTitle('跳过当前节点');
       fireEvent.click(skipButton);
 
       expect(screen.getByTestId('skip-dialog')).toBeInTheDocument();
-      expect(screen.getByTestId('skip-dialog')).toHaveAttribute('data-node-type', 'ws_send_collect');
+      expect(screen.getByTestId('skip-dialog')).toHaveAttribute('data-node-type', 'ws:send_collect');
       expect(screen.getByTestId('port-count')).toHaveTextContent('2');
       expect(screen.getByTestId('port-true')).toBeInTheDocument();
       expect(screen.getByTestId('port-false')).toBeInTheDocument();
     });
   });
 
-  describe('跳过节点 - WebSocket 关闭节点 (ws_close)', () => {
+  describe('跳过节点 - WebSocket 关闭节点 (ws:close)', () => {
     it('应该显示对话框，并有 true/false 两个端口选项', () => {
-      mockFlowStoreWithNode('ws_close', 'node-1');
+      mockFlowStoreWithNode('ws:close', 'node-1');
       render(<DebugToolbar />);
 
       const skipButton = screen.getByTitle('跳过当前节点');
       fireEvent.click(skipButton);
 
       expect(screen.getByTestId('skip-dialog')).toBeInTheDocument();
-      expect(screen.getByTestId('skip-dialog')).toHaveAttribute('data-node-type', 'ws_close');
+      expect(screen.getByTestId('skip-dialog')).toHaveAttribute('data-node-type', 'ws:close');
       expect(screen.getByTestId('port-count')).toHaveTextContent('2');
       expect(screen.getByTestId('port-true')).toBeInTheDocument();
       expect(screen.getByTestId('port-false')).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe('DebugToolbar', () => {
 
   describe('跳过节点 - HTTP 节点 (http)', () => {
     it('应该直接跳过，不显示对话框（只有一个 out 端口）', () => {
-      mockFlowStoreWithNode('http', 'node-1');
+      mockFlowStoreWithNode('http:request', 'node-1');
       render(<DebugToolbar />);
 
       const skipButton = screen.getByTitle('跳过当前节点');

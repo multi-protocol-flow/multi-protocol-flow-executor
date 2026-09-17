@@ -209,11 +209,11 @@ export function SseViewer({ report }: SseViewerProps) {
   const ll = getLL();
 
   switch (nodeType) {
-    case 'sse_connect':
+    case 'sse:connect':
       return <SseConnectView report={report} />;
-    case 'sse_listen':
+    case 'sse:listen':
       return <SseListenView report={report} />;
-    case 'sse_disconnect':
+    case 'sse:disconnect':
       return <SseDisconnectView report={report} />;
     default:
       return (

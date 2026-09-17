@@ -17,7 +17,7 @@ pub struct HttpPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for HttpPlugin {
     fn type_id(&self) -> &str {
-        "http"
+        "http:request"
     }
 
     fn display_name(&self) -> &str {
@@ -25,7 +25,7 @@ impl NodePlugin for HttpPlugin {
     }
 
     fn category(&self) -> &str {
-        "http"
+        "http:request"
     }
 
     fn icon(&self) -> &str {

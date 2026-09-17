@@ -35,7 +35,7 @@ interface HeaderEntry {
 
 function toFormData(data: SseConnectConfigType): SseConnectConfigFormData {
   return {
-    type: 'sse_connect',
+    type: 'sse:connect',
     url: data.url || '',
     headers: data.headers,
     last_event_id: data.last_event_id || '',
@@ -52,7 +52,7 @@ function fromFormData(formData: SseConnectConfigFormData): SseConnectConfigType 
   const hasHeaders = headers && Object.keys(headers).some(k => k.trim());
 
   return {
-    type: 'sse_connect',
+    type: 'sse:connect',
     url: formData.url,
     headers: hasHeaders ? headers : undefined,
     last_event_id: formData.last_event_id || undefined,

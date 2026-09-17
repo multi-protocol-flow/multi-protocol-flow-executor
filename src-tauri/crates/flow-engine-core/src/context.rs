@@ -452,7 +452,7 @@ impl ExecutionContext {
     ///
     /// # 说明
     ///
-    /// 此方法在 `ws_send_wait` 或 `ws_close` 节点start execution时调用。
+    /// 此方法在 `ws_send_wait` 或 `ws:close` 节点start execution时调用。
     /// 如果连接 ID 不存在，则不做任何操作。
     pub async fn transfer_ws_ownership(
         &self,
@@ -964,7 +964,7 @@ mod tests {
             "wss://example.com/ws".to_string(),
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         )
         .await;
 
@@ -998,7 +998,7 @@ mod tests {
             "wss://example.com/ws".to_string(),
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         )
         .await;
 
@@ -1051,7 +1051,7 @@ mod tests {
             "wss://example.com/ws".to_string(),
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         )
         .await;
 
@@ -1104,7 +1104,7 @@ mod tests {
             "wss://example.com/ws".to_string(),
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         )
         .await;
 
@@ -1140,7 +1140,7 @@ mod tests {
             "wss://example.com/ws".to_string(),
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         )
         .await;
 

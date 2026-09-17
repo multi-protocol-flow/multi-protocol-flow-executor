@@ -10,24 +10,24 @@ describe('remapFlowUuids', () => {
       nodes: [
         {
           uuid: 'node-1',
-          type: 'tcp_connect',
+          type: 'tcp:connect',
           name: 'TCP Connect',
           position: { x: 0, y: 0 },
-          data: { type: 'tcp_connect', host: '127.0.0.1', port: 8080 } as unknown as NodeData,
+          data: { type: 'tcp:connect', host: '127.0.0.1', port: 8080 } as unknown as NodeData,
         },
         {
           uuid: 'node-2',
-          type: 'tcp_send',
+          type: 'tcp:send',
           name: 'TCP Send',
           position: { x: 100, y: 100 },
-          data: { type: 'tcp_send', connection_id: 'node-1', data: 'hello' } as unknown as NodeData,
+          data: { type: 'tcp:send', connection_id: 'node-1', data: 'hello' } as unknown as NodeData,
         },
         {
           uuid: 'node-3',
-          type: 'variable_extractor',
+          type: 'variable:extractor',
           name: 'Extractor',
           position: { x: 200, y: 200 },
-          data: { type: 'variable_extractor', source_node_id: 'node-2', mappings: [] } as unknown as NodeData,
+          data: { type: 'variable:extractor', source_node_id: 'node-2', mappings: [] } as unknown as NodeData,
         },
       ],
       connections: [

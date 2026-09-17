@@ -133,7 +133,7 @@ async fn test_subflow_basic_execution_and_variable_passing() {
 
     write_flow_file(&child_path, &child_flow);
 
-    // 2. 创建父流程：entry -> sub_flow
+    // 2. 创建父流程：entry -> flow:sub
     let subflow_config = SubFlowConfig {
         target_flow_id: None,
         target_flow_path: Some(child_path.to_string_lossy().to_string()),
@@ -157,7 +157,7 @@ async fn test_subflow_basic_execution_and_variable_passing() {
             create_entry_node("parent-entry", "Parent Entry"),
             Node {
                 uuid: "parent-subflow".to_string(),
-                node_type: "sub_flow".to_string(),
+                node_type: "flow:sub".to_string(),
                 name: "Call Child Flow".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(subflow_config),
@@ -255,7 +255,7 @@ async fn test_subflow_direct_cycle_validation_and_runtime() {
             create_entry_node("entry-1", "Entry"),
             Node {
                 uuid: "subflow-1".to_string(),
-                node_type: "sub_flow".to_string(),
+                node_type: "flow:sub".to_string(),
                 name: "Self Call".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(SubFlowConfig {
@@ -334,7 +334,7 @@ async fn test_subflow_indirect_cycle_runtime_guard() {
             create_entry_node("a-entry", "Entry A"),
             Node {
                 uuid: "a-subflow".to_string(),
-                node_type: "sub_flow".to_string(),
+                node_type: "flow:sub".to_string(),
                 name: "Call Flow B".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(SubFlowConfig {
@@ -372,7 +372,7 @@ async fn test_subflow_indirect_cycle_runtime_guard() {
             create_entry_node("b-entry", "Entry B"),
             Node {
                 uuid: "b-subflow".to_string(),
-                node_type: "sub_flow".to_string(),
+                node_type: "flow:sub".to_string(),
                 name: "Call Flow A".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(SubFlowConfig {
@@ -462,7 +462,7 @@ async fn test_subflow_indirect_cycle_static_validator() {
             create_entry_node("a-entry", "Entry A"),
             Node {
                 uuid: "a-subflow".to_string(),
-                node_type: "sub_flow".to_string(),
+                node_type: "flow:sub".to_string(),
                 name: "Call Flow B".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(SubFlowConfig {
@@ -500,7 +500,7 @@ async fn test_subflow_indirect_cycle_static_validator() {
             create_entry_node("b-entry", "Entry B"),
             Node {
                 uuid: "b-subflow".to_string(),
-                node_type: "sub_flow".to_string(),
+                node_type: "flow:sub".to_string(),
                 name: "Call Flow A".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(SubFlowConfig {
@@ -590,7 +590,7 @@ async fn test_subflow_nested_3_levels_valid() {
             create_entry_node("b-entry", "Entry B"),
             Node {
                 uuid: "b-subflow".to_string(),
-                node_type: "sub_flow".to_string(),
+                node_type: "flow:sub".to_string(),
                 name: "Call Flow C".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(SubFlowConfig {
@@ -638,7 +638,7 @@ async fn test_subflow_nested_3_levels_valid() {
             create_entry_node("a-entry", "Entry A"),
             Node {
                 uuid: "a-subflow".to_string(),
-                node_type: "sub_flow".to_string(),
+                node_type: "flow:sub".to_string(),
                 name: "Call Flow B".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(SubFlowConfig {
@@ -725,7 +725,7 @@ async fn test_subflow_failure_routing() {
 
     write_flow_file(&child_path, &child_flow);
 
-    // 父流程：entry -> sub_flow. false 端口连接到 recovery script
+    // 父流程：entry -> flow:sub. false 端口连接到 recovery script
     let parent_flow = Flow {
         uuid: "parent-recovery-flow".to_string(),
         initial_variables: None,
@@ -737,7 +737,7 @@ async fn test_subflow_failure_routing() {
             create_entry_node("p-entry", "Entry"),
             Node {
                 uuid: "p-subflow".to_string(),
-                node_type: "sub_flow".to_string(),
+                node_type: "flow:sub".to_string(),
                 name: "SubFlow Call".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(SubFlowConfig {
@@ -866,8 +866,8 @@ async fn test_subflow_resolved_by_id_in_configured_flows_dir() {
             create_entry_node("parent-entry", "Parent Entry"),
             Node {
                 uuid: "parent-subflow".to_string(),
-                node_type: "sub_flow".to_string(),
-                name: "Login (sub_flow)".to_string(),
+                node_type: "flow:sub".to_string(),
+                name: "Login (flow:sub)".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(SubFlowConfig {
                     target_flow_id: Some("child-login-uuid".to_string()),
@@ -942,8 +942,8 @@ async fn test_subflow_missing_id_reports_searched_dirs() {
             create_entry_node("parent-entry", "Parent Entry"),
             Node {
                 uuid: "parent-subflow".to_string(),
-                node_type: "sub_flow".to_string(),
-                name: "Missing (sub_flow)".to_string(),
+                node_type: "flow:sub".to_string(),
+                name: "Missing (flow:sub)".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(SubFlowConfig {
                     target_flow_id: Some("f9762dd7-9857-44c1-b7bd-a64f91f2e74e".to_string()),
@@ -1052,7 +1052,7 @@ async fn test_subflow_events_are_tagged_with_parent_node_uuid() {
     };
     write_flow_file(&child_path, &child_flow);
 
-    // 父流程：entry -> sub_flow
+    // 父流程：entry -> flow:sub
     let parent_flow = Flow {
         uuid: "parent-events-uuid".to_string(),
         initial_variables: None,
@@ -1064,7 +1064,7 @@ async fn test_subflow_events_are_tagged_with_parent_node_uuid() {
             create_entry_node("parent-entry", "Parent Entry"),
             Node {
                 uuid: "parent-subflow".to_string(),
-                node_type: "sub_flow".to_string(),
+                node_type: "flow:sub".to_string(),
                 name: "Call Child Events".to_string(),
                 position: NodePosition::default(),
                 data: NodeData::sub_flow(SubFlowConfig {

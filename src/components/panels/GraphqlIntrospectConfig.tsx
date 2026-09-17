@@ -25,7 +25,7 @@ interface GraphqlIntrospectConfigProps {
 
 function toFormData(data: GraphqlIntrospectConfigType): GraphqlIntrospectConfigFormData {
   return {
-    type: 'graphql_introspect',
+    type: 'graphql:introspect',
     connection_id: data.connection_id || '',
     timeout_ms: data.timeout_ms ?? 30000,
   };
@@ -33,7 +33,7 @@ function toFormData(data: GraphqlIntrospectConfigType): GraphqlIntrospectConfigF
 
 function fromFormData(formData: GraphqlIntrospectConfigFormData): GraphqlIntrospectConfigType {
   return {
-    type: 'graphql_introspect',
+    type: 'graphql:introspect',
     connection_id: formData.connection_id,
     timeout_ms: formData.timeout_ms || undefined,
   };

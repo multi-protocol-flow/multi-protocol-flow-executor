@@ -25,10 +25,10 @@ describe('createDefaultNodeData', () => {
   });
 
   it('createDefaultNodeData_known_type_uses_default_config', () => {
-    const data = createDefaultNodeData('http');
+    const data = createDefaultNodeData('http:request');
 
-    expect(data.type).toBe('http');
-    if (data.type === 'http') {
+    expect(data.type).toBe('http:request');
+    if (data.type === 'http:request') {
       expect(data.url).toBe('');
       expect(data.method).toBe('get');
     }

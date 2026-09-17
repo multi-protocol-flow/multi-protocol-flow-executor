@@ -20,14 +20,14 @@
       },
       {
         "uuid": "ws-connect-timeout",
-        "type": "ws_connect",
+        "type": "ws:connect",
         "name": "WS Connect (Collect Timeout)",
         "position": {
           "x": 200,
           "y": 0
         },
         "data": {
-          "type": "ws_connect",
+          "type": "ws:connect",
           "url": "wss://echo.websocket.org",
           "headers": [],
           "subprotocols": [],

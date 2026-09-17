@@ -70,10 +70,10 @@ export const TcpSendNode = memo(function TcpSendNode({ id, data, selected }: Nod
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-emerald-600 font-medium tracking-wide">
-            {getNodeDisplayName('tcp_send')}
+            {getNodeDisplayName('tcp:send')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('tcp_send')}
+            {nodeData.label || getNodeDisplayName('tcp:send')}
           </span>
         </div>
       </div>

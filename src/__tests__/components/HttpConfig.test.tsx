@@ -17,7 +17,7 @@ describe('HttpConfig - Content-Type 选择器', () => {
   it('[GREEN] 当 body_type 为 body 时，应该显示 Content-Type 选择器', () => {
     // 准备一个 body_type='body' 的配置
     const config: HttpConfigType = {
-      type: 'http',
+      type: 'http:request',
       url: 'https://example.com/api',
       method: 'post',
       body_type: 'body',
@@ -33,7 +33,7 @@ describe('HttpConfig - Content-Type 选择器', () => {
   });
   it('当 body 有内容但 body_type 未指定时，应自动推断为 body 并正确显示在 textarea 中', () => {
     const config: HttpConfigType = {
-      type: 'http',
+      type: 'http:request',
       url: 'https://example.com/api',
       method: 'post',
       body: '{"auto_inferred": "yes"}',
@@ -51,7 +51,7 @@ describe('HttpConfig - Content-Type 选择器', () => {
 
   it('[GREEN] Content-Type 选择器应包含 json/text/html/xml/javascript 选项', () => {
     const config: HttpConfigType = {
-      type: 'http',
+      type: 'http:request',
       url: 'https://example.com/api',
       method: 'post',
       body_type: 'body',
@@ -72,7 +72,7 @@ describe('HttpConfig - Content-Type 选择器', () => {
 
   it('[GREEN] Content-Type 默认值应为 json', () => {
     const config: HttpConfigType = {
-      type: 'http',
+      type: 'http:request',
       url: 'https://example.com/api',
       method: 'post',
       body_type: 'body',
@@ -88,7 +88,7 @@ describe('HttpConfig - Content-Type 选择器', () => {
 
   it('[GREEN] 当 body_type 不为 body 时，不应显示 Content-Type 选择器', () => {
     const config: HttpConfigType = {
-      type: 'http',
+      type: 'http:request',
       url: 'https://example.com/api',
       method: 'post',
       body_type: 'none',
@@ -105,7 +105,7 @@ describe('HttpConfig - Content-Type 选择器', () => {
 describe('HttpConfig - 超时配置 [GREEN]', () => {
   const mockOnSave = vi.fn();
   const defaultData: HttpConfigType = {
-    type: 'http',
+    type: 'http:request',
     url: 'https://api.example.com',
     method: 'get',
   };
@@ -139,7 +139,7 @@ describe('HttpConfig - 超时配置 [GREEN]', () => {
 describe('HttpConfig - 样式测试', () => {
   const mockOnSave = vi.fn();
   const defaultData: HttpConfigType = {
-    type: 'http',
+    type: 'http:request',
     url: 'https://api.example.com',
     method: 'get',
   };
@@ -172,7 +172,7 @@ describe('HttpConfig - 样式测试', () => {
 describe('HttpConfig - 现代化布局与交互', () => {
   const mockOnSave = vi.fn();
   const defaultData: HttpConfigType = {
-    type: 'http',
+    type: 'http:request',
     url: 'https://api.example.com',
     method: 'get',
   };

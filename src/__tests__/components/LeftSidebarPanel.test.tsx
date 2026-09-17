@@ -116,9 +116,9 @@ describe('LeftSidebarPanel', () => {
         {
           uuid: 'n-http',
           name: '查询用户信息',
-          type: 'http',
+          type: 'http:request',
           position: { x: 50, y: 50 },
-          data: { type: 'http', url: 'https://api.example.com', method: 'get' },
+          data: { type: 'http:request', url: 'https://api.example.com', method: 'get' },
         },
       ],
       connections: [],

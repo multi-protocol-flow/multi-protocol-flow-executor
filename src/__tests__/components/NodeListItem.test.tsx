@@ -9,7 +9,7 @@ import type { NodeExecutionReport } from '@/types';
 describe('NodeListItem', () => {
   const mockReport: NodeExecutionReport = {
     node_uuid: 'node-001',
-    node_type: 'http',
+    node_type: 'http:request',
     node_name: '获取用户数据',
     start_time: Date.now() - 500,
     end_time: Date.now(),
@@ -21,7 +21,7 @@ describe('NodeListItem', () => {
 
   const failedReport: NodeExecutionReport = {
     node_uuid: 'node-002',
-    node_type: 'http',
+    node_type: 'http:request',
     node_name: '失败的请求',
     start_time: Date.now() - 1000,
     end_time: Date.now(),
@@ -92,9 +92,9 @@ describe('NodeListItem', () => {
   it('正确显示各节点类型标签', () => {
     const nodeTypes: Array<{ type: string; label: string }> = [
       { type: 'entry', label: '入口' },
-      { type: 'http', label: 'HTTP 请求' },
+      { type: 'http:request', label: 'HTTP 请求' },
       { type: 'conditional', label: '条件判断' },
-      { type: 'variable_extractor', label: '变量提取' },
+      { type: 'variable:extractor', label: '变量提取' },
     ];
 
     nodeTypes.forEach(({ type, label }) => {
@@ -128,7 +128,7 @@ describe('NodeListItem', () => {
     // 三层报告树：子流程节点 -> 内层子流程节点 -> 深层节点
     const deepTree: NodeExecutionReport = {
       ...mockReport,
-      node_type: 'sub_flow',
+      node_type: 'flow:sub',
       node_name: '外层子流程',
       sub_flow_report: {
         uuid: 'report-outer',
@@ -145,7 +145,7 @@ describe('NodeListItem', () => {
           {
             ...mockReport,
             node_uuid: 'inner-subflow',
-            node_type: 'sub_flow',
+            node_type: 'flow:sub',
             node_name: '内层子流程',
             sub_flow_report: {
               uuid: 'report-inner',

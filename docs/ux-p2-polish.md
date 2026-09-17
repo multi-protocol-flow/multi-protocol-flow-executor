@@ -283,7 +283,7 @@ const FIX_SUGGESTIONS: FixSuggestion[] = [
   {
     errorPattern: /connection.*refused/i,
     suggestion: '目标服务未启动或端口错误。请检查主机和端口是否正确，以及目标服务是否在运行。',
-    relatedDocs: 'tcp_connect',
+    relatedDocs: 'tcp:connect',
   },
   {
     errorPattern: /no such host/i,

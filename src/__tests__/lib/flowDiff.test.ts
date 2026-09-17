@@ -36,8 +36,8 @@ function createTestFlow(overrides?: Partial<Flow>): Flow {
 
 describe('diffFlows', () => {
   it('完全相同的流程应全部归类为 unchanged', () => {
-    const node = createTestNode('n1', 'http', '请求', {
-      type: 'http',
+    const node = createTestNode('n1', 'http:request', '请求', {
+      type: 'http:request',
       url: 'https://api.example.com',
       method: 'get',
     });
@@ -59,8 +59,8 @@ describe('diffFlows', () => {
 
   it('新增节点应归类为 addedNodes', () => {
     const n1 = createTestNode('n1', 'entry', '入口', { type: 'entry' });
-    const n2 = createTestNode('n2', 'http', '请求', {
-      type: 'http',
+    const n2 = createTestNode('n2', 'http:request', '请求', {
+      type: 'http:request',
       url: 'https://api.example.com',
     });
 
@@ -77,8 +77,8 @@ describe('diffFlows', () => {
 
   it('删除节点应归类为 removedNodes', () => {
     const n1 = createTestNode('n1', 'entry', '入口', { type: 'entry' });
-    const n2 = createTestNode('n2', 'http', '请求', {
-      type: 'http',
+    const n2 = createTestNode('n2', 'http:request', '请求', {
+      type: 'http:request',
       url: 'https://api.example.com',
     });
 
@@ -95,13 +95,13 @@ describe('diffFlows', () => {
 
   it('修改节点配置应归类为 modifiedNodes 并包含 dataChanges', () => {
     const n1 = createTestNode('n1', 'entry', '入口', { type: 'entry' });
-    const n2Old = createTestNode('n2', 'http', '请求', {
-      type: 'http',
+    const n2Old = createTestNode('n2', 'http:request', '请求', {
+      type: 'http:request',
       url: 'https://old.example.com',
       method: 'get',
     });
-    const n2New = createTestNode('n2', 'http', '请求', {
-      type: 'http',
+    const n2New = createTestNode('n2', 'http:request', '请求', {
+      type: 'http:request',
       url: 'https://new.example.com',
       method: 'post',
     });
@@ -134,8 +134,8 @@ describe('diffFlows', () => {
 
   it('新增/删除连接应正确归类', () => {
     const n1 = createTestNode('n1', 'entry', '入口', { type: 'entry' });
-    const n2 = createTestNode('n2', 'http', '请求', {
-      type: 'http',
+    const n2 = createTestNode('n2', 'http:request', '请求', {
+      type: 'http:request',
       url: 'https://api.example.com',
     });
     const n3 = createTestNode('n3', 'script', '脚本', { type: 'script', script: 'fn.log("hi")' });
@@ -186,12 +186,12 @@ describe('diffFlows', () => {
   });
 
   it('节点名称变化应生成 nameChange', () => {
-    const n1Old = createTestNode('n1', 'http', '旧名称', {
-      type: 'http',
+    const n1Old = createTestNode('n1', 'http:request', '旧名称', {
+      type: 'http:request',
       url: 'https://api.example.com',
     });
-    const n1New = createTestNode('n1', 'http', '新名称', {
-      type: 'http',
+    const n1New = createTestNode('n1', 'http:request', '新名称', {
+      type: 'http:request',
       url: 'https://api.example.com',
     });
 
@@ -237,8 +237,8 @@ describe('diffFlows', () => {
   });
 
   it('节点类型改变应标记所有配置字段为变化', () => {
-    const nOld = createTestNode('n1', 'http', '节点', {
-      type: 'http',
+    const nOld = createTestNode('n1', 'http:request', '节点', {
+      type: 'http:request',
       url: 'https://api.example.com',
     });
     const nNew = createTestNode('n1', 'script', '节点', {
@@ -253,7 +253,7 @@ describe('diffFlows', () => {
 
     expect(result.modifiedNodes).toHaveLength(1);
     expect(result.modifiedNodes[0].dataChanges).toBeDefined();
-    expect(result.modifiedNodes[0].dataChanges!.nodeType).toBe('http → script');
+    expect(result.modifiedNodes[0].dataChanges!.nodeType).toBe('http:request → script');
   });
 
   // ==========================================================================
@@ -261,15 +261,15 @@ describe('diffFlows', () => {
   // ==========================================================================
 
   it('HttpConfig 字段变化应被检测', () => {
-    const nOld = createTestNode('n1', 'http', 'HTTP', {
-      type: 'http',
+    const nOld = createTestNode('n1', 'http:request', 'HTTP', {
+      type: 'http:request',
       url: 'https://old.com',
       method: 'get',
       headers: { 'X-Key': 'old' },
       timeout_ms: 5000,
     });
-    const nNew = createTestNode('n1', 'http', 'HTTP', {
-      type: 'http',
+    const nNew = createTestNode('n1', 'http:request', 'HTTP', {
+      type: 'http:request',
       url: 'https://new.com',
       method: 'post',
       headers: { 'X-Key': 'new' },
@@ -385,13 +385,13 @@ describe('diffFlows', () => {
   });
 
   it('WsConnectConfig url 和超时变化应被检测', () => {
-    const nOld = createTestNode('n1', 'ws_connect', 'WS连接', {
-      type: 'ws_connect',
+    const nOld = createTestNode('n1', 'ws:connect', 'WS连接', {
+      type: 'ws:connect',
       url: 'wss://old.example.com/ws',
       connect_timeout_ms: 3000,
     });
-    const nNew = createTestNode('n1', 'ws_connect', 'WS连接', {
-      type: 'ws_connect',
+    const nNew = createTestNode('n1', 'ws:connect', 'WS连接', {
+      type: 'ws:connect',
       url: 'wss://new.example.com/ws',
       connect_timeout_ms: 5000,
     });
@@ -407,14 +407,14 @@ describe('diffFlows', () => {
   });
 
   it('WsSendCollectConfig 消息和连接 ID 变化应被检测', () => {
-    const nOld = createTestNode('n1', 'ws_send_collect', 'WS发送', {
-      type: 'ws_send_collect',
+    const nOld = createTestNode('n1', 'ws:send_collect', 'WS发送', {
+      type: 'ws:send_collect',
       connection_id: 'conn-1',
       message: '{"action":"ping"}',
       collect_response: true,
     });
-    const nNew = createTestNode('n1', 'ws_send_collect', 'WS发送', {
-      type: 'ws_send_collect',
+    const nNew = createTestNode('n1', 'ws:send_collect', 'WS发送', {
+      type: 'ws:send_collect',
       connection_id: 'conn-2',
       message: '{"action":"pong"}',
       collect_response: true,
@@ -435,13 +435,13 @@ describe('diffFlows', () => {
   });
 
   it('WsCloseConfig connection_id 和 close_code 变化应被检测', () => {
-    const nOld = createTestNode('n1', 'ws_close', 'WS关闭', {
-      type: 'ws_close',
+    const nOld = createTestNode('n1', 'ws:close', 'WS关闭', {
+      type: 'ws:close',
       connection_id: 'conn-1',
       close_code: 1000,
     });
-    const nNew = createTestNode('n1', 'ws_close', 'WS关闭', {
-      type: 'ws_close',
+    const nNew = createTestNode('n1', 'ws:close', 'WS关闭', {
+      type: 'ws:close',
       connection_id: 'conn-2',
       close_code: 1001,
     });
@@ -459,7 +459,7 @@ describe('diffFlows', () => {
   it('空流程 vs 含节点流程应全部归类为 addedNodes', () => {
     const empty = createTestFlow();
     const n1 = createTestNode('n1', 'entry', '入口', { type: 'entry' });
-    const n2 = createTestNode('n2', 'http', '请求', { type: 'http', url: 'https://api.example.com' });
+    const n2 = createTestNode('n2', 'http:request', '请求', { type: 'http:request', url: 'https://api.example.com' });
     const flow = createTestFlow({ nodes: [n1, n2] });
 
     const result = diffFlows(empty, flow);
@@ -485,12 +485,12 @@ describe('diffFlows', () => {
   });
 
   it('Unicode 节点名称应正确对比', () => {
-    const n1 = createTestNode('n1', 'http', '日本語テスト 🚀', {
-      type: 'http',
+    const n1 = createTestNode('n1', 'http:request', '日本語テスト 🚀', {
+      type: 'http:request',
       url: 'https://example.com',
     });
-    const n2 = createTestNode('n1', 'http', '中文测试 🎯', {
-      type: 'http',
+    const n2 = createTestNode('n1', 'http:request', '中文测试 🎯', {
+      type: 'http:request',
       url: 'https://example.com',
     });
     const result = diffFlows(

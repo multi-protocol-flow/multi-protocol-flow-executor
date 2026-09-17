@@ -19,14 +19,14 @@
       },
       {
         "uuid": "http-001",
-        "type": "http",
+        "type": "http:request",
         "name": "Fetch API Data",
         "position": {
           "x": 100,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/get",
           "method": "get"
         },

@@ -22,7 +22,7 @@ describe('WsCloseViewer', () => {
     outputData?: Record<string, unknown>
   ): NodeExecutionReport => ({
     node_uuid: 'node-ws-close-001',
-    node_type: 'ws_close',
+    node_type: 'ws:close',
     node_name: 'WebSocket 关闭',
     start_time: Date.now() - 50,
     end_time: Date.now(),

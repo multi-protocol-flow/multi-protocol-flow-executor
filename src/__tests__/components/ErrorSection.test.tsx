@@ -20,7 +20,7 @@ describe('ErrorSection', () => {
       <ErrorSection
         error={mockError}
         nodeName="API 请求"
-        nodeType="http"
+        nodeType="http:request"
       />
     );
 
@@ -31,7 +31,7 @@ describe('ErrorSection', () => {
     expect(sendSpy).toHaveBeenCalledTimes(1);
     const prompt = sendSpy.mock.calls[0][0];
     expect(prompt).toContain('API 请求');
-    expect(prompt).toContain('http');
+    expect(prompt).toContain('http:request');
     expect(prompt).toContain('connection');
     expect(prompt).toContain('分析具体报错原因');
 
@@ -46,7 +46,7 @@ describe('ErrorSection', () => {
       <ErrorSection
         error={mockError}
         nodeName="Fetch User"
-        nodeType="http"
+        nodeType="http:request"
       />
     );
 
@@ -57,7 +57,7 @@ describe('ErrorSection', () => {
     expect(sendSpy).toHaveBeenCalledTimes(1);
     const prompt = sendSpy.mock.calls[0][0];
     expect(prompt).toContain('Fetch User');
-    expect(prompt).toContain('http');
+    expect(prompt).toContain('http:request');
     expect(prompt).toContain('connection');
     expect(prompt).toContain('execution failed');
     expect(prompt).toContain('analyze the root cause');

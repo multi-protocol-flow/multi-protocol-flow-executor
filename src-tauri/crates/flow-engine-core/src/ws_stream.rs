@@ -140,7 +140,7 @@ pub struct WsStreamSegment {
     pub node_uuid: String,
     /// 持有者节点名称
     pub node_name: String,
-    /// 持有者节点类型 (`ws_connect`, `ws_send_wait`, `ws_close`)
+    /// 持有者节点类型 (`ws:connect`, `ws_send_wait`, `ws:close`)
     pub node_type: String,
     /// 段开始时间（毫秒）
     pub started_at: u64,
@@ -315,7 +315,7 @@ impl WsConnectionStream {
     ///
     /// # 说明
     ///
-    /// 此方法用于 `ws_connect` 节点首次创建连接时调用
+    /// 此方法用于 `ws:connect` 节点首次创建连接时调用
     pub fn create_initial_segment(
         &mut self,
         node_uuid: String,
@@ -339,7 +339,7 @@ impl WsConnectionStream {
     ///
     /// 此方法在以下场景调用：
     /// - `ws_send_wait` 节点start execution时
-    /// - `ws_close` 节点start execution时
+    /// - `ws:close` 节点start execution时
     ///
     /// 转移时会结束当前段并创建新段
     pub fn transfer_ownership(
@@ -578,12 +578,12 @@ mod tests {
         let segment = WsStreamSegment::new(
             "node-1".to_string(),
             "Test Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         assert_eq!(segment.node_uuid, "node-1");
         assert_eq!(segment.node_name, "Test Node");
-        assert_eq!(segment.node_type, "ws_connect");
+        assert_eq!(segment.node_type, "ws:connect");
         assert!(segment.ended_at.is_none());
         assert_eq!(segment.message_count(), 0);
         assert_eq!(segment.dropped_message_count, 0);
@@ -594,7 +594,7 @@ mod tests {
         let mut segment = WsStreamSegment::new(
             "node-1".to_string(),
             "Test".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         let msg = WsMessage::new(
@@ -614,7 +614,7 @@ mod tests {
         let mut segment = WsStreamSegment::new(
             "node-1".to_string(),
             "Test".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         // 创建超过 1MB 的消息
@@ -639,7 +639,7 @@ mod tests {
         let mut segment = WsStreamSegment::with_timestamp(
             "node-1".to_string(),
             "Test".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
             1000,
         );
         segment.max_messages = 3; // 设置较小的上限便于测试
@@ -675,7 +675,7 @@ mod tests {
         let mut segment = WsStreamSegment::new(
             "node-1".to_string(),
             "Test".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         assert!(segment.ended_at.is_none());
@@ -709,7 +709,7 @@ mod tests {
         stream.create_initial_segment(
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         assert_eq!(stream.current_owner_node_uuid, Some("node-1".to_string()));
@@ -718,7 +718,7 @@ mod tests {
         let segment = &stream.segments[0];
         assert_eq!(segment.node_uuid, "node-1");
         assert_eq!(segment.node_name, "Connect Node");
-        assert_eq!(segment.node_type, "ws_connect");
+        assert_eq!(segment.node_type, "ws:connect");
     }
 
     #[test]
@@ -730,7 +730,7 @@ mod tests {
         stream.create_initial_segment(
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         // 转移所有权
@@ -759,7 +759,7 @@ mod tests {
         stream.create_initial_segment(
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         let msg = WsMessage::new(
@@ -804,7 +804,7 @@ mod tests {
         stream.create_initial_segment(
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         stream.close();
@@ -832,7 +832,7 @@ mod tests {
         stream.create_initial_segment(
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         assert!(!stream.is_closed);
@@ -852,7 +852,7 @@ mod tests {
         stream.create_initial_segment(
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         // 添加 3 条消息
@@ -882,7 +882,7 @@ mod tests {
         stream.create_initial_segment(
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         assert!(stream.current_segment().is_some());
@@ -903,7 +903,7 @@ mod tests {
         stream.create_initial_segment(
             "node-1".to_string(),
             "Connect Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         let msg = WsMessage::with_timestamp(

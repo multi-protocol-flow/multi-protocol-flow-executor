@@ -20,14 +20,14 @@
       },
       {
         "uuid": "http-001",
-        "type": "http",
+        "type": "http:request",
         "name": "TLS Wrong CA",
         "position": {
           "x": 250,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://localhost:8443/api/echo",
           "method": "get",
           "tls_ca_cert_path": "tests/certs/ca-wrong.pem"

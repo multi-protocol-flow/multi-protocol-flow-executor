@@ -27,7 +27,7 @@ interface UdpCloseConfigProps {
  */
 function toFormData(data: UdpCloseConfigType): UdpCloseConfigFormData {
   return {
-    type: 'udp_close',
+    type: 'udp:close',
     connection_id: data.connection_id || '',
   };
 }
@@ -37,7 +37,7 @@ function toFormData(data: UdpCloseConfigType): UdpCloseConfigFormData {
  */
 function fromFormData(formData: UdpCloseConfigFormData): UdpCloseConfigType {
   return {
-    type: 'udp_close',
+    type: 'udp:close',
     connection_id: formData.connection_id,
   };
 }
@@ -61,7 +61,7 @@ export function UdpCloseConfig({ data, onSave }: UdpCloseConfigProps) {
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
 
-  // 获取 flow 并提取 udp_bind 节点
+  // 获取 flow 并提取 udp:bind 节点
   const flow = useFlowStore((state) => state.flow);
 
   // 提取可用的 UDP 连接

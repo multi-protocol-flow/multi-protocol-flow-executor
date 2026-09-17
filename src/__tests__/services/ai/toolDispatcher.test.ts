@@ -104,7 +104,7 @@ describe('toolDispatcher', () => {
 
   it('成功分发并执行 add_node 和 connect_nodes 工具', async () => {
     const node1Res = (await dispatchToolCall('add_node', {
-      type: 'http',
+      type: 'http:request',
       name: 'HTTP_1',
     })) as { success: boolean; node_uuid: string };
 
@@ -132,10 +132,10 @@ describe('toolDispatcher', () => {
 
   it('分发并执行 get_node_type_schema 与 diagnose_flow_errors', async () => {
     const schemaRes = (await dispatchToolCall('get_node_type_schema', {
-      node_type: 'http',
+      node_type: 'http:request',
     })) as { success: boolean; node_type: string; builtin_schema: unknown };
     expect(schemaRes.success).toBe(true);
-    expect(schemaRes.node_type).toBe('http');
+    expect(schemaRes.node_type).toBe('http:request');
     expect(schemaRes.builtin_schema).toBeDefined();
 
     const diagRes = (await dispatchToolCall('diagnose_flow_errors', {})) as {

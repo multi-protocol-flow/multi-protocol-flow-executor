@@ -38,7 +38,7 @@ beforeEach(() => {
 describe('SubFlowConfig', () => {
   it('路径模式下渲染路径输入与浏览按钮', () => {
     const data: SubFlowConfigType = {
-      type: 'sub_flow',
+      type: 'flow:sub',
       target_flow_path: './subflows/login.json',
     };
     const onSave = vi.fn();
@@ -51,7 +51,7 @@ describe('SubFlowConfig', () => {
 
   it('切换到已保存流程模式时清空路径，保证二选一', () => {
     const data: SubFlowConfigType = {
-      type: 'sub_flow',
+      type: 'flow:sub',
       target_flow_path: './subflows/login.json',
     };
     const onSave = vi.fn();
@@ -66,7 +66,7 @@ describe('SubFlowConfig', () => {
   });
 
   it('流程模式按文件夹分组展示，选择嵌套流程后调用 onSave', async () => {
-    const data: SubFlowConfigType = { type: 'sub_flow' };
+    const data: SubFlowConfigType = { type: 'flow:sub' };
     const onSave = vi.fn();
 
     render(<SubFlowConfig data={data} onSave={onSave} />);
@@ -98,7 +98,7 @@ describe('SubFlowConfig', () => {
   });
 
   it('搜索时命中深层流程并自动展开其所在文件夹', async () => {
-    const data: SubFlowConfigType = { type: 'sub_flow' };
+    const data: SubFlowConfigType = { type: 'flow:sub' };
     render(<SubFlowConfig data={data} onSave={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: /请选择目标流程/ }));
@@ -116,7 +116,7 @@ describe('SubFlowConfig', () => {
 
   it('选择已保存流程后清除既有文件路径引用', async () => {
     const data: SubFlowConfigType = {
-      type: 'sub_flow',
+      type: 'flow:sub',
       target_flow_path: './legacy.json',
     };
     const onSave = vi.fn();
@@ -134,7 +134,7 @@ describe('SubFlowConfig', () => {
   });
 
   it('支持添加与删除输入变量映射', () => {
-    const data: SubFlowConfigType = { type: 'sub_flow' };
+    const data: SubFlowConfigType = { type: 'flow:sub' };
     const onSave = vi.fn();
 
     render(<SubFlowConfig data={data} onSave={onSave} />);
@@ -149,7 +149,7 @@ describe('SubFlowConfig', () => {
     const { open } = await import('@tauri-apps/plugin-dialog');
     vi.mocked(open).mockResolvedValue('/abs/subflows/auth.mpf');
 
-    const data: SubFlowConfigType = { type: 'sub_flow', target_flow_id: 'flow-root' };
+    const data: SubFlowConfigType = { type: 'flow:sub', target_flow_id: 'flow-root' };
     const onSave = vi.fn();
 
     render(<SubFlowConfig data={data} onSave={onSave} />);

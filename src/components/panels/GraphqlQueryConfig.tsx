@@ -54,7 +54,7 @@ function variablesFromString(json: string | undefined): Record<string, unknown> 
 
 function toFormData(data: GraphqlQueryConfigType): GraphqlQueryConfigFormData {
   return {
-    type: 'graphql_query',
+    type: 'graphql:query',
     connection_id: data.connection_id || '',
     query: data.query || '',
     variables: variablesToString(data.variables),
@@ -65,7 +65,7 @@ function toFormData(data: GraphqlQueryConfigType): GraphqlQueryConfigFormData {
 
 function fromFormData(formData: GraphqlQueryConfigFormData, files?: Array<{ field_name: string; file_path: string }>): GraphqlQueryConfigType {
   return {
-    type: 'graphql_query',
+    type: 'graphql:query',
     connection_id: formData.connection_id,
     query: formData.query,
     variables: variablesFromString(formData.variables),

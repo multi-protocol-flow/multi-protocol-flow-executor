@@ -42,10 +42,10 @@ const mockFlow: Flow = {
     },
     {
       uuid: 'http-001',
-      type: 'http',
+      type: 'http:request',
       name: 'HTTP 请求',
       position: { x: 300, y: 100 },
-      data: { type: 'http', url: 'https://api.example.com', method: 'get' },
+      data: { type: 'http:request', url: 'https://api.example.com', method: 'get' },
     },
     {
       uuid: 'conditional-001',
@@ -158,7 +158,7 @@ describe('工具函数', () => {
         ...mockFlow,
         nodes: [
           // 形似自动名（"类型显示名 数字"）→ 必须原样保留
-          { ...mockFlow.nodes[1], uuid: 'n-auto', name: `${getNodeDisplayName('http')} 1` },
+          { ...mockFlow.nodes[1], uuid: 'n-auto', name: `${getNodeDisplayName('http:request')} 1` },
           // 用户手动命名，以空格+数字结尾 → 必须保留
           { ...mockFlow.nodes[1], uuid: 'n-user', name: 'Node 1' },
           { ...mockFlow.nodes[1], uuid: 'n-user2', name: '测试 2' },
@@ -172,7 +172,7 @@ describe('工具函数', () => {
         result.nodes.map((n) => [n.id, (n.data as { label: string }).label])
       );
 
-      expect(labelById['n-auto']).toBe(`${getNodeDisplayName('http')} 1`);
+      expect(labelById['n-auto']).toBe(`${getNodeDisplayName('http:request')} 1`);
       expect(labelById['n-user']).toBe('Node 1');
       expect(labelById['n-user2']).toBe('测试 2');
       expect(labelById['n-plain']).toBe('My Node');
@@ -238,7 +238,7 @@ describe('边删除功能', () => {
         name: '测试流程',
         nodes: [
           { uuid: 'node-1', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
-          { uuid: 'node-2', type: 'http', name: 'HTTP', position: { x: 100, y: 0 }, data: { type: 'http', url: '', method: 'get' } },
+          { uuid: 'node-2', type: 'http:request', name: 'HTTP', position: { x: 100, y: 0 }, data: { type: 'http:request', url: '', method: 'get' } },
         ],
         connections: [
           { id: 'conn-001', source_node_uuid: 'node-1', target_node_uuid: 'node-2', source_port_id: 'out', target_port_id: 'in' },

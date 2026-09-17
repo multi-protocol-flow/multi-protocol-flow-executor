@@ -75,7 +75,7 @@ impl NodeExecutor for WsConnectExecutor {
 
         // 3. Log: start connecting
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: ws_connect, URL: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: ws:connect, URL: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -130,7 +130,7 @@ impl NodeExecutor for WsConnectExecutor {
                         url.clone(),
                         node.uuid.clone(),
                         node.name.clone(),
-                        "ws_connect".to_string(),
+                        "ws:connect".to_string(),
                     )
                     .await;
 
@@ -684,7 +684,7 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, url: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "ws_connect".to_string(),
+            node_type: "ws:connect".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
@@ -740,7 +740,7 @@ mod tests {
         // 使用不可达地址测试超时
         let node = Node {
             uuid: "test-timeout".to_string(),
-            node_type: "ws_connect".to_string(),
+            node_type: "ws:connect".to_string(),
             name: "timeout test".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
@@ -801,7 +801,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-wait-first".to_string(),
-            node_type: "ws_connect".to_string(),
+            node_type: "ws:connect".to_string(),
             name: "Wait for first message".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
@@ -836,7 +836,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-wait-condition".to_string(),
-            node_type: "ws_connect".to_string(),
+            node_type: "ws:connect".to_string(),
             name: "Condition wait".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
@@ -875,7 +875,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-wait-duration".to_string(),
-            node_type: "ws_connect".to_string(),
+            node_type: "ws:connect".to_string(),
             name: "Duration wait".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
@@ -941,7 +941,7 @@ mod tests {
                         Some("echo-test".to_string())
                     );
                     assert_eq!(stream.segments.len(), 1);
-                    assert_eq!(stream.segments[0].node_type, "ws_connect");
+                    assert_eq!(stream.segments[0].node_type, "ws:connect");
 
                     // 清理：关闭连接
                     let _ = ws_manager
@@ -993,7 +993,7 @@ mod tests {
                 let segment = &stream.segments[0];
                 assert_eq!(segment.node_uuid, "stream-test");
                 assert_eq!(segment.node_name, "stream test");
-                assert_eq!(segment.node_type, "ws_connect");
+                assert_eq!(segment.node_type, "ws:connect");
                 assert!(segment.ended_at.is_none(), "初始段不应结束");
 
                 // 清理

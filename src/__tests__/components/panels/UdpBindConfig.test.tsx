@@ -26,7 +26,7 @@ function createBaseConfig(
   overrides: Partial<UdpBindConfigType> = {},
 ): UdpBindConfigType {
   return {
-    type: 'udp_bind',
+    type: 'udp:bind',
     local_addr: '0.0.0.0',
     local_port: 9000,
     reuse_addr: true,

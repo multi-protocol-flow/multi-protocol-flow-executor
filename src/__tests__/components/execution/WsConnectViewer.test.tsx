@@ -24,7 +24,7 @@ describe('WsConnectViewer', () => {
     outputData?: Record<string, unknown>
   ): NodeExecutionReport => ({
     node_uuid: 'node-ws-connect-001',
-    node_type: 'ws_connect',
+    node_type: 'ws:connect',
     node_name: 'WebSocket 连接',
     start_time: Date.now() - 100,
     end_time: Date.now(),

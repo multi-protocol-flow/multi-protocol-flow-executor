@@ -67,7 +67,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
 
         // 3. 日志：开始接收
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: udp_recv_from, ConnectionID: {}, Timeout: {}ms",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: udp:recv_from, ConnectionID: {}, Timeout: {}ms",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -361,7 +361,7 @@ mod tests {
     ) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "udp_recv_from".to_string(),
+            node_type: "udp:recv_from".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::UdpRecvFrom(UdpRecvFromConfig {
@@ -504,7 +504,7 @@ mod tests {
 
         let node = Node {
             uuid: "node-var".to_string(),
-            node_type: "udp_recv_from".to_string(),
+            node_type: "udp:recv_from".to_string(),
             name: "变量替换测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::UdpRecvFrom(UdpRecvFromConfig {
@@ -578,7 +578,7 @@ mod tests {
 
         let node = Node {
             uuid: "node-wrong".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),

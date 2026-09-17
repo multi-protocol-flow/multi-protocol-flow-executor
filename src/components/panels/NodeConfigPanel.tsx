@@ -27,11 +27,11 @@ function deepEqual(a: unknown, b: unknown): boolean {
 }
 
 const SINGLE_PORT_TYPES = new Set<NodeType>([
-  'entry', 'end', 'ws_close',
-  'tcp_close', 'udp_close', 'sse_disconnect',
-  'graphql_disconnect',
+  'entry', 'end', 'ws:close',
+  'tcp:close', 'udp:close', 'sse:disconnect',
+  'graphql:disconnect',
   'proxy',
-  'variable_extractor',
+  'variable:extractor',
 ]);
 
 /** 检查是否为普通对象（非数组、非 null） */

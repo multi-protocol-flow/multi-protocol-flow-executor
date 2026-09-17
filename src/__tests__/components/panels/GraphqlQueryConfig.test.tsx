@@ -29,7 +29,7 @@ function createBaseConfig(
   overrides: Partial<GraphqlQueryConfigType> = {},
 ): GraphqlQueryConfigType {
   return {
-    type: 'graphql_query',
+    type: 'graphql:query',
     connection_id: 'gql-conn-1',
     query: 'query GetUser { user { id name } }',
     ...overrides,

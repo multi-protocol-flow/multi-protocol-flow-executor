@@ -84,7 +84,7 @@ describe('Debug types', () => {
       const entry: ExecutionStackEntry = {
         node_uuid: 'node-1',
         node_name: 'Test Node',
-        node_type: 'http',
+        node_type: 'http:request',
         started_at: 1000,
         ended_at: 2000,
         success: true,
@@ -92,7 +92,7 @@ describe('Debug types', () => {
 
       expect(entry.node_uuid).toBe('node-1');
       expect(entry.node_name).toBe('Test Node');
-      expect(entry.node_type).toBe('http');
+      expect(entry.node_type).toBe('http:request');
       expect(entry.started_at).toBe(1000);
       expect(entry.ended_at).toBe(2000);
       expect(entry.success).toBe(true);
@@ -102,7 +102,7 @@ describe('Debug types', () => {
       const entry: ExecutionStackEntry = {
         node_uuid: 'node-1',
         node_name: 'Test Node',
-        node_type: 'http',
+        node_type: 'http:request',
         started_at: 1000,
         success: false,
         error: 'Execution failed',

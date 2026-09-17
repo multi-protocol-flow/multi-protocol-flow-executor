@@ -20,11 +20,11 @@ describe('VariablePanel', () => {
     },
     {
       uuid: 'http-1',
-      type: 'variable_extractor',
+      type: 'variable:extractor',
       name: 'HTTP请求',
       position: { x: 200, y: 0 },
       data: {
-        type: 'variable_extractor',
+        type: 'variable:extractor',
         output_mappings: [
           { target: 'user_status', source: '$.status', description: '状态码' },
         ],
@@ -44,7 +44,7 @@ describe('VariablePanel', () => {
 
   it('renders variable panel with groups', () => {
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
-    // 分组按变量来源: 流程级别变量('流程变量') + variable_extractor('HTTP请求')
+    // 分组按变量来源: 流程级别变量('流程变量') + variable:extractor('HTTP请求')
     // Entry 节点无 output_mappings → 不生成分组
     expect(screen.getByText('流程变量')).toBeInTheDocument();
     expect(screen.getByText('HTTP请求')).toBeInTheDocument();
@@ -231,11 +231,11 @@ describe('VariablePanel', () => {
         mockNodes[0],
         {
           uuid: 'http-2',
-          type: 'variable_extractor',
+          type: 'variable:extractor',
           name: 'HTTP请求2',
           position: { x: 200, y: 0 },
           data: {
-            type: 'variable_extractor',
+            type: 'variable:extractor',
             output_mappings: [
               { target: 'status_var', source: '$.status', description: '状态码' },
               { target: 'body_var', source: '$.body', description: '响应体' },

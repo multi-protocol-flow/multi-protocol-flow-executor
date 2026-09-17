@@ -2,7 +2,7 @@
  * TcpCloseConfig 组件测试
  * - 渲染表单字段：连接 ID、关闭超时
  * - 数据保存 (onSave 回调)：卸载保存、flush-config-panel 事件保存
- * - 连接选择：有/无 tcp_connect 节点时的渲染差异
+ * - 连接选择：有/无 tcp:connect 节点时的渲染差异
  */
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -31,7 +31,7 @@ function createBaseConfig(
   overrides: Partial<TcpCloseConfigType> = {},
 ): TcpCloseConfigType {
   return {
-    type: 'tcp_close',
+    type: 'tcp:close',
     connection_id: 'tcp-conn-001',
     close_timeout_ms: 5000,
     ...overrides,
@@ -39,7 +39,7 @@ function createBaseConfig(
 }
 
 /**
- * 配置 store mock，模拟包含 tcp_connect 节点的 flow
+ * 配置 store mock，模拟包含 tcp:connect 节点的 flow
  */
 function setupStoreMock(withTcpConnect: boolean = true) {
   const nodes: Array<{
@@ -53,11 +53,11 @@ function setupStoreMock(withTcpConnect: boolean = true) {
   if (withTcpConnect) {
     nodes.push({
       uuid: 'tcp-conn-001',
-      type: 'tcp_connect',
+      type: 'tcp:connect',
       name: 'TCP 连接 1',
       position: { x: 200, y: 0 },
       data: {
-        type: 'tcp_connect',
+        type: 'tcp:connect',
         host: '127.0.0.1',
         port: 8080,
       },
@@ -150,7 +150,7 @@ describe('TcpCloseConfig', () => {
   });
 
   describe('连接选择', () => {
-    it('有 tcp_connect 节点时显示 Select 选择器', () => {
+    it('有 tcp:connect 节点时显示 Select 选择器', () => {
       setupStoreMock(true);
       const config = createBaseConfig();
       render(<TcpCloseConfig data={config} onSave={mockOnSave} />);
@@ -161,7 +161,7 @@ describe('TcpCloseConfig', () => {
       expect(screen.queryByText(/未检测到 TCP Connect 节点/)).toBeNull();
     });
 
-    it('无 tcp_connect 节点时显示 Input 与提示', () => {
+    it('无 tcp:connect 节点时显示 Input 与提示', () => {
       setupStoreMock(false);
       const config = createBaseConfig({ connection_id: '' });
       render(<TcpCloseConfig data={config} onSave={mockOnSave} />);

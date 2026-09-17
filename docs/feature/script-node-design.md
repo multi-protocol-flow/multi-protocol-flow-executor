@@ -1041,8 +1041,8 @@ async fn test_script_node_in_flow() {
             "#),
         ],
         connections: vec![
-            create_connection("entry", "out", "http", "input"),
-            create_connection("http", "true", "script", "input"),
+            create_connection("entry", "out", "http:request", "input"),
+            create_connection("http:request", "true", "script", "input"),
         ],
         initial_variables: None,
     };

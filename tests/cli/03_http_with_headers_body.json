@@ -19,14 +19,14 @@
       },
       {
         "uuid": "http-post-001",
-        "type": "http",
+        "type": "http:request",
         "name": "POST Request with Headers",
         "position": {
           "x": 100,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/post",
           "method": "post",
           "headers": {

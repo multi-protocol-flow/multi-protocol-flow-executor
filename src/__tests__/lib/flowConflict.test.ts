@@ -8,10 +8,10 @@ describe('checkFlowConflict', () => {
     name: `Flow ${uuid}`,
     nodes: nodeUuids.map((id) => ({
       uuid: id,
-      type: 'http',
+      type: 'http:request',
       name: `Node ${id}`,
       position: { x: 0, y: 0 },
-      data: { type: 'http', url: 'https://example.com' } as unknown as NodeData,
+      data: { type: 'http:request', url: 'https://example.com' } as unknown as NodeData,
     })),
     connections: [],
   });

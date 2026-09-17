@@ -26,10 +26,10 @@ describe('contextBuilder', () => {
       expect(prompt).toContain('run_terminal_command');
       expect(prompt).toContain('Local Terminal & Shell Execution Protocol');
     });
-    it('包含 sub_flow 子流程节点分类、端口规范与配置模式', () => {
+    it('包含 flow:sub 子流程节点分类、端口规范与配置模式', () => {
       const prompt = buildSystemPrompt();
-      expect(prompt).toContain("'sub_flow'");
-      expect(prompt).toContain("sub_flow");
+      expect(prompt).toContain("'flow:sub'");
+      expect(prompt).toContain("flow:sub");
       expect(prompt).toContain("target_flow_path");
       expect(prompt).toContain("target_flow_id");
       expect(prompt).toContain("inherit_all_variables");
@@ -97,10 +97,10 @@ describe('contextBuilder', () => {
         nodes: [
           {
             uuid: 'node-1',
-            type: 'http',
+            type: 'http:request',
             name: 'Login Step',
             position: { x: 100, y: 100 },
-            data: { type: 'http', url: 'https://api.com/login', method: 'post' } as HttpConfig,
+            data: { type: 'http:request', url: 'https://api.com/login', method: 'post' } as HttpConfig,
           },
           {
             uuid: 'node-2',
@@ -143,10 +143,10 @@ describe('contextBuilder', () => {
         nodes: [
           {
             uuid: 'node-err-1',
-            type: 'http',
+            type: 'http:request',
             name: 'Broken HTTP Request',
             position: { x: 100, y: 100 },
-            data: { type: 'http', url: 'http://127.0.0.1:8080/api', method: 'get' } as HttpConfig,
+            data: { type: 'http:request', url: 'http://127.0.0.1:8080/api', method: 'get' } as HttpConfig,
           },
         ],
         connections: [],
@@ -173,7 +173,7 @@ describe('contextBuilder', () => {
           {
             node_uuid: 'node-err-1',
             node_name: 'Broken HTTP Request',
-            node_type: 'http',
+            node_type: 'http:request',
             start_time: 1000,
             end_time: 1150,
             duration_ms: 150,
@@ -205,7 +205,7 @@ describe('contextBuilder', () => {
 
   describe('formatNodeConfigSummary', () => {
     it('格式化 http 节点摘要', () => {
-      const res = formatNodeConfigSummary('http', {
+      const res = formatNodeConfigSummary('http:request', {
         method: 'post',
         url: 'https://example.com/api',
         body_type: 'body',
@@ -234,10 +234,10 @@ describe('contextBuilder', () => {
     });
 
     it('空配置兜底', () => {
-      expect(formatNodeConfigSummary('http', undefined)).toBe('empty config');
+      expect(formatNodeConfigSummary('http:request', undefined)).toBe('empty config');
     });
-    it('格式化 sub_flow 节点摘要', () => {
-      const res = formatNodeConfigSummary('sub_flow', {
+    it('格式化 flow:sub 节点摘要', () => {
+      const res = formatNodeConfigSummary('flow:sub', {
         target_flow_path: './subflows/login.json',
         inherit_all_variables: true,
         export_all_variables: true,

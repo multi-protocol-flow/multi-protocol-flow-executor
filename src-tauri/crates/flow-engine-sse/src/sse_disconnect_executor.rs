@@ -65,7 +65,7 @@ impl NodeExecutor for SseDisconnectExecutor {
 
         // 3. 日志：开始断开
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: sse_disconnect, Connection ID: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: sse:disconnect, Connection ID: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -193,7 +193,7 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "sse_disconnect".to_string(),
+            node_type: "sse:disconnect".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::SseDisconnect(SseDisconnectConfig {
@@ -260,7 +260,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-wrong".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),

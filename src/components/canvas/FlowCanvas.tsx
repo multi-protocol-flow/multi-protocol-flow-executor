@@ -190,33 +190,33 @@ const CANVAS_STYLE_STRING = `
 /** 节点类型映射 */
 const nodeTypes = {
   entry: EntryNode,
-  http: HttpNode,
+  'http:request': HttpNode,
   conditional: ConditionalNode,
-  ws_connect: WsConnectNode,
-  ws_send_collect: WsSendCollectNode,
-  ws_close: WsCloseNode,
+  'ws:connect': WsConnectNode,
+  'ws:send_collect': WsSendCollectNode,
+  'ws:close': WsCloseNode,
   assertion: AssertionNode,
   script: ScriptNode,
-  tcp_connect: TcpConnectNode,
-  tcp_send: TcpSendNode,
-  tcp_receive: TcpReceiveNode,
-  tcp_close: TcpCloseNode,
-  udp_bind: UdpBindNode,
-  udp_send_to: UdpSendToNode,
-  udp_recv_from: UdpRecvFromNode,
-  udp_close: UdpCloseNode,
-  variable_extractor: VariableExtractorNode,
-  sse_connect: SseConnectNode,
-  sse_listen: SseListenNode,
-  sse_disconnect: SseDisconnectNode,
-  graphql_connect: GraphqlConnectNode,
-  graphql_query: GraphqlQueryNode,
-  graphql_subscribe: GraphqlSubscribeNode,
-  graphql_introspect: GraphqlIntrospectNode,
-  graphql_disconnect: GraphqlDisconnectNode,
+  'tcp:connect': TcpConnectNode,
+  'tcp:send': TcpSendNode,
+  'tcp:receive': TcpReceiveNode,
+  'tcp:close': TcpCloseNode,
+  'udp:bind': UdpBindNode,
+  'udp:send_to': UdpSendToNode,
+  'udp:recv_from': UdpRecvFromNode,
+  'udp:close': UdpCloseNode,
+  'variable:extractor': VariableExtractorNode,
+  'sse:connect': SseConnectNode,
+  'sse:listen': SseListenNode,
+  'sse:disconnect': SseDisconnectNode,
+  'graphql:connect': GraphqlConnectNode,
+  'graphql:query': GraphqlQueryNode,
+  'graphql:subscribe': GraphqlSubscribeNode,
+  'graphql:introspect': GraphqlIntrospectNode,
+  'graphql:disconnect': GraphqlDisconnectNode,
   proxy: ProxyNode,
   end: EndNode,
-  sub_flow: SubFlowNode,
+  'flow:sub': SubFlowNode,
   default: DynamicPluginNode,
 };
 
@@ -228,30 +228,30 @@ const edgeTypes = {
 /** MiniMap 节点颜色 — 静态回退 */
 const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   entry: '#22c55e',
-  http: '#3b82f6',
+  'http:request': '#3b82f6',
   conditional: '#f97316',
-  ws_connect: '#f59e0b',
-  ws_send_collect: '#14b8a6',
-  ws_close: '#f43f5e',
+  'ws:connect': '#f59e0b',
+  'ws:send_collect': '#14b8a6',
+  'ws:close': '#f43f5e',
   assertion: '#a855f7',
   script: '#6366f1',
-  sub_flow: '#8b5cf6',
-  tcp_connect: '#10b981',
-  tcp_send: '#10b981',
-  tcp_receive: '#10b981',
-  tcp_close: '#10b981',
-  udp_bind: '#f97316',
-  udp_send_to: '#f97316',
-  udp_recv_from: '#f97316',
-  udp_close: '#f97316',
-  sse_connect: '#f43f5e',
-  sse_listen: '#f43f5e',
-  sse_disconnect: '#f43f5e',
-  graphql_connect: '#6366f1',
-  graphql_query: '#6366f1',
-  graphql_subscribe: '#6366f1',
-  graphql_introspect: '#6366f1',
-  graphql_disconnect: '#6366f1',
+  'flow:sub': '#8b5cf6',
+  'tcp:connect': '#10b981',
+  'tcp:send': '#10b981',
+  'tcp:receive': '#10b981',
+  'tcp:close': '#10b981',
+  'udp:bind': '#f97316',
+  'udp:send_to': '#f97316',
+  'udp:recv_from': '#f97316',
+  'udp:close': '#f97316',
+  'sse:connect': '#f43f5e',
+  'sse:listen': '#f43f5e',
+  'sse:disconnect': '#f43f5e',
+  'graphql:connect': '#6366f1',
+  'graphql:query': '#6366f1',
+  'graphql:subscribe': '#6366f1',
+  'graphql:introspect': '#6366f1',
+  'graphql:disconnect': '#6366f1',
   proxy: '#84cc16',
   end: '#8B5CF6',
 };
@@ -1047,7 +1047,7 @@ function FlowCanvasInner() {
         }
         return;
       }
-      // 子流程拖拽：从流程列表拖入画布生成 sub_flow 节点（或空画布时直接打开）
+      // 子流程拖拽：从流程列表拖入画布生成 flow:sub 节点（或空画布时直接打开）
       const subflowPayload =
         event.dataTransfer.getData('application/reactflow/subflow') ||
         event.dataTransfer.getData('text/plain');
@@ -1086,10 +1086,10 @@ function FlowCanvasInner() {
             y: event.clientY,
           });
 
-          const defaultData = createDefaultNodeData('sub_flow');
+          const defaultData = createDefaultNodeData('flow:sub');
           const nodeData = {
             ...defaultData,
-            type: 'sub_flow' as const,
+            type: 'flow:sub' as const,
             target_flow_id: subflowData.uuid,
             target_flow_path: subflowData.filePath || subflowData.uuid,
             inherit_all_variables: true,
@@ -1099,10 +1099,10 @@ function FlowCanvasInner() {
           };
 
           const nodeCount = flow.nodes.length + 1;
-          const name = subflowData.name || createDefaultNodeName('sub_flow', nodeCount);
+          const name = subflowData.name || createDefaultNodeName('flow:sub', nodeCount);
           addNode({
             uuid: crypto.randomUUID(),
-            type: 'sub_flow',
+            type: 'flow:sub',
             name,
             position,
             data: nodeData as unknown as NodeData,

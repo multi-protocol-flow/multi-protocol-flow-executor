@@ -41,10 +41,10 @@ const mockFlow = {
   nodes: [
     {
       uuid: 'node-http-1',
-      type: 'http',
+      type: 'http:request',
       name: 'HTTP 请求',
       position: { x: 0, y: 0 },
-      data: { type: 'http' },
+      data: { type: 'http:request' },
     },
   ],
   connections: [],
@@ -57,7 +57,7 @@ function createBaseConfig(
   overrides: Partial<VariableExtractorConfigType> = {},
 ): VariableExtractorConfigType {
   return {
-    type: 'variable_extractor',
+    type: 'variable:extractor',
     ...overrides,
   };
 }
@@ -97,7 +97,7 @@ describe('VariableExtractorConfig', () => {
         />,
       );
 
-      expect(screen.getByText('HTTP 请求 (http)')).toBeDefined();
+      expect(screen.getByText('HTTP 请求 (http:request)')).toBeDefined();
     });
   });
 
@@ -128,7 +128,7 @@ describe('VariableExtractorConfig', () => {
       // 表单 onBlur（焦点进入表单）与卸载清理都可能触发保存，断言最后一次保存 payload
       expect(mockOnSave).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          type: 'variable_extractor',
+          type: 'variable:extractor',
           output_mappings: [{ source: '$.body.data', target: 'new_var', description: '' }],
         }),
       );

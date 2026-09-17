@@ -48,7 +48,7 @@ function variablesFromString(json: string | undefined): Record<string, unknown> 
 
 function toFormData(data: GraphqlSubscribeConfigType): GraphqlSubscribeConfigFormData {
   return {
-    type: 'graphql_subscribe',
+    type: 'graphql:subscribe',
     connection_id: data.connection_id || '',
     subscription: data.subscription || '',
     variables: variablesToString(data.variables),
@@ -60,7 +60,7 @@ function toFormData(data: GraphqlSubscribeConfigType): GraphqlSubscribeConfigFor
 
 function fromFormData(formData: GraphqlSubscribeConfigFormData): GraphqlSubscribeConfigType {
   return {
-    type: 'graphql_subscribe',
+    type: 'graphql:subscribe',
     connection_id: formData.connection_id,
     subscription: formData.subscription,
     variables: variablesFromString(formData.variables),

@@ -59,7 +59,7 @@ export function SkipNodeDialog({
   const [jsonError, setJsonError] = useState<string | null>(null);
 
   // 是否需要模拟输出（仅 HTTP/WebSocket 节点）
-  const needsSimulatedOutput = nodeType === 'http' || nodeType === 'ws_connect' || nodeType === 'ws_send_collect';
+  const needsSimulatedOutput = nodeType === 'http:request' || nodeType === 'ws:connect' || nodeType === 'ws:send_collect';
 
   // 初始化选中的端口（默认选择第一个端口）
   useEffect(() => {
@@ -72,7 +72,7 @@ export function SkipNodeDialog({
   useEffect(() => {
     if (needsSimulatedOutput && !simulatedOutputText) {
       // 提供一个示例 JSON
-      const example = nodeType === 'http' 
+      const example = nodeType === 'http:request' 
         ? { status: 200, body: { message: 'Simulated response' }, headers: {} }
         : { message: 'Simulated message', timestamp: Date.now() };
       setSimulatedOutputText(JSON.stringify(example, null, 2));
@@ -131,13 +131,13 @@ export function SkipNodeDialog({
     switch (nodeType) {
       case 'conditional':
         return ll.flow.skip_node_type_conditional();
-      case 'http':
+      case 'http:request':
         return ll.flow.skip_node_type_http();
-      case 'ws_connect':
+      case 'ws:connect':
         return ll.flow.skip_node_type_ws_connect();
-      case 'ws_send_collect':
+      case 'ws:send_collect':
         return ll.flow.skip_node_type_ws_send_collect();
-      case 'ws_close':
+      case 'ws:close':
         return ll.flow.skip_node_type_ws_close();
       default:
         return nodeType;

@@ -44,7 +44,7 @@ function getFramingModeOptions(): Array<{ value: string; label: string }> {
  */
 function toFormData(data: TcpConnectConfigType): TcpConnectConfigFormData {
   return {
-    type: 'tcp_connect',
+    type: 'tcp:connect',
     host: data.host || '',
     port: data.port ?? 0,
     use_tls: data.use_tls ?? false,
@@ -63,7 +63,7 @@ function toFormData(data: TcpConnectConfigType): TcpConnectConfigFormData {
  */
 function fromFormData(formData: TcpConnectConfigFormData): TcpConnectConfigType {
   const result: TcpConnectConfigType = {
-    type: 'tcp_connect',
+    type: 'tcp:connect',
     host: formData.host,
     port: formData.port,
     use_tls: formData.use_tls,

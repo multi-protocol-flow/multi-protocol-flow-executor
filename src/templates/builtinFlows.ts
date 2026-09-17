@@ -40,8 +40,8 @@ const HTTP_POST_FLOW: Flow = {
   nodes: [
     { uuid: 'entry-http-post-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'http-post-request-001', type: 'http', name: 'POST Data', position: { x: 250, y: 0 },
-      data: { type: 'http', url: 'https://httpbin.org/post', method: 'post', body_type: 'body', content_type: 'json', body: '{"title":"foo","body":"bar","userId":1}' }
+      uuid: 'http-post-request-001', type: 'http:request', name: 'POST Data', position: { x: 250, y: 0 },
+      data: { type: 'http:request', url: 'https://httpbin.org/post', method: 'post', body_type: 'body', content_type: 'json', body: '{"title":"foo","body":"bar","userId":1}' }
     },
   ],
   connections: [
@@ -84,16 +84,16 @@ const TCP_SEND_FLOW: Flow = {
   nodes: [
     { uuid: 'entry-tcp-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'tcp-connect-001', type: 'tcp_connect', name: 'TCP Connect', position: { x: 250, y: 0 },
-      data: { type: 'tcp_connect', host: 'example.com', port: 80, connect_timeout_ms: 5000 }
+      uuid: 'tcp-connect-001', type: 'tcp:connect', name: 'TCP Connect', position: { x: 250, y: 0 },
+      data: { type: 'tcp:connect', host: 'example.com', port: 80, connect_timeout_ms: 5000 }
     },
     {
-      uuid: 'tcp-send-001', type: 'tcp_send', name: 'Send Data', position: { x: 500, y: 0 },
-      data: { type: 'tcp_send', connection_id: 'tcp-connect-001', data: 'Hello TCP Server', send_timeout_ms: 5000 }
+      uuid: 'tcp-send-001', type: 'tcp:send', name: 'Send Data', position: { x: 500, y: 0 },
+      data: { type: 'tcp:send', connection_id: 'tcp-connect-001', data: 'Hello TCP Server', send_timeout_ms: 5000 }
     },
     {
-      uuid: 'tcp-close-001', type: 'tcp_close', name: 'Close Connection', position: { x: 750, y: 0 },
-      data: { type: 'tcp_close', connection_id: 'tcp-connect-001' }
+      uuid: 'tcp-close-001', type: 'tcp:close', name: 'Close Connection', position: { x: 750, y: 0 },
+      data: { type: 'tcp:close', connection_id: 'tcp-connect-001' }
     },
   ],
   connections: [
@@ -111,16 +111,16 @@ const UDP_SEND_FLOW: Flow = {
   nodes: [
     { uuid: 'entry-udp-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'udp-bind-001', type: 'udp_bind', name: 'Bind Port', position: { x: 250, y: 0 },
-      data: { type: 'udp_bind', local_port: 0 }
+      uuid: 'udp-bind-001', type: 'udp:bind', name: 'Bind Port', position: { x: 250, y: 0 },
+      data: { type: 'udp:bind', local_port: 0 }
     },
     {
-      uuid: 'udp-send-001', type: 'udp_send_to', name: 'Send Data', position: { x: 500, y: 0 },
-      data: { type: 'udp_send_to', connection_id: 'udp-bind-001', data: 'Hello UDP', target_addr: '127.0.0.1', target_port: 9999 }
+      uuid: 'udp-send-001', type: 'udp:send_to', name: 'Send Data', position: { x: 500, y: 0 },
+      data: { type: 'udp:send_to', connection_id: 'udp-bind-001', data: 'Hello UDP', target_addr: '127.0.0.1', target_port: 9999 }
     },
     {
-      uuid: 'udp-close-001', type: 'udp_close', name: 'Close', position: { x: 750, y: 0 },
-      data: { type: 'udp_close', connection_id: 'udp-bind-001' }
+      uuid: 'udp-close-001', type: 'udp:close', name: 'Close', position: { x: 750, y: 0 },
+      data: { type: 'udp:close', connection_id: 'udp-bind-001' }
     },
   ],
   connections: [
@@ -138,16 +138,16 @@ const GRAPHQL_QUERY_FLOW: Flow = {
   nodes: [
     { uuid: 'entry-gql-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'gql-connect-001', type: 'graphql_connect', name: 'Connect GraphQL', position: { x: 250, y: 0 },
-      data: { type: 'graphql_connect', endpoint: 'https://countries.trevorblades.com/graphql' }
+      uuid: 'gql-connect-001', type: 'graphql:connect', name: 'Connect GraphQL', position: { x: 250, y: 0 },
+      data: { type: 'graphql:connect', endpoint: 'https://countries.trevorblades.com/graphql' }
     },
     {
-      uuid: 'gql-query-001', type: 'graphql_query', name: 'Query Data', position: { x: 500, y: 0 },
-      data: { type: 'graphql_query', connection_id: 'gql-connect-001', query: '{ countries { name code } }', timeout_ms: 10000 }
+      uuid: 'gql-query-001', type: 'graphql:query', name: 'Query Data', position: { x: 500, y: 0 },
+      data: { type: 'graphql:query', connection_id: 'gql-connect-001', query: '{ countries { name code } }', timeout_ms: 10000 }
     },
     {
-      uuid: 'gql-disconnect-001', type: 'graphql_disconnect', name: 'Disconnect', position: { x: 750, y: 0 },
-      data: { type: 'graphql_disconnect', connection_id: 'gql-connect-001' }
+      uuid: 'gql-disconnect-001', type: 'graphql:disconnect', name: 'Disconnect', position: { x: 750, y: 0 },
+      data: { type: 'graphql:disconnect', connection_id: 'gql-connect-001' }
     },
   ],
   connections: [
@@ -165,16 +165,16 @@ const SSE_FLOW: Flow = {
   nodes: [
     { uuid: 'entry-sse-001', type: 'entry', name: 'Entry', position: { x: 0, y: 0 }, data: { type: 'entry' } },
     {
-      uuid: 'sse-connect-001', type: 'sse_connect', name: 'Connect SSE', position: { x: 250, y: 0 },
-      data: { type: 'sse_connect', url: 'https://example.com/sse', timeout_ms: 10000, auto_reconnect: true }
+      uuid: 'sse-connect-001', type: 'sse:connect', name: 'Connect SSE', position: { x: 250, y: 0 },
+      data: { type: 'sse:connect', url: 'https://example.com/sse', timeout_ms: 10000, auto_reconnect: true }
     },
     {
-      uuid: 'sse-listen-001', type: 'sse_listen', name: 'Listen for Events', position: { x: 500, y: 0 },
-      data: { type: 'sse_listen', connection_id: 'sse-connect-001', max_events: 5, timeout_ms: 30000 }
+      uuid: 'sse-listen-001', type: 'sse:listen', name: 'Listen for Events', position: { x: 500, y: 0 },
+      data: { type: 'sse:listen', connection_id: 'sse-connect-001', max_events: 5, timeout_ms: 30000 }
     },
     {
-      uuid: 'sse-close-001', type: 'sse_disconnect', name: 'Disconnect', position: { x: 750, y: 0 },
-      data: { type: 'sse_disconnect', connection_id: 'sse-connect-001' }
+      uuid: 'sse-close-001', type: 'sse:disconnect', name: 'Disconnect', position: { x: 750, y: 0 },
+      data: { type: 'sse:disconnect', connection_id: 'sse-connect-001' }
     },
   ],
   connections: [
@@ -254,11 +254,11 @@ export const DEMO_FLOW: Flow = {
     // 节点 2: HTTP GET 节点
     {
       uuid: 'http-get-001',
-      type: 'http',
+      type: 'http:request',
       name: 'HTTP GET Example',
       position: { x: 250, y: 0 },
       data: {
-        type: 'http',
+        type: 'http:request',
         url: 'https://httpbin.org/get',
         method: 'get'
       }
@@ -280,11 +280,11 @@ export const DEMO_FLOW: Flow = {
     // 节点 4: HTTP POST 节点（成功分支）
     {
       uuid: 'http-post-001',
-      type: 'http',
+      type: 'http:request',
       name: 'HTTP POST Example',
       position: { x: 750, y: 0 },
       data: {
-        type: 'http',
+        type: 'http:request',
         url: 'https://httpbin.org/post',
         method: 'post',
         body_type: 'body',
@@ -346,11 +346,11 @@ export const WS_DEMO_FLOW: Flow = {
     // 节点 2: WS Connect 节点
     {
       uuid: 'ws-connect-001',
-      type: 'ws_connect',
+      type: 'ws:connect',
       name: 'Connect WebSocket',
       position: { x: 250, y: 0 },
       data: {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://echo.websocket.org',
         connect_timeout_ms: 10000,
         collect_message: false,
@@ -360,11 +360,11 @@ export const WS_DEMO_FLOW: Flow = {
     // 节点 3: WS Send+Collect 节点
     {
       uuid: 'ws-send-collect-001',
-      type: 'ws_send_collect',
+      type: 'ws:send_collect',
       name: 'Send and Collect Response',
       position: { x: 500, y: 0 },
       data: {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-001',
         message: '{"action":"ping","data":"Hello WebSocket!"}',
         message_type: 'text',
@@ -377,11 +377,11 @@ export const WS_DEMO_FLOW: Flow = {
     // 节点 4: WS Close 节点
     {
       uuid: 'ws-close-001',
-      type: 'ws_close',
+      type: 'ws:close',
       name: 'Close Connection',
       position: { x: 750, y: 0 },
       data: {
-        type: 'ws_close',
+        type: 'ws:close',
         connection_id: 'ws-connect-001',
         close_code: 1000,
         close_reason: 'Normal closure',

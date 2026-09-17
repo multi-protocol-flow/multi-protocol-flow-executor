@@ -52,7 +52,7 @@ type PanelConfig = Omit<SubFlowConfigType, 'variable_mappings' | 'output_mapping
 /** 补齐缺省字段，保证面板状态与后端结构一致 */
 function normalize(data: SubFlowConfigType): PanelConfig {
   return {
-    type: 'sub_flow',
+    type: 'flow:sub',
     target_flow_id: data.target_flow_id || undefined,
     target_flow_path: data.target_flow_path || undefined,
     inherit_all_variables: data.inherit_all_variables ?? true,

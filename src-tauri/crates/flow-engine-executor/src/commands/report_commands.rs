@@ -88,7 +88,7 @@ mod tests {
                 },
                 NodeExecutionReport {
                     node_uuid: "node-2".to_string(),
-                    node_type: "http".to_string(),
+                    node_type: "http:request".to_string(),
                     node_name: "HTTP请求".to_string(),
                     start_time: 1100,
                     end_time: 2000,

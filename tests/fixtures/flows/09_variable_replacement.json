@@ -24,14 +24,14 @@
       },
       {
         "uuid": "http-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-        "type": "http",
+        "type": "http:request",
         "name": "HTTP Request (with Variables)",
         "position": {
           "x": 200,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "{{api_url}}",
           "method": "GET",
           "headers": {

@@ -19,14 +19,14 @@
       },
       {
         "uuid": "http-001",
-        "type": "http",
+        "type": "http:request",
     "name": "POST without Body",
         "position": {
           "x": 100,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/post",
           "method": "post",
           "body": null

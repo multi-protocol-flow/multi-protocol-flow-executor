@@ -70,10 +70,10 @@ export const UdpBindNode = memo(function UdpBindNode({ id, data, selected }: Nod
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-orange-600 font-medium tracking-wide">
-            {getNodeDisplayName('udp_bind')}
+            {getNodeDisplayName('udp:bind')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('udp_bind')}
+            {nodeData.label || getNodeDisplayName('udp:bind')}
           </span>
           {nodeData.config?.local_port != null && (
             <span className="text-[10px] text-muted-foreground truncate">

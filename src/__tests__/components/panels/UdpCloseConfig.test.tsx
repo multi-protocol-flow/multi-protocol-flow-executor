@@ -2,7 +2,7 @@
  * UdpCloseConfig 组件测试
  * - 渲染表单字段：连接 ID
  * - 数据保存 (onSave 回调)：卸载保存
- * - 连接选择：有/无 udp_bind 节点时的渲染差异
+ * - 连接选择：有/无 udp:bind 节点时的渲染差异
  */
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -31,14 +31,14 @@ function createBaseConfig(
   overrides: Partial<UdpCloseConfigType> = {},
 ): UdpCloseConfigType {
   return {
-    type: 'udp_close',
+    type: 'udp:close',
     connection_id: 'udp-bind-001',
     ...overrides,
   };
 }
 
 /**
- * 配置 store mock，模拟包含 udp_bind 节点的 flow
+ * 配置 store mock，模拟包含 udp:bind 节点的 flow
  */
 function setupStoreMock(withUdpBind: boolean = true) {
   const nodes: Array<{
@@ -52,11 +52,11 @@ function setupStoreMock(withUdpBind: boolean = true) {
   if (withUdpBind) {
     nodes.push({
       uuid: 'udp-bind-001',
-      type: 'udp_bind',
+      type: 'udp:bind',
       name: 'UDP 绑定 1',
       position: { x: 200, y: 0 },
       data: {
-        type: 'udp_bind',
+        type: 'udp:bind',
         local_addr: '0.0.0.0',
         local_port: 9000,
       },
@@ -128,7 +128,7 @@ describe('UdpCloseConfig', () => {
   });
 
   describe('连接选择', () => {
-    it('有 udp_bind 节点时显示 Select 选择器', () => {
+    it('有 udp:bind 节点时显示 Select 选择器', () => {
       setupStoreMock(true);
       const config = createBaseConfig();
       render(<UdpCloseConfig data={config} onSave={mockOnSave} />);
@@ -139,7 +139,7 @@ describe('UdpCloseConfig', () => {
       expect(screen.queryByText(/未检测到 UDP Bind 节点/)).toBeNull();
     });
 
-    it('无 udp_bind 节点时显示 Input 与提示', () => {
+    it('无 udp:bind 节点时显示 Input 与提示', () => {
       setupStoreMock(false);
       const config = createBaseConfig({ connection_id: '' });
       render(<UdpCloseConfig data={config} onSave={mockOnSave} />);

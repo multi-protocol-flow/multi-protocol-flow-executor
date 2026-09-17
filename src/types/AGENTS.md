@@ -51,7 +51,7 @@ TypeScript 类型定义层，与 Rust 后端结构体严格对齐。核心是 `N
 
 - **判别联合优先**: `NodeData` 使用 `type: '<node_type>'` 字段做运行时区分。禁止揉合成一个松散的 `Record<string, any>`。
 - **可选字段**: 所有 `?` 标记的字段对应 Rust 的 `Option<T>`。不存在 Rust 侧有 `Option` 但 TS 侧无 `?` 的情况。
-- **类型守卫**: 用 `if (data.type === 'http')` 做窄化，禁用 `as any` 强制转换。
+- **类型守卫**: 用 `if (data.type === 'http:request')` 做窄化，禁用 `as any` 强制转换。
 - **导出统一**: 每个文件以 `export type { ... }` 或 `export interface` 为主。`index.ts` 是唯一 barrel file。
 - **序列化对齐**: `execution_event.ts` 使用 camelCase 匹配 Rust 的 `#[serde(rename_all = "camelCase")]`。
 

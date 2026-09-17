@@ -20,14 +20,14 @@
       },
       {
         "uuid": "ws-connect-conditional",
-        "type": "ws_connect",
+        "type": "ws:connect",
         "name": "WS Connect",
         "position": {
           "x": 200,
           "y": 0
         },
         "data": {
-          "type": "ws_connect",
+          "type": "ws:connect",
           "url": "wss://echo.websocket.org",
           "headers": [],
           "subprotocols": [],
@@ -41,14 +41,14 @@
       },
       {
         "uuid": "ws-send-wait-conditional",
-        "type": "ws_send_collect",
+        "type": "ws:send_collect",
         "name": "WS Send Collect (Regex Match)",
         "position": {
           "x": 400,
           "y": 0
         },
         "data": {
-          "type": "ws_send_collect",
+          "type": "ws:send_collect",
           "connection_id": "ws-connect-conditional",
           "message": "{\"action\":\"ping\",\"timestamp\":1234567890,\"data\":{\"status\":\"ok\"}}",
           "message_type": "text",
@@ -66,14 +66,14 @@
       },
       {
         "uuid": "ws-close-conditional",
-        "type": "ws_close",
+        "type": "ws:close",
         "name": "WS Close",
         "position": {
           "x": 600,
           "y": 0
         },
         "data": {
-          "type": "ws_close",
+          "type": "ws:close",
           "connection_id": "ws-connect-conditional",
           "close_code": 1000,
           "close_reason": "Test complete",

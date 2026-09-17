@@ -34,10 +34,10 @@ Object.defineProperty(window.Element.prototype, 'scrollIntoView', {
 /** SSE Connect 节点（用于 flow mock） */
 const sseConnectNode = {
   uuid: 'sse-1',
-  type: 'sse_connect' as const,
+  type: 'sse:connect' as const,
   name: 'SSE Server',
   position: { x: 0, y: 0 },
-  data: { type: 'sse_connect' as const, url: 'https://example.com/events' },
+  data: { type: 'sse:connect' as const, url: 'https://example.com/events' },
 };
 
 const mockFlow = {
@@ -52,7 +52,7 @@ function createBaseConfig(
   overrides: Partial<SseDisconnectConfigType> = {},
 ): SseDisconnectConfigType {
   return {
-    type: 'sse_disconnect',
+    type: 'sse:disconnect',
     connection_id: 'sse-conn-1',
     ...overrides,
   };

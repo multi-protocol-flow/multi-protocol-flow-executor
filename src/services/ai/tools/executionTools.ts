@@ -255,7 +255,7 @@ export const executionToolHandlers = {
       let possibleRootCause = `[${errKind}] Execution error: ${errMsg}`;
       const suggestedDirections: string[] = [];
 
-      if (nr.node_type === 'http') {
+      if (nr.node_type === 'http:request') {
         const cfg = (nodeObj?.data || {}) as Record<string, unknown>;
         const url = String(cfg.url || '');
         if (!url || url === 'https://httpbin.org/get') {
@@ -284,7 +284,7 @@ export const executionToolHandlers = {
         possibleRootCause = `JavaScript runtime error in sandbox: ${errMsg}`;
         suggestedDirections.push('Direction 1: Fix JavaScript code syntax or object property access.');
         suggestedDirections.push('Direction 2: Check preceding step response structure accessed via context.steps.<id>.response.body.');
-      } else if (nr.node_type === 'sub_flow') {
+      } else if (nr.node_type === 'flow:sub') {
         const subReport = nr.sub_flow_report;
         const failedChild = subReport?.node_reports?.find((c) => c.status === 'failed');
         if (failedChild) {

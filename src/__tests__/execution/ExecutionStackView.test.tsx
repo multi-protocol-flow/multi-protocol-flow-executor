@@ -52,7 +52,7 @@ describe('ExecutionStackView', () => {
           {
             node_uuid: 'auth-node',
             node_name: 'Verify Token',
-            node_type: 'http',
+            node_type: 'http:request',
             started_at: 1000,
             ended_at: 1500,
             success: true,

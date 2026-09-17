@@ -179,7 +179,7 @@ pub enum FormFieldType {
 **JSON 请求体**:
 ```json
 {
-  "type": "http",
+  "type": "http:request",
   "url": "https://api.example.com/users",
   "method": "post",
   "body_type": "body",
@@ -191,7 +191,7 @@ pub enum FormFieldType {
 **Form 表单（带文件上传）**:
 ```json
 {
-  "type": "http",
+  "type": "http:request",
   "url": "https://api.example.com/upload",
   "method": "post",
   "body_type": "form-data",
@@ -205,7 +205,7 @@ pub enum FormFieldType {
 **URL-encoded 表单**:
 ```json
 {
-  "type": "http",
+  "type": "http:request",
   "url": "https://api.example.com/login",
   "method": "post",
   "body_type": "x-www-form-urlencoded",
@@ -219,7 +219,7 @@ pub enum FormFieldType {
 **二进制文件上传**:
 ```json
 {
-  "type": "http",
+  "type": "http:request",
   "url": "https://api.example.com/files",
   "method": "put",
   "body_type": "binary",
@@ -411,7 +411,7 @@ Flow
   "name": "用户注册流程",
   "nodes": [
     { "uuid": "node-001", "type": "entry", "data": {"type": "entry"} },
-    { "uuid": "node-002", "type": "http", "data": {"type": "http", "url": "..."} }
+    { "uuid": "node-002", "type": "http:request", "data": {"type": "http:request", "url": "..."} }
   ],
   "connections": [
     { "source_node_uuid": "node-001", "target_node_uuid": "node-002", "source_port_id": "out", "target_port_id": "in" }
@@ -431,8 +431,8 @@ Flow
       "data": {"type": "conditional", "field_path": "user_age", "operator": "GreaterOrEqual", "expected_value": 18},
       "ports": [{"id": "in"}, {"id": "true"}, {"id": "false"}]
     },
-    { "uuid": "n3", "type": "http", "name": "成年人接口" },
-    { "uuid": "n4", "type": "http", "name": "未成年人接口" }
+    { "uuid": "n3", "type": "http:request", "name": "成年人接口" },
+    { "uuid": "n4", "type": "http:request", "name": "未成年人接口" }
   ],
   "connections": [
     {"source_node_uuid": "n1", "target_node_uuid": "n2", "source_port_id": "out", "target_port_id": "in"},
@@ -481,22 +481,22 @@ Flow
     },
     {
       "uuid": "9ba7b810-9dad-11d1-80b4-00c04fd430c9",
-      "type": "http",
+      "type": "http:request",
       "name": "成年人接口",
       "position": { "x": 700, "y": 50 },
       "data": {
-        "type": "http",
+        "type": "http:request",
         "url": "https://api.example.com/adult",
         "method": "post"
       }
     },
     {
       "uuid": "a1a7b810-9dad-11d1-80b4-00c04fd430ca",
-      "type": "http",
+      "type": "http:request",
       "name": "未成年人接口",
       "position": { "x": 700, "y": 150 },
       "data": {
-        "type": "http",
+        "type": "http:request",
         "url": "https://api.example.com/minor",
         "method": "post"
       }

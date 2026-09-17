@@ -250,7 +250,7 @@ mod tests {
         // 创建没有 Entry node的流程（只有 HTTP 节点）
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(flow_engine_core::node_config::HttpConfig {

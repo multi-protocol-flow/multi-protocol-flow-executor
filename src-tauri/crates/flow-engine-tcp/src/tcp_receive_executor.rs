@@ -1,7 +1,7 @@
 // TCP Receive 独立节点执行器
 //
-// 实现 TCP 数据独立接收功能，不依赖 tcp_send 的超时模式。
-// 从已有的 tcp_connect 连接中接收数据，支持超时配置和帧定界。
+// 实现 TCP 数据独立接收功能，不依赖 tcp:send 的超时模式。
+// 从已有的 tcp:connect 连接中接收数据，支持超时配置和帧定界。
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -68,7 +68,7 @@ impl NodeExecutor for TcpReceiveExecutor {
 
         // 3. 日志：start execution
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: tcp_receive, ConnectionID: {}, Timeout: {}ms",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: tcp:receive, ConnectionID: {}, Timeout: {}ms",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -268,7 +268,7 @@ mod tests {
     ) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "tcp_receive".to_string(),
+            node_type: "tcp:receive".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::TcpReceive(TcpReceiveConfig {
@@ -491,7 +491,7 @@ mod tests {
 
         let node = Node {
             uuid: "node-var".to_string(),
-            node_type: "tcp_receive".to_string(),
+            node_type: "tcp:receive".to_string(),
             name: "变量替换测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::TcpReceive(TcpReceiveConfig {
@@ -588,7 +588,7 @@ mod tests {
 
         let node = Node {
             uuid: "node-wrong".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),

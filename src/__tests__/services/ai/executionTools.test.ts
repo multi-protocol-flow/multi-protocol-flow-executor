@@ -42,10 +42,10 @@ describe('executionTools', () => {
           },
           {
             uuid: 'http-1',
-            type: 'http',
+            type: 'http:request',
             name: 'Orphan HTTP',
             position: { x: 200, y: 0 },
-            data: { type: 'http', url: 'https://example.com' } as unknown as Flow['nodes'][0]['data'],
+            data: { type: 'http:request', url: 'https://example.com' } as unknown as Flow['nodes'][0]['data'],
           },
         ],
         connections: [],
@@ -65,11 +65,11 @@ describe('executionTools', () => {
         nodes: [
           {
             uuid: 'http-err-1',
-            type: 'http',
+            type: 'http:request',
             name: 'API Auth Request',
             position: { x: 100, y: 100 },
             data: {
-              type: 'http',
+              type: 'http:request',
               url: 'https://api.example.com/protected',
               method: 'get',
             } as unknown as Flow['nodes'][0]['data'],
@@ -94,7 +94,7 @@ describe('executionTools', () => {
           {
             node_uuid: 'http-err-1',
             node_name: 'API Auth Request',
-            node_type: 'http',
+            node_type: 'http:request',
             start_time: 1000,
             end_time: 1200,
             duration_ms: 200,
@@ -117,7 +117,7 @@ describe('executionTools', () => {
       expect(res.diagnoses[0].suggested_repair_directions.length).toBeGreaterThan(0);
       expect(res.instruction_for_assistant).toContain('propose the suggested repair directions');
     });
-    it('能够深入诊断 sub_flow 内部嵌套失败节点', async () => {
+    it('能够深入诊断 flow:sub 内部嵌套失败节点', async () => {
       const flow: Flow = {
         uuid: 'flow-parent',
         name: 'Parent Flow',
@@ -131,10 +131,10 @@ describe('executionTools', () => {
           },
           {
             uuid: 'subflow-1',
-            type: 'sub_flow',
+            type: 'flow:sub',
             name: 'Nested Subflow',
             position: { x: 200, y: 0 },
-            data: { type: 'sub_flow', target_flow_path: './child.json' },
+            data: { type: 'flow:sub', target_flow_path: './child.json' },
           },
         ],
         connections: [
@@ -164,7 +164,7 @@ describe('executionTools', () => {
           {
             node_uuid: 'subflow-1',
             node_name: 'Nested Subflow',
-            node_type: 'sub_flow',
+            node_type: 'flow:sub',
             start_time: 1000,
             end_time: 1500,
             duration_ms: 500,
@@ -189,7 +189,7 @@ describe('executionTools', () => {
                 {
                   node_uuid: 'child-http',
                   node_name: 'Child Query',
-                  node_type: 'http',
+                  node_type: 'http:request',
                   start_time: 1000,
                   end_time: 1500,
                   duration_ms: 500,
@@ -210,7 +210,7 @@ describe('executionTools', () => {
       const res = await executionToolHandlers.diagnose_flow_errors();
       expect(res.success).toBe(true);
       expect(res.failed_count).toBe(1);
-      expect(res.diagnoses[0].node_type).toBe('sub_flow');
+      expect(res.diagnoses[0].node_type).toBe('flow:sub');
       expect(res.diagnoses[0].possible_root_cause).toContain('Child Query');
       expect(res.diagnoses[0].suggested_repair_directions.length).toBeGreaterThan(0);
     });

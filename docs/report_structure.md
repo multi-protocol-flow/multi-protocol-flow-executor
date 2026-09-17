@@ -311,7 +311,7 @@ pub struct ExecutionResult {
     },
     {
       "node_uuid": "node-002",
-      "node_type": "http",
+      "node_type": "http:request",
       "status": "success",
       "duration_ms": 849,
       "input_data": {"user_id": 12345},
@@ -344,7 +344,7 @@ pub struct ExecutionResult {
     },
     {
       "node_uuid": "n3",
-      "node_type": "http",
+      "node_type": "http:request",
       "status": "success",
       "used_port_id": "out"
     }

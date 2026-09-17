@@ -19,14 +19,14 @@
       },
       {
         "uuid": "http-orphan",
-        "type": "http",
+        "type": "http:request",
         "name": "Orphan HTTP Node",
         "position": {
           "x": 100,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/get",
           "method": "get"
         },

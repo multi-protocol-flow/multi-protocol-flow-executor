@@ -30,7 +30,7 @@ function createBaseConfig(
   overrides: Partial<GraphqlConnectConfigType> = {},
 ): GraphqlConnectConfigType {
   return {
-    type: 'graphql_connect',
+    type: 'graphql:connect',
     endpoint: 'https://api.example.com/graphql',
     ...overrides,
   };

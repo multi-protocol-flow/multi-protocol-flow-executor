@@ -6,8 +6,8 @@
 
 TCP/UDP protocol crate providing TCP and UDP client execution with TLS, message framing, flow recording, and binary protocol parsing. 8 node types registered via `TcpPluginGroup` and `UdpPluginGroup`:
 
-- **TCP** (4, green `#10B981`): `tcp_connect`, `tcp_send`, `tcp_receive`, `tcp_close`
-- **UDP** (4, orange `#F97316`): `udp_bind`, `udp_send_to`, `udp_recv_from`, `udp_close`
+- **TCP** (4, green `#10B981`): `tcp:connect`, `tcp:send`, `tcp:receive`, `tcp:close`
+- **UDP** (4, orange `#F97316`): `udp:bind`, `udp:send_to`, `udp:recv_from`, `udp:close`
 
 All nodes have true/false output ports. The TCP connection manager (`TcpConnectionManager`) is stored as a flow-level provider accessible by all TCP send/receive/close executors in the same flow.
 

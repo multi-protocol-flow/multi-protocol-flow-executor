@@ -28,7 +28,7 @@ mpe run node <json-string> [--var KEY=VALUE]...
 
 # 示例
 mpe run node '{"type":"redis:connect","host":"127.0.0.1","port":6379}'
-mpe run node '{"type":"http","url":"https://api.example.com/health","method":"get"}'
+mpe run node '{"type":"http:request","url":"https://api.example.com/health","method":"get"}'
 mpe run node '{"type":"db:connect","driver":"postgres","connection_string":"postgres://user:pass@localhost/db"}'
 mpe run node '{"type":"mqtt_connect","broker":"tcp://broker.emqx.io:1883"}'
 mpe run node '{"type":"kafka_connect","bootstrap_servers":"localhost:9092"}'
@@ -92,18 +92,18 @@ mpe run node '{"type":"redis:connect","host":"{{HOST}}","port":{{PORT}}}' \
 |------|---------|---------|
 | Redis | `redis:connect`（插件节点） | Redis 实例连通性（需安装 plugins/redis 插件） |
 | DB | `db:connect`（插件节点） | MySQL/PostgreSQL/SQLite 可达性（需安装 plugins/db 插件） |
-| HTTP | `http` | HTTP API 可访问性 |
+| HTTP | `http:request` | HTTP API 可访问性 |
 | MQTT | `mqtt_connect` | Broker 连通性 |
 | Kafka | `kafka_connect` | Kafka 集群可达性 |
 | AMQP | `amqp_connect` / `amqp10_connect` | RabbitMQ/AMQP broker 可达性 |
 | SMTP | `smtp_connect` | SMTP 服务器可达性 |
 | IMAP | `imap_connect` | IMAP 服务器可达性 |
-| WebSocket | `ws_connect` | WS 端点可达性 |
-| SSE | `sse_connect` | SSE 端点可达性 |
+| WebSocket | `ws:connect` | WS 端点可达性 |
+| SSE | `sse:connect` | SSE 端点可达性 |
 | gRPC | `grpc_connect` | gRPC 端点连通性 |
 | MCP | `mcp_connect` | MCP server 连通性 |
-| GraphQL | `graphql_connect` | GraphQL 端点连通性 |
-| TCP | `tcp_connect` | TCP 端口连通性（类似 telnet） |
+| GraphQL | `graphql:connect` | GraphQL 端点连通性 |
+| TCP | `tcp:connect` | TCP 端口连通性（类似 telnet） |
 | Script | `script` | 运行 JS 脚本验证逻辑 |
 | Assertion | `assertion` | 数据断言验证（通常配合 --var 注入测试数据） |
 

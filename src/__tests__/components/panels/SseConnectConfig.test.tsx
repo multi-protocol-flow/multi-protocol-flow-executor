@@ -37,7 +37,7 @@ function createBaseConfig(
   overrides: Partial<SseConnectConfigType> = {},
 ): SseConnectConfigType {
   return {
-    type: 'sse_connect',
+    type: 'sse:connect',
     url: 'https://example.com/events',
     ...overrides,
   };

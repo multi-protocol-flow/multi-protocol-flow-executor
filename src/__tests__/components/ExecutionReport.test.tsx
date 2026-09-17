@@ -46,7 +46,7 @@ describe('ExecutionReport', () => {
       },
       {
         node_uuid: 'node-002',
-        node_type: 'http',
+        node_type: 'http:request',
         node_name: 'HTTP请求节点',
         start_time: Date.now() - 900,
         end_time: Date.now() - 400,

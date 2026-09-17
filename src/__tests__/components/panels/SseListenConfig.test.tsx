@@ -29,7 +29,7 @@ function createBaseConfig(
   overrides: Partial<SseListenConfigType> = {},
 ): SseListenConfigType {
   return {
-    type: 'sse_listen',
+    type: 'sse:listen',
     connection_id: 'sse-conn-1',
     ...overrides,
   };

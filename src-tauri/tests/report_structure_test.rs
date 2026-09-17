@@ -149,7 +149,7 @@ fn test_report_structure_node_execution_report() {
     let report = NodeExecutionReport {
         sub_flow_report: None,
         node_uuid: "node-uuid-full".to_string(),
-        node_type: "http".to_string(),
+        node_type: "http:request".to_string(),
         node_name: "full test node".to_string(),
         start_time: 1700000000000,
         end_time: 1700000001000,
@@ -209,7 +209,7 @@ fn test_report_structure_node_execution_report() {
 
     // 验证所有字段
     assert_eq!(deserialized.node_uuid, "node-uuid-full");
-    assert_eq!(deserialized.node_type, "http");
+    assert_eq!(deserialized.node_type, "http:request");
     assert_eq!(deserialized.node_name, "full test node");
     assert_eq!(deserialized.start_time, 1700000000000);
     assert_eq!(deserialized.end_time, 1700000001000);
@@ -241,7 +241,7 @@ fn test_report_structure_node_execution_report_failed() {
     let report = NodeExecutionReport {
         sub_flow_report: None,
         node_uuid: "failed-node".to_string(),
-        node_type: "http".to_string(),
+        node_type: "http:request".to_string(),
         node_name: "failed HTTP request".to_string(),
         start_time: 1000,
         end_time: 5000,
@@ -285,7 +285,7 @@ fn test_report_structure_node_execution_report_skipped() {
     let report = NodeExecutionReport {
         sub_flow_report: None,
         node_uuid: "skipped-node".to_string(),
-        node_type: "http".to_string(),
+        node_type: "http:request".to_string(),
         node_name: "skipped node".to_string(),
         start_time: 1000,
         end_time: 1000,
@@ -351,7 +351,7 @@ fn test_report_structure_flow_execution_report() {
         NodeExecutionReport {
             sub_flow_report: None,
             node_uuid: "http-1".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             node_name: "API request".to_string(),
             start_time: 1001,
             end_time: 2500,
@@ -796,7 +796,7 @@ fn test_report_structure_full_roundtrip() {
             NodeExecutionReport {
                 sub_flow_report: None,
                 node_uuid: "http-1".to_string(),
-                node_type: "http".to_string(),
+                node_type: "http:request".to_string(),
                 node_name: "fetch users".to_string(),
                 start_time: 1,
                 end_time: 500,

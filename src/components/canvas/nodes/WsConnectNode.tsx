@@ -70,10 +70,10 @@ export const WsConnectNode = memo(function WsConnectNode({ id, data, selected }:
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-amber-600 font-medium tracking-wide">
-            {getNodeDisplayName('ws_connect')}
+            {getNodeDisplayName('ws:connect')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('ws_connect')}
+            {nodeData.label || getNodeDisplayName('ws:connect')}
           </span>
         </div>
       </div>

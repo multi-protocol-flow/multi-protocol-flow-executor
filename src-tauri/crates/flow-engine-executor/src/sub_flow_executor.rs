@@ -207,7 +207,7 @@ impl NodeExecutor for SubFlowNodeExecutor {
             NodeData::Plugin(val) => serde_json::from_value(val.clone()).map_err(|e| {
                 ErrorDetail::new(
                     ErrorKind::Configuration,
-                    format!("Invalid sub_flow configuration: {}", e),
+                    format!("Invalid flow:sub configuration: {}", e),
                 )
             })?,
             _ => {

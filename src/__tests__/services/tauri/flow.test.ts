@@ -36,10 +36,10 @@ function createTestFlow(): Flow {
       },
       {
         uuid: 'http-node-uuid',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP 请求',
         position: { x: 200, y: 0 },
-        data: { type: 'http', url: 'https://example.com', method: 'get' },
+        data: { type: 'http:request', url: 'https://example.com', method: 'get' },
       },
     ],
     connections: [

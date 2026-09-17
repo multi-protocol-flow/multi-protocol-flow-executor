@@ -21,7 +21,7 @@ pub struct WsConnectPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for WsConnectPlugin {
     fn type_id(&self) -> &str {
-        "ws_connect"
+        "ws:connect"
     }
 
     fn display_name(&self) -> &str {
@@ -124,7 +124,7 @@ pub struct WsSendCollectPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for WsSendCollectPlugin {
     fn type_id(&self) -> &str {
-        "ws_send_collect"
+        "ws:send_collect"
     }
 
     fn display_name(&self) -> &str {
@@ -223,7 +223,7 @@ pub struct WsClosePlugin;
 #[async_trait::async_trait]
 impl NodePlugin for WsClosePlugin {
     fn type_id(&self) -> &str {
-        "ws_close"
+        "ws:close"
     }
 
     fn display_name(&self) -> &str {

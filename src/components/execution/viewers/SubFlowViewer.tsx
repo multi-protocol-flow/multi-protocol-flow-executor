@@ -298,7 +298,7 @@ export const SubFlowViewer = memo(function SubFlowViewer({ report }: SubFlowView
         <ErrorSection
           error={subReport.flow_error}
           nodeName={flowName}
-          nodeType="sub_flow"
+          nodeType="flow:sub"
           nodeUuid={report.node_uuid}
         />
       )}

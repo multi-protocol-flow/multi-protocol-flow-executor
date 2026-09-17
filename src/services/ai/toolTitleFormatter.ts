@@ -10,11 +10,11 @@ import { useDatasourceStore } from '@/stores/datasource';
 import { getLL } from '@/i18n/i18n-lazy';
 
 export interface ToolTitleInfo {
-  /** 提取到的具体操作目标名 (如 `"用户登录" (http)`, `apifox · order_center`, `"登录" ➔ "验签"`) */
+  /** 提取到的具体操作目标名 (如 `"用户登录" (http:request)`, `apifox · order_center`, `"登录" ➔ "验签"`) */
   target?: string;
   /** 国际化工具显示名称 (如 "修改节点" / "Update Node") */
   toolDisplayName: string;
-  /** 完整标题: 先工具名: 目标名，没有目标名就只显示工具名 (如 `修改节点: "用户登录" (http)` 或 `清空画布`) */
+  /** 完整标题: 先工具名: 目标名，没有目标名就只显示工具名 (如 `修改节点: "用户登录" (http:request)` 或 `清空画布`) */
   fullTitle: string;
   /** 底层原始函数名 (如 `update_node_config`) */
   rawName: string;

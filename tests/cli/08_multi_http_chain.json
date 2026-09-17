@@ -22,14 +22,14 @@
       },
       {
         "uuid": "http-001",
-        "type": "http",
+        "type": "http:request",
         "name": "Step 1: Get UUID",
         "position": {
           "x": 100,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "{{initial_variables.api_base}}/uuid",
           "method": "get"
         },
@@ -37,14 +37,14 @@
       },
       {
         "uuid": "http-002",
-        "type": "http",
+        "type": "http:request",
         "name": "Step 2: Request with UUID",
         "position": {
           "x": 200,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "{{initial_variables.api_base}}/post",
           "method": "post",
           "body": {
@@ -55,14 +55,14 @@
       },
       {
         "uuid": "http-003",
-        "type": "http",
+        "type": "http:request",
         "name": "Step 3: Final Confirmation",
         "position": {
           "x": 300,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "{{initial_variables.api_base}}/get",
           "method": "get"
         },

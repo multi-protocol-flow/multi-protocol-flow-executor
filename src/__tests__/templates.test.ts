@@ -11,7 +11,7 @@ describe('DEMO_FLOW 模板', () => {
     
     const nodeTypes = DEMO_FLOW.nodes.map(n => n.type);
     expect(nodeTypes).toContain('entry');
-    expect(nodeTypes).toContain('http');  // 至少一个 HTTP 节点
+    expect(nodeTypes).toContain('http:request');  // 至少一个 HTTP 节点
     expect(nodeTypes).toContain('conditional');
   });
 

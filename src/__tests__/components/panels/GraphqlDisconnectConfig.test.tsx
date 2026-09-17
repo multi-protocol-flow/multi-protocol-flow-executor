@@ -34,10 +34,10 @@ Object.defineProperty(window.Element.prototype, 'scrollIntoView', {
 /** GraphQL Connect 节点（用于 flow mock） */
 const graphqlConnectNode = {
   uuid: 'gql-1',
-  type: 'graphql_connect' as const,
+  type: 'graphql:connect' as const,
   name: 'GraphQL API',
   position: { x: 0, y: 0 },
-  data: { type: 'graphql_connect' as const, endpoint: 'https://api.example.com/graphql' },
+  data: { type: 'graphql:connect' as const, endpoint: 'https://api.example.com/graphql' },
 };
 
 const mockFlow = {
@@ -52,7 +52,7 @@ function createBaseConfig(
   overrides: Partial<GraphqlDisconnectConfigType> = {},
 ): GraphqlDisconnectConfigType {
   return {
-    type: 'graphql_disconnect',
+    type: 'graphql:disconnect',
     connection_id: 'gql-conn-1',
     ...overrides,
   };

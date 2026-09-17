@@ -19,14 +19,14 @@
       },
       {
         "uuid": "http-get-001",
-        "type": "http",
+        "type": "http:request",
         "name": "GET Request",
         "position": {
           "x": 100,
           "y": -100
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/get",
           "method": "get"
         },
@@ -34,14 +34,14 @@
       },
       {
         "uuid": "http-post-001",
-        "type": "http",
+        "type": "http:request",
         "name": "POST Request",
         "position": {
           "x": 100,
           "y": -50
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/post",
           "method": "post",
           "body": {
@@ -52,14 +52,14 @@
       },
       {
         "uuid": "http-put-001",
-        "type": "http",
+        "type": "http:request",
         "name": "PUT Request",
         "position": {
           "x": 100,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/put",
           "method": "put",
           "body": {
@@ -70,14 +70,14 @@
       },
       {
         "uuid": "http-delete-001",
-        "type": "http",
+        "type": "http:request",
         "name": "DELETE Request",
         "position": {
           "x": 100,
           "y": 50
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/delete",
           "method": "delete"
         },
@@ -85,14 +85,14 @@
       },
       {
         "uuid": "http-patch-001",
-        "type": "http",
+        "type": "http:request",
         "name": "PATCH Request",
         "position": {
           "x": 100,
           "y": 100
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "https://httpbin.org/patch",
           "method": "patch",
           "body": {

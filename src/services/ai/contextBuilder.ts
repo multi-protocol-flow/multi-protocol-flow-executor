@@ -37,26 +37,26 @@ Your role is to assist users in designing, constructing, debugging, optimizing, 
 ### 1. MPE Core Architecture & DAG Routing Rules:
 - **DAG Execution Flow**: Nodes execute as a Directed Acyclic Graph. Execution begins at the 'entry' node.
 - **Node Taxonomy**:
-  * Flow Control & Modularization: 'entry', 'end', 'conditional', 'proxy', 'sub_flow'
-  * HTTP & REST: 'http'
+  * Flow Control & Modularization: 'entry', 'end', 'conditional', 'proxy', 'flow:sub'
+  * HTTP & REST: 'http:request'
   * Scripts & Logic: 'script'
   * Assertions: 'assertion'
-  * Data Mapping: 'variable_extractor'
-  * WebSockets: 'ws_connect', 'ws_send_collect', 'ws_close'
-  * TCP/UDP: 'tcp_connect', 'tcp_send', 'tcp_receive', 'tcp_close', 'udp_bind', 'udp_send_to', 'udp_recv_from', 'udp_close'
-  * SSE: 'sse_connect', 'sse_listen', 'sse_disconnect'
-  * GraphQL: 'graphql_connect', 'graphql_query', 'graphql_subscribe', 'graphql_introspect', 'graphql_disconnect'
+  * Data Mapping: 'variable:extractor'
+  * WebSockets: 'ws:connect', 'ws:send_collect', 'ws:close'
+  * TCP/UDP: 'tcp:connect', 'tcp:send', 'tcp:receive', 'tcp:close', 'udp:bind', 'udp:send_to', 'udp:recv_from', 'udp:close'
+  * SSE: 'sse:connect', 'sse:listen', 'sse:disconnect'
+  * GraphQL: 'graphql:connect', 'graphql:query', 'graphql:subscribe', 'graphql:introspect', 'graphql:disconnect'
   * Plugins: '<proto>:<action>' (e.g. redis:connect, redis:command, kafka:produce, mysql:query, mqtt:publish, etc.)
 - **Ports & Edge Routing (CRITICAL)**:
   * **Target Port**: Every node receiving input MUST connect to target port **'in'** (the 'entry' node has no input port).
   * **Source Ports**:
-    - **Protocol & Logic Nodes** ('http', 'script', 'assertion', 'conditional', 'ws_*', 'tcp_*', 'udp_*', 'sse_*', 'graphql_*', and all plugin nodes):
+    - **Protocol & Logic Nodes** ('http:request', 'script', 'assertion', 'conditional', 'ws_*', 'tcp_*', 'udp_*', 'sse_*', 'graphql_*', and all plugin nodes):
       - **'true'**: Primary success branch / normal sequential execution flow. Downstream steps MUST connect from this port.
       - **'false'**: Error / failure / condition-false branch.
     - **Flow Control & Utilities**:
       - 'entry': Single outgoing port **'out'**.
-      - 'sub_flow': Success outgoing port **'out'**, failure outgoing port **'false'**. Target input port **'in'**.
-      - 'variable_extractor', 'proxy', 'sse_disconnect', 'graphql_disconnect': Outgoing port **'out'**.
+      - 'flow:sub': Success outgoing port **'out'**, failure outgoing port **'false'**. Target input port **'in'**.
+      - 'variable:extractor', 'proxy', 'sse:disconnect', 'graphql:disconnect': Outgoing port **'out'**.
       - 'end': Terminal node with target port **'in'** only (no outgoing port).
   * **NEVER use 'default' as a port name!** There is no 'default' port in MPE.
 - **Node Error Policy ('on_error')**:
@@ -93,10 +93,10 @@ Your role is to assist users in designing, constructing, debugging, optimizing, 
         key: value
       nodes:
         - uuid: node-1
-          type: http
+          type: http:request
           name: HTTP Request
           data:
-            type: http
+            type: http:request
             method: get
             url: https://api.example.com/data
       connections:
@@ -109,7 +109,7 @@ Your role is to assist users in designing, constructing, debugging, optimizing, 
   * MPE maintains backwards compatibility to transparently parse legacy JSON \`.mpf\` files, but all new flow file creations, suggestions, or exported workflow representations produced by you MUST strictly use YAML format.
 ### 2. Node Configuration Schemas & Exploration:
 When calling \`batch_create_pipeline\`, \`add_node\`, or \`update_node_config\`, ensure \`config\` matches these exact structures. You can also call \`get_node_type_schema\` at any time to inspect full field specifications for any built-in or plugin node type.
-- **'http'**:
+- **'http:request'**:
   \`\`\`json
   {
     "method": "get" | "post" | "put" | "delete" | "patch", // MUST be lowercase
@@ -156,7 +156,7 @@ When calling \`batch_create_pipeline\`, \`add_node\`, or \`update_node_config\`,
     "advanced_expression": "{{context.steps.my_http.response.status}} == 200"
   }
   \`\`\`
-- **'variable_extractor'**:
+- **'variable:extractor'**:
   \`\`\`json
   {
     "output_mappings": [
@@ -174,27 +174,27 @@ When calling \`batch_create_pipeline\`, \`add_node\`, or \`update_node_config\`,
     "script": "const data = context.steps.prev_step.response.body;\\ncontext.variables.set('userId', data.id);\\n"
   }
   \`\`\`
-- **'ws_connect'**: \`{ "url": "wss://echo.websocket.org", "headers": {} }\`
-- **'ws_send_collect'**: \`{ "message": "ping", "collect_response": true, "timeout_ms": 10000 }\`
-- **'ws_close'**: \`{}\`
-- **'tcp_connect'**: \`{ "host": "127.0.0.1", "port": 6379 }\`
-- **'tcp_send'**: \`{ "data": "*1\\\\r\\\\n$4\\\\r\\\\nPING\\\\r\\\\n" }\`
-- **'tcp_receive'**: \`{ "max_bytes": 4096, "timeout_ms": 10000 }\`
-- **'tcp_close'**: \`{}\`
-- **'udp_bind'**: \`{ "local_port": 8080 }\`
-- **'udp_send_to'**: \`{ "target_addr": "127.0.0.1", "target_port": 8080, "data": "ping" }\`
-- **'udp_recv_from'**: \`{ "timeout_ms": 5000 }\`
-- **'udp_close'**: \`{}\`
-- **'sse_connect'**: \`{ "url": "https://example.com/events" }\`
-- **'sse_listen'**: \`{ "event": "message", "timeout_ms": 15000 }\`
-- **'sse_disconnect'**: \`{}\`
-- **'graphql_connect'**: \`{ "endpoint": "https://example.com/graphql", "headers": {} }\`
-- **'graphql_query'**: \`{ "query": "query { users { id name } }", "variables": {} }\`
-- **'graphql_subscribe'**: \`{ "subscription": "subscription { messageAdded { text } }" }\`
-- **'graphql_introspect'**: \`{}\`
-- **'graphql_disconnect'**: \`{}\`
+- **'ws:connect'**: \`{ "url": "wss://echo.websocket.org", "headers": {} }\`
+- **'ws:send_collect'**: \`{ "message": "ping", "collect_response": true, "timeout_ms": 10000 }\`
+- **'ws:close'**: \`{}\`
+- **'tcp:connect'**: \`{ "host": "127.0.0.1", "port": 6379 }\`
+- **'tcp:send'**: \`{ "data": "*1\\\\r\\\\n$4\\\\r\\\\nPING\\\\r\\\\n" }\`
+- **'tcp:receive'**: \`{ "max_bytes": 4096, "timeout_ms": 10000 }\`
+- **'tcp:close'**: \`{}\`
+- **'udp:bind'**: \`{ "local_port": 8080 }\`
+- **'udp:send_to'**: \`{ "target_addr": "127.0.0.1", "target_port": 8080, "data": "ping" }\`
+- **'udp:recv_from'**: \`{ "timeout_ms": 5000 }\`
+- **'udp:close'**: \`{}\`
+- **'sse:connect'**: \`{ "url": "https://example.com/events" }\`
+- **'sse:listen'**: \`{ "event": "message", "timeout_ms": 15000 }\`
+- **'sse:disconnect'**: \`{}\`
+- **'graphql:connect'**: \`{ "endpoint": "https://example.com/graphql", "headers": {} }\`
+- **'graphql:query'**: \`{ "query": "query { users { id name } }", "variables": {} }\`
+- **'graphql:subscribe'**: \`{ "subscription": "subscription { messageAdded { text } }" }\`
+- **'graphql:introspect'**: \`{}\`
+- **'graphql:disconnect'**: \`{}\`
 - **'proxy'**: \`{ "mode": "http" | "socks5" | "clear", "http_proxy": "http://127.0.0.1:7890" }\`
-- **'sub_flow'**:
+- **'flow:sub'**:
   \`\`\`json
   {
     "target_flow_id": "optional-flow-uuid",       // target flow UUID (for saved workflow in workspace)
@@ -227,7 +227,7 @@ When generating or updating JavaScript for 'script' nodes, write modern ES6+ cod
   * Use \`get_node_type_schema\` to query the exact schema and allowed fields of any node type.
   * Use \`get_flow_nodes_config\` to compare configurations across nodes.
 - **CREATING MULTI-STEP FLOWS**: ALWAYS prefer calling \`batch_create_pipeline\` when creating 2 or more sequential steps. It automatically creates all nodes, applies accurate configurations, wires ports sequentially ('out/true' -> 'in'), and triggers \`auto_layout\` in a single call, preventing multi-turn latency and connection mistakes.
-- When creating individual nodes, use \`add_node\` and connect them via \`connect_nodes\`. Remember: source port is 'out' (entry/extractor) or 'true' (http/script/assertion/plugins), and target port is 'in'.
+- When creating individual nodes, use \`add_node\` and connect them via \`connect_nodes\`. Remember: source port is 'out' (entry/extractor) or 'true' (http:request/script/assertion/plugins), and target port is 'in'.
 - For high-risk destructive actions (clearing canvas, deleting multiple nodes, installing marketplace plugins), the system will prompt the user for confirmation before executing.
 - Be concise, professional, clear, and proactive.
 
@@ -311,7 +311,7 @@ export function formatNodeConfigSummary(
 ): string {
   if (!data) return 'empty config';
   switch (type) {
-    case 'http': {
+    case 'http:request': {
       const parts: string[] = [];
       if (data.method) parts.push(String(data.method).toUpperCase());
       if (data.url) parts.push(String(data.url));
@@ -335,7 +335,7 @@ export function formatNodeConfigSummary(
       }
       return `simple: ${String(data.field_path || '')} ${String(data.operator || 'equal')} ${JSON.stringify(data.expected_value)}`;
     }
-    case 'variable_extractor': {
+    case 'variable:extractor': {
       const mappings =
         (data.output_mappings as Array<{ source?: string; target?: string }>) || [];
       const summary = mappings.map((m) => `${m.source || '?'} -> ${m.target || '?'}`).join(', ');
@@ -346,24 +346,24 @@ export function formatNodeConfigSummary(
       const snippet = script.length > 80 ? script.substring(0, 77) + '...' : script;
       return `script: "${snippet.replace(/\n/g, '\\n')}"`;
     }
-    case 'sub_flow': {
+    case 'flow:sub': {
       const target = data.target_flow_path || data.target_flow_id || 'unassigned';
       const inherit = data.inherit_all_variables ?? true;
       const exportVars = data.export_all_variables ?? true;
       return `target: ${target}, inherit_vars: ${inherit}, export_vars: ${exportVars}`;
     }
-    case 'ws_connect':
-    case 'sse_connect':
+    case 'ws:connect':
+    case 'sse:connect':
       return `url: ${data.url || ''}`;
-    case 'ws_send_collect':
+    case 'ws:send_collect':
       return `msg: "${String(data.message || '').substring(0, 40)}", collect: ${data.collect_response ?? true}`;
-    case 'tcp_connect':
+    case 'tcp:connect':
       return `target: ${data.host || '127.0.0.1'}:${data.port || ''}`;
-    case 'udp_bind':
+    case 'udp:bind':
       return `local_port: ${data.local_port || ''}`;
-    case 'udp_send_to':
+    case 'udp:send_to':
       return `target: ${data.target_addr || '127.0.0.1'}:${data.target_port || ''}, data: "${String(data.data || '').substring(0, 30)}"`;
-    case 'graphql_query':
+    case 'graphql:query':
       return `query: "${String(data.query || '').substring(0, 50).replace(/\n/g, ' ')}"`;
     default: {
       const keys = Object.keys(data).filter(

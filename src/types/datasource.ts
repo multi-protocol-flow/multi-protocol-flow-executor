@@ -62,7 +62,7 @@ export interface DataItem {
 
 /** 平台条目 → 可落画布节点模板（`get_templates` 返回） */
 export interface NodeTemplate {
-  /** 宿主已知节点 type_id（内置如 "http"，插件如 "kafka:produce"） */
+  /** 宿主已知节点 type_id（内置如 "http:request"，插件如 "kafka:produce"） */
   type_id: string;
   /** 落画布节点的展示名 */
   name: string;

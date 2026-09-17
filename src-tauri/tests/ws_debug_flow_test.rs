@@ -58,7 +58,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
             // WsConnect 节点
             Node {
                 uuid: format!("ws-connect-{}", flow_uuid),
-                node_type: "ws_connect".to_string(),
+                node_type: "ws:connect".to_string(),
                 name: "WS 连接".to_string(),
                 position: NodePosition { x: 200.0, y: 0.0 },
                 data: NodeData::WsConnect(WsConnectConfig {
@@ -79,7 +79,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
             // WsSendCollect 节点
             Node {
                 uuid: format!("ws-send-collect-{}", flow_uuid),
-                node_type: "ws_send_collect".to_string(),
+                node_type: "ws:send_collect".to_string(),
                 name: "WS 发送采集".to_string(),
                 position: NodePosition { x: 400.0, y: 0.0 },
                 data: NodeData::WsSendCollect(WsSendCollectConfig {
@@ -99,7 +99,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
             // WsClose 节点
             Node {
                 uuid: format!("ws-close-{}", flow_uuid),
-                node_type: "ws_close".to_string(),
+                node_type: "ws:close".to_string(),
                 name: "WS 关闭".to_string(),
                 position: NodePosition { x: 600.0, y: 0.0 },
                 data: NodeData::WsClose(WsCloseConfig {
@@ -277,7 +277,7 @@ async fn test_ownership_transfer() {
             "wss://example.com/ws".to_string(),
             format!("ws-connect-{}", flow_uuid),
             "WS 连接".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         )
         .await;
 
@@ -299,7 +299,7 @@ async fn test_ownership_transfer() {
             &connection_id,
             format!("ws-send-collect-1-{}", flow_uuid),
             "WS 发送 1".to_string(),
-            "ws_send_collect".to_string(),
+            "ws:send_collect".to_string(),
         )
         .await;
 
@@ -324,7 +324,7 @@ async fn test_ownership_transfer() {
             stream.segments[1].ended_at.is_none(),
             "second segment should not have ended"
         );
-        assert_eq!(stream.segments[1].node_type, "ws_send_collect");
+        assert_eq!(stream.segments[1].node_type, "ws:send_collect");
     }
 
     // 模拟第二个 WsSendWait 节点转移所有权
@@ -333,7 +333,7 @@ async fn test_ownership_transfer() {
             &connection_id,
             format!("ws-send-collect-2-{}", flow_uuid),
             "WS 发送 2".to_string(),
-            "ws_send_collect".to_string(),
+            "ws:send_collect".to_string(),
         )
         .await;
 
@@ -348,7 +348,7 @@ async fn test_ownership_transfer() {
             Some(format!("ws-send-collect-2-{}", flow_uuid))
         );
         assert_eq!(stream.segments.len(), 3, "should have 3 segments");
-        assert_eq!(stream.segments[2].node_type, "ws_send_collect");
+        assert_eq!(stream.segments[2].node_type, "ws:send_collect");
     }
 
     // 模拟 WsClose 节点关闭连接
@@ -401,7 +401,7 @@ async fn test_report_includes_ws_streams() {
             "wss://example.com/ws".to_string(),
             "node-connect".to_string(),
             "连接节点".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         )
         .await;
 
@@ -435,7 +435,7 @@ async fn test_report_includes_ws_streams() {
             connection_id,
             "node-send-wait".to_string(),
             "发送等待节点".to_string(),
-            "ws_send_collect".to_string(),
+            "ws:send_collect".to_string(),
         )
         .await;
 
@@ -493,8 +493,8 @@ async fn test_report_includes_ws_streams() {
     assert_eq!(received_count, 1, "should have received 1 message");
 
     // 验证段信息
-    assert_eq!(stream.segments[0].node_type, "ws_connect");
-    assert_eq!(stream.segments[1].node_type, "ws_send_collect");
+    assert_eq!(stream.segments[0].node_type, "ws:connect");
+    assert_eq!(stream.segments[1].node_type, "ws:send_collect");
 
     // 创建报告并验证 ws_streams 字段
     let report = FlowExecutionReport {
@@ -579,7 +579,7 @@ async fn test_normal_mode_no_debug_events() {
             "wss://example.com/ws".to_string(),
             "node-connect".to_string(),
             "连接节点".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         )
         .await;
 
@@ -803,7 +803,7 @@ async fn test_ws_stream_message_recording() {
             "wss://example.com/ws".to_string(),
             "node-1".to_string(),
             "节点 1".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         )
         .await;
 
@@ -860,7 +860,7 @@ async fn test_ws_stream_message_recording() {
             connection_id,
             "node-2".to_string(),
             "节点 2".to_string(),
-            "ws_send_collect".to_string(),
+            "ws:send_collect".to_string(),
         )
         .await;
 

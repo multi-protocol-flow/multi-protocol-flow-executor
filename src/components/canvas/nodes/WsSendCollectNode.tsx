@@ -70,10 +70,10 @@ export const WsSendCollectNode = memo(function WsSendCollectNode({ id, data, sel
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-teal-600 font-medium tracking-wide">
-            {getNodeDisplayName('ws_send_collect')}
+            {getNodeDisplayName('ws:send_collect')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('ws_send_collect')}
+            {nodeData.label || getNodeDisplayName('ws:send_collect')}
           </span>
         </div>
       </div>

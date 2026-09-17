@@ -109,7 +109,7 @@ impl NodeExecutor for UdpSendToExecutor {
 
         // 5. 日志：start execution
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: udp_send_to, ConnectionID: {}, Target: {}:{}, DataEncoding: {}, DataLength: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: udp:send_to, ConnectionID: {}, Target: {}:{}, DataEncoding: {}, DataLength: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -412,7 +412,7 @@ mod tests {
     ) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "udp_send_to".to_string(),
+            node_type: "udp:send_to".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::UdpSendTo(UdpSendToConfig {
@@ -615,7 +615,7 @@ mod tests {
 
         let node = Node {
             uuid: "node-var".to_string(),
-            node_type: "udp_send_to".to_string(),
+            node_type: "udp:send_to".to_string(),
             name: "变量替换测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::UdpSendTo(UdpSendToConfig {
@@ -674,7 +674,7 @@ mod tests {
 
         let node = Node {
             uuid: "node-invalid-enc".to_string(),
-            node_type: "udp_send_to".to_string(),
+            node_type: "udp:send_to".to_string(),
             name: "无效编码测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::UdpSendTo(UdpSendToConfig {
@@ -755,7 +755,7 @@ mod tests {
 
         let node = Node {
             uuid: "node-wrong".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),

@@ -197,7 +197,7 @@ pub struct NodeMetrics {
     /// 节点名称
     #[serde(default)]
     pub node_name: String,
-    /// 节点类型 (`http`, `ws_connect` 等)
+    /// 节点类型 (`http:request`, `ws:connect` 等)
     #[serde(default)]
     pub node_type: String,
     /// 总执行次数
@@ -272,7 +272,7 @@ pub struct NodeLevelStatistics {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeTypeStatistics {
-    /// 节点类型 (`http`, `ws_connect` 等)
+    /// 节点类型 (`http:request`, `ws:connect` 等)
     #[serde(default)]
     pub node_type: String,
     /// 该类型的节点数量

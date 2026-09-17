@@ -44,7 +44,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
   describe('基础渲染', () => {
     it('应该渲染 URL 输入框', () => {
       const config: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
       };
 
@@ -55,7 +55,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
     it('应该显示等待消息开关', () => {
       const config: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
         collect_message: false,
       };
@@ -67,7 +67,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
     it('应该显示连接超时输入框', () => {
       const config: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
         connect_timeout_ms: 30000,
       };
@@ -81,7 +81,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
   describe('默认值测试', () => {
     it('连接超时默认值应为 30000ms', () => {
       const config: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
       };
 
@@ -93,7 +93,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
     it('等待消息开关默认值应为 false', () => {
       const config: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
       };
 
@@ -107,7 +107,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
   describe('外部数据更新同步测试（核心修复点）', () => {
     it('当外部 data 变化时，应该同步所有字段到表单', async () => {
       const initialConfig: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
         connect_timeout_ms: 30000,
         collect_message: false,
@@ -123,7 +123,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
       // 更新外部数据 - 这是问题修复的关键测试
       const updatedConfig: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/new-socket',
         connect_timeout_ms: 60000, // 超时变化
         collect_message: true, // 开启等待消息
@@ -149,7 +149,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
     it('当 connect_timeout_ms 变化时，应该正确同步', async () => {
       const initialConfig: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
         connect_timeout_ms: 10000,
       };
@@ -177,7 +177,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
     it('当 collect_message 从 false 变为 true 时，应该显示等待配置', async () => {
       const initialConfig: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
         collect_message: false,
       };
@@ -210,7 +210,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
   describe('等待消息配置测试', () => {
     it('当 collect_message 为 true 时，应显示等待配置', () => {
       const config: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
         collect_message: true,
         collect_mode: 'first_match',
@@ -225,7 +225,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
     it('当 collect_message 为 false 时，应隐藏等待配置', () => {
       const config: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
         collect_message: false,
       };
@@ -242,7 +242,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
       // 初始配置：开启等待消息
       const initialConfig: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
         collect_message: true,
         collect_mode: 'condition_match',
@@ -262,7 +262,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
       // 更新外部数据：关闭等待消息
       const updatedConfig: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
         collect_message: false,
         // 关键：fromFormData 会清除这些字段
@@ -283,7 +283,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
       // 初始配置：condition 模式
       const initialConfig: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
         collect_message: true,
         collect_mode: 'condition_match',
@@ -302,7 +302,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
       // 更新外部数据：切换到 first_message 模式
       const updatedConfig: WsConnectConfigType = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com/socket',
         collect_message: true,
         collect_mode: 'first_match',

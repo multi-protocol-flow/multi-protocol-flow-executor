@@ -25,7 +25,7 @@ pub struct SseConnectPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for SseConnectPlugin {
     fn type_id(&self) -> &str {
-        "sse_connect"
+        "sse:connect"
     }
 
     fn display_name(&self) -> &str {
@@ -131,7 +131,7 @@ pub struct SseListenPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for SseListenPlugin {
     fn type_id(&self) -> &str {
-        "sse_listen"
+        "sse:listen"
     }
 
     fn display_name(&self) -> &str {
@@ -238,7 +238,7 @@ pub struct SseDisconnectPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for SseDisconnectPlugin {
     fn type_id(&self) -> &str {
-        "sse_disconnect"
+        "sse:disconnect"
     }
 
     fn display_name(&self) -> &str {
@@ -344,7 +344,7 @@ mod tests {
     #[test]
     fn test_sse_connect_plugin_metadata() {
         let plugin = SseConnectPlugin;
-        assert_eq!(plugin.type_id(), "sse_connect");
+        assert_eq!(plugin.type_id(), "sse:connect");
         assert_eq!(plugin.display_name(), "SSE Connect");
         assert_eq!(plugin.category(), "sse");
         assert_eq!(plugin.icon(), "radio-tower");
@@ -361,7 +361,7 @@ mod tests {
     #[test]
     fn test_sse_listen_plugin_metadata() {
         let plugin = SseListenPlugin;
-        assert_eq!(plugin.type_id(), "sse_listen");
+        assert_eq!(plugin.type_id(), "sse:listen");
         assert_eq!(plugin.display_name(), "SSE Listen");
         assert_eq!(plugin.category(), "sse");
         assert_eq!(plugin.icon(), "ear");
@@ -378,7 +378,7 @@ mod tests {
     #[test]
     fn test_sse_disconnect_plugin_metadata() {
         let plugin = SseDisconnectPlugin;
-        assert_eq!(plugin.type_id(), "sse_disconnect");
+        assert_eq!(plugin.type_id(), "sse:disconnect");
         assert_eq!(plugin.display_name(), "SSE Disconnect");
         assert_eq!(plugin.category(), "sse");
         assert_eq!(plugin.icon(), "unplug");
@@ -521,8 +521,8 @@ mod tests {
         SsePluginGroup::register_all(&mut registry);
         assert_eq!(registry.len(), 3);
 
-        assert!(registry.get("sse_connect").is_some());
-        assert!(registry.get("sse_listen").is_some());
-        assert!(registry.get("sse_disconnect").is_some());
+        assert!(registry.get("sse:connect").is_some());
+        assert!(registry.get("sse:listen").is_some());
+        assert!(registry.get("sse:disconnect").is_some());
     }
 }

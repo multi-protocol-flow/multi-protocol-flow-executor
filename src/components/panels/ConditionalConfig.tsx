@@ -26,7 +26,7 @@ import { getLL } from "@/i18n/i18n-lazy";
 const EXCLUDED_SOURCE_TYPES: Set<string> = new Set([
   "entry",
   "conditional",
-  "variable_extractor",
+  "variable:extractor",
 ]);
 
 interface ConditionalConfigProps {

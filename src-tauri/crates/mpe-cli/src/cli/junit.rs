@@ -180,7 +180,12 @@ mod tests {
     fn test_junit_xml_normal_flow() {
         let report = flow_report(vec![
             node_report("Entry", "entry", ExecutionStatus::Success, 10),
-            node_report("HTTP Request", "http", ExecutionStatus::Success, 120),
+            node_report(
+                "HTTP Request",
+                "http:request",
+                ExecutionStatus::Success,
+                120,
+            ),
         ]);
         let xml = format_junit_xml(&report);
 
@@ -195,7 +200,7 @@ mod tests {
             xml.contains("<testcase classname=\"flow-1\" name=\"Entry (entry)\" time=\"0.010\"/>")
         );
         assert!(xml.contains(
-            "<testcase classname=\"flow-1\" name=\"HTTP Request (http)\" time=\"0.120\"/>"
+            "<testcase classname=\"flow-1\" name=\"HTTP Request (http:request)\" time=\"0.120\"/>"
         ));
         assert!(!xml.contains("<failure"));
         assert!(xml.trim_end().ends_with("</testsuites>"));

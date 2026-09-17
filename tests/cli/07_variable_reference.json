@@ -24,14 +24,14 @@
       },
       {
         "uuid": "http-001",
-        "type": "http",
+        "type": "http:request",
         "name": "Request with Variables",
         "position": {
           "x": 100,
           "y": 0
         },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "{{initial_variables.base_url}}/get?user_id={{initial_variables.user_id}}",
           "method": "get",
           "headers": {

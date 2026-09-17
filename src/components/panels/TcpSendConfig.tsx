@@ -109,7 +109,7 @@ function getDataEncodingOptions(): Array<{ value: string; label: string }> {
  */
 function toFormData(data: TcpSendConfigType): TcpSendConfigFormData {
   return {
-    type: 'tcp_send',
+    type: 'tcp:send',
     connection_id: data.connection_id || '',
     data: data.data || '',
     data_encoding: (data.data_encoding as 'text' | 'hex' | 'base64') ?? 'text',
@@ -125,7 +125,7 @@ function toFormData(data: TcpSendConfigType): TcpSendConfigFormData {
  */
 function fromFormData(formData: TcpSendConfigFormData): TcpSendConfigType {
   return {
-    type: 'tcp_send',
+    type: 'tcp:send',
     connection_id: formData.connection_id,
     data: formData.data,
     data_encoding: formData.data_encoding,
@@ -161,10 +161,10 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
 
   // 获取流程变量用于变量选择
   const { variables, nodeLabels } = useFlowVariables();
-  // 获取 flow 并提取 tcp_connect 节点
+  // 获取 flow 并提取 tcp:connect 节点
   const flow = useFlowStore((state) => state.flow);
 
-  // 提取可用的 TCP 连接（从 tcp_connect 节点）
+  // 提取可用的 TCP 连接（从 tcp:connect 节点）
   const availableConnections = useMemo(() => {
     if (!flow) return [];
     const connections: Array<{ uuid: string; name: string; host?: string; port?: number }> = [];

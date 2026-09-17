@@ -28,10 +28,10 @@ vi.mock('@/services/tauri/datasource', async (importOriginal) => {
     }),
     datasourceGetTemplates: vi.fn().mockResolvedValue([
       {
-        type_id: 'http',
+        type_id: 'http:request',
         name: '获取用户信息',
         data: {
-          type: 'http',
+          type: 'http:request',
           url: '/v3/api/user/info',
           method: 'get',
           headers: {},
@@ -147,7 +147,7 @@ describe('DatasourceItemDetailDialog', () => {
     const nodes = useFlowStore.getState().flow?.nodes ?? [];
     expect(nodes.length).toBe(1);
     expect(nodes[0].name).toBe('获取用户信息');
-    expect(nodes[0].type).toBe('http');
+    expect(nodes[0].type).toBe('http:request');
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 

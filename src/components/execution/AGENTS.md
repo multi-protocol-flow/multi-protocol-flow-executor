@@ -26,7 +26,7 @@ execution/
 
 | Viewer | Node types | |
 |--------|------------|---|
-| `HttpNodeViewer` | http | `WsConnectViewer`/`WsSendCollectViewer`/`WsCloseViewer` | ws_* |
+| `HttpNodeViewer` | http:request | `WsConnectViewer`/`WsSendCollectViewer`/`WsCloseViewer` | ws_* |
 | `McpViewer` | mcp_* | `TcpUdpViewer` | tcp_*/udp_* |
 | `SseViewer` | sse_* | `GraphqlViewer` | graphql_* |
 | `AssertionViewer` | assertion | `ConditionalViewer` | conditional |
@@ -52,7 +52,7 @@ execution/
 - **Data flow**: `ExecutionReport.node_reports` (keyed by node UUID) → `NodeExecutionDetails` → `getViewerComponent(nodeType)` → viewer. Viewers never call IPC.
 - **Sub-viewers**: `RawJsonViewer` (monospace JSON) and `VariableChangesCard` (diff-style variable list) shared across all viewers.
 - **i18n**: All viewer text uses `getLL()`.
-- **Fallback**: SMTP, Redis, proxy, variable_extractor use `GenericViewer`.
+- **Fallback**: SMTP, Redis, proxy, variable:extractor use `GenericViewer`.
 
 ## ANTI-PATTERNS
 

@@ -70,10 +70,10 @@ export const SseListenNode = memo(function SseListenNode({ id, data, selected }:
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-rose-600 font-medium tracking-wide">
-            {getNodeDisplayName('sse_listen')}
+            {getNodeDisplayName('sse:listen')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('sse_listen')}
+            {nodeData.label || getNodeDisplayName('sse:listen')}
           </span>
           {nodeData.config?.connection_id && (
             <span className="text-[10px] text-muted-foreground truncate">

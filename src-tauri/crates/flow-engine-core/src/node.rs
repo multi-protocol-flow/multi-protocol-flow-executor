@@ -121,7 +121,7 @@ mod tests {
     fn test_node_serialization() {
         let node = Node {
             uuid: "node-uuid-456".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP Request".to_string(),
             position: NodePosition { x: 150.0, y: 250.0 },
             data: NodeData::http("https://api.example.com"),

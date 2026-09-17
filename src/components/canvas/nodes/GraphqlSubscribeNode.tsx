@@ -70,10 +70,10 @@ export const GraphqlSubscribeNode = memo(function GraphqlSubscribeNode({ id, dat
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-indigo-600 font-medium tracking-wide">
-            {getNodeDisplayName('graphql_subscribe')}
+            {getNodeDisplayName('graphql:subscribe')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('graphql_subscribe')}
+            {nodeData.label || getNodeDisplayName('graphql:subscribe')}
           </span>
           {nodeData.config?.connection_id && (
             <span className="text-[10px] text-muted-foreground truncate">

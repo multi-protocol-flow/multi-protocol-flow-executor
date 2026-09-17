@@ -28,7 +28,7 @@ import { Check, Search, FilePlus, LayoutTemplate } from 'lucide-react';
 /** 分类颜色映射（静态） */
 const CATEGORY_COLORS: Record<string, string> = {
   all: '',
-  http: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  'http:request': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   websocket: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
   database: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
   graphql: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',

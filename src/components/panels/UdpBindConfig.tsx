@@ -28,7 +28,7 @@ interface UdpBindConfigProps {
  */
 function toFormData(data: UdpBindConfigType): UdpBindConfigFormData {
   return {
-    type: 'udp_bind',
+    type: 'udp:bind',
     local_addr: data.local_addr ?? '0.0.0.0',
     local_port: data.local_port ?? 0,
     reuse_addr: data.reuse_addr ?? true,
@@ -45,7 +45,7 @@ function toFormData(data: UdpBindConfigType): UdpBindConfigFormData {
  */
 function fromFormData(formData: UdpBindConfigFormData): UdpBindConfigType {
   return {
-    type: 'udp_bind',
+    type: 'udp:bind',
     local_addr: formData.local_addr,
     local_port: formData.local_port,
     reuse_addr: formData.reuse_addr,

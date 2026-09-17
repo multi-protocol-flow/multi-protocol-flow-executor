@@ -352,13 +352,13 @@ const DIFF_STATUS_STYLES: Record<DiffNodeStatus, string> = {
 /** 节点类型映射（用于画布对比的只读视图） */
 const diffNodeTypes = {
   entry: EntryNode,
-  http: HttpNode,
+  'http:request': HttpNode,
   conditional: ConditionalNode,
   script: ScriptNode,
   assertion: AssertionNode,
-  ws_connect: WsConnectNode,
-  ws_send_collect: WsSendCollectNode,
-  ws_close: WsCloseNode,
+  'ws:connect': WsConnectNode,
+  'ws:send_collect': WsSendCollectNode,
+  'ws:close': WsCloseNode,
   default: DynamicPluginNode,
 };
 

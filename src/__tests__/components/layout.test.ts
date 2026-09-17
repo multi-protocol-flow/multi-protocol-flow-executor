@@ -3,7 +3,7 @@ import { getLayoutedPositions, getAdaptiveLayoutedPositions } from '@/components
 import { createDefaultNodeData } from '@/components/canvas/utils';
 import type { Node, Connection, AnyNodeType } from '@/types';
 
-function makeNode(uuid: string, type: string = 'http'): Node {
+function makeNode(uuid: string, type: string = 'http:request'): Node {
   return {
     uuid,
     type: type as Node['type'],
@@ -72,7 +72,7 @@ describe('layout.ts - getAdaptiveLayoutedPositions (全新自适应折行布局)
   it('线性流程超出列容量时自动折行到下一行', () => {
     // 创建 10 个线性节点
     const nodes = Array.from({ length: 10 }, (_, i) =>
-      makeNode(`n${i + 1}`, i === 0 ? 'entry' : 'http')
+      makeNode(`n${i + 1}`, i === 0 ? 'entry' : 'http:request')
     );
     const conns = Array.from({ length: 9 }, (_, i) =>
       makeConn(`n${i + 1}`, `n${i + 2}`, i === 0 ? 'out' : 'true')
@@ -152,8 +152,8 @@ describe('layout.ts - getAdaptiveLayoutedPositions (全新自适应折行布局)
     const nodes = [
       makeNode('entry', 'entry'),
       makeNode('cond', 'conditional'),
-      makeNode('true_branch', 'http'),
-      makeNode('false_branch', 'http'),
+      makeNode('true_branch', 'http:request'),
+      makeNode('false_branch', 'http:request'),
       makeNode('merge', 'script'),
     ];
 
@@ -202,10 +202,10 @@ describe('layout.ts - getAdaptiveLayoutedPositions (全新自适应折行布局)
     // Flow 1: 辅助无 entry 子图 (sub1 -> sub2)
     // Flow 2: 主业务含 entry 子图 (main1 [entry] -> main2)
     const nodes = [
-      makeNode('sub1', 'http'),
-      makeNode('sub2', 'http'),
+      makeNode('sub1', 'http:request'),
+      makeNode('sub2', 'http:request'),
       makeNode('main1', 'entry'),
-      makeNode('main2', 'http'),
+      makeNode('main2', 'http:request'),
     ];
 
     const conns = [
@@ -225,7 +225,7 @@ describe('layout.ts - getAdaptiveLayoutedPositions (全新自适应折行布局)
   it('孤立未连线节点在底部整齐网格排列', () => {
     const nodes = [
       makeNode('flow1', 'entry'),
-      makeNode('flow2', 'http'),
+      makeNode('flow2', 'http:request'),
       makeNode('iso1', 'script'),
       makeNode('iso2', 'script'),
     ];

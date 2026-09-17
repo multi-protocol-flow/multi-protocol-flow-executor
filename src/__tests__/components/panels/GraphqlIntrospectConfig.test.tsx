@@ -28,7 +28,7 @@ function createBaseConfig(
   overrides: Partial<GraphqlIntrospectConfigType> = {},
 ): GraphqlIntrospectConfigType {
   return {
-    type: 'graphql_introspect',
+    type: 'graphql:introspect',
     connection_id: 'gql-conn-1',
     ...overrides,
   };

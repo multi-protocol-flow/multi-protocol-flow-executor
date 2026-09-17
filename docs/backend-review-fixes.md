@@ -154,7 +154,7 @@ src-tauri/src/
 │   ├── grpc.rs                # gRPC 8 个命令（cfg-gated）
 │   ├── email.rs               # SMTP/IMAP/OAuth2（cfg-gated）
 │   ├── mqtt_kafka.rs          # MQTT + Kafka（cfg-gated）
-│   └── misc.rs                # graphql_introspect, tcp_templates 等（test_redis 已随 redis 插件化移除）
+│   └── misc.rs                # graphql:introspect, tcp_templates 等（test_redis 已随 redis 插件化移除）
 ```
 
 **收益**: 合并冲突大幅减少，新命令可独立文件添加，Review diff 更聚焦。
@@ -198,7 +198,7 @@ pub struct Node {
     // pub node_type: NodeType,   // 期望
 ```
 
-**影响**: 这是 IPC 边界核心类型。前端发来的 JSON 中 `type: "http"` 当前被反序列化为 `String`，改枚举后需要：
+**影响**: 这是 IPC 边界核心类型。前端发来的 JSON 中 `type: "http:request"` 当前被反序列化为 `String`，改枚举后需要：
 1. 确认前端 `src/types/node.ts` 也使用枚举而非自由字符串
 2. `NodeData::type_name()` 返回 `String` 需调整为返回 `NodeType` 或保持兼容
 
@@ -245,11 +245,11 @@ pub struct ValidationError {
 
 **文件**: `flow-engine-core/src/node.rs:7`
 
-**当前**: `#[serde(rename_all = "lowercase")]` + 大量 `#[serde(rename = "ws_connect")]` 覆盖
+**当前**: `#[serde(rename_all = "lowercase")]` + 大量 `#[serde(rename = "ws:connect")]` 覆盖
 
 **问题**: 多单词变体（`WsConnect` → `"wsconnect"` 错误）导致需要 90% 的变体加显式 rename
 
-**修复**: 改为 `#[serde(rename_all = "snake_case")]`，自动生成 `ws_connect`、`db_query` 等正确名称，消除绝大多数显式 rename
+**修复**: 改为 `#[serde(rename_all = "snake_case")]`，自动生成 `ws:connect`、`db_query` 等正确名称，消除绝大多数显式 rename
 
 **风险**: 需确认前端也使用 `snake_case` 字符串（从已有显式 rename 看，前端确实用 `snake_case`），纯向后兼容改动。
 

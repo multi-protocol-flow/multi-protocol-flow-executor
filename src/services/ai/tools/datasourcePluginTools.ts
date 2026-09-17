@@ -178,10 +178,10 @@ export const datasourcePluginToolHandlers = {
 
     const newNode: Node = {
       uuid: newUuid,
-      type: (tpl.type_id || 'http') as NodeType,
+      type: (tpl.type_id || 'http:request') as NodeType,
       name: nodeName,
       position,
-      data: (tpl.data || { type: 'http' }) as unknown as NodeData,
+      data: (tpl.data || { type: 'http:request' }) as unknown as NodeData,
     };
 
     flowState.addNode(newNode);

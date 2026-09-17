@@ -70,10 +70,10 @@ export const WsCloseNode = memo(function WsCloseNode({ id, data, selected }: Nod
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-rose-600 font-medium tracking-wide">
-            {getNodeDisplayName('ws_close')}
+            {getNodeDisplayName('ws:close')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('ws_close')}
+            {nodeData.label || getNodeDisplayName('ws:close')}
           </span>
         </div>
       </div>

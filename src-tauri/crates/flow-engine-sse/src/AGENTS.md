@@ -10,9 +10,9 @@ SSE (Server-Sent Events) client crate. Uses `reqwest` streaming GET with no exte
 
 | Plugin | Type ID | Ports | Config |
 |--------|---------|-------|--------|
-| `SseConnectPlugin` | `sse_connect` | true / false | url, timeout_ms, auto_reconnect |
-| `SseListenPlugin` | `sse_listen` | true / false | connection_id, max_events, timeout_ms |
-| `SseDisconnectPlugin` | `sse_disconnect` | out | connection_id |
+| `SseConnectPlugin` | `sse:connect` | true / false | url, timeout_ms, auto_reconnect |
+| `SseListenPlugin` | `sse:listen` | true / false | connection_id, max_events, timeout_ms |
+| `SseDisconnectPlugin` | `sse:disconnect` | out | connection_id |
 
 ## Core Files
 

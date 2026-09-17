@@ -70,10 +70,10 @@ export const TcpConnectNode = memo(function TcpConnectNode({ id, data, selected 
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-emerald-600 font-medium tracking-wide">
-            {getNodeDisplayName('tcp_connect')}
+            {getNodeDisplayName('tcp:connect')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('tcp_connect')}
+            {nodeData.label || getNodeDisplayName('tcp:connect')}
           </span>
           {nodeData.config?.host && (
             <span className="text-[10px] text-muted-foreground truncate">

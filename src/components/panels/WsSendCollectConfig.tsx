@@ -40,7 +40,7 @@ interface WsSendCollectConfigProps {
  */
 function toFormData(data: WsSendCollectConfigType): WsSendCollectConfigFormData {
   return {
-    type: 'ws_send_collect',
+    type: 'ws:send_collect',
     connection_id: data.connection_id || '',
     message: data.message || '',
     message_type: data.message_type || 'text',
@@ -95,7 +95,7 @@ function fromFormData(formData: WsSendCollectConfigFormData): WsSendCollectConfi
   }
 
   return {
-    type: 'ws_send_collect',
+    type: 'ws:send_collect',
     connection_id: formData.connection_id,
     message,
     message_type: formData.message_type,
@@ -133,7 +133,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
   // 获取 flow 用于连接提取
   const flow = useFlowStore((state) => state.flow);
 
-  // 提取可用的 WebSocket 连接（从 ws_connect 节点）
+  // 提取可用的 WebSocket 连接（从 ws:connect 节点）
   const availableConnectionIds = useMemo(() => {
     if (!flow) return [];
     const connectionIds: Array<{ uuid: string; name: string }> = [];

@@ -8,7 +8,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 describe('SubFlowNode', () => {
   it('正确渲染子流程节点与名称', () => {
     const config: SubFlowConfig = {
-      type: 'sub_flow',
+      type: 'flow:sub',
       target_flow_id: 'flow-123',
       inherit_all_variables: true,
       export_all_variables: true,
@@ -20,7 +20,7 @@ describe('SubFlowNode', () => {
           id="subflow-node-1"
           data={{ label: '用户登录流程', config }}
           selected={false}
-          type="sub_flow"
+          type="flow:sub"
           zIndex={1}
           isConnectable={true}
           positionAbsoluteX={0}
@@ -38,7 +38,7 @@ describe('SubFlowNode', () => {
 
   it('执行中在节点上展示嵌套进度与当前子节点', () => {
     const config: SubFlowConfig = {
-      type: 'sub_flow',
+      type: 'flow:sub',
       target_flow_id: 'flow-123',
       inherit_all_variables: true,
       export_all_variables: true,
@@ -52,7 +52,7 @@ describe('SubFlowNode', () => {
         flowStarted: { flowUuid: 'parent-flow', flowName: 'Parent', totalNodes: 2 },
       });
       store.handleExecutionEvent({
-        nodeStarted: { nodeUuid: 'subflow-node-1', nodeName: '用户登录流程', nodeType: 'sub_flow' },
+        nodeStarted: { nodeUuid: 'subflow-node-1', nodeName: '用户登录流程', nodeType: 'flow:sub' },
       });
       store.handleExecutionEvent({
         flowStarted: {
@@ -66,7 +66,7 @@ describe('SubFlowNode', () => {
         nodeStarted: {
           nodeUuid: 'child-http',
           nodeName: '登录请求',
-          nodeType: 'http',
+          nodeType: 'http:request',
           parentNodeUuid: 'subflow-node-1',
         },
       });
@@ -92,7 +92,7 @@ describe('SubFlowNode', () => {
           id="subflow-node-1"
           data={{ label: '用户登录流程', config }}
           selected={false}
-          type="sub_flow"
+          type="flow:sub"
           zIndex={1}
           isConnectable={true}
           positionAbsoluteX={0}

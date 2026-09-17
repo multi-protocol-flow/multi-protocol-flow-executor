@@ -30,7 +30,7 @@ interface WsCloseConfigProps {
  */
 function toFormData(data: WsCloseConfigType): WsCloseConfigFormData {
   return {
-    type: 'ws_close',
+    type: 'ws:close',
     connection_id: data.connection_id || '',
     close_code: data.close_code ?? 1000,
     close_reason: data.close_reason || '',
@@ -43,7 +43,7 @@ function toFormData(data: WsCloseConfigType): WsCloseConfigFormData {
  */
 function fromFormData(formData: WsCloseConfigFormData): WsCloseConfigType {
   return {
-    type: 'ws_close',
+    type: 'ws:close',
     connection_id: formData.connection_id,
     close_code: formData.close_code,
     close_reason: formData.close_reason || undefined,
@@ -96,7 +96,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
   // 获取 flow 用于连接提取
   const flow = useFlowStore((state) => state.flow);
 
-  // 提取可用的 WebSocket 连接（从 ws_connect 节点）
+  // 提取可用的 WebSocket 连接（从 ws:connect 节点）
   const availableConnectionIds = useMemo(() => {
     if (!flow) return [];
     const connectionIds: Array<{ uuid: string; name: string }> = [];

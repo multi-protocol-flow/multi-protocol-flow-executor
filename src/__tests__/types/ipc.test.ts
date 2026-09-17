@@ -191,7 +191,7 @@ describe('IPC Types', () => {
       const input: UpdateNodeCommandInput = {
         flow_id: 'flow-001',
         node_id: 'node-001',
-        data: { type: 'http', url: 'https://api.example.com' },
+        data: { type: 'http:request', url: 'https://api.example.com' },
       };
       expect(input.flow_id).toBe('flow-001');
       expect(input.node_id).toBe('node-001');

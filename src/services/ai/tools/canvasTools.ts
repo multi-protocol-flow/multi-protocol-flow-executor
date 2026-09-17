@@ -18,8 +18,8 @@ import type { AIToolDefinition } from '@/types/ai';
  *    - 在 MPE 架构中，所有接收输入的节点输入端口一律为 'in'。
  *    - 无论模型传入 'default'、空还是其他别名，均纠偏为 'in'。
  * 2. 源端口（Source Port）：
- *    - 'entry'、'variable_extractor'、'proxy'、'sse_disconnect'、'graphql_disconnect' 的输出端口为 'out'。
- *    - 'http'、'script'、'assertion'、'conditional'、'ws_*'、'tcp_*'、'udp_*'、'sse_*'、'graphql_*' 以及插件节点的输出端口为 'true' (主干成功流) 和 'false' (异常/失败分支)。
+ *    - 'entry'、'variable:extractor'、'proxy'、'sse:disconnect'、'graphql:disconnect' 的输出端口为 'out'。
+ *    - 'http:request'、'script'、'assertion'、'conditional'、'ws_*'、'tcp_*'、'udp_*'、'sse_*'、'graphql_*' 以及插件节点的输出端口为 'true' (主干成功流) 和 'false' (异常/失败分支)。
  *    - 如果模型传了 'default' 或遗漏：按源节点类型自动推断为 'out' 或 'true'。
  *    - 如果模型误给协议节点传了 'out'：自动重定向为 'true'，防止流程执行静默中断。
  */
@@ -36,11 +36,11 @@ export function resolveDefaultPorts(
 
   const isOutPortSource = [
     'entry',
-    'sub_flow',
-    'variable_extractor',
+    'flow:sub',
+    'variable:extractor',
     'proxy',
-    'sse_disconnect',
-    'graphql_disconnect',
+    'sse:disconnect',
+    'graphql:disconnect',
   ].includes(sourceType);
 
   let sourcePort = requestedSourcePort;
@@ -49,8 +49,8 @@ export function resolveDefaultPorts(
   } else if (sourcePort === 'out' && !isOutPortSource) {
     // 保护纠偏：协议/条件节点没有 'out' 端口，模型传 'out' 时自动映射到 'true'
     sourcePort = 'true';
-  } else if (sourcePort === 'true' && sourceType === 'sub_flow') {
-    // 保护纠偏：sub_flow 成功端口为 'out'，模型传 'true' 时自动映射到 'out'
+  } else if (sourcePort === 'true' && sourceType === 'flow:sub') {
+    // 保护纠偏：flow:sub 成功端口为 'out'，模型传 'true' 时自动映射到 'out'
     sourcePort = 'out';
   }
   return { sourcePort, targetPort };
@@ -77,7 +77,7 @@ export function buildDefaultNodeData(type: string, config?: Record<string, unkno
     type,
   };
   switch (type) {
-    case 'http': {
+    case 'http:request': {
       let method = String(rawConfig.method || 'get').toLowerCase();
       const validMethods = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'];
       if (!validMethods.includes(method)) {
@@ -92,7 +92,7 @@ export function buildDefaultNodeData(type: string, config?: Record<string, unkno
       }
       return {
         ...rawConfig,
-        type: 'http',
+        type: 'http:request',
         method,
         url: typeof rawConfig.url === 'string' ? rawConfig.url : 'https://httpbin.org/get',
         headers: (rawConfig.headers && typeof rawConfig.headers === 'object' && !Array.isArray(rawConfig.headers))
@@ -187,7 +187,7 @@ export function buildDefaultNodeData(type: string, config?: Record<string, unkno
       } as unknown as NodeData;
     }
 
-    case 'variable_extractor': {
+    case 'variable:extractor': {
       let rawMappings = rawConfig.output_mappings;
       if (!Array.isArray(rawMappings) || rawMappings.length === 0) {
         if (Array.isArray(rawConfig.extractions) && rawConfig.extractions.length > 0) rawMappings = rawConfig.extractions;
@@ -204,7 +204,7 @@ export function buildDefaultNodeData(type: string, config?: Record<string, unkno
 
       return {
         ...rawConfig,
-        type: 'variable_extractor',
+        type: 'variable:extractor',
         output_mappings: outputMappings,
         source_node_id: rawConfig.source_node_id ? String(rawConfig.source_node_id) : undefined,
       } as unknown as NodeData;
@@ -219,7 +219,7 @@ export function buildDefaultNodeData(type: string, config?: Record<string, unkno
           : '// JavaScript Execution Sandbox\nconsole.log("Running script step");\n',
       } as unknown as NodeData;
     }
-    case 'sub_flow': {
+    case 'flow:sub': {
       const variableMappings = Array.isArray(rawConfig.variable_mappings)
         ? rawConfig.variable_mappings
         : [];
@@ -228,7 +228,7 @@ export function buildDefaultNodeData(type: string, config?: Record<string, unkno
         : [];
       return {
         ...rawConfig,
-        type: 'sub_flow',
+        type: 'flow:sub',
         target_flow_id: rawConfig.target_flow_id ? String(rawConfig.target_flow_id) : undefined,
         target_flow_path: rawConfig.target_flow_path ? String(rawConfig.target_flow_path) : undefined,
         inherit_all_variables: rawConfig.inherit_all_variables ?? true,
@@ -271,7 +271,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
                 type: {
                   type: 'string',
                   description:
-                    "Node type: 'http', 'script', 'assertion', 'conditional', 'sub_flow', 'variable_extractor', 'end', 'ws_connect', 'tcp_connect', etc.",
+                    "Node type: 'http:request', 'script', 'assertion', 'conditional', 'flow:sub', 'variable:extractor', 'end', 'ws:connect', 'tcp:connect', etc.",
                 },
                 name: {
                   type: 'string',
@@ -280,7 +280,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
                 config: {
                   type: 'object',
                   description:
-                    "Configuration specific to the node type (e.g. for http: {method: 'get', url: '...'}, for assertion: {assertions: [...]}, for extractor: {output_mappings: [...]}).",
+                    "Configuration specific to the node type (e.g. for http:request: {method: 'get', url: '...'}, for assertion: {assertions: [...]}, for extractor: {output_mappings: [...]}).",
                 },
                 on_error: {
                   type: 'string',
@@ -316,7 +316,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
         properties: {
           type: {
             type: 'string',
-            description: 'The node type (e.g. http, script, conditional, assertion, sub_flow, entry, end, ws_connect, etc.).',
+            description: 'The node type (e.g. http:request, script, conditional, assertion, flow:sub, entry, end, ws:connect, etc.).',
           },
           name: {
             type: 'string',
@@ -333,7 +333,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
           config: {
             type: 'object',
             description:
-              "Node configuration parameters specific to the node type (e.g. for http: {method: 'get'|'post', url, headers, body}, for sub_flow: {target_flow_id, target_flow_path, inherit_all_variables}, for assertion: {assertions: [...]}, for conditional: {condition_type, field_path, operator, expected_value}).",
+              "Node configuration parameters specific to the node type (e.g. for http:request: {method: 'get'|'post', url, headers, body}, for 'flow:sub': {target_flow_id, target_flow_path, inherit_all_variables}, for assertion: {assertions: [...]}, for conditional: {condition_type, field_path, operator, expected_value}).",
           },
           on_error: {
             type: 'string',
@@ -380,7 +380,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
     function: {
       name: 'connect_nodes',
       description:
-        "Connect two nodes in the workflow canvas. Automatically determines correct ports ('out' for entry/sub_flow/extractor/proxy, 'true' for http/script/assertion/conditional/plugins, 'in' for target).",
+        "Connect two nodes in the workflow canvas. Automatically determines correct ports ('out' for entry/flow:sub/extractor/proxy, 'true' for http:request/script/assertion/conditional/plugins, 'in' for target).",
       parameters: {
         type: 'object',
         properties: {
@@ -512,14 +512,14 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
     function: {
       name: 'get_node_type_schema',
       description:
-        'Query the complete configuration schema, allowable parameter names, data types, descriptions, default values, and usage examples for any node type (including built-in protocols and plugins like http, sub_flow, assertion, conditional, script, variable_extractor, ws_*, tcp_*, sse_*, graphql_*, redis:*, db:*, kafka:*, etc.).',
+        'Query the complete configuration schema, allowable parameter names, data types, descriptions, default values, and usage examples for any node type (including built-in protocols and plugins like http, flow:sub, assertion, conditional, script, variable:extractor, ws_*, tcp_*, sse_*, graphql_*, redis:*, db:*, kafka:*, etc.).',
       parameters: {
         type: 'object',
         properties: {
           node_type: {
             type: 'string',
             description:
-              "The node type identifier, e.g. 'http', 'sub_flow', 'assertion', 'conditional', 'script', 'variable_extractor', 'ws_connect', 'tcp_connect', 'redis:command', 'db:query'.",
+              "The node type identifier, e.g. 'http:request', 'flow:sub', 'assertion', 'conditional', 'script', 'variable:extractor', 'ws:connect', 'tcp:connect', 'redis:command', 'db:query'.",
           },
         },
         required: ['node_type'],
@@ -550,7 +550,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
  * 内置节点类型标准配置规范定义，用于向 LLM 呈现权威完整的字段与参数说明
  */
 export const BUILTIN_SCHEMAS: Record<string, unknown> = {
-  http: {
+  'http:request': {
     display_name: 'HTTP Request',
     category: 'http',
     description: 'Send HTTP/REST requests (GET, POST, PUT, DELETE, PATCH, etc.)',
@@ -643,7 +643,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       expected_value: 200,
     },
   },
-  sub_flow: {
+  'flow:sub': {
     display_name: 'SubFlow',
     category: 'tools',
     description: 'Execute another workflow as a modular, reusable subflow with variable inheritance and mapping',
@@ -680,7 +680,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       export_all_variables: true,
     },
   },
-  variable_extractor: {
+  'variable:extractor': {
     display_name: 'Variable Extractor',
     category: 'tools',
     description: 'Extract values from preceding node response using JSONPath and save into workflow variable pool',
@@ -720,7 +720,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       script: 'const res = context.steps.prev_step.response.body;\ncontext.variables.set("totalCount", res.items.length);\n',
     },
   },
-  ws_connect: {
+  'ws:connect': {
     display_name: 'WebSocket Connect',
     category: 'websocket',
     description: 'Establish WebSocket connection',
@@ -730,7 +730,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       headers: { type: 'object' },
     },
   },
-  ws_send_collect: {
+  'ws:send_collect': {
     display_name: 'WebSocket Send & Collect',
     category: 'websocket',
     description: 'Send message over WebSocket and collect responses',
@@ -741,14 +741,14 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       timeout_ms: { type: 'number', default: 10000 },
     },
   },
-  ws_close: {
+  'ws:close': {
     display_name: 'WebSocket Close',
     category: 'websocket',
     description: 'Close WebSocket connection',
     ports: { input: ['in'], output: ['true', 'false'] },
     fields: {},
   },
-  tcp_connect: {
+  'tcp:connect': {
     display_name: 'TCP Connect',
     category: 'tcp',
     description: 'Establish TCP socket connection',
@@ -759,7 +759,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       timeout_ms: { type: 'number', default: 5000 },
     },
   },
-  tcp_send: {
+  'tcp:send': {
     display_name: 'TCP Send',
     category: 'tcp',
     description: 'Send raw data over TCP socket',
@@ -768,7 +768,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       data: { type: 'string', required: true },
     },
   },
-  tcp_receive: {
+  'tcp:receive': {
     display_name: 'TCP Receive',
     category: 'tcp',
     description: 'Receive data from TCP socket',
@@ -778,14 +778,14 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       timeout_ms: { type: 'number', default: 10000 },
     },
   },
-  tcp_close: {
+  'tcp:close': {
     display_name: 'TCP Close',
     category: 'tcp',
     description: 'Close TCP socket connection',
     ports: { input: ['in'], output: ['true', 'false'] },
     fields: {},
   },
-  udp_bind: {
+  'udp:bind': {
     display_name: 'UDP Bind',
     category: 'udp',
     description: 'Bind local UDP socket',
@@ -794,7 +794,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       local_port: { type: 'number', required: true },
     },
   },
-  udp_send_to: {
+  'udp:send_to': {
     display_name: 'UDP Send To',
     category: 'udp',
     description: 'Send UDP datagram to target address',
@@ -805,7 +805,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       data: { type: 'string', required: true },
     },
   },
-  udp_recv_from: {
+  'udp:recv_from': {
     display_name: 'UDP Receive From',
     category: 'udp',
     description: 'Receive UDP datagram',
@@ -814,14 +814,14 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       timeout_ms: { type: 'number', default: 5000 },
     },
   },
-  udp_close: {
+  'udp:close': {
     display_name: 'UDP Close',
     category: 'udp',
     description: 'Close UDP socket',
     ports: { input: ['in'], output: ['true', 'false'] },
     fields: {},
   },
-  sse_connect: {
+  'sse:connect': {
     display_name: 'SSE Connect',
     category: 'sse',
     description: 'Connect to Server-Sent Events stream',
@@ -831,7 +831,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       headers: { type: 'object' },
     },
   },
-  sse_listen: {
+  'sse:listen': {
     display_name: 'SSE Listen',
     category: 'sse',
     description: 'Listen for SSE event',
@@ -841,14 +841,14 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       timeout_ms: { type: 'number', default: 15000 },
     },
   },
-  sse_disconnect: {
+  'sse:disconnect': {
     display_name: 'SSE Disconnect',
     category: 'sse',
     description: 'Disconnect SSE stream',
     ports: { input: ['in'], output: ['out'] },
     fields: {},
   },
-  graphql_connect: {
+  'graphql:connect': {
     display_name: 'GraphQL Connect',
     category: 'graphql',
     description: 'Initialize GraphQL endpoint connection',
@@ -858,7 +858,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       headers: { type: 'object' },
     },
   },
-  graphql_query: {
+  'graphql:query': {
     display_name: 'GraphQL Query / Mutation',
     category: 'graphql',
     description: 'Execute GraphQL query or mutation',

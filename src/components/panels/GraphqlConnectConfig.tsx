@@ -30,7 +30,7 @@ interface HeaderEntry {
 
 function toFormData(data: GraphqlConnectConfigType): GraphqlConnectConfigFormData {
   return {
-    type: 'graphql_connect',
+    type: 'graphql:connect',
     endpoint: data.endpoint || '',
     ws_endpoint: data.ws_endpoint || '',
     headers: data.headers,
@@ -44,7 +44,7 @@ function fromFormData(formData: GraphqlConnectConfigFormData): GraphqlConnectCon
   const hasHeaders = headers && Object.keys(headers).some(k => k.trim());
 
   return {
-    type: 'graphql_connect',
+    type: 'graphql:connect',
     endpoint: formData.endpoint,
     ws_endpoint: formData.ws_endpoint || undefined,
     headers: hasHeaders ? headers : undefined,
@@ -145,7 +145,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
         // 保存发现的 Schema 和查询模板到节点配置
         const currentData = getValues();
         onSave({
-          type: 'graphql_connect',
+          type: 'graphql:connect',
           endpoint: currentData.endpoint,
           ws_endpoint: currentData.ws_endpoint || undefined,
           headers: Object.keys(headerMap).length > 0 ? headerMap : undefined,

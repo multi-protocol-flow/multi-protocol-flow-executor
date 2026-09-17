@@ -20,7 +20,7 @@ pub struct TcpConnectPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for TcpConnectPlugin {
     fn type_id(&self) -> &str {
-        "tcp_connect"
+        "tcp:connect"
     }
 
     fn display_name(&self) -> &str {
@@ -178,7 +178,7 @@ impl NodePlugin for TcpConnectPlugin {
 
         // 3. 日志：开始连接
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: tcp_connect, Target: {}:{}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: tcp:connect, Target: {}:{}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -263,7 +263,7 @@ pub struct TcpSendPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for TcpSendPlugin {
     fn type_id(&self) -> &str {
-        "tcp_send"
+        "tcp:send"
     }
 
     fn display_name(&self) -> &str {
@@ -384,7 +384,7 @@ impl NodePlugin for TcpSendPlugin {
 #[async_trait::async_trait]
 impl NodePlugin for TcpReceivePlugin {
     fn type_id(&self) -> &str {
-        "tcp_receive"
+        "tcp:receive"
     }
 
     fn display_name(&self) -> &str {
@@ -505,7 +505,7 @@ pub struct TcpReceivePlugin;
 #[async_trait::async_trait]
 impl NodePlugin for TcpClosePlugin {
     fn type_id(&self) -> &str {
-        "tcp_close"
+        "tcp:close"
     }
 
     fn display_name(&self) -> &str {
@@ -629,7 +629,7 @@ pub struct UdpBindPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for UdpBindPlugin {
     fn type_id(&self) -> &str {
-        "udp_bind"
+        "udp:bind"
     }
 
     fn display_name(&self) -> &str {
@@ -754,7 +754,7 @@ pub struct UdpSendToPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for UdpSendToPlugin {
     fn type_id(&self) -> &str {
-        "udp_send_to"
+        "udp:send_to"
     }
 
     fn display_name(&self) -> &str {
@@ -899,7 +899,7 @@ pub struct UdpRecvFromPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for UdpRecvFromPlugin {
     fn type_id(&self) -> &str {
-        "udp_recv_from"
+        "udp:recv_from"
     }
 
     fn display_name(&self) -> &str {
@@ -1014,7 +1014,7 @@ pub struct UdpClosePlugin;
 #[async_trait::async_trait]
 impl NodePlugin for UdpClosePlugin {
     fn type_id(&self) -> &str {
-        "udp_close"
+        "udp:close"
     }
 
     fn display_name(&self) -> &str {
@@ -1135,7 +1135,7 @@ mod tests {
     #[test]
     fn test_tcp_connect_plugin_metadata() {
         let plugin = TcpConnectPlugin;
-        assert_eq!(plugin.type_id(), "tcp_connect");
+        assert_eq!(plugin.type_id(), "tcp:connect");
         assert_eq!(plugin.display_name(), "TCP Connect");
         assert_eq!(plugin.category(), "tcp");
         assert_eq!(plugin.icon(), "cable");
@@ -1210,10 +1210,10 @@ mod tests {
 
         TcpPluginGroup::register_all(&mut registry);
         assert_eq!(registry.len(), 4);
-        assert!(registry.get("tcp_connect").is_some());
-        assert!(registry.get("tcp_send").is_some());
-        assert!(registry.get("tcp_receive").is_some());
-        assert!(registry.get("tcp_close").is_some());
+        assert!(registry.get("tcp:connect").is_some());
+        assert!(registry.get("tcp:send").is_some());
+        assert!(registry.get("tcp:receive").is_some());
+        assert!(registry.get("tcp:close").is_some());
     }
 
     // -----------------------------------------------------------------------
@@ -1223,7 +1223,7 @@ mod tests {
     #[test]
     fn test_tcp_send_plugin_metadata() {
         let plugin = TcpSendPlugin;
-        assert_eq!(plugin.type_id(), "tcp_send");
+        assert_eq!(plugin.type_id(), "tcp:send");
         assert_eq!(plugin.display_name(), "TCP Send");
         assert_eq!(plugin.category(), "tcp");
         assert_eq!(plugin.icon(), "send");
@@ -1314,7 +1314,7 @@ mod tests {
     #[test]
     fn test_tcp_receive_plugin_metadata() {
         let plugin = TcpReceivePlugin;
-        assert_eq!(plugin.type_id(), "tcp_receive");
+        assert_eq!(plugin.type_id(), "tcp:receive");
         assert_eq!(plugin.display_name(), "TCP Receive");
         assert_eq!(plugin.category(), "tcp");
         assert_eq!(plugin.icon(), "download");
@@ -1375,7 +1375,7 @@ mod tests {
     #[test]
     fn test_tcp_close_plugin_metadata() {
         let plugin = TcpClosePlugin;
-        assert_eq!(plugin.type_id(), "tcp_close");
+        assert_eq!(plugin.type_id(), "tcp:close");
         assert_eq!(plugin.display_name(), "TCP Close");
         assert_eq!(plugin.category(), "tcp");
         assert_eq!(plugin.icon(), "unplug");
@@ -1442,7 +1442,7 @@ mod tests {
     #[test]
     fn test_udp_bind_plugin_metadata() {
         let plugin = UdpBindPlugin;
-        assert_eq!(plugin.type_id(), "udp_bind");
+        assert_eq!(plugin.type_id(), "udp:bind");
         assert_eq!(plugin.display_name(), "UDP Bind");
         assert_eq!(plugin.category(), "udp");
         assert_eq!(plugin.icon(), "radio");
@@ -1507,7 +1507,7 @@ mod tests {
     #[test]
     fn test_udp_send_to_plugin_metadata() {
         let plugin = UdpSendToPlugin;
-        assert_eq!(plugin.type_id(), "udp_send_to");
+        assert_eq!(plugin.type_id(), "udp:send_to");
         assert_eq!(plugin.display_name(), "UDP Send");
         assert_eq!(plugin.category(), "udp");
         assert_eq!(plugin.icon(), "arrow-up-right");
@@ -1573,7 +1573,7 @@ mod tests {
     #[test]
     fn test_udp_recv_from_plugin_metadata() {
         let plugin = UdpRecvFromPlugin;
-        assert_eq!(plugin.type_id(), "udp_recv_from");
+        assert_eq!(plugin.type_id(), "udp:recv_from");
         assert_eq!(plugin.display_name(), "UDP Receive");
         assert_eq!(plugin.category(), "udp");
         assert_eq!(plugin.icon(), "arrow-down-left");
@@ -1633,7 +1633,7 @@ mod tests {
     #[test]
     fn test_udp_close_plugin_metadata() {
         let plugin = UdpClosePlugin;
-        assert_eq!(plugin.type_id(), "udp_close");
+        assert_eq!(plugin.type_id(), "udp:close");
         assert_eq!(plugin.display_name(), "UDP Close");
         assert_eq!(plugin.category(), "udp");
         assert_eq!(plugin.icon(), "unplug");
@@ -1692,10 +1692,10 @@ mod tests {
 
         UdpPluginGroup::register_all(&mut registry);
         assert_eq!(registry.len(), 4);
-        assert!(registry.get("udp_bind").is_some());
-        assert!(registry.get("udp_send_to").is_some());
-        assert!(registry.get("udp_recv_from").is_some());
-        assert!(registry.get("udp_close").is_some());
+        assert!(registry.get("udp:bind").is_some());
+        assert!(registry.get("udp:send_to").is_some());
+        assert!(registry.get("udp:recv_from").is_some());
+        assert!(registry.get("udp:close").is_some());
     }
 
     #[test]

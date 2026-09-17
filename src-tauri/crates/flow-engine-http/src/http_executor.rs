@@ -63,7 +63,7 @@ impl NodeExecutor for HttpNodeExecutor {
         // 执行前日志
         let start_time = Instant::now();
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: http",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: http:request",
             context.flow_uuid,
             node.uuid,
             node.name
@@ -1062,7 +1062,7 @@ mod tests {
 
         Node {
             uuid: uuid.to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -1989,7 +1989,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP GET请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2055,7 +2055,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP POST请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2120,7 +2120,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 404请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2182,7 +2182,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 200Success".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2243,7 +2243,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP 500Error".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2305,7 +2305,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP变量替换".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2391,7 +2391,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP网络Error".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2472,7 +2472,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP JSON响应".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2540,7 +2540,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP JSON响应".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2604,7 +2604,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP PUT请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2669,7 +2669,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP DELETE请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2730,7 +2730,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP PATCH请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {
@@ -2795,7 +2795,7 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "HTTP响应头".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(HttpConfig {

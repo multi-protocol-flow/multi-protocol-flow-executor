@@ -84,7 +84,7 @@ export const HttpNode = memo(function HttpNode({ id, data, selected }: NodeProps
             {method}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('http')}
+            {nodeData.label || getNodeDisplayName('http:request')}
           </span>
         </div>
       </div>

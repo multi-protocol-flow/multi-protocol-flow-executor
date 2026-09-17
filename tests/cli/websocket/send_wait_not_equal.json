@@ -17,14 +17,14 @@
     },
     {
       "uuid": "ws-connect-001",
-      "type": "ws_connect",
+      "type": "ws:connect",
       "name": "Connect WebSocket",
       "position": {
         "x": 250,
         "y": 0
       },
       "data": {
-        "type": "ws_connect",
+        "type": "ws:connect",
         "url": "wss://echo.websocket.org",
         "connect_timeout_ms": 10000,
         "collect_message": false,
@@ -33,14 +33,14 @@
     },
     {
       "uuid": "ws-send-wait-001",
-      "type": "ws_send_collect",
+      "type": "ws:send_collect",
       "name": "Send Message and Collect Response",
       "position": {
         "x": 500,
         "y": 0
       },
       "data": {
-        "type": "ws_send_collect",
+        "type": "ws:send_collect",
         "connection_id": "ws-connect-001",
         "message": "{\"action\":\"ping\",\"data\":\"Hello WebSocket!\"}",
         "message_type": "text",
@@ -52,14 +52,14 @@
     },
     {
       "uuid": "ws-close-001",
-      "type": "ws_close",
+      "type": "ws:close",
       "name": "Close Connection",
       "position": {
         "x": 750,
         "y": 0
       },
       "data": {
-        "type": "ws_close",
+        "type": "ws:close",
         "connection_id": "ws-connect-001",
         "close_code": 1000,
         "close_reason": "Normal closure",

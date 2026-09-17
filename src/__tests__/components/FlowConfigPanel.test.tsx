@@ -27,9 +27,9 @@ const mockFlow: Flow = {
     {
       uuid: 'node-http',
       name: 'HTTP 请求',
-      type: 'http',
+      type: 'http:request',
       position: { x: 100, y: 100 },
-      data: { type: 'http', url: 'https://api.example.com/test', method: 'get' },
+      data: { type: 'http:request', url: 'https://api.example.com/test', method: 'get' },
     },
   ],
   connections: [

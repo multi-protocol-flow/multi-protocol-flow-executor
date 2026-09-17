@@ -159,7 +159,7 @@ pub enum DataItemProtocol { Http, WebSocket, Sse, Tcp, Graphql, Mqtt, Kafka, Oth
 
 ```json
 {
-  "type_id": "http",
+  "type_id": "http:request",
   "name": "GET /users",
   "data": {
     "method": "GET",
@@ -177,7 +177,7 @@ pub enum DataItemProtocol { Http, WebSocket, Sse, Tcp, Graphql, Mqtt, Kafka, Oth
 
 - `type_id`：内置或插件节点类型 id（如 `mongo:find`），落画布时按注册表校验
 - `data`：节点配置，**直接**作为画布节点 data（覆盖默认值）
-- 单个平台条目可产出**多个**模板（如 Eolink WS API → `ws_connect` + `ws_send` 两个节点）
+- 单个平台条目可产出**多个**模板（如 Eolink WS API → `ws:connect` + `ws_send` 两个节点）
 - `source_ref`：P0 只存不消费；P2 支持"重新同步"（拉最新覆盖节点数据）
 - 大小上限：单模板 ≤ 1 MiB（对齐现有 report_data 上限）
 
@@ -284,8 +284,8 @@ mpe-plugin-sdk/src/
 
 ### 7.2 映射
 
-- HTTP 条目 → `http` 节点：method/path/headers/params/body example → 节点 data
-- WS 条目（[待验证] Eolink OpenAPI 返回是否含 WebSocket 定义及字段结构）→ `ws_connect` + `ws_send` 模板
+- HTTP 条目 → `http:request` 节点：method/path/headers/params/body example → 节点 data
+- WS 条目（[待验证] Eolink OpenAPI 返回是否含 WebSocket 定义及字段结构）→ `ws:connect` + `ws_send` 模板
 - base url 来源 [待验证]：优先 Eolink 项目配置字段；缺失则拖入时用户填一次（存入模板 data，不落连接配置）
 
 ### 7.3 参考实现
@@ -316,7 +316,7 @@ Eolink 插件作为数据源插件的官方参考实现（dogfood 契约）。Py
 - SDK：`protocol::datasource` wire 类型 + `DatasourcePlugin` trait
 - 宿主：datasource manager（注册/转发/连接注入）+ 连接配置 store + `store/datasources.bin`
 - 前端：DataSourcePanel + datasource store + IPC + onDrop 拖拽扩展
-- Eolink 插件：HTTP 条目 → http 节点（含 [待验证] 项）
+- Eolink 插件：HTTP 条目 → http:request 节点（含 [待验证] 项）
 
 ### P1
 

@@ -36,11 +36,11 @@ describe('Flow 类型序列化测试', () => {
         },
         {
           uuid: 'node-002',
-          type: 'http',
+          type: 'http:request',
           name: 'HTTP 请求',
           position: { x: 200, y: 0 },
           data: {
-            type: 'http',
+            type: 'http:request',
             url: 'https://api.example.com/users',
             method: 'get',
             headers: {
@@ -72,7 +72,7 @@ describe('Flow 类型序列化测试', () => {
     expect(deserialized.nodes).toHaveLength(2);
     expect(deserialized.connections).toHaveLength(1);
     expect(deserialized.nodes[0].type).toBe('entry');
-    expect(deserialized.nodes[1].type).toBe('http');
+    expect(deserialized.nodes[1].type).toBe('http:request');
   });
 });
 
@@ -97,11 +97,11 @@ describe('Node 类型序列化测试', () => {
   it('应该正确处理 HTTP 节点', () => {
     const node: Node = {
       uuid: 'http-001',
-      type: 'http',
+      type: 'http:request',
       name: '获取用户数据',
       position: { x: 200, y: 100 },
       data: {
-        type: 'http',
+        type: 'http:request',
         url: 'https://api.example.com/users',
         method: 'post',
         headers: {
@@ -119,9 +119,9 @@ describe('Node 类型序列化测试', () => {
     const deserialized: Node = JSON.parse(json);
 
     expect(deserialized.uuid).toBe('http-001');
-    expect(deserialized.type).toBe('http');
+    expect(deserialized.type).toBe('http:request');
     const httpData = deserialized.data as HttpConfig;
-    expect(httpData.type).toBe('http');
+    expect(httpData.type).toBe('http:request');
     expect(httpData.url).toBe('https://api.example.com/users');
     expect(httpData.method).toBe('post');
     expect(httpData.headers?.Authorization).toBe('Bearer token123');
@@ -281,7 +281,7 @@ describe('FlowExecutionReport 类型序列化测试', () => {
         },
         {
           node_uuid: 'node-002',
-          node_type: 'http',
+          node_type: 'http:request',
           node_name: 'HTTP 请求',
           start_time: 1100,
           end_time: 1800,
@@ -337,7 +337,7 @@ describe('FlowExecutionReport 类型序列化测试', () => {
       node_reports: [
         {
           node_uuid: 'node-001',
-          node_type: 'http',
+          node_type: 'http:request',
           node_name: 'HTTP 请求',
           start_time: 1000,
           end_time: 1500,

@@ -167,7 +167,7 @@ mod tests {
         let event = ExecutionEvent::NodeStarted {
             node_uuid: "node-001".to_string(),
             node_name: "HTTP 请求".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             parent_node_uuid: None,
         };
 
@@ -203,7 +203,7 @@ mod tests {
         let report = NodeExecutionReport {
             sub_flow_report: None,
             node_uuid: "node-001".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             node_name: "HTTP 请求".to_string(),
             start_time: 1000,
             end_time: 2000,
@@ -305,7 +305,7 @@ mod tests {
         let event = ExecutionEvent::NodeStarted {
             node_uuid: "node-001".to_string(),
             node_name: "HTTP 请求".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             parent_node_uuid: None,
         };
         let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -426,7 +426,7 @@ mod tests {
         let nested = ExecutionEvent::NodeStarted {
             node_uuid: "child-node-1".to_string(),
             node_name: "子流程节点".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             parent_node_uuid: Some("subflow-node-1".to_string()),
         };
         let json = serde_json::to_string(&nested).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -439,7 +439,7 @@ mod tests {
         let root = ExecutionEvent::NodeStarted {
             node_uuid: "node-1".to_string(),
             node_name: "顶层节点".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             parent_node_uuid: None,
         };
         let json = serde_json::to_string(&root).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -449,7 +449,7 @@ mod tests {
         );
 
         // 旧版本事件（无该字段）必须仍可反序列化为顶层事件
-        let legacy = r#"{"nodeStarted":{"nodeUuid":"n","nodeName":"N","nodeType":"http"}}"#;
+        let legacy = r#"{"nodeStarted":{"nodeUuid":"n","nodeName":"N","nodeType":"http:request"}}"#;
         let parsed: ExecutionEvent =
             serde_json::from_str(legacy).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
         assert!(matches!(

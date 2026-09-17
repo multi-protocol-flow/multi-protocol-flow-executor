@@ -70,10 +70,10 @@ function createMockFlowWithDiffs(): { snapshot: Flow; current: Flow } {
       },
       {
         uuid: 'node-2',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 200, y: 0 },
-        data: { type: 'http', url: 'https://old.example.com', method: 'get', timeout_ms: 30000 },
+        data: { type: 'http:request', url: 'https://old.example.com', method: 'get', timeout_ms: 30000 },
       },
       {
         uuid: 'node-3',
@@ -108,10 +108,10 @@ function createMockFlowWithDiffs(): { snapshot: Flow; current: Flow } {
       },
       {
         uuid: 'node-2',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 200, y: 0 },
-        data: { type: 'http', url: 'https://new.example.com', method: 'get', timeout_ms: 30000 },
+        data: { type: 'http:request', url: 'https://new.example.com', method: 'get', timeout_ms: 30000 },
       },
       {
         uuid: 'node-4',

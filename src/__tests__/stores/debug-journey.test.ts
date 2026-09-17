@@ -38,10 +38,10 @@ function createTestFlow(): Flow {
       },
       {
         uuid: 'http-1',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP请求',
         position: { x: 200, y: 0 },
-        data: { type: 'http', url: 'https://api.example.com/users', method: 'get' },
+        data: { type: 'http:request', url: 'https://api.example.com/users', method: 'get' },
         hasBreakpoint: true,
       },
       {
@@ -297,7 +297,7 @@ describe('调试功能端到端测试', () => {
             variables: { status: 200 },
             execution_stack: [
               createStackEntry('entry-1', '入口', 'entry'),
-              createStackEntry('http-1', 'HTTP请求', 'http', { status: 200 }),
+              createStackEntry('http-1', 'HTTP请求', 'http:request', { status: 200 }),
             ],
           },
         });
@@ -358,7 +358,7 @@ describe('调试功能端到端测试', () => {
       act(() => {
         debugEventCallback?.({
           NodeExecuted: {
-            entry: createStackEntry('http-1', 'HTTP请求', 'http', simulatedOutput),
+            entry: createStackEntry('http-1', 'HTTP请求', 'http:request', simulatedOutput),
           },
         });
         debugEventCallback?.({
@@ -671,7 +671,7 @@ describe('调试功能端到端测试', () => {
         {
           node_uuid: 'http-1',
           node_name: 'HTTP请求',
-          node_type: 'http',
+          node_type: 'http:request',
           started_at: 1010,
           ended_at: 1500,
           input: { url: 'https://api.example.com/users' },
@@ -726,7 +726,7 @@ describe('调试功能端到端测试', () => {
         {
           node_uuid: 'http-1',
           node_name: 'HTTP请求',
-          node_type: 'http',
+          node_type: 'http:request',
           started_at: 1010,
           ended_at: 2000,
           input: { url: 'https://invalid.example.com' },

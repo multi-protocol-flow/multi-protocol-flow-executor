@@ -43,7 +43,7 @@ function getDataEncodingOptions(): Array<{ value: string; label: string }> {
  */
 function toFormData(data: UdpSendToConfigType): UdpSendToConfigFormData {
   return {
-    type: 'udp_send_to',
+    type: 'udp:send_to',
     connection_id: data.connection_id || '',
     data: data.data || '',
     data_encoding: (data.data_encoding as 'text' | 'hex' | 'base64') ?? 'text',
@@ -58,7 +58,7 @@ function toFormData(data: UdpSendToConfigType): UdpSendToConfigFormData {
  */
 function fromFormData(formData: UdpSendToConfigFormData): UdpSendToConfigType {
   return {
-    type: 'udp_send_to',
+    type: 'udp:send_to',
     connection_id: formData.connection_id,
     data: formData.data,
     data_encoding: formData.data_encoding,
@@ -86,10 +86,10 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
   // 获取流程变量
   const { variables, nodeLabels } = useFlowVariables();
 
-  // 获取 flow 并提取 udp_bind 节点
+  // 获取 flow 并提取 udp:bind 节点
   const flow = useFlowStore((state) => state.flow);
 
-  // 提取可用的 UDP 连接（从 udp_bind 节点）
+  // 提取可用的 UDP 连接（从 udp:bind 节点）
   const availableConnections = useMemo(() => {
     if (!flow) return [];
     const connections: Array<{ uuid: string; name: string; local_addr?: string; local_port?: number }> = [];

@@ -22,10 +22,10 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
     nodes: [
       {
         uuid: 'ws-connect-1',
-        type: 'ws_connect',
+        type: 'ws:connect',
         name: 'WS Connect',
         position: { x: 0, y: 0 },
-        data: { type: 'ws_connect', url: 'wss://example.com' },
+        data: { type: 'ws:connect', url: 'wss://example.com' },
       },
     ],
     connections: [],
@@ -44,7 +44,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
   describe('基础渲染', () => {
     it('应该渲染连接 ID 选择器', () => {
       const config: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: '{"type": "ping"}',
         collect_response: true,
@@ -57,7 +57,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
     it('应该显示消息内容输入框', () => {
       const config: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: '{"type": "ping"}',
         collect_response: true,
@@ -70,7 +70,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
     it('应该显示消息类型选择器', () => {
       const config: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: '{"type": "ping"}',
         collect_response: true,
@@ -83,7 +83,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
     it('应该显示发送超时输入框', () => {
       const config: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: '{"type": "ping"}',
         collect_response: true,
@@ -96,7 +96,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
     it('应该显示等待响应开关', () => {
       const config: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: '{"type": "ping"}',
         collect_response: true,
@@ -111,7 +111,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
   describe('默认值测试', () => {
     it('发送超时默认值应为 30000ms', () => {
       const config: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: '{"type": "ping"}',
         collect_response: true,
@@ -125,7 +125,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
     it('消息类型默认值应为 text', () => {
       const config: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: '{"type": "ping"}',
         collect_response: true,
@@ -141,7 +141,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
   describe('外部数据更新同步测试（核心修复点）', () => {
     it('当外部 data 变化时，应该同步所有字段到表单', async () => {
       const initialConfig: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: '{"type": "ping"}',
         message_type: 'text',
@@ -164,7 +164,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
       // 更新外部数据 - 这是问题修复的关键测试
       const updatedConfig: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: '{"type": "pong"}', // 消息变化
         message_type: 'binary', // 消息类型变化
@@ -196,7 +196,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
     it('当 message_type 变化时，应该正确同步', async () => {
       const initialConfig: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: 'binary data',
         message_type: 'text',
@@ -228,7 +228,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
     it('当 send_timeout_ms 变化时，应该正确同步', async () => {
       const initialConfig: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: 'test',
         send_timeout_ms: 10000,
@@ -258,7 +258,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
     it('当 collect_condition 变化时，应该正确同步', async () => {
       const initialConfig: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: 'test',
         collect_response: true,
@@ -295,7 +295,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
   describe('等待响应配置测试', () => {
     it('当 collect_response 为 true 时，应显示等待配置', () => {
       const config: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: 'test',
         collect_response: true,
@@ -310,7 +310,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
     it('当 collect_response 为 false 时，应隐藏等待配置', () => {
       const config: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: 'test',
         collect_response: false,
@@ -328,7 +328,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
       // 初始配置：开启等待响应
       const initialConfig: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: 'test message',
         collect_response: true,
@@ -349,7 +349,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
       // 更新外部数据：关闭等待响应
       const updatedConfig: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: 'test message',
         collect_response: false,
@@ -371,7 +371,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
       // 初始配置：condition 模式
       const initialConfig: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: 'test message',
         collect_response: true,
@@ -391,7 +391,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
 
       // 更新外部数据：切换到 first_message 模式
       const updatedConfig: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'ws-connect-1',
         message: 'test message',
         collect_response: true,

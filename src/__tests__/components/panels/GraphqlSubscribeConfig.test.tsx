@@ -27,7 +27,7 @@ function createBaseConfig(
   overrides: Partial<GraphqlSubscribeConfigType> = {},
 ): GraphqlSubscribeConfigType {
   return {
-    type: 'graphql_subscribe',
+    type: 'graphql:subscribe',
     connection_id: 'gql-conn-1',
     subscription: 'subscription OnMessage { messageAdded { id text } }',
     ...overrides,

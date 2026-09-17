@@ -33,8 +33,8 @@ export interface NodeHelpContent {
 // ============================================================================
 
 const zhHelp: Record<string, NodeHelpContent> = {
-  http: {
-    typeId: 'http',
+  'http:request': {
+    typeId: 'http:request',
     summary: '发送 HTTP 请求，支持 GET/POST/PUT/DELETE/PATCH 等方法。支持 JSON、表单、文件等多种请求体格式。',
     params: [
       { name: 'url', type: 'string', required: true, description: '请求目标 URL', example: 'https://api.example.com/users' },
@@ -104,8 +104,8 @@ const zhHelp: Record<string, NodeHelpContent> = {
 // ============================================================================
 
 const enHelp: Record<string, NodeHelpContent> = {
-  http: {
-    typeId: 'http',
+  'http:request': {
+    typeId: 'http:request',
     summary: 'Send HTTP requests with GET/POST/PUT/DELETE/PATCH methods. Supports JSON, form-data, file uploads and more.',
     params: [
       { name: 'url', type: 'string', required: true, description: 'Request target URL', example: 'https://api.example.com/users' },

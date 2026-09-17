@@ -58,11 +58,11 @@ describe('Tauri IPC Mock 服务', () => {
 
       const httpNode = {
         uuid: `http-${flowId}`,
-        type: 'http' as const,
+        type: 'http:request' as const,
         name: 'HTTP 请求',
         position: { x: 200, y: 0 },
         data: {
-          type: 'http' as const,
+          type: 'http:request' as const,
           url: 'https://example.com',
           method: 'get' as const,
         },
@@ -113,10 +113,10 @@ describe('Tauri IPC Mock 服务', () => {
         nodes: [
           {
             uuid: 'http-node',
-            type: 'http',
+            type: 'http:request',
             name: 'HTTP 请求',
             position: { x: 0, y: 0 },
-            data: { type: 'http', url: 'https://example.com' },
+            data: { type: 'http:request', url: 'https://example.com' },
           },
         ],
         connections: [],

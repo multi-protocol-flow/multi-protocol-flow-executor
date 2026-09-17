@@ -35,8 +35,8 @@ export function inferDefaults(
 
   switch (targetType) {
     // ========== HTTP ==========
-    case 'http':
-      if (upType === 'http') {
+    case 'http:request':
+      if (upType === 'http:request') {
         const baseUrl = extractBaseUrl(upstreamNode.data.url as string);
         if (baseUrl) return { url: baseUrl };
       }
@@ -44,8 +44,8 @@ export function inferDefaults(
       return {};
 
     // ========== TCP ==========
-    case 'tcp_send':
-      if (upType === 'tcp_connect') {
+    case 'tcp:send':
+      if (upType === 'tcp:connect') {
         return {
           host: upstreamNode.data.host,
           port: upstreamNode.data.port,
@@ -54,9 +54,9 @@ export function inferDefaults(
       break;
 
     // ========== GraphQL ==========
-    case 'graphql_query':
-    case 'graphql_subscribe':
-      if (upType === 'graphql_introspect') {
+    case 'graphql:query':
+    case 'graphql:subscribe':
+      if (upType === 'graphql:introspect') {
         return {
           url: upstreamNode.data.url,
         };
@@ -64,8 +64,8 @@ export function inferDefaults(
       break;
 
     // ========== SSE ==========
-    case 'sse_listen':
-      if (upType === 'sse_connect') {
+    case 'sse:listen':
+      if (upType === 'sse:connect') {
         return {
           url: upstreamNode.data.url,
         };
@@ -73,8 +73,8 @@ export function inferDefaults(
       break;
 
     // ========== WebSocket ==========
-    case 'ws_send_collect':
-      if (upType === 'ws_connect') {
+    case 'ws:send_collect':
+      if (upType === 'ws:connect') {
         return {
           url: upstreamNode.data.url,
         };
@@ -82,7 +82,7 @@ export function inferDefaults(
       break;
 
     // ========== SubFlow ==========
-    case 'sub_flow':
+    case 'flow:sub':
       return {
         inherit_all_variables: true,
         export_all_variables: true,

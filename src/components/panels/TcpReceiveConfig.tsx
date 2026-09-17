@@ -43,7 +43,7 @@ interface TcpReceiveConfigProps {
  */
 function toFormData(data: TcpReceiveConfigType): TcpReceiveConfigFormData {
   return {
-    type: 'tcp_receive',
+    type: 'tcp:receive',
     connection_id: data.connection_id || '',
     receive_timeout_ms: data.receive_timeout_ms ?? 5000,
     framing_mode: data.framing_mode as unknown as TcpFramingMode | undefined,
@@ -56,7 +56,7 @@ function toFormData(data: TcpReceiveConfigType): TcpReceiveConfigFormData {
  */
 function fromFormData(formData: TcpReceiveConfigFormData): TcpReceiveConfigType {
   return {
-    type: 'tcp_receive',
+    type: 'tcp:receive',
     connection_id: formData.connection_id,
     receive_timeout_ms: formData.receive_timeout_ms,
     framing_mode: (formData.framing_mode ?? '') as string,
@@ -87,10 +87,10 @@ export function TcpReceiveConfig({ data, onSave }: TcpReceiveConfigProps) {
     mode: 'onBlur',
   });
 
-  // 获取 flow 并提取 tcp_connect 节点
+  // 获取 flow 并提取 tcp:connect 节点
   const flow = useFlowStore((state) => state.flow);
 
-  // 提取可用的 TCP 连接（从 tcp_connect 节点）
+  // 提取可用的 TCP 连接（从 tcp:connect 节点）
   const availableConnections = useMemo(() => {
     if (!flow) return [];
     const connections: Array<{ uuid: string; name: string; host?: string; port?: number }> = [];

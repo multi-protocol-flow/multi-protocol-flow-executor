@@ -128,7 +128,7 @@ impl NodeExecutor for GraphqlQueryExecutor {
         };
 
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql_query ({}), connection_id: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: graphql:query ({}), connection_id: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -532,7 +532,7 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, query: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "graphql_query".to_string(),
+            node_type: "graphql:query".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlQuery(GraphqlQueryConfig {
@@ -604,7 +604,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-wrong".to_string(),
-            node_type: "graphql_connect".to_string(),
+            node_type: "graphql:connect".to_string(),
             name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlConnect(GraphqlConnectConfig::default()),
@@ -634,7 +634,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-var".to_string(),
-            node_type: "graphql_query".to_string(),
+            node_type: "graphql:query".to_string(),
             name: "变量替换测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlQuery(GraphqlQueryConfig {
@@ -715,7 +715,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-report".to_string(),
-            node_type: "graphql_query".to_string(),
+            node_type: "graphql:query".to_string(),
             name: "报告结构测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlQuery(GraphqlQueryConfig {
@@ -773,7 +773,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-files".to_string(),
-            node_type: "graphql_query".to_string(),
+            node_type: "graphql:query".to_string(),
             name: "文件上传测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::GraphqlQuery(GraphqlQueryConfig {

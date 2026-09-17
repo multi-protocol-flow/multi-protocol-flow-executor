@@ -22,7 +22,7 @@ GraphQL protocol support covering Query/Mutation via HTTP POST (multipart), Subs
 
 ## Node Types (5)
 
-`graphql_connect`, `graphql_query`, `graphql_subscribe`, `graphql_introspect`, `graphql_disconnect`
+`graphql:connect`, `graphql:query`, `graphql:subscribe`, `graphql:introspect`, `graphql:disconnect`
 
 ## Key Dependencies
 

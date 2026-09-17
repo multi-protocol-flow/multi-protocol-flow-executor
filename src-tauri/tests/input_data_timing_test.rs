@@ -210,7 +210,7 @@ async fn test_input_data_timing_http_node() {
     // 创建 HTTP 节点
     let http_node = Node {
         uuid: "http-3".to_string(),
-        node_type: "http".to_string(),
+        node_type: "http:request".to_string(),
         name: "HTTP 请求".to_string(),
         position: NodePosition { x: 200.0, y: 0.0 },
         data: NodeData::Http(HttpConfig {

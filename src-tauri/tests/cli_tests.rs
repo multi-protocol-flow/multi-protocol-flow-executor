@@ -37,10 +37,10 @@ fn create_valid_flow_file() -> NamedTempFile {
                 },
                 {
                     "uuid": "http-node-1",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "HTTP 节点",
                     "position": { "x": 100.0, "y": 0.0 },
-                    "data": { "type": "http", "url": "http://localhost:19090/api/status/200" },
+                    "data": { "type": "http:request", "url": "http://localhost:19090/api/status/200" },
                     "ports": null
                 }
             ],
@@ -79,10 +79,10 @@ fn create_flow_with_uuid() -> NamedTempFile {
                 },
                 {
                     "uuid": "http-node-1",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "HTTP 节点",
                     "position": { "x": 100.0, "y": 0.0 },
-                    "data": { "type": "http", "url": "http://localhost:19090/api/status/200" },
+                    "data": { "type": "http:request", "url": "http://localhost:19090/api/status/200" },
                     "ports": null
                 }
             ],
@@ -124,7 +124,7 @@ fn create_large_flow_file() -> NamedTempFile {
     for i in 1..=48 {
         nodes.push(',');
         nodes.push_str(&format!(
-            r#"{{"uuid": "node-{}", "type": "http", "name": "节点 {}", "position": {{"x": {}, "y": {}}}, "data": {{"type": "http", "url": "http://localhost:19090/api/status/200"}}, "ports": null}}"#,
+            r#"{{"uuid": "node-{}", "type": "http:request", "name": "节点 {}", "position": {{"x": {}, "y": {}}}, "data": {{"type": "http:request", "url": "http://localhost:19090/api/status/200"}}, "ports": null}}"#,
             i, i, (i * 10) as f64, (i * 10) as f64
         ));
         // Add connection from previous node to this one
@@ -506,10 +506,10 @@ fn test_flow_with_connections() {
                 },
                 {
                     "uuid": "http-node-1",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "HTTP 节点",
                     "position": { "x": 100.0, "y": 0.0 },
-                    "data": { "type": "http", "url": "http://localhost:19090/api/status/200" },
+                    "data": { "type": "http:request", "url": "http://localhost:19090/api/status/200" },
                     "ports": null
                 }
             ],
@@ -631,10 +631,10 @@ fn test_flow_with_missing_uuid() {
                 },
                 {
                     "uuid": "http-node-1",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "HTTP 节点",
                     "position": { "x": 100.0, "y": 0.0 },
-                    "data": { "type": "http", "url": "http://localhost:19090/api/status/200" },
+                    "data": { "type": "http:request", "url": "http://localhost:19090/api/status/200" },
                     "ports": null
                 }
             ],
@@ -928,7 +928,7 @@ fn test_flow_edit_node_add() {
         .arg("--flow")
         .arg(&flow_uuid)
         .arg("--type")
-        .arg("http")
+        .arg("http:request")
         .arg("--name")
         .arg("新 HTTP 节点")
         .env("MPE_FLOWS_DIR", &flows_dir)
@@ -989,7 +989,7 @@ fn test_flow_edit_connection_add() {
         .arg("--flow")
         .arg(&flow_uuid)
         .arg("--type")
-        .arg("http")
+        .arg("http:request")
         .arg("--name")
         .arg("目标节点")
         .env("MPE_FLOWS_DIR", &flows_dir)
@@ -1211,14 +1211,14 @@ fn create_assertion_pass_flow() -> NamedTempFile {
                 },
                 {
                     "uuid": "http-node",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "HTTP 请求",
                     "position": {
                         "x": 200,
                         "y": 0
                     },
                     "data": {
-                        "type": "http",
+                        "type": "http:request",
                         "url": "http://localhost:19090/api/status/200",
                         "method": "get"
                     },
@@ -1253,14 +1253,14 @@ fn create_assertion_pass_flow() -> NamedTempFile {
                 },
                 {
                     "uuid": "true-branch-http",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "True 分支标记",
                     "position": {
                         "x": 600,
                         "y": -100
                     },
                     "data": {
-                        "type": "http",
+                        "type": "http:request",
                         "url": "http://localhost:19090/api/status/201",
                         "method": "get"
                     },
@@ -1268,14 +1268,14 @@ fn create_assertion_pass_flow() -> NamedTempFile {
                 },
                 {
                     "uuid": "false-branch-http",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "False 分支标记",
                     "position": {
                         "x": 600,
                         "y": 100
                     },
                     "data": {
-                        "type": "http",
+                        "type": "http:request",
                         "url": "http://localhost:19090/api/status/400",
                         "method": "get"
                     },
@@ -1343,14 +1343,14 @@ fn create_assertion_fail_route_false_flow() -> NamedTempFile {
                 },
                 {
                     "uuid": "http-node",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "HTTP 请求",
                     "position": {
                         "x": 200,
                         "y": 0
                     },
                     "data": {
-                        "type": "http",
+                        "type": "http:request",
                         "url": "http://localhost:19090/api/status/200",
                         "method": "get"
                     },
@@ -1385,14 +1385,14 @@ fn create_assertion_fail_route_false_flow() -> NamedTempFile {
                 },
                 {
                     "uuid": "true-branch-http",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "True 分支标记",
                     "position": {
                         "x": 600,
                         "y": -100
                     },
                     "data": {
-                        "type": "http",
+                        "type": "http:request",
                         "url": "http://localhost:19090/api/status/201",
                         "method": "get"
                     },
@@ -1400,14 +1400,14 @@ fn create_assertion_fail_route_false_flow() -> NamedTempFile {
                 },
                 {
                     "uuid": "false-branch-http",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "False 分支标记",
                     "position": {
                         "x": 600,
                         "y": 100
                     },
                     "data": {
-                        "type": "http",
+                        "type": "http:request",
                         "url": "http://localhost:19090/api/status/400",
                         "method": "get"
                     },
@@ -1475,14 +1475,14 @@ fn create_assertion_fail_throw_flow() -> NamedTempFile {
                 },
                 {
                     "uuid": "http-node",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "HTTP 请求",
                     "position": {
                         "x": 200,
                         "y": 0
                     },
                     "data": {
-                        "type": "http",
+                        "type": "http:request",
                         "url": "http://localhost:19090/api/status/200",
                         "method": "get"
                     },
@@ -1517,14 +1517,14 @@ fn create_assertion_fail_throw_flow() -> NamedTempFile {
                 },
                 {
                     "uuid": "true-branch-http",
-                    "type": "http",
+                    "type": "http:request",
                     "name": "True 分支标记",
                     "position": {
                         "x": 600,
                         "y": 0
                     },
                     "data": {
-                        "type": "http",
+                        "type": "http:request",
                         "url": "http://localhost:19090/api/status/201",
                         "method": "get"
                     },

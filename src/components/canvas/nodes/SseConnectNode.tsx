@@ -70,10 +70,10 @@ export const SseConnectNode = memo(function SseConnectNode({ id, data, selected 
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-rose-600 font-medium tracking-wide">
-            {getNodeDisplayName('sse_connect')}
+            {getNodeDisplayName('sse:connect')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('sse_connect')}
+            {nodeData.label || getNodeDisplayName('sse:connect')}
           </span>
           {nodeData.config?.url && (
             <span className="text-[10px] text-muted-foreground truncate">

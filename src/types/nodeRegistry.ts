@@ -19,11 +19,11 @@ export interface PortDef {
  * 节点元数据（从后端注册表获取）
  */
 export interface NodeMetadata {
-  /** 节点类型标识，如 "http"、"ws_connect" */
+  /** 节点类型标识，如 "http:request"、"ws:connect" */
   type_id: string;
   /** 显示名称，如 "HTTP 请求" */
   display_name: string;
-  /** 分组分类，如 "http"、"database"、"logic"、"websocket"、"tools" */
+  /** 分组分类，如 "http:request"、"database"、"logic"、"websocket"、"tools" */
   category: string;
   /** 图标标识 */
   icon: string;

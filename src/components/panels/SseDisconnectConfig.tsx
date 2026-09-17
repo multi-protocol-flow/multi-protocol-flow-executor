@@ -25,14 +25,14 @@ interface SseDisconnectConfigProps {
 
 function toFormData(data: SseDisconnectConfigType): SseDisconnectConfigFormData {
   return {
-    type: 'sse_disconnect',
+    type: 'sse:disconnect',
     connection_id: data.connection_id || '',
   };
 }
 
 function fromFormData(formData: SseDisconnectConfigFormData): SseDisconnectConfigType {
   return {
-    type: 'sse_disconnect',
+    type: 'sse:disconnect',
     connection_id: formData.connection_id,
   };
 }

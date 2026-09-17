@@ -147,10 +147,10 @@ export const SubFlowNode = memo(function SubFlowNode({ id, data, selected }: Nod
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-[10px] text-violet-600 font-semibold uppercase tracking-wider">
-            {getNodeDisplayName('sub_flow')}
+            {getNodeDisplayName('flow:sub')}
           </span>
           <span className="text-sm font-semibold text-foreground truncate" title={nodeData.label}>
-            {nodeData.label || getNodeDisplayName('sub_flow')}
+            {nodeData.label || getNodeDisplayName('flow:sub')}
           </span>
         </div>
       </div>

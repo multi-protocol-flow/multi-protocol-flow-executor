@@ -26,7 +26,7 @@ function createBaseConfig(
   overrides: Partial<TcpConnectConfigType> = {},
 ): TcpConnectConfigType {
   return {
-    type: 'tcp_connect',
+    type: 'tcp:connect',
     host: '127.0.0.1',
     port: 8080,
     use_tls: false,

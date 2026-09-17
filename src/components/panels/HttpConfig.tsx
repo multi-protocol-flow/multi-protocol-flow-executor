@@ -132,7 +132,7 @@ function fromFormData(formData: HttpConfigFormData): HttpConfigType {
   }
 
   return {
-    type: 'http',
+    type: 'http:request',
     url: formData.url,
     method: formData.method,
     headers: headers && Object.keys(headers).length > 0 ? headers : undefined,

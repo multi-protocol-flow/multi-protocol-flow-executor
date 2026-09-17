@@ -134,7 +134,7 @@ pub struct WsSegmentSummary {
     pub node_uuid: String,
     /// 节点名称
     pub node_name: String,
-    /// 节点类型 (`ws_connect`, `ws_send_wait`, `ws_close`)
+    /// 节点类型 (`ws:connect`, `ws_send_wait`, `ws:close`)
     pub node_type: String,
     /// 消息数量
     pub message_count: usize,
@@ -323,14 +323,14 @@ mod tests {
         let summary = WsSegmentSummary {
             node_uuid: "node-1".to_string(),
             node_name: "Connect Node".to_string(),
-            node_type: "ws_connect".to_string(),
+            node_type: "ws:connect".to_string(),
             message_count: 5,
         };
 
         let json = serde_json::to_string(&summary).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("node-1"));
         assert!(json.contains("Connect Node"));
-        assert!(json.contains("ws_connect"));
+        assert!(json.contains("ws:connect"));
         assert!(json.contains("5"));
     }
 
@@ -346,7 +346,7 @@ mod tests {
             segments: vec![WsSegmentSummary {
                 node_uuid: "node-1".to_string(),
                 node_name: "Connect".to_string(),
-                node_type: "ws_connect".to_string(),
+                node_type: "ws:connect".to_string(),
                 message_count: 5,
             }],
         };
@@ -366,7 +366,7 @@ mod tests {
         let mut segment = WsStreamSegment::new(
             "node-1".to_string(),
             "Test Node".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         // 添加 3 条消息
@@ -384,7 +384,7 @@ mod tests {
 
         assert_eq!(summary.node_uuid, "node-1");
         assert_eq!(summary.node_name, "Test Node");
-        assert_eq!(summary.node_type, "ws_connect");
+        assert_eq!(summary.node_type, "ws:connect");
         assert_eq!(summary.message_count, 3);
     }
 
@@ -398,7 +398,7 @@ mod tests {
         stream.create_initial_segment(
             "node-1".to_string(),
             "Connect".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         // 添加发送消息
@@ -444,7 +444,7 @@ mod tests {
         stream.create_initial_segment(
             "node-1".to_string(),
             "Connect".to_string(),
-            "ws_connect".to_string(),
+            "ws:connect".to_string(),
         );
 
         // 添加 2 条发送消息

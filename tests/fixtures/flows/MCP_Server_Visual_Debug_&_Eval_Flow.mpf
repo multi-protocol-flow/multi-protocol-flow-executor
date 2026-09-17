@@ -425,15 +425,15 @@
       },
       {
         "uuid": "extract-mcp-results",
-        "type": "variable_extractor",
+        "type": "variable:extractor",
         "name": "Extract Tool Outputs",
         "position": {
           "x": 1050.0,
           "y": 200.0
         },
         "data": {
-          "type": "variable_extractor",
-          "type": "variable_extractor",
+          "type": "variable:extractor",
+          "type": "variable:extractor",
           "output_mappings": [
             {
               "source": "$.content[0].text",

@@ -87,10 +87,10 @@ mod tests {
 
     #[test]
     fn test_parse_node_data_from_json() {
-        // Valid JSON → NodeData::type_name() == "http"
-        let json = r#"{"type":"http","method":"get","url":"https://example.com"}"#;
+        // Valid JSON → NodeData::type_name() == "http:request"
+        let json = r#"{"type":"http:request","method":"get","url":"https://example.com"}"#;
         let node_data: NodeData = serde_json::from_str(json).unwrap();
-        assert_eq!(node_data.type_name(), "http");
+        assert_eq!(node_data.type_name(), "http:request");
 
         // Valid JSON → script type
         let script_json = r#"{"type":"script","script":"return 1+1;"}"#;

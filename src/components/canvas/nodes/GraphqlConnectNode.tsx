@@ -70,10 +70,10 @@ export const GraphqlConnectNode = memo(function GraphqlConnectNode({ id, data, s
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-indigo-600 font-medium tracking-wide">
-            {getNodeDisplayName('graphql_connect')}
+            {getNodeDisplayName('graphql:connect')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('graphql_connect')}
+            {nodeData.label || getNodeDisplayName('graphql:connect')}
           </span>
           {nodeData.config?.endpoint && (
             <span className="text-[10px] text-muted-foreground truncate">

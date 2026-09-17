@@ -66,7 +66,7 @@ impl NodeExecutor for WsCloseExecutor {
 
         // 3. Log: start closing
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: ws_close, ConnectionID: {}, CloseCode: {}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: ws:close, ConnectionID: {}, CloseCode: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -245,7 +245,7 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "ws_close".to_string(),
+            node_type: "ws:close".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsClose(WsCloseConfig {
@@ -333,7 +333,7 @@ mod tests {
         // 创建带自定义关闭码的节点
         let node = Node {
             uuid: "test-custom-code".to_string(),
-            node_type: "ws_close".to_string(),
+            node_type: "ws:close".to_string(),
             name: "custom close code".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsClose(WsCloseConfig {
@@ -457,7 +457,7 @@ mod tests {
             // 创建带关闭原因的节点
             let node = Node {
                 uuid: "close-reason-test".to_string(),
-                node_type: "ws_close".to_string(),
+                node_type: "ws:close".to_string(),
                 name: "close reason test".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
                 data: NodeData::WsClose(WsCloseConfig {

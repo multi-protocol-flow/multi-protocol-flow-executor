@@ -24,7 +24,7 @@ describe('HttpNodeViewer', () => {
     resolvedConfig?: Record<string, unknown>
   ): NodeExecutionReport => ({
     node_uuid: 'node-http-001',
-    node_type: 'http',
+    node_type: 'http:request',
     node_name: 'HTTP 请求节点',
     start_time: Date.now() - 500,
     end_time: Date.now(),

@@ -624,8 +624,8 @@ fn test_ws_basic_connect_flow_structure() {
         .map(|n| n["type"].as_str().expect("node type should be a string"))
         .collect();
     assert!(node_types.contains(&"entry"));
-    assert!(node_types.contains(&"ws_connect"));
-    assert!(node_types.contains(&"ws_close"));
+    assert!(node_types.contains(&"ws:connect"));
+    assert!(node_types.contains(&"ws:close"));
 
     // 验证连接数量
     let connections = flow_json["connections"]
@@ -670,15 +670,15 @@ fn test_ws_send_wait_flow_structure() {
         .map(|n| n["type"].as_str().expect("node type should be a string"))
         .collect();
     assert!(node_types.contains(&"entry"));
-    assert!(node_types.contains(&"ws_connect"));
-    assert!(node_types.contains(&"ws_send_collect"));
-    assert!(node_types.contains(&"ws_close"));
+    assert!(node_types.contains(&"ws:connect"));
+    assert!(node_types.contains(&"ws:send_collect"));
+    assert!(node_types.contains(&"ws:close"));
 
     // 验证 WS Send+Collect 节点配置
     let ws_send_collect_node = nodes
         .iter()
-        .find(|n| n["type"] == "ws_send_collect")
-        .expect("Should have ws_send_collect node");
+        .find(|n| n["type"] == "ws:send_collect")
+        .expect("Should have ws:send_collect node");
     let node_data = &ws_send_collect_node["data"];
     assert!(node_data["collect_response"]
         .as_bool()
@@ -715,15 +715,15 @@ fn test_ws_connect_wait_timeout_flow_structure() {
         .map(|n| n["type"].as_str().expect("node type should be a string"))
         .collect();
     assert!(node_types.contains(&"entry"));
-    assert!(node_types.contains(&"ws_connect"));
+    assert!(node_types.contains(&"ws:connect"));
     assert!(node_types.contains(&"conditional"));
     assert_eq!(node_types.iter().filter(|&&t| t == "end").count(), 2);
 
     // 验证 WS Connect 节点配置了采集消息
     let ws_connect_node = nodes
         .iter()
-        .find(|n| n["type"] == "ws_connect")
-        .expect("Should have ws_connect node");
+        .find(|n| n["type"] == "ws:connect")
+        .expect("Should have ws:connect node");
     let node_data = &ws_connect_node["data"];
     assert!(node_data["collect_message"]
         .as_bool()
@@ -794,16 +794,16 @@ fn test_ws_send_wait_timeout_conditional_flow_structure() {
         .map(|n| n["type"].as_str().expect("node type should be a string"))
         .collect();
     assert!(node_types.contains(&"entry"));
-    assert!(node_types.contains(&"ws_connect"));
-    assert!(node_types.contains(&"ws_send_collect"));
+    assert!(node_types.contains(&"ws:connect"));
+    assert!(node_types.contains(&"ws:send_collect"));
     assert!(node_types.contains(&"conditional"));
     assert_eq!(node_types.iter().filter(|&&t| t == "end").count(), 2);
 
     // 验证 WS Send+Collect 节点配置了采集响应和超时
     let ws_send_collect_node = nodes
         .iter()
-        .find(|n| n["type"] == "ws_send_collect")
-        .expect("Should have ws_send_collect node");
+        .find(|n| n["type"] == "ws:send_collect")
+        .expect("Should have ws:send_collect node");
     let node_data = &ws_send_collect_node["data"];
     assert!(node_data["collect_response"]
         .as_bool()
@@ -859,15 +859,15 @@ fn test_ws_full_flow_wait_response_structure() {
         .map(|n| n["type"].as_str().expect("node type should be a string"))
         .collect();
     assert!(node_types.contains(&"entry"));
-    assert!(node_types.contains(&"ws_connect"));
-    assert!(node_types.contains(&"ws_send_collect"));
-    assert!(node_types.contains(&"ws_close"));
+    assert!(node_types.contains(&"ws:connect"));
+    assert!(node_types.contains(&"ws:send_collect"));
+    assert!(node_types.contains(&"ws:close"));
 
     // 验证 WS Connect 节点配置了采集首条消息
     let ws_connect_node = nodes
         .iter()
-        .find(|n| n["type"] == "ws_connect")
-        .expect("Should have ws_connect node");
+        .find(|n| n["type"] == "ws:connect")
+        .expect("Should have ws:connect node");
     let connect_data = &ws_connect_node["data"];
     assert!(connect_data["collect_message"]
         .as_bool()
@@ -882,8 +882,8 @@ fn test_ws_full_flow_wait_response_structure() {
     // 验证 WS Send+Collect 节点配置了采集响应
     let ws_send_collect_node = nodes
         .iter()
-        .find(|n| n["type"] == "ws_send_collect")
-        .expect("Should have ws_send_collect node");
+        .find(|n| n["type"] == "ws:send_collect")
+        .expect("Should have ws:send_collect node");
     let send_collect_data = &ws_send_collect_node["data"];
     assert!(send_collect_data["collect_response"]
         .as_bool()
@@ -968,8 +968,8 @@ fn test_ws_conditional_match_flow_structure() {
     // 验证 WS Send+Collect 节点配置了条件采集
     let ws_send_collect_node = nodes
         .iter()
-        .find(|n| n["type"] == "ws_send_collect")
-        .expect("Should have ws_send_collect node");
+        .find(|n| n["type"] == "ws:send_collect")
+        .expect("Should have ws:send_collect node");
     let node_data = &ws_send_collect_node["data"];
     assert_eq!(
         node_data["collect_mode"]
@@ -996,53 +996,53 @@ fn test_ws_conditional_match_flow_structure() {
 /// 验证 WebSocket 节点输出数据结构（collect_timed_out 字段）
 #[test]
 fn test_ws_output_data_structure() {
-    // 验证 ws_connect 输出结构
+    // 验证 ws:connect 输出结构
     let connect_flow = load_flow_fixture("ws_basic_connect.json");
     let connect_node = connect_flow["nodes"]
         .as_array()
         .expect("nodes should be an array")
         .iter()
-        .find(|n| n["type"] == "ws_connect")
-        .expect("Should have ws_connect node");
+        .find(|n| n["type"] == "ws:connect")
+        .expect("Should have ws:connect node");
 
     // 验证必要的配置字段存在
     let data = &connect_node["data"];
-    assert!(data["url"].is_string(), "ws_connect should have url");
+    assert!(data["url"].is_string(), "ws:connect should have url");
     assert!(
         data["connect_timeout_ms"].is_u64(),
-        "ws_connect should have connect_timeout_ms"
+        "ws:connect should have connect_timeout_ms"
     );
     assert!(
         data["collect_message"].is_boolean(),
-        "ws_connect should have collect_message"
+        "ws:connect should have collect_message"
     );
 
-    // 验证 ws_send_collect 输出结构
+    // 验证 ws:send_collect 输出结构
     let send_collect_flow = load_flow_fixture("ws_send_wait.json");
     let send_collect_node = send_collect_flow["nodes"]
         .as_array()
         .expect("nodes should be an array")
         .iter()
-        .find(|n| n["type"] == "ws_send_collect")
-        .expect("Should have ws_send_collect node");
+        .find(|n| n["type"] == "ws:send_collect")
+        .expect("Should have ws:send_collect node");
 
     // 验证必要的配置字段存在
     let data = &send_collect_node["data"];
     assert!(
         data["connection_id"].is_string(),
-        "ws_send_collect should have connection_id"
+        "ws:send_collect should have connection_id"
     );
     assert!(
         data["message"].is_string(),
-        "ws_send_collect should have message"
+        "ws:send_collect should have message"
     );
     assert!(
         data["collect_response"].is_boolean(),
-        "ws_send_collect should have collect_response"
+        "ws:send_collect should have collect_response"
     );
     assert!(
         data["collect_timeout_ms"].is_u64(),
-        "ws_send_collect should have collect_timeout_ms"
+        "ws:send_collect should have collect_timeout_ms"
     );
 }
 

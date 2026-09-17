@@ -82,7 +82,7 @@ describe('Report types', () => {
     it('should have correct structure with required fields', () => {
       const report: NodeExecutionReport = {
         node_uuid: 'node-1',
-        node_type: 'http',
+        node_type: 'http:request',
         node_name: 'HTTP Request',
         start_time: 1000,
         end_time: 2000,
@@ -91,7 +91,7 @@ describe('Report types', () => {
       };
 
       expect(report.node_uuid).toBe('node-1');
-      expect(report.node_type).toBe('http');
+      expect(report.node_type).toBe('http:request');
       expect(report.status).toBe('success');
       expect(report.duration_ms).toBe(1000);
     });
@@ -121,7 +121,7 @@ describe('Report types', () => {
     it('should accept failed status with error', () => {
       const report: NodeExecutionReport = {
         node_uuid: 'node-1',
-        node_type: 'http',
+        node_type: 'http:request',
         node_name: 'Failed Request',
         start_time: 1000,
         end_time: 2000,

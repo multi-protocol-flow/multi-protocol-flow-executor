@@ -88,7 +88,7 @@ fn parse_node_type(type_str: &str) -> Result<String, CliError> {
             | node_types::GRAPHQL_INTROSPECT
             | node_types::GRAPHQL_DISCONNECT
             | "proxy"
-            | "variable_extractor"
+            | "variable:extractor"
     ) || type_str.contains(':');
 
     if is_known {
@@ -148,7 +148,7 @@ fn default_node_data(node_type: &str) -> NodeData {
         node_types::GRAPHQL_INTROSPECT => NodeData::GraphqlIntrospect(Default::default()),
         node_types::GRAPHQL_DISCONNECT => NodeData::GraphqlDisconnect(Default::default()),
         "proxy" => NodeData::Proxy(Default::default()),
-        "variable_extractor" => NodeData::VariableExtractor(Default::default()),
+        "variable:extractor" => NodeData::VariableExtractor(Default::default()),
         _ if node_type.contains(':') => NodeData::Plugin(serde_json::json!({ "type": node_type })),
         _ => NodeData::entry(),
     }

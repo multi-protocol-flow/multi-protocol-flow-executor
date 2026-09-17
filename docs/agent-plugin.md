@@ -37,7 +37,7 @@
 
 ### 0.2 协议无关 (Protocol-Agnostic) 与全协议 Tools 动态转换
 Agent 插件本身不绑定任何特定协议。得益于 MPE 宿主统一的节点执行能力与插件生态，**MPE 中的任何协议节点、独立动作或子流程均可动态映射为 Agent 的 Tool**：
-- **内置协议：** HTTP (`http`), WebSocket (`ws:send`), Script (`script`), Assertion (`assertion`), TCP (`tcp:send`), SSE (`sse:subscribe`), GraphQL (`graphql:query`)。
+- **内置协议：** HTTP (`http:request`), WebSocket (`ws:send`), Script (`script`), Assertion (`assertion`), TCP (`tcp:send`), SSE (`sse:subscribe`), GraphQL (`graphql:query`)。
 - **插件协议：** Database (`db:query`), Redis (`redis:cmd`), gRPC (`grpc:call`), Kafka (`kafka:produce`), Mongo (`mongo:find`), S3 (`s3:get_object`), MCP (`mcp:call_tool`) 等。
 - **复合子流程：** 嵌套子流程（`.mpf` 流程），可作为一个复合高阶 Tool 暴露给 Agent。
 
@@ -105,7 +105,7 @@ MPE 宿主进程 (flow-engine-plugin / executor)                  Agent 插件�
 **字段规范：**
 - `execution_id` (`string`, 必填): 当前流程执行的唯一生命周期实例 ID，确保与宿主及其他插件的有状态连接池（如 DB 事务、Redis 连接、gRPC Session）严格对齐。
 - `tool_id` (`string`, 必填): 工具在 Agent 配置中的唯一标识名称。
-- `node_type` (`string`, 必填): 目标工具映射的 MPE 节点类型（如 `db:query`, `redis:cmd`, `http`, `grpc:call`）。
+- `node_type` (`string`, 必填): 目标工具映射的 MPE 节点类型（如 `db:query`, `redis:cmd`, `http:request`, `grpc:call`）。
 - `config` (`object`, 必填): 目标节点执行所需的完整配置对象（由固定预设参数与大模型动态入参合并生成）。
 
 #### 1.2.2 Success Response 契约 (Host ➔ Plugin)
@@ -177,7 +177,7 @@ MPE 宿主进程 (flow-engine-plugin / executor)                  Agent 插件�
 ```
 
 1. **画布连线节点 (`LinkedNode`)：**
-   - 用户在画布上拖拽并配置好的节点（如配置了完备连接参数、安全凭证的 `db:query` 或 `http` 节点）。
+   - 用户在画布上拖拽并配置好的节点（如配置了完备连接参数、安全凭证的 `db:query` 或 `http:request` 节点）。
    - Agent 节点通过 `target_node_id` 引用该节点。
 2. **独立协议动作 (`StandaloneAction`)：**
    - 不需要在画布呈现独立节点图形，直接在 Agent 内部声明式定义协议动作（如快捷定义一个只读 Redis 查询或 DNS 解析）。
@@ -397,7 +397,7 @@ pub struct AgentToolDefinition {
     pub description: String,
     /// 工具类型: "linked_node" | "standalone_action" | "subflow"
     pub tool_type: String,
-    /// 目标节点类型 (如 "db:query", "redis:cmd", "http")
+    /// 目标节点类型 (如 "db:query", "redis:cmd", "http:request")
     pub target_node_type: String,
     /// 绑定的画布节点 ID (当 tool_type 为 "linked_node" 时必填)
     pub target_node_id: Option<String>,

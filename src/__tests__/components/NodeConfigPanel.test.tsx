@@ -17,9 +17,9 @@ vi.mock('@/lib/configPanelRegistry', () => {
   const cache: Record<string, ComponentType<any>> = {};
   return {
     getPanelLoader: vi.fn((type: string) => {
-      return () => import(`@/components/panels/${type === 'entry' ? 'EntryConfig' : type === 'http' ? 'HttpConfig' : 'ConditionalConfig'}`).then(
+      return () => import(`@/components/panels/${type === 'entry' ? 'EntryConfig' : type === 'http:request' ? 'HttpConfig' : 'ConditionalConfig'}`).then(
         (m: Record<string, ComponentType<any>>) => {
-          const key = type === 'entry' ? 'EntryConfig' : type === 'http' ? 'HttpConfig' : 'ConditionalConfig';
+          const key = type === 'entry' ? 'EntryConfig' : type === 'http:request' ? 'HttpConfig' : 'ConditionalConfig';
           cache[type] = m[key];
           return m[key];
         }
@@ -59,10 +59,10 @@ const mockFlow: Flow = {
     },
     {
       uuid: 'http-001',
-      type: 'http',
+      type: 'http:request',
       name: 'HTTP 请求',
       position: { x: 300, y: 100 },
-      data: { type: 'http', url: 'https://api.example.com', method: 'get' },
+      data: { type: 'http:request', url: 'https://api.example.com', method: 'get' },
     },
     {
       uuid: 'conditional-001',
@@ -441,7 +441,7 @@ describe('NodeConfigPanel', () => {
 describe('HttpConfig', () => {
   const mockOnSave = vi.fn();
   const defaultData: HttpConfigType = {
-    type: 'http',
+    type: 'http:request',
     url: 'https://api.example.com',
     method: 'get',
   };
@@ -496,7 +496,7 @@ describe('HttpConfig', () => {
 
   it('显示预设数据', () => {
     const dataWithHeaders: HttpConfigType = {
-      type: 'http',
+      type: 'http:request',
       url: 'https://api.example.com',
       method: 'post',
       headers: { 'Content-Type': 'application/json' },

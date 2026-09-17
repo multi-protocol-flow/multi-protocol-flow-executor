@@ -43,18 +43,18 @@
 
 | 节点 | 功能 |
 |------|------|
-| **ws_connect** | 建立 WebSocket 连接，可等待初始消息 |
-| **ws_send_collect** | 发送消息并等待匹配的响应 |
-| **ws_close** | 关闭连接 |
+| **ws:connect** | 建立 WebSocket 连接，可等待初始消息 |
+| **ws:send_collect** | 发送消息并等待匹配的响应 |
+| **ws:close** | 关闭连接 |
 
 ### 连接池 + 所有权移交
 
 **关键设计**：所有 WebSocket 连接放在一个**共享连接池**中。
 
-- `ws_connect` 节点创建连接，放入池子
-- 后续的 `ws_send_collect` 节点通过连接 ID 从池子中取连接使用
+- `ws:connect` 节点创建连接，放入池子
+- 后续的 `ws:send_collect` 节点通过连接 ID 从池子中取连接使用
 - 同一个连接可以被**多个节点轮流使用**（所有权移交）
-- `ws_close` 节点关闭连接，清理池子
+- `ws:close` 节点关闭连接，清理池子
 
 **这意味着**：
 
@@ -75,17 +75,17 @@
 **场景：测试聊天服务器的消息转发**
 
 ```
-[ws_connect: 用户A] ──→ [ws_connect: 用户B] ──→ [ws_send_collect: A发"你好"]
+[ws:connect: 用户A] ──→ [ws:connect: 用户B] ──→ [ws:send_collect: A发"你好"]
        │                                              │
        │                    ┌─────────────────────────┘
        ▼                    ▼
-[ws_send_collect: B等待消息] ──→ [ws_send_collect: B回复"收到"]
+[ws:send_collect: B等待消息] ──→ [ws:send_collect: B回复"收到"]
                                          │
                                          ▼
-                              [ws_send_collect: A等待回复]
+                              [ws:send_collect: A等待回复]
                                          │
                                          ▼
-                              [ws_close: A] [ws_close: B]
+                              [ws:close: A] [ws:close: B]
 ```
 
 每一步的收发消息、匹配结果都能实时看到。
@@ -274,7 +274,7 @@ mpe debug -f flow.mpf --break node-uuid-1 node-uuid-2
 #### 程序化编辑流程
 
 ```bash
-mpe flow edit node-add --type http --name "新请求"
+mpe flow edit node-add --type http:request --name "新请求"
 mpe flow edit connection-add --source node-1 --target node-2
 mpe flow edit variable-set --name token --value "abc123"
 ```

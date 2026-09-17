@@ -38,7 +38,7 @@ function toFormData(data: WsConnectConfigType): WsConnectConfigFormData {
   const headers: FormField[] = data.headers || [];
 
   return {
-    type: 'ws_connect',
+    type: 'ws:connect',
     url: data.url || '',
     headers: headers.length > 0 ? headers : undefined,
     subprotocols: data.subprotocols || [],
@@ -62,7 +62,7 @@ function fromFormData(formData: WsConnectConfigFormData): WsConnectConfigType {
   const headers = formData.headers?.filter(field => field.key.trim());
 
   return {
-    type: 'ws_connect',
+    type: 'ws:connect',
     url: formData.url,
     headers: headers && headers.length > 0 ? headers : undefined,
     subprotocols: formData.subprotocols && formData.subprotocols.length > 0 ? formData.subprotocols : undefined,

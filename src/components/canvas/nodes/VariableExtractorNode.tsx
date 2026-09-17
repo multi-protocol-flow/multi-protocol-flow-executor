@@ -70,10 +70,10 @@ export const VariableExtractorNode = memo(function VariableExtractorNode({ id, d
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-amber-600 font-medium uppercase tracking-wide">
-            {getNodeDisplayName('variable_extractor')}
+            {getNodeDisplayName('variable:extractor')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('variable_extractor')}
+            {nodeData.label || getNodeDisplayName('variable:extractor')}
           </span>
         </div>
       </div>

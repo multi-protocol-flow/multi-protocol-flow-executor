@@ -72,7 +72,7 @@ impl NodeExecutor for SseListenExecutor {
 
         // 3. 日志：开始监听
         log::info!(
-            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: sse_listen, connection_id: {}, event_filter: {:?}",
+            "[Flow {}] [Start] NodeID: {}, NodeName: {}, Type: sse:listen, connection_id: {}, event_filter: {:?}",
             context.flow_uuid,
             node.uuid,
             node.name,
@@ -319,7 +319,7 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "sse_listen".to_string(),
+            node_type: "sse:listen".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::SseListen(SseListenConfig {
@@ -345,7 +345,7 @@ mod tests {
     ) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: "sse_listen".to_string(),
+            node_type: "sse:listen".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::SseListen(SseListenConfig {
@@ -593,7 +593,7 @@ mod tests {
 
         let node = Node {
             uuid: "wrong-type".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             name: "Error类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
@@ -623,7 +623,7 @@ mod tests {
 
         let node = Node {
             uuid: "extract-1".to_string(),
-            node_type: "sse_listen".to_string(),
+            node_type: "sse:listen".to_string(),
             name: "配置提取".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::SseListen(SseListenConfig {
@@ -700,7 +700,7 @@ mod tests {
 
         let node = Node {
             uuid: "var-1".to_string(),
-            node_type: "sse_listen".to_string(),
+            node_type: "sse:listen".to_string(),
             name: "变量替换".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::SseListen(SseListenConfig {
@@ -804,7 +804,7 @@ mod tests {
 
         let node = Node {
             uuid: "max-zero".to_string(),
-            node_type: "sse_listen".to_string(),
+            node_type: "sse:listen".to_string(),
             name: "max_events=0".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::SseListen(SseListenConfig {

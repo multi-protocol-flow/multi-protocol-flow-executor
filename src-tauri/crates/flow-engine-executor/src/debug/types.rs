@@ -98,7 +98,7 @@ mod tests {
         let entry = ExecutionStackEntry {
             node_uuid: "node-001".to_string(),
             node_name: "HTTP Request".to_string(),
-            node_type: "http".to_string(),
+            node_type: "http:request".to_string(),
             started_at: 1234567890,
             ended_at: Some(1234567895),
             input: Some(json!({"url": "https://example.com"})),
@@ -277,7 +277,7 @@ mod tests {
             },
             DebugCommand::ModifyNodeConfig {
                 node_uuid: "node-001".to_string(),
-                config: json!({"type": "http", "url": "https://example.com", "method": "get"}),
+                config: json!({"type": "http:request", "url": "https://example.com", "method": "get"}),
             },
             DebugCommand::SetBreakpoint {
                 node_uuid: "node-002".to_string(),
@@ -337,7 +337,7 @@ mod tests {
             },
             DebugEvent::NodeConfigModified {
                 node_uuid: "node-001".to_string(),
-                config: json!({"type": "http", "url": "https://example.com", "method": "get"}),
+                config: json!({"type": "http:request", "url": "https://example.com", "method": "get"}),
             },
             DebugEvent::BreakpointModified {
                 node_uuid: "node-002".to_string(),

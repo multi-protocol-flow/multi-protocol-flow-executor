@@ -23,7 +23,7 @@ describe('WsSendCollectViewer', () => {
     outputData?: Record<string, unknown>
   ): NodeExecutionReport => ({
     node_uuid: 'node-ws-send-001',
-    node_type: 'ws_send_collect',
+    node_type: 'ws:send_collect',
     node_name: 'WebSocket 发送收集',
     start_time: Date.now() - 200,
     end_time: Date.now(),

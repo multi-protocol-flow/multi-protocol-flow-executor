@@ -15,7 +15,7 @@ pub struct VariableExtractorPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for VariableExtractorPlugin {
     fn type_id(&self) -> &str {
-        "variable_extractor"
+        "variable:extractor"
     }
 
     fn display_name(&self) -> &str {
@@ -51,7 +51,7 @@ impl NodePlugin for VariableExtractorPlugin {
 
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({
-            "type": "variable_extractor",
+            "type": "variable:extractor",
             "output_mappings": [],
             "source_node_id": null
         })

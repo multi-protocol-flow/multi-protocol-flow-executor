@@ -20,14 +20,14 @@
       },
       {
         "uuid": "ws-connect-basic",
-        "type": "ws_connect",
+        "type": "ws:connect",
         "name": "WS Connect",
         "position": {
           "x": 200,
           "y": 0
         },
         "data": {
-          "type": "ws_connect",
+          "type": "ws:connect",
           "url": "wss://echo.websocket.org",
           "headers": [],
           "subprotocols": [],
@@ -41,14 +41,14 @@
       },
       {
         "uuid": "ws-close-basic",
-        "type": "ws_close",
+        "type": "ws:close",
         "name": "WS Close",
         "position": {
           "x": 400,
           "y": 0
         },
         "data": {
-          "type": "ws_close",
+          "type": "ws:close",
           "connection_id": "ws-connect-basic",
           "close_code": 1000,
           "close_reason": "Normal closure",

@@ -27,11 +27,11 @@ vi.mock('@/lib/configPanelRegistry', () => ({
   getPanelLoader: vi.fn((type: string) => {
     const panelMap: Record<string, () => Promise<ComponentType<any>>> = {
       entry: () => Promise.resolve(createMockConfig('entry-config', 'Entry Config')),
-      http: () => Promise.resolve(createMockConfig('http-config', 'HTTP Config')),
+      'http:request': () => Promise.resolve(createMockConfig('http-config', 'HTTP Config')),
       conditional: () => Promise.resolve(createMockConfig('conditional-config', 'Conditional Config')),
-      ws_connect: () => Promise.resolve(createMockConfig('ws-connect-config', 'WS Connect Config')),
-      ws_send_collect: () => Promise.resolve(createMockConfig('ws-send-collect-config', 'WS SendCollect Config')),
-      ws_close: () => Promise.resolve(createMockConfig('ws-close-config', 'WS Close Config')),
+      'ws:connect': () => Promise.resolve(createMockConfig('ws-connect-config', 'WS Connect Config')),
+      'ws:send_collect': () => Promise.resolve(createMockConfig('ws-send-collect-config', 'WS SendCollect Config')),
+      'ws:close': () => Promise.resolve(createMockConfig('ws-close-config', 'WS Close Config')),
     };
     return panelMap[type] ?? null;
   }),
@@ -51,7 +51,7 @@ describe('DebugNodeConfigDialog', () => {
   const mockOnCancel = vi.fn();
 
   const httpNodeData: NodeData = {
-    type: 'http',
+    type: 'http:request',
     url: 'https://example.com',
     method: 'get',
   };
@@ -145,7 +145,7 @@ describe('DebugNodeConfigDialog', () => {
 
     it('WS Connect 节点渲染 WsConnectConfig 组件', async () => {
       const wsConnectData: NodeData = {
-        type: 'ws_connect',
+        type: 'ws:connect',
         url: 'wss://example.com',
       };
 
@@ -163,7 +163,7 @@ describe('DebugNodeConfigDialog', () => {
 
     it('WS SendCollect 节点渲染 WsSendCollectConfig 组件', async () => {
       const wsSendCollectData: NodeData = {
-        type: 'ws_send_collect',
+        type: 'ws:send_collect',
         connection_id: 'conn-1',
         message: 'test',
         collect_response: true,
@@ -183,7 +183,7 @@ describe('DebugNodeConfigDialog', () => {
 
     it('WS Close 节点渲染 WsCloseConfig 组件', async () => {
       const wsCloseData: NodeData = {
-        type: 'ws_close',
+        type: 'ws:close',
         connection_id: 'conn-1',
       };
 

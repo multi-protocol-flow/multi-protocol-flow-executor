@@ -70,10 +70,10 @@ export const TcpCloseNode = memo(function TcpCloseNode({ id, data, selected }: N
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-emerald-600 font-medium tracking-wide">
-            {getNodeDisplayName('tcp_close')}
+            {getNodeDisplayName('tcp:close')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('tcp_close')}
+            {nodeData.label || getNodeDisplayName('tcp:close')}
           </span>
         </div>
       </div>

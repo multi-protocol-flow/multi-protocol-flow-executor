@@ -7,7 +7,7 @@ describe('SubFlowViewer', () => {
   it('正确渲染子流程执行概览与子节点树', () => {
     const report: NodeExecutionReport = {
       node_uuid: 'subflow-node-uuid',
-      node_type: 'sub_flow',
+      node_type: 'flow:sub',
       node_name: '嵌套认证流程',
       start_time: 1000,
       end_time: 1250,
@@ -68,7 +68,7 @@ describe('SubFlowViewer', () => {
   it('结构化展示调用配置与执行统计', () => {
     const report: NodeExecutionReport = {
       node_uuid: 'subflow-node-uuid',
-      node_type: 'sub_flow',
+      node_type: 'flow:sub',
       node_name: '嵌套认证流程',
       start_time: 1000,
       end_time: 1250,
@@ -118,7 +118,7 @@ describe('SubFlowViewer', () => {
   it('嵌套子流程可继续下钻（任意层级）', () => {
     const report: NodeExecutionReport = {
       node_uuid: 'subflow-node-uuid',
-      node_type: 'sub_flow',
+      node_type: 'flow:sub',
       node_name: '外层子流程',
       start_time: 1000,
       end_time: 1250,
@@ -138,7 +138,7 @@ describe('SubFlowViewer', () => {
         node_reports: [
           {
             node_uuid: 'inner-subflow',
-            node_type: 'sub_flow',
+            node_type: 'flow:sub',
             node_name: 'Nested Call',
             start_time: 1000,
             end_time: 1200,
@@ -157,7 +157,7 @@ describe('SubFlowViewer', () => {
               node_reports: [
                 {
                   node_uuid: 'deep-node',
-                  node_type: 'http',
+                  node_type: 'http:request',
                   node_name: 'Deep Node',
                   start_time: 1000,
                   end_time: 1100,

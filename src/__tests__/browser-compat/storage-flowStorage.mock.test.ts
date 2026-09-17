@@ -106,10 +106,10 @@ describe('FlowStorage Mock', () => {
       const flow = createTestFlow('flow-1', '完整流程');
       flow.nodes.push({
         uuid: 'http-node',
-        type: 'http',
+        type: 'http:request',
         name: 'HTTP 请求',
         position: { x: 200, y: 0 },
-        data: { type: 'http', url: 'https://example.com', method: 'get' },
+        data: { type: 'http:request', url: 'https://example.com', method: 'get' },
       });
       flow.connections.push({
         id: 'conn-1',
@@ -124,7 +124,7 @@ describe('FlowStorage Mock', () => {
 
       expect(loaded.nodes).toHaveLength(2);
       expect(loaded.connections).toHaveLength(1);
-      expect(loaded.nodes[1].type).toBe('http');
+      expect(loaded.nodes[1].type).toBe('http:request');
     });
 
     it('保存时不带 _meta，加载时不会附加 _meta', async () => {

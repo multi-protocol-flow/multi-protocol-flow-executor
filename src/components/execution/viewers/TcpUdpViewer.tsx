@@ -263,21 +263,21 @@ export const TcpUdpViewer = memo(function TcpUdpViewer({ report, recording }: Tc
   const nodeType = report.node_type;
 
   switch (nodeType) {
-    case 'tcp_connect':
+    case 'tcp:connect':
       return <TcpConnectSection report={report} />;
-    case 'tcp_send':
+    case 'tcp:send':
       return <TcpSendSection report={report} recording={recording} />;
-    case 'tcp_receive':
+    case 'tcp:receive':
       return <TcpReceiveSection report={report} recording={recording} />;
-    case 'tcp_close':
+    case 'tcp:close':
       return <TcpCloseSection report={report} />;
-    case 'udp_bind':
+    case 'udp:bind':
       return <UdpBindSection report={report} />;
-    case 'udp_send_to':
+    case 'udp:send_to':
       return <UdpSendToSection report={report} />;
-    case 'udp_recv_from':
+    case 'udp:recv_from':
       return <UdpRecvFromSection report={report} />;
-    case 'udp_close':
+    case 'udp:close':
       return <UdpCloseSection report={report} />;
     default:
       return (

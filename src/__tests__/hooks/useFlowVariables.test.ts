@@ -24,10 +24,10 @@ describe('useFlowVariables', () => {
   it('合并变量提取节点、流程初始变量与激活环境变量', () => {
     const extractor = createNode({
       uuid: 'node-extractor',
-      type: 'variable_extractor',
+      type: 'variable:extractor',
       name: '变量提取',
       data: {
-        type: 'variable_extractor',
+        type: 'variable:extractor',
         output_mappings: [
           { source: 'body.id', target: 'user_id', description: '用户 ID' },
           { source: 'body.name', target: 'user_name', description: '用户姓名' },
@@ -126,10 +126,10 @@ describe('useFlowVariables', () => {
           nodes: [
             createNode({
               uuid: 'n1',
-              type: 'variable_extractor',
+              type: 'variable:extractor',
               name: '提取',
               data: {
-                type: 'variable_extractor',
+                type: 'variable:extractor',
                 output_mappings: [{ source: 'resp.data', target: 'resp_data' }],
               },
             }),
@@ -149,7 +149,7 @@ describe('useFlowVariables', () => {
       nodes: [
         createNode({
           uuid: 'n1',
-          type: 'http',
+          type: 'http:request',
           name: 'HTTP请求',
           position: { x: 100, y: 100 },
         }),

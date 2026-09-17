@@ -70,10 +70,10 @@ export const UdpRecvFromNode = memo(function UdpRecvFromNode({ id, data, selecte
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-orange-600 font-medium tracking-wide">
-            {getNodeDisplayName('udp_recv_from')}
+            {getNodeDisplayName('udp:recv_from')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('udp_recv_from')}
+            {nodeData.label || getNodeDisplayName('udp:recv_from')}
           </span>
         </div>
       </div>
