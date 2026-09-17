@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   Activity,
+  Loader2,
   RefreshCw,
   Server,
   Zap,
@@ -83,6 +84,14 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
   const [fetchingModels, setFetchingModels] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
 
+  const handleCancel = () => {
+    setEditingProvider(null);
+    setIsCreating(false);
+    setTestResult(null);
+    setAvailableModels([]);
+    setShowApiKey(false);
+  };
+
   const handleStartCreate = (presetIndex?: number) => {
     const preset = presetIndex !== undefined ? PRESETS[presetIndex] : null;
     const newConfig: AIProviderConfig = {
@@ -97,6 +106,19 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
     setIsCreating(true);
     setTestResult(null);
     setAvailableModels([]);
+    setShowApiKey(false);
+  };
+
+  const handleToggleEdit = (provider: AIProviderConfig) => {
+    if (!isCreating && editingProvider?.id === provider.id) {
+      handleCancel();
+    } else {
+      setEditingProvider({ ...provider });
+      setIsCreating(false);
+      setTestResult(null);
+      setAvailableModels([]);
+      setShowApiKey(false);
+    }
   };
 
   const handleSaveProvider = async () => {
@@ -121,12 +143,13 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
       await settings.setActiveAiProviderId(editingProvider.id);
     }
 
-    setEditingProvider(null);
-    setIsCreating(false);
-    setTestResult(null);
+    handleCancel();
   };
 
   const handleDeleteProvider = async (id: string) => {
+    if (editingProvider?.id === id) {
+      handleCancel();
+    }
     const currentProviders = settings.aiProviders.filter((p) => p.id !== id);
     await settings.setAiProviders(currentProviders);
 
@@ -163,6 +186,184 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
     }
   };
 
+  const renderProviderForm = (isNew: boolean) => {
+    if (!editingProvider) return null;
+
+    return (
+      <div
+        className={cn(
+          'space-y-3.5',
+          isNew
+            ? 'rounded-lg border border-primary/40 bg-muted/20 p-3.5 shadow-xs'
+            : 'border-t border-border/50 bg-muted/20 p-3.5'
+        )}
+      >
+        <div className="flex items-center justify-between pb-2 border-b border-border/50">
+          <span className="font-semibold text-xs text-foreground">
+            {isNew ? ll.ai.settings.form_create_title() : ll.ai.settings.form_edit_title()}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs"
+              onClick={handleCancel}
+            >
+              {ll.ai.settings.cancel()}
+            </Button>
+            <Button
+              size="sm"
+              className="h-6 px-2.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+              onClick={handleSaveProvider}
+            >
+              {ll.ai.settings.save()}
+            </Button>
+          </div>
+        </div>
+
+        {/* 预设快速填充 */}
+        {isNew && (
+          <div className="space-y-1">
+            <span className="text-[11px] text-muted-foreground">{ll.ai.settings.quick_fill_presets()}</span>
+            <div className="flex flex-wrap gap-1">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.name}
+                  type="button"
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-muted hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors border border-border/50"
+                  onClick={() => {
+                    setEditingProvider({
+                      ...editingProvider,
+                      name: p.name,
+                      baseUrl: p.baseUrl,
+                      model: p.model,
+                    });
+                  }}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2.5">
+          {/* 名称 */}
+          <div className="space-y-1">
+            <Label className="text-xs font-medium text-foreground">{ll.ai.settings.name_label()}</Label>
+            <Input
+              value={editingProvider.name}
+              onChange={(e) => setEditingProvider({ ...editingProvider, name: e.target.value })}
+              placeholder="DeepSeek / OpenAI"
+              className="h-8 text-xs w-full"
+            />
+          </div>
+
+          {/* Base URL */}
+          <div className="space-y-1">
+            <Label className="text-xs font-medium text-foreground">{ll.ai.settings.base_url_label()}</Label>
+            <Input
+              value={editingProvider.baseUrl}
+              onChange={(e) => setEditingProvider({ ...editingProvider, baseUrl: e.target.value })}
+              placeholder="https://api.deepseek.com/v1"
+              className="h-8 text-xs font-mono w-full"
+            />
+          </div>
+
+          {/* API Key */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground">{ll.ai.settings.api_key_label()}</Label>
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground text-[10px] flex items-center gap-1"
+                onClick={() => setShowApiKey(!showApiKey)}
+              >
+                {showApiKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                {showApiKey ? ll.ai.settings.hide() : ll.ai.settings.show()}
+              </button>
+            </div>
+            <Input
+              type={showApiKey ? 'text' : 'password'}
+              value={editingProvider.apiKey}
+              onChange={(e) => setEditingProvider({ ...editingProvider, apiKey: e.target.value })}
+              placeholder="sk-..."
+              className="h-8 text-xs font-mono w-full"
+            />
+          </div>
+
+          {/* 模型名称 */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground">{ll.ai.settings.model_label()}</Label>
+              <button
+                type="button"
+                className="text-primary hover:underline text-[10px] flex items-center gap-1"
+                onClick={handleFetchModels}
+                disabled={fetchingModels || !editingProvider.baseUrl}
+              >
+                <RefreshCw className={`h-2.5 w-2.5 ${fetchingModels ? 'animate-spin' : ''}`} />
+                {ll.ai.settings.fetch_models()}
+              </button>
+            </div>
+            <Input
+              value={editingProvider.model}
+              onChange={(e) => setEditingProvider({ ...editingProvider, model: e.target.value })}
+              placeholder="deepseek-chat / gpt-4o"
+              className="h-8 text-xs font-mono w-full"
+            />
+            {availableModels.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1 max-h-24 overflow-y-auto p-1 bg-background rounded border border-border/60 text-[10px]">
+                {availableModels.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    className="px-1.5 py-0.5 rounded bg-muted hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setEditingProvider({ ...editingProvider, model: m })}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 表单内测试连接按钮 */}
+        <div className="flex flex-col gap-1.5 pt-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs w-full gap-1.5"
+            onClick={() => handleTestConnection(editingProvider)}
+            disabled={testingId === editingProvider.id}
+          >
+            {testingId === editingProvider.id ? (
+              <Loader2 className="h-3 w-3 animate-spin text-primary" />
+            ) : (
+              <Activity className="h-3 w-3" />
+            )}
+            {ll.ai.settings.test_connection()}
+          </Button>
+
+          {testResult?.id === editingProvider.id && (
+            <span
+              className={`text-[11px] px-2 py-1 rounded font-mono break-all ${
+                testResult.success
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-destructive/10 text-destructive'
+              }`}
+            >
+              {testResult.success
+                ? `${ll.ai.settings.test_success()} (${testResult.latencyMs}ms)`
+                : `${ll.ai.settings.test_failed()}: ${testResult.error}`}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
   return (
     <div className={cn('space-y-4', className)}>
       {/* 模块头部 */}
@@ -242,6 +443,8 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
             </Button>
           )}
         </div>
+        {/* 新建 Provider 表单（置于列表顶部，点击添加后立即展开） */}
+        {isCreating && editingProvider && renderProviderForm(true)}
 
         {/* 无 Provider 时的空状态 */}
         {settings.aiProviders.length === 0 && !editingProvider && (
@@ -273,281 +476,126 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
         {/* Provider 列表卡片 */}
         {settings.aiProviders.map((provider) => {
           const isActive = settings.activeAiProviderId === provider.id;
+          const isEditing = !isCreating && editingProvider?.id === provider.id;
 
           return (
             <div
               key={provider.id}
-              className={`p-3 rounded-lg border transition-all space-y-2 ${
-                isActive
-                  ? 'border-primary/50 bg-primary/5 shadow-xs'
-                  : 'border-border/60 bg-card hover:border-border'
-              }`}
-            >
-              {/* 卡片第一行：激活单选 + 名称 + 徽章 + 操作按钮 */}
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <button
-                    type="button"
-                    className={`flex h-4 w-4 shrink-0 rounded-full border items-center justify-center transition-colors ${
-                      isActive
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-muted-foreground/40 hover:border-primary'
-                    }`}
-                    onClick={() => settings.setActiveAiProviderId(provider.id)}
-                    title={isActive ? ll.ai.settings.active_provider() : ll.ai.settings.set_active()}
-                  >
-                    {isActive && <Check className="h-2.5 w-2.5" />}
-                  </button>
-
-                  <span className="font-medium text-xs text-foreground truncate">
-                    {provider.name}
-                  </span>
-
-                  {isActive && (
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1 bg-primary/10 text-primary border-0 shrink-0">
-                      {ll.ai.settings.active_badge()}
-                    </Badge>
-                  )}
-                </div>
-
-                {/* 右侧操作按钮组 */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                    onClick={() => handleTestConnection(provider)}
-                    disabled={testingId === provider.id}
-                    title={ll.ai.settings.test_connection()}
-                  >
-                    <Activity className={`h-3 w-3 ${testingId === provider.id ? 'animate-spin text-primary' : ''}`} />
-                  </Button>
-
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      setEditingProvider({ ...provider });
-                      setIsCreating(false);
-                      setTestResult(null);
-                    }}
-                    title={ll.ai.settings.edit()}
-                  >
-                    <Edit2 className="h-3 w-3" />
-                  </Button>
-
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDeleteProvider(provider.id)}
-                    title={ll.ai.settings.delete()}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* 卡片第二行：BaseURL + Model 徽章 */}
-              <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground font-mono">
-                <span className="truncate max-w-[220px] bg-muted/60 px-1.5 py-0.5 rounded border border-border/40">
-                  {provider.baseUrl}
-                </span>
-                <Badge variant="outline" className="text-[10px] h-4 px-1 font-mono">
-                  {provider.model}
-                </Badge>
-              </div>
-
-              {/* 测试结果提示行 */}
-              {testResult?.id === provider.id && (
-                <div className="pt-1">
-                  <span
-                    className={`text-[11px] px-2 py-0.5 rounded font-mono inline-block break-all ${
-                      testResult.success
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                        : 'bg-destructive/10 text-destructive'
-                    }`}
-                  >
-                    {testResult.success
-                      ? `${ll.ai.settings.test_success()} (${testResult.latencyMs}ms)`
-                      : `${ll.ai.settings.test_failed()}: ${testResult.error}`}
-                  </span>
-                </div>
+              className={cn(
+                'rounded-lg border transition-all overflow-hidden',
+                isEditing
+                  ? 'border-primary/60 bg-muted/10 shadow-xs ring-1 ring-primary/20'
+                  : isActive
+                    ? 'border-primary/50 bg-primary/5 shadow-xs'
+                    : 'border-border/60 bg-card hover:border-border'
               )}
+            >
+              {/* 卡片头部行 */}
+              <div className="p-3 space-y-2">
+                {/* 卡片第一行：激活单选 + 名称 + 徽章 + 操作按钮 */}
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <button
+                      type="button"
+                      className={cn(
+                        'flex h-4 w-4 shrink-0 rounded-full border items-center justify-center transition-colors',
+                        isActive
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-muted-foreground/40 hover:border-primary'
+                      )}
+                      onClick={() => settings.setActiveAiProviderId(provider.id)}
+                      title={isActive ? ll.ai.settings.active_provider() : ll.ai.settings.set_active()}
+                    >
+                      {isActive && <Check className="h-2.5 w-2.5" />}
+                    </button>
+
+                    <span className="font-medium text-xs text-foreground truncate">
+                      {provider.name}
+                    </span>
+
+                    {isActive && (
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1 bg-primary/10 text-primary border-0 shrink-0">
+                        {ll.ai.settings.active_badge()}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* 右侧操作按钮组 */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                      onClick={() => handleTestConnection(isEditing ? editingProvider! : provider)}
+                      disabled={testingId === provider.id || (isEditing && testingId === editingProvider?.id)}
+                      title={ll.ai.settings.test_connection()}
+                    >
+                      {testingId === provider.id || (isEditing && testingId === editingProvider?.id) ? (
+                        <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                      ) : (
+                        <Activity className="h-3 w-3" />
+                      )}
+                    </Button>
+
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className={cn(
+                        'h-6 w-6 text-muted-foreground hover:text-foreground',
+                        isEditing && 'bg-primary/15 text-primary hover:text-primary hover:bg-primary/20'
+                      )}
+                      onClick={() => handleToggleEdit(provider)}
+                      title={isEditing ? ll.ai.settings.cancel() : ll.ai.settings.edit()}
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
+
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteProvider(provider.id)}
+                      title={ll.ai.settings.delete()}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 卡片第二行：BaseURL + Model 徽章 */}
+                <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground font-mono">
+                  <span className="truncate max-w-[220px] bg-muted/60 px-1.5 py-0.5 rounded border border-border/40">
+                    {provider.baseUrl}
+                  </span>
+                  <Badge variant="outline" className="text-[10px] h-4 px-1 font-mono">
+                    {provider.model}
+                  </Badge>
+                </div>
+
+                {/* 测试结果提示行（非编辑状态下展示在此处，编辑状态下展示在表单底部） */}
+                {!isEditing && testResult?.id === provider.id && (
+                  <div className="pt-1">
+                    <span
+                      className={`text-[11px] px-2 py-0.5 rounded font-mono inline-block break-all ${
+                        testResult.success
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-destructive/10 text-destructive'
+                      }`}
+                    >
+                      {testResult.success
+                        ? `${ll.ai.settings.test_success()} (${testResult.latencyMs}ms)`
+                        : `${ll.ai.settings.test_failed()}: ${testResult.error}`}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* 当处于编辑状态时，在此卡片内部展开编辑表单 */}
+              {isEditing && renderProviderForm(false)}
             </div>
           );
         })}
       </div>
-
-      {/* 编辑 / 新建表单（纵向自适应排版，不换行重叠） */}
-      {editingProvider && (
-        <div className="rounded-lg border border-primary/40 bg-muted/20 p-3.5 space-y-3.5 shadow-xs">
-          <div className="flex items-center justify-between pb-2 border-b border-border/50">
-            <span className="font-semibold text-xs text-foreground">
-              {isCreating ? ll.ai.settings.form_create_title() : ll.ai.settings.form_edit_title()}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 px-2 text-xs"
-                onClick={() => {
-                  setEditingProvider(null);
-                  setIsCreating(false);
-                }}
-              >
-                {ll.ai.settings.cancel()}
-              </Button>
-              <Button
-                size="sm"
-                className="h-6 px-2.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-                onClick={handleSaveProvider}
-              >
-                {ll.ai.settings.save()}
-              </Button>
-            </div>
-          </div>
-
-          {/* 预设快速填充 */}
-          {isCreating && (
-            <div className="space-y-1">
-              <span className="text-[11px] text-muted-foreground">{ll.ai.settings.quick_fill_presets()}</span>
-              <div className="flex flex-wrap gap-1">
-                {PRESETS.map((p) => (
-                  <button
-                    key={p.name}
-                    type="button"
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-muted hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors border border-border/50"
-                    onClick={() => {
-                      setEditingProvider({
-                        ...editingProvider,
-                        name: p.name,
-                        baseUrl: p.baseUrl,
-                        model: p.model,
-                      });
-                    }}
-                  >
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2.5">
-            {/* 名称 */}
-            <div className="space-y-1">
-              <Label className="text-xs font-medium text-foreground">{ll.ai.settings.name_label()}</Label>
-              <Input
-                value={editingProvider.name}
-                onChange={(e) => setEditingProvider({ ...editingProvider, name: e.target.value })}
-                placeholder="DeepSeek / OpenAI"
-                className="h-8 text-xs w-full"
-              />
-            </div>
-
-            {/* Base URL */}
-            <div className="space-y-1">
-              <Label className="text-xs font-medium text-foreground">{ll.ai.settings.base_url_label()}</Label>
-              <Input
-                value={editingProvider.baseUrl}
-                onChange={(e) => setEditingProvider({ ...editingProvider, baseUrl: e.target.value })}
-                placeholder="https://api.deepseek.com/v1"
-                className="h-8 text-xs font-mono w-full"
-              />
-            </div>
-
-            {/* API Key */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-foreground">{ll.ai.settings.api_key_label()}</Label>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground text-[10px] flex items-center gap-1"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                >
-                  {showApiKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                  {showApiKey ? ll.ai.settings.hide() : ll.ai.settings.show()}
-                </button>
-              </div>
-              <Input
-                type={showApiKey ? 'text' : 'password'}
-                value={editingProvider.apiKey}
-                onChange={(e) => setEditingProvider({ ...editingProvider, apiKey: e.target.value })}
-                placeholder="sk-..."
-                className="h-8 text-xs font-mono w-full"
-              />
-            </div>
-
-            {/* 模型名称 */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-foreground">{ll.ai.settings.model_label()}</Label>
-                <button
-                  type="button"
-                  className="text-primary hover:underline text-[10px] flex items-center gap-1"
-                  onClick={handleFetchModels}
-                  disabled={fetchingModels || !editingProvider.baseUrl}
-                >
-                  <RefreshCw className={`h-2.5 w-2.5 ${fetchingModels ? 'animate-spin' : ''}`} />
-                  {ll.ai.settings.fetch_models()}
-                </button>
-              </div>
-              <Input
-                value={editingProvider.model}
-                onChange={(e) => setEditingProvider({ ...editingProvider, model: e.target.value })}
-                placeholder="deepseek-chat / gpt-4o"
-                className="h-8 text-xs font-mono w-full"
-              />
-              {availableModels.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1 max-h-24 overflow-y-auto p-1 bg-background rounded border border-border/60 text-[10px]">
-                  {availableModels.map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      className="px-1.5 py-0.5 rounded bg-muted hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
-                      onClick={() => setEditingProvider({ ...editingProvider, model: m })}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 表单内测试连接按钮 */}
-          <div className="flex flex-col gap-1.5 pt-1">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs w-full gap-1.5"
-              onClick={() => handleTestConnection(editingProvider)}
-              disabled={testingId === editingProvider.id}
-            >
-              <Activity className={`h-3 w-3 ${testingId === editingProvider.id ? 'animate-spin text-primary' : ''}`} />
-              {ll.ai.settings.test_connection()}
-            </Button>
-
-            {testResult?.id === editingProvider.id && (
-              <span
-                className={`text-[11px] px-2 py-1 rounded font-mono break-all ${
-                  testResult.success
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-destructive/10 text-destructive'
-                }`}
-              >
-                {testResult.success
-                  ? `${ll.ai.settings.test_success()} (${testResult.latencyMs}ms)`
-                  : `${ll.ai.settings.test_failed()}: ${testResult.error}`}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* 自定义全局 System Prompt（可折叠式设计，节省空间） */}
       <div className="rounded-lg border border-border/60 bg-muted/10 overflow-hidden text-xs">
         <button
