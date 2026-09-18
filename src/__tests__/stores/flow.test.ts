@@ -863,4 +863,49 @@ describe('FlowStore', () => {
       expect(useFlowStore.getState().tabSessions['flow-a'].isDirty).toBe(false);
     });
   });
+
+  describe('hasBreakpoint (缓存与失效)', () => {
+    it('正确反映断点状态并在 flow 身份变化时失效缓存', () => {
+      const flowA: Flow = {
+        uuid: 'flow-bp',
+        name: '断点测试流程',
+        nodes: [
+          {
+            uuid: 'node-1',
+            type: 'http:request',
+            name: 'Node 1',
+            position: { x: 0, y: 0 },
+            data: { type: 'http:request', url: 'https://example.com' },
+          },
+        ],
+        connections: [],
+      };
+
+      useFlowStore.getState().setFlow(flowA);
+      expect(useFlowStore.getState().hasBreakpoint('node-1')).toBe(false);
+
+      useFlowStore.getState().toggleBreakpoint('node-1');
+      expect(useFlowStore.getState().hasBreakpoint('node-1')).toBe(true);
+
+      // 设置同 uuid 但无断点的新 flow 对象，验证缓存必然失效重建
+      const flowB: Flow = {
+        uuid: 'flow-bp',
+        name: '断点测试流程',
+        nodes: [
+          {
+            uuid: 'node-1',
+            type: 'http:request',
+            name: 'Node 1',
+            position: { x: 0, y: 0 },
+            data: { type: 'http:request', url: 'https://example.com' },
+            hasBreakpoint: false,
+          },
+        ],
+        connections: [],
+      };
+
+      useFlowStore.getState().setFlow(flowB);
+      expect(useFlowStore.getState().hasBreakpoint('node-1')).toBe(false);
+    });
+  });
 });

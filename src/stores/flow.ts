@@ -209,6 +209,19 @@ function markTabDirty(tabs: FlowTab[], activeTabUuid: string | null): FlowTab[] 
   return changed ? newTabs : tabs;
 }
 
+/** 断点节点 UUID 集合缓存：flow 对象身份变化时才重建，消除 27 个节点组件订阅导致的 O(N²) 扫描 */
+let breakpointCacheFlow: Flow | null = null;
+let breakpointCacheSet: ReadonlySet<string> = new Set<string>();
+function getBreakpointSet(flow: Flow | null): ReadonlySet<string> {
+  if (flow !== breakpointCacheFlow) {
+    breakpointCacheFlow = flow;
+    breakpointCacheSet = new Set(
+      flow ? flow.nodes.filter((n) => n.hasBreakpoint).map((n) => n.uuid) : [],
+    );
+  }
+  return breakpointCacheSet;
+}
+
 export const useFlowStore = create<FlowState>((set, get) => {
   /** 历史栈最大步数 */
   const MAX_HISTORY = 10;
@@ -799,7 +812,11 @@ export const useFlowStore = create<FlowState>((set, get) => {
     }),
 
 
-  reset: () => set(initialState),
+  reset: () => {
+    breakpointCacheFlow = null;
+    breakpointCacheSet = new Set<string>();
+    set(initialState);
+  },
 
   pushDebugSubflow: (subflow: Flow, parentNodeUuid?: string) => {
     const currentFlow = get().flow;
@@ -949,12 +966,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
     return flow.nodes.find((n) => n.uuid === uuid) || null;
   },
 
-  hasBreakpoint: (uuid: string) => {
-    const { flow } = get();
-    if (!flow) return false;
-    const node = flow.nodes.find((n) => n.uuid === uuid);
-    return node?.hasBreakpoint ?? false;
-  },
+  hasBreakpoint: (uuid: string) => getBreakpointSet(get().flow).has(uuid),
 
   canUndo: () => get().past.length > 0,
   canRedo: () => get().future.length > 0,
