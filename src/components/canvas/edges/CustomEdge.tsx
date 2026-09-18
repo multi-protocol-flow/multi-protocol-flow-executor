@@ -51,24 +51,22 @@ function computeEdgeVisualState(
   const sourceUsedPortId = sourceReport?.used_port_id;
 
   const debugStatus = debugState.status;
-  const executionStack = debugState.executionStack;
-  const debugNodeUuid = debugState.currentNodeUuid;
-
   // 是否处于调试模式
   const isDebugMode = debugStatus !== 'idle' && debugStatus !== 'ended';
 
   // 正常执行模式下（非调试）：数据正在通过此边流动
-  // 仅在 source 节点执行成功且端口匹配时才激活（移除 execNodeUuid === source
-  // 检查，避免"先全亮再收敛"的闪烁问题）
+  // 仅在 source 节点执行成功且端口匹配时才激活
   const isPortMatched = sourceUsedPortId === undefined || sourceUsedPortId === sourceHandle;
   const isActiveEdge = !isDebugMode && isExecuting && (
     sourceStatus === 'success' && isPortMatched
   );
 
-  // 调试模式下：边是否在执行路径上
-  // 用执行栈顺序判断：边 source → target 是否真的被执行了
+  // 调试模式下：边是否在执行路径上（短路求值：非调试模式直接跳过栈查找）
   const isExecutedEdge = (() => {
     if (!isDebugMode) return false;
+
+    const executionStack = debugState.executionStack;
+    const debugNodeUuid = debugState.currentNodeUuid;
 
     // source 必须在执行栈中
     const sourceIndex = executionStack.findIndex((e) => e.node_uuid === source);
@@ -78,8 +76,6 @@ function computeEdgeVisualState(
     if (target === debugNodeUuid) return true;
 
     // 检查 target 是否是 source 在栈中的下一个节点（直接后继）
-    // 这自然处理了 conditional 等多分支节点：只有实际走的分支目标
-    // 才会紧跟在 source 之后，另一分支的目标不会出现在紧邻位置
     const nextEntry = executionStack[sourceIndex + 1];
     return nextEntry?.node_uuid === target;
   })();
@@ -155,56 +151,20 @@ export const CustomEdge = memo(function CustomEdge({
     };
   }, [source, target, sourceHandle]);
 
-  const { isActive: isActiveEdge, isExecutedEdge, edgeColor } = visualState;
-  // 调试模式下的粒子使用绿色系
-  const isDebugParticle = isExecutedEdge;
+  const { isActive: isActiveEdge, edgeColor } = visualState;
 
   return (
     <>
       <BaseEdge
         id={id}
         path={edgePath}
+        className={cn(isActiveEdge && 'edge-active-flow')}
         style={{
           ...style,
           strokeWidth: selected ? 3 : 2,
           stroke: edgeColor,
         }}
       />
-
-      {/* 数据流动画 - 执行中激活 / 调试已执行路径
-          使用 CSS offset-path 动画替代 SVG animateMotion（运行在合成器线程，
-          不占用主线程，不会影响画布拖拽和节点交互） */}
-      {(isActiveEdge || isDebugParticle) && (
-        <>
-          <circle
-            r="3"
-            fill={isActiveEdge
-              ? (sourceHandle === 'true' ? '#f97316' : '#3b82f6')
-              : '#22c55e'
-            }
-            className="edge-particle"
-            style={{ offsetPath: `path("${edgePath}")`, offsetDistance: '0%' } as React.CSSProperties}
-          />
-          <circle
-            r="2"
-            fill={isActiveEdge
-              ? (sourceHandle === 'true' ? '#fbbf24' : '#60a5fa')
-              : '#4ade80'
-            }
-            className="edge-particle"
-            style={{ offsetPath: `path("${edgePath}")`, offsetDistance: '0%', animationDelay: '-0.33s' } as React.CSSProperties}
-          />
-          <circle
-            r="2.5"
-            fill={isActiveEdge
-              ? (sourceHandle === 'true' ? '#fed7aa' : '#93c5fd')
-              : '#86efac'
-            }
-            className="edge-particle"
-            style={{ offsetPath: `path("${edgePath}")`, offsetDistance: '0%', animationDelay: '-0.66s' } as React.CSSProperties}
-          />
-        </>
-      )}
 
       {/* 选中时显示标签 */}
       {selected && (

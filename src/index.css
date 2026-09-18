@@ -137,27 +137,17 @@
   }
 }
 
-/* 边粒子动画 — 使用 offset-path 运行在合成器线程，不阻塞主线程 */
-@keyframes edge-particle-motion {
-  0% {
-    offset-distance: 0%;
-    opacity: 1;
-  }
-  85% {
-    opacity: 0.5;
-  }
-  100% {
-    offset-distance: 100%;
-    opacity: 0;
+/* 活跃边流动动画 — 纯 CSS stroke-dashoffset 替代 SVG 粒子 DOM，零额外节点开销 */
+@keyframes edge-active-flow-dash {
+  to {
+    stroke-dashoffset: -20;
   }
 }
 
-.edge-particle {
-  offset-rotate: 0deg;
-  animation: edge-particle-motion 1s linear infinite;
-  will-change: offset-distance, opacity;
+.edge-active-flow {
+  stroke-dasharray: 6 4;
+  animation: edge-active-flow-dash 0.8s linear infinite;
 }
-
 /* 调试节点呼吸动画 - 使用 outline 替代 box-shadow（outline 只触发 composite，不触发 paint） */
 @keyframes debug-breathing {
   0%, 100% {
