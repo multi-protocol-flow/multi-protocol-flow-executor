@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
     "typesafe-i18n": "typesafe-i18n --no-watch",
-    "i18n:generate": "typesafe-i18n --no-watch"
+    "i18n:generate": "typesafe-i18n --no-watch",
+    "changelog:prepare": "node scripts/prepare-changelog.js"
   },
   "dependencies": {
     "@bany/curl-to-json": "^1.2.10",
