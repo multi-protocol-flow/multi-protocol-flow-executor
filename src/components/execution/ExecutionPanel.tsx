@@ -315,7 +315,7 @@ type DetailTab = 'output' | 'ws' | 'variables' | 'stack';
 
 const EMPTY_NODES: Node[] = [];
 
-export function ExecutionPanel() {
+export const ExecutionPanel = memo(function ExecutionPanel() {
   const ll = getLL();
   // ===== Store 数据 =====
   const nodes = useFlowStore((state) => state.flow?.nodes ?? EMPTY_NODES);
@@ -590,4 +590,4 @@ return (
       }
     />
   );
-}
+});

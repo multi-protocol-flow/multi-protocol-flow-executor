@@ -2,7 +2,7 @@
  * LeftSidebarPanel - 左侧面板容器
  * 管理 VSCode 风格的面板布局：顶部固定 + 底部可折叠面板区
  */
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { Plus, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
@@ -32,7 +32,7 @@ const NODE_OUTLINE_DEFAULT_HEIGHT = 220;
 
 /** 节点大纲最小高度 */
 const NODE_OUTLINE_MIN_HEIGHT = 80;
-export function LeftSidebarPanel() {
+export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
   const LL = getLL();
   // UI 状态
   const isFlowListCollapsed = useUIStore((state) => state.isFlowListCollapsed);
@@ -233,4 +233,4 @@ export function LeftSidebarPanel() {
       </CollapsiblePanel>
     </div>
   );
-}
+});

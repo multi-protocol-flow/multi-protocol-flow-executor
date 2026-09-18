@@ -2,7 +2,7 @@
  * FlowTabBar - 多流程标签栏组件
  * 支持流程标签切换、运行状态指示、未保存脏状态拦截、右键上下文菜单与快捷新建
  */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import {
   X,
   Plus,
@@ -51,7 +51,7 @@ interface TabContextMenuState {
   tab?: FlowTab;
 }
 
-export function FlowTabBar() {
+export const FlowTabBar = memo(function FlowTabBar() {
   const tabs = useFlowStore(selectTabs);
   const activeTabUuid = useFlowStore(selectActiveTabUuid);
   const tabSessions = useFlowStore(selectTabSessions);
@@ -851,4 +851,4 @@ export function FlowTabBar() {
       )}
     </>
   );
-}
+});

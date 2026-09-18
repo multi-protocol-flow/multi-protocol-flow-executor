@@ -2,7 +2,7 @@
  * 控制台面板组件
  * 显示实时日志，支持级别过滤和自动滚动
  */
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, memo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useConsoleStore } from '@/stores/console';
@@ -32,7 +32,7 @@ interface ConsolePanelProps {
   flowUuid?: string;
 }
 
-export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
+export const ConsolePanel = memo(function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
   const ll = getLL();
   const locale = useCurrentLocale();
   const formatTimestamp = (timestamp: number): string => {
@@ -150,4 +150,4 @@ export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
       </div>
     </div>
   );
-}
+});
