@@ -102,6 +102,7 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 - **Store**: Zustand 5，每个 store 一个文件，必须实现 `reset()`。`useXxxStore.getState().reset()` 用于测试隔离
 - **注册表**: 三重注册 — `NodeRegistry.ts`(元数据) + `configPanelRegistry.ts`(配置面板) + `viewerRegistry.tsx`(查看器)
 - **TypeScript**: `strict: true`, `noUnusedLocals`, `noUnusedParameters`。禁止 `as any` / `@ts-ignore` / `@ts-expect-error`
+- **API 基线**: `lib: ES2020`（类型边界）+ `build.target: es2022`（语法边界，esbuild 只降级语法、**不 polyfill API**）。只允许使用 **ES2020 及更早的运行时 API**；新 API（`Promise.withResolvers`、`Array.prototype.toSorted`、`Object.groupBy` 等）一律禁用，详见「反模式 / 代码质量」。需抬基线时须同时改 `tsconfig.json` 的 `lib` 与各平台 webview 下限（`tauri.conf.json` 的 `minimumSystemVersion`），不可只改一处
 - **路径别名**: `@/*` → `src/*`
 - **类型同步**: `src/types/*.ts` 与 `flow-engine-core/src/*.rs` 必须严格对齐
 
@@ -131,6 +132,7 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 - 新增翻译 key 不更新 `i18n-types.ts` → 编译错误
 - 对 i18n 翻译函数使用 `?.()` / `.call()` / `.apply()` / `.bind()` → esbuild 降级为 `.call()` 后命中 i18n Proxy 陷阱，打包产物界面文字整片空白（dev 不复现，排查步骤见 `src/i18n/AGENTS.md`）
 - `build.target` 降到含 Chrome ≤ 90 的目标（如 Vite 默认 `'modules'`）→ 同上层：esbuild 会把 `?.()` 重写为 `.call()`，必须保持 `es2022`
+- 使用 `lib: ES2020` 之外的**运行时 API**（`Promise.withResolvers`(ES2024)、`Array.prototype.at`(ES2022)、`toSorted`/`toReversed`(ES2023)、`Object.groupBy`(ES2024) 等）→ ① `tsc` 直接报 TS2550（实测 `Array.prototype.at` 亦被拒：语法边界 `build.target: es2022` 不等于类型边界 `lib: ES2020`）；② esbuild/Vite 只降级语法、**不 polyfill API**，而本应用运行在系统 webview 上 —— `Promise.withResolvers` 需 Safari 17.4 / Chrome 119，但 Tauri bundle 默认最低 macOS 10.13、Linux 用发行版自带 webkit2gtk 4.1，老系统上为运行期 `TypeError`，**dev 不复现**。禁用；如需启用，必须同时抬 `tsconfig.json` 的 `lib` 与 `tauri.conf.json` 的 `minimumSystemVersion`
 
 ### 工作流纪律
 
