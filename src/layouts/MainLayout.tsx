@@ -155,6 +155,11 @@ export function MainLayout() {
   const isBottomPanelExpanded = useUIStore((state) => state.isBottomPanelExpanded);
   const isConfigPanelOpen = useUIStore((state) => state.isConfigPanelOpen);
   const bottomPanelTab = useUIStore((state) => state.bottomPanelTab);
+  const lastActiveBottomTabRef = useRef<'console' | 'history' | 'running'>('history');
+  if (bottomPanelTab) {
+    lastActiveBottomTabRef.current = bottomPanelTab;
+  }
+  const activeBottomTab = bottomPanelTab || lastActiveBottomTabRef.current;
   const bottomPanelHeight = useUIStore((state) => state.bottomPanelHeight);
   const configPanelWidth = useUIStore((state) => state.configPanelWidth);
   const sidebarWidth = useUIStore((state) => state.sidebarWidth);
@@ -563,10 +568,10 @@ export function MainLayout() {
           ref={leftAsideRef}
           className={cn(
             'shrink-0 border-r border-border flex flex-col bg-background overflow-hidden relative',
-            leftDrag.isDragging ? '!transition-none' : 'transition-[width] duration-300 ease-out',
+            leftDrag.isDragging ? '!transition-none' : 'transition-[width] duration-200 ease-out will-change-[width]',
             isFlowListPanelOpen ? 'min-w-0' : 'w-0 min-w-0'
           )}
-          style={{ width: isFlowListPanelOpen ? sidebarWidth : 0 }}
+          style={{ width: isFlowListPanelOpen ? sidebarWidth : 0, contain: 'layout style' }}
         >
           {/* 可拖拽调整宽度的 handle - 放在面板内部右边缘 */}
           {isFlowListPanelOpen && (
@@ -599,7 +604,7 @@ export function MainLayout() {
             'absolute z-20 h-12 w-5 rounded-l-none rounded-r-md top-1/2 -translate-y-1/2 p-0',
             'bg-background/90 hover:bg-accent border border-l-0 border-border shadow-xs',
             'text-muted-foreground/70 hover:text-foreground cursor-pointer',
-            leftDrag.isDragging ? '!transition-none' : 'transition-[left] duration-300 ease-out'
+            leftDrag.isDragging ? '!transition-none' : 'transition-[left] duration-200 ease-out will-change-[left]'
           )}
           style={{ left: isFlowListPanelOpen ? sidebarWidth : 0 }}
           title={isFlowListPanelOpen ? getLL().common.toggle_sidebar_collapse() : getLL().common.toggle_sidebar_expand()}
@@ -696,24 +701,24 @@ export function MainLayout() {
               ref={bottomContentRef}
               className={cn(
                 'overflow-hidden',
-                bottomDrag.isDragging ? '!transition-none' : 'transition-[height] duration-300 ease-out'
+                bottomDrag.isDragging ? '!transition-none' : 'transition-[height] duration-200 ease-out will-change-[height]'
               )}
-              style={{ height: isBottomPanelExpanded ? bottomPanelHeight : 0 }}
+              style={{ height: isBottomPanelExpanded ? bottomPanelHeight : 0, contain: 'layout style' }}
             >
-              {bottomPanelTab && (
+              {activeBottomTab && (
                 <div className="h-full flex flex-col" style={{ minHeight: bottomPanelHeight }}>
                   {/* 根据选中 Tab 渲染内容 */}
-                  {bottomPanelTab === 'history' && (
+                  {activeBottomTab === 'history' && (
                     <div className="flex-1 min-h-0 overflow-hidden">
                       <MemoizedExecutionHistory onCompare={handleCompare} />
                     </div>
                   )}
-                  {bottomPanelTab === 'running' && (
+                  {activeBottomTab === 'running' && (
                     <div className="flex-1 min-h-0 overflow-hidden">
                       <ExecutionPanel />
                     </div>
                   )}
-                  {bottomPanelTab === 'console' && (
+                  {activeBottomTab === 'console' && (
                     <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
                       {/* 过滤控件 */}
                       <div className="flex items-center gap-2 px-2 py-1.5 border-b border-border shrink-0">
@@ -799,10 +804,10 @@ export function MainLayout() {
           ref={rightAsideRef}
           className={cn(
             'shrink-0 border-l border-border bg-background overflow-hidden relative',
-            rightDrag.isDragging ? '!transition-none' : 'transition-[width] duration-300 ease-out',
+            rightDrag.isDragging ? '!transition-none' : 'transition-[width] duration-200 ease-out will-change-[width]',
             isConfigPanelOpen ? 'min-w-0' : 'w-0 min-w-0'
           )}
-          style={{ width: isConfigPanelOpen ? configPanelWidth : 0 }}
+          style={{ width: isConfigPanelOpen ? configPanelWidth : 0, contain: 'layout style' }}
         >
           {/* 可拖拽调整宽度的 handle - 放在面板内部左边缘 */}
           {isConfigPanelOpen && (
@@ -835,7 +840,7 @@ export function MainLayout() {
             'absolute z-20 h-12 w-5 rounded-r-none rounded-l-md top-1/2 -translate-y-1/2 p-0',
             'bg-background/90 hover:bg-accent border border-r-0 border-border shadow-xs',
             'text-muted-foreground/70 hover:text-foreground cursor-pointer',
-            rightDrag.isDragging ? '!transition-none' : 'transition-[right] duration-300 ease-out'
+            rightDrag.isDragging ? '!transition-none' : 'transition-[right] duration-200 ease-out will-change-[right]'
           )}
           style={{ right: isConfigPanelOpen ? configPanelWidth : 0 }}
           title={isConfigPanelOpen ? getLL().common.toggle_config_collapse() : getLL().common.toggle_config_expand()}

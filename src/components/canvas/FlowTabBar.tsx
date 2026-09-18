@@ -105,17 +105,28 @@ export const FlowTabBar = memo(function FlowTabBar() {
     clientWidth: 0,
   });
 
+  const metricsRafIdRef = useRef<number | null>(null);
+
   const updateScrollMetrics = useCallback(() => {
     const el = tabsContainerRef.current;
     if (!el) return;
-    setScrollMetrics({
-      scrollLeft: el.scrollLeft,
-      scrollWidth: el.scrollWidth,
-      clientWidth: el.clientWidth,
+    setScrollMetrics((prev) => {
+      if (
+        prev.scrollLeft === el.scrollLeft &&
+        prev.scrollWidth === el.scrollWidth &&
+        prev.clientWidth === el.clientWidth
+      ) {
+        return prev;
+      }
+      return {
+        scrollLeft: el.scrollLeft,
+        scrollWidth: el.scrollWidth,
+        clientWidth: el.clientWidth,
+      };
     });
   }, []);
 
-  // 监听容器尺寸与标签增减变动
+  // 监听容器尺寸与标签增减变动（仅监听容器，并加入 rAF 节流防抖，避免布局过渡期间高频重绘）
   useEffect(() => {
     const el = tabsContainerRef.current;
     if (!el) return;
@@ -123,11 +134,22 @@ export const FlowTabBar = memo(function FlowTabBar() {
 
     if (typeof ResizeObserver !== 'undefined') {
       const observer = new ResizeObserver(() => {
-        updateScrollMetrics();
+        if (metricsRafIdRef.current !== null) {
+          cancelAnimationFrame(metricsRafIdRef.current);
+        }
+        metricsRafIdRef.current = requestAnimationFrame(() => {
+          metricsRafIdRef.current = null;
+          updateScrollMetrics();
+        });
       });
       observer.observe(el);
-      Array.from(el.children).forEach((child) => observer.observe(child));
-      return () => observer.disconnect();
+      return () => {
+        if (metricsRafIdRef.current !== null) {
+          cancelAnimationFrame(metricsRafIdRef.current);
+          metricsRafIdRef.current = null;
+        }
+        observer.disconnect();
+      };
     }
   }, [tabs, flowTabDisplayMode, updateScrollMetrics]);
 
