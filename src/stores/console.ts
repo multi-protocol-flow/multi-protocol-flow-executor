@@ -41,6 +41,8 @@ interface ConsoleState {
   addLog: (log: LogEvent & { source?: 'flow' | 'system'; details?: unknown }) => void;
   addSystemLog: (input: SystemLogInput) => void;
   clearLogs: () => void;
+  /** 同步刷新当前积压的日志缓冲区 */
+  flushLogs: () => void;
   setFilter: (filter: Partial<LogFilter>) => void;
   setSearchKeyword: (keyword: string) => void;
   setSelectedNode: (nodeUuid: string | 'ALL') => void;
@@ -50,7 +52,6 @@ interface ConsoleState {
   getFilteredLogs: () => LogEntry[];
   getUniqueNodes: () => { uuid: string; name: string }[];
 }
-
 // 生成唯一 ID
 const generateId = () =>
   `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -65,30 +66,76 @@ const initialState = {
   },
 };
 
-export const useConsoleStore = create<ConsoleState>((set, get) => ({
-  ...initialState,
+export const useConsoleStore = create<ConsoleState>((set, get) => {
+  // 日志缓冲队列机制：合并高频日志写入，避免高频触发 React 重渲染
+  let pendingLogs: LogEntry[] = [];
+  let flushScheduled = false;
+  let rafId: number | null = null;
+  const isTest = typeof process !== 'undefined' && Boolean(process.env.VITEST);
 
-  /** 日志最大条数 */
-  MAX_LOGS: 1000,
-
-  // 添加日志
-  // 添加流程执行日志
-  addLog: (log) =>
-    set((state) => {
-      const newLogs = [
-        ...state.logs,
-        { ...log, id: generateId(), source: log.source ?? 'flow' },
-      ];
-      // 超出上限时丢弃最早的日志
-      if (newLogs.length > state.MAX_LOGS) {
-        return { logs: newLogs.slice(newLogs.length - state.MAX_LOGS) };
+  const flushPendingLogs = () => {
+    if (pendingLogs.length === 0) return;
+    const toAppend = pendingLogs;
+    pendingLogs = [];
+    flushScheduled = false;
+    if (rafId !== null) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(rafId);
       }
-      return { logs: newLogs };
-    }),
-
-  // 添加系统/操作日志
-  addSystemLog: (input) =>
+      rafId = null;
+    }
     set((state) => {
+      const combined = state.logs.concat(toAppend);
+      if (combined.length > state.MAX_LOGS) {
+        return { logs: combined.slice(combined.length - state.MAX_LOGS) };
+      }
+      return { logs: combined };
+    });
+  };
+
+  const scheduleFlush = () => {
+    if (isTest) {
+      flushPendingLogs();
+      return;
+    }
+    // 积攒达到批次上限时立刻刷入
+    if (pendingLogs.length >= 50) {
+      flushPendingLogs();
+      return;
+    }
+    if (!flushScheduled) {
+      flushScheduled = true;
+      if (typeof requestAnimationFrame === 'function') {
+        rafId = requestAnimationFrame(() => {
+          flushPendingLogs();
+        });
+      } else {
+        queueMicrotask(() => {
+          flushPendingLogs();
+        });
+      }
+    }
+  };
+
+  return {
+    ...initialState,
+
+    /** 日志最大条数 */
+    MAX_LOGS: 1000,
+
+    // 添加流程执行日志（缓冲入队）
+    addLog: (log) => {
+      const entry: LogEntry = {
+        ...log,
+        id: generateId(),
+        source: log.source ?? 'flow',
+      };
+      pendingLogs.push(entry);
+      scheduleFlush();
+    },
+
+    // 添加系统/操作日志（缓冲入队）
+    addSystemLog: (input) => {
       const category = input.category ? input.category.trim() : undefined;
       const newEntry: LogEntry = {
         id: generateId(),
@@ -101,20 +148,40 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
         source: 'system',
         details: input.details,
       };
-      const newLogs = [...state.logs, newEntry];
-      if (newLogs.length > state.MAX_LOGS) {
-        return { logs: newLogs.slice(newLogs.length - state.MAX_LOGS) };
+      pendingLogs.push(newEntry);
+      scheduleFlush();
+    },
+
+    // 显式刷新缓冲区
+    flushLogs: () => {
+      flushPendingLogs();
+    },
+
+    // 重置状态
+    reset: () => {
+      pendingLogs = [];
+      flushScheduled = false;
+      if (rafId !== null) {
+        if (typeof cancelAnimationFrame === 'function') {
+          cancelAnimationFrame(rafId);
+        }
+        rafId = null;
       }
-      return { logs: newLogs };
-    }),
+      set({ ...initialState, logs: [] });
+    },
 
-  // 重置状态
-  reset: () => set({ ...initialState, logs: [] }),
-
-  // 清空日志
-  clearLogs: () => set({ logs: [] }),
-
-  // 设置过滤条件
+    // 清空日志
+    clearLogs: () => {
+      pendingLogs = [];
+      flushScheduled = false;
+      if (rafId !== null) {
+        if (typeof cancelAnimationFrame === 'function') {
+          cancelAnimationFrame(rafId);
+        }
+        rafId = null;
+      }
+      set({ logs: [] });
+    },
   setFilter: (filter) =>
     set((state) => ({
       filter: { ...state.filter, ...filter },
@@ -176,7 +243,8 @@ export const useConsoleStore = create<ConsoleState>((set, get) => ({
       name,
     }));
   },
-}));
+  };
+});
 
 // ===== Selectors =====
 /** 选择日志列表 */

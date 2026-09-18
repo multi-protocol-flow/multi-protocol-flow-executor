@@ -5,6 +5,7 @@ import { create } from 'zustand';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types';
 import type { ExecutionEvent, PluginEventData, NodeStreamData, NodeStreamChunk, SubFlowProgress } from '@/types/execution_event';
 import { useWsStreamStore } from './wsStream';
+import { useConsoleStore } from './console';
 
 interface ExecutionState {
   /** 是否正在执行 */
@@ -159,7 +160,8 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         error: null,
       }),
 
-    setReport: (report) =>
+    setReport: (report) => {
+      useConsoleStore.getState().flushLogs();
       set((state) => {
         // 更新历史记录
         const newHistory = report
@@ -174,7 +176,8 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           completedNodeCount: report?.node_reports.length ?? state.completedNodeCount,
           totalNodes: report?.total_nodes ?? state.totalNodes,
         };
-      }),
+      });
+    },
 
     setError: (error) =>
       set({
@@ -199,6 +202,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         // Session may already be cleaned up, ignore
       }
       flushBuffer();
+      useConsoleStore.getState().flushLogs();
       set({ isExecuting: false });
     },
 
@@ -289,6 +293,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         // 嵌套流程结束：顶层流程仍在运行，报告树随 SubFlow 节点的 NodeCompleted 到达
         if (event.flowCompleted.parentNodeUuid) return;
         flushBuffer();
+        useConsoleStore.getState().flushLogs();
         const { report } = event.flowCompleted;
         set((state) => {
           const newHistory = [report, ...state.history].slice(0, MAX_HISTORY_SIZE);
@@ -305,6 +310,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         // 嵌套流程取消：顶层流程的取消事件随后到达，不在此提前结束顶层状态
         if (event.flowCancelled.parentNodeUuid) return;
         flushBuffer();
+        useConsoleStore.getState().flushLogs();
         set({ isExecuting: false });
       } else if ('pluginEvent' in event) {
         const pluginEvt = event.pluginEvent;

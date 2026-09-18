@@ -220,6 +220,7 @@ export function CanvasToolbar() {
         flowUuid: flow?.uuid,
       });
     } finally {
+      useConsoleStore.getState().flushLogs();
       setIsExecuting(false);
     }
   };
