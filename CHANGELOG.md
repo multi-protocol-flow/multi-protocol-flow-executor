@@ -7,11 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **HTTP Ingress & Mock Services**: Added `http:ingress` and `http:respond` mock service nodes to simulate incoming HTTP webhook endpoints and handle HTTP responses within flows.
+- **Interactive Flow Debugging**: Added variable timeline inspection, in-place node step retries, and live stream probes for detailed runtime debugging.
+- **Execution Report On-Demand Loading**: Added lazy inspection of execution details with skeleton placeholders, dual-threshold batch event pushing, and in-memory cold-channel caching.
+
 ### Changed
-- **Breaking**: Built-in node type IDs now use the `<protocol>:<operation>` namespace shared with plugin nodes: `http` → `http:request`, `ws_connect` → `ws:connect`, `ws_send_collect` → `ws:send_collect`, `ws_close` → `ws:close`, `tcp_connect`/`tcp_send`/`tcp_receive`/`tcp_close` → `tcp:*`, `udp_bind`/`udp_send_to`/`udp_recv_from`/`udp_close` → `udp:*`, `sse_connect`/`sse_listen`/`sse_disconnect` → `sse:*`, `graphql_connect`/`graphql_query`/`graphql_subscribe`/`graphql_introspect`/`graphql_disconnect` → `graphql:*`, `sub_flow` → `flow:sub`, `variable_extractor` → `variable:extractor`. Flow files (`.mpf`) and templates that reference the old IDs no longer resolve to typed nodes: validation skips them and execution reports `Unregistered node type`. Re-add affected nodes on the canvas or update the `node_type` / `type` fields.
+- **Breaking**: Built-in node type IDs now use the `<protocol>:<operation>` namespace shared with plugin nodes: `http` → `http:request`, `ws_connect` → `ws:connect`, `ws_send_collect` → `ws:send_collect`, `ws_close` → `ws:close`, `tcp_connect`/`tcp_send`/`tcp_receive`/`tcp_close` → `tcp:*`, `udp_bind`/`udp_send_to`/`udp_recv_from`/`udp_close` → `udp:*`, `sse_connect`/`sse_listen`/`sse_disconnect` → `sse:*`, `graphql_connect`/`graphql_query`/`graphql_subscribe`/`graphql_introspect`/`graphql_disconnect` → `graphql:*`, `sub_flow` → `flow:sub`, `variable_extractor` → `variable:extractor`. Flow files (`.mpf`) and templates that reference legacy IDs must be updated.
+- Redesigned the node palette detail card into a bottom-docked, adaptive overlay.
+
+### Performance
+- **Canvas State Decoupling**: Extracted `FlowSurface` to decouple canvas state and preserve node DOM identity across drag operations, eliminating unnecessary re-renders.
+- **GPU Compositing**: Added GPU composite layer hints (`will-change`) for the canvas viewport and dragging nodes.
+- **Direct Backend Report Persistence**: Streamlined execution reports by persisting run data directly on the backend and emitting lightweight IPC events, eliminating redundant frontend save calls.
+- **Virtualized Console Logging**: Replaced console log lists with a virtualized renderer and batch write buffer with end-of-run synchronous flushing.
+- **AI Streaming Buffer**: Introduced streaming message batching buffers to eliminate main-thread reflow and lag during AI thought generation.
+- Cached flow-scoped breakpoint lookups with $O(1)$ set queries and added reference equality guards for custom edge subscriptions.
 
 ### Fixed
-- Fixed node picker hover jitter: the row highlight border no longer animates in and out, and the detail card keeps a fixed height so the node list stops reflowing under the cursor.
+- Fixed node picker hover jitter: the row highlight border no longer animates in and out, and the detail card maintains stable geometry.
+- Cascaded `connection_uuid` cross-node reference updates during flow duplication and remapping.
+- Fixed false-positive conflict detection when flows lack file paths or when switching between identical flows.
+
+## [0.4.0-beta] - 2026-09-16
+
+### Added
+- **YAML Flow Storage & CLI Formatter**: Introduced native YAML flow serialization (`.mpf`) alongside backward-compatible JSON deserialization, adaptive drag-and-drop dual-format import on the canvas, and the `mpe flow fmt` CLI formatting command.
+- **UUID Conflict Detection & Remapping**: Added automated UUID conflict detection and the `FlowConflictDialog` on flow duplicate or import, cascading node and connection reference updates, and atomic path-driven flow saves.
+- **AI Copilot Terminal Tool**: Added a secure terminal execution tool with command whitelisting, high-risk confirmation cards, and multi-platform shell execution.
+- **Customizable Canvas Tab Bar**: Added display mode switching for flow tabs (ultra-thin horizontal scrolling or multi-line wrapping) with local storage persistence.
+- **Path-Driven Flow Management**: Added direct file path binding for subflow nodes, path-based flow loading in the sidebar, and file system renaming support.
+- **Enhanced Response Viewers**: Optimized large response payload inspection with multi-view switching, CodeMirror virtualization, and adaptive auto-expansion.
+
+### Fixed
+- Fixed multi-tab flow execution state cross-contamination with `renderFlowUuid` isolation and disk-flush on tab switching.
+- Fixed `RawJsonViewer` React hook ordering mismatch caused by conditional branches when switching dynamic data types.
+- Fixed Copilot floating panel dialogue overflow pushing top toolbar out of view and added boundary validation for panel geometry persistence.
+- Fixed flow search dialog sub-pixel blurriness and improved text rendering sharpness.
+- Fixed Web mock flow persistence file extension to consistently use `.mpf`.
 
 ## [0.3.0-beta.1] - 2026-09-14
 
