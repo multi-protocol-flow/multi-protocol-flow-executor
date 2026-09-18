@@ -14,7 +14,6 @@ import {
   Ban,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { useThrottledValue } from '@/hooks/useThrottledValue';
 import { useExecutionStore, useFlowStore, useDebugStore, useUIStore } from '@/stores';
 import {
   selectIsExecuting,
@@ -37,7 +36,7 @@ import { sendDebugCommand } from '@/services/tauri';
 import { toast } from 'sonner';
 import { getLL } from '@/i18n/i18n-lazy';
 import { ResizablePanel } from '@/components/ui/ResizablePanel';
-import type { Node, NodeExecutionReport, ExecutionStatus } from '@/types';
+import type { Node, NodeExecutionReport } from '@/types';
 
 // ============================================================================
 // 子组件：节点状态列表项
@@ -50,7 +49,7 @@ interface NodeStatusItemProps {
   status: NodeItemStatus;
   isSelected: boolean;
   durationMs: number | null;
-  onClick: () => void;
+  onSelect: (uuid: string) => void;
 }
 
 function StatusIcon({ status }: { status: NodeItemStatus }) {
@@ -79,7 +78,7 @@ const NodeStatusItem = memo(function NodeStatusItem({
   status,
   isSelected,
   durationMs,
-  onClick,
+  onSelect,
 }: NodeStatusItemProps) {
   const meta = getNodeMeta(node.data.type);
   const nodeTypeLabel = meta?.name ?? node.data.type;
@@ -87,7 +86,7 @@ const NodeStatusItem = memo(function NodeStatusItem({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => onSelect(node.uuid)}
       className={cn(
         'w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-colors',
         'border-l-2',
@@ -124,6 +123,90 @@ const NodeStatusItem = memo(function NodeStatusItem({
   );
 });
 
+/**
+ * 独立进度条组件：独立订阅完成计数与总数，避免计数递增导致整个面板与列表全量重渲染
+ */
+const ExecutionProgressBar = memo(function ExecutionProgressBar({
+  isExecuting,
+}: {
+  isExecuting: boolean;
+}) {
+  const ll = getLL();
+  const completedNodeCount = useExecutionStore(selectCompletedNodeCount);
+  const totalNodes = useExecutionStore(selectTotalNodes);
+  const progressPercent =
+    totalNodes > 0 ? Math.round((completedNodeCount / totalNodes) * 100) : 0;
+
+  return (
+    <div className="px-3 py-1.5 border-b border-border shrink-0 flex items-center gap-2">
+      <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+        {ll.execution.panel.node_count({ completed: completedNodeCount, total: totalNodes })}
+      </span>
+      <span className="text-xs text-muted-foreground/60 shrink-0">·</span>
+      <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+        {progressPercent}%
+      </span>
+      <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden min-w-[40px]">
+        <div
+          className={cn(
+            'h-full rounded-full transition-all duration-500 ease-out',
+            !isExecuting && completedNodeCount > 0
+              ? 'bg-emerald-500'
+              : 'bg-blue-500',
+          )}
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+    </div>
+  );
+});
+
+/**
+ * 独立节点列表组件
+ */
+interface ExecutionNodeListProps {
+  orderedNodes: Node[];
+  selectedNodeUuid: string | null;
+  onSelectNode: (uuid: string) => void;
+  getNodeExecutionStatus: (nodeUuid: string) => NodeItemStatus;
+  getNodeExecutionReport: (nodeUuid: string) => NodeExecutionReport | null;
+  nodeListRef: React.RefObject<HTMLDivElement | null>;
+}
+
+const ExecutionNodeList = memo(function ExecutionNodeList({
+  orderedNodes,
+  selectedNodeUuid,
+  onSelectNode,
+  getNodeExecutionStatus,
+  getNodeExecutionReport,
+  nodeListRef,
+}: ExecutionNodeListProps) {
+  return (
+    <div
+      ref={nodeListRef}
+      className="flex-1 min-h-0 overflow-y-auto scrollbar-thin"
+    >
+      {orderedNodes.map((node) => {
+        const status = getNodeExecutionStatus(node.uuid);
+        const nodeReport = getNodeExecutionReport(node.uuid);
+        const durationMs = nodeReport?.duration_ms ?? null;
+
+        return (
+          <div key={node.uuid} data-status={status}>
+            <NodeStatusItem
+              node={node}
+              status={status}
+              isSelected={selectedNodeUuid === node.uuid}
+              durationMs={durationMs}
+              onSelect={onSelectNode}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+});
+
 // ============================================================================
 // 判断节点是否为 WebSocket 类型
 // ============================================================================
@@ -135,6 +218,93 @@ function isWsNodeType(nodeType: string): boolean {
     nodeType === 'ws:close'
   );
 }
+
+/**
+ * 右侧「输出」标签面板。
+ *
+ * 只订阅**当前选中节点自己**的状态与报告：其它节点的执行事件不会触发本组件重渲染。
+ * 节点处于运行中时渲染轻量占位（不挂载重量级 Viewer），避免高频执行下反复
+ * 卸载/挂载详情组件树导致的 UI 线程卡顿。
+ */
+const NodeOutputPane = memo(function NodeOutputPane({
+  nodeUuid,
+  autoTrackingRef,
+}: {
+  nodeUuid: string | null;
+  /** 是否仍在自动跟随当前执行节点（用户手动点选其它节点后为 false） */
+  autoTrackingRef: React.MutableRefObject<boolean>;
+}) {
+  const ll = getLL();
+  // 选择器返回字符串 / 对象引用：仅当该节点自身状态或报告变化时才触发重渲染
+  const status = useExecutionStore((state) =>
+    nodeUuid ? state.getNodeExecutionStatus(nodeUuid) : null,
+  );
+  const report = useExecutionStore((state) =>
+    nodeUuid ? state.getNodeExecutionReport(nodeUuid) : null,
+  );
+  const isExecuting = useExecutionStore(selectIsExecuting);
+  const nodeName = useFlowStore((state) =>
+    nodeUuid
+      ? state.flow?.nodes.find((n) => n.uuid === nodeUuid)?.name ?? null
+      : null,
+  );
+
+  // ===== 冷通道按需拉取完整报文 =====
+  useEffect(() => {
+    // 关键优化：执行期间自动跟随模式下不预拉取大报文，避免频繁 IPC 与重渲染导致页面卡顿；
+    // 只有在流程停止执行，或用户主动手动点击了某个具体节点时，才按需拉取冷通道详情
+    if (!isExecuting || !autoTrackingRef.current) {
+      if (nodeUuid && report?.is_detail_stripped) {
+        const flowUuid = useFlowStore.getState().flow?.uuid;
+        if (flowUuid) {
+          void useExecutionStore.getState().fetchNodeDetail(flowUuid, nodeUuid);
+        }
+      }
+    }
+  }, [isExecuting, nodeUuid, report?.is_detail_stripped, autoTrackingRef]);
+
+  if (!nodeUuid) {
+    return (
+      <div className="h-full flex items-center justify-center text-muted-foreground">
+        <span className="text-sm">{ll.execution.panel.select_node_hint()}</span>
+      </div>
+    );
+  }
+
+  if (status === 'pending') {
+    return (
+      <div className="h-full flex items-center justify-center text-muted-foreground">
+        <span className="text-sm">{ll.execution.panel.waiting()}</span>
+      </div>
+    );
+  }
+
+  if (status === 'running') {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6 text-muted-foreground gap-3">
+        <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+        <div className="text-center">
+          <p className="text-sm font-semibold text-foreground">
+            {nodeName || ll.execution.panel.executing()}
+          </p>
+          <p className="text-xs text-blue-500 mt-1 font-medium">
+            {ll.execution.panel.executing()}...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!report) return null;
+
+  return (
+    <div className="h-full overflow-y-auto scrollbar-thin">
+      <div className="p-3">
+        <NodeExecutionDetails report={report} />
+      </div>
+    </div>
+  );
+});
 
 // ============================================================================
 // 主组件：ExecutionPanel
@@ -150,10 +320,7 @@ export function ExecutionPanel() {
   // ===== Store 数据 =====
   const nodes = useFlowStore((state) => state.flow?.nodes ?? EMPTY_NODES);
   const isExecuting = useExecutionStore(selectIsExecuting);
-  const rawCurrentNodeUuid = useExecutionStore((state) => state.currentNodeUuid);
-  const currentNodeUuid = useThrottledValue(rawCurrentNodeUuid);
-  const completedNodeCount = useExecutionStore(selectCompletedNodeCount);
-  const totalNodes = useExecutionStore(selectTotalNodes);
+  const currentNodeUuid = useExecutionStore((state) => state.currentNodeUuid);
   const report = useExecutionStore(selectReport);
   const getNodeExecutionStatus = useExecutionStore(
     (state) => state.getNodeExecutionStatus,
@@ -162,9 +329,7 @@ export function ExecutionPanel() {
     (state) => state.getNodeExecutionReport,
   );
   const wsStreams = useWsStreamStore(useShallow((state) => state.wsStreams));
-  const rawNodeReportsMap = useExecutionStore(useShallow((state) => state.nodeReportsMap));
-  const nodeReportsMap = useThrottledValue(rawNodeReportsMap);
-
+  const nodeReportsMap = useExecutionStore(useShallow((state) => state.nodeReportsMap));
   // ===== 调试状态 =====
   const isDebugging = useDebugStore(selectIsDebugging);
   const debugCurrentNodeUuid = useDebugStore(selectCurrentNodeUuid);
@@ -179,9 +344,29 @@ export function ExecutionPanel() {
   const [selectedTimelineVar, setSelectedTimelineVar] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>('output');
   const nodeListRef = useRef<HTMLDivElement>(null);
-  const prevCompletedCountRef = useRef(0);
   /** 用户是否手动选择了非当前运行节点，此时暂停自动跟踪当前执行节点 */
   const autoTrackingRef = useRef(true);
+  /** 当前选中节点镜像：供稳定回调读取，避免 useCallback 依赖 selectedNodeUuid 破坏列表 memo */
+  const selectedNodeUuidRef = useRef<string | null>(null);
+  selectedNodeUuidRef.current = selectedNodeUuid;
+
+  // ===== 节点选择回调（恒等引用，保证 ExecutionNodeList 的 memo 生效） =====
+  const handleSelectNode = useCallback((nodeUuid: string) => {
+    if (selectedNodeUuidRef.current === nodeUuid) {
+      // 已选中：直接定位到画布，不取消选择
+      useFlowStore.getState().focusOnNode(nodeUuid);
+    } else {
+      setSelectedNodeUuid(nodeUuid);
+      useFlowStore.getState().selectNode(nodeUuid);
+      useFlowStore.getState().focusOnNode(nodeUuid);
+    }
+    // 点击当前运行节点 → 恢复自动跟踪；点击其他节点 → 暂停自动跟踪
+    if (nodeUuid === useExecutionStore.getState().currentNodeUuid) {
+      autoTrackingRef.current = true;
+    } else {
+      autoTrackingRef.current = false;
+    }
+  }, []);
 
   // ===== 调试开始时自动打开底部面板 =====
   useEffect(() => {
@@ -231,73 +416,14 @@ export function ExecutionPanel() {
     }
   }, [currentNodeUuid]);
 
-  // ===== 自动滚动节点列表（用户手动选择后暂停跟踪） =====
+  // ===== 自动滚动节点列表（用户手动选择后暂停跟踪，使用 instant auto 滚动消除动画卡顿） =====
   useEffect(() => {
-    if (!autoTrackingRef.current) return;
-    if (
-      completedNodeCount > prevCompletedCountRef.current ||
-      currentNodeUuid
-    ) {
-      requestAnimationFrame(() => {
-        const activeEl = nodeListRef.current?.querySelector(
-          '[data-status="running"], [data-status="success"]:last-of-type',
-        );
-        activeEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      });
-    }
-    prevCompletedCountRef.current = completedNodeCount;
-  }, [completedNodeCount, currentNodeUuid]);
-
-  // ===== 进度 =====
-  const progressPercent =
-    totalNodes > 0 ? Math.round((completedNodeCount / totalNodes) * 100) : 0;
-
-  // ===== 选中节点信息 =====
-  const selectedStatus = selectedNodeUuid
-    ? getNodeExecutionStatus(selectedNodeUuid)
-    : null;
-  const selectedReport = selectedNodeUuid
-    ? getNodeExecutionReport(selectedNodeUuid)
-    : null;
-  // ===== 冷通道按需拉取完整报文 =====
-  useEffect(() => {
-    // 关键优化：执行期间自动跟随模式下不预拉取大报文，避免频繁 IPC 与重渲染导致页面卡顿；
-    // 只有在流程停止执行，或用户主动手动点击了某个具体节点时，才按需拉取冷通道详情
-    if (!isExecuting || !autoTrackingRef.current) {
-      if (selectedNodeUuid && selectedReport?.is_detail_stripped) {
-        const flowUuid = useFlowStore.getState().flow?.uuid;
-        if (flowUuid) {
-          void useExecutionStore.getState().fetchNodeDetail(flowUuid, selectedNodeUuid);
-        }
-      }
-    }
-  }, [isExecuting, selectedNodeUuid, selectedReport?.is_detail_stripped]);
-
-
-  // ===== 选中节点对象与运行中报告 =====
-  const selectedNode = useMemo(
-    () => nodes.find((n) => n.uuid === selectedNodeUuid) || null,
-    [nodes, selectedNodeUuid]
-  );
-  const effectiveReport = useMemo((): NodeExecutionReport | null => {
-    if (selectedReport) return selectedReport;
-    if (selectedStatus === 'running' && selectedNode) {
-      const nodeType = selectedNode.type || (selectedNode.data as { type?: string })?.type || 'unknown';
-      return {
-        node_uuid: selectedNode.uuid,
-        node_name: selectedNode.name,
-        node_type: nodeType,
-        status: 'running' as unknown as ExecutionStatus,
-        start_time: Date.now(),
-        end_time: Date.now(),
-        duration_ms: 0,
-        used_port_id: 'out',
-        output_data: null,
-        error: undefined,
-      };
-    }
-    return null;
-  }, [selectedReport, selectedStatus, selectedNode]);
+    if (!autoTrackingRef.current || !currentNodeUuid) return;
+    const activeEl = nodeListRef.current?.querySelector(
+      '[data-status="running"], [data-status="success"]:last-of-type',
+    );
+    activeEl?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+  }, [currentNodeUuid]);
 
   // ===== 选中节点的 WS 流 =====
   const selectedWsStreams = useMemo(() => {
@@ -347,8 +473,7 @@ export function ExecutionPanel() {
 
   // ===== 空状态（尚未执行） =====
   const hasAnyExecution =
-    isExecuting || completedNodeCount > 0 || Object.keys(nodeReportsMap).length > 0;
-
+    isExecuting || Object.keys(nodeReportsMap).length > 0 || report !== null;
   if (!hasAnyExecution && !showDebugTabs) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -367,66 +492,18 @@ return (
       maxWidth={360}
       leftPanel={
         <div className="h-full flex flex-col">
-          {/* 进度条 */}
-          <div className="px-3 py-1.5 border-b border-border shrink-0 flex items-center gap-2">
-            <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-              {ll.execution.panel.node_count({ completed: completedNodeCount, total: totalNodes })}
-            </span>
-            <span className="text-xs text-muted-foreground/60 shrink-0">·</span>
-            <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-              {progressPercent}%
-            </span>
-            <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden min-w-[40px]">
-              <div
-                className={cn(
-                  'h-full rounded-full transition-all duration-500 ease-out',
-                  !isExecuting && completedNodeCount > 0
-                    ? 'bg-emerald-500'
-                    : 'bg-blue-500',
-                )}
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-          </div>
+          {/* 进度条：独立订阅计数，与列表隔离重渲染 */}
+          <ExecutionProgressBar isExecuting={isExecuting} />
 
           {/* 节点列表 */}
-          <div
-            ref={nodeListRef}
-            className="flex-1 min-h-0 overflow-y-auto scrollbar-thin"
-          >
-            {orderedNodes.map((node) => {
-              const status = getNodeExecutionStatus(node.uuid);
-              const nodeReport = getNodeExecutionReport(node.uuid);
-              const durationMs = nodeReport?.duration_ms ?? null;
-
-              return (
-                <div key={node.uuid} data-status={status}>
-                  <NodeStatusItem
-                    node={node}
-                    status={status}
-                    isSelected={selectedNodeUuid === node.uuid}
-                    durationMs={durationMs}
-                    onClick={() => {
-                      if (selectedNodeUuid === node.uuid) {
-                        // 已选中：直接定位到画布，不取消选择
-                        useFlowStore.getState().focusOnNode(node.uuid);
-                      } else {
-                        setSelectedNodeUuid(node.uuid);
-                        useFlowStore.getState().selectNode(node.uuid);
-                        useFlowStore.getState().focusOnNode(node.uuid);
-                      }
-                      // 点击当前运行节点 → 恢复自动跟踪；点击其他节点 → 暂停自动跟踪
-                      if (node.uuid === currentNodeUuid) {
-                        autoTrackingRef.current = true;
-                      } else {
-                        autoTrackingRef.current = false;
-                      }
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <ExecutionNodeList
+            orderedNodes={orderedNodes}
+            selectedNodeUuid={selectedNodeUuid}
+            onSelectNode={handleSelectNode}
+            getNodeExecutionStatus={getNodeExecutionStatus}
+            getNodeExecutionReport={getNodeExecutionReport}
+            nodeListRef={nodeListRef}
+          />
         </div>
       }
       rightPanel={
@@ -460,43 +537,10 @@ return (
           {/* 子标签内容 */}
           <Tabs value={detailTab} className="flex-1 min-h-0 overflow-hidden">
             <TabsContent value="output" className="m-0 h-full overflow-hidden">
-              {/* 输出标签页 - 原有逻辑 */}
-              {!selectedNodeUuid && (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
-                  <span className="text-sm">{ll.execution.panel.select_node_hint()}</span>
-                </div>
-              )}
-
-              {selectedNodeUuid && selectedStatus === 'pending' && (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
-                  <span className="text-sm">{ll.execution.panel.waiting()}</span>
-                </div>
-              )}
-
-              {selectedNodeUuid && selectedStatus === 'running' && (
-                <div className="h-full flex flex-col overflow-hidden">
-                  <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0 bg-blue-500/5">
-                    <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
-                    <span className="text-xs text-blue-500 font-medium">{ll.execution.panel.executing()}</span>
-                  </div>
-                  {effectiveReport && (
-                    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3">
-                      <NodeExecutionDetails report={effectiveReport} />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {selectedNodeUuid &&
-                (selectedStatus === 'success' || selectedStatus === 'failed' || selectedStatus === 'cancelled') && (
-                  <div className="h-full overflow-y-auto scrollbar-thin">
-                    <div className="p-3">
-                      {selectedReport && (
-                        <NodeExecutionDetails report={selectedReport} />
-                      )}
-                    </div>
-                  </div>
-                )}
+              <NodeOutputPane
+                nodeUuid={selectedNodeUuid}
+                autoTrackingRef={autoTrackingRef}
+              />
             </TabsContent>
 
             {hasWsNodes && (
