@@ -142,15 +142,44 @@ export const CustomEdge = memo(function CustomEdge({
     // 初始化
     update();
 
-    // 同时订阅两个 store，调试模式下 debugStore 状态变化也需要触发重绘
-    const unsubExec = useExecutionStore.subscribe(update);
-    const unsubDebug = useDebugStore.subscribe(update);
+    // 细粒度过滤：只有当前边关心的源节点报告或执行状态发生变动时才执行计算
+    const unsubExec = useExecutionStore.subscribe((state, prevState) => {
+      if (!prevState || state.isExecuting !== prevState.isExecuting) {
+        update();
+        return;
+      }
+      if (state.nodeReportsMap[source] !== prevState.nodeReportsMap[source]) {
+        update();
+        return;
+      }
+    });
+
+    // 调试模式过滤：只有调试状态或涉及本边节点的栈变化时才执行计算
+    const unsubDebug = useDebugStore.subscribe((state, prevState) => {
+      if (!prevState || state.status !== prevState.status) {
+        update();
+        return;
+      }
+      if (
+        state.currentNodeUuid !== prevState.currentNodeUuid &&
+        (state.currentNodeUuid === target ||
+          prevState.currentNodeUuid === target ||
+          state.currentNodeUuid === source ||
+          prevState.currentNodeUuid === source)
+      ) {
+        update();
+        return;
+      }
+      if (state.executionStack !== prevState.executionStack) {
+        update();
+        return;
+      }
+    });
     return () => {
       unsubExec();
       unsubDebug();
     };
   }, [source, target, sourceHandle]);
-
   const { isActive: isActiveEdge, edgeColor } = visualState;
 
   return (
