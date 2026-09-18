@@ -103,13 +103,14 @@ const initialState = {
 export const useExecutionStore = create<ExecutionState>((set, get) => {
   // T21: setState 批量更新缓冲
   // ════════════════════════════════════════════════════════════════════════
-  // 通过 queueMicrotask 将多个 handleExecutionEvent 合并为一次 setState 调用，
+  // 通过 requestAnimationFrame 将多个 handleExecutionEvent 按帧合并为一次 setState 调用，
   // 减少高频事件（流式 token / 连续节点状态）下 React 重渲染次数。
   interface EventBufferEntry {
     updater: Partial<ExecutionState> | ((state: ExecutionState) => Partial<ExecutionState>);
   }
   let eventBuffer: EventBufferEntry[] = [];
   let flushScheduled = false;
+  let rafId: number | null = null;
   const isTest = typeof process !== 'undefined' && Boolean(process.env.VITEST);
 
   function applyBufferedEvents(state: ExecutionState, entries: EventBufferEntry[]): Partial<ExecutionState> {
@@ -122,6 +123,13 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
   }
 
   const flushBuffer = () => {
+    if (rafId !== null) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(rafId);
+      }
+      rafId = null;
+    }
+    flushScheduled = false;
     if (eventBuffer.length === 0) return;
     const currentState = get();
     const merged = applyBufferedEvents(currentState, eventBuffer);
@@ -136,10 +144,16 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
     }
     if (!flushScheduled) {
       flushScheduled = true;
-      queueMicrotask(() => {
-        flushScheduled = false;
-        flushBuffer();
-      });
+      if (typeof requestAnimationFrame === 'function') {
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
+          flushBuffer();
+        });
+      } else {
+        queueMicrotask(() => {
+          flushBuffer();
+        });
+      }
     }
   };
 
@@ -186,6 +200,13 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
       }),
 
     reset: () => {
+      if (rafId !== null) {
+        if (typeof cancelAnimationFrame === 'function') {
+          cancelAnimationFrame(rafId);
+        }
+        rafId = null;
+      }
+      flushScheduled = false;
       eventBuffer = [];
       set(initialState);
     },
