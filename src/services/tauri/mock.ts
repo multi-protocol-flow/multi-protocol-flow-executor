@@ -116,6 +116,15 @@ export async function executeFlowWithChannel(
     nodeName: startNode.name,
   });
 
+  // 发送 NodeStarted 执行事件（与后端 executor 的事件顺序一致）
+  onExecutionEvent({
+    nodeStarted: {
+      nodeUuid: startNode.uuid,
+      nodeName: startNode.name,
+      nodeType: startNode.type,
+    },
+  });
+
   // 模拟节点执行延迟
   await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -246,6 +255,15 @@ export async function executeFlowWithChannel(
       flowUuid: flow.uuid,
       nodeUuid: node.uuid,
       nodeName: node.name,
+    });
+
+    // 发送 NodeStarted 执行事件（与后端 executor 的事件顺序一致）
+    onExecutionEvent({
+      nodeStarted: {
+        nodeUuid: node.uuid,
+        nodeName: node.name,
+        nodeType: node.type,
+      },
     });
 
     // 模拟节点执行延迟
