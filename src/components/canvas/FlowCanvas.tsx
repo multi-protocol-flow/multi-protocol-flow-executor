@@ -2,48 +2,32 @@
  * FlowCanvas - 主画布组件
  * 基于 React Flow 的流程编辑器
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import YAML from 'yaml';
 import {
-  ReactFlow,
   ReactFlowProvider,
-  Background,
-  Controls,
-  ControlButton,
-  MiniMap,
-  useNodesState,
-  useEdgesState,
-  addEdge,
   useReactFlow,
-  type Connection,
   type Node,
-  type NodeChange,
-  type EdgeChange,
-  BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, SubFlowNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, ScriptNode, TcpConnectNode, TcpSendNode, TcpReceiveNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, VariableExtractorNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode, ProxyNode, EndNode } from './nodes';
-import DynamicPluginNode from './nodes/DynamicPluginNode';
-import { ExecutionOverlay } from './ExecutionOverlay';
+import { FlowSurface } from './FlowSurface';
 import { CanvasToolbar } from './CanvasToolbar';
 import { DebugBreadcrumbs } from './DebugBreadcrumbs';
 import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
 import { EmptyCanvasTips } from './EmptyCanvasTips';
-import { CustomEdge } from './edges/CustomEdge';
-import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore, selectIsExecuting, selectFlow, selectIsDirty, connectionFor } from '@/stores';
-import { useTheme } from '@/hooks/useTheme';
-import { MapIcon, ArrowRightLeft, WrapText, Search } from 'lucide-react';
-import type { NodeData, NodeType } from '@/types';
-import type { NodeMetadata } from '@/types/nodeRegistry';
-import { getNodeMetadata } from '@/lib/NodeRegistry';
-import { datasourceGetTemplates } from '@/services/tauri/datasource';
-import { getLayoutedPositions, getAdaptiveLayoutedPositions, type LayoutDirection } from './layout';
 import {
-  convertFlowToReactFlow,
-  convertEdgeToConnection,
-  isValidConnection,
+  useFlowStore,
+  useUIStore,
+  useFlowListStore,
+  selectFlow,
+  selectIsDirty,
+  connectionFor,
+} from '@/stores';
+import type { NodeData, NodeType } from '@/types';
+import { datasourceGetTemplates } from '@/services/tauri/datasource';
+import {
   createDefaultNodeData,
   createDefaultNodeName,
 } from './utils';
@@ -52,7 +36,6 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { flowStorage } from '@/services/storage';
 import { inferDefaults } from '@/lib/nodeDefaults';
 import { toast } from 'sonner';
-
 /** 节点配置剪贴板 key */
 const NODE_CONFIG_CLIPBOARD_KEY = 'node-config-clipboard';
 
@@ -187,46 +170,9 @@ const CANVAS_STYLE_STRING = `
   }
 `;
 
-/** 节点类型映射 */
-const nodeTypes = {
-  entry: EntryNode,
-  'http:request': HttpNode,
-  conditional: ConditionalNode,
-  'ws:connect': WsConnectNode,
-  'ws:send_collect': WsSendCollectNode,
-  'ws:close': WsCloseNode,
-  assertion: AssertionNode,
-  script: ScriptNode,
-  'tcp:connect': TcpConnectNode,
-  'tcp:send': TcpSendNode,
-  'tcp:receive': TcpReceiveNode,
-  'tcp:close': TcpCloseNode,
-  'udp:bind': UdpBindNode,
-  'udp:send_to': UdpSendToNode,
-  'udp:recv_from': UdpRecvFromNode,
-  'udp:close': UdpCloseNode,
-  'variable:extractor': VariableExtractorNode,
-  'sse:connect': SseConnectNode,
-  'sse:listen': SseListenNode,
-  'sse:disconnect': SseDisconnectNode,
-  'graphql:connect': GraphqlConnectNode,
-  'graphql:query': GraphqlQueryNode,
-  'graphql:subscribe': GraphqlSubscribeNode,
-  'graphql:introspect': GraphqlIntrospectNode,
-  'graphql:disconnect': GraphqlDisconnectNode,
-  proxy: ProxyNode,
-  end: EndNode,
-  'flow:sub': SubFlowNode,
-  default: DynamicPluginNode,
-};
-
-/** 边类型映射 */
-const edgeTypes = {
-  custom: CustomEdge,
-};
 
 /** MiniMap 节点颜色 — 静态回退 */
-const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
+export const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   entry: '#22c55e',
   'http:request': '#3b82f6',
   conditional: '#f97316',
@@ -344,64 +290,22 @@ function ImportFlowCard({ wc, onImport }: { wc: ReturnType<typeof getLL>['welcom
  */
 function FlowCanvasInner() {
   const flow = useFlowStore(selectFlow);
-  const addConnection = useFlowStore((s) => s.addConnection);
-  const updateNode = useFlowStore((s) => s.updateNode);
-  const selectNode = useFlowStore((s) => s.selectNode);
   const addNode = useFlowStore((s) => s.addNode);
-  const removeConnection = useFlowStore((s) => s.removeConnection);
+  const updateNode = useFlowStore((s) => s.updateNode);
   const pendingAddNodeType = useFlowStore((s) => s.pendingAddNodeType);
   const clearPendingAddNodeType = useFlowStore((s) => s.clearPendingAddNodeType);
   const isDirty = useFlowStore(selectIsDirty);
   const markSaved = useFlowStore((s) => s.markSaved);
-  const focusNodeUuid = useFlowStore((s) => s.focusNodeUuid);
-  const clearFocusNode = useFlowStore((s) => s.clearFocusNode);
-  const centerOnNodeUuid = useFlowStore((s) => s.centerOnNodeUuid);
-  const clearCenterOnNode = useFlowStore((s) => s.clearCenterOnNode);
-  const batchUpdateNodePositions = useFlowStore((s) => s.batchUpdateNodePositions);
-  const setConfigPanelOpen = useUIStore((s) => s.setConfigPanelOpen);
-  const setConfigPanelMode = useUIStore((s) => s.setConfigPanelMode);
-  const setFlowListPanelOpen = useUIStore((s) => s.setFlowListPanelOpen);
-  const showMinimap = useUIStore((s) => s.showMinimap);
-  const toggleMinimap = useUIStore((s) => s.toggleMinimap);
-  const { resolvedTheme } = useTheme();
   const ll = getLL();
   const wc = ll.welcome;
 
-  // 执行状态（用于控制画布交互）
-  const isExecuting = useExecutionStore(selectIsExecuting);
+  const { screenToFlowPosition, fitView } = useReactFlow();
 
-  // 动态节点元数据
-  const [nodeMetadata, setNodeMetadata] = useState<NodeMetadata[]>([]);
-
-  // 挂载时获取元数据
-  useEffect(() => {
-    getNodeMetadata().then(setNodeMetadata);
-  }, []);
-
-  // MiniMap 节点颜色：优先使用后端元数据的颜色，回退到静态映射
-  const minimapNodeColor = useCallback((node: Node) => {
-    if (node.type) {
-      const meta = nodeMetadata.find((m) => m.type_id === node.type);
-      if (meta) return meta.color;
-    }
-    return FALLBACK_MINIMAP_COLORS[node.type ?? ''] ?? '#94a3b8';
-  }, [nodeMetadata]);
-
-  const { screenToFlowPosition, fitView, setCenter, getNode } = useReactFlow();
-  
-  // 画布容器引用（用于计算视口中心）
+  // 画布容器引用（用于计算视口中心及传递给 FlowSurface）
   const canvasRef = useRef<HTMLDivElement>(null);
-  
+
   // 跟踪已触发 fitView 的流程，避免重复触发
   const fittedFlowUuidRef = useRef<string | null>(null);
-
-  // ===== 执行状态跟踪（非响应式，通过 ref + subscribe 避免画布整体重渲染） =====
-  const execStateRef = useRef({ currentNodeUuid: null as string | null, nodeReportsMap: {} as Record<string, import('@/types/report').NodeExecutionReport>, isExecuting: false });
-  const classNameUpdateRafRef = useRef<number | null>(null);
-  // 执行结束后只做一次 className 回写，避免执行期间反复 setNodes
-  const finalClassNameDoneRef = useRef(false);
-  // 叠加层视口变换 ref — 通过 onMove 直接写 DOM，不触发 React 渲染
-  const overlayInnerRef = useRef<HTMLDivElement>(null);
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{
@@ -418,66 +322,6 @@ function FlowCanvasInner() {
   const [renamingPosition, setRenamingPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const renameInputRef = useRef<HTMLInputElement>(null);
   const isRenameCancellingRef = useRef(false);
-
-  // 转换 Flow 数据为 React Flow 格式
-  const initialData = useMemo(() => {
-    if (!flow) return { nodes: [], edges: [] };
-    return convertFlowToReactFlow(flow);
-  }, [flow]);
-
-  // 节点和边状态
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialData.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialData.edges);
-  const selectedNodeId = useFlowStore((s) => s.selectedNodeId);
-  const prevFlowUuidRef = useRef<string | null>(flow?.uuid ?? null);
-  // 使用 node.uuid 和 conn.id 作为稳定标识，避免属性变化时重置选择状态
-  useEffect(() => {
-    if (flow) {
-      const { nodes: newNodes, edges: newEdges } = convertFlowToReactFlow(flow);
-      
-      // 获取当前节点/边的 ID 集合
-      const currentNodeIds = new Set(nodes.map(n => n.id));
-      const newNodeIds = new Set(newNodes.map(n => n.id));
-      const currentEdgeIds = new Set(edges.map(e => e.id));
-      const newEdgeIds = new Set(newEdges.map(e => e.id));
-      
-      const isSwitchingFlow = flow.uuid !== prevFlowUuidRef.current;
-      prevFlowUuidRef.current = flow.uuid;
-
-      // 检查是否有节点/边的增减（结构变化）或发生了流程切换
-      const hasStructureChange =
-        isSwitchingFlow ||
-        currentNodeIds.size !== newNodeIds.size ||
-        currentEdgeIds.size !== newEdgeIds.size ||
-        ![...currentNodeIds].every((id) => newNodeIds.has(id)) ||
-        ![...currentEdgeIds].every((id) => newEdgeIds.has(id));
-
-      if (hasStructureChange) {
-        // 结构变化或切换流程时完全重置，并严格按当前流程的 selectedNodeId 恢复选中高亮
-        setNodes(newNodes.map((n) => ({ ...n, selected: n.id === selectedNodeId })));
-        setEdges(newEdges);
-      } else {
-        // 仅属性变化时，更新节点数据并同步选择状态
-        setNodes((prevNodes) =>
-          prevNodes.map((prevNode) => {
-            const newNode = newNodes.find((n) => n.id === prevNode.id);
-            if (newNode) {
-              return {
-                ...prevNode,
-                position: newNode.position,
-                data: newNode.data,
-                selected: prevNode.id === selectedNodeId,
-              };
-            }
-            return prevNode;
-          }),
-        );
-        setEdges(newEdges);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flow, selectedNodeId, setNodes, setEdges]);
-
   // 流程首次加载或切换时触发 fitView
   useEffect(() => {
     if (flow && flow.uuid !== fittedFlowUuidRef.current) {
@@ -522,262 +366,6 @@ function FlowCanvasInner() {
 
     return () => clearTimeout(timeoutId);
   }, [isDirty, flow, markSaved]);
-
-  // 处理节点聚焦跳转（从调试面板/节点列表点击跳转）
-  useEffect(() => {
-    if (!focusNodeUuid) return;
-
-    const node = getNode(focusNodeUuid);
-    if (node) {
-      // 跳转到节点位置，并放大
-      setCenter(node.position.x, node.position.y, {
-        zoom: 1.2,
-        duration: 300,
-      });
-      // 选中该节点（Zustand store）
-      selectNode(focusNodeUuid);
-      // 同步 React Flow 节点选中状态（驱动视觉高亮）
-      setNodes((nds) =>
-        nds.map((n) => ({ ...n, selected: n.id === focusNodeUuid }))
-      );
-      // 清除聚焦状态
-      clearFocusNode();
-    }
-  }, [focusNodeUuid, getNode, setCenter, selectNode, clearFocusNode, setNodes]);
-
-  // 处理节点居中定位（从节点列表点击定位，仅居中不选中）
-  useEffect(() => {
-    if (!centerOnNodeUuid) return;
-
-    const node = getNode(centerOnNodeUuid);
-    if (node) {
-      setCenter(node.position.x, node.position.y, {
-        zoom: 1.2,
-        duration: 300,
-      });
-      clearCenterOnNode();
-    }
-  }, [centerOnNodeUuid, getNode, setCenter, clearCenterOnNode]);
-
-  // 执行节点高亮 - 通过 Zustand subscribe 直接订阅（不触发 React 重渲染）
-  // 避免每次 nodeStarted/nodeCompleted 时 FlowCanvasInner 整体重渲染
-  useEffect(() => {
-    // 初始化 ref
-    const init = useExecutionStore.getState();
-    execStateRef.current = {
-      currentNodeUuid: init.currentNodeUuid,
-      nodeReportsMap: init.nodeReportsMap,
-      isExecuting: init.isExecuting,
-    };
-
-    const updateNodeClasses = () => {
-      const { nodeReportsMap, isExecuting } = execStateRef.current;
-      const nodeReportsCount = Object.keys(nodeReportsMap).length;
-
-      if (!isExecuting && nodeReportsCount === 0) return;
-
-      // === 极致性能优化 ===
-      // 执行期间：不调用 setNodes，节点视觉状态由 ExecutionOverlay 叠加层提供
-      // 执行结束后：一次 setNodes 写回最终 className，使节点呈现绿/红边框
-      if (isExecuting) return;
-
-      // 执行已结束，仅做一次 className 写回
-      if (finalClassNameDoneRef.current) return;
-      finalClassNameDoneRef.current = true;
-
-      setNodes(nds => {
-        let changed = false;
-        const updated = nds.map(node => {
-          const nodeUuid = node.id;
-          const report = nodeReportsMap[nodeUuid];
-          const status = report?.status;
-
-          const baseClasses = (node.className || '')
-            .replace(/\s*node-executing\s*/g, ' ')
-            .replace(/\s*node-succeeded\s*/g, ' ')
-            .replace(/\s*node-failed\s*/g, ' ')
-            .trim();
-
-          let newClass = baseClasses;
-          if (status === 'success') newClass += ' node-succeeded';
-          if (status === 'failed') newClass += ' node-failed';
-
-          const finalClass = newClass || undefined;
-          if (node.className !== finalClass) {
-            changed = true;
-            return { ...node, className: finalClass };
-          }
-          return node;
-        });
-        return changed ? updated : nds;
-      });
-    };
-
-    const unsub = useExecutionStore.subscribe(() => {
-      const s = useExecutionStore.getState();
-      execStateRef.current = {
-        currentNodeUuid: s.currentNodeUuid,
-        nodeReportsMap: s.nodeReportsMap,
-        isExecuting: s.isExecuting,
-      };
-      // 新执行开始时重置「最终 className 写回」标记
-      if (s.isExecuting) {
-        finalClassNameDoneRef.current = false;
-      }
-      // RAF 节流：合并多次连续事件的 setNodes 调用到下一帧，
-      // 避免每次 nodeStarted/nodeCompleted 都触发全量 reconcile
-      if (classNameUpdateRafRef.current !== null) {
-        cancelAnimationFrame(classNameUpdateRafRef.current);
-      }
-      classNameUpdateRafRef.current = requestAnimationFrame(() => {
-        classNameUpdateRafRef.current = null;
-        updateNodeClasses();
-      });
-    });
-    return () => {
-      unsub();
-      if (classNameUpdateRafRef.current !== null) {
-        cancelAnimationFrame(classNameUpdateRafRef.current);
-      }
-    };
-  }, []);
-
-  // 获取当前流程连接列表（用于连接验证）
-  const currentConnections = flow?.connections ?? [];
-
-  // 处理连接创建
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      // 验证连接（传入当前连接列表进行完整校验）
-      if (
-        !isValidConnection(
-          connection.source || '',
-          connection.target || '',
-          connection.sourceHandle || 'out',
-          connection.targetHandle || 'in',
-          currentConnections
-        )
-      ) {
-        return;
-      }
-
-      // 添加边到 React Flow
-      setEdges((eds) =>
-        addEdge(
-          {
-            ...connection,
-            type: 'custom',
-            data: { sourceHandle: connection.sourceHandle },
-          },
-          eds
-        )
-      );
-
-      // 同步到 Zustand store
-      if (connection.source && connection.target) {
-        const newConnection = convertEdgeToConnection({
-          id: `edge-${Date.now()}`,
-          source: connection.source,
-          target: connection.target,
-          sourceHandle: connection.sourceHandle || 'out',
-          targetHandle: connection.targetHandle || 'in',
-        });
-        addConnection(newConnection);
-      }
-    },
-    [setEdges, addConnection, currentConnections]
-  );
-
-  // 处理节点拖拽结束
-  const onNodeDragStop = useCallback(
-    (_: unknown, node: Node) => {
-      updateNode(node.id, {
-        position: { x: node.position.x, y: node.position.y },
-      });
-    },
-    [updateNode]
-  );
-
-  // 处理节点点击 - 选中节点并展开面板，同时关闭节点选择器
-  const onNodeClick = useCallback(
-    (_: React.MouseEvent, node: Node) => {
-      selectNode(node.id);
-      setConfigPanelOpen(true);
-      setConfigPanelMode('node');
-      useUIStore.getState().closeNodePalette();
-      // 调试模式下自动展开左侧面板（显示节点只读配置）
-      const debugStore = useDebugStore.getState();
-      if (debugStore.status !== 'idle' && debugStore.status !== 'ended') {
-        setFlowListPanelOpen(true);
-      }
-    },
-    [selectNode, setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen]
-  );
-
-  // 处理边点击 - 取消节点选中，避免 Backspace 误删节点
-  const onEdgeClick = useCallback(() => {
-    selectNode(null);
-    setConfigPanelOpen(false);
-  }, [selectNode, setConfigPanelOpen]);
-
-  // 处理画布空白处点击 - 取消选中，切回节点列表面板
-  // 不自动展开配置面板：如果面板已打开，取消选中后会显示节点列表；
-  // 如果面板已关闭，保持关闭。用户可点击右侧抽屉图标手动打开。
-  const onPaneClick = useCallback(() => {
-    selectNode(null);
-    setContextMenu(null);
-    setConfigPanelMode('node');
-    useUIStore.getState().closeNodePalette();
-  }, [selectNode, setConfigPanelMode]);
-
-  // 视口变换回调 — 同步到叠加层容器，直接写 DOM style.transform，不触发 React 渲染
-  const onMove = useCallback((_event: unknown, viewport: { x: number; y: number; zoom: number }) => {
-    const el = overlayInnerRef.current;
-    if (el) {
-      el.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`;
-    }
-  }, []);
-
-  // 处理画布右键 - 弹出节点选择器
-  const onPaneContextMenu = useCallback(
-    (event: React.MouseEvent | MouseEvent) => {
-      event.preventDefault();
-      // 使用 clientX/Y 获取相对于视口的坐标用于 fixed 定位
-      const x = 'clientX' in event ? event.clientX : 0;
-      const y = 'clientY' in event ? event.clientY : 0;
-      useUIStore.getState().openNodePalette({ x, y });
-    },
-    []
-  );
-
-  // 自动布局处理
-  const handleAutoLayout = useCallback((direction: LayoutDirection) => {
-    if (!flow) return;
-
-    const positions = getLayoutedPositions(flow.nodes, flow.connections, direction);
-    batchUpdateNodePositions(positions);
-
-    // 延迟 fitView，等待 React Flow 完成位置更新
-    setTimeout(() => {
-      fitView({ padding: 0.4, duration: 300 });
-    }, 150);
-  }, [flow, batchUpdateNodePositions, fitView]);
-
-  // 可视画布自适应折行自动布局处理
-  const handleAdaptiveLayout = useCallback(() => {
-    if (!flow) return;
-
-    const containerWidth = canvasRef.current?.clientWidth ?? 1200;
-    const positions = getAdaptiveLayoutedPositions(flow.nodes, flow.connections, {
-      viewportWidth: containerWidth,
-    });
-    batchUpdateNodePositions(positions);
-
-    // 延迟 fitView，自适应折行布局整体宽高比均衡，padding 设为 0.2 更充盈饱满
-    setTimeout(() => {
-      fitView({ padding: 0.2, duration: 300 });
-    }, 150);
-  }, [flow, batchUpdateNodePositions, fitView]);
 
   // 处理节点右键菜单
   const onNodeContextMenu = useCallback(
@@ -951,40 +539,6 @@ function FlowCanvasInner() {
     setRenamingValue('');
   }, []);
 
-  // 处理节点变化（过滤掉删除变化，只处理位置变化等）
-  // 注意：节点删除需要通过工具栏按钮确认，防止误操作
-  const handleNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      // 过滤掉删除变化，只处理其他变化（如位置移动）
-      const nonRemoveChanges = changes.filter((c) => c.type !== 'remove');
-      if (nonRemoveChanges.length > 0) {
-        onNodesChange(nonRemoveChanges);
-      }
-    },
-    [onNodesChange]
-  );
-
-  // 处理边变化
-  const handleEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
-      // 分离删除变化和其他变化
-      const removeChanges = changes.filter((c) => c.type === 'remove');
-      const otherChanges = changes.filter((c) => c.type !== 'remove');
-
-      // 处理其他变化
-      if (otherChanges.length > 0) {
-        onEdgesChange(otherChanges);
-      }
-
-      // 处理删除变化 - 同步到 store
-      if (removeChanges.length > 0) {
-        for (const change of removeChanges) {
-          removeConnection(change.id);
-        }
-      }
-    },
-    [onEdgesChange, removeConnection]
-  );
 
   // 处理拖拽经过
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -1308,131 +862,12 @@ function FlowCanvasInner() {
       {/* 画布底部节点选择工具条 */}
       <NodePalette />
       
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={handleEdgesChange}
-        onConnect={onConnect}
-        onNodeDragStop={onNodeDragStop}
-        onNodeClick={onNodeClick}
-        onNodeContextMenu={onNodeContextMenu}
-        onEdgeClick={onEdgeClick}
+      <FlowSurface
+        containerRef={canvasRef}
         onDragOver={onDragOver}
         onDrop={onDrop}
-        onPaneClick={onPaneClick}
-        onPaneContextMenu={onPaneContextMenu}
-        onMove={onMove}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        // Backspace 和 Delete 键触发删除操作
-        // 节点删除：由 useKeyboardShortcuts 在 capture 阶段拦截并弹出确认弹窗
-        // 边删除：由 handleEdgesChange 处理（仅未选中节点时生效）
-        deleteKeyCode={['Backspace', 'Delete']}
-
-        fitViewOptions={{ padding: 0.4 }}
-        minZoom={0.1}
-        maxZoom={2}
-        onlyRenderVisibleElements={true}
-        proOptions={{ hideAttribution: true }}
-        // → React Flow v12 性能/交互 props
-        // panOnDrag 默认左键(0)可拖拽平移，如需中/右键平移可改为 {[1, 2]}
-        // selectionOnDrag 启用左键框选（与左键平移互斥，默认关闭）
-        colorMode={resolvedTheme === 'dark' ? 'dark' : 'light'}
-        elevateNodesOnSelect={true}
-        autoPanOnNodeDrag={true}
-        autoPanOnConnect={true}
-        connectionRadius={30}
-        // 执行期间禁止拖拽和连线，避免干扰
-        nodesDraggable={!isExecuting}
-        nodesConnectable={!isExecuting}
-        // 拖拽连线时的实时校验：端口唯一性 + 无循环
-        isValidConnection={(connection) =>
-          isValidConnection(
-            connection.source || '',
-            connection.target || '',
-            connection.sourceHandle || 'out',
-            connection.targetHandle || 'in',
-            currentConnections
-          )
-        }
-        defaultEdgeOptions={{
-          type: 'custom',
-          // 自定义边已自带粒子动画（<animateMotion>），不需要 React Flow 内置动画
-          animated: false,
-        }}
-      >
-        {/* 背景网格 */}
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-          color="var(--canvas-dot)"
-        />
-
-        {/* 控制按钮 */}
-        <Controls
-          className="!bg-background !border-border"
-          showZoom
-          showFitView
-          showInteractive
-          fitViewOptions={{ padding: 0.4 }}
-        >
-          {/* 小地图开关 */}
-          <ControlButton
-            onClick={toggleMinimap}
-            title={showMinimap ? ll.flow.close_minimap() : ll.flow.open_minimap()}
-          >
-            <MapIcon className="w-4 h-4" />
-          </ControlButton>
-          {/* 水平自动布局 */}
-          <ControlButton
-            onClick={() => handleAutoLayout('LR')}
-            title={ll.flow.auto_layout_horizontal()}
-          >
-            <ArrowRightLeft className="w-4 h-4" />
-          </ControlButton>
-          {/* 可视画布自适应折行布局 */}
-          <ControlButton
-            onClick={handleAdaptiveLayout}
-            title={ll.flow.auto_layout_adaptive()}
-          >
-            <WrapText className="w-4 h-4" />
-          </ControlButton>
-          {/* 搜索流程 */}
-          <ControlButton
-            onClick={() => useUIStore.getState().openSearchOverlay()}
-            title={`${getLL().flow.search_flow()} (Ctrl+Shift+F)`}
-          >
-            <Search className="w-4 h-4" />
-          </ControlButton>
-        </Controls>
-
-        {/* 小地图 */}
-        {showMinimap && (
-          <MiniMap
-            nodeColor={minimapNodeColor}
-            maskColor={resolvedTheme === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'}
-            className="!bg-background !border-border dark:!bg-neutral-900"
-            pannable
-            zoomable
-          />
-        )}
-
-        {/* 执行状态叠加层 — 独立渲染，执行期间不触发 React Flow reconcile */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 5 }}>
-          <div
-            ref={overlayInnerRef}
-            className="absolute left-0 top-0"
-            style={{
-              transformOrigin: '0 0',
-              willChange: 'transform',
-            }}
-          >
-            <ExecutionOverlay />
-          </div>
-        </div>
-      </ReactFlow>
+        onNodeContextMenu={onNodeContextMenu}
+      />
 
       {/* 节点右键菜单 */}
       {contextMenu && (
@@ -1495,10 +930,10 @@ function FlowCanvasInner() {
 /**
  * 流程画布组件（带 ReactFlowProvider）
  */
-export function FlowCanvas() {
+export const FlowCanvas = memo(function FlowCanvas() {
   return (
     <ReactFlowProvider>
       <FlowCanvasInner />
     </ReactFlowProvider>
   );
-}
+});
