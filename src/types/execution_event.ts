@@ -86,4 +86,5 @@ export type ExecutionEvent =
   | { nodeCompleted: { report: NodeExecutionReport; parentNodeUuid?: string } }
   | { flowCompleted: { report: FlowExecutionReport; parentNodeUuid?: string } }
   | { flowCancelled: { flowUuid: string; reason: string; parentNodeUuid?: string } }
-  | { pluginEvent: PluginEventData };
+  | { pluginEvent: PluginEventData }
+  | { batch: ExecutionEvent[] };

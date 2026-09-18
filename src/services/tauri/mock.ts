@@ -5,7 +5,7 @@
 
 import type { Flow } from '@/types/flow';
 import type { ExecuteFlowCommandOutput } from '@/types/ipc';
-import type { FlowExecutionReport } from '@/types/report';
+import type { FlowExecutionReport, NodeExecutionReport } from '@/types/report';
 import type { ReportMetadata } from '@/types/ipc';
 import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
@@ -831,6 +831,16 @@ export async function loadFlowReport(_uuid: string, _reportsDir: string): Promis
       error_rate: 0,
     },
   };
+}
+
+/**
+ * Mock 获取节点完整执行详情
+ */
+export async function getNodeExecutionDetail(
+  _flowUuid: string,
+  _nodeUuid: string
+): Promise<NodeExecutionReport | null> {
+  return null;
 }
 
 /**

@@ -1,7 +1,7 @@
 /**
  * Execution Store 单元测试
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   useExecutionStore,
   selectIsExecuting,
@@ -639,6 +639,83 @@ describe('ExecutionStore', () => {
       });
       expect(useExecutionStore.getState().pluginEvents).toEqual([]);
     });
+
+    it('should unpack and process batch events in sequence', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        batch: [
+          { flowStarted: { flowUuid: 'f-batch', flowName: 'Batch Test', totalNodes: 2 } },
+          {
+            nodeCompleted: {
+              report: {
+                node_uuid: 'b1',
+                node_type: 'entry',
+                node_name: 'Entry',
+                start_time: 1000,
+                end_time: 1050,
+                duration_ms: 50,
+                status: 'success',
+                is_detail_stripped: true,
+              },
+            },
+          },
+          {
+            nodeCompleted: {
+              report: {
+                node_uuid: 'b2',
+                node_type: 'http:request',
+                node_name: 'HTTP',
+                start_time: 1050,
+                end_time: 1200,
+                duration_ms: 150,
+                status: 'success',
+                is_detail_stripped: true,
+              },
+            },
+          },
+        ],
+      });
+
+      const state = useExecutionStore.getState();
+      expect(state.isExecuting).toBe(true);
+      expect(state.completedNodeCount).toBe(2);
+      expect(state.nodeReportsMap['b1']?.is_detail_stripped).toBe(true);
+      expect(state.nodeReportsMap['b2']?.is_detail_stripped).toBe(true);
+    });
+
+    it('fetchNodeDetail should fetch full report when is_detail_stripped is true', async () => {
+      const mockFullReport: NodeExecutionReport = {
+        node_uuid: 'b1',
+        node_type: 'entry',
+        node_name: 'Entry',
+        start_time: 1000,
+        end_time: 1050,
+        duration_ms: 50,
+        status: 'success',
+        output_data: { full: 'payload' },
+      };
+
+      const tauriService = await import('@/services/tauri');
+      vi.spyOn(tauriService, 'getNodeExecutionDetail').mockResolvedValue(mockFullReport);
+
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'b1',
+            node_type: 'entry',
+            node_name: 'Entry',
+            start_time: 1000,
+            end_time: 1050,
+            duration_ms: 50,
+            status: 'success',
+            is_detail_stripped: true,
+          },
+        },
+      });
+
+      await useExecutionStore.getState().fetchNodeDetail('f-batch', 'b1');
+      const updated = useExecutionStore.getState().nodeReportsMap['b1'];
+      expect(updated?.output_data).toEqual({ full: 'payload' });
+    });
   });
 
   describe('getNodeExecutionStatus', () => {
@@ -714,6 +791,37 @@ describe('ExecutionStore', () => {
       const result = useExecutionStore.getState().getNodeExecutionReport('n1');
       expect(result).not.toBeNull();
       expect(result!.node_uuid).toBe('n1');
+    });
+
+    it('should fall back to final report when incremental map has stripped detail', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'n1',
+            node_type: 'http:request',
+            node_name: 'HTTP',
+            start_time: 1000,
+            end_time: 2000,
+            duration_ms: 1000,
+            status: 'success',
+            is_detail_stripped: true,
+          },
+        },
+      });
+
+      const report = createMockReport({
+        node_reports: [
+          {
+            ...createMockNodeReport('n1'),
+            output_data: { full: 'from_final_report' },
+          },
+        ],
+      });
+      useExecutionStore.getState().setReport(report);
+
+      const result = useExecutionStore.getState().getNodeExecutionReport('n1');
+      expect(result).not.toBeNull();
+      expect(result!.output_data).toEqual({ full: 'from_final_report' });
     });
 
     it('should return null for unknown nodes', () => {

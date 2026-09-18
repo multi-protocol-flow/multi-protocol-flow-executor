@@ -140,6 +140,8 @@ export interface NodeExecutionReport {
   plugin_data?: unknown;
   /** 子流程嵌套执行报告树 */
   sub_flow_report?: FlowExecutionReport;
+  /** 标记输入/输出数据是否已在热通道推送中被剥离（冷热通道优化） */
+  is_detail_stripped?: boolean;
 }
 
 // ============================================================================

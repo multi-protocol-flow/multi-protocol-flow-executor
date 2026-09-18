@@ -60,6 +60,8 @@ interface ExecutionState {
   handleExecutionEvent: (event: ExecutionEvent) => void;
   /** 清空增量执行状态 */
   clearExecutionState: () => void;
+  /** 按需从冷通道拉取节点的完整执行详情 */
+  fetchNodeDetail: (flowUuid: string, nodeUuid: string) => Promise<void>;
   /** 打开报告对话框 */
   openReportDialog: (report?: FlowExecutionReport) => void;
   /** 关闭报告对话框 */
@@ -201,6 +203,12 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
     },
 
     handleExecutionEvent: (event: ExecutionEvent) => {
+      if ('batch' in event) {
+        for (const subEvent of event.batch) {
+          get().handleExecutionEvent(subEvent);
+        }
+        return;
+      }
       if ('flowStarted' in event) {
         const { totalNodes, parentNodeUuid } = event.flowStarted;
         if (parentNodeUuid) {
@@ -378,6 +386,25 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
       });
     },
 
+    fetchNodeDetail: async (flowUuid: string, nodeUuid: string) => {
+      const current = get().nodeReportsMap[nodeUuid];
+      if (!current || !current.is_detail_stripped) return;
+      try {
+        const { getNodeExecutionDetail } = await import('@/services/tauri');
+        const detail = await getNodeExecutionDetail(flowUuid, nodeUuid);
+        if (detail) {
+          set((state) => ({
+            nodeReportsMap: {
+              ...state.nodeReportsMap,
+              [nodeUuid]: detail,
+            },
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to fetch node execution detail:', err);
+      }
+    },
+
     openReportDialog: (report) =>
       set(report !== undefined
         ? { isReportDialogOpen: true, selectedHistoryReport: report }
@@ -430,14 +457,15 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
 
     getNodeExecutionReport: (nodeUuid: string) => {
       const { nodeReportsMap, report } = get();
-      // First check incremental map, then fall back to final report
-      if (nodeReportsMap[nodeUuid]) {
-        return nodeReportsMap[nodeUuid];
+      const incReport = nodeReportsMap[nodeUuid];
+      if (incReport && !incReport.is_detail_stripped) {
+        return incReport;
       }
       if (report) {
-        return report.node_reports.find((r) => r.node_uuid === nodeUuid) || null;
+        const full = report.node_reports.find((r) => r.node_uuid === nodeUuid);
+        if (full) return full;
       }
-      return null;
+      return incReport || null;
     },
   };
 });

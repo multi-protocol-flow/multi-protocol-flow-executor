@@ -6,7 +6,7 @@
 import type { Flow } from '@/types/flow';
 import type { ExecuteFlowCommandOutput } from '@/types/ipc';
 import { invoke } from '@tauri-apps/api/core';
-import type { FlowExecutionReport } from '@/types/report';
+import type { FlowExecutionReport, NodeExecutionReport } from '@/types/report';
 import type { ReportMetadata } from '@/types/ipc';
 
 import { isTauriEnv } from '@/lib/platform';
@@ -323,6 +323,27 @@ export async function cancelFlow(): Promise<void> {
     return cancelFlowImpl();
   } else {
     // Mock 环境 - 无操作
+  }
+}
+
+/**
+ * 获取指定节点的完整执行详情（冷通道按需拉取）
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param flowUuid - 流程 UUID
+ * @param nodeUuid - 节点 UUID
+ * @returns 节点执行报告详情
+ */
+export async function getNodeExecutionDetail(
+  flowUuid: string,
+  nodeUuid: string
+): Promise<NodeExecutionReport | null> {
+  if (isTauriEnv()) {
+    const { getNodeExecutionDetail: getNodeExecutionDetailImpl } = await import('./flow');
+    return getNodeExecutionDetailImpl(flowUuid, nodeUuid);
+  } else {
+    const { getNodeExecutionDetail: getNodeExecutionDetailMock } = await import('./mock');
+    return getNodeExecutionDetailMock(flowUuid, nodeUuid);
   }
 }
 

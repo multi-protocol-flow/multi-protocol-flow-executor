@@ -170,6 +170,27 @@ export async function cancelFlow(): Promise<void> {
 }
 
 /**
+ * 获取指定节点的完整执行详情（冷通道按需拉取）
+ *
+ * @param flowUuid - 流程 UUID
+ * @param nodeUuid - 节点 UUID
+ * @returns 节点执行报告详情，若无记录则返回 null
+ */
+export async function getNodeExecutionDetail(
+  flowUuid: string,
+  nodeUuid: string
+): Promise<NodeExecutionReport | null> {
+  try {
+    return await invoke<NodeExecutionReport | null>('get_node_execution_detail', {
+      flowUuid,
+      nodeUuid,
+    });
+  } catch (error) {
+    throw formatError(error, 'get_node_execution_detail');
+  }
+}
+
+/**
  * 验证流程结构
  * 调用后端 validate_flow IPC 命令
  *
