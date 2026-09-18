@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Direct Backend Report Persistence**: Streamlined execution reports by persisting run data directly on the backend and emitting lightweight IPC events, eliminating redundant frontend save calls.
 - **Virtualized Console Logging**: Replaced console log lists with a virtualized renderer and batch write buffer with end-of-run synchronous flushing.
 - **AI Streaming Buffer**: Introduced streaming message batching buffers to eliminate main-thread reflow and lag during AI thought generation.
-- Cached flow-scoped breakpoint lookups with $O(1)$ set queries and added reference equality guards for custom edge subscriptions.
+- Cached flow-scoped breakpoint lookups with `O(1)` set queries and added reference equality guards for custom edge subscriptions.
 
 ### Fixed
 - Fixed node picker hover jitter: the row highlight border no longer animates in and out, and the detail card maintains stable geometry.
