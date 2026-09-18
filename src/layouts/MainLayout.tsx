@@ -309,11 +309,6 @@ export function MainLayout() {
   const rightButtonRef = useRef<HTMLButtonElement>(null);
   const rightInnerRef = useRef<HTMLDivElement>(null);
   const bottomContentRef = useRef<HTMLDivElement>(null);
-  const canvasWrapperRef = useRef<HTMLDivElement>(null);
-
-  // 路线 B：画布几何冻结。拖拽期间锁定 React Flow 画布内层像素尺寸，外层仅作 GPU 像素级裁剪，彻底阻止 @xyflow/react ResizeObserver 连线高频重算
-  const [frozenCanvasDimensions, setFrozenCanvasDimensions] = useState<{ width: number; height: number } | null>(null);
-  const wasDraggingRef = useRef(false);
 
   const bottomDrag = usePanelDrag({
     axis: 'vertical',
@@ -349,23 +344,6 @@ export function MainLayout() {
   });
   const isDraggingAny = leftDrag.isDragging || rightDrag.isDragging || bottomDrag.isDragging;
 
-  useEffect(() => {
-    if (isDraggingAny && !wasDraggingRef.current) {
-      if (canvasWrapperRef.current) {
-        const rect = canvasWrapperRef.current.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-          setFrozenCanvasDimensions({
-            width: Math.round(rect.width),
-            height: Math.round(rect.height),
-          });
-        }
-      }
-      wasDraggingRef.current = true;
-    } else if (!isDraggingAny && wasDraggingRef.current) {
-      setFrozenCanvasDimensions(null);
-      wasDraggingRef.current = false;
-    }
-  }, [isDraggingAny]);
 
   // 底部面板内容延迟渲染：展开动画结束后渲染，收起时立即移除
   useEffect(() => {
@@ -666,24 +644,8 @@ export function MainLayout() {
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           {/* 画布 */}
           <FlowTabBar />
-          <div ref={canvasWrapperRef} className="flex-1 relative overflow-hidden">
-            <div
-              style={
-                frozenCanvasDimensions
-                  ? {
-                      width: frozenCanvasDimensions.width,
-                      height: frozenCanvasDimensions.height,
-                      pointerEvents: 'none',
-                    }
-                  : {
-                      width: '100%',
-                      height: '100%',
-                    }
-              }
-              className="w-full h-full"
-            >
-              <FlowCanvas />
-            </div>
+          <div className="flex-1 relative">
+            <FlowCanvas />
           </div>
 
           {/* ===== 底部面板（Tab Bar + 可折叠内容区） ===== */}
