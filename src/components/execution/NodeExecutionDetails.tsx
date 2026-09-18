@@ -161,6 +161,12 @@ export function NodeExecutionDetails({ report, className }: NodeExecutionDetails
       </div>
       {/* 详情内容区（直接平铺渲染） */}
       <div className="p-4 text-sm overflow-hidden">
+        {report.is_detail_stripped && (
+          <div className="flex items-center gap-2 p-2.5 mb-3 bg-muted/40 border border-border/50 rounded-lg text-xs text-muted-foreground">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />
+            <span>{ll.execution.history.loading()}</span>
+          </div>
+        )}
         {activeTab === 'structured' ? (
           <div className="space-y-3">
             {/* 补充执行摘要（等待耗时、出口端口、变量变更） */}

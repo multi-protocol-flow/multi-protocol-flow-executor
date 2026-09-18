@@ -259,6 +259,16 @@ export function ExecutionPanel() {
   const selectedReport = selectedNodeUuid
     ? getNodeExecutionReport(selectedNodeUuid)
     : null;
+  // ===== 冷通道按需拉取完整报文 =====
+  useEffect(() => {
+    if (selectedNodeUuid && selectedReport?.is_detail_stripped) {
+      const flowUuid = useFlowStore.getState().flow?.uuid;
+      if (flowUuid) {
+        void useExecutionStore.getState().fetchNodeDetail(flowUuid, selectedNodeUuid);
+      }
+    }
+  }, [selectedNodeUuid, selectedReport?.is_detail_stripped]);
+
 
   // ===== 选中节点对象与运行中报告 =====
   const selectedNode = useMemo(
