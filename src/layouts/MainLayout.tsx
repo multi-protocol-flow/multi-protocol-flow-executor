@@ -295,9 +295,6 @@ export function MainLayout() {
   const [compareSnapshotName, setCompareSnapshotName] = useState('');
   const [compareCurrentName, setCompareCurrentName] = useState('');
 
-  // 底部面板内容延迟渲染：展开动画结束后再渲染内容
-  const [bottomPanelContentReady, setBottomPanelContentReady] = useState(isBottomPanelExpanded);
-  const bottomPanelTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 拖拽调整面板大小（底部面板最高可拉至接近顶部，方便查看全屏日志和 Agent 报告）
   const maxBottomHeight = typeof window !== 'undefined' ? Math.max(700, window.innerHeight - 80) : 1600;
@@ -345,30 +342,6 @@ export function MainLayout() {
   const isDraggingAny = leftDrag.isDragging || rightDrag.isDragging || bottomDrag.isDragging;
 
 
-  // 底部面板内容延迟渲染：展开动画结束后渲染，收起时立即移除
-  useEffect(() => {
-    // 清除之前的定时器
-    if (bottomPanelTransitionRef.current) {
-      clearTimeout(bottomPanelTransitionRef.current);
-      bottomPanelTransitionRef.current = null;
-    }
-
-    if (isBottomPanelExpanded) {
-      // 展开：等待动画结束后渲染内容
-      bottomPanelTransitionRef.current = setTimeout(() => {
-        setBottomPanelContentReady(true);
-      }, 300);
-    } else {
-      // 收起：立即移除内容
-      setBottomPanelContentReady(false);
-    }
-
-    return () => {
-      if (bottomPanelTransitionRef.current) {
-        clearTimeout(bottomPanelTransitionRef.current);
-      }
-    };
-  }, [isBottomPanelExpanded]);
   // 启动后异步静默检查版本更新
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -611,11 +584,9 @@ export function MainLayout() {
               <GripVertical className="w-2.5 h-6 text-muted-foreground" />
             </div>
           )}
-          {isFlowListPanelOpen && (
-            <div ref={leftInnerRef} className="h-full min-w-0 overflow-hidden pr-2" style={{ width: sidebarWidth }}>
-              <LeftSidebarPanel />
-            </div>
-          )}
+          <div ref={leftInnerRef} className="h-full min-w-0 overflow-hidden pr-2" style={{ width: sidebarWidth }}>
+            <LeftSidebarPanel />
+          </div>
         </aside>
 
         {/* 左侧折叠按钮 */}
@@ -628,7 +599,7 @@ export function MainLayout() {
             'absolute z-20 h-12 w-5 rounded-l-none rounded-r-md top-1/2 -translate-y-1/2 p-0',
             'bg-background/90 hover:bg-accent border border-l-0 border-border shadow-xs',
             'text-muted-foreground/70 hover:text-foreground cursor-pointer',
-            leftDrag.isDragging ? '!transition-none' : 'transition-[left] duration-150'
+            leftDrag.isDragging ? '!transition-none' : 'transition-[left] duration-300 ease-out'
           )}
           style={{ left: isFlowListPanelOpen ? sidebarWidth : 0 }}
           title={isFlowListPanelOpen ? getLL().common.toggle_sidebar_collapse() : getLL().common.toggle_sidebar_expand()}
@@ -729,8 +700,8 @@ export function MainLayout() {
               )}
               style={{ height: isBottomPanelExpanded ? bottomPanelHeight : 0 }}
             >
-              {bottomPanelContentReady && bottomPanelTab && (
-                <div className="h-full flex flex-col">
+              {bottomPanelTab && (
+                <div className="h-full flex flex-col" style={{ minHeight: bottomPanelHeight }}>
                   {/* 根据选中 Tab 渲染内容 */}
                   {bottomPanelTab === 'history' && (
                     <div className="flex-1 min-h-0 overflow-hidden">
@@ -849,11 +820,9 @@ export function MainLayout() {
               <GripVertical className="w-2.5 h-6 text-muted-foreground" />
             </div>
           )}
-          {isConfigPanelOpen && (
-            <div ref={rightInnerRef} className="h-full min-w-0 overflow-hidden pl-2" style={{ width: configPanelWidth }}>
-              <MemoizedNodeConfigPanel readOnly={isRightPanelReadOnly} />
-            </div>
-          )}
+          <div ref={rightInnerRef} className="h-full min-w-0 overflow-hidden pl-2" style={{ width: configPanelWidth }}>
+            <MemoizedNodeConfigPanel readOnly={isRightPanelReadOnly} />
+          </div>
         </aside>
 
         {/* 右侧折叠按钮 */}
@@ -866,7 +835,7 @@ export function MainLayout() {
             'absolute z-20 h-12 w-5 rounded-r-none rounded-l-md top-1/2 -translate-y-1/2 p-0',
             'bg-background/90 hover:bg-accent border border-r-0 border-border shadow-xs',
             'text-muted-foreground/70 hover:text-foreground cursor-pointer',
-            rightDrag.isDragging ? '!transition-none' : 'transition-[right] duration-150'
+            rightDrag.isDragging ? '!transition-none' : 'transition-[right] duration-300 ease-out'
           )}
           style={{ right: isConfigPanelOpen ? configPanelWidth : 0 }}
           title={isConfigPanelOpen ? getLL().common.toggle_config_collapse() : getLL().common.toggle_config_expand()}
