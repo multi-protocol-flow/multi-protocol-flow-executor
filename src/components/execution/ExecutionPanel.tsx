@@ -261,13 +261,17 @@ export function ExecutionPanel() {
     : null;
   // ===== 冷通道按需拉取完整报文 =====
   useEffect(() => {
-    if (selectedNodeUuid && selectedReport?.is_detail_stripped) {
-      const flowUuid = useFlowStore.getState().flow?.uuid;
-      if (flowUuid) {
-        void useExecutionStore.getState().fetchNodeDetail(flowUuid, selectedNodeUuid);
+    // 关键优化：执行期间自动跟随模式下不预拉取大报文，避免频繁 IPC 与重渲染导致页面卡顿；
+    // 只有在流程停止执行，或用户主动手动点击了某个具体节点时，才按需拉取冷通道详情
+    if (!isExecuting || !autoTrackingRef.current) {
+      if (selectedNodeUuid && selectedReport?.is_detail_stripped) {
+        const flowUuid = useFlowStore.getState().flow?.uuid;
+        if (flowUuid) {
+          void useExecutionStore.getState().fetchNodeDetail(flowUuid, selectedNodeUuid);
+        }
       }
     }
-  }, [selectedNodeUuid, selectedReport?.is_detail_stripped]);
+  }, [isExecuting, selectedNodeUuid, selectedReport?.is_detail_stripped]);
 
 
   // ===== 选中节点对象与运行中报告 =====

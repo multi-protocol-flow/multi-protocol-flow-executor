@@ -121,6 +121,16 @@ export function ExecutionReport() {
       setCanvasSelectedUuid(initialUuid);
     }
   }, [displayReport]);
+  // 弹窗内按需拉取选中的节点详情（若为脱敏状态）
+  useEffect(() => {
+    if (selectedNodeUuid && activeReport?.is_detail_stripped) {
+      const flowUuid = displayReport?.flow_uuid;
+      if (flowUuid) {
+        void useExecutionStore.getState().fetchNodeDetail(flowUuid, selectedNodeUuid);
+      }
+    }
+  }, [selectedNodeUuid, activeReport?.is_detail_stripped, displayReport?.flow_uuid]);
+
 
   // 关闭弹窗时重置状态
   const handleClose = () => {

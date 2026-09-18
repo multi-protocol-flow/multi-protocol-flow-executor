@@ -393,7 +393,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
     },
 
     fetchNodeDetail: async (flowUuid: string, nodeUuid: string) => {
-      const current = get().nodeReportsMap[nodeUuid];
+      const current = get().nodeReportsMap[nodeUuid] || get().report?.node_reports.find((n) => n.node_uuid === nodeUuid);
       if (!current || !current.is_detail_stripped) return;
       try {
         const { getNodeExecutionDetail } = await import('@/services/tauri');
@@ -404,6 +404,14 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
               ...state.nodeReportsMap,
               [nodeUuid]: detail,
             },
+            report: state.report
+              ? {
+                  ...state.report,
+                  node_reports: state.report.node_reports.map((n) =>
+                    n.node_uuid === nodeUuid ? detail : n
+                  ),
+                }
+              : state.report,
           }));
         }
       } catch (err) {
