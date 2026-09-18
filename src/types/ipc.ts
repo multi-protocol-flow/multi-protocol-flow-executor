@@ -80,6 +80,8 @@ export interface ExecuteFlowCommandInput {
   flow_id: string;
   /** 执行上下文变量（可选） */
   variables?: unknown;
+  /** 报告存储目录（可选，后端自动直接落盘） */
+  reports_dir?: string;
 }
 
 /**

@@ -23,8 +23,11 @@ vi.mock('sonner', () => ({
 
 // Mock console store
 vi.mock('@/stores/console', () => ({
-  useConsoleStore: (selector: (state: Record<string, unknown>) => unknown) =>
-    selector({ addLog: vi.fn(), clearLogs: vi.fn() }),
+  useConsoleStore: Object.assign(
+    (selector: (state: Record<string, unknown>) => unknown) =>
+      selector({ addLog: vi.fn(), clearLogs: vi.fn(), flushLogs: vi.fn() }),
+    { getState: vi.fn(() => ({ addLog: vi.fn(), clearLogs: vi.fn(), flushLogs: vi.fn() })) }
+  ),
 }));
 
 // Mock settings store

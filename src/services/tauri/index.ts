@@ -98,16 +98,17 @@ export async function executeFlowWithChannel(
   onLog: (event: import('@/types/events').LogEvent) => void,
   onExecutionEvent: (event: import('@/types/execution_event').ExecutionEvent) => void = () => {},
   onWsEvent: (event: import('@/types/debug').DebugEvent) => void = () => {},
-  variables?: Record<string, unknown>
+  variables?: Record<string, unknown>,
+  reportsDir?: string
 ): Promise<ExecuteFlowCommandOutput> {
   // 检测是否在 Tauri 环境中
   if (isTauriEnv()) {
     const { executeFlowWithChannel: executeFlowWithChannelImpl } = await import('./flow');
-    return executeFlowWithChannelImpl(flow, onLog, onExecutionEvent, onWsEvent, variables);
+    return executeFlowWithChannelImpl(flow, onLog, onExecutionEvent, onWsEvent, variables, reportsDir);
   } else {
     // Mock 环境
     const { executeFlowWithChannel: executeFlowWithChannelImpl } = await import('./mock');
-    return executeFlowWithChannelImpl(flow, onLog, onExecutionEvent, onWsEvent, variables);
+    return executeFlowWithChannelImpl(flow, onLog, onExecutionEvent, onWsEvent, variables, reportsDir);
   }
 }
 

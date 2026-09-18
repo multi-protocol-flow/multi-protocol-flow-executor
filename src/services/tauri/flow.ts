@@ -124,7 +124,8 @@ export async function executeFlowWithChannel(
   onLog: (event: LogEvent) => void,
   onExecutionEvent: (event: ExecutionEvent) => void = () => {},
   onWsEvent: (event: import('@/types/debug').DebugEvent) => void = () => {},
-  variables?: Record<string, unknown>
+  variables?: Record<string, unknown>,
+  reportsDir?: string
 ): Promise<ExecuteFlowCommandOutput> {
   try {
     // Channel 1: Log events
@@ -144,6 +145,7 @@ export async function executeFlowWithChannel(
       input: {
         flow_id: flow.uuid,
         variables: variables || null,
+        ...(reportsDir ? { reports_dir: reportsDir } : {}),
       } as ExecuteFlowCommandInput,
       flow,
       onEvent: logChannel,

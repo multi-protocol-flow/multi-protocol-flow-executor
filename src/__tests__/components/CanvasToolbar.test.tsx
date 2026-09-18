@@ -92,8 +92,13 @@ describe('CanvasToolbar', () => {
     // Mock console store
     (useConsoleStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: Record<string, unknown>) => unknown) =>
-        selector({ clearLogs: mockClearLogs, addLog: vi.fn() })
+        selector({ clearLogs: mockClearLogs, addLog: vi.fn(), flushLogs: vi.fn() })
     );
+    (useConsoleStore as unknown as Record<string, unknown>).getState = vi.fn(() => ({
+      clearLogs: mockClearLogs,
+      addLog: vi.fn(),
+      flushLogs: vi.fn(),
+    }));
 
     // Mock settings store
     (useSettingsStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(

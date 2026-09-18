@@ -7,12 +7,12 @@ import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2,
 import { toast } from 'sonner';
 import * as Popover from '@radix-ui/react-popover';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging, selectCanUndo, selectCanRedo, selectFlow, selectNodes } from '@/stores';
-import { notifyError, notifyWarning } from '@/lib/notify';
+import { notifyError } from '@/lib/notify';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
 import { useWsStreamStore } from '@/stores/wsStream';
 import { useStressTestStore, selectIsStressTestRunning } from '@/stores/stressTest';
-import { executeFlowWithChannel, saveFlowReport, validateFlow } from '@/services/tauri';
+import { executeFlowWithChannel, validateFlow } from '@/services/tauri';
 import { startIngressListener, stopIngressListener, getActiveIngressPorts } from '@/services/tauri/flow';
 import { isHttpIngressConfig } from '@/types';
 import { cn } from '@/lib/utils';
@@ -168,26 +168,21 @@ export function CanvasToolbar() {
     };
 
     try {
-      const result = await executeFlowWithChannel(flow, handleLog, handleExecutionEvent, handleWsEvent);
+      const result = await executeFlowWithChannel(
+        flow,
+        handleLog,
+        handleExecutionEvent,
+        handleWsEvent,
+        undefined,
+        reportDir
+      );
 
       if (result.flow_report) {
         setReport(result.flow_report);
-
-        // 显式保存报告到后端（分离关注点：UI 显示和数据持久化分开）
-        try {
-          await saveFlowReport(result.flow_report, reportDir);
-        } catch (saveError) {
-          // 保存失败不影响 UI 显示，但提示用户并记录日志
-          notifyWarning(
-            ll.execution.toast.report_save_failed(),
-            `${(saveError as Error).message}，${ll.execution.toast.report_local_only()}`,
-            { category: 'Report', flowUuid: flow?.uuid }
-          );
-        }
         const report = result.flow_report;
         if (result.success) {
           toast.success(ll.execution.toast.flow_completed(), {
-            description: `${ll.execution.report.total_duration()}: ${report.duration_ms}ms | ${ll.execution.toast.success_nodes()}: ${report.statistics.success_count}/${report.total_nodes}`,
+            description: `${ll.execution.report.total_duration()}: ${report.duration_ms ?? 0}ms | ${ll.execution.toast.success_nodes()}: ${report.statistics?.success_count ?? 0}/${report.total_nodes ?? 0}`,
             duration: 10000,
             action: {
               label: ll.execution.toast.view_report(),
@@ -197,7 +192,7 @@ export function CanvasToolbar() {
         } else {
           setError(result.error || ll.execution.viewers.execution_failed());
           toast.error(ll.execution.toast.flow_failed(), {
-            description: `${ll.execution.report.total_duration()}: ${report.duration_ms}ms | ${ll.execution.toast.success_nodes()}: ${report.statistics.success_count}/${report.total_nodes}`,
+            description: `${ll.execution.report.total_duration()}: ${report.duration_ms ?? 0}ms | ${ll.execution.toast.success_nodes()}: ${report.statistics?.success_count ?? 0}/${report.total_nodes ?? 0}`,
             action: {
               label: ll.execution.toast.view_report(),
               onClick: () => useExecutionStore.getState().openReportDialog(),

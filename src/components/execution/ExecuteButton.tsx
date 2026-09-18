@@ -9,10 +9,10 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { Button } from '@/components/ui/button';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
-import { notifyError, notifyWarning } from '@/lib/notify';
+import { notifyError } from '@/lib/notify';
 import { useSettingsStore } from '@/stores/settings';
 import { useWsStreamStore } from '@/stores/wsStream';
-import { executeFlowWithChannel, saveFlowReport } from '@/services/tauri';
+import { executeFlowWithChannel } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
 export function ExecuteButton() {
@@ -59,22 +59,17 @@ export function ExecuteButton() {
     };
 
     try {
-      const result = await executeFlowWithChannel(flow, handleLog, handleExecutionEvent, handleWsEvent);
+      const result = await executeFlowWithChannel(
+        flow,
+        handleLog,
+        handleExecutionEvent,
+        handleWsEvent,
+        undefined,
+        reportDir
+      );
 
       if (result.flow_report) {
         setReport(result.flow_report);
-
-        // 显式保存报告到后端（分离关注点：UI 显示和数据持久化分开）
-        try {
-          await saveFlowReport(result.flow_report, reportDir);
-        } catch (saveError) {
-          // 保存失败不影响 UI 显示，但提示用户并记录日志
-          notifyWarning(
-            ll.execution.toast.report_save_failed(),
-            `${(saveError as Error).message}，${ll.execution.toast.report_local_only()}`,
-            { category: 'Report', flowUuid: flow?.uuid }
-          );
-        }
 
         const report = result.flow_report;
         if (result.success) {
