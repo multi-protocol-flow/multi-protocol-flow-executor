@@ -26,20 +26,11 @@ RAW_NOTES="${3:-}"
 VERSION="${VERSION#v}"
 TAG="v$VERSION"
 
-NOTES="Release $TAG"
 if [ -n "$RAW_NOTES" ]; then
   NOTES="$RAW_NOTES"
-elif [ -f "$PROJECT_ROOT/CHANGELOG.md" ]; then
-  EXTRACTED_NOTES=$(node -e "
-    const fs = require('fs');
-    const md = fs.readFileSync('$PROJECT_ROOT/CHANGELOG.md', 'utf8');
-    const cleanVer = '$VERSION'.replace(/^v/, '').replace(/\\./g, '\\\\.');
-    const m = md.match(new RegExp('## \\\\[(?:v)?' + cleanVer + '\\\\][^\\\\n]*\\\\n([\\\\s\\\\S]*?)(?=\\\\n## |$)'));
-    if (m && m[1].trim()) process.stdout.write(m[1].trim());
-  " 2>/dev/null || true)
-  if [ -n "$EXTRACTED_NOTES" ]; then
-    NOTES="$EXTRACTED_NOTES"
-  fi
+else
+  # 校验并准备 CHANGELOG.md（无更新说明且 [Unreleased] 为空时不给发布；若有 [Unreleased] 则自动转换）
+  NOTES=$(node "$PROJECT_ROOT/scripts/prepare-changelog.js" "$VERSION")
 fi
 R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
 BASE_URL="https://mpe-downloads.sunanzhi.com"

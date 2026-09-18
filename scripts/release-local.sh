@@ -24,7 +24,9 @@ echo "========================================="
 echo " MPE 本地构建 v${VERSION}"
 echo "========================================="
 
-cd "$PROJECT_ROOT"
+# === 校验并准备 CHANGELOG.md（无更新说明且 [Unreleased] 为空时不给发布；若有 [Unreleased] 则自动转换）
+node "$PROJECT_ROOT/scripts/prepare-changelog.js" "$VERSION" >/dev/null
+
 
 # === 1. 版本注入 ===
 echo "==> 注入版本号: $VERSION"

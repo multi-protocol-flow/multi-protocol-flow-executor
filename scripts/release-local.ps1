@@ -33,8 +33,14 @@ $Version = $Version -replace '^v', ''
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host " MPE 本地构建 v$Version" -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
-
 Set-Location $ProjectRoot
+
+# === 校验并准备 CHANGELOG.md（无更新说明且 [Unreleased] 为空时不给发布；若有 [Unreleased] 则自动转换）
+$PrepareScript = Join-Path $ProjectRoot "scripts\prepare-changelog.js"
+node $PrepareScript $Version | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    exit 1
+}
 
 # === 1. 版本注入 ===
 Write-Host "==> 注入版本号: $Version" -ForegroundColor Yellow

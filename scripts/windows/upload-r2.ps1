@@ -65,6 +65,13 @@ $Version = $Version -replace '^v', ''
 $Tag = "v$Version"
 $Prefix = "releases/$Tag"
 
+# 校验并准备 CHANGELOG.md（无更新说明且 [Unreleased] 为空时不给发布；若有 [Unreleased] 则自动转换）
+$PrepareScript = Join-Path $ProjectRoot "scripts\prepare-changelog.js"
+$Notes = node $PrepareScript $Version
+if ($LASTEXITCODE -ne 0) {
+    exit 1
+}
+
 $DistDir = Join-Path $ProjectRoot "dist-release"
 if (-not (Test-Path $DistDir)) {
     Write-Host "❌ 产物目录不存在: $DistDir，请先运行构建脚本！" -ForegroundColor Red
@@ -202,16 +209,18 @@ try {
     $entry = $Changelog | Where-Object { $_.version -eq $Version -or $_.tag -eq $Tag } | Select-Object -First 1
     $isNew = ($null -eq $entry)
 
-    $Notes = "Release $Tag"
     $ChangelogMdPath = Join-Path $ProjectRoot "CHANGELOG.md"
-    if (Test-Path $ChangelogMdPath) {
-        $ChangelogMd = Get-Content $ChangelogMdPath -Raw -Encoding UTF8
-        $CleanVer = [regex]::Escape($Version.TrimStart('v'))
-        $Pattern = "(?s)## \[(?:v)?$CleanVer\][^\n]*\n(.*?)(?=\n## |\Z)"
-        if ($ChangelogMd -match $Pattern) {
-            $ExtractedNotes = $Matches[1].Trim()
-            if ($ExtractedNotes) {
-                $Notes = $ExtractedNotes
+    if (-not $Notes) {
+        $Notes = "Release $Tag"
+        if (Test-Path $ChangelogMdPath) {
+            $ChangelogMd = Get-Content $ChangelogMdPath -Raw -Encoding UTF8
+            $CleanVer = [regex]::Escape($Version.TrimStart('v'))
+            $Pattern = "(?s)## \[(?:v)?$CleanVer\][^\n]*\n(.*?)(?=\n## |\Z)"
+            if ($ChangelogMd -match $Pattern) {
+                $ExtractedNotes = $Matches[1].Trim()
+                if ($ExtractedNotes) {
+                    $Notes = $ExtractedNotes
+                }
             }
         }
     }

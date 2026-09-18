@@ -51,6 +51,12 @@ if ($Upload) {
         Write-Host "❌ 指定了 -Upload 但项目根目录未找到 .env 且未设置 R2 环境变量！" -ForegroundColor Red
         exit 1
     }
+    # 校验并准备 CHANGELOG.md（无更新说明且 [Unreleased] 为空时不给发布；若有 [Unreleased] 则自动转换）
+    $PrepareScript = Join-Path $ProjectRoot "scripts\prepare-changelog.js"
+    node $PrepareScript $Version | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        exit 1
+    }
 }
 
 # === 2. 执行构建 ===

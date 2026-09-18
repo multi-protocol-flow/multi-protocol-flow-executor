@@ -62,6 +62,10 @@ VERSION="${SPECIFIED_VERSION#v}"
 TAG="v${VERSION}"
 PREFIX="releases/${TAG}"
 
+# 校验并准备 CHANGELOG.md（无更新说明且 [Unreleased] 为空时不给发布；若有 [Unreleased] 则自动转换）
+CHANGELOG_NOTES=$(node "$PROJECT_ROOT/scripts/prepare-changelog.js" "$VERSION")
+export CHANGELOG_NOTES
+
 DIST_DIR="$PROJECT_ROOT/dist-release"
 if [[ ! -d "$DIST_DIR" ]]; then
   echo "❌ 产物目录不存在: $DIST_DIR，请先运行构建脚本！"
@@ -226,12 +230,12 @@ const downloadBase = '$DOWNLOAD_BASE';
 const prefix = '$PREFIX';
 const dmgName = '$DMG_NAME';
 
-let notes = 'Release ' + tag;
-if (fs.existsSync(rootChangelog)) {
+let notes = process.env.CHANGELOG_NOTES || ('Release ' + tag);
+if (!process.env.CHANGELOG_NOTES && fs.existsSync(rootChangelog)) {
   try {
     const md = fs.readFileSync(rootChangelog, 'utf8');
     const cleanVer = version.replace(/^v/, '').replace(/\./g, '\\\\.');
-    const re = new RegExp('## \\\\[(?:v)?' + cleanVer + '\\\\][^\\\\n]*\\\\n([\\\\s\\\\S]*?)(?=\\\\n## |$)');
+    const re = new RegExp('## \\\\[(?:v)?' + cleanVer + '\\\\][^\\r\\n]*(?:\\r?\\n)([\\\\s\\\\S]*?)(?=(?:\\r?\\n)## |$)');
     const match = md.match(re);
     if (match && match[1].trim()) {
       notes = match[1].trim();

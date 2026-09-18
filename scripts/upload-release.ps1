@@ -35,18 +35,11 @@ $Version = $Version -replace '^v', ''
 $Tag = "v$Version"
 
 if (-not $Notes) {
-    $Notes = "Release $Tag"
-    $ChangelogMdPath = Join-Path $ProjectRoot "CHANGELOG.md"
-    if (Test-Path $ChangelogMdPath) {
-        $ChangelogMd = Get-Content $ChangelogMdPath -Raw -Encoding UTF8
-        $CleanVer = [regex]::Escape($Version)
-        $Pattern = "(?s)## \[(?:v)?$CleanVer\][^\n]*\n(.*?)(?=\n## |\Z)"
-        if ($ChangelogMd -match $Pattern) {
-            $ExtractedNotes = $Matches[1].Trim()
-            if ($ExtractedNotes) {
-                $Notes = $ExtractedNotes
-            }
-        }
+    # 校验并准备 CHANGELOG.md（无更新说明且 [Unreleased] 为空时不给发布；若有 [Unreleased] 则自动转换）
+    $PrepareScript = Join-Path $ProjectRoot "scripts\prepare-changelog.js"
+    $Notes = node $PrepareScript $Version
+    if ($LASTEXITCODE -ne 0) {
+        exit 1
     }
 }
 

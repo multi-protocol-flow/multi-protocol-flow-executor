@@ -74,6 +74,8 @@ if [[ "$AUTO_UPLOAD" == "true" ]]; then
     echo "❌ 指定了 --upload 但项目根目录未找到 .env 且未设置 R2 环境变量！"
     exit 1
   fi
+  # 校验并准备 CHANGELOG.md（无更新说明且 [Unreleased] 为空时不给发布；若有 [Unreleased] 则自动转换）
+  node "$PROJECT_ROOT/scripts/prepare-changelog.js" "$VERSION" >/dev/null
 fi
 
 # === 2. 执行构建 ===
