@@ -368,3 +368,11 @@
 .json-viewer-other {
   color: var(--json-punctuation);
 }
+
+/* 画布平移/拖拽的 GPU 合成层提示 */
+.react-flow__viewport {
+  will-change: transform;
+}
+.react-flow__node.dragging {
+  will-change: transform;
+}
