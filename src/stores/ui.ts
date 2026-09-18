@@ -3,6 +3,7 @@
  */
 import { create } from 'zustand';
 import type { Flow } from '@/types/flow';
+import { startLayoutTransition } from '@/lib/layoutTransition';
 
 /** 面板类型 */
 export type PanelType = 'flowList' | 'history' | 'config' | 'execution';
@@ -365,38 +366,53 @@ export const useUIStore = create<UIState>((set) => ({
   ...initialState,
 
   // ===== 面板 Actions =====
-  toggleFlowListPanel: () =>
+  toggleFlowListPanel: () => {
+    startLayoutTransition(220);
     set((state) => ({
       isFlowListPanelOpen: !state.isFlowListPanelOpen,
-    })),
+    }));
+  },
 
   toggleHistoryPanel: () =>
     set((state) => ({
       isHistoryPanelOpen: !state.isHistoryPanelOpen,
     })),
 
-  toggleBottomPanel: () =>
+  toggleBottomPanel: () => {
+    startLayoutTransition(220);
     set((state) => ({
       isBottomPanelExpanded: !state.isBottomPanelExpanded,
-    })),
+    }));
+  },
 
-  setBottomPanelExpanded: (isBottomPanelExpanded) => set({ isBottomPanelExpanded }),
+  setBottomPanelExpanded: (isBottomPanelExpanded) => {
+    startLayoutTransition(220);
+    set({ isBottomPanelExpanded });
+  },
 
-  toggleConfigPanel: () =>
+  toggleConfigPanel: () => {
+    startLayoutTransition(220);
     set((state) => ({
       isConfigPanelOpen: !state.isConfigPanelOpen,
-    })),
+    }));
+  },
 
   toggleExecutionPanel: () =>
     set((state) => ({
       isExecutionPanelOpen: !state.isExecutionPanelOpen,
     })),
 
-  setConfigPanelOpen: (isConfigPanelOpen) => set({ isConfigPanelOpen }),
+  setConfigPanelOpen: (isConfigPanelOpen) => {
+    startLayoutTransition(220);
+    set({ isConfigPanelOpen });
+  },
 
   setExecutionPanelOpen: (isExecutionPanelOpen) => set({ isExecutionPanelOpen }),
 
-  setFlowListPanelOpen: (isFlowListPanelOpen) => set({ isFlowListPanelOpen }),
+  setFlowListPanelOpen: (isFlowListPanelOpen) => {
+    startLayoutTransition(220);
+    set({ isFlowListPanelOpen });
+  },
 
   setBottomPanelTab: (bottomPanelTab) => set({ bottomPanelTab }),
 

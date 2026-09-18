@@ -17,6 +17,7 @@
  *     delta = -(startPos - currentPos)，鼠标左移使尺寸减小
  */
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { beginLayoutTransition, endLayoutTransition } from '@/lib/layoutTransition';
 
 export interface UsePanelDragOptions {
   /** 拖拽轴方向: 'vertical' 为垂直拖拽 (行调整), 'horizontal' 为水平拖拽 (列调整) */
@@ -73,6 +74,7 @@ export function usePanelDrag(options: UsePanelDragOptions) {
     document.body.style.cursor = axis === 'vertical' ? 'row-resize' : 'col-resize';
     document.body.style.userSelect = 'none';
     disableIframes();
+    beginLayoutTransition();
   }, [axis, initialSize]);
 
   // 拖拽中（带 requestAnimationFrame 节流，避免高频 mousemove 导致每秒上百次重排）
@@ -123,6 +125,7 @@ export function usePanelDrag(options: UsePanelDragOptions) {
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
     restoreIframes();
+    endLayoutTransition();
   }, [onResize]);
   // 绑定/解绑全局事件
   useEffect(() => {
@@ -138,6 +141,7 @@ export function usePanelDrag(options: UsePanelDragOptions) {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
       restoreIframes();
+      endLayoutTransition();
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
   return { isDragging, handleMouseDown };

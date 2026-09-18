@@ -25,6 +25,7 @@ Utility functions and the triple registry system that bridges backend node types
 | `protoFieldParser.ts` | Lightweight `.proto` file parser (proto3 field declarations, enums, messages) |
 | `graphqlSchema.ts` | GraphQL introspection JSON to field tree (query builder support) |
 | `hotkeyLabels.ts` | Platform-aware shortcut labels (Cmd on macOS, Ctrl on Windows) |
+| `layoutTransition.ts` | Layout-transition guard: suspends ResizeObserver callbacks while panels expand/collapse, flushing once on completion |
 
 ## WHERE TO LOOK
 
@@ -41,6 +42,7 @@ Utility functions and the triple registry system that bridges backend node types
 | Parse .proto files for form UI | `protoFieldParser.ts` |
 | Build GraphQL query from schema | `graphqlSchema.ts` |
 | Format platform-aware shortcuts | `hotkeyLabels.ts` |
+| Suspend canvas recalculation during panel animation | `layoutTransition.ts` |
 
 ## CONVENTIONS
 
@@ -48,6 +50,7 @@ Utility functions and the triple registry system that bridges backend node types
 - **Backend-first naming**: Display names in `nodeMeta.ts` prioritize names from `NodeRegistry` (backend) over hardcoded values. Use `getNodeDisplayName()` instead of direct string lookups.
 - **Lazy loading**: Config panels use `() => import()` for code splitting — only loaded when user first edits that node type.
 - **Bilingual help**: `nodeHelpRegistry.ts` entries provide both zh-CN and en-US content.
+- **Layout transition guard**: `main.tsx` installs the patched `ResizeObserver` once via `initLayoutTransitionObserver()`. Any action that animates panel geometry must wrap it with `startLayoutTransition(duration)` (CSS transition) or `beginLayoutTransition()` + `endLayoutTransition()` (manual drag), so canvas/MiniMap recalculation collapses to a single post-animation refresh.
 
 ## ANTI-PATTERNS
 
