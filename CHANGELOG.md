@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1-beta] - 2026-09-18
+
 ### Added
 - **HTTP Ingress & Mock Services**: Added `http:ingress` and `http:respond` mock service nodes to simulate incoming HTTP webhook endpoints and handle HTTP responses within flows.
 - **Interactive Flow Debugging**: Added variable timeline inspection, in-place node step retries, and live stream probes for detailed runtime debugging.
