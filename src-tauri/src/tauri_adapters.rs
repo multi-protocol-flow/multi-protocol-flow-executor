@@ -58,7 +58,14 @@ pub fn create_log_sender(
 #[derive(Default, Clone)]
 pub struct ExecutionDetailCache {
     /// 结构: flow_uuid -> (node_uuid -> NodeExecutionReport)
-    details: std::sync::Arc<std::sync::RwLock<std::collections::HashMap<String, std::collections::HashMap<String, flow_engine::report::NodeExecutionReport>>>>,
+    details: std::sync::Arc<
+        std::sync::RwLock<
+            std::collections::HashMap<
+                String,
+                std::collections::HashMap<String, flow_engine::report::NodeExecutionReport>,
+            >,
+        >,
+    >,
     /// 流程执行淘汰队列（按插入顺序保留最近 N 个 flow_uuid，默认 10）
     history: std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<String>>>,
 }
@@ -70,7 +77,12 @@ impl ExecutionDetailCache {
     }
 
     /// 存储节点的完整执行报告
-    pub fn store_node_detail(&self, flow_uuid: &str, node_uuid: &str, report: flow_engine::report::NodeExecutionReport) {
+    pub fn store_node_detail(
+        &self,
+        flow_uuid: &str,
+        node_uuid: &str,
+        report: flow_engine::report::NodeExecutionReport,
+    ) {
         let mut lock = self.details.write().unwrap_or_else(|e| e.into_inner());
         let is_new_flow = !lock.contains_key(flow_uuid);
         if is_new_flow {
@@ -87,9 +99,14 @@ impl ExecutionDetailCache {
     }
 
     /// 查询节点的完整执行报告
-    pub fn get_node_detail(&self, flow_uuid: &str, node_uuid: &str) -> Option<flow_engine::report::NodeExecutionReport> {
+    pub fn get_node_detail(
+        &self,
+        flow_uuid: &str,
+        node_uuid: &str,
+    ) -> Option<flow_engine::report::NodeExecutionReport> {
         let lock = self.details.read().unwrap_or_else(|e| e.into_inner());
-        lock.get(flow_uuid).and_then(|map| map.get(node_uuid).cloned())
+        lock.get(flow_uuid)
+            .and_then(|map| map.get(node_uuid).cloned())
     }
 
     /// 清理特定流程的缓存
@@ -116,8 +133,11 @@ impl ExecutionEventSender for QueuedExecutionEventSender {
                 parent_node_uuid,
             } => {
                 // 1. 完整数据写入冷通道内存缓存
-                self.detail_cache
-                    .store_node_detail(&self.flow_uuid, &report.node_uuid, (*report).clone());
+                self.detail_cache.store_node_detail(
+                    &self.flow_uuid,
+                    &report.node_uuid,
+                    (*report).clone(),
+                );
 
                 // 2. 构造轻量级热通道事件（脱敏大字段）
                 let mut light_report = *report;
@@ -144,6 +164,36 @@ impl ExecutionEventSender for QueuedExecutionEventSender {
                 self.tx
                     .send(stripped_event)
                     .map_err(|e| format!("Failed to queue node event: {}", e))
+            }
+            ExecutionEvent::FlowCompleted {
+                report,
+                parent_node_uuid,
+            } => {
+                // 构造轻量级完成事件：剥离各节点的重数据，大报文已由冷通道/落盘兜底
+                let mut light_report = *report;
+                for nr in &mut light_report.node_reports {
+                    if nr.input_data.is_some()
+                        || nr.output_data.is_some()
+                        || nr.resolved_config.is_some()
+                        || nr.plugin_data.is_some()
+                        || nr.sub_flow_report.is_some()
+                    {
+                        nr.input_data = None;
+                        nr.output_data = None;
+                        nr.resolved_config = None;
+                        nr.plugin_data = None;
+                        nr.sub_flow_report = None;
+                        nr.is_detail_stripped = Some(true);
+                    }
+                }
+                light_report.flow_snapshot = None;
+                let stripped_event = ExecutionEvent::FlowCompleted {
+                    report: Box::new(light_report),
+                    parent_node_uuid,
+                };
+                self.tx
+                    .send(stripped_event)
+                    .map_err(|e| format!("Failed to queue flow completed event: {}", e))
             }
             other => self
                 .tx
@@ -330,7 +380,9 @@ mod tests {
         assert!(cache.get_node_detail("flow-1", "node-1").is_none());
 
         // 后续的应该存在
-        let node11 = cache.get_node_detail("flow-11", "node-11").expect("should exist");
+        let node11 = cache
+            .get_node_detail("flow-11", "node-11")
+            .expect("should exist");
         assert_eq!(node11.output_data, Some(json!({"val": 11})));
     }
 
@@ -358,7 +410,9 @@ mod tests {
         sender.send_event(event).expect("send succeeded");
 
         // 1. 验证冷通道缓存了完整数据
-        let cached = cache.get_node_detail("flow-test", "node-heavy").expect("cache exists");
+        let cached = cache
+            .get_node_detail("flow-test", "node-heavy")
+            .expect("cache exists");
         assert!(cached.input_data.is_some());
         assert!(cached.output_data.is_some());
         assert!(cached.resolved_config.is_some());

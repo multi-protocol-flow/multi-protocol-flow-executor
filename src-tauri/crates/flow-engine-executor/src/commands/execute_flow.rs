@@ -164,10 +164,7 @@ mod tests {
             hooks: None,
         };
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-        };
+        let input = ExecuteFlowCommandInput::new(flow_id.clone());
 
         // 执行流程（不使用日志发送器，不使用执行事件发送器）
         let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
@@ -219,10 +216,8 @@ mod tests {
             "retry_count": 3
         });
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: Some(variables.clone()),
-        };
+        let input =
+            ExecuteFlowCommandInput::new(flow_id.clone()).with_variables(Some(variables.clone()));
 
         let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
@@ -274,10 +269,7 @@ mod tests {
             hooks: None,
         };
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-        };
+        let input = ExecuteFlowCommandInput::new(flow_id.clone());
 
         let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
@@ -324,10 +316,7 @@ mod tests {
             hooks: None,
         };
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-        };
+        let input = ExecuteFlowCommandInput::new(flow_id.clone());
 
         // 使用 NoopLogSender
         let log_sender: Arc<dyn LogSender> = Arc::new(NoopLogSender);
@@ -394,10 +383,7 @@ mod tests {
             hooks: None,
         };
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-        };
+        let input = ExecuteFlowCommandInput::new(flow_id.clone());
 
         let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
@@ -437,10 +423,7 @@ mod tests {
             hooks: None,
         };
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-        };
+        let input = ExecuteFlowCommandInput::new(flow_id.clone());
 
         let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
@@ -482,10 +465,7 @@ mod tests {
             hooks: None,
         };
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-        };
+        let input = ExecuteFlowCommandInput::new(flow_id.clone());
 
         let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
@@ -528,10 +508,7 @@ mod tests {
         };
 
         // 传入空对象
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: Some(json!({})),
-        };
+        let input = ExecuteFlowCommandInput::new(flow_id.clone()).with_variables(Some(json!({})));
 
         let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 
@@ -584,10 +561,7 @@ mod tests {
             hooks: None,
         };
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-        };
+        let input = ExecuteFlowCommandInput::new(flow_id.clone());
 
         let result = execute_flow(input, flow, None, None, None, None, test_registry()).await;
 

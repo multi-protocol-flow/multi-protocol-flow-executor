@@ -63,10 +63,7 @@ async fn test_input_data_timing_basic() {
     };
 
     // 执行流程
-    let input = ExecuteFlowCommandInput {
-        flow_id: "flow-1".to_string(),
-        variables: Some(json!({})),
-    };
+    let input = ExecuteFlowCommandInput::new("flow-1").with_variables(Some(json!({})));
 
     let log_sender = Arc::new(NoopLogSender);
     let result = flow_engine::commands::execute_flow::execute_flow(
@@ -144,10 +141,7 @@ async fn test_input_data_timing_with_initial_variables() {
     };
 
     // 执行流程
-    let input = ExecuteFlowCommandInput {
-        flow_id: "flow-2".to_string(),
-        variables: None,
-    };
+    let input = ExecuteFlowCommandInput::new("flow-2");
 
     let log_sender = Arc::new(NoopLogSender);
     let result = flow_engine::commands::execute_flow::execute_flow(
@@ -265,10 +259,7 @@ async fn test_input_data_timing_http_node() {
     };
 
     // 执行流程
-    let input = ExecuteFlowCommandInput {
-        flow_id: "flow-3".to_string(),
-        variables: None,
-    };
+    let input = ExecuteFlowCommandInput::new("flow-3");
 
     let log_sender = Arc::new(NoopLogSender);
     let result = flow_engine::commands::execute_flow::execute_flow(

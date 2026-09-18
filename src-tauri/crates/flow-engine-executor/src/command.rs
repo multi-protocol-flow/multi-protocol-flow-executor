@@ -49,12 +49,38 @@ pub struct CreateFlowCommandOutput {
 }
 
 /// 执行流程命令的输入参数
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ExecuteFlowCommandInput {
     /// 流程 ID
     pub flow_id: String,
     /// 执行上下文变量（可选）
     pub variables: Option<Value>,
+    /// 报告保存目录（可选，若提供则后端直接落盘，避免前端回旋镖序列化）
+    #[serde(default)]
+    pub reports_dir: Option<String>,
+}
+
+impl ExecuteFlowCommandInput {
+    /// 创建新的流程执行命令参数
+    pub fn new(flow_id: impl Into<String>) -> Self {
+        Self {
+            flow_id: flow_id.into(),
+            variables: None,
+            reports_dir: None,
+        }
+    }
+
+    /// 设置执行变量
+    pub fn with_variables(mut self, variables: Option<Value>) -> Self {
+        self.variables = variables;
+        self
+    }
+
+    /// 设置报告存储目录
+    pub fn with_reports_dir(mut self, reports_dir: Option<String>) -> Self {
+        self.reports_dir = reports_dir;
+        self
+    }
 }
 
 /// 执行流程命令的输出结果

@@ -177,10 +177,54 @@ pub async fn execute_flow(
         .as_ref()
         .map(|r| r.duration_ms)
         .unwrap_or(0);
+
+    // 自动保存完整报告到磁盘（若前端传入了 reports_dir）
+    if let (Some(report), Some(dir)) = (&result.flow_report, &input.reports_dir) {
+        if !dir.trim().is_empty() {
+            if let Err(e) = flow_engine::commands::save_flow_report((*report).clone(), dir) {
+                log::error!("[IPC::execute_flow] Auto-save flow report failed: {}", e);
+            } else {
+                log::info!(
+                    "[IPC::execute_flow] Auto-saved flow report: uuid={}, dir={}",
+                    report.uuid,
+                    dir
+                );
+            }
+        }
+    }
+
+    // 缓存完整节点报告到冷通道内存缓存，便于前端按需拉取
+    if let Some(report) = &result.flow_report {
+        for nr in &report.node_reports {
+            state
+                .detail_cache
+                .store_node_detail(&flow.uuid, &nr.node_uuid, nr.clone());
+        }
+    }
+    let light_flow_report = result.flow_report.map(|mut r| {
+        for nr in &mut r.node_reports {
+            if nr.input_data.is_some()
+                || nr.output_data.is_some()
+                || nr.resolved_config.is_some()
+                || nr.plugin_data.is_some()
+                || nr.sub_flow_report.is_some()
+            {
+                nr.input_data = None;
+                nr.output_data = None;
+                nr.resolved_config = None;
+                nr.plugin_data = None;
+                nr.sub_flow_report = None;
+                nr.is_detail_stripped = Some(true);
+            }
+        }
+        r.flow_snapshot = None;
+        r
+    });
+
     let output = flow_engine::command::ExecuteFlowCommandOutput {
         success: result.success,
         data: result.data,
-        flow_report: result.flow_report,
+        flow_report: light_flow_report,
         error: result.error,
         execution_time,
     };
@@ -2436,10 +2480,7 @@ impl flow_engine::ingress::IngressDebugLauncher for TauriIngressDebugLauncher {
             .unwrap_or(false)
     }
 
-    async fn launch(
-        &self,
-        request: flow_engine::ingress::IngressRequest,
-    ) -> Result<(), String> {
+    async fn launch(&self, request: flow_engine::ingress::IngressRequest) -> Result<(), String> {
         // 子流程按 ID 解析需要与前端列表同一流程目录
         crate::sync_flows_dir_override(&self.app);
 
