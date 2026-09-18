@@ -112,7 +112,7 @@ with open(changelog_path, 'r', encoding='utf-8') as f:
 tag = f"v{version}"
 entry = next((item for item in changelog if item.get("version") == version or item.get("tag") == tag), None)
 
-notes = f"Release v{version}"
+notes = None
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 changelog_md = os.path.join(repo_root, "CHANGELOG.md")
 if not os.path.exists(changelog_md):
@@ -124,12 +124,27 @@ if os.path.exists(changelog_md):
         with open(changelog_md, "r", encoding="utf-8") as f:
             md_text = f.read()
         clean_ver = re.escape(version.lstrip("v"))
-        m = re.search(rf"## \[(?:v)?{clean_ver}\][^\n]*\n([\s\S]*?)(?=\n## |\Z)", md_text)
+        m = re.search(rf"## \[(?:v)?{clean_ver}\][^\r\n]*(?:\r?\n)([\s\S]*?)(?=(?:\r?\n)## |\Z)", md_text)
         if m and m.group(1).strip():
             notes = m.group(1).strip()
+        else:
+            # 检查 [Unreleased] 是否有内容，若有则自动转换为目标版本小节
+            unreleased_m = re.search(r"## \[Unreleased\][^\r\n]*(?:\r?\n)([\s\S]*?)(?=(?:\r?\n)## |\Z)", md_text)
+            if unreleased_m and unreleased_m.group(1).strip():
+                notes = unreleased_m.group(1).strip()
+                today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                eol = "\r\n" if "\r\n" in md_text else "\n"
+                new_section = f"## [Unreleased]{eol}{eol}## [{version.lstrip('v')}] - {today}{eol}{eol}{notes}{eol}"
+                new_md = re.sub(r"## \[Unreleased\][^\r\n]*(?:\r?\n)[\s\S]*?(?=(?:\r?\n)## |\Z)", new_section, md_text, count=1)
+                with open(changelog_md, "w", encoding="utf-8") as f:
+                    f.write(new_md)
+                print(f"  ✓ CHANGELOG.md: [Unreleased] auto-promoted to [{version.lstrip('v')}] - {today}")
     except Exception as e:
         print(f"  ⚠️ Failed to parse CHANGELOG.md: {e}", file=sys.stderr)
 
+if not notes:
+    print(f"❌ Error: CHANGELOG.md does not contain notes for [{version}] and [Unreleased] is empty! Refusing to release.", file=sys.stderr)
+    sys.exit(1)
 if not entry:
     entry = {
         "version": version,
