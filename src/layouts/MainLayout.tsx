@@ -42,7 +42,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { usePanelDrag } from '@/hooks';
 import { toast } from 'sonner';
 import { loadReport } from '@/services/storage/reportStorage';
@@ -104,6 +104,52 @@ function SearchOverlayHandler() {
   );
 }
 
+const MemoizedNodeConfigPanel = memo(NodeConfigPanel);
+const MemoizedExecutionHistory = memo(ExecutionHistory);
+
+/**
+ * 全局弹窗集中挂载组件（带 memo）
+ * 隔离主布局尺寸拖拽引起的频繁重渲染，避免 16 个全局对话框在拖拽帧反复 Diff
+ */
+const GlobalDialogs = memo(function GlobalDialogs() {
+  const showEnvironmentManagerDialog = useUIStore((state) => state.showEnvironmentManagerDialog);
+  const showScriptHelpDialog = useUIStore((s) => s.showScriptHelpDialog);
+  const closeScriptHelpDialog = useUIStore((s) => s.closeScriptHelpDialog);
+  const showDynamicVariablesHelpDialog = useUIStore((s) => s.showDynamicVariablesHelpDialog);
+  const closeDynamicVariablesHelpDialog = useUIStore((s) => s.closeDynamicVariablesHelpDialog);
+
+  return (
+    <>
+      <ExecutionReport />
+      <StressTestResult />
+      <DatasetReportDialog />
+      <StressTestMonitor />
+      <NewFlowDialog />
+      <PluginSettingsDialog />
+      <SettingsDialog />
+      <ConfirmDialogHandler />
+      <ShortcutsDialog />
+      <ScriptHelpDialog
+        open={showScriptHelpDialog}
+        onOpenChange={(open) => {
+          if (!open) closeScriptHelpDialog();
+        }}
+      />
+      <DynamicVariablesHelpDialog
+        open={showDynamicVariablesHelpDialog}
+        onOpenChange={(open) => {
+          if (!open) closeDynamicVariablesHelpDialog();
+        }}
+      />
+      <FlowConflictDialog />
+      <AICopilotPanel />
+      <AISpotlightDialog />
+      <SearchOverlayHandler />
+      {showEnvironmentManagerDialog && <EnvironmentManagerDialog />}
+    </>
+  );
+});
+
 export function MainLayout() {
   const isFlowListPanelOpen = useUIStore((state) => state.isFlowListPanelOpen);
   const isBottomPanelExpanded = useUIStore((state) => state.isBottomPanelExpanded);
@@ -122,7 +168,6 @@ export function MainLayout() {
   const setSidebarWidth = useUIStore((state) => state.setSidebarWidth);
   const openSettingsDialog = useUIStore((state) => state.openSettingsDialog);
   const showConfirm = useUIStore((state) => state.showConfirm);
-  const showEnvironmentManagerDialog = useUIStore((state) => state.showEnvironmentManagerDialog);
 
   // 页面导航
   const currentPage = useUIStore((state) => state.currentPage);
@@ -256,6 +301,20 @@ export function MainLayout() {
 
   // 拖拽调整面板大小（底部面板最高可拉至接近顶部，方便查看全屏日志和 Agent 报告）
   const maxBottomHeight = typeof window !== 'undefined' ? Math.max(700, window.innerHeight - 80) : 1600;
+  // 面板实时 DOM 引用（用于拖拽时直接更新 DOM 样式，绕过 React 状态调度）
+  const leftAsideRef = useRef<HTMLElement>(null);
+  const leftButtonRef = useRef<HTMLButtonElement>(null);
+  const leftInnerRef = useRef<HTMLDivElement>(null);
+  const rightAsideRef = useRef<HTMLElement>(null);
+  const rightButtonRef = useRef<HTMLButtonElement>(null);
+  const rightInnerRef = useRef<HTMLDivElement>(null);
+  const bottomContentRef = useRef<HTMLDivElement>(null);
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
+
+  // 路线 B：画布几何冻结。拖拽期间锁定 React Flow 画布内层像素尺寸，外层仅作 GPU 像素级裁剪，彻底阻止 @xyflow/react ResizeObserver 连线高频重算
+  const [frozenCanvasDimensions, setFrozenCanvasDimensions] = useState<{ width: number; height: number } | null>(null);
+  const wasDraggingRef = useRef(false);
+
   const bottomDrag = usePanelDrag({
     axis: 'vertical',
     min: 100,
@@ -263,18 +322,50 @@ export function MainLayout() {
     sign: 1,
     initialSize: bottomPanelHeight,
     onResize: setBottomPanelHeight,
+    onLiveResize: (h) => {
+      if (bottomContentRef.current) bottomContentRef.current.style.height = `${h}px`;
+    },
   });
   const rightDrag = usePanelDrag({
     axis: 'horizontal', min: 250, max: 500,
     initialSize: configPanelWidth,
     onResize: setConfigPanelWidth,
+    onLiveResize: (w) => {
+      if (rightAsideRef.current) rightAsideRef.current.style.width = `${w}px`;
+      if (rightInnerRef.current) rightInnerRef.current.style.width = `${w}px`;
+      if (rightButtonRef.current) rightButtonRef.current.style.right = `${w}px`;
+    },
   });
 
   const leftDrag = usePanelDrag({
     axis: 'horizontal', min: 200, max: 400, sign: -1,
     initialSize: sidebarWidth,
     onResize: setSidebarWidth,
+    onLiveResize: (w) => {
+      if (leftAsideRef.current) leftAsideRef.current.style.width = `${w}px`;
+      if (leftInnerRef.current) leftInnerRef.current.style.width = `${w}px`;
+      if (leftButtonRef.current) leftButtonRef.current.style.left = `${w}px`;
+    },
   });
+  const isDraggingAny = leftDrag.isDragging || rightDrag.isDragging || bottomDrag.isDragging;
+
+  useEffect(() => {
+    if (isDraggingAny && !wasDraggingRef.current) {
+      if (canvasWrapperRef.current) {
+        const rect = canvasWrapperRef.current.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          setFrozenCanvasDimensions({
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+          });
+        }
+      }
+      wasDraggingRef.current = true;
+    } else if (!isDraggingAny && wasDraggingRef.current) {
+      setFrozenCanvasDimensions(null);
+      wasDraggingRef.current = false;
+    }
+  }, [isDraggingAny]);
 
   // 底部面板内容延迟渲染：展开动画结束后渲染，收起时立即移除
   useEffect(() => {
@@ -314,6 +405,16 @@ export function MainLayout() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+      {/* 拖拽面板期间的全屏事件隔离层，避免鼠标滑入 iframe / 画布节点时产生 hover 抖动与事件丢失 */}
+      {isDraggingAny && (
+        <div
+          className="fixed inset-0 select-none bg-transparent"
+          style={{
+            zIndex: 9999,
+            cursor: bottomDrag.isDragging ? 'row-resize' : 'col-resize',
+          }}
+        />
+      )}
       <SandboxBanner />
       {/* ===== 顶部工具栏 ===== */}
       <header className="h-14 shrink-0 border-b border-border flex items-center justify-between px-4 bg-background">
@@ -508,11 +609,11 @@ export function MainLayout() {
       <div className="flex-1 flex overflow-hidden relative">
         {/* ===== 左侧栏 ===== */}
         <aside
+          ref={leftAsideRef}
           className={cn(
             'shrink-0 border-r border-border flex flex-col bg-background overflow-hidden relative',
-            'transition-all duration-300 ease-out',
-            isFlowListPanelOpen ? 'min-w-0' : 'w-0 min-w-0',
-            leftDrag.isDragging && '!transition-none'
+            leftDrag.isDragging ? '!transition-none' : 'transition-[width] duration-300 ease-out',
+            isFlowListPanelOpen ? 'min-w-0' : 'w-0 min-w-0'
           )}
           style={{ width: isFlowListPanelOpen ? sidebarWidth : 0 }}
         >
@@ -533,7 +634,7 @@ export function MainLayout() {
             </div>
           )}
           {isFlowListPanelOpen && (
-            <div className="h-full min-w-0 overflow-hidden pr-2" style={{ width: sidebarWidth }}>
+            <div ref={leftInnerRef} className="h-full min-w-0 overflow-hidden pr-2" style={{ width: sidebarWidth }}>
               <LeftSidebarPanel />
             </div>
           )}
@@ -541,14 +642,15 @@ export function MainLayout() {
 
         {/* 左侧折叠按钮 */}
         <Button
+          ref={leftButtonRef}
           variant="ghost"
           size="icon"
           onClick={toggleFlowListPanel}
           className={cn(
             'absolute z-20 h-12 w-5 rounded-l-none rounded-r-md top-1/2 -translate-y-1/2 p-0',
             'bg-background/90 hover:bg-accent border border-l-0 border-border shadow-xs',
-            'text-muted-foreground/70 hover:text-foreground',
-            'transition-all duration-150 cursor-pointer'
+            'text-muted-foreground/70 hover:text-foreground cursor-pointer',
+            leftDrag.isDragging ? '!transition-none' : 'transition-[left] duration-150'
           )}
           style={{ left: isFlowListPanelOpen ? sidebarWidth : 0 }}
           title={isFlowListPanelOpen ? getLL().common.toggle_sidebar_collapse() : getLL().common.toggle_sidebar_expand()}
@@ -564,8 +666,24 @@ export function MainLayout() {
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           {/* 画布 */}
           <FlowTabBar />
-          <div className="flex-1 relative">
-            <FlowCanvas />
+          <div ref={canvasWrapperRef} className="flex-1 relative overflow-hidden">
+            <div
+              style={
+                frozenCanvasDimensions
+                  ? {
+                      width: frozenCanvasDimensions.width,
+                      height: frozenCanvasDimensions.height,
+                      pointerEvents: 'none',
+                    }
+                  : {
+                      width: '100%',
+                      height: '100%',
+                    }
+              }
+              className="w-full h-full"
+            >
+              <FlowCanvas />
+            </div>
           </div>
 
           {/* ===== 底部面板（Tab Bar + 可折叠内容区） ===== */}
@@ -642,9 +760,10 @@ export function MainLayout() {
 
             {/* Content Area - 可折叠 */}
             <div
+              ref={bottomContentRef}
               className={cn(
-                'overflow-hidden transition-all duration-300 ease-out',
-                bottomDrag.isDragging && '!transition-none'
+                'overflow-hidden',
+                bottomDrag.isDragging ? '!transition-none' : 'transition-[height] duration-300 ease-out'
               )}
               style={{ height: isBottomPanelExpanded ? bottomPanelHeight : 0 }}
             >
@@ -653,7 +772,7 @@ export function MainLayout() {
                   {/* 根据选中 Tab 渲染内容 */}
                   {bottomPanelTab === 'history' && (
                     <div className="flex-1 min-h-0 overflow-hidden">
-                      <ExecutionHistory onCompare={handleCompare} />
+                      <MemoizedExecutionHistory onCompare={handleCompare} />
                     </div>
                   )}
                   {bottomPanelTab === 'running' && (
@@ -744,11 +863,11 @@ export function MainLayout() {
 
         {/* ===== 右侧配置面板 ===== */}
         <aside
+          ref={rightAsideRef}
           className={cn(
             'shrink-0 border-l border-border bg-background overflow-hidden relative',
-            'transition-all duration-300 ease-out',
-            isConfigPanelOpen ? 'min-w-0' : 'w-0 min-w-0',
-            rightDrag.isDragging && '!transition-none'
+            rightDrag.isDragging ? '!transition-none' : 'transition-[width] duration-300 ease-out',
+            isConfigPanelOpen ? 'min-w-0' : 'w-0 min-w-0'
           )}
           style={{ width: isConfigPanelOpen ? configPanelWidth : 0 }}
         >
@@ -769,22 +888,23 @@ export function MainLayout() {
             </div>
           )}
           {isConfigPanelOpen && (
-            <div className="h-full min-w-0 overflow-hidden pl-2" style={{ width: configPanelWidth }}>
-              <NodeConfigPanel readOnly={isRightPanelReadOnly} />
+            <div ref={rightInnerRef} className="h-full min-w-0 overflow-hidden pl-2" style={{ width: configPanelWidth }}>
+              <MemoizedNodeConfigPanel readOnly={isRightPanelReadOnly} />
             </div>
           )}
         </aside>
 
         {/* 右侧折叠按钮 */}
         <Button
+          ref={rightButtonRef}
           variant="ghost"
           size="icon"
           onClick={toggleConfigPanel}
           className={cn(
             'absolute z-20 h-12 w-5 rounded-r-none rounded-l-md top-1/2 -translate-y-1/2 p-0',
             'bg-background/90 hover:bg-accent border border-r-0 border-border shadow-xs',
-            'text-muted-foreground/70 hover:text-foreground',
-            'transition-all duration-150 cursor-pointer'
+            'text-muted-foreground/70 hover:text-foreground cursor-pointer',
+            rightDrag.isDragging ? '!transition-none' : 'transition-[right] duration-150'
           )}
           style={{ right: isConfigPanelOpen ? configPanelWidth : 0 }}
           title={isConfigPanelOpen ? getLL().common.toggle_config_collapse() : getLL().common.toggle_config_expand()}
@@ -798,21 +918,6 @@ export function MainLayout() {
 
       </div>
       )}
-
-      {/* ===== 执行报告弹窗 ===== */}
-      <ExecutionReport />
-
-      {/* ===== 压测报告弹窗 ===== */}
-      <StressTestResult />
-
-      {/* ===== 数据集报告弹窗 ===== */}
-      <DatasetReportDialog />
-
-      {/* ===== 压测实时监控面板 ===== */}
-      <StressTestMonitor />
-
-      {/* ===== 新建流程对话框 ===== */}
-      <NewFlowDialog />
 
       {/* ===== 流程对比对话框 ===== */}
       {compareSnapshotFlow && (
@@ -829,45 +934,8 @@ export function MainLayout() {
       {/* ===== Toast 提示 ===== */}
       <Toaster />
 
-      {/* ===== 环境管理对话框（必须在 ReactFlow 外部渲染） ===== */}
-      {showEnvironmentManagerDialog && <EnvironmentManagerDialog />}
-
-      {/* ===== 通用确认对话框 ===== */}
-      <ConfirmDialogHandler />
-
-      {/* ===== 快捷键面板 ===== */}
-      <ShortcutsDialog />
-      {/* ===== 脚本函数 API 参考对话框 ===== */}
-      <ScriptHelpDialog
-        open={useUIStore((s) => s.showScriptHelpDialog)}
-        onOpenChange={(open) => {
-          if (!open) useUIStore.getState().closeScriptHelpDialog();
-        }}
-      />
-
-      {/* ===== 动态变量手册对话框 ===== */}
-      <DynamicVariablesHelpDialog
-        open={useUIStore((s) => s.showDynamicVariablesHelpDialog)}
-        onOpenChange={(open) => {
-          if (!open) useUIStore.getState().closeDynamicVariablesHelpDialog();
-        }}
-      />
-
-      {/* ===== 插件设置对话框 ===== */}
-      <PluginSettingsDialog />
-
-      {/* ===== 全局设置对话框 ===== */}
-      <SettingsDialog />
-
-      {/* ===== 流程 UUID 冲突决策对话框 ===== */}
-      <FlowConflictDialog />
-
-      {/* ===== 全流程搜索面板 ===== */}
-
-      {/* ===== AI 助手侧边栏与 Spotlight 弹窗 ===== */}
-      <AICopilotPanel />
-      <AISpotlightDialog />
-      <SearchOverlayHandler />
+      {/* ===== 全局对话框（已 memo 隔离） ===== */}
+      <GlobalDialogs />
     </div>
   );
 }
