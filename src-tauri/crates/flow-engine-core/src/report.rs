@@ -94,7 +94,35 @@ pub struct NodeExecutionReport {
     /// 子流程嵌套执行报告树
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sub_flow_report: Option<Box<FlowExecutionReport>>,
+    /// 标记输入/输出数据是否已在热通道推送中被剥离（冷热通道优化）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_detail_stripped: Option<bool>,
 }
+impl Default for NodeExecutionReport {
+    fn default() -> Self {
+        Self {
+            node_uuid: String::new(),
+            node_type: String::new(),
+            node_name: String::new(),
+            start_time: 0,
+            end_time: 0,
+            duration_ms: 0,
+            status: ExecutionStatus::Success,
+            input_data: None,
+            output_data: None,
+            used_port_id: None,
+            error: None,
+            resolved_config: None,
+            variable_changes: None,
+            skip_reason: None,
+            wait_duration_ms: None,
+            plugin_data: None,
+            sub_flow_report: None,
+            is_detail_stripped: None,
+        }
+    }
+}
+
 
 /// 报告元数据（用于历史列表）
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -718,6 +746,7 @@ mod tests {
                 "plugin_version": "1.0.0",
                 "result": "ok",
             })),
+            is_detail_stripped: None,
         };
 
         // None 时字段从 JSON 中省略

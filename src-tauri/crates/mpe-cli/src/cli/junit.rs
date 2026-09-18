@@ -145,6 +145,7 @@ mod tests {
             skip_reason: None,
             wait_duration_ms: None,
             plugin_data: None,
+            is_detail_stripped: None,
         }
     }
 

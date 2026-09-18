@@ -121,6 +121,8 @@ pub enum ExecutionEvent {
         /// 事件时间戳
         timestamp: String,
     },
+    /// 批量执行事件（用于高频执行合并推送，削减 IPC 调用频次）
+    Batch(Vec<ExecutionEvent>),
 }
 
 #[cfg(test)]
@@ -218,6 +220,7 @@ mod tests {
             skip_reason: None,
             wait_duration_ms: None,
             plugin_data: None,
+            is_detail_stripped: None,
         };
 
         let event = ExecutionEvent::NodeCompleted {
@@ -335,6 +338,7 @@ mod tests {
             skip_reason: None,
             wait_duration_ms: None,
             plugin_data: None,
+            is_detail_stripped: None,
         };
         let event = ExecutionEvent::NodeCompleted {
             report: Box::new(report),
@@ -459,5 +463,33 @@ mod tests {
                 ..
             } if parent_node_uuid.is_none()
         ));
+    }
+
+    /// 测试 `Batch` 批量执行事件序列化与反序列化
+    #[test]
+    fn test_batch_execution_event() {
+        let event1 = ExecutionEvent::NodeStarted {
+            node_uuid: "node-1".to_string(),
+            node_name: "节点1".to_string(),
+            node_type: "http:request".to_string(),
+            parent_node_uuid: None,
+        };
+        let event2 = ExecutionEvent::FlowCancelled {
+            flow_uuid: "flow-1".to_string(),
+            reason: "取消".to_string(),
+            parent_node_uuid: None,
+        };
+        let batch = ExecutionEvent::Batch(vec![event1, event2]);
+        let json = serde_json::to_string(&batch).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(json.starts_with(r#"{"batch":["#), "应当序列化为 camelCase batch 数组: {json}");
+
+        let deserialized: ExecutionEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        match deserialized {
+            ExecutionEvent::Batch(events) => {
+                assert_eq!(events.len(), 2);
+            }
+            _ => panic!("应当反序列化为 ExecutionEvent::Batch"),
+        }
     }
 }

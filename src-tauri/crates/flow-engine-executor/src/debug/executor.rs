@@ -1101,6 +1101,7 @@ impl DebuggableFlowExecutor {
                         wait_duration_ms: None,
                         plugin_data: None,
                         sub_flow_report: entry.sub_flow_report.clone(),
+                        is_detail_stripped: None,
                     }
                 })
                 .collect();
@@ -1888,6 +1889,7 @@ impl DebuggableFlowExecutor {
                     wait_duration_ms: None,
                     plugin_data: None,
                     sub_flow_report: entry.sub_flow_report.clone(),
+                    is_detail_stripped: None,
                 }
             })
             .collect();

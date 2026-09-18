@@ -262,6 +262,7 @@ mod tests {
             wait_duration_ms: None,
             plugin_data: None,
             sub_flow_report: None,
+            is_detail_stripped: None,
         });
 
         let executor = VariableExtractorExecutor;

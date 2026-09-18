@@ -654,6 +654,7 @@ impl FlowExecutor {
                         // execute 时写入；非插件节点保持 None）
                         plugin_data: context.current_node_plugin_data.take(),
                         sub_flow_report: context.current_sub_flow_report.take(),
+                        is_detail_stripped: None,
                     };
                     let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
@@ -798,6 +799,7 @@ impl FlowExecutor {
                             wait_duration_ms: None,
                             plugin_data: context.current_node_plugin_data.take(),
                             sub_flow_report: context.current_sub_flow_report.take(),
+                            is_detail_stripped: None,
                         };
                         let event_report = node_report.clone();
                         node_reports.push(node_report.clone());
@@ -886,6 +888,7 @@ impl FlowExecutor {
                         wait_duration_ms: None,
                         plugin_data,
                         sub_flow_report: context.current_sub_flow_report.take(),
+                        is_detail_stripped: None,
                     };
                     let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
@@ -1363,6 +1366,7 @@ impl FlowExecutor {
                         wait_duration_ms: None,
                         plugin_data: context.current_node_plugin_data.take(),
                         sub_flow_report: None,
+                        is_detail_stripped: None,
                     }],
                     flow_report: None,
                     execution_id: context.execution_id.clone(),
@@ -1415,6 +1419,7 @@ impl FlowExecutor {
                         wait_duration_ms: None,
                         plugin_data: context.current_node_plugin_data.take(),
                         sub_flow_report: None,
+                        is_detail_stripped: None,
                     }],
                     flow_report: None,
                     execution_id: context.execution_id.clone(),
@@ -1446,6 +1451,7 @@ impl FlowExecutor {
                         wait_duration_ms: None,
                         plugin_data: context.current_node_plugin_data.take(),
                         sub_flow_report: None,
+                        is_detail_stripped: None,
                     }],
                     flow_report: None,
                     execution_id: context.execution_id.clone(),
@@ -1485,6 +1491,7 @@ impl FlowExecutor {
                         wait_duration_ms: None,
                         plugin_data: context.current_node_plugin_data.take(),
                         sub_flow_report: None,
+                        is_detail_stripped: None,
                     }],
                     flow_report: None,
                     execution_id: context.execution_id.clone(),
