@@ -63,6 +63,7 @@ pub use tauri_commands::{
     get_app_version,
     get_debug_status,
     get_node_config_schema,
+    get_node_execution_detail,
     // 节点注册表命令
     get_registered_node_types,
     get_stress_test_status,
@@ -500,6 +501,7 @@ pub fn run() {
             create_flow,
             execute_flow,
             execute_single_node,
+            get_node_execution_detail,
             save_flow_report,
             load_flow_report,
             list_flow_reports,

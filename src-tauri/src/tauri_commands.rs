@@ -13,7 +13,7 @@ use tauri::Emitter;
 use tauri::Manager;
 use tauri_plugin_store::StoreExt;
 
-use crate::tauri_adapters::{create_log_sender, TauriDebugEventSender, TauriExecutionEventSender};
+use crate::tauri_adapters::{create_log_sender, TauriDebugEventSender};
 use crate::{NodeRegistryState, RegistrySnapshot};
 use flow_engine::command::{
     CreateFlowCommandInput, CreateFlowCommandOutput, ExecuteFlowCommandInput,
@@ -40,6 +40,8 @@ use flow_engine::traits::ExecutionEventSender;
 pub struct ExecutionSessionManager {
     /// 取消信号发送端映射（会话 ID -> watch channel sender）
     cancel_senders: std::sync::Mutex<HashMap<String, tokio::sync::watch::Sender<bool>>>,
+    /// 运行期节点执行详情缓存（冷通道）
+    pub detail_cache: crate::tauri_adapters::ExecutionDetailCache,
 }
 
 impl ExecutionSessionManager {
@@ -47,6 +49,7 @@ impl ExecutionSessionManager {
     pub fn new() -> Self {
         Self {
             cancel_senders: std::sync::Mutex::new(HashMap::new()),
+            detail_cache: crate::tauri_adapters::ExecutionDetailCache::new(),
         }
     }
 }
@@ -120,9 +123,19 @@ pub async fn execute_flow(
     // 在后台启动日志消费任务
     tokio::spawn(log_worker);
 
-    // 创建执行事件发送器（包装 Tauri Channel）
+    // 创建冷热双通道执行事件发送器与批处理 Worker
+    let (execution_event_sender, execution_event_worker) =
+        crate::tauri_adapters::create_execution_event_sender(
+            on_execution_event,
+            flow.uuid.clone(),
+            state.detail_cache.clone(),
+        );
+
+    // 在后台启动执行事件批量推送任务
+    tokio::spawn(execution_event_worker.run());
+
     let execution_event_sender: Option<Arc<dyn ExecutionEventSender>> =
-        Some(Arc::new(TauriExecutionEventSender::new(on_execution_event)));
+        Some(execution_event_sender);
 
     // 创建 WS 流事件发送器（复用 DebugEvent 类型，用于普通执行中的 WS 消息流）
     let debug_event_sender: Option<Arc<dyn DebugEventSender>> =
@@ -230,6 +243,16 @@ pub fn cancel_flow(state: State<'_, ExecutionSessionManager>) -> Result<(), Stri
         let _ = tx.send(true);
     }
     Ok(())
+}
+
+/// 获取指定节点的完整执行详情（冷通道按需拉取）
+#[tauri::command]
+pub fn get_node_execution_detail(
+    flow_uuid: String,
+    node_uuid: String,
+    state: State<'_, ExecutionSessionManager>,
+) -> Result<Option<flow_engine::report::NodeExecutionReport>, String> {
+    Ok(state.detail_cache.get_node_detail(&flow_uuid, &node_uuid))
 }
 
 /// 执行单个节点（连接性验证）
