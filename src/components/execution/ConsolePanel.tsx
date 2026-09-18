@@ -4,7 +4,7 @@
  */
 import { useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useConsoleStore } from '@/stores/console';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useThrottledValue } from '@/hooks/useThrottledValue';
@@ -74,13 +74,19 @@ export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
       return true;
     });
   }, [logs, filter]);
+  const rowVirtualizer = useVirtualizer({
+    count: filteredLogs.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 26,
+    overscan: 10,
+  });
+
   // 自动滚动到底部
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (filteredLogs.length > 0) {
+      rowVirtualizer.scrollToIndex(filteredLogs.length - 1, { align: 'end' });
     }
-  }, [filteredLogs.length]);
-
+  }, [filteredLogs.length, rowVirtualizer]);
   if (logs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -91,14 +97,24 @@ export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
   }
 
   return (
-    <ScrollArea className="h-full">
-      <div ref={scrollRef} className="p-2 space-y-1 font-mono text-xs">
-        {filteredLogs.map((log) => {
+    <div ref={scrollRef} className="h-full overflow-auto p-2 font-mono text-xs">
+      <div
+        className="w-full relative"
+        style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const log = filteredLogs[virtualRow.index];
+          if (!log) return null;
           const Icon = levelIcons[log.level];
           return (
             <div
               key={log.id}
-              className="flex flex-col gap-0.5 px-1 py-0.5 hover:bg-muted/50 rounded group"
+              data-index={virtualRow.index}
+              ref={rowVirtualizer.measureElement}
+              className="absolute top-0 left-0 w-full flex flex-col gap-0.5 px-1 py-0.5 hover:bg-muted/50 rounded group"
+              style={{
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
             >
               <div className="flex items-start gap-2">
                 <span className="text-muted-foreground shrink-0">
@@ -132,6 +148,6 @@ export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
           );
         })}
       </div>
-    </ScrollArea>
+    </div>
   );
 }
