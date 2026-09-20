@@ -123,6 +123,9 @@ pub struct StressTestExecutor {
     event_sender: mpsc::UnboundedSender<StressTestEvent>,
     /// 节点插件注册表（共享，注入到每个虚拟用户执行器）
     registry: Arc<flow_engine_core::registry::NodeRegistry>,
+    /// 执行前置变量层（流程兜底 + 环境文件 + 运行时覆盖的合并结果）。
+    /// 每次迭代的 CSV 行数据仍作为更高的运行时层覆盖同名键。
+    variables: Option<Arc<serde_json::Value>>,
     /// 内部状态（线程安全）
     state: Arc<RwLock<StressTestState>>,
 }
@@ -149,8 +152,17 @@ impl StressTestExecutor {
             config,
             event_sender,
             registry,
+            variables: None,
             state: Arc::new(RwLock::new(StressTestState::default())),
         }
+    }
+
+    /// 注入执行前置变量层（流程兜底变量 + 环境文件 + 运行时覆盖的合并结果）
+    ///
+    /// 未注入时压测仅使用 `flow.initial_variables`，与单次执行的环境分层不一致。
+    pub fn with_variables(mut self, variables: Option<serde_json::Value>) -> Self {
+        self.variables = variables.map(Arc::new);
+        self
     }
 
     /// 启动压力测试
@@ -204,6 +216,7 @@ impl StressTestExecutor {
         let event_sender = self.event_sender.clone();
         let state = Arc::clone(&self.state);
         let registry = Arc::clone(&self.registry);
+        let variables = self.variables.clone();
 
         // 启动主控任务
         tokio::spawn(async move {
@@ -215,6 +228,7 @@ impl StressTestExecutor {
                 event_sender,
                 state,
                 registry,
+                variables,
             )
             .await;
         });
@@ -298,6 +312,7 @@ impl StressTestExecutor {
         event_sender: mpsc::UnboundedSender<StressTestEvent>,
         state: Arc<RwLock<StressTestState>>,
         registry: Arc<flow_engine_core::registry::NodeRegistry>,
+        variables: Option<Arc<serde_json::Value>>,
     ) {
         let start_time = Instant::now();
         let duration = Duration::from_secs(config.duration_seconds as u64);
@@ -389,6 +404,7 @@ impl StressTestExecutor {
                     let strategy = dataset_strategy.clone();
                     let registry_clone = Arc::clone(&registry);
                     let virtual_user_id = current_active + user_id;
+                    let variables_clone = variables.clone();
 
                     let handle = tokio::spawn(async move {
                         Self::run_virtual_user(
@@ -400,6 +416,7 @@ impl StressTestExecutor {
                             strategy,
                             virtual_user_id,
                             registry_clone,
+                            variables_clone,
                         )
                         .await;
                     });
@@ -509,9 +526,13 @@ impl StressTestExecutor {
         dataset_strategy: DataPickStrategy,
         virtual_user_id: u32,
         registry: Arc<flow_engine_core::registry::NodeRegistry>,
+        variables: Option<Arc<serde_json::Value>>,
     ) {
         let executor = FlowExecutor::new().with_registry(registry);
         let mut iteration_index: u64 = 0;
+        // 前置变量层（流程兜底 + 环境 + 运行时覆盖）在每个虚拟用户内克隆一次，
+        // 迭代时仅按需复制，避免热路径重复深拷贝。
+        let base_variables: Option<serde_json::Value> = variables.as_deref().cloned();
 
         loop {
             // 检查停止信号
@@ -547,7 +568,9 @@ impl StressTestExecutor {
             };
 
             // 执行流程
-            let execution_result = executor.execute_flow(&flow, None, runtime_vars, None).await;
+            let execution_result = executor
+                .execute_flow(&flow, base_variables.clone(), runtime_vars, None)
+                .await;
 
             // 计算延迟
             let latency_ms = iteration_start.elapsed().as_millis() as u64;

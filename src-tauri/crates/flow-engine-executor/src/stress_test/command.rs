@@ -124,6 +124,8 @@ impl StressTestSessionManager {
     /// # 参数
     /// - `flow`: 要执行的流程
     /// - `config`: 压测配置
+    /// - `variables`: 执行前置变量层（流程兜底 + 环境文件 + 运行时覆盖的合并结果）；
+    ///   为 `None` 时压测仅使用 `flow.initial_variables`
     /// - `event_sender`: 事件发送器
     ///
     /// # 返回
@@ -133,6 +135,7 @@ impl StressTestSessionManager {
         &self,
         flow: Flow,
         config: StressTestConfig,
+        variables: Option<serde_json::Value>,
         event_sender: mpsc::UnboundedSender<StressTestEvent>,
     ) -> Result<(), String> {
         // 验证配置（在获取锁之前进行，避免持有锁时做耗时操作）
@@ -160,12 +163,10 @@ impl StressTestSessionManager {
                 .read()
                 .unwrap_or_else(|poisoned| poisoned.into_inner()),
         );
-        let executor = Arc::new(StressTestExecutor::new(
-            flow,
-            config,
-            event_sender.clone(),
-            registry,
-        ));
+        let executor = Arc::new(
+            StressTestExecutor::new(flow, config, event_sender.clone(), registry)
+                .with_variables(variables),
+        );
 
         // 启动执行器（在持有锁的情况下启动，确保状态一致性）
         executor.start().await?;
@@ -237,6 +238,7 @@ impl StressTestSessionManager {
 ///
 /// # 参数
 /// - `input`: 启动参数（流程和配置）
+/// - `variables`: 执行前置变量层（流程兜底 + 环境文件 + 本地覆盖的合并结果）
 /// - `event_sender`: 事件发送器，用于向前端发送压测事件
 /// - `state`: 会话管理器（共享状态）
 ///
@@ -245,6 +247,7 @@ impl StressTestSessionManager {
 /// - `Err(String)` - 启动Failed
 pub async fn handle_start_stress_test(
     input: StartStressTestInput,
+    variables: Option<serde_json::Value>,
     event_sender: mpsc::UnboundedSender<StressTestEvent>,
     state: Arc<StressTestSessionManager>,
 ) -> Result<(), String> {
@@ -255,7 +258,9 @@ pub async fn handle_start_stress_test(
         input.config.duration_seconds
     );
 
-    state.start(input.flow, input.config, event_sender).await
+    state
+        .start(input.flow, input.config, variables, event_sender)
+        .await
 }
 
 /// 处理停止压力测试命令
@@ -578,7 +583,7 @@ mod tests {
 
         let input = StartStressTestInput { flow, config };
 
-        let result = handle_start_stress_test(input, event_sender, manager.clone()).await;
+        let result = handle_start_stress_test(input, None, event_sender, manager.clone()).await;
         assert!(result.is_ok(), "启动应该Failed: {:?}", result.err());
         assert!(manager.is_running().await);
 
@@ -607,7 +612,7 @@ mod tests {
             config: config1,
         };
 
-        let result1 = handle_start_stress_test(input1, event_sender1, manager.clone()).await;
+        let result1 = handle_start_stress_test(input1, None, event_sender1, manager.clone()).await;
         assert!(result1.is_ok(), "第一次启动应该Success");
 
         // 第二次启动应该Failed
@@ -641,7 +646,7 @@ mod tests {
             config: config2,
         };
 
-        let result2 = handle_start_stress_test(input2, event_sender2, manager.clone()).await;
+        let result2 = handle_start_stress_test(input2, None, event_sender2, manager.clone()).await;
         assert!(result2.is_err(), "第二次启动应该Failed");
         let error = result2
             .err()
@@ -669,7 +674,7 @@ mod tests {
 
         let input = StartStressTestInput { flow, config };
 
-        let result = handle_start_stress_test(input, event_sender, manager.clone()).await;
+        let result = handle_start_stress_test(input, None, event_sender, manager.clone()).await;
         assert!(result.is_err(), "无效配置应该Failed");
         let error = result
             .err()
@@ -694,7 +699,7 @@ mod tests {
             ..Default::default()
         };
         let input = StartStressTestInput { flow, config };
-        let _ = handle_start_stress_test(input, event_sender, manager.clone()).await;
+        let _ = handle_start_stress_test(input, None, event_sender, manager.clone()).await;
 
         // 然后停止
         let result = handle_stop_stress_test(manager.clone()).await;
@@ -721,7 +726,7 @@ mod tests {
             ..Default::default()
         };
         let input = StartStressTestInput { flow, config };
-        let _ = handle_start_stress_test(input, event_sender, manager.clone()).await;
+        let _ = handle_start_stress_test(input, None, event_sender, manager.clone()).await;
 
         // 获取状态
         let result = handle_get_stress_test_status(manager.clone()).await;
@@ -771,7 +776,7 @@ mod tests {
         };
 
         manager
-            .start(flow, config, event_sender)
+            .start(flow, config, None, event_sender)
             .await
             .unwrap_or_else(|e| panic!("启动Failed: {e}"));
 
@@ -812,7 +817,7 @@ mod tests {
             ..Default::default()
         };
 
-        let result = manager.start(flow2, config2, event_sender2).await;
+        let result = manager.start(flow2, config2, None, event_sender2).await;
         assert!(result.is_ok(), "重新启动应该Success");
 
         // 清理
@@ -845,7 +850,9 @@ mod tests {
             };
 
             let handle =
-                tokio::spawn(async move { manager_clone.start(flow, config, sender_clone).await });
+                tokio::spawn(
+                    async move { manager_clone.start(flow, config, None, sender_clone).await },
+                );
             handles.push(handle);
         }
 
