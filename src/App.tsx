@@ -11,6 +11,8 @@ import { useSettingsStore } from '@/stores/settings';
 import { useDebugStore } from '@/stores/debug';
 import { useFlowStore } from '@/stores/flow';
 import { useZoomStore } from '@/stores/zoom';
+import { useEnvironmentStore } from '@/stores/environment';
+import { getNodeMetadata } from '@/lib/NodeRegistry';
 import { get_debug_status, force_end_debug } from '@/services/tauri';
 import { TypesafeI18n, switchLocale } from '@/i18n';
 import { useI18nContext } from '@/i18n/i18n-react';
@@ -58,10 +60,11 @@ function App() {
 
       try {
         await loadSettings();
+        void useEnvironmentStore.getState().loadEnvironments();
+        void getNodeMetadata();
       } catch (error) {
         console.warn('[startup] Failed to load settings:', error);
       }
-
       // 检查并清理可能残留的调试会话（刷新页面时后端状态未清理）
       try {
         const hasActiveSession = await get_debug_status();

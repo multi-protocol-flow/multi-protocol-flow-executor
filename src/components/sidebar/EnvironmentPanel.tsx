@@ -46,9 +46,10 @@ export function EnvironmentPanel() {
   };
 
   useEffect(() => {
-    void loadEnvironments();
+    if (useEnvironmentStore.getState().environments.length === 0) {
+      void loadEnvironments();
+    }
   }, [loadEnvironments]);
-
   useEffect(() => {
     if (renamingOldName) renameInputRef.current?.focus();
   }, [renamingOldName]);
@@ -263,6 +264,13 @@ export function EnvironmentPanelHeaderAction() {
   const ll = getLL();
   const openEnvironmentManagerDialog = useUIStore((s) => s.openEnvironmentManagerDialog);
   const environmentCount = useEnvironmentStore((s) => s.environments.length);
+
+  // 保证当标题栏挂载时（即使环境面板主体处于折叠状态），环境数量角标也能立即在后台拉取并显示
+  useEffect(() => {
+    if (useEnvironmentStore.getState().environments.length === 0) {
+      void useEnvironmentStore.getState().loadEnvironments();
+    }
+  }, []);
 
   return (
     <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>

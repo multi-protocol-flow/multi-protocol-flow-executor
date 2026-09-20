@@ -53,7 +53,9 @@ export function EnvironmentSelector() {
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    void loadEnvironments();
+    if (useEnvironmentStore.getState().environments.length === 0) {
+      void loadEnvironments();
+    }
   }, [loadEnvironments]);
 
   /** 切换激活环境：加载失败（文件被删 / YAML 非法）时提示而不是静默失败 */
