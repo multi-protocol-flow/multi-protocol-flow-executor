@@ -53,6 +53,7 @@ impl ExecutionEventSender for CliExecutionEventSender {
 pub async fn execute(
     format: &str,
     flow_path: &str,
+    env: Option<&str>,
     vars: &[String],
     stream: bool,
     no_report: bool,
@@ -76,19 +77,55 @@ pub async fn execute(
     // 子流程按 ID 解析使用配置中的流程目录（默认数据目录），
     // 与 `mpe flow list` 等命令的可见范围保持一致
     flow_engine::storage::set_flows_dir_override(Some(app_config.flows_dir.clone()));
+    flow_engine::storage::set_environments_dir_override(Some(app_config.environments_dir.clone()));
 
     // Load flow
     let flow = flow_engine::storage::load_flow(flow_path)
         .map_err(|e| CliError::execution(format!("Failed to load flow: {}", e)))?;
 
-    // Parse variable overrides
-    let variables = if vars.is_empty() {
+    // Load environment if specified
+    let env_set = if let Some(env_name) = env {
+        if !env_name.trim().is_empty() {
+            let env_dir = flow_engine::storage::get_environments_dir().map_err(|e| {
+                CliError::execution(format!("Failed to get environments directory: {}", e))
+            })?;
+            Some(
+                flow_engine::storage::load_environment_file(env_name.trim(), &env_dir).map_err(
+                    |e| {
+                        CliError::execution(format!(
+                            "Failed to load environment '{}': {}",
+                            env_name, e
+                        ))
+                    },
+                )?,
+            )
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // Parse variable overrides from CLI --var
+    let cli_vars = if vars.is_empty() {
+        None
+    } else {
+        Some(parse_vars(vars)?)
+    };
+
+    // Merge variable layers: fallback (flow.initial_variables) -> env -> runtime (--var)
+    let merged = flow_engine::flow::merge_variable_layers(
+        flow.initial_variables.as_ref(),
+        env_set.as_ref(),
+        None,
+        cli_vars.as_ref(),
+    );
+
+    let variables = if merged.is_empty() {
         None
     } else {
         Some(serde_json::Value::Object(
-            parse_vars(vars)?
-                .into_iter()
-                .collect::<serde_json::Map<String, serde_json::Value>>(),
+            merged.into_iter().collect::<serde_json::Map<_, _>>(),
         ))
     };
 

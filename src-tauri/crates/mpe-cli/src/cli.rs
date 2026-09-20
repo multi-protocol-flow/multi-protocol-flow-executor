@@ -108,9 +108,12 @@ pub struct Cli {
 pub enum Commands {
     /// Execute a flow
     Run {
-        /// Flow file path (.mpe)
+        /// Flow file path (.mpf)
         #[arg(short, long)]
         flow: String,
+        /// Active environment name (loads from environments dir)
+        #[arg(short = 'e', long = "env")]
+        env: Option<String>,
         /// Variable overrides (key=value)
         #[arg(long, value_name = "KEY=VALUE")]
         var: Vec<String>,
@@ -135,9 +138,12 @@ pub enum Commands {
     },
     /// Debug a flow (NDJSON bidirectional protocol)
     Debug {
-        /// Flow file path (.mpe)
+        /// Flow file path (.mpf)
         #[arg(short, long)]
         flow: String,
+        /// Active environment name (loads from environments dir)
+        #[arg(short = 'e', long = "env")]
+        env: Option<String>,
         /// Breakpoint node UUID
         #[arg(long)]
         r#break: Vec<String>,
@@ -509,6 +515,7 @@ async fn async_main() -> Result<(), CliError> {
     match cli.command {
         Commands::Run {
             flow,
+            env,
             var,
             stream,
             no_report,
@@ -519,6 +526,7 @@ async fn async_main() -> Result<(), CliError> {
             run::execute(
                 &cli.format,
                 &flow,
+                env.as_deref(),
                 &var,
                 stream,
                 no_report,
@@ -534,9 +542,23 @@ async fn async_main() -> Result<(), CliError> {
             let (registry, _plugin_manager) = build_shared_registry().await;
             validate::execute(&cli.format, &flow, registry).await
         }
-        Commands::Debug { flow, r#break, var } => {
+        Commands::Debug {
+            flow,
+            env,
+            r#break,
+            var,
+        } => {
             let (registry, _plugin_manager) = build_shared_registry().await;
-            debug_cmd::execute(&cli.format, &flow, &r#break, &var, registry, cancel_rx).await
+            debug_cmd::execute(
+                &cli.format,
+                &flow,
+                env.as_deref(),
+                &r#break,
+                &var,
+                registry,
+                cancel_rx,
+            )
+            .await
         }
         Commands::Stress { command } => {
             let (registry, _plugin_manager) = build_shared_registry().await;
@@ -576,7 +598,9 @@ async fn async_main() -> Result<(), CliError> {
                 println!("[MPE] Command sent successfully. Waking up MPE desktop application.");
                 Ok(())
             } else {
-                println!("[MPE] No running GUI instance detected. Launching MPE desktop application...");
+                println!(
+                    "[MPE] No running GUI instance detected. Launching MPE desktop application..."
+                );
                 gui_bridge::launch_gui()?;
                 Ok(())
             }
@@ -604,7 +628,9 @@ async fn async_main() -> Result<(), CliError> {
                 println!("[MPE] Command sent successfully. Waking up MPE desktop application.");
                 Ok(())
             } else {
-                println!("[MPE] No running GUI instance detected. Launching MPE desktop application...");
+                println!(
+                    "[MPE] No running GUI instance detected. Launching MPE desktop application..."
+                );
                 gui_bridge::launch_gui()?;
                 Ok(())
             }

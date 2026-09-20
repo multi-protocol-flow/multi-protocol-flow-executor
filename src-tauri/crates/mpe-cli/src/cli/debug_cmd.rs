@@ -56,6 +56,7 @@ fn is_session_ended(event: &flow_engine::debug::DebugEvent) -> bool {
 pub async fn execute(
     _format: &str,
     flow_path: &str,
+    env: Option<&str>,
     breakpoints: &[String],
     vars: &[String],
     registry: std::sync::Arc<flow_engine::registry::NodeRegistry>,
@@ -70,17 +71,56 @@ pub async fn execute(
         )));
     }
 
+    let app_config = super::config::AppConfig::load().map_err(super::CliError::Config)?;
+    flow_engine::storage::set_flows_dir_override(Some(app_config.flows_dir.clone()));
+    flow_engine::storage::set_environments_dir_override(Some(app_config.environments_dir.clone()));
+
     // 2. 加载流程
     let flow = flow_engine::storage::load_flow(flow_path)
         .map_err(|e| super::CliError::execution(format!("Failed to load flow: {}", e)))?;
 
-    // 3. 解析变量
-    let variables: Option<serde_json::Value> = if vars.is_empty() {
+    // 3. 加载环境
+    let env_set = if let Some(env_name) = env {
+        if !env_name.trim().is_empty() {
+            let env_dir = flow_engine::storage::get_environments_dir().map_err(|e| {
+                super::CliError::execution(format!("Failed to get environments directory: {}", e))
+            })?;
+            Some(
+                flow_engine::storage::load_environment_file(env_name.trim(), &env_dir).map_err(
+                    |e| {
+                        super::CliError::execution(format!(
+                            "Failed to load environment '{}': {}",
+                            env_name, e
+                        ))
+                    },
+                )?,
+            )
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // 4. 解析变量与层级合并
+    let cli_vars = if vars.is_empty() {
         None
     } else {
-        let map = parse_vars(vars)?;
+        Some(parse_vars(vars)?)
+    };
+
+    let merged = flow_engine::flow::merge_variable_layers(
+        flow.initial_variables.as_ref(),
+        env_set.as_ref(),
+        None,
+        cli_vars.as_ref(),
+    );
+
+    let variables: Option<serde_json::Value> = if merged.is_empty() {
+        None
+    } else {
         Some(serde_json::Value::Object(
-            map.into_iter().collect::<serde_json::Map<_, _>>(),
+            merged.into_iter().collect::<serde_json::Map<_, _>>(),
         ))
     };
 

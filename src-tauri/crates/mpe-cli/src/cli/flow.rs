@@ -88,31 +88,32 @@ async fn execute_fmt(
     let mut formatted_files = Vec::new();
 
     if let Some(dir) = target_dir {
-        let list =
-            flow_engine::storage::list_flow_files(&dir).map_err(CliError::execution)?;
+        let list = flow_engine::storage::list_flow_files(&dir).map_err(CliError::execution)?;
         for meta in list {
             let path = std::path::PathBuf::from(&meta.file_path);
             if path.is_file() {
-                let content = std::fs::read_to_string(&path)
-                    .map_err(|e| CliError::Io(format!("failed to read {}: {}", path.display(), e)))?;
+                let content = std::fs::read_to_string(&path).map_err(|e| {
+                    CliError::Io(format!("failed to read {}: {}", path.display(), e))
+                })?;
                 let flow_file = flow_engine::storage::deserialize_flow_file(&content)
                     .map_err(CliError::execution)?;
                 let output_content =
                     flow_engine::storage::serialize_flow_file(&flow_file, target_format)
                         .map_err(CliError::execution)?;
-                std::fs::write(&path, output_content)
-                    .map_err(|e| CliError::Io(format!("failed to write {}: {}", path.display(), e)))?;
+                std::fs::write(&path, output_content).map_err(|e| {
+                    CliError::Io(format!("failed to write {}: {}", path.display(), e))
+                })?;
                 formatted_files.push(meta.file_path);
             }
         }
     } else if let Some(target_path) = single_file_target {
-        let content = std::fs::read_to_string(&target_path)
-            .map_err(|e| CliError::Io(format!("failed to read {}: {}", target_path.display(), e)))?;
-        let flow_file = flow_engine::storage::deserialize_flow_file(&content)
+        let content = std::fs::read_to_string(&target_path).map_err(|e| {
+            CliError::Io(format!("failed to read {}: {}", target_path.display(), e))
+        })?;
+        let flow_file =
+            flow_engine::storage::deserialize_flow_file(&content).map_err(CliError::execution)?;
+        let output_content = flow_engine::storage::serialize_flow_file(&flow_file, target_format)
             .map_err(CliError::execution)?;
-        let output_content =
-            flow_engine::storage::serialize_flow_file(&flow_file, target_format)
-                .map_err(CliError::execution)?;
         std::fs::write(&target_path, output_content).map_err(|e| {
             CliError::Io(format!("failed to write {}: {}", target_path.display(), e))
         })?;
@@ -320,7 +321,9 @@ mod tests {
         let path = temp_file.path().to_str().unwrap();
 
         // Convert to YAML
-        execute_fmt(Some(path), "yaml", false, "json").await.unwrap();
+        execute_fmt(Some(path), "yaml", false, "json")
+            .await
+            .unwrap();
 
         let yaml_content = std::fs::read_to_string(path).unwrap();
         assert_eq!(
@@ -330,7 +333,9 @@ mod tests {
         assert!(yaml_content.contains("test-fmt-001"));
 
         // Convert back to JSON
-        execute_fmt(Some(path), "json", false, "json").await.unwrap();
+        execute_fmt(Some(path), "json", false, "json")
+            .await
+            .unwrap();
 
         let converted_json = std::fs::read_to_string(path).unwrap();
         assert_eq!(

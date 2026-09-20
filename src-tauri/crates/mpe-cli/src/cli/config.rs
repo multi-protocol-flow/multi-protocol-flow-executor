@@ -1,15 +1,20 @@
 //! CLI config module — multi-level configuration loading
 //!
 //! Configuration priority (highest to lowest):
-//! 1. Environment variables (`MPE_FLOWS_DIR`, `MPE_REPORTS_DIR`)
+//! 1. Environment variables (`MPE_FLOWS_DIR`, `MPE_REPORTS_DIR`, `MPE_ENVIRONMENTS_DIR`)
 //! 2. Config file (`<data_dir>/config.toml` or `$MPE_CONFIG`)
 //! 3. Engine defaults (`flow_engine::storage::get_flows_dir()` etc.)
+//!
+//! `environments_dir` 的默认值与 GUI 保持一致：`<flows_dir>/environments`。
+//! 这样 `MPE_FLOWS_DIR=/srv/flows` 时环境文件也在 `/srv/flows/environments`，
+//! 而不是落回用户数据目录，避免同一套配置在 CLI 与 GUI 下读到不同的环境。
 //!
 //! Config file format:
 //! ```toml
 //! [storage]
 //! flows_dir = "/path/to/flows"
 //! reports_dir = "/path/to/reports"
+//! environments_dir = "/path/to/environments"
 //! ```
 
 use std::path::PathBuf;
@@ -54,6 +59,9 @@ struct StorageConfig {
     /// Plugin directory
     #[serde(default)]
     plugins_dir: Option<PathBuf>,
+    /// Environments directory
+    #[serde(default)]
+    environments_dir: Option<PathBuf>,
 }
 
 // ── Resolved config ────────────────────────────────────────────────────
@@ -67,6 +75,8 @@ pub struct AppConfig {
     pub reports_dir: PathBuf,
     /// Plugin directory
     pub plugins_dir: PathBuf,
+    /// Environments storage directory
+    pub environments_dir: PathBuf,
     /// Plugin connection configuration
     pub plugin_connection_config: flow_engine::ConnectionConfig,
 }
@@ -100,6 +110,15 @@ impl AppConfig {
             &flow_engine::storage::get_reports_dir,
         )?;
 
+        // 默认随已解析的 flows_dir 走（<flows_dir>/environments），与 GUI 派发规则一致
+        let environments_dir = Self::resolve_path(
+            "MPE_ENVIRONMENTS_DIR",
+            config_file
+                .as_ref()
+                .and_then(|c| c.storage.environments_dir.clone()),
+            &|| Ok(flows_dir.join("environments")),
+        )?;
+
         // Plugins: env > config file > data dir/plugins > ./plugins fallback
         let plugins_dir = Self::resolve_path(
             "MPE_PLUGIN_DIR",
@@ -112,7 +131,6 @@ impl AppConfig {
                     .or_else(|_| Ok(PathBuf::from("plugins")))
             },
         )?;
-
         let mut plugin_connection_config = flow_engine::ConnectionConfig::default();
         if let Some(concurrency) = std::env::var("MPE_PLUGIN_MAX_CONCURRENCY")
             .ok()
@@ -145,6 +163,7 @@ impl AppConfig {
             flows_dir,
             reports_dir,
             plugins_dir,
+            environments_dir,
             plugin_connection_config,
         })
     }
@@ -275,11 +294,35 @@ mod tests {
 
         assert_eq!(config.flows_dir, temp);
         assert_eq!(config.reports_dir, temp);
+        // 环境目录默认跟随 flows_dir（与 GUI 一致），不落回用户数据目录
+        assert_eq!(config.environments_dir, temp.join("environments"));
 
         // Cleanup
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
         std::env::remove_var("MPE_PLUGIN_DIR");
+    }
+
+    #[test]
+    fn test_environments_dir_env_var_overrides_flows_derivation() {
+        let _lock = ENV_TEST_MUTEX.lock().unwrap_or_else(|e| panic!("{e}"));
+
+        std::env::remove_var("MPE_CONFIG");
+        std::env::remove_var("MPE_FLOWS_DIR");
+        std::env::remove_var("MPE_REPORTS_DIR");
+        std::env::remove_var("MPE_PLUGIN_DIR");
+
+        let temp = std::env::temp_dir();
+        let env_dir = temp.join("mpe_env_override_probe");
+        std::env::set_var("MPE_FLOWS_DIR", temp.to_string_lossy().as_ref());
+        std::env::set_var("MPE_ENVIRONMENTS_DIR", env_dir.to_string_lossy().as_ref());
+
+        let config = AppConfig::load().unwrap_or_else(|e| panic!("should load successfully: {e}"));
+        assert_eq!(config.environments_dir, env_dir);
+
+        std::env::remove_var("MPE_FLOWS_DIR");
+        std::env::remove_var("MPE_ENVIRONMENTS_DIR");
+        std::env::remove_var("MPE_REPORTS_DIR");
     }
 
     #[test]
