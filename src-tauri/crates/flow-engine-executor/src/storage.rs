@@ -1,7 +1,7 @@
 // 存储模块 - JSON 文件读写实现
 
 use crate::stress_test::StressTestReport;
-use flow_engine_core::flow::Flow;
+use flow_engine_core::flow::{EnvironmentSet, Flow};
 use flow_engine_core::report::{
     ExecutionMode, ExecutionStatus, FlowExecutionReport, ReportMetadata,
 };
@@ -206,6 +206,44 @@ pub fn set_flows_dir_override(dir: Option<PathBuf>) {
     *FLOWS_DIR_OVERRIDE.lock().unwrap_or_else(|e| e.into_inner()) = dir;
 }
 
+/// 全局环境保存目录覆盖：可由设置项 `environmentsDir` 指定独立路径，
+/// 默认若未配置则跟随流程目录下的 `environments/` 子目录。
+static ENVIRONMENTS_DIR_OVERRIDE: LazyLock<Mutex<Option<PathBuf>>> =
+    LazyLock::new(|| Mutex::new(None));
+
+/// 登记当前生效的环境目录（`None` 恢复默认跟随流程目录）
+pub fn set_environments_dir_override(dir: Option<PathBuf>) {
+    *ENVIRONMENTS_DIR_OVERRIDE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner()) = dir;
+}
+
+/// 获取当前生效的环境保存目录
+///
+/// 优先级：
+/// 1. `ENVIRONMENTS_DIR_OVERRIDE`（若显式配置且存在）
+/// 2. 默认跟随当前生效流程目录下的 `environments/` 子目录
+pub fn get_environments_dir() -> Result<PathBuf, String> {
+    if let Some(dir) = ENVIRONMENTS_DIR_OVERRIDE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
+    {
+        return Ok(dir);
+    }
+    Ok(get_flows_dir()?.join("environments"))
+}
+
+/// 确保 environments 子目录存在
+pub fn ensure_environments_dir() -> Result<PathBuf, String> {
+    let env_dir = get_environments_dir()?;
+    if !env_dir.exists() {
+        fs::create_dir_all(&env_dir)
+            .map_err(|e| format!("Failed to create environments directory: {e}"))?;
+    }
+    Ok(env_dir)
+}
+
 /// 确保 flows 子目录存在
 ///
 /// 如果目录不存在则创建，包括所有必要的父目录
@@ -325,7 +363,6 @@ pub fn load_flow(path: &str) -> Result<Flow, String> {
     Ok(flow)
 }
 
-
 // === .mpf 流程文件管理 ===
 
 /// 递归收集目录下所有 .mpf 文件路径
@@ -392,66 +429,69 @@ pub fn save_flow_file_with_meta_and_path(
         _meta: meta,
     };
 
-    let (target_path, old_path_to_remove, existing_format) = if let Some(explicit_path) = target_file_path {
-        let format = if explicit_path.exists() {
-            fs::read_to_string(explicit_path).ok().map(|c| detect_flow_format(&c))
+    let (target_path, old_path_to_remove, existing_format) =
+        if let Some(explicit_path) = target_file_path {
+            let format = if explicit_path.exists() {
+                fs::read_to_string(explicit_path)
+                    .ok()
+                    .map(|c| detect_flow_format(&c))
+            } else {
+                None
+            };
+            (explicit_path.to_path_buf(), None, format)
         } else {
-            None
-        };
-        (explicit_path.to_path_buf(), None, format)
-    } else {
-        // 检查是否已存在同 UUID 的文件（更新场景，轻量解析）
-        let mut existing_path: Option<PathBuf> = None;
-        let mut existing_format: Option<FlowFormat> = None;
-        let mut mpf_files = Vec::new();
-        let _ = collect_mpf_files(flows_dir, &mut mpf_files);
-        for path in &mpf_files {
-            if let Ok(content) = fs::read_to_string(path) {
-                if let Ok(existing) = deserialize_flow_file_meta(&content) {
-                    if existing.flow.uuid == flow.uuid {
-                        existing_format = Some(detect_flow_format(&content));
-                        existing_path = Some(path.clone());
-                        break;
+            // 检查是否已存在同 UUID 的文件（更新场景，轻量解析）
+            let mut existing_path: Option<PathBuf> = None;
+            let mut existing_format: Option<FlowFormat> = None;
+            let mut mpf_files = Vec::new();
+            let _ = collect_mpf_files(flows_dir, &mut mpf_files);
+            for path in &mpf_files {
+                if let Ok(content) = fs::read_to_string(path) {
+                    if let Ok(existing) = deserialize_flow_file_meta(&content) {
+                        if existing.flow.uuid == flow.uuid {
+                            existing_format = Some(detect_flow_format(&content));
+                            existing_path = Some(path.clone());
+                            break;
+                        }
                     }
                 }
             }
-        }
-        // 确定目标目录：保持原有文件夹位置，否则使用根目录
-        let target_dir = existing_path
-            .as_ref()
-            .and_then(|p| p.parent().map(|parent| parent.to_path_buf()))
-            .unwrap_or_else(|| flows_dir.to_path_buf());
+            // 确定目标目录：保持原有文件夹位置，否则使用根目录
+            let target_dir = existing_path
+                .as_ref()
+                .and_then(|p| p.parent().map(|parent| parent.to_path_buf()))
+                .unwrap_or_else(|| flows_dir.to_path_buf());
 
-        // 确保目标目录存在
-        if target_dir != flows_dir {
-            fs::create_dir_all(&target_dir)
-                .map_err(|e| format!("Failed to create target directory: {}", e))?;
-        }
-
-        // 生成文件名，处理冲突
-        let safe_name = sanitize_filename(&flow.name);
-        let mut filename = format!("{}.mpf", safe_name);
-        let mut counter = 2u32;
-
-        loop {
-            let candidate_path = target_dir.join(&filename);
-            // 如果目标路径就是旧文件路径（名称未变），直接跳出
-            let is_old_path = existing_path.as_ref() == Some(&candidate_path);
-            if is_old_path
-                || !candidate_path
-                    .try_exists()
-                    .map_err(|e| format!("failed to check file: {}", e))?
-            {
-                break;
+            // 确保目标目录存在
+            if target_dir != flows_dir {
+                fs::create_dir_all(&target_dir)
+                    .map_err(|e| format!("Failed to create target directory: {}", e))?;
             }
-            filename = format!("{}_{}.mpf", safe_name, counter);
-            counter += 1;
-        }
 
-        let computed_path = target_dir.join(&filename);
-        let to_remove = existing_path.filter(|p| *p != computed_path);
-        (computed_path, to_remove, existing_format)
-    };
+            // 生成文件名，处理冲突
+            let safe_name = sanitize_filename(&flow.name);
+            let mut filename = format!("{}.mpf", safe_name);
+            let mut counter = 2u32;
+
+            loop {
+                let candidate_path = target_dir.join(&filename);
+                // 如果目标路径就是旧文件路径（名称未变），直接跳出
+                let is_old_path = existing_path.as_ref() == Some(&candidate_path);
+                if is_old_path
+                    || !candidate_path
+                        .try_exists()
+                        .map_err(|e| format!("failed to check file: {}", e))?
+                {
+                    break;
+                }
+                filename = format!("{}_{}.mpf", safe_name, counter);
+                counter += 1;
+            }
+
+            let computed_path = target_dir.join(&filename);
+            let to_remove = existing_path.filter(|p| *p != computed_path);
+            (computed_path, to_remove, existing_format)
+        };
 
     let format = existing_format.unwrap_or(FlowFormat::Yaml);
     let output_string = serialize_flow_file(&flow_file, format)?;
@@ -526,8 +566,8 @@ pub fn load_flow_file_with_path(
         }
     };
 
-    let content = fs::read_to_string(&target_path)
-        .map_err(|e| format!("Failed to read file: {}", e))?;
+    let content =
+        fs::read_to_string(&target_path).map_err(|e| format!("Failed to read file: {}", e))?;
     let flow_file = deserialize_flow_file(&content)
         .map_err(|e| format!("Flow file corrupted: {} - {}", target_path.display(), e))?;
 
@@ -670,7 +710,12 @@ pub fn remap_flow_uuids(flow: &mut Flow) {
     for node in &mut flow.nodes {
         if let Ok(mut val) = serde_json::to_value(&node.data) {
             if let Some(obj) = val.as_object_mut() {
-                let ref_keys = ["connection_id", "connection_node_id", "source_node_id", "connection_uuid"];
+                let ref_keys = [
+                    "connection_id",
+                    "connection_node_id",
+                    "source_node_id",
+                    "connection_uuid",
+                ];
                 let mut changed = false;
                 for key in ref_keys {
                     if let Some(serde_json::Value::String(ref_id)) = obj.get(key) {
@@ -738,7 +783,10 @@ pub fn rename_flow_file(
 
     let new_file_path = parent_dir.join(format!("{}.mpf", safe_new_name));
     if new_file_path != target_path && new_file_path.exists() {
-        return Err(format!("File with name '{}.mpf' already exists", safe_new_name));
+        return Err(format!(
+            "File with name '{}.mpf' already exists",
+            safe_new_name
+        ));
     }
 
     let format = if target_path.exists() {
@@ -799,6 +847,402 @@ pub fn rename_flow_file(
         file_path: abs_path.to_string_lossy().to_string(),
         updated_at,
         folder_path,
+    })
+}
+
+// ============================================================================
+// 环境文件存储函数 (Environment Storage)
+// ============================================================================
+
+/// 环境文件元数据
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnvironmentMetadata {
+    /// 环境名称
+    pub name: String,
+    /// 绝对文件路径
+    pub file_path: String,
+    /// 定义的变量数量
+    pub variable_count: usize,
+    /// 是否存在本地私有覆盖文件（.local.yaml）
+    pub has_local_override: bool,
+    /// 文件最后修改时间戳（毫秒）
+    pub updated_at: u64,
+}
+
+/// 清理环境名称中的非法字符
+fn sanitize_env_name(name: &str) -> String {
+    name.trim()
+        .chars()
+        .map(|c| {
+            if matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') {
+                '_'
+            } else {
+                c
+            }
+        })
+        .collect()
+}
+
+/// 校验并清洗环境名称：空名（含纯空白）一律拒绝
+fn checked_env_name(name: &str) -> Result<String, String> {
+    let safe = sanitize_env_name(name);
+    if safe.is_empty() {
+        return Err("Environment name cannot be empty".to_string());
+    }
+    Ok(safe)
+}
+
+/// 探测并解析环境文件内容
+///
+/// 支持两种形态：
+/// - 完整环境对象：`{ name, description?, variables: { ... } }`
+/// - 纯键值映射：整张表即变量表（宽容兼容用户手写的最小 YAML）
+///
+/// 注意：必须先按通用值解析并判断真实形状。直接把内容反序列化成 `EnvironmentSet`
+/// 会因为 serde 默认忽略未知字段，把 `name: x` + 若干标量的纯键值文件静默解析成
+/// 「空变量集」，造成变量丢失。环境名始终以文件名为准，避免文件内容里的 name
+/// 与磁盘文件名不一致（否则后续保存会写到另一个环境文件上）。
+fn deserialize_environment_content(
+    content: &str,
+    default_name: &str,
+) -> Result<EnvironmentSet, String> {
+    let parsed = serde_json::from_str::<serde_json::Value>(content)
+        .or_else(|_| serde_yml::from_str::<serde_json::Value>(content))
+        .map_err(|e| format!("Failed to parse environment file for '{default_name}': {e}"))?;
+
+    let serde_json::Value::Object(mut map) = parsed else {
+        return Err(format!(
+            "Failed to parse environment file for '{default_name}': expected a mapping of variables"
+        ));
+    };
+
+    // 只有 variables 确实是映射时才按「完整环境对象」处理
+    let is_full_env = map.get("variables").is_some_and(|v| v.is_object());
+    if !is_full_env {
+        return Ok(EnvironmentSet {
+            name: default_name.to_string(),
+            description: None,
+            variables: map.into_iter().collect(),
+        });
+    }
+
+    let description = map
+        .get("description")
+        .and_then(|d| d.as_str())
+        .map(str::to_string);
+    let variables = match map.remove("variables") {
+        Some(serde_json::Value::Object(vars)) => vars.into_iter().collect(),
+        _ => HashMap::new(),
+    };
+
+    Ok(EnvironmentSet {
+        name: default_name.to_string(),
+        description,
+        variables,
+    })
+}
+
+/// 在指定环境下查找对应环境的文件路径（优先 .yaml，备选 .yml）
+fn find_environment_file_path(name: &str, is_local: bool, dir: &Path) -> Option<PathBuf> {
+    let safe_name = sanitize_env_name(name);
+    if is_local {
+        let p1 = dir.join(format!("{safe_name}.local.yaml"));
+        if p1.exists() {
+            return Some(p1);
+        }
+        let p2 = dir.join(format!("{safe_name}.local.yml"));
+        if p2.exists() {
+            return Some(p2);
+        }
+    } else {
+        let p1 = dir.join(format!("{safe_name}.yaml"));
+        if p1.exists() {
+            return Some(p1);
+        }
+        let p2 = dir.join(format!("{safe_name}.yml"));
+        if p2.exists() {
+            return Some(p2);
+        }
+    }
+    None
+}
+
+/// 列出指定目录下的所有环境文件元数据
+///
+/// 同一环境若同时存在 `.yaml` 与 `.yml`，一律以 `.yaml` 为准
+/// （与 `find_environment_file_path` 的加载优先级保持一致，避免列表展示的文件
+/// 与实际加载/执行的文件不是同一个）。
+pub fn list_environment_files(environments_dir: &Path) -> Result<Vec<EnvironmentMetadata>, String> {
+    if !environments_dir.exists() {
+        return Ok(vec![]);
+    }
+
+    let entries = fs::read_dir(environments_dir).map_err(|e| {
+        format!(
+            "Failed to read environments directory {:?}: {}",
+            environments_dir, e
+        )
+    })?;
+
+    // 先收集环境名（read_dir 顺序不确定，需自行归一）
+    let mut names: Vec<String> = Vec::new();
+    for entry in entries.flatten() {
+        let file_name = entry.file_name().to_string_lossy().to_string();
+        // 排除 *.local.yaml / *.local.yml，它们属于覆盖层而非独立环境
+        if file_name.ends_with(".local.yaml") || file_name.ends_with(".local.yml") {
+            continue;
+        }
+        let name = if let Some(base) = file_name.strip_suffix(".yaml") {
+            base.to_string()
+        } else if let Some(base) = file_name.strip_suffix(".yml") {
+            base.to_string()
+        } else {
+            continue;
+        };
+        if !names.contains(&name) {
+            names.push(name);
+        }
+    }
+
+    let mut result = Vec::with_capacity(names.len());
+    for name in names {
+        let Some(path) = find_environment_file_path(&name, false, environments_dir) else {
+            continue;
+        };
+
+        let has_local_override =
+            find_environment_file_path(&name, true, environments_dir).is_some();
+        let updated_at = fs::metadata(&path)
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+
+        let variable_count = fs::read_to_string(&path)
+            .ok()
+            .and_then(|content| deserialize_environment_content(&content, &name).ok())
+            .map(|env| env.variables.len())
+            .unwrap_or(0);
+
+        let abs_path = if path.is_absolute() {
+            path
+        } else {
+            std::path::absolute(&path).unwrap_or_else(|_| path.clone())
+        };
+
+        result.push(EnvironmentMetadata {
+            name,
+            file_path: abs_path.to_string_lossy().to_string(),
+            variable_count,
+            has_local_override,
+            updated_at,
+        });
+    }
+
+    result.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(result)
+}
+
+/// 直接读取单个环境文件原始内容（不自动合并 local 覆盖）
+pub fn load_environment_file_raw(
+    name: &str,
+    is_local: bool,
+    environments_dir: &Path,
+) -> Result<EnvironmentSet, String> {
+    let safe_name = checked_env_name(name)?;
+    let path =
+        find_environment_file_path(&safe_name, is_local, environments_dir).ok_or_else(|| {
+            format!(
+                "Environment file '{}' (is_local={}) not found in {:?}",
+                safe_name, is_local, environments_dir
+            )
+        })?;
+    let content = fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read environment file {:?}: {}", path, e))?;
+    deserialize_environment_content(&content, &safe_name)
+}
+
+/// 加载环境配置，若存在对应的 `.local.yaml` 本地覆盖文件则自动增量合并
+pub fn load_environment_file(
+    name: &str,
+    environments_dir: &Path,
+) -> Result<EnvironmentSet, String> {
+    let mut base_env = load_environment_file_raw(name, false, environments_dir)?;
+    if let Ok(local_env) = load_environment_file_raw(name, true, environments_dir) {
+        base_env.variables.extend(local_env.variables);
+    }
+    Ok(base_env)
+}
+
+/// 保存环境到 YAML 文件（原子写入，支持主环境与 local 覆盖文件）
+pub fn save_environment_file(
+    env: &EnvironmentSet,
+    is_local: bool,
+    environments_dir: &Path,
+) -> Result<(), String> {
+    let safe_name = checked_env_name(&env.name)?;
+
+    if !environments_dir.exists() {
+        fs::create_dir_all(environments_dir).map_err(|e| {
+            format!(
+                "Failed to create environments directory {:?}: {}",
+                environments_dir, e
+            )
+        })?;
+    }
+
+    let file_name = if is_local {
+        format!("{safe_name}.local.yaml")
+    } else {
+        format!("{safe_name}.yaml")
+    };
+    let target_path = environments_dir.join(file_name);
+
+    let yaml_content = serde_yml::to_string(env)
+        .map_err(|e| format!("Failed to serialize environment to YAML: {}", e))?;
+
+    let mut temp_file = NamedTempFile::new_in(environments_dir).map_err(|e| {
+        format!(
+            "Failed to create temporary file in {:?}: {}",
+            environments_dir, e
+        )
+    })?;
+    temp_file
+        .write_all(yaml_content.as_bytes())
+        .map_err(|e| format!("Failed to write temporary file: {}", e))?;
+    temp_file.persist(&target_path).map_err(|e| {
+        format!(
+            "Failed to persist environment file {:?}: {}",
+            target_path, e
+        )
+    })?;
+
+    Ok(())
+}
+
+/// 删除环境文件（同时删除对应的 `.local.yaml` 覆盖文件）
+pub fn delete_environment_file(name: &str, environments_dir: &Path) -> Result<(), String> {
+    let safe_name = checked_env_name(name)?;
+    let mut deleted_any = false;
+
+    for ext in &["yaml", "yml"] {
+        for path in [
+            environments_dir.join(format!("{safe_name}.{ext}")),
+            environments_dir.join(format!("{safe_name}.local.{ext}")),
+        ] {
+            if !path.exists() {
+                continue;
+            }
+            fs::remove_file(&path)
+                .map_err(|e| format!("Failed to delete environment file {:?}: {}", path, e))?;
+            deleted_any = true;
+        }
+    }
+
+    if !deleted_any {
+        return Err(format!(
+            "Environment '{name}' not found in {:?}",
+            environments_dir
+        ));
+    }
+    Ok(())
+}
+
+/// 仅删除环境的本地私有覆盖文件（`<name>.local.yaml`），保留主环境文件
+///
+/// 用于「取消本地覆盖」：清空开发机私有变量，但不影响团队共享的主环境定义。
+pub fn delete_environment_local_override(
+    name: &str,
+    environments_dir: &Path,
+) -> Result<(), String> {
+    let safe_name = checked_env_name(name)?;
+    let mut deleted_any = false;
+
+    for ext in &["yaml", "yml"] {
+        let local_path = environments_dir.join(format!("{safe_name}.local.{ext}"));
+        if !local_path.exists() {
+            continue;
+        }
+        fs::remove_file(&local_path)
+            .map_err(|e| format!("Failed to delete local override {:?}: {}", local_path, e))?;
+        deleted_any = true;
+    }
+
+    if !deleted_any {
+        return Err(format!(
+            "Local override for environment '{name}' not found in {:?}",
+            environments_dir
+        ));
+    }
+    Ok(())
+}
+
+/// 重命名环境（同时重命名关联的 .local 覆盖文件）
+pub fn rename_environment_file(
+    old_name: &str,
+    new_name: &str,
+    environments_dir: &Path,
+) -> Result<EnvironmentMetadata, String> {
+    // 两端都按同一套规则清洗，否则 " dev " 之类的旧名会因为比较失败而被误判为「已存在」
+    let safe_old_name = checked_env_name(old_name)?;
+    let safe_new_name = checked_env_name(new_name)?;
+
+    if safe_new_name == safe_old_name {
+        return list_environment_files(environments_dir)?
+            .into_iter()
+            .find(|m| m.name == safe_new_name)
+            .ok_or_else(|| format!("Environment '{safe_old_name}' not found"));
+    }
+
+    if find_environment_file_path(&safe_new_name, false, environments_dir).is_some() {
+        return Err(format!("Environment '{safe_new_name}' already exists"));
+    }
+    // 目标名已存在本地覆盖时同样必须拒绝：否则下面的写入会覆盖掉目标环境已有的私有配置
+    if find_environment_file_path(&safe_new_name, true, environments_dir).is_some() {
+        return Err(format!(
+            "Local override for environment '{safe_new_name}' already exists"
+        ));
+    }
+
+    let mut env = load_environment_file_raw(&safe_old_name, false, environments_dir)?;
+    let local_env = load_environment_file_raw(&safe_old_name, true, environments_dir).ok();
+
+    // 先写新文件、确认成功后再删旧文件，避免中途失败造成环境丢失
+    env.name = safe_new_name.clone();
+    save_environment_file(&env, false, environments_dir)?;
+
+    let has_local = if let Some(mut local) = local_env {
+        local.name = safe_new_name.clone();
+        save_environment_file(&local, true, environments_dir)?;
+        true
+    } else {
+        false
+    };
+
+    delete_environment_file(&safe_old_name, environments_dir)?;
+
+    let target_path = environments_dir.join(format!("{safe_new_name}.yaml"));
+    let updated_at = fs::metadata(&target_path)
+        .ok()
+        .and_then(|m| m.modified().ok())
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+
+    let abs_path = if target_path.is_absolute() {
+        target_path
+    } else {
+        std::path::absolute(&target_path).unwrap_or_else(|_| target_path.clone())
+    };
+
+    Ok(EnvironmentMetadata {
+        name: safe_new_name,
+        file_path: abs_path.to_string_lossy().to_string(),
+        variable_count: env.variables.len(),
+        has_local_override: has_local,
+        updated_at,
     })
 }
 
@@ -2111,8 +2555,6 @@ mod tests {
             name: "Test Flow".to_string(),
             description: None,
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             nodes: vec![],
             connections: vec![],
             hooks: None,
@@ -2144,8 +2586,6 @@ mod tests {
             name: "内置模板".to_string(),
             description: None,
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             nodes: vec![],
             connections: vec![],
             hooks: None,
@@ -2184,8 +2624,6 @@ mod tests {
             name: "普通流程".to_string(),
             description: None,
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             nodes: vec![],
             connections: vec![],
             hooks: None,
@@ -2291,8 +2729,6 @@ mod tests {
             name: name.to_string(),
             description: None,
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             nodes: vec![],
             connections: vec![],
             hooks: None,
@@ -2518,9 +2954,9 @@ mod tests {
     /// 测试 `copy_flow_file` 复制流程时节点与连线全量重映射
     #[test]
     fn test_copy_flow_file_remaps_nodes_and_connections() {
-        use tempfile::TempDir;
         use flow_engine_core::connection::Connection;
         use flow_engine_core::node::Node;
+        use tempfile::TempDir;
 
         let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
         let flows_dir = temp_dir.path();
@@ -2543,7 +2979,8 @@ mod tests {
 
         save_flow_file(&flow, flows_dir).unwrap_or_else(|e| panic!("保存原始流程Failed: {e}"));
 
-        let copied = copy_flow_file("copy-with-nodes", flows_dir).unwrap_or_else(|e| panic!("复制失败: {e}"));
+        let copied = copy_flow_file("copy-with-nodes", flows_dir)
+            .unwrap_or_else(|e| panic!("复制失败: {e}"));
         assert_eq!(copied.nodes.len(), 2);
         assert_eq!(copied.connections.len(), 1);
 
@@ -2561,8 +2998,8 @@ mod tests {
     /// 测试 `copy_flow_file` 复制流程时数据库节点内部 connection_uuid 级联重映射
     #[test]
     fn test_copy_flow_file_remaps_connection_uuid() {
-        use tempfile::TempDir;
         use flow_engine_core::node::Node;
+        use tempfile::TempDir;
 
         let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
         let flows_dir = temp_dir.path();
@@ -2577,19 +3014,22 @@ mod tests {
             "type": "db:query",
             "connection_uuid": "db-conn-origin",
             "sql": "SELECT 1"
-        })).unwrap_or_else(|e| panic!("反序列化节点数据失败: {e}"));
+        }))
+        .unwrap_or_else(|e| panic!("反序列化节点数据失败: {e}"));
 
         flow.nodes = vec![node1, node2];
 
         save_flow_file(&flow, flows_dir).unwrap_or_else(|e| panic!("保存原始流程Failed: {e}"));
 
-        let copied = copy_flow_file("copy-db-flow", flows_dir).unwrap_or_else(|e| panic!("复制失败: {e}"));
+        let copied =
+            copy_flow_file("copy-db-flow", flows_dir).unwrap_or_else(|e| panic!("复制失败: {e}"));
         assert_eq!(copied.nodes.len(), 2);
 
         let new_conn_uuid = &copied.nodes[0].uuid;
         assert_ne!(new_conn_uuid, "db-conn-origin");
 
-        let query_data_val = serde_json::to_value(&copied.nodes[1].data).unwrap_or_else(|e| panic!("{e}"));
+        let query_data_val =
+            serde_json::to_value(&copied.nodes[1].data).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(query_data_val["connection_uuid"], *new_conn_uuid);
     }
 
@@ -2617,9 +3057,13 @@ mod tests {
         // 验证删除后数量
         let list_after = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列出Failed: {e}"));
         assert_eq!(list_after.len(), 1, "删除后应剩余 1 个流程");
-        assert_eq!(list_after[0].uuid, "保留流程.mpf", "剩余的应是保留流程相对路径");
+        assert_eq!(
+            list_after[0].uuid, "保留流程.mpf",
+            "剩余的应是保留流程相对路径"
+        );
         assert_eq!(list_after[0].name, "保留流程");
-        let remaining = load_flow_file("del-001", flows_dir).unwrap_or_else(|e| panic!("加载保留流程Failed: {e}"));
+        let remaining = load_flow_file("del-001", flows_dir)
+            .unwrap_or_else(|e| panic!("加载保留流程Failed: {e}"));
         assert_eq!(remaining.uuid, "del-001");
 
         // 删除不存在的 UUID 应Failed
@@ -2711,7 +3155,10 @@ mod tests {
     #[test]
     fn test_detect_flow_format() {
         assert_eq!(detect_flow_format("{\"_version\": 1}"), FlowFormat::Json);
-        assert_eq!(detect_flow_format("  \n  { \"_version\": 1 }"), FlowFormat::Json);
+        assert_eq!(
+            detect_flow_format("  \n  { \"_version\": 1 }"),
+            FlowFormat::Json
+        );
         assert_eq!(detect_flow_format("_version: 1\nflow:\n"), FlowFormat::Yaml);
         assert_eq!(detect_flow_format("---\n_version: 1\n"), FlowFormat::Yaml);
     }
@@ -2754,8 +3201,8 @@ mod tests {
         assert!(yaml_str.contains("100.0") || yaml_str.contains("100"));
         assert!(yaml_str.contains("201.0") || yaml_str.contains("201"));
 
-        let deserialized = deserialize_flow_file(&yaml_str)
-            .unwrap_or_else(|e| panic!("YAML 反序列化Failed: {e}"));
+        let deserialized =
+            deserialize_flow_file(&yaml_str).unwrap_or_else(|e| panic!("YAML 反序列化Failed: {e}"));
         assert_eq!(deserialized.flow.nodes[0].position.x, 100.0);
         assert_eq!(deserialized.flow.nodes[0].position.y, 201.0);
     }
@@ -2832,8 +3279,341 @@ mod tests {
         save_flow_file(&updated_legacy, flows_dir).unwrap();
 
         let list2 = list_flow_files(flows_dir).unwrap();
-        let legacy_meta = list2.iter().find(|m| m.name.contains("历史JSON流程已修改")).unwrap();
+        let legacy_meta = list2
+            .iter()
+            .find(|m| m.name.contains("历史JSON流程已修改"))
+            .unwrap();
         let content_legacy_updated = fs::read_to_string(&legacy_meta.file_path).unwrap();
-        assert_eq!(detect_flow_format(&content_legacy_updated), FlowFormat::Json, "历史 JSON 流程更新后应保持 JSON 格式");
+        assert_eq!(
+            detect_flow_format(&content_legacy_updated),
+            FlowFormat::Json,
+            "历史 JSON 流程更新后应保持 JSON 格式"
+        );
+    }
+
+    // ========================================================================
+    // 环境文件存储测试 (Environment Storage Tests)
+    // ========================================================================
+
+    #[test]
+    fn test_environment_storage_crud() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let env_dir = temp_dir.path();
+
+        // 1. 初始化列表为空
+        let list = list_environment_files(env_dir).unwrap();
+        assert!(list.is_empty());
+
+        // 2. 创建并保存环境 dev
+        let mut vars = HashMap::new();
+        vars.insert("HOST".to_string(), serde_json::json!("dev.example.com"));
+        vars.insert("PORT".to_string(), serde_json::json!(8080));
+        let env = EnvironmentSet {
+            name: "dev".to_string(),
+            description: Some("开发环境".to_string()),
+            variables: vars,
+        };
+        save_environment_file(&env, false, env_dir).unwrap();
+
+        // 3. 验证列表
+        let list = list_environment_files(env_dir).unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].name, "dev");
+        assert_eq!(list[0].variable_count, 2);
+        assert!(!list[0].has_local_override);
+        assert!(list[0].updated_at > 0);
+
+        // 4. 读取原始环境
+        let loaded = load_environment_file_raw("dev", false, env_dir).unwrap();
+        assert_eq!(loaded.name, "dev");
+        assert_eq!(loaded.description, Some("开发环境".to_string()));
+        assert_eq!(
+            loaded.variables.get("HOST"),
+            Some(&serde_json::json!("dev.example.com"))
+        );
+        assert_eq!(loaded.variables.get("PORT"), Some(&serde_json::json!(8080)));
+
+        // 5. 删除环境
+        delete_environment_file("dev", env_dir).unwrap();
+        let list_after = list_environment_files(env_dir).unwrap();
+        assert!(list_after.is_empty());
+    }
+
+    #[test]
+    fn test_environment_local_override_merge() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let env_dir = temp_dir.path();
+
+        // 1. 主环境 dev.yaml
+        let mut base_vars = HashMap::new();
+        base_vars.insert("HOST".to_string(), serde_json::json!("dev.example.com"));
+        base_vars.insert("PORT".to_string(), serde_json::json!(8080));
+        let base_env = EnvironmentSet {
+            name: "dev".to_string(),
+            description: None,
+            variables: base_vars,
+        };
+        save_environment_file(&base_env, false, env_dir).unwrap();
+
+        // 2. 本地私有覆盖 dev.local.yaml
+        let mut local_vars = HashMap::new();
+        local_vars.insert("HOST".to_string(), serde_json::json!("localhost"));
+        local_vars.insert("SECRET".to_string(), serde_json::json!("my-local-secret"));
+        let local_env = EnvironmentSet {
+            name: "dev".to_string(),
+            description: None,
+            variables: local_vars,
+        };
+        save_environment_file(&local_env, true, env_dir).unwrap();
+
+        // 3. 元数据应标记 has_local_override = true
+        let list = list_environment_files(env_dir).unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].name, "dev");
+        assert!(list[0].has_local_override);
+
+        // 4. raw 加载不合并
+        let loaded_raw = load_environment_file_raw("dev", false, env_dir).unwrap();
+        assert_eq!(
+            loaded_raw.variables.get("HOST"),
+            Some(&serde_json::json!("dev.example.com"))
+        );
+        assert!(loaded_raw.variables.get("SECRET").is_none());
+
+        // 5. 普通加载自动合并（local 覆盖 base）
+        let loaded_merged = load_environment_file("dev", env_dir).unwrap();
+        assert_eq!(
+            loaded_merged.variables.get("HOST"),
+            Some(&serde_json::json!("localhost"))
+        );
+        assert_eq!(
+            loaded_merged.variables.get("PORT"),
+            Some(&serde_json::json!(8080))
+        );
+        assert_eq!(
+            loaded_merged.variables.get("SECRET"),
+            Some(&serde_json::json!("my-local-secret"))
+        );
+    }
+
+    #[test]
+    fn test_environment_rename() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let env_dir = temp_dir.path();
+
+        let mut vars = HashMap::new();
+        vars.insert("K".to_string(), serde_json::json!("V"));
+        let env = EnvironmentSet {
+            name: "old_env".to_string(),
+            description: None,
+            variables: vars,
+        };
+        save_environment_file(&env, false, env_dir).unwrap();
+
+        let mut local_vars = HashMap::new();
+        local_vars.insert("LOCAL_K".to_string(), serde_json::json!("LOCAL_V"));
+        let local_env = EnvironmentSet {
+            name: "old_env".to_string(),
+            description: None,
+            variables: local_vars,
+        };
+        save_environment_file(&local_env, true, env_dir).unwrap();
+
+        // 重命名 old_env -> new_env
+        let meta = rename_environment_file("old_env", "new_env", env_dir).unwrap();
+        assert_eq!(meta.name, "new_env");
+        assert!(meta.has_local_override);
+
+        // 验证旧文件已删除，新文件可加载
+        assert!(load_environment_file_raw("old_env", false, env_dir).is_err());
+        let new_loaded = load_environment_file("new_env", env_dir).unwrap();
+        assert_eq!(new_loaded.variables.get("K"), Some(&serde_json::json!("V")));
+        assert_eq!(
+            new_loaded.variables.get("LOCAL_K"),
+            Some(&serde_json::json!("LOCAL_V"))
+        );
+    }
+
+    /// 仅删除本地私有覆盖时，主环境文件必须完好无损且不再叠加覆盖值
+    #[test]
+    fn test_environment_delete_local_override_only() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let env_dir = temp_dir.path();
+
+        let mut base_vars = HashMap::new();
+        base_vars.insert("HOST".to_string(), serde_json::json!("shared.host"));
+        save_environment_file(
+            &EnvironmentSet {
+                name: "prod".to_string(),
+                description: Some("共享环境".to_string()),
+                variables: base_vars,
+            },
+            false,
+            env_dir,
+        )
+        .unwrap();
+
+        let mut local_vars = HashMap::new();
+        local_vars.insert("HOST".to_string(), serde_json::json!("private.host"));
+        save_environment_file(
+            &EnvironmentSet {
+                name: "prod".to_string(),
+                description: None,
+                variables: local_vars,
+            },
+            true,
+            env_dir,
+        )
+        .unwrap();
+
+        assert!(load_environment_file("prod", env_dir)
+            .unwrap()
+            .variables
+            .get("HOST")
+            .is_some_and(|v| v == &serde_json::json!("private.host")));
+
+        delete_environment_local_override("prod", env_dir).unwrap();
+
+        // 主环境文件保留，覆盖值消失
+        let remaining = list_environment_files(env_dir).unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].name, "prod");
+        assert!(!remaining[0].has_local_override);
+        assert_eq!(
+            load_environment_file("prod", env_dir)
+                .unwrap()
+                .variables
+                .get("HOST"),
+            Some(&serde_json::json!("shared.host"))
+        );
+
+        // 重复删除应报错（幂等性由调用方提示处理）
+        assert!(delete_environment_local_override("prod", env_dir).is_err());
+    }
+
+    /// 用户手写的纯键值 YAML（无 variables 包裹）必须完整解析，不能被静默解析成空变量集
+    #[test]
+    fn test_environment_flat_mapping_not_silently_dropped() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let env_dir = temp_dir.path();
+
+        std::fs::write(
+            env_dir.join("dev.yaml"),
+            "name: my-service\nHOST: dev.example.com\nPORT: 8080\n",
+        )
+        .unwrap();
+
+        let loaded = load_environment_file_raw("dev", false, env_dir).unwrap();
+        // name 以文件名为准，避免文件内容里的 name 让后续保存写错文件
+        assert_eq!(loaded.name, "dev");
+        assert_eq!(
+            loaded.variables.get("HOST"),
+            Some(&serde_json::json!("dev.example.com"))
+        );
+        assert_eq!(loaded.variables.get("PORT"), Some(&serde_json::json!(8080)));
+
+        // 列表也必须反映真实变量数
+        let list = list_environment_files(env_dir).unwrap();
+        assert_eq!(list[0].variable_count, 3);
+
+        // 完整对象形态仍然走 variables 分支
+        std::fs::write(
+            env_dir.join("full.yaml"),
+            "name: whatever\ndescription: 完整环境\nvariables:\n  A: 1\n",
+        )
+        .unwrap();
+        let full = load_environment_file_raw("full", false, env_dir).unwrap();
+        assert_eq!(full.name, "full");
+        assert_eq!(full.description, Some("完整环境".to_string()));
+        assert_eq!(full.variables.get("A"), Some(&serde_json::json!(1)));
+
+        // 非法内容（标量文档）应报错而不是产出空环境
+        std::fs::write(env_dir.join("bad.yaml"), "just-a-scalar\n").unwrap();
+        assert!(load_environment_file_raw("bad", false, env_dir).is_err());
+    }
+
+    /// 同时存在 .yaml 与 .yml 时，列表与加载必须指向同一个文件（.yaml 优先）
+    #[test]
+    fn test_environment_listing_prefers_yaml() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let env_dir = temp_dir.path();
+
+        std::fs::write(env_dir.join("dup.yaml"), "A: from-yaml\n").unwrap();
+        std::fs::write(env_dir.join("dup.yml"), "A: from-yml\n").unwrap();
+
+        let list = list_environment_files(env_dir).unwrap();
+        assert_eq!(list.len(), 1);
+        assert!(list[0].file_path.ends_with("dup.yaml"));
+        assert_eq!(list[0].variable_count, 1);
+        assert_eq!(
+            load_environment_file("dup", env_dir)
+                .unwrap()
+                .variables
+                .get("A"),
+            Some(&serde_json::json!("from-yaml"))
+        );
+    }
+
+    /// 重命名必须拒绝覆盖已存在的环境（含仅存在本地覆盖的目标名）
+    #[test]
+    fn test_environment_rename_rejects_existing_targets() {
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let env_dir = temp_dir.path();
+
+        for name in ["a", "b"] {
+            save_environment_file(
+                &EnvironmentSet {
+                    name: name.to_string(),
+                    description: None,
+                    variables: HashMap::new(),
+                },
+                false,
+                env_dir,
+            )
+            .unwrap();
+        }
+        save_environment_file(
+            &EnvironmentSet {
+                name: "c".to_string(),
+                description: None,
+                variables: HashMap::new(),
+            },
+            true,
+            env_dir,
+        )
+        .unwrap();
+
+        // 目标已有主环境 -> 拒绝，且原环境不被破坏
+        assert!(rename_environment_file("a", "b", env_dir).is_err());
+        assert!(load_environment_file_raw("a", false, env_dir).is_ok());
+
+        // 目标已有本地覆盖（无主环境）-> 同样拒绝，避免覆盖他人私有配置
+        assert!(rename_environment_file("a", "c", env_dir).is_err());
+        assert!(load_environment_file_raw("a", false, env_dir).is_ok());
+        assert_eq!(
+            list_environment_files(env_dir)
+                .unwrap()
+                .iter()
+                .filter(|m| m.name == "c")
+                .count(),
+            0
+        );
+
+        // 空名（含纯空白）必须被拒绝
+        assert!(rename_environment_file("a", "   ", env_dir).is_err());
+        assert!(load_environment_file_raw("", false, env_dir).is_err());
+        assert!(delete_environment_file("  ", env_dir).is_err());
+
+        // 带空白的目标名按同一套清洗规则落到 "d"
+        let meta = rename_environment_file("a", " d ", env_dir).unwrap();
+        assert_eq!(meta.name, "d");
+        assert!(load_environment_file_raw("d", false, env_dir).is_ok());
     }
 }
