@@ -15,6 +15,7 @@ src/
 └── cli.rs         # clap derive: Cli + Commands + async_main() 分发 + run_cli() 同步包装
     ├── config.rs      # 全局配置
     ├── debug_cmd.rs   # debug 模式 NDJSON 协议
+    ├── env.rs         # 全局环境文件管理 (list/show/set/delete)
     ├── flow.rs        # flow list/show/create/copy/delete/import
     ├── flow_edit.rs   # node/connection/variable 编辑
     ├── output.rs      # 输出格式化 (json/table)
@@ -22,7 +23,8 @@ src/
     ├── run.rs         # 执行流程
     ├── run_node.rs    # 单节点连通性检查
     ├── stress.rs      # stress run/report
-    └── validate.rs    # 流程验证
+    ├── validate.rs    # 流程验证
+    └── variables.rs   # --var 解析 + 执行期变量分层合并（run/debug/stress 共用）
 ```
 
 ## WHERE TO LOOK
@@ -34,6 +36,8 @@ src/
 | 流程验证 | `cli/validate.rs` |
 | Debug 断点/NDJSON 流 | `cli/debug_cmd.rs` |
 | 压测 | `cli/stress.rs` |
+| 全局环境文件管理 | `cli/env.rs` |
+| 变量分层合并 | `cli/variables.rs`（流程兜底 → 环境文件 → `.local.yaml` → `--var`） |
 | 流程 CRUD | `cli/flow.rs` |
 | 流程编辑 (node/connection/variable) | `cli/flow_edit.rs` |
 | 报告查询 | `cli/report.rs` |

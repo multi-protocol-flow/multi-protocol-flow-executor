@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 
 use super::output::CliOutput;
+use super::variables::{parse_vars, resolve_execution_variables};
 use super::{config, output, CliError, StressCommands, StressReportCommands};
 
 /// 执行 stress 子命令
@@ -17,6 +18,8 @@ pub async fn execute(
     match command {
         StressCommands::Run {
             flow,
+            env,
+            var,
             concurrent_users,
             ramp_up,
             duration,
@@ -24,6 +27,8 @@ pub async fn execute(
         } => {
             execute_run(
                 &flow,
+                env.as_deref(),
+                &var,
                 concurrent_users,
                 ramp_up,
                 duration,
@@ -38,8 +43,11 @@ pub async fn execute(
 }
 
 /// 执行压力测试
+#[allow(clippy::too_many_arguments)]
 async fn execute_run(
     flow_path: &str,
+    env: Option<&str>,
+    vars: &[String],
     concurrent_users: u32,
     ramp_up: u32,
     duration: u32,
@@ -55,9 +63,22 @@ async fn execute_run(
         )));
     }
 
+    // 与 run/debug 保持同一目录解析：子流程按 ID 解析、环境文件查找都依赖这两个覆盖
+    let app_config = config::AppConfig::load().map_err(CliError::Config)?;
+    flow_engine::storage::set_flows_dir_override(Some(app_config.flows_dir.clone()));
+    flow_engine::storage::set_environments_dir_override(Some(app_config.environments_dir.clone()));
+
     // 加载流程文件（使用统一 FlowFile 格式）
     let flow = flow_engine::storage::load_flow(flow_path)
         .map_err(|e| CliError::execution(format!("Failed to load flow file: {}", e)))?;
+
+    // 变量分层：流程兜底 → 环境文件 → 本地覆盖 → --var 运行时覆盖
+    let cli_vars = if vars.is_empty() {
+        None
+    } else {
+        Some(parse_vars(vars)?)
+    };
+    let variables = resolve_execution_variables(&flow, env, cli_vars.as_ref())?;
 
     // 创建压测配置
     let stress_config = flow_engine::stress_test::StressTestConfig {
@@ -79,7 +100,8 @@ async fn execute_run(
         stress_config.clone(),
         event_tx,
         registry,
-    );
+    )
+    .with_variables(variables);
 
     // 启动执行器
     executor
@@ -95,8 +117,14 @@ async fn execute_run(
             event = event_rx.recv() => {
                 match event {
                     Some(evt) => {
-                        if let flow_engine::stress_test::StressTestEvent::Ended { ref report } = evt {
+                        // 结束事件即压测终态：主控任务随后不再发送事件，
+                        // 而 executor 自身持有的发送端要到函数结束才释放，
+                        // 因此必须在此退出，否则 `--output` 报告永远写不出去。
+                        if let flow_engine::stress_test::StressTestEvent::Ended { ref report } = evt
+                        {
                             final_report = Some((**report).clone());
+                            output::output_ndjson(&evt);
+                            break;
                         }
                         output::output_ndjson(&evt);
                     }
@@ -115,7 +143,6 @@ async fn execute_run(
 
     // 保存报告到默认目录
     if let Some(report) = &final_report {
-        let app_config = config::AppConfig::load().map_err(CliError::Config)?;
         let _ = flow_engine::storage::save_stress_report(report, &app_config.reports_dir);
     }
 

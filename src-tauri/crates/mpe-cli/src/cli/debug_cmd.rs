@@ -13,34 +13,13 @@
 //! → {"SessionEnded":{"reason":{...},...}}
 //! ```
 
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::sync::mpsc;
 
 use super::output;
-
-// ── 变量解析 ──────────────────────────────────────────────────────
-
-/// 解析 `--var key=value` 参数为 `HashMap`
-///
-/// 值优先尝试 JSON 解析，Failed则作为纯字符串处理。
-fn parse_vars(vars: &[String]) -> Result<HashMap<String, serde_json::Value>, super::CliError> {
-    let mut map = HashMap::new();
-    for v in vars {
-        let (key, val) = v.split_once('=').ok_or_else(|| {
-            super::CliError::InvalidArgs(format!(
-                "--var invalid format (expected key=value): {}",
-                v
-            ))
-        })?;
-        let json_val =
-            serde_json::from_str(val).unwrap_or(serde_json::Value::String(val.to_string()));
-        map.insert(key.to_string(), json_val);
-    }
-    Ok(map)
-}
+use super::variables::{parse_vars, resolve_execution_variables};
 
 /// 判断是否为 `SessionEnded` 事件
 fn is_session_ended(event: &flow_engine::debug::DebugEvent) -> bool {
@@ -79,50 +58,14 @@ pub async fn execute(
     let flow = flow_engine::storage::load_flow(flow_path)
         .map_err(|e| super::CliError::execution(format!("Failed to load flow: {}", e)))?;
 
-    // 3. 加载环境
-    let env_set = if let Some(env_name) = env {
-        if !env_name.trim().is_empty() {
-            let env_dir = flow_engine::storage::get_environments_dir().map_err(|e| {
-                super::CliError::execution(format!("Failed to get environments directory: {}", e))
-            })?;
-            Some(
-                flow_engine::storage::load_environment_file(env_name.trim(), &env_dir).map_err(
-                    |e| {
-                        super::CliError::execution(format!(
-                            "Failed to load environment '{}': {}",
-                            env_name, e
-                        ))
-                    },
-                )?,
-            )
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-
-    // 4. 解析变量与层级合并
+    // 3. 变量分层：流程兜底 → 环境文件 → 本地覆盖 → --var 运行时覆盖
     let cli_vars = if vars.is_empty() {
         None
     } else {
         Some(parse_vars(vars)?)
     };
 
-    let merged = flow_engine::flow::merge_variable_layers(
-        flow.initial_variables.as_ref(),
-        env_set.as_ref(),
-        None,
-        cli_vars.as_ref(),
-    );
-
-    let variables: Option<serde_json::Value> = if merged.is_empty() {
-        None
-    } else {
-        Some(serde_json::Value::Object(
-            merged.into_iter().collect::<serde_json::Map<_, _>>(),
-        ))
-    };
+    let variables = resolve_execution_variables(&flow, env, cli_vars.as_ref())?;
 
     // 4. 创建通道
     let (debug_event_tx, mut debug_event_rx) =

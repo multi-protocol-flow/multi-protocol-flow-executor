@@ -2,32 +2,14 @@
 //!
 //! Supports variable overrides, NDJSON streaming events, and report save control.
 
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use flow_engine::{ExecutionEvent, ExecutionEventSender};
 
 use super::output::CliOutput;
+use super::variables::{parse_vars, resolve_execution_variables};
 use super::{config, output, CliError};
-
-// ── Variable parsing ────────────────────────────────────────────────
-
-/// Parse `--var key=value` arguments into a `HashMap`
-///
-/// Values are attempted as JSON first (numbers, booleans, etc.), falling back to string.
-fn parse_vars(vars: &[String]) -> Result<HashMap<String, serde_json::Value>, CliError> {
-    let mut map = HashMap::new();
-    for v in vars {
-        let (key, val) = v.split_once('=').ok_or_else(|| {
-            CliError::InvalidArgs(format!("--var format error (expected key=value): {}", v))
-        })?;
-        let json_val =
-            serde_json::from_str(val).unwrap_or(serde_json::Value::String(val.to_string()));
-        map.insert(key.to_string(), json_val);
-    }
-    Ok(map)
-}
 
 // ── CLI execution event sender ───────────────────────────────────────
 
@@ -83,51 +65,15 @@ pub async fn execute(
     let flow = flow_engine::storage::load_flow(flow_path)
         .map_err(|e| CliError::execution(format!("Failed to load flow: {}", e)))?;
 
-    // Load environment if specified
-    let env_set = if let Some(env_name) = env {
-        if !env_name.trim().is_empty() {
-            let env_dir = flow_engine::storage::get_environments_dir().map_err(|e| {
-                CliError::execution(format!("Failed to get environments directory: {}", e))
-            })?;
-            Some(
-                flow_engine::storage::load_environment_file(env_name.trim(), &env_dir).map_err(
-                    |e| {
-                        CliError::execution(format!(
-                            "Failed to load environment '{}': {}",
-                            env_name, e
-                        ))
-                    },
-                )?,
-            )
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-
-    // Parse variable overrides from CLI --var
+    // 变量分层：流程兜底 → 环境文件 → 本地覆盖 → --var 运行时覆盖
     let cli_vars = if vars.is_empty() {
         None
     } else {
         Some(parse_vars(vars)?)
     };
 
-    // Merge variable layers: fallback (flow.initial_variables) -> env -> runtime (--var)
-    let merged = flow_engine::flow::merge_variable_layers(
-        flow.initial_variables.as_ref(),
-        env_set.as_ref(),
-        None,
-        cli_vars.as_ref(),
-    );
-
-    let variables = if merged.is_empty() {
-        None
-    } else {
-        Some(serde_json::Value::Object(
-            merged.into_iter().collect::<serde_json::Map<_, _>>(),
-        ))
-    };
+    // Merge variable layers: fallback (flow.initial_variables) -> env -> local -> runtime (--var)
+    let variables = resolve_execution_variables(&flow, env, cli_vars.as_ref())?;
 
     // Execute flow
     let result = if stream {

@@ -4,6 +4,7 @@
 
 pub mod config;
 pub mod debug_cmd;
+pub mod env;
 pub mod flow;
 pub mod flow_edit;
 pub mod gui_bridge;
@@ -16,11 +17,18 @@ pub mod run;
 pub mod run_node;
 pub mod stress;
 pub mod validate;
+pub mod variables;
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
+
+/// 环境目录覆盖是进程级全局状态；任何依赖它的测试必须持这把锁串行执行，
+/// 否则会与其他测试模块写入的覆盖目录互相踩踏。
+#[cfg(test)]
+pub(crate) static ENV_DIR_OVERRIDE_LOCK: std::sync::LazyLock<std::sync::Mutex<()>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(()));
 
 // ── CLI Error类型 ──────────────────────────────────────────────────
 
@@ -163,6 +171,12 @@ pub enum Commands {
         #[command(subcommand)]
         command: FlowCommands,
     },
+    /// Global environment file management
+    Env {
+        /// Environment subcommand
+        #[command(subcommand)]
+        command: EnvCommands,
+    },
     /// Report management
     Report {
         /// Report management subcommand
@@ -241,6 +255,12 @@ pub enum StressCommands {
         /// Flow file path (.mpe)
         #[arg(short, long)]
         flow: String,
+        /// Active environment name (loads from environments dir)
+        #[arg(short = 'e', long = "env")]
+        env: Option<String>,
+        /// Variable overrides (key=value)
+        #[arg(long, value_name = "KEY=VALUE")]
+        var: Vec<String>,
         /// Number of concurrent users
         #[arg(short, long, default_value_t = 50)]
         concurrent_users: u32,
@@ -406,7 +426,7 @@ pub enum FlowEditCommands {
         #[arg(long)]
         connection: String,
     },
-    /// Set a variable
+    /// Set a flow fallback variable (flow.initial_variables; environment files are managed separately)
     VariableSet {
         /// Flow UUID
         #[arg(long)]
@@ -418,7 +438,7 @@ pub enum FlowEditCommands {
         #[arg(long)]
         value: String,
     },
-    /// Remove a variable
+    /// Remove a flow fallback variable (flow.initial_variables)
     VariableRemove {
         /// Flow UUID
         #[arg(long)]
@@ -426,6 +446,43 @@ pub enum FlowEditCommands {
         /// Variable name
         #[arg(long)]
         key: String,
+    },
+}
+
+/// Global environment file management subcommand enumeration
+///
+/// 环境是流程之外的外挂 YAML 文件：`<name>.yaml` 为共享定义（会进 git），
+/// `<name>.local.yaml` 为机器私有覆盖（可进 gitignore 保存密钥）。
+#[derive(Subcommand)]
+pub enum EnvCommands {
+    /// List all environments (name, variable count, local override flag, path)
+    List,
+    /// Show an environment's variables
+    Show {
+        /// Environment name
+        name: String,
+        /// Layer to print: merged (base + local override), base, or local
+        #[arg(long, default_value = "merged", value_name = "LAYER")]
+        source: String,
+    },
+    /// Add or update variables (KEY=VALUE; values are parsed as JSON when possible)
+    Set {
+        /// Environment name
+        name: String,
+        /// Variables to write (e.g. API_URL=https://dev.api TIMEOUT=1000)
+        #[arg(required = true, value_name = "KEY=VALUE")]
+        vars: Vec<String>,
+        /// Write to the machine-local override file (<name>.local.yaml) instead of the shared file
+        #[arg(long)]
+        local: bool,
+    },
+    /// Delete an environment (shared file plus its local override)
+    Delete {
+        /// Environment name
+        name: String,
+        /// Delete only the machine-local override file, keeping the shared definition
+        #[arg(long)]
+        local: bool,
     },
 }
 
@@ -565,6 +622,7 @@ async fn async_main() -> Result<(), CliError> {
             stress::execute(&cli.format, command, registry, cancel_rx).await
         }
         Commands::Flow { command } => flow::execute(&cli.format, command).await,
+        Commands::Env { command } => env::execute(&cli.format, command).await,
         Commands::RunNode {
             node_json,
             var,
