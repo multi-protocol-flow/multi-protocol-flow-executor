@@ -92,7 +92,7 @@ name = "mpe"
 path = "src/main.rs"
 
 [build-dependencies]
-tauri-build = { version = "2.5.4", features = [] }
+tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
 # 业务逻辑引擎
@@ -105,7 +105,7 @@ mpe-cli = { path = "crates/mpe-cli" }
 rustls = { workspace = true, features = ["ring"] }
 
 # Tauri 框架
-tauri = { version = "2.10.0", features = ["devtools"] }
+tauri = { version = "2.11.5", features = ["devtools"] }
 tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
