@@ -930,7 +930,8 @@ impl DebuggableFlowExecutor {
                             active_frame.visited.remove(&current_node_id);
                             debug_state.status = DebugStatus::Running;
                             debug_state.pause_reason = None;
-                            debug_state.variables = active_frame.context.variables.get_merged_variables();
+                            debug_state.variables =
+                                active_frame.context.variables.get_merged_variables();
                             update_shared_state(debug_state);
                             continue;
                         } else {
@@ -942,7 +943,9 @@ impl DebuggableFlowExecutor {
                     }
                     Ok(StepCommandResult::RunFromSnapshot(target_node_uuid)) => {
                         let active_frame = &mut call_frames[active_idx];
-                        if let Some(snapshot) = active_frame.snapshots.get(&target_node_uuid).cloned() {
+                        if let Some(snapshot) =
+                            active_frame.snapshots.get(&target_node_uuid).cloned()
+                        {
                             active_frame.context.variables = snapshot.variables.clone();
                             debug_state.execution_stack.truncate(snapshot.stack_len);
                             active_frame.visited = snapshot.visited.clone();
@@ -955,7 +958,8 @@ impl DebuggableFlowExecutor {
                                 node_uuid: target_node_uuid.clone(),
                             };
                             debug_state.pause_reason = Some(pause_reason.clone());
-                            debug_state.variables = active_frame.context.variables.get_merged_variables();
+                            debug_state.variables =
+                                active_frame.context.variables.get_merged_variables();
                             debug_state.call_frames = build_call_frames(&call_frames);
                             update_shared_state(debug_state);
 
@@ -974,7 +978,10 @@ impl DebuggableFlowExecutor {
                             continue;
                         } else {
                             let _ = event_sender.send(DebugEvent::Error {
-                                message: format!("Snapshot not found for node {}", target_node_uuid),
+                                message: format!(
+                                    "Snapshot not found for node {}",
+                                    target_node_uuid
+                                ),
                             });
                             continue;
                         }
@@ -1349,7 +1356,8 @@ impl DebuggableFlowExecutor {
                                 active_frame.visited.remove(&current_node_id);
                                 debug_state.status = DebugStatus::Running;
                                 debug_state.pause_reason = None;
-                                debug_state.variables = active_frame.context.variables.get_merged_variables();
+                                debug_state.variables =
+                                    active_frame.context.variables.get_merged_variables();
                                 update_shared_state(debug_state);
                                 continue;
                             } else {
@@ -1361,7 +1369,9 @@ impl DebuggableFlowExecutor {
                         }
                         Ok(StepCommandResult::RunFromSnapshot(target_node_uuid)) => {
                             let active_frame = &mut call_frames[active_idx];
-                            if let Some(snapshot) = active_frame.snapshots.get(&target_node_uuid).cloned() {
+                            if let Some(snapshot) =
+                                active_frame.snapshots.get(&target_node_uuid).cloned()
+                            {
                                 active_frame.context.variables = snapshot.variables.clone();
                                 debug_state.execution_stack.truncate(snapshot.stack_len);
                                 active_frame.visited = snapshot.visited.clone();
@@ -1374,7 +1384,8 @@ impl DebuggableFlowExecutor {
                                     node_uuid: target_node_uuid.clone(),
                                 };
                                 debug_state.pause_reason = Some(pause_reason.clone());
-                                debug_state.variables = active_frame.context.variables.get_merged_variables();
+                                debug_state.variables =
+                                    active_frame.context.variables.get_merged_variables();
                                 debug_state.call_frames = build_call_frames(&call_frames);
                                 update_shared_state(debug_state);
 
@@ -1394,7 +1405,10 @@ impl DebuggableFlowExecutor {
                             } else {
                                 // 快照缺失（可能已被 32 条上限淘汰）：保持暂停并提示，不能顺势结束会话
                                 let _ = event_sender.send(DebugEvent::Error {
-                                    message: format!("Snapshot not found for node {}", target_node_uuid),
+                                    message: format!(
+                                        "Snapshot not found for node {}",
+                                        target_node_uuid
+                                    ),
                                 });
                                 continue;
                             }
@@ -1426,9 +1440,7 @@ impl DebuggableFlowExecutor {
                             )
                             .await;
                             let _ = event_sender.send(DebugEvent::SessionEnded {
-                                reason: EndReason::Error {
-                                    message: error,
-                                },
+                                reason: EndReason::Error { message: error },
                                 report: Some(report),
                                 execution_stack: debug_state.execution_stack.clone(),
                             });
@@ -1982,8 +1994,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node],
@@ -2020,8 +2030,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node.clone()],
@@ -2098,8 +2106,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "测试单步执行".to_string(),
             description: None,
             nodes: vec![start_node.clone(), second_node.clone()],
@@ -2237,8 +2243,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "测试跳过节点堆栈".to_string(),
             description: None,
             nodes: vec![start_node.clone(), second_node.clone()],
@@ -2359,8 +2363,6 @@ mod tests {
                 m.insert("test_var".to_string(), json!("initial_value"));
                 m
             }),
-            environments: vec![],
-            active_environment: None,
             name: "测试执行入口节点".to_string(),
             description: None,
             nodes: vec![start_node.clone(), second_node.clone()],
@@ -2496,8 +2498,6 @@ mod tests {
                 m.insert("test_var".to_string(), json!("initial_value"));
                 m
             }),
-            environments: vec![],
-            active_environment: None,
             name: "测试跳过入口节点".to_string(),
             description: None,
             nodes: vec![start_node.clone(), second_node.clone()],
@@ -2617,8 +2617,6 @@ mod tests {
             description: None,
             nodes: vec![start_node.clone()],
             connections: vec![],
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
@@ -2754,8 +2752,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "测试动态断点".to_string(),
             description: None,
             nodes: vec![start_node.clone(), second_node.clone(), third_node.clone()],
@@ -2890,8 +2886,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "测试动态移除断点".to_string(),
             description: None,
             nodes: vec![start_node.clone(), second_node.clone()],
@@ -2980,8 +2974,6 @@ mod tests {
         let child_flow = Flow {
             uuid: "child-flow-uuid".to_string(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Child Flow".to_string(),
             description: None,
             nodes: vec![
@@ -3053,8 +3045,6 @@ mod tests {
         let parent_flow = Flow {
             uuid: "parent-flow-uuid".to_string(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Parent Flow".to_string(),
             description: None,
             nodes: vec![
@@ -3185,8 +3175,6 @@ mod tests {
         let child_flow = Flow {
             uuid: "child-flow-out".to_string(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Child Flow".to_string(),
             description: None,
             nodes: vec![
@@ -3258,8 +3246,6 @@ mod tests {
         let parent_flow = Flow {
             uuid: "parent-flow-out".to_string(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Parent Flow".to_string(),
             description: None,
             nodes: vec![
@@ -3392,8 +3378,6 @@ mod tests {
         let child_flow = Flow {
             uuid: "child-flow-iso".to_string(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Child Flow Isolated".to_string(),
             description: None,
             nodes: vec![
@@ -3443,8 +3427,6 @@ mod tests {
         let parent_flow = Flow {
             uuid: "parent-flow-iso".to_string(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Parent Flow".to_string(),
             description: None,
             nodes: vec![
@@ -3590,8 +3572,6 @@ mod tests {
             nodes: vec![start_node, script_node],
             connections: vec![conn],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
@@ -3729,8 +3709,6 @@ mod tests {
                 },
             ],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
@@ -3814,8 +3792,6 @@ mod tests {
             nodes: vec![start_node],
             connections: vec![],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
@@ -3942,8 +3918,6 @@ mod tests {
                 target_port_id: "input".to_string(),
             }],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         }
     }
@@ -3959,7 +3933,14 @@ mod tests {
         let flow_clone = flow.clone();
         let handle = tokio::spawn(async move {
             executor
-                .start_debug(&flow_clone, None, vec![], None, event_sender, command_receiver)
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec![],
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
                 .await
         });
 
@@ -4018,7 +3999,14 @@ mod tests {
         let flow_clone = flow.clone();
         let handle = tokio::spawn(async move {
             executor
-                .start_debug(&flow_clone, None, vec![], None, event_sender, command_receiver)
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec![],
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
                 .await
         });
 
@@ -4090,8 +4078,6 @@ mod tests {
             }],
             connections: vec![],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
@@ -4102,7 +4088,14 @@ mod tests {
         let flow_clone = flow.clone();
         let handle = tokio::spawn(async move {
             executor
-                .start_debug(&flow_clone, None, vec![], None, event_sender, command_receiver)
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec![],
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
                 .await
         });
 

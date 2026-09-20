@@ -100,7 +100,10 @@ impl IngressServerHandle {
     pub async fn shutdown(mut self) {
         self.stop();
         if let Some(task) = self.task.take() {
-            if tokio::time::timeout(INGRESS_SHUTDOWN_TIMEOUT, task).await.is_err() {
+            if tokio::time::timeout(INGRESS_SHUTDOWN_TIMEOUT, task)
+                .await
+                .is_err()
+            {
                 log::warn!(
                     "[Ingress] Port {} accept task did not exit within {}s",
                     self.port,
@@ -202,9 +205,9 @@ pub async fn start_ingress_server(
     config: IngressListenerConfig,
 ) -> Result<IngressServerHandle, String> {
     let addr = format!("0.0.0.0:{}", port);
-    let listener = TcpListener::bind(&addr).await.map_err(|e| {
-        format!("Port {} is already in use: {}", port, e)
-    })?;
+    let listener = TcpListener::bind(&addr)
+        .await
+        .map_err(|e| format!("Port {} is already in use: {}", port, e))?;
 
     let (shutdown_tx, mut shutdown_rx) = oneshot::channel::<()>();
     let ctx = Arc::new(config);
@@ -253,7 +256,10 @@ async fn handle_http_connection(
 
     // 1. 读取头部直至 \r\n\r\n
     let header_end_pos = loop {
-        let n = stream.read(&mut temp_buf).await.map_err(|e| e.to_string())?;
+        let n = stream
+            .read(&mut temp_buf)
+            .await
+            .map_err(|e| e.to_string())?;
         if n == 0 {
             return Ok(());
         }
@@ -294,7 +300,8 @@ async fn handle_http_connection(
             if key.eq_ignore_ascii_case("content-length") {
                 content_length = val.parse::<usize>().unwrap_or(0);
             }
-            if key.eq_ignore_ascii_case("transfer-encoding") && val.to_ascii_lowercase().contains("chunked")
+            if key.eq_ignore_ascii_case("transfer-encoding")
+                && val.to_ascii_lowercase().contains("chunked")
             {
                 chunked = true;
             }
@@ -337,7 +344,10 @@ async fn handle_http_connection(
     while body_bytes.len() < content_length {
         let needed = content_length - body_bytes.len();
         let read_size = needed.min(temp_buf.len());
-        let n = stream.read(&mut temp_buf[..read_size]).await.map_err(|e| e.to_string())?;
+        let n = stream
+            .read(&mut temp_buf[..read_size])
+            .await
+            .map_err(|e| e.to_string())?;
         if n == 0 {
             // 连接在读完声明长度前关闭：不得把截断体当成完整请求继续执行
             write_http_response(
@@ -361,10 +371,9 @@ async fn handle_http_connection(
     };
 
     // 5. 校验 Ingress 路由配置 (path_pattern, methods)
-    let ingress_node = flow
-        .nodes
-        .iter()
-        .find(|n| n.node_type == "http:ingress" || n.node_type == flow_engine_core::node_types::HTTP_INGRESS);
+    let ingress_node = flow.nodes.iter().find(|n| {
+        n.node_type == "http:ingress" || n.node_type == flow_engine_core::node_types::HTTP_INGRESS
+    });
 
     if let Some(node) = ingress_node {
         if let NodeData::HttpIngress(cfg) = &node.data {
@@ -379,7 +388,9 @@ async fn handle_http_connection(
                 return Ok(());
             }
 
-            if !cfg.methods.is_empty() && !cfg.methods.iter().any(|m| m.eq_ignore_ascii_case(&method)) {
+            if !cfg.methods.is_empty()
+                && !cfg.methods.iter().any(|m| m.eq_ignore_ascii_case(&method))
+            {
                 write_http_response(
                     &mut stream,
                     405,
@@ -495,23 +506,15 @@ async fn handle_http_connection(
                 .iter()
                 .map(|(k, v)| (k.clone(), v.clone()))
                 .collect();
-            write_http_response_with_status(
-                &mut stream,
-                status_code,
-                &headers,
-                &payload.body,
-            )
-            .await;
+            write_http_response_with_status(&mut stream, status_code, &headers, &payload.body)
+                .await;
         }
         Ok(Err(_)) => {
             // 通道关闭：流程结束时没有执行到 http:respond。
             // 失败原因已知 → 500 并把原因回传；流程正常结束但未响应 → 同为 500 并说明原因，
             // 绝不返回成功的 200（否则调用方会把失败当成成功）。
             let (message, log_detail) = match outcome.failure() {
-                Some(failure) => (
-                    format!("Flow execution failed: {failure}"),
-                    failure,
-                ),
+                Some(failure) => (format!("Flow execution failed: {failure}"), failure),
                 None => (
                     "Flow finished without executing http:respond".to_string(),
                     "no http:respond executed".to_string(),
@@ -755,8 +758,6 @@ mod tests {
                 "flow_seed".to_string(),
                 serde_json::json!("seed-1"),
             )])),
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
@@ -772,7 +773,11 @@ mod tests {
                 },
             )
             .await;
-        assert!(start_res.is_ok(), "Failed to start listener: {:?}", start_res);
+        assert!(
+            start_res.is_ok(),
+            "Failed to start listener: {:?}",
+            start_res
+        );
         assert!(manager.is_listening(port).await);
 
         // 发送真实 HTTP 请求
@@ -783,14 +788,24 @@ mod tests {
             .expect("Failed to connect to ingress server");
 
         let req = b"POST /webhook/pay HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"trade_no\": \"T001\"}";
-        stream.write_all(req).await.expect("Failed to write request");
+        stream
+            .write_all(req)
+            .await
+            .expect("Failed to write request");
         stream.flush().await.expect("Failed to flush request");
 
         let mut resp_buf = vec![0u8; 1024];
-        let n = stream.read(&mut resp_buf).await.expect("Failed to read response");
+        let n = stream
+            .read(&mut resp_buf)
+            .await
+            .expect("Failed to read response");
         let resp_str = String::from_utf8_lossy(&resp_buf[..n]);
 
-        assert!(resp_str.starts_with("HTTP/1.1 200 OK"), "Unexpected response: {}", resp_str);
+        assert!(
+            resp_str.starts_with("HTTP/1.1 200 OK"),
+            "Unexpected response: {}",
+            resp_str
+        );
         assert!(
             resp_str.contains("{\"trade_no\": \"T001\", \"seed\": \"seed-1\", \"received\": true}"),
             "流程初始变量必须在 Ingress 执行中保留且 request.* 生效: {}",
@@ -888,8 +903,6 @@ mod tests {
             nodes: vec![ingress_node, assert_node, respond_node],
             connections: vec![conn1, conn2],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
@@ -1022,8 +1035,6 @@ mod tests {
             nodes: vec![ingress_node, respond_node],
             connections: vec![conn],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
@@ -1154,8 +1165,6 @@ mod tests {
                 target_port_id: "flow_in".to_string(),
             }],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         }
     }

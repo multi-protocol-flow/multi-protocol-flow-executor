@@ -58,6 +58,9 @@ pub struct ExecuteFlowCommandInput {
     /// 报告保存目录（可选，若提供则后端直接落盘，避免前端回旋镖序列化）
     #[serde(default)]
     pub reports_dir: Option<String>,
+    /// 目标激活环境名称（可选，从环境目录读取并叠加）
+    #[serde(default)]
+    pub environment_name: Option<String>,
 }
 
 impl ExecuteFlowCommandInput {
@@ -67,6 +70,7 @@ impl ExecuteFlowCommandInput {
             flow_id: flow_id.into(),
             variables: None,
             reports_dir: None,
+            environment_name: None,
         }
     }
 
@@ -79,6 +83,12 @@ impl ExecuteFlowCommandInput {
     /// 设置报告存储目录
     pub fn with_reports_dir(mut self, reports_dir: Option<String>) -> Self {
         self.reports_dir = reports_dir;
+        self
+    }
+
+    /// 设置执行环境名称
+    pub fn with_environment_name(mut self, environment_name: Option<String>) -> Self {
+        self.environment_name = environment_name;
         self
     }
 }
