@@ -6,12 +6,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useFlowVariables } from '@/hooks/useFlowVariables';
-import { useFlowStore } from '@/stores';
+import { useFlowStore, useEnvironmentStore } from '@/stores';
 import { createFlow, createNode } from '@/test-utils';
 
 describe('useFlowVariables', () => {
   beforeEach(() => {
     useFlowStore.getState().reset();
+    useEnvironmentStore.getState().reset();
   });
 
   it('无流程时返回空结果', () => {
@@ -40,11 +41,14 @@ describe('useFlowVariables', () => {
         flow: createFlow({
           nodes: [extractor],
           initial_variables: { api_key: 'flow-secret' },
-          environments: [
-            { name: 'dev', variables: { api_key: 'dev-key', debug: true } },
-          ],
-          active_environment: 'dev',
         }),
+      });
+      useEnvironmentStore.setState({
+        activeEnvironmentName: 'dev',
+        activeEnvironmentData: {
+          name: 'dev',
+          variables: { api_key: 'dev-key', debug: true },
+        },
       });
     });
 
@@ -103,9 +107,11 @@ describe('useFlowVariables', () => {
       useFlowStore.setState({
         flow: createFlow({
           initial_variables: { base: 'v1' },
-          environments: [{ name: 'dev', variables: { dev_only: 'x' } }],
-          active_environment: 'staging',
         }),
+      });
+      useEnvironmentStore.setState({
+        activeEnvironmentName: null,
+        activeEnvironmentData: null,
       });
     });
 

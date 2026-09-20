@@ -15,8 +15,6 @@ describe('toolDispatcher', () => {
       uuid: 'test-flow',
       name: 'Test Flow',
       initial_variables: {},
-      environments: [],
-      active_environment: undefined,
       nodes: [],
       connections: [],
     };

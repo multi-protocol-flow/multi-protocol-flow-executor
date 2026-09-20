@@ -90,15 +90,39 @@ describe('LeftSidebarPanel', () => {
     render(<LeftSidebarPanel />);
 
     const datasourceHeader = screen.getByText('数据源');
-    // 默认折叠，不应有 resize handle
-    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    const datasourceButton = datasourceHeader.closest('[role="button"]');
+    // 默认折叠：数据源自身不产生 resize handle（其余展开面板的 handle 数量保持不变）
+    expect(datasourceButton).toHaveAttribute('aria-expanded', 'false');
+    const separatorsBefore = screen.queryAllByRole('separator').length;
 
     // 展开数据源（此时流程列表也展开）
     fireEvent.click(datasourceHeader);
-    expect(screen.getByRole('separator')).toBeInTheDocument();
+    expect(datasourceButton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.queryAllByRole('separator')).toHaveLength(separatorsBefore + 1);
     await waitFor(() => {
       expect(screen.getByText('无已安装的数据源插件')).toBeInTheDocument();
     });
+  });
+
+  it('环境管理面板支持折叠与拖拽调高，且标题栏不含新增环境按钮', async () => {
+    render(<LeftSidebarPanel />);
+
+    const envHeader = screen.getByText('环境管理');
+    const envButton = envHeader.closest('[role="button"]');
+    expect(envButton).toHaveAttribute('aria-expanded', 'true');
+
+    // 展开态提供 resize handle
+    expect(screen.queryAllByRole('separator').length).toBeGreaterThan(0);
+
+    // 标题栏只提供「管理环境」入口，不再内联新增环境按钮
+    expect(screen.getByLabelText('管理环境')).toBeInTheDocument();
+    expect(screen.queryByTitle('新建环境')).not.toBeInTheDocument();
+
+    // 折叠后 handle 数量减少
+    const separatorsExpanded = screen.queryAllByRole('separator').length;
+    fireEvent.click(envHeader);
+    expect(envButton).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryAllByRole('separator')).toHaveLength(separatorsExpanded - 1);
   });
 
   it('当有打开的流程时渲染流程节点大纲面板并展示节点列表', async () => {

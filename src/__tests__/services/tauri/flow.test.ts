@@ -12,6 +12,7 @@ import {
 } from '@/services/tauri/flow';
 import type { Flow } from '@/types/flow';
 import type { ExecuteFlowCommandOutput } from '@/types/ipc';
+import { useEnvironmentStore } from '@/stores/environment';
 
 // Mock Tauri API
 vi.mock('@tauri-apps/api/core', () => ({
@@ -58,6 +59,7 @@ function createTestFlow(): Flow {
 describe('Tauri IPC flow.ts 服务', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useEnvironmentStore.getState().reset();
   });
 
   describe('IpcError', () => {
@@ -209,6 +211,36 @@ describe('Tauri IPC flow.ts 服务', () => {
       });
 
       expect(result).toEqual(mockOutput);
+    });
+
+    it('激活全局环境时应把 environment_name 传给后端', async () => {
+      const flow = createTestFlow();
+      const mockOutput: ExecuteFlowCommandOutput = {
+        success: true,
+        execution_time: 50,
+      };
+      vi.mocked(invoke).mockResolvedValueOnce(mockOutput);
+
+      useEnvironmentStore.setState({ activeEnvironmentName: 'dev' });
+
+      await executeFlowWithChannel(flow, vi.fn());
+
+      expect(invoke).toHaveBeenCalledWith(
+        'execute_flow',
+        expect.objectContaining({
+          input: expect.objectContaining({ flow_id: flow.uuid, environment_name: 'dev' }),
+        }),
+      );
+    });
+
+    it('未激活环境时不发送 environment_name 字段', async () => {
+      const flow = createTestFlow();
+      vi.mocked(invoke).mockResolvedValueOnce({ success: true, execution_time: 1 });
+
+      await executeFlowWithChannel(flow, vi.fn());
+
+      const payload = vi.mocked(invoke).mock.calls[0][1] as { input: Record<string, unknown> };
+      expect(payload.input).not.toHaveProperty('environment_name');
     });
 
     it('字符串错误应该抛出 IpcError', async () => {

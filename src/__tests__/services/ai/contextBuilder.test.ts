@@ -5,12 +5,14 @@ import {
   formatNodeConfigSummary,
 } from '@/services/ai/contextBuilder';
 import { useFlowStore } from '@/stores/flow';
+import { useEnvironmentStore } from '@/stores/environment';
 import { useExecutionStore } from '@/stores/execution';
 import type { Flow, FlowExecutionReport, HttpConfig, ScriptNodeConfig } from '@/types';
 
 describe('contextBuilder', () => {
   beforeEach(() => {
     useFlowStore.getState().reset();
+    useEnvironmentStore.getState().reset();
   });
 
   describe('buildSystemPrompt', () => {
@@ -92,8 +94,6 @@ describe('contextBuilder', () => {
         name: 'My Test Flow',
         description: 'Test flow description',
         initial_variables: {},
-        environments: [{ name: 'dev', variables: { API_KEY: '123' } }],
-        active_environment: 'dev',
         nodes: [
           {
             uuid: 'node-1',
@@ -122,7 +122,7 @@ describe('contextBuilder', () => {
       };
 
       useFlowStore.getState().setFlow(mockFlow);
-
+      useEnvironmentStore.setState({ activeEnvironmentName: 'dev' });
       const summary = buildActiveStateSummary();
       expect(summary).toContain('flow-test-uuid');
       expect(summary).toContain('My Test Flow');

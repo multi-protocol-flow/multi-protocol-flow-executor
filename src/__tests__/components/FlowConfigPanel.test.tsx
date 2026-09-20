@@ -101,44 +101,18 @@ describe('FlowConfigPanel', () => {
     expect(screen.getByText('预览')).toBeInTheDocument();
   });
 
-  it('渲染初始变量列表并展示键与值', () => {
+  it('渲染初始变量紧凑卡片并展示变量数量', () => {
     render(<FlowConfigPanel />);
-    expect(screen.getByText('base_url:')).toBeInTheDocument();
-    expect(screen.getByText('"https://api.example.com"')).toBeInTheDocument();
-    expect(screen.getByText('timeout:')).toBeInTheDocument();
-    expect(screen.getByText('5000')).toBeInTheDocument();
-  });
-  it('可以添加新的流程初始变量', () => {
-    render(<FlowConfigPanel />);
-    const openFormBtn = screen.getByTitle('添加变量');
-    fireEvent.click(openFormBtn);
-
-    // 出现新增输入框
-    const keyInput = screen.getByPlaceholderText('变量名');
-    const valueInput = screen.getByPlaceholderText('值 (支持 JSON 或字符串)');
-
-    fireEvent.change(keyInput, { target: { value: 'retry_count' } });
-    fireEvent.change(valueInput, { target: { value: '3' } });
-
-    // 提交添加按钮是内联表单里的确定按钮
-    const submitBtns = screen.getAllByRole('button', { name: '添加变量' });
-    const formSubmitBtn = submitBtns[submitBtns.length - 1];
-    fireEvent.click(formSubmitBtn);
-
-    expect(mockUpdateInitialVariables).toHaveBeenCalledWith({
-      base_url: 'https://api.example.com',
-      timeout: 5000,
-      retry_count: 3,
-    });
+    expect(screen.getByText(/本流程包含/)).toBeInTheDocument();
+    expect(screen.getAllByText('2').length).toBeGreaterThan(0);
+    expect(screen.getByText('配置变量与环境')).toBeInTheDocument();
   });
 
-  it('可以删除已有的初始变量', () => {
+  it('点击配置变量与环境按钮打开环境管理弹窗 (canvas 模式)', () => {
     render(<FlowConfigPanel />);
-    const deleteButtons = screen.getAllByTitle('删除');
-    expect(deleteButtons.length).toBeGreaterThan(0);
-    fireEvent.click(deleteButtons[0]);
-
-    expect(mockUpdateInitialVariables).toHaveBeenCalled();
+    const configBtn = screen.getByRole('button', { name: /配置变量与环境/ });
+    fireEvent.click(configBtn);
+    expect(mockOpenEnvDialog).toHaveBeenCalledWith('canvas');
   });
 
   it('展示流程概况并支持点击复制流程 ID', async () => {
