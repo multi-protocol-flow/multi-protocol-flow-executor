@@ -35,7 +35,7 @@ const zh_CN_welcome: BaseTranslation = {
   welcome_step1_title: '欢迎使用 MPE',
   welcome_step1_desc: '多协议流程编排与执行引擎，支持 HTTP、WebSocket、数据库、gRPC、MQTT 等 15+ 协议，轻松构建复杂的自动化流程。',
   welcome_step2_title: '创建你的第一个流程',
-  welcome_step2_desc: '点击左侧面板的「新建流程」按钮，然后从节点库拖拽节点到画布上，开始编排你的第一个流程。',
+  welcome_step2_desc: '点击顶部标签栏的「+」按钮新建流程，然后从节点库拖拽节点到画布上，开始编排你的第一个流程。',
   welcome_step3_title: '配置并执行',
   welcome_step3_desc: '选中节点，在右侧面板配置参数，然后点击工具栏的「执行」按钮运行流程。',
   welcome_step1_action: '开始使用',

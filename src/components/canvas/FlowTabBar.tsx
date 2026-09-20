@@ -529,6 +529,7 @@ export const FlowTabBar = memo(function FlowTabBar() {
               onClick={() => openNewFlowDialog()}
               className="flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 cursor-pointer"
               title={LL.flow.new_flow()}
+              data-guide="new-flow-btn"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>

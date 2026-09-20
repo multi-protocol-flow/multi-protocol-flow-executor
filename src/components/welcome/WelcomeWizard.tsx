@@ -75,7 +75,7 @@ export function WelcomeWizard({ children }: WelcomeWizardProps) {
         );
       case 2:
         return (
-          <GuideHighlighter targetSelector="[data-guide='new-flow-btn']" tooltipPosition="right">
+          <GuideHighlighter targetSelector="[data-guide='new-flow-btn']" tooltipPosition="bottom">
             <Card className={CARD_CLASS}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between mb-1.5">
@@ -85,7 +85,7 @@ export function WelcomeWizard({ children }: WelcomeWizardProps) {
                 </div>
                 <CardTitle>{welcome.welcome_step2_title?.() || 'Create Your First Flow'}</CardTitle>
                 <CardDescription className="text-xs leading-relaxed break-words">
-                  {welcome.welcome_step2_desc?.() || 'Click "New Flow" on the left to start building'}
+                  {welcome.welcome_step2_desc?.() || 'Click "+" in the tab bar to start building'}
                 </CardDescription>
               </CardHeader>
               <CardFooter className="flex justify-between">

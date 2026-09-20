@@ -35,7 +35,7 @@ const en_US_welcome: Partial<Translation['welcome']> = {
   welcome_step1_title: 'Welcome to MPE',
   welcome_step1_desc: 'Multi-protocol flow orchestration and execution engine supporting 15+ protocols including HTTP, WebSocket, Database, gRPC, MQTT, etc. Build complex automation workflows effortlessly.',
   welcome_step2_title: 'Create Your First Flow',
-  welcome_step2_desc: 'Click the "New Flow" button in the left panel, then drag nodes from the library onto the canvas to start building your first flow.',
+  welcome_step2_desc: 'Click the "+" button in the top tab bar to create a new flow, then drag nodes from the library onto the canvas to start building.',
   welcome_step3_title: 'Configure & Execute',
   welcome_step3_desc: 'Select a node and configure parameters in the right panel, then click the "Execute" button in the toolbar to run the flow.',
   welcome_step1_action: 'Get Started',
