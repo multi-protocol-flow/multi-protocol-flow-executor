@@ -11,6 +11,7 @@ import {
   force_end_debug,
 } from '@/services/tauri/debug';
 import { IpcError } from '@/services/tauri/flow';
+import { useEnvironmentStore } from '@/stores/environment';
 import type { Flow } from '@/types/flow';
 import type { DebugCommand } from '@/types/debug';
 
@@ -47,6 +48,7 @@ describe('Tauri IPC 调试服务', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockInvoke.mockReset();
+    useEnvironmentStore.setState({ activeEnvironmentName: null, activeEnvironmentData: null });
   });
 
   afterEach(() => {
@@ -85,6 +87,28 @@ describe('Tauri IPC 调试服务', () => {
       mockInvoke.mockResolvedValueOnce(undefined);
 
       await expect(startDebug(flow, breakpoints, onEvent, onLog)).resolves.not.toThrow();
+    });
+
+    it('激活环境时应携带 environmentName', async () => {
+      const flow = createTestFlow();
+      useEnvironmentStore.setState({ activeEnvironmentName: 'dev', activeEnvironmentData: null });
+
+      mockInvoke.mockResolvedValueOnce(undefined);
+
+      await startDebug(flow, ['node-uuid-1'], vi.fn(), vi.fn());
+
+      expect(mockInvoke.mock.calls[0][1]).toMatchObject({ environmentName: 'dev' });
+    });
+
+    it('未激活环境时不应携带 environmentName', async () => {
+      const flow = createTestFlow();
+      useEnvironmentStore.setState({ activeEnvironmentName: null, activeEnvironmentData: null });
+
+      mockInvoke.mockResolvedValueOnce(undefined);
+
+      await startDebug(flow, [], vi.fn(), vi.fn());
+
+      expect(mockInvoke.mock.calls[0][1]).not.toHaveProperty('environmentName');
     });
 
     it('应该处理字符串类型的错误', async () => {

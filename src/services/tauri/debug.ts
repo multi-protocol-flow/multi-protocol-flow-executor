@@ -7,11 +7,15 @@ import { invoke, Channel } from '@tauri-apps/api/core';
 import type { Flow } from '@/types/flow';
 import type { DebugEvent, DebugCommand } from '@/types/debug';
 import type { LogEvent } from '@/types/events';
+import { useEnvironmentStore } from '@/stores/environment';
 import { formatError } from './flow';
 
 /**
  * 启动调试会话
  * 使用 Channel API 接收调试事件和日志
+ *
+ * 与 execute_flow 一致：携带当前激活的全局环境名，由后端按
+ * 「流程兜底变量 → 环境文件 → 本地覆盖」分层注入，避免调试时静默退回兜底变量。
  *
  * @param flow - 要调试的流程对象
  * @param breakpoints - 断点列表（节点 UUID）
@@ -26,6 +30,8 @@ export async function startDebug(
   onLog: (event: LogEvent) => void
 ): Promise<void> {
   try {
+    const environmentName = useEnvironmentStore.getState().activeEnvironmentName;
+
     // 创建 Channel 用于接收调试事件
     const eventChannel = new Channel<DebugEvent>();
     eventChannel.onmessage = (event) => {
@@ -41,6 +47,7 @@ export async function startDebug(
     await invoke<void>('start_debug', {
       flow,
       breakpoints,
+      ...(environmentName ? { environmentName } : {}),
       onEvent: eventChannel,
       onLog: logChannel,
     });

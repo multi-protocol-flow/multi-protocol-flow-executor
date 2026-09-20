@@ -10,6 +10,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { Flow } from '@/types/flow';
+import { useEnvironmentStore } from '@/stores/environment';
 import type {
   StressTestConfig,
   StressTestEvent,
@@ -38,11 +39,13 @@ export async function startStressTest(
   });
 
   try {
+    const environmentName = useEnvironmentStore.getState().activeEnvironmentName;
     await invoke<void>('start_stress_test', {
       input: {
         flow,
         config,
       },
+      ...(environmentName ? { environmentName } : {}),
     });
   } catch (error) {
     // 启动失败时清理监听器
