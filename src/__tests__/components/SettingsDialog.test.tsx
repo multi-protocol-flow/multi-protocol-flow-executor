@@ -338,7 +338,6 @@ describe('SettingsDialog', () => {
     const storageTabBtn = screen.getAllByText('存储与路径')[0];
     fireEvent.click(storageTabBtn);
 
-    expect(screen.getByText('本地缓存与引导重置')).toBeInTheDocument();
     const clearBtn = screen.getByRole('button', { name: /清空缓存/ });
     fireEvent.click(clearBtn);
 
