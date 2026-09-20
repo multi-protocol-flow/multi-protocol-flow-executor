@@ -53,8 +53,8 @@ export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
   const [isNodeOutlineCollapsed, setIsNodeOutlineCollapsed] = useState(false);
   const [nodeOutlineHeight, setNodeOutlineHeight] = useState(NODE_OUTLINE_DEFAULT_HEIGHT);
 
-  // 环境管理面板状态（默认展开，与节点大纲一致支持拖拽调高）
-  const [isEnvCollapsed, setIsEnvCollapsed] = useState(false);
+  // 环境管理面板状态（默认折叠，与数据源一致支持拖拽调高）
+  const [isEnvCollapsed, setIsEnvCollapsed] = useState(true);
   const [envHeight, setEnvHeight] = useState(ENV_PANEL_DEFAULT_HEIGHT);
 
   const flow = useFlowStore((state) => state.flow);
@@ -185,7 +185,6 @@ export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
               disabled={isDebugging}
               className="h-6 w-6 rounded-md hover:bg-accent disabled:opacity-50"
               title={isDebugging ? LL.flow.debug_no_new_flow() : LL.flow.new_flow()}
-              data-guide="new-flow-btn"
             >
               <Plus className="w-3.5 h-3.5" />
             </Button>
