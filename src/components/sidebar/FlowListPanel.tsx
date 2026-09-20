@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import {
   Plus, FileJson, MoreVertical, Copy, Trash2, Pencil, Bug, RefreshCw,
   FolderPlus, Folder, FolderOpen, ChevronDown, ChevronRight, Move,
-  Search, ArrowUpDown, Check, ClipboardCopy,
+  Search, ArrowUpDown, Check, ClipboardCopy, FileDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard } from '@/lib/clipboard';
@@ -77,6 +77,9 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const [renamingFolderPath, setRenamingFolderPath] = useState<string | null>(null);
   const [renamingFolderName, setRenamingFolderName] = useState('');
   const renameFolderInputRef = useRef<HTMLInputElement>(null);
+
+  const openExportFlowDialog = useUIStore((s) => s.openExportFlowDialog);
+
   // 拖拽流程标识，避免拖拽释放时误触发流程切换
   const isDraggingFlowRef = useRef(false);
 
@@ -977,6 +980,18 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               >
                 <Move className="w-3.5 h-3.5" />
                 {getLL().flow.move_to()}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenuUuid(null);
+                  openExportFlowDialog(flowMeta);
+                }}
+                className="flex w-full items-center gap-2 py-1.5 px-3 text-sm hover:bg-accent transition-colors"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                {getLL().flow.export_flow_menu()}
               </button>
               <button
                 type="button"

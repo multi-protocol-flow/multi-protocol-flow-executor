@@ -6,8 +6,6 @@ import { useState, useCallback, useEffect, useId } from 'react';
 import {
   Pencil,
   Eye,
-  Plus,
-  Trash2,
   Copy,
   Check,
   Settings2,
@@ -37,7 +35,6 @@ export function FlowConfigPanel({ readOnly = false }: FlowConfigPanelProps) {
   const flow = useFlowStore((s) => s.flow);
   const updateFlowName = useFlowStore((s) => s.updateFlowName);
   const updateFlowDescription = useFlowStore((s) => s.updateFlowDescription);
-  const updateInitialVariables = useFlowStore((s) => s.updateInitialVariables);
   const openEnvironmentManagerDialog = useUIStore((s) => s.openEnvironmentManagerDialog);
 
   const nameInputId = useId();
@@ -61,10 +58,6 @@ export function FlowConfigPanel({ readOnly = false }: FlowConfigPanelProps) {
   // 描述编辑/预览模式
   const [descMode, setDescMode] = useState<'edit' | 'preview'>('edit');
 
-  // 新增变量输入状态
-  const [newVarKey, setNewVarKey] = useState('');
-  const [newVarValue, setNewVarValue] = useState('');
-  const [isAddingVar, setIsAddingVar] = useState(false);
 
   // 复制 Flow ID 状态
   const [copiedId, setCopiedId] = useState(false);
@@ -77,35 +70,6 @@ export function FlowConfigPanel({ readOnly = false }: FlowConfigPanelProps) {
     });
   }, [flow?.uuid, flowLl]);
 
-  // 添加初始变量
-  const handleAddVariable = useCallback(() => {
-    if (!flow) return;
-    const key = newVarKey.trim();
-    if (!key) return;
-
-    let parsedValue: unknown = newVarValue;
-    try {
-      parsedValue = JSON.parse(newVarValue);
-    } catch {
-      // 保持原始字符串
-    }
-
-    const updated = { ...flow.initial_variables, [key]: parsedValue };
-    updateInitialVariables(updated);
-    setNewVarKey('');
-    setNewVarValue('');
-    setIsAddingVar(false);
-  }, [flow, newVarKey, newVarValue, updateInitialVariables]);
-
-  // 删除初始变量
-  const handleRemoveVariable = useCallback(
-    (keyToRemove: string) => {
-      if (!flow?.initial_variables) return;
-      const { [keyToRemove]: _, ...rest } = flow.initial_variables;
-      updateInitialVariables(rest);
-    },
-    [flow, updateInitialVariables]
-  );
 
   // 空状态
   if (!flow) {
@@ -243,128 +207,23 @@ export function FlowConfigPanel({ readOnly = false }: FlowConfigPanelProps) {
                     {varEntries.length}
                   </span>
                 </div>
+              </div>
+
+              {/* 紧凑只读提示卡片 */}
+              <div className="p-3 rounded-lg border border-border bg-muted/20 space-y-2.5">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {flowLl.flow_variables_compact_hint({ count: varEntries.length })}
+                </p>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => openEnvironmentManagerDialog?.()}
-                  className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1 shrink-0"
-                  title={flowLl.manage_environments_btn()}
+                  onClick={() => openEnvironmentManagerDialog?.('canvas')}
+                  className="w-full h-7 text-xs gap-1.5 text-foreground hover:bg-accent cursor-pointer"
                 >
-                  <Settings2 className="h-3.5 w-3.5 shrink-0" />
-                  <span className="text-[11px]">{flowLl.manage_environments_btn()}</span>
+                  <Settings2 className="h-3.5 w-3.5" />
+                  <span>{flowLl.configure_variables_env()}</span>
                 </Button>
               </div>
-              {/* 添加变量内联表单：采用上下堆叠结构，避免窄屏下两个 Input 挤压变形 */}
-              {isAddingVar && !readOnly && (
-                <div className="p-2 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/40 dark:bg-violet-950/20 space-y-1.5 min-w-0">
-                  <Input
-                    value={newVarKey}
-                    onChange={(e) => setNewVarKey(e.target.value)}
-                    placeholder={flowLl.var_name_placeholder()}
-                    className="h-7 text-xs font-mono w-full"
-                    autoFocus
-                  />
-                  <Input
-                    value={newVarValue}
-                    onChange={(e) => setNewVarValue(e.target.value)}
-                    placeholder={flowLl.var_value_placeholder()}
-                    className="h-7 text-xs font-mono w-full"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleAddVariable();
-                    }}
-                  />
-                  <div className="flex justify-end gap-1.5 pt-0.5">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setIsAddingVar(false);
-                        setNewVarKey('');
-                        setNewVarValue('');
-                      }}
-                      className="h-6 px-2 text-xs"
-                    >
-                      {getLL().common.CANCEL()}
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleAddVariable}
-                      disabled={!newVarKey.trim()}
-                      className="h-6 px-2.5 text-xs"
-                    >
-                      {flowLl.add_variable_btn()}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* 变量列表 */}
-              {varEntries.length === 0 ? (
-                <div className="p-3 text-center rounded-md border border-dashed border-border bg-muted/20 space-y-2">
-                  <p className="text-xs text-muted-foreground">{flowLl.flow_variables_empty()}</p>
-                  {!readOnly && !isAddingVar && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsAddingVar(true)}
-                      className="h-7 text-xs gap-1"
-                      title={flowLl.add_variable_btn()}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      {flowLl.add_variable_btn()}
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-1.5 min-w-0">
-                  <div className="space-y-1 min-w-0">
-                    {varEntries.map(([key, val]) => (
-                      <div
-                        key={key}
-                        className="flex items-center justify-between p-1.5 rounded-md border border-border bg-muted/10 hover:bg-muted/30 transition-colors text-xs font-mono group min-w-0"
-                      >
-                        <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-1.5 overflow-hidden">
-                          <span
-                            className="font-semibold text-foreground truncate shrink-0 max-w-[45%] text-[11px]"
-                            title={key}
-                          >
-                            {key}:
-                          </span>
-                          <span
-                            className="text-muted-foreground truncate flex-1 min-w-0 text-[11px]"
-                            title={String(val)}
-                          >
-                            {typeof val === 'string' ? `"${val}"` : JSON.stringify(val)}
-                          </span>
-                        </div>
-                        {!readOnly && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveVariable(key)}
-                            className="text-muted-foreground hover:text-destructive p-0.5 rounded cursor-pointer shrink-0 transition-colors"
-                            title={getLL().common.DELETE()}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {!readOnly && !isAddingVar && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsAddingVar(true)}
-                      className="w-full h-7 text-xs border-dashed text-muted-foreground hover:text-foreground gap-1"
-                      title={flowLl.add_variable_btn()}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      {flowLl.add_variable_btn()}
-                    </Button>
-                  )}
-                </div>
-              )}
             </div>
 
             <div className="border-t border-border/60" />

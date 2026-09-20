@@ -6,6 +6,8 @@ const en_US_common: Partial<Translation['common']> = {
   CONFIRM: 'Confirm',
   SAVE: 'Save',
   DELETE: 'Delete',
+  save_success: 'Saved successfully',
+  delete_success: 'Deleted successfully',
   zoom_in: 'Zoom In (Ctrl+=)',
   zoom_out: 'Zoom Out (Ctrl+-)',
   zoom_reset: 'Reset Zoom (Ctrl+0)',

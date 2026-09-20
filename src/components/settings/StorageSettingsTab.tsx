@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings2, FolderInput, FolderOpen, FolderCog, Puzzle, ChevronRight, RotateCcw, Trash2, Compass } from 'lucide-react';
+import { Settings2, FolderInput, FolderOpen, FolderCog, Puzzle, ChevronRight, RotateCcw, Trash2, Compass, Globe } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings';
 import { usePluginsStore } from '@/stores/plugins';
 import { useUIStore } from '@/stores/ui';
@@ -36,14 +36,17 @@ export function StorageSettingsTab() {
     reportDir,
     logDir,
     flowsDir,
+    environmentsDir,
     isLoading,
     setReportDir,
     setLogDir,
     setFlowsDir,
+    setEnvironmentsDir,
     setPluginDir,
     openReportDir,
     openLogDir,
     openFlowsDir,
+    openEnvironmentsDir,
   } = useSettingsStore();
 
   const { pluginDirInfo, loadPluginDirInfo, reloadPlugins } = usePluginsStore();
@@ -94,6 +97,15 @@ export function StorageSettingsTab() {
     const service = await getSettingsService();
     const dir = await service.selectDirectory(flowsDir);
     if (dir) await setFlowsDir(dir);
+  };
+
+  const handleSelectEnvironmentsDir = async () => {
+    const service = await getSettingsService();
+    const current = environmentsDir && environmentsDir.trim() !== ''
+      ? environmentsDir
+      : `${flowsDir}/environments`;
+    const dir = await service.selectDirectory(current);
+    if (dir) await setEnvironmentsDir(dir);
   };
 
   const handleSelectReportDir = async () => {
@@ -175,6 +187,17 @@ export function StorageSettingsTab() {
         isLoading={isLoading}
         onSelectDirectory={handleSelectFlowsDir}
         onOpenDirectory={openFlowsDir}
+      />
+
+      {/* 环境保存目录 */}
+      <PathSettingItem
+        label={ll.settings.environments_dir()}
+        description={ll.settings.environments_dir_desc()}
+        path={environmentsDir || ll.settings.environments_dir_placeholder(`${flowsDir}/environments`)}
+        icon={Globe}
+        isLoading={isLoading}
+        onSelectDirectory={handleSelectEnvironmentsDir}
+        onOpenDirectory={openEnvironmentsDir}
       />
 
       {/* 插件存储目录 */}

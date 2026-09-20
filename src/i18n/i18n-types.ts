@@ -36,6 +36,14 @@ type RootTranslation = {
 		 */
 		DELETE: string
 		/**
+		 * 保​存​成​功
+		 */
+		save_success: string
+		/**
+		 * 删​除​成​功
+		 */
+		delete_success: string
+		/**
 		 * 放​大​ ​(​C​t​r​l​+​=​)
 		 */
 		zoom_in: string
@@ -2647,10 +2655,182 @@ type RootTranslation = {
 			 */
 			title: string
 			/**
+			 * 全​局​环​境​管​理
+			 */
+			globalTitle: string
+			/**
+			 * 环​境​与​变​量​管​理​ ​(​当​前​流​程​)
+			 */
+			canvasTitle: string
+			/**
+			 * 管​理​独​立​环​境​ ​Y​A​M​L​ ​配​置​文​件​。​每​个​环​境​可​配​置​独​立​的​变​量​集​与​本​地​覆​盖​。
+			 */
+			globalSubtitle: string
+			/**
+			 * 查​看​与​配​置​当​前​流​程​内​置​变​量​与​环​境​参​数​的​级​联​生​效​结​果​。
+			 */
+			canvasSubtitle: string
+			/**
+			 * 流​程​内​置​变​量​ ​(​F​a​l​l​b​a​c​k​)
+			 */
+			flowFallback: string
+			/**
+			 * 保​存​在​当​前​流​程​中​的​默​认​兜​底​变​量​。​当​未​选​择​任​何​环​境​，​或​环​境​未​定​义​某​个​变​量​时​生​效​。
+			 */
+			flowFallbackDesc: string
+			/**
+			 * 全​局​环​境
+			 */
+			globalEnvsSection: string
+			/**
+			 * 已​覆​盖
+			 */
+			statusOverridden: string
+			/**
+			 * 仅​流​程​默​认
+			 */
+			statusFallbackOnly: string
+			/**
+			 * 仅​环​境​定​义
+			 */
+			statusEnvOnly: string
+			/**
+			 * 最​终​生​效​值
+			 */
+			effectiveValue: string
+			/**
+			 * 变​量​来​源
+			 */
+			source: string
+			/**
+			 * 操​作
+			 */
+			actions: string
+			/**
+			 * 环​境​定​义​值
+			 */
+			envValue: string
+			/**
+			 * 流​程​兜​底​值
+			 */
+			fallbackValue: string
+			/**
+			 * 设​为​流​程​默​认​值
+			 */
+			syncToFallback: string
+			/**
+			 * 补​全​到​当​前​环​境
+			 */
+			copyToEnv: string
+			/**
+			 * 启​用​本​地​私​有​覆​盖
+			 */
+			enableLocalOverride: string
+			/**
+			 * 本​地​私​有​覆​盖​文​件​（​*​.​l​o​c​a​l​.​y​a​m​l​）​用​于​存​储​开​发​机​独​有​的​私​有​配​置​与​密​钥​，​通​常​应​被​ ​G​i​t​ ​忽​略​。
+			 */
+			localOverrideDesc: string
+			/**
+			 * 主​环​境​配​置
+			 */
+			tabBase: string
+			/**
+			 * 本​地​私​有​覆​盖
+			 */
+			tabLocal: string
+			/**
+			 * 级​联​对​比​矩​阵
+			 */
+			tabMatrix: string
+			/**
 			 * {​c​o​u​n​t​}​ ​个
 			 * @param {unknown} count
 			 */
 			varCount: RequiredParams<'count'>
+			/**
+			 * 添​加
+			 */
+			addVariable: string
+			/**
+			 * 新​环​境​名​称​.​.​.
+			 */
+			newEnvPlaceholder: string
+			/**
+			 * 请​在​左​侧​选​择​或​新​建​环​境
+			 */
+			selectOrCreateEnv: string
+			/**
+			 * 暂​无​变​量​对​比​数​据
+			 */
+			noComparisonData: string
+			/**
+			 * 已​激​活
+			 */
+			activated: string
+			/**
+			 * 点​击​激​活
+			 */
+			clickToActivate: string
+			/**
+			 * 点​击​取​消​激​活
+			 */
+			clickToDeactivate: string
+			/**
+			 * 激​活​此​环​境
+			 */
+			activateThisEnv: string
+			/**
+			 * 启​用​本​地​私​有​覆​盖
+			 */
+			localOverrideEnableAction: string
+			/**
+			 * 关​闭​并​删​除​本​地​私​有​覆​盖
+			 */
+			localOverrideDisableAction: string
+			/**
+			 * 删​除​环​境
+			 */
+			deleteDialogTitle: string
+			/**
+			 * 即​将​删​除​环​境​「​{​n​a​m​e​}​」​，​请​选​择​删​除​范​围​。​此​操​作​不​可​撤​销​。
+			 * @param {unknown} name
+			 */
+			deleteDialogDesc: RequiredParams<'name'>
+			/**
+			 * 删​除​整​个​环​境
+			 */
+			deleteScopeAll: string
+			/**
+			 * 同​时​删​除​主​环​境​文​件​与​其​本​地​私​有​覆​盖​文​件​（​若​存​在​）​。
+			 */
+			deleteScopeAllDesc: string
+			/**
+			 * 仅​删​除​本​地​私​有​覆​盖
+			 */
+			deleteScopeLocalOnly: string
+			/**
+			 * 保​留​主​环​境​文​件​，​只​清​除​本​机​私​有​配​置​ ​(​*​.​l​o​c​a​l​.​y​a​m​l​)​。
+			 */
+			deleteScopeLocalOnlyDesc: string
+			/**
+			 * 确​认​删​除
+			 */
+			deleteConfirm: string
+			/**
+			 * 环​境​「​{​n​a​m​e​}​」​已​删​除
+			 * @param {unknown} name
+			 */
+			envDeleted: RequiredParams<'name'>
+			/**
+			 * 已​删​除​「​{​n​a​m​e​}​」​的​本​地​私​有​覆​盖
+			 * @param {unknown} name
+			 */
+			localOverrideDeleted: RequiredParams<'name'>
+			/**
+			 * 已​为​「​{​n​a​m​e​}​」​启​用​本​地​私​有​覆​盖
+			 * @param {unknown} name
+			 */
+			localOverrideCreated: RequiredParams<'name'>
 			/**
 			 * 暂​无​默​认​变​量​，​请​在​下​方​添​加
 			 */
@@ -7428,6 +7608,10 @@ type RootTranslation = {
 		 */
 		flows_dir: string
 		/**
+		 * 环​境​保​存​目​录
+		 */
+		environments_dir: string
+		/**
 		 * 日​志​目​录
 		 */
 		logs_dir: string
@@ -7547,6 +7731,15 @@ type RootTranslation = {
 		 * 本​地​流​程​ ​(​.​m​p​f​ ​/​ ​Y​A​M​L​ ​/​ ​J​S​O​N​)​ ​文​件​的​默​认​持​久​化​目​录
 		 */
 		flows_dir_desc: string
+		/**
+		 * 全​局​环​境​ ​(​*​.​y​a​m​l​)​ ​保​存​目​录​，​未​配​置​时​默​认​跟​随​流​程​目​录
+		 */
+		environments_dir_desc: string
+		/**
+		 * 默​认​跟​随​流​程​目​录​:​ ​{​0​}
+		 * @param {unknown} 0
+		 */
+		environments_dir_placeholder: RequiredParams<'0'>
 		/**
 		 * 流​程​执​行​历​史​与​性​能​压​测​报​告​存​储​目​录
 		 */
@@ -8314,6 +8507,94 @@ type RootTranslation = {
 		 * 移​动​到​.​.​.
 		 */
 		move_to: string
+		/**
+		 * 导​出​流​程​ ​(​.​m​p​f​)​.​.​.
+		 */
+		export_flow_menu: string
+		/**
+		 * 环​境​管​理
+		 */
+		environment_section_title: string
+		/**
+		 * 复​制​环​境​副​本
+		 */
+		duplicate_env: string
+		/**
+		 * 删​除​环​境
+		 */
+		delete_env: string
+		/**
+		 * 暂​无​全​局​环​境​，​点​击​ ​⚙​️​ ​打​开​管​理​弹​窗​新​建
+		 */
+		no_envs_hint: string
+		/**
+		 * 管​理​环​境​与​变​量
+		 */
+		open_env_manager: string
+		/**
+		 * 配​置​变​量​与​环​境
+		 */
+		configure_variables_env: string
+		/**
+		 * 本​流​程​包​含​ ​{​c​o​u​n​t​}​ ​个​内​置​默​认​变​量​，​可​在​环​境​管​理​中​统​一​查​看​与​级​联​配​置​。
+		 * @param {unknown} count
+		 */
+		flow_variables_compact_hint: RequiredParams<'count'>
+		/**
+		 * 导​出​流​程
+		 */
+		export_flow_dialog_title: string
+		/**
+		 * 目​标​流​程​:​ ​{​n​a​m​e​}
+		 * @param {unknown} name
+		 */
+		export_flow_target: RequiredParams<'name'>
+		/**
+		 * 固​化​当​前​环​境​参​数​到​流​程​中​ ​(​B​a​k​e​ ​A​c​t​i​v​e​ ​E​n​v​i​r​o​n​m​e​n​t​)
+		 */
+		bake_env_checkbox: string
+		/**
+		 * 将​把​当​前​环​境​ ​"​{​n​a​m​e​}​"​ ​中​的​ ​{​c​o​u​n​t​}​ ​个​变​量​与​内​置​默​认​变​量​合​并​，​写​入​导​出​文​件​的​ ​i​n​i​t​i​a​l​_​v​a​r​i​a​b​l​e​s​ ​中​，​使​流​程​脱​离​外​部​环​境​也​可​独​立​执​行​。
+		 * @param {unknown} count
+		 * @param {unknown} name
+		 */
+		bake_env_desc: RequiredParams<'count' | 'name'>
+		/**
+		 * 当​前​未​激​活​任​何​环​境​，​将​仅​导​出​流​程​内​置​的​默​认​变​量​。
+		 */
+		bake_no_env_desc: string
+		/**
+		 * 凭​据​安​全​扫​描​ ​(​C​r​e​d​e​n​t​i​a​l​ ​S​a​n​i​t​i​z​a​t​i​o​n​)
+		 */
+		sensitive_vars_title: string
+		/**
+		 * 检​测​到​以​下​可​能​包​含​私​密​凭​据​的​变​量​，​勾​选​后​将​在​导​出​时​清​空​其​值​，​防​止​凭​据​意​外​泄​漏​：
+		 */
+		sensitive_vars_desc: string
+		/**
+		 * 导​出​文​件
+		 */
+		export_btn: string
+		/**
+		 * 流​程​已​成​功​导​出
+		 */
+		export_success: string
+		/**
+		 * 导​出​中​.​.​.
+		 */
+		exporting: string
+		/**
+		 * 加​载​流​程​数​据​.​.​.
+		 */
+		loading_flow_data: string
+		/**
+		 * 清​空​值​导​出
+		 */
+		clear_value_on_export: string
+		/**
+		 * 保​留​原​值
+		 */
+		keep_original_value: string
 		/**
 		 * 删​除​流​程
 		 */
@@ -14319,6 +14600,14 @@ export type TranslationFunctions = {
 		 */
 		DELETE: () => LocalizedString
 		/**
+		 * 保存成功
+		 */
+		save_success: () => LocalizedString
+		/**
+		 * 删除成功
+		 */
+		delete_success: () => LocalizedString
+		/**
 		 * 放大 (Ctrl+=)
 		 */
 		zoom_in: () => LocalizedString
@@ -16906,9 +17195,177 @@ export type TranslationFunctions = {
 			 */
 			title: () => LocalizedString
 			/**
+			 * 全局环境管理
+			 */
+			globalTitle: () => LocalizedString
+			/**
+			 * 环境与变量管理 (当前流程)
+			 */
+			canvasTitle: () => LocalizedString
+			/**
+			 * 管理独立环境 YAML 配置文件。每个环境可配置独立的变量集与本地覆盖。
+			 */
+			globalSubtitle: () => LocalizedString
+			/**
+			 * 查看与配置当前流程内置变量与环境参数的级联生效结果。
+			 */
+			canvasSubtitle: () => LocalizedString
+			/**
+			 * 流程内置变量 (Fallback)
+			 */
+			flowFallback: () => LocalizedString
+			/**
+			 * 保存在当前流程中的默认兜底变量。当未选择任何环境，或环境未定义某个变量时生效。
+			 */
+			flowFallbackDesc: () => LocalizedString
+			/**
+			 * 全局环境
+			 */
+			globalEnvsSection: () => LocalizedString
+			/**
+			 * 已覆盖
+			 */
+			statusOverridden: () => LocalizedString
+			/**
+			 * 仅流程默认
+			 */
+			statusFallbackOnly: () => LocalizedString
+			/**
+			 * 仅环境定义
+			 */
+			statusEnvOnly: () => LocalizedString
+			/**
+			 * 最终生效值
+			 */
+			effectiveValue: () => LocalizedString
+			/**
+			 * 变量来源
+			 */
+			source: () => LocalizedString
+			/**
+			 * 操作
+			 */
+			actions: () => LocalizedString
+			/**
+			 * 环境定义值
+			 */
+			envValue: () => LocalizedString
+			/**
+			 * 流程兜底值
+			 */
+			fallbackValue: () => LocalizedString
+			/**
+			 * 设为流程默认值
+			 */
+			syncToFallback: () => LocalizedString
+			/**
+			 * 补全到当前环境
+			 */
+			copyToEnv: () => LocalizedString
+			/**
+			 * 启用本地私有覆盖
+			 */
+			enableLocalOverride: () => LocalizedString
+			/**
+			 * 本地私有覆盖文件（*.local.yaml）用于存储开发机独有的私有配置与密钥，通常应被 Git 忽略。
+			 */
+			localOverrideDesc: () => LocalizedString
+			/**
+			 * 主环境配置
+			 */
+			tabBase: () => LocalizedString
+			/**
+			 * 本地私有覆盖
+			 */
+			tabLocal: () => LocalizedString
+			/**
+			 * 级联对比矩阵
+			 */
+			tabMatrix: () => LocalizedString
+			/**
 			 * {count} 个
 			 */
 			varCount: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 添加
+			 */
+			addVariable: () => LocalizedString
+			/**
+			 * 新环境名称...
+			 */
+			newEnvPlaceholder: () => LocalizedString
+			/**
+			 * 请在左侧选择或新建环境
+			 */
+			selectOrCreateEnv: () => LocalizedString
+			/**
+			 * 暂无变量对比数据
+			 */
+			noComparisonData: () => LocalizedString
+			/**
+			 * 已激活
+			 */
+			activated: () => LocalizedString
+			/**
+			 * 点击激活
+			 */
+			clickToActivate: () => LocalizedString
+			/**
+			 * 点击取消激活
+			 */
+			clickToDeactivate: () => LocalizedString
+			/**
+			 * 激活此环境
+			 */
+			activateThisEnv: () => LocalizedString
+			/**
+			 * 启用本地私有覆盖
+			 */
+			localOverrideEnableAction: () => LocalizedString
+			/**
+			 * 关闭并删除本地私有覆盖
+			 */
+			localOverrideDisableAction: () => LocalizedString
+			/**
+			 * 删除环境
+			 */
+			deleteDialogTitle: () => LocalizedString
+			/**
+			 * 即将删除环境「{name}」，请选择删除范围。此操作不可撤销。
+			 */
+			deleteDialogDesc: (arg: { name: unknown }) => LocalizedString
+			/**
+			 * 删除整个环境
+			 */
+			deleteScopeAll: () => LocalizedString
+			/**
+			 * 同时删除主环境文件与其本地私有覆盖文件（若存在）。
+			 */
+			deleteScopeAllDesc: () => LocalizedString
+			/**
+			 * 仅删除本地私有覆盖
+			 */
+			deleteScopeLocalOnly: () => LocalizedString
+			/**
+			 * 保留主环境文件，只清除本机私有配置 (*.local.yaml)。
+			 */
+			deleteScopeLocalOnlyDesc: () => LocalizedString
+			/**
+			 * 确认删除
+			 */
+			deleteConfirm: () => LocalizedString
+			/**
+			 * 环境「{name}」已删除
+			 */
+			envDeleted: (arg: { name: unknown }) => LocalizedString
+			/**
+			 * 已删除「{name}」的本地私有覆盖
+			 */
+			localOverrideDeleted: (arg: { name: unknown }) => LocalizedString
+			/**
+			 * 已为「{name}」启用本地私有覆盖
+			 */
+			localOverrideCreated: (arg: { name: unknown }) => LocalizedString
 			/**
 			 * 暂无默认变量，请在下方添加
 			 */
@@ -21625,6 +22082,10 @@ export type TranslationFunctions = {
 		 */
 		flows_dir: () => LocalizedString
 		/**
+		 * 环境保存目录
+		 */
+		environments_dir: () => LocalizedString
+		/**
 		 * 日志目录
 		 */
 		logs_dir: () => LocalizedString
@@ -21744,6 +22205,14 @@ export type TranslationFunctions = {
 		 * 本地流程 (.mpf / YAML / JSON) 文件的默认持久化目录
 		 */
 		flows_dir_desc: () => LocalizedString
+		/**
+		 * 全局环境 (*.yaml) 保存目录，未配置时默认跟随流程目录
+		 */
+		environments_dir_desc: () => LocalizedString
+		/**
+		 * 默认跟随流程目录: {0}
+		 */
+		environments_dir_placeholder: (arg0: unknown) => LocalizedString
 		/**
 		 * 流程执行历史与性能压测报告存储目录
 		 */
@@ -22506,6 +22975,90 @@ export type TranslationFunctions = {
 		 * 移动到...
 		 */
 		move_to: () => LocalizedString
+		/**
+		 * 导出流程 (.mpf)...
+		 */
+		export_flow_menu: () => LocalizedString
+		/**
+		 * 环境管理
+		 */
+		environment_section_title: () => LocalizedString
+		/**
+		 * 复制环境副本
+		 */
+		duplicate_env: () => LocalizedString
+		/**
+		 * 删除环境
+		 */
+		delete_env: () => LocalizedString
+		/**
+		 * 暂无全局环境，点击 ⚙️ 打开管理弹窗新建
+		 */
+		no_envs_hint: () => LocalizedString
+		/**
+		 * 管理环境与变量
+		 */
+		open_env_manager: () => LocalizedString
+		/**
+		 * 配置变量与环境
+		 */
+		configure_variables_env: () => LocalizedString
+		/**
+		 * 本流程包含 {count} 个内置默认变量，可在环境管理中统一查看与级联配置。
+		 */
+		flow_variables_compact_hint: (arg: { count: unknown }) => LocalizedString
+		/**
+		 * 导出流程
+		 */
+		export_flow_dialog_title: () => LocalizedString
+		/**
+		 * 目标流程: {name}
+		 */
+		export_flow_target: (arg: { name: unknown }) => LocalizedString
+		/**
+		 * 固化当前环境参数到流程中 (Bake Active Environment)
+		 */
+		bake_env_checkbox: () => LocalizedString
+		/**
+		 * 将把当前环境 "{name}" 中的 {count} 个变量与内置默认变量合并，写入导出文件的 initial_variables 中，使流程脱离外部环境也可独立执行。
+		 */
+		bake_env_desc: (arg: { count: unknown, name: unknown }) => LocalizedString
+		/**
+		 * 当前未激活任何环境，将仅导出流程内置的默认变量。
+		 */
+		bake_no_env_desc: () => LocalizedString
+		/**
+		 * 凭据安全扫描 (Credential Sanitization)
+		 */
+		sensitive_vars_title: () => LocalizedString
+		/**
+		 * 检测到以下可能包含私密凭据的变量，勾选后将在导出时清空其值，防止凭据意外泄漏：
+		 */
+		sensitive_vars_desc: () => LocalizedString
+		/**
+		 * 导出文件
+		 */
+		export_btn: () => LocalizedString
+		/**
+		 * 流程已成功导出
+		 */
+		export_success: () => LocalizedString
+		/**
+		 * 导出中...
+		 */
+		exporting: () => LocalizedString
+		/**
+		 * 加载流程数据...
+		 */
+		loading_flow_data: () => LocalizedString
+		/**
+		 * 清空值导出
+		 */
+		clear_value_on_export: () => LocalizedString
+		/**
+		 * 保留原值
+		 */
+		keep_original_value: () => LocalizedString
 		/**
 		 * 删除流程
 		 */

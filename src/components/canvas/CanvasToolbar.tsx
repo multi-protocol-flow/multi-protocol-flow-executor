@@ -25,6 +25,7 @@ import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { DatasetExecutionPanel } from '@/components/execution/DatasetExecutionPanel';
 import { useDatasetExecutionStore } from '@/stores/datasetExecution';
 import { EnvironmentSelector } from '@/components/panels/EnvironmentManager';
+import { useEnvironmentStore } from '@/stores/environment';
 
 import { VariablePanel, extractVariableGroups } from '@/components/panels/VariablePanel';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -38,6 +39,7 @@ export function CanvasToolbar() {
   const [isExecuting, setIsExecuting] = useState(false);
   const flow = useFlowStore(selectFlow);
 
+  const hasEnvironments = useEnvironmentStore((s) => s.environments.length > 0);
   // 验证错误对话框状态
   const [validationErrors, setValidationErrors] = useState<{ code: string; message: string }[]>([]);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
@@ -279,7 +281,7 @@ export function CanvasToolbar() {
         {!isAnyActive && <EnvironmentSelector />}
 
         {/* 分隔线 */}
-        {!isAnyActive && flow?.environments && flow.environments.length > 0 && (
+        {!isAnyActive && hasEnvironments && (
           <div className="w-px h-5 bg-border" />
         )}
 

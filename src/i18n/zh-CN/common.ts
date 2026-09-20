@@ -6,6 +6,8 @@ const zh_CN_common: Partial<BaseTranslation> = {
   CONFIRM: '确认',
   SAVE: '保存',
   DELETE: '删除',
+  save_success: '保存成功',
+  delete_success: '删除成功',
   zoom_in: '放大 (Ctrl+=)',
   zoom_out: '缩小 (Ctrl+-)',
   zoom_reset: '重置缩放 (Ctrl+0)',

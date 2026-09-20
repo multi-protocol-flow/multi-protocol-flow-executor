@@ -5,7 +5,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Search, ChevronDown, ChevronRight, Variable as VariableIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import type { Flow, Node } from '@/types';
+import type { Flow, Node, EnvironmentSet } from '@/types';
+import { useEnvironmentStore } from '@/stores/environment';
 import type { Variable } from '@/types/variable';
 import { isVariableExtractorConfig } from '@/types/node';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -29,7 +30,7 @@ export interface VariableGroup {
 /**
  * 从流程中提取所有变量并按节点分组
  */
-export function extractVariableGroups(flow: Flow): VariableGroup[] {
+export function extractVariableGroups(flow: Flow, activeEnvData?: EnvironmentSet | null): VariableGroup[] {
   const ll = getLL().panels.variablePanel;
   const groups: VariableGroup[] = [];
   const nodeMap = new Map<string, Node>();
@@ -82,23 +83,20 @@ export function extractVariableGroups(flow: Flow): VariableGroup[] {
       });
     }
 
-// 激活环境的变量 — 仅在明确选择环境时才显示，避免与流程变量重复
-    if (flow.active_environment && flow.environments) {
-      const env = flow.environments.find((e) => e.name === flow.active_environment);
-      if (env && Object.keys(env.variables).length > 0) {
-        const envVars: Variable[] = Object.entries(env.variables).map(([key, value]) => ({
-          name: key,
-          value,
-          sourceNodeUuid: '__environment__',
-          description: ll.environmentVariables({ name: env.name }),
-        }));
-        groups.push({
-          nodeUuid: '__environment__',
-          nodeName: ll.environmentVariables({ name: env.name }),
-          nodeType: 'environment',
-          variables: envVars,
-        });
-      }
+    // 激活环境的变量 — 仅在明确选择环境时才显示，避免与流程变量重复
+    if (activeEnvData && Object.keys(activeEnvData.variables).length > 0) {
+      const envVars: Variable[] = Object.entries(activeEnvData.variables).map(([key, value]) => ({
+        name: key,
+        value,
+        sourceNodeUuid: '__environment__',
+        description: ll.environmentVariables({ name: activeEnvData.name }),
+      }));
+      groups.push({
+        nodeUuid: '__environment__',
+        nodeName: ll.environmentVariables({ name: activeEnvData.name }),
+        nodeType: 'environment',
+        variables: envVars,
+      });
     }
 
     return groups;
@@ -148,8 +146,9 @@ export function VariablePanel({ flow, nodes: _nodes, showHeader = true }: Variab
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
+  const activeEnvData = useEnvironmentStore((state) => state.activeEnvironmentData);
   // 提取变量分组
-  const variableGroups = useMemo(() => extractVariableGroups(flow), [flow]);
+  const variableGroups = useMemo(() => extractVariableGroups(flow, activeEnvData), [flow, activeEnvData]);
 
   // 过滤变量
   const filteredGroups = useMemo(() => {

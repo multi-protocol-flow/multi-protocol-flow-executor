@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
 import { FlowListPanel } from '@/components/sidebar';
 import { DataSourcePanel } from '@/components/sidebar/DataSourcePanel';
+import { EnvironmentPanel, EnvironmentPanelHeaderAction } from '@/components/sidebar/EnvironmentPanel';
 import { FlowNodeList } from '@/components/panels/FlowNodeList';
 import { useUIStore, useDebugStore, useFlowStore } from '@/stores';
 import { selectIsDebugging } from '@/stores/debug';
@@ -32,6 +33,13 @@ const NODE_OUTLINE_DEFAULT_HEIGHT = 220;
 
 /** 节点大纲最小高度 */
 const NODE_OUTLINE_MIN_HEIGHT = 80;
+
+/** 环境管理面板默认高度 */
+const ENV_PANEL_DEFAULT_HEIGHT = 160;
+
+/** 环境管理面板最小高度 */
+const ENV_PANEL_MIN_HEIGHT = 72;
+
 export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
   const LL = getLL();
   // UI 状态
@@ -44,6 +52,10 @@ export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
   // 流程节点大纲面板状态（默认展开）
   const [isNodeOutlineCollapsed, setIsNodeOutlineCollapsed] = useState(false);
   const [nodeOutlineHeight, setNodeOutlineHeight] = useState(NODE_OUTLINE_DEFAULT_HEIGHT);
+
+  // 环境管理面板状态（默认展开，与节点大纲一致支持拖拽调高）
+  const [isEnvCollapsed, setIsEnvCollapsed] = useState(false);
+  const [envHeight, setEnvHeight] = useState(ENV_PANEL_DEFAULT_HEIGHT);
 
   const flow = useFlowStore((state) => state.flow);
   const nodesCount = flow?.nodes?.length ?? 0;
@@ -105,9 +117,25 @@ export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
     setIsNodeOutlineCollapsed((prev) => !prev);
   }, []);
 
+  // 切换环境面板折叠
+  const handleToggleEnv = useCallback(() => {
+    setIsEnvCollapsed((prev) => !prev);
+  }, []);
+
   const maxNodeOutlineHeight = Math.max(
     NODE_OUTLINE_MIN_HEIGHT + 40,
     containerHeight - (FLOW_LIST_MIN_HEIGHT + HEADER_HEIGHT * 2)
+  );
+
+  // 三个面板都是 shrink-0，只能靠各自的 maxHeight 保证不溢出容器；
+  // 因此为已展开的兄弟面板预留其最小高度，否则底部面板会被挤出可视区。
+  const siblingReserved =
+    (isNodeOutlineCollapsed ? 0 : NODE_OUTLINE_MIN_HEIGHT) +
+    (isDatasourceCollapsed ? 0 : DATASOURCE_PANEL_MIN_HEIGHT);
+
+  const maxEnvHeight = Math.max(
+    ENV_PANEL_MIN_HEIGHT + 40,
+    containerHeight - (FLOW_LIST_MIN_HEIGHT + siblingReserved + HEADER_HEIGHT * (flow ? 3 : 2))
   );
 
   const maxDatasourceHeight = Math.max(
@@ -115,7 +143,11 @@ export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
     containerHeight - (FLOW_LIST_MIN_HEIGHT + HEADER_HEIGHT * (flow ? 2 : 1))
   );
   return (
-    <div ref={containerRef} className="h-full flex flex-col bg-background overflow-hidden" data-testid="sidebar-flow-list">
+    <div
+      ref={containerRef}
+      className="h-full flex flex-col bg-background overflow-x-hidden overflow-y-auto scrollbar-thin"
+      data-testid="sidebar-flow-list"
+    >
       {/* ===== 顶部：流程列表（自动扩展填充剩余空间） ===== */}
       <CollapsiblePanel
         title={LL.flow.flow_list_title()}
@@ -203,6 +235,35 @@ export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
           <FlowNodeList showHeader={false} readOnly={isDebugging} />
         </CollapsiblePanel>
       )}
+
+      {/* ===== 环境管理面板（可折叠、可拖拽调高） ===== */}
+      <CollapsiblePanel
+        title={LL.flow.environment_section_title()}
+        isCollapsed={isEnvCollapsed}
+        onToggle={handleToggleEnv}
+        collapsedHeight={HEADER_HEIGHT}
+        height={
+          isEnvCollapsed
+            ? undefined
+            : isFlowListCollapsed
+            ? undefined
+            : envHeight
+        }
+        onHeightChange={setEnvHeight}
+        resizable={!isFlowListCollapsed && !isEnvCollapsed}
+        minHeight={ENV_PANEL_MIN_HEIGHT}
+        maxHeight={maxEnvHeight}
+        className={cn(
+          isEnvCollapsed
+            ? 'shrink-0 border-t border-border'
+            : isFlowListCollapsed
+            ? 'flex-1 min-h-0 border-t border-border'
+            : 'shrink-0 border-t border-border'
+        )}
+        headerRight={<EnvironmentPanelHeaderAction />}
+      >
+        <EnvironmentPanel />
+      </CollapsiblePanel>
 
       {/* ===== 底部：数据源面板（可折叠、可拖拽调高、折叠置底） ===== */}
       <CollapsiblePanel

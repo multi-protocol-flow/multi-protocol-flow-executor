@@ -22,6 +22,7 @@ import { DynamicVariablesHelpDialog } from '@/components/dialogs/DynamicVariable
 import { FlowConflictDialog } from '@/components/dialogs/FlowConflictDialog';
 import { SearchOverlay } from '@/components/dialogs/SearchOverlay';
 import { EnvironmentManagerDialog } from '@/components/panels/EnvironmentManager';
+import { ExportFlowDialog } from '@/components/dialogs/ExportFlowDialog';
 import {
   DatasetReportList,
   DatasetReportDetail,
@@ -146,6 +147,7 @@ const GlobalDialogs = memo(function GlobalDialogs() {
       <AISpotlightDialog />
       <SearchOverlayHandler />
       {showEnvironmentManagerDialog && <EnvironmentManagerDialog />}
+      <ExportFlowDialog />
     </>
   );
 });
