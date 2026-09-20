@@ -48,6 +48,8 @@ pub use tauri_commands::{
     create_flow,
     create_folder,
     delete_dataset_report,
+    delete_environment_file,
+    delete_environment_local_override,
     delete_flow_file,
     delete_flow_report,
     delete_folder,
@@ -58,10 +60,12 @@ pub use tauri_commands::{
     execute_flow_with_dataset,
     execute_single_node,
     force_end_debug,
+    get_active_ingress_ports,
     get_app_data_dir,
     // 应用更新命令
     get_app_version,
     get_debug_status,
+    get_environments_dir,
     get_node_config_schema,
     get_node_execution_detail,
     // 节点注册表命令
@@ -69,6 +73,7 @@ pub use tauri_commands::{
     get_stress_test_status,
     install_update_package,
     list_dataset_reports,
+    list_environment_files,
     // 流程文件存储命令
     list_flow_files,
     list_flow_reports,
@@ -77,16 +82,19 @@ pub use tauri_commands::{
     list_stress_test_reports,
     load_dataset_report,
     load_dataset_row_detail,
+    load_environment_file,
     load_flow_file,
     load_flow_report,
     load_stress_test_report,
     move_flow_to_folder,
     move_folder,
     open_directory,
+    rename_environment_file,
     rename_flow_file,
     rename_folder,
     save_csv_template,
     save_dataset_report,
+    save_environment_file,
     save_flow_file,
     save_flow_report,
     save_stress_test_report,
@@ -94,10 +102,9 @@ pub use tauri_commands::{
     start_debug,
     // Ingress Mock 服务命令
     start_ingress_listener,
-    stop_ingress_listener,
-    get_active_ingress_ports,
     // 压力测试命令
     start_stress_test,
+    stop_ingress_listener,
     stop_stress_test,
     // 数据集执行命令
     validate_dataset_csv,
@@ -244,6 +251,32 @@ pub(crate) fn resolve_flows_dir_from(
 /// 在任何执行入口调用一次，使执行期的子流程解析与前端列表使用同一目录。
 pub(crate) fn sync_flows_dir_override(app: &tauri::AppHandle) {
     flow_engine::storage::set_flows_dir_override(resolve_flows_dir(app));
+}
+
+/// 解析当前生效的环境保存目录
+pub(crate) fn resolve_environments_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
+    let configured = app.store("store/settings.bin").ok().and_then(|store| {
+        store
+            .get("environmentsDir")
+            .and_then(|v| v.as_str().map(String::from))
+    });
+    resolve_environments_dir_from(configured.as_deref(), resolve_flows_dir(app))
+}
+
+/// 环境保存目录解析逻辑：设置项（去空白后非空）优先，否则 `<flows_dir>/environments`
+pub(crate) fn resolve_environments_dir_from(
+    configured: Option<&str>,
+    flows_dir: Option<PathBuf>,
+) -> Option<PathBuf> {
+    if let Some(dir) = configured.map(str::trim).filter(|s| !s.is_empty()) {
+        return Some(PathBuf::from(dir));
+    }
+    flows_dir.map(|dir| dir.join("environments"))
+}
+
+/// 将当前生效的环境目录登记到引擎存储层
+pub(crate) fn sync_environments_dir_override(app: &tauri::AppHandle) {
+    flow_engine::storage::set_environments_dir_override(resolve_environments_dir(app));
 }
 
 /// 解析默认执行超时时间：`MPE_DEFAULT_TIMEOUT_MS` 环境变量优先，否则设置文件 `defaultExecutionTimeoutMs`，
@@ -452,7 +485,6 @@ pub fn run() {
             // 注册数据驱动执行会话管理器状态（用于取消数据驱动执行）
             app.manage(DatasetExecutionSessionManager::new());
 
-
             // 注册 Ingress 流程级 Mock 服务监听管理器
             app.manage(Arc::new(flow_engine::ingress::IngressManager::new()));
             // 从 store 读取日志目录配置
@@ -547,6 +579,14 @@ pub fn run() {
             delete_flow_file,
             copy_flow_file,
             rename_flow_file,
+            // 环境文件存储命令
+            list_environment_files,
+            load_environment_file,
+            save_environment_file,
+            delete_environment_file,
+            delete_environment_local_override,
+            rename_environment_file,
+            get_environments_dir,
             // 文件夹管理命令
             list_folders,
             create_folder,
@@ -670,5 +710,26 @@ mod flows_dir_tests {
     #[test]
     fn resolve_flows_dir_none_when_unresolvable() {
         assert_eq!(resolve_flows_dir_from(None, None), None);
+    }
+
+    /// 未配置环境目录时跟随已解析的 flows_dir（`<flows_dir>/environments`），
+    /// 而不是引擎的内置数据目录；否则用户改了 flows_dir 后环境文件会留在旧位置。
+    #[test]
+    fn resolve_environments_dir_follows_flows_dir() {
+        use super::resolve_environments_dir_from;
+
+        assert_eq!(
+            resolve_environments_dir_from(Some(" /srv/envs "), Some(PathBuf::from("/flows"))),
+            Some(PathBuf::from("/srv/envs"))
+        );
+        assert_eq!(
+            resolve_environments_dir_from(None, Some(PathBuf::from("/flows"))),
+            Some(PathBuf::from("/flows/environments"))
+        );
+        assert_eq!(
+            resolve_environments_dir_from(Some("   "), Some(PathBuf::from("/flows"))),
+            Some(PathBuf::from("/flows/environments"))
+        );
+        assert_eq!(resolve_environments_dir_from(None, None), None);
     }
 }

@@ -40,8 +40,6 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
         name: "WebSocket 调试测试流程".to_string(),
         description: None,
         initial_variables: None,
-        active_environment: None,
-        environments: vec![],
         hooks: None,
         nodes: vec![
             // Entry 节点

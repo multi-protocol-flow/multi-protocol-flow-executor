@@ -103,7 +103,7 @@ pub async fn execute_flow(
 
     // 子流程按 ID 解析需要与前端列表同一流程目录
     crate::sync_flows_dir_override(&app);
-
+    crate::sync_environments_dir_override(&app);
     log::info!(
         "[IPC::execute_flow] Start: uuid={}, name='{}', nodes={}, session={}",
         flow.uuid,
@@ -164,10 +164,46 @@ pub async fn execute_flow(
         flow_engine::hook_runner::DefaultHookExecutor::new(),
     ));
 
-    let result = executor
-        .execute_flow(&flow, input_variables, None, Some(log_sender))
-        .await;
+    // 多层变量合并：基底兜底(flow.initial_variables) -> 环境(input.environment_name) -> 显式覆盖(input.variables)
+    //
+    // 显式指定环境却加载失败时必须报错返回：静默退回流程内置变量会让流程在错误的
+    // 端点上执行（例如 prod 流程跑在兜底变量指向的 dev 地址）。
+    let env_set = match input.environment_name.as_deref().map(str::trim) {
+        Some(env_name) if !env_name.is_empty() => {
+            let env_dir = flow_engine::storage::get_environments_dir()
+                .map_err(|e| format!("Failed to resolve environments directory: {}", e))?;
+            Some(
+                flow_engine::storage::load_environment_file(env_name, &env_dir)
+                    .map_err(|e| format!("Failed to load environment '{}': {}", env_name, e))?,
+            )
+        }
+        _ => None,
+    };
 
+    let runtime_vars_map = input_variables.as_ref().and_then(|v| {
+        v.as_object().map(|obj| {
+            obj.iter()
+                .map(|(k, val)| (k.clone(), val.clone()))
+                .collect::<std::collections::HashMap<_, _>>()
+        })
+    });
+
+    let merged_variables = flow_engine::flow::merge_variable_layers(
+        flow.initial_variables.as_ref(),
+        env_set.as_ref(),
+        None,
+        runtime_vars_map.as_ref(),
+    );
+
+    let resolved_variables = if merged_variables.is_empty() {
+        input_variables
+    } else {
+        Some(serde_json::json!(merged_variables))
+    };
+
+    let result = executor
+        .execute_flow(&flow, resolved_variables, None, Some(log_sender))
+        .await;
     // 发送流程结束日志
     let _ = (flow_uuid, flow_name);
 
@@ -1007,6 +1043,115 @@ pub fn rename_flow_file(
         log::error!("[IPC::rename_flow_file] FAILED: error={}", e);
     }
     res
+}
+
+// ============================================================================
+// 环境文件存储命令
+// ============================================================================
+
+/// 列出所有环境文件元数据
+#[tauri::command]
+pub fn list_environment_files(
+    app: tauri::AppHandle,
+) -> Result<Vec<flow_engine::storage::EnvironmentMetadata>, String> {
+    crate::sync_environments_dir_override(&app);
+    let target_dir = flow_engine::storage::get_environments_dir()?;
+    log::debug!("[IPC::list_environment_files] dir={:?}", target_dir);
+    flow_engine::storage::list_environment_files(&target_dir)
+}
+
+/// 加载环境文件（is_local 为 true 加载本地私有覆盖，false 加载主环境，None 自动叠加合并）
+#[tauri::command]
+pub fn load_environment_file(
+    app: tauri::AppHandle,
+    name: String,
+    is_local: Option<bool>,
+) -> Result<flow_engine::flow::EnvironmentSet, String> {
+    crate::sync_environments_dir_override(&app);
+    let target_dir = flow_engine::storage::get_environments_dir()?;
+    log::debug!(
+        "[IPC::load_environment_file] name={}, is_local={:?}, dir={:?}",
+        name,
+        is_local,
+        target_dir
+    );
+    match is_local {
+        Some(local) => flow_engine::storage::load_environment_file_raw(&name, local, &target_dir),
+        None => flow_engine::storage::load_environment_file(&name, &target_dir),
+    }
+}
+
+/// 保存环境文件（原子写入）
+#[tauri::command]
+pub fn save_environment_file(
+    app: tauri::AppHandle,
+    env: flow_engine::flow::EnvironmentSet,
+    is_local: Option<bool>,
+) -> Result<(), String> {
+    crate::sync_environments_dir_override(&app);
+    let target_dir = flow_engine::storage::get_environments_dir()?;
+    log::info!(
+        "[IPC::save_environment_file] name='{}', is_local={:?}, dir={:?}",
+        env.name,
+        is_local,
+        target_dir
+    );
+    flow_engine::storage::save_environment_file(&env, is_local.unwrap_or(false), &target_dir)
+}
+
+/// 删除环境文件（同时删除关联的 .local 覆盖文件）
+#[tauri::command]
+pub fn delete_environment_file(app: tauri::AppHandle, name: String) -> Result<(), String> {
+    crate::sync_environments_dir_override(&app);
+    let target_dir = flow_engine::storage::get_environments_dir()?;
+    log::info!(
+        "[IPC::delete_environment_file] name='{}', dir={:?}",
+        name,
+        target_dir
+    );
+    flow_engine::storage::delete_environment_file(&name, &target_dir)
+}
+
+/// 删除环境的本地私有覆盖文件（保留主环境定义）
+#[tauri::command]
+pub fn delete_environment_local_override(
+    app: tauri::AppHandle,
+    name: String,
+) -> Result<(), String> {
+    crate::sync_environments_dir_override(&app);
+    let target_dir = flow_engine::storage::get_environments_dir()?;
+    log::info!(
+        "[IPC::delete_environment_local_override] name='{}', dir={:?}",
+        name,
+        target_dir
+    );
+    flow_engine::storage::delete_environment_local_override(&name, &target_dir)
+}
+
+/// 重命名环境文件
+#[tauri::command]
+pub fn rename_environment_file(
+    app: tauri::AppHandle,
+    old_name: String,
+    new_name: String,
+) -> Result<flow_engine::storage::EnvironmentMetadata, String> {
+    crate::sync_environments_dir_override(&app);
+    let target_dir = flow_engine::storage::get_environments_dir()?;
+    log::info!(
+        "[IPC::rename_environment_file] old='{}', new='{}', dir={:?}",
+        old_name,
+        new_name,
+        target_dir
+    );
+    flow_engine::storage::rename_environment_file(&old_name, &new_name, &target_dir)
+}
+
+/// 获取当前生效的环境保存目录
+#[tauri::command]
+pub fn get_environments_dir(app: tauri::AppHandle) -> Result<String, String> {
+    crate::sync_environments_dir_override(&app);
+    let dir = flow_engine::storage::get_environments_dir()?;
+    Ok(dir.to_string_lossy().to_string())
 }
 
 // ============================================================================
@@ -2672,8 +2817,6 @@ mod tests {
             nodes: vec![start_node, end_node],
             connections: vec![connection],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
@@ -2715,8 +2858,6 @@ mod tests {
             nodes: vec![start_node],
             connections: vec![],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
@@ -2754,8 +2895,6 @@ mod tests {
             nodes: vec![http_node],
             connections: vec![],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
@@ -2838,8 +2977,6 @@ mod tests {
             nodes: vec![start_node, end_node],
             connections: vec![connection],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
 
