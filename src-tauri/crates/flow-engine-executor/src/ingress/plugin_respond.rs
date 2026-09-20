@@ -86,7 +86,12 @@ impl NodePlugin for HttpRespondPlugin {
                 cfg.body.clone(),
                 cfg.body_type.clone(),
             ),
-            _ => (200, HashMap::new(), r#"{"success": true}"#.to_string(), "json".to_string()),
+            _ => (
+                200,
+                HashMap::new(),
+                r#"{"success": true}"#.to_string(),
+                "json".to_string(),
+            ),
         };
 
         // 解析 headers 中的变量 {{var}}
@@ -97,22 +102,31 @@ impl NodePlugin for HttpRespondPlugin {
         }
 
         // 默认加上 Content-Type
-        if !evaluated_headers.keys().any(|k| k.eq_ignore_ascii_case("content-type")) {
+        if !evaluated_headers
+            .keys()
+            .any(|k| k.eq_ignore_ascii_case("content-type"))
+        {
             if body_type == "json" {
-                evaluated_headers.insert("Content-Type".to_string(), "application/json; charset=utf-8".to_string());
+                evaluated_headers.insert(
+                    "Content-Type".to_string(),
+                    "application/json; charset=utf-8".to_string(),
+                );
             } else if body_type == "text" {
-                evaluated_headers.insert("Content-Type".to_string(), "text/plain; charset=utf-8".to_string());
+                evaluated_headers.insert(
+                    "Content-Type".to_string(),
+                    "text/plain; charset=utf-8".to_string(),
+                );
             }
         }
 
         // 解析 body 中的变量 {{var}}
-        let evaluated_body = flow_engine_core::executor::replace_variables(&raw_body, context)
-            .unwrap_or(raw_body);
+        let evaluated_body =
+            flow_engine_core::executor::replace_variables(&raw_body, context).unwrap_or(raw_body);
 
         // 如果上下文中注册了 IngressResponseChannel，将响应送回等待中的 HTTP 连接
-        if let Some(channel) = context.get_provider::<IngressResponseChannel>(
-            crate::ingress::INGRESS_RESPONSE_PROVIDER,
-        ) {
+        if let Some(channel) = context
+            .get_provider::<IngressResponseChannel>(crate::ingress::INGRESS_RESPONSE_PROVIDER)
+        {
             let mut guard = channel.tx.lock().await;
             if let Some(sender) = guard.take() {
                 let _ = sender.send(IngressResponsePayload {
@@ -132,7 +146,10 @@ impl NodePlugin for HttpRespondPlugin {
         // 沿 out 端口连接（如果有后续节点如通知或日志）
         let next_nodes: Vec<String> = connections
             .iter()
-            .filter(|conn| conn.source_node_uuid == node.uuid && (conn.source_port_id == "out" || conn.source_port_id == "output"))
+            .filter(|conn| {
+                conn.source_node_uuid == node.uuid
+                    && (conn.source_port_id == "out" || conn.source_port_id == "output")
+            })
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 

@@ -481,7 +481,10 @@ mod tests {
         };
         let batch = ExecutionEvent::Batch(vec![event1, event2]);
         let json = serde_json::to_string(&batch).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
-        assert!(json.starts_with(r#"{"batch":["#), "应当序列化为 camelCase batch 数组: {json}");
+        assert!(
+            json.starts_with(r#"{"batch":["#),
+            "应当序列化为 camelCase batch 数组: {json}"
+        );
 
         let deserialized: ExecutionEvent =
             serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
