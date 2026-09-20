@@ -313,8 +313,6 @@ mod tests {
             }],
             connections: vec![],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         }
     }
@@ -629,8 +627,6 @@ mod tests {
             }],
             connections: vec![],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
         let config2 = StressTestConfig {
@@ -806,8 +802,6 @@ mod tests {
             }],
             connections: vec![],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         };
         let config2 = StressTestConfig {
