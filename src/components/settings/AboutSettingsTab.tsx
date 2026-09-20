@@ -22,7 +22,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useUpdateStore } from '@/stores/update';
 import { useSettingsStore } from '@/stores/settings';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -90,7 +89,7 @@ export function AboutSettingsTab() {
     <div className="space-y-5 sm:space-y-6 select-none">
       {/* 软件标识与版本头图卡片 */}
       <div className="rounded-xl border border-border/70 bg-muted/20 p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-3 sm:gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
             <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-background border border-border/80 flex items-center justify-center p-2 shadow-2xs shrink-0">
               <img src="/mpe-logo.svg" alt="MPE Flow Logo" className="h-full w-full object-contain" />
@@ -108,7 +107,7 @@ export function AboutSettingsTab() {
             </div>
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -122,182 +121,8 @@ export function AboutSettingsTab() {
           </div>
         </div>
 
-        {/* 更新状态反馈条 */}
-        {/* 更新状态与操作区域 */}
-        {hasUpdate && updateInfo ? (
-          <div className="mt-4 pt-3.5 border-t border-border/50">
-            <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 dark:bg-amber-500/10 p-3.5 sm:p-4 space-y-3">
-              {/* 核心状态与主要操作 */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start sm:items-center gap-2.5 text-amber-600 dark:text-amber-400 min-w-0">
-                  <Sparkles className="h-4 w-4 shrink-0 mt-0.5 sm:mt-0" />
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                    <span className="font-medium text-foreground">
-                      {ll.settings.update_available()}: <strong className="text-amber-600 dark:text-amber-400 font-mono text-xs sm:text-sm">v{updateInfo.latestVersion}</strong>
-                    </span>
-                    {updateInfo.isPrerelease && (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 text-amber-600 bg-amber-500/10 border-amber-500/20">
-                        Pre-release
-                      </Badge>
-                    )}
-                    {updateInfo.releaseDate && (
-                      <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-normal">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(updateInfo.releaseDate).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* 主要行动按钮 */}
-                <div className="shrink-0 flex items-center gap-2">
-                  {isDownloaded ? (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="h-8 text-xs px-3.5 bg-green-600 hover:bg-green-700 text-white gap-1.5 cursor-pointer shadow-2xs w-full sm:w-auto"
-                      onClick={installAndRestart}
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      <span>{ll.settings.install_and_restart()}</span>
-                    </Button>
-                  ) : isDownloading ? (
-                    <Button variant="default" size="sm" className="h-8 text-xs px-3.5 gap-1.5 w-full sm:w-auto" disabled>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>{ll.settings.downloading_update()}</span>
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="h-8 text-xs px-3.5 bg-amber-600 hover:bg-amber-700 text-white gap-1.5 cursor-pointer shadow-2xs w-full sm:w-auto"
-                      onClick={startDownload}
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      <span>{ll.settings.download_update()}</span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* 下载进度展示 */}
-              {isDownloading && (
-                <div className="rounded-md border border-primary/20 bg-background/60 p-3 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-primary flex items-center gap-1.5">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      {ll.settings.downloading_update()}
-                    </span>
-                    <span className="font-mono font-medium text-muted-foreground">
-                      {progress ? `${Math.round(progress.percent)}%` : '0%'}
-                    </span>
-                  </div>
-                  <Progress value={progress?.percent ?? 0} className="h-2" />
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
-                    <span>
-                      {formatBytes(progress?.received)} / {formatBytes(progress?.total)}
-                    </span>
-                    <span>{formatSpeed(progress?.bytesPerSec)}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* 下载完成提示 */}
-              {isDownloaded && (
-                <div className="flex items-center gap-2 rounded-md border border-green-500/20 bg-green-500/10 p-2.5 text-xs text-green-700 dark:text-green-300">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
-                  <span>{ll.settings.download_completed()}</span>
-                </div>
-              )}
-
-              {/* 错误提示 */}
-              {isError && (
-                <div className="flex items-start gap-2.5 rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-xs text-destructive">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                  <div className="space-y-1 flex-1 min-w-0">
-                    <div className="font-medium">{ll.settings.update_check_failed()}</div>
-                    {error && <div className="text-[11px] opacity-90 break-words">{error}</div>}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-xs px-2 shrink-0"
-                    onClick={startDownload}
-                  >
-                    {ll.settings.retry_update()}
-                  </Button>
-                </div>
-              )}
-
-              {/* 次要操作与更新日志折叠切换 */}
-              <div className="flex items-center justify-between gap-2 pt-1 border-t border-amber-500/15 text-xs">
-                <div>
-                  {hasNotes ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground gap-1 cursor-pointer"
-                      onClick={() => setShowChangelog((prev) => !prev)}
-                    >
-                      {showChangelog ? (
-                        <>
-                          <ChevronUp className="h-3.5 w-3.5" />
-                          <span>{ll.settings.hide_changelog()}</span>
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="h-3.5 w-3.5" />
-                          <span>{ll.settings.view_changelog()}</span>
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <span />
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {updateInfo.downloadUrl && !isDownloading && !isDownloaded && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground gap-1 cursor-pointer"
-                      onClick={() => openExternalUrl(updateInfo.downloadUrl!)}
-                      title={ll.settings.open_in_browser()}
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      <span className="hidden sm:inline">{ll.settings.open_in_browser()}</span>
-                    </Button>
-                  )}
-
-                  {!isDownloading && !isDownloaded && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground cursor-pointer"
-                      onClick={ignoreCurrentVersion}
-                    >
-                      {ll.settings.skip_version()}
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* 更新日志展开区域 */}
-              {showChangelog && hasNotes && updateInfo.releaseNotes && (
-                <div className="pt-1">
-                  <ScrollArea className="max-h-52 w-full rounded-md border border-border/60 bg-background/80 p-3 sm:p-3.5 shadow-2xs">
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed select-text space-y-1.5">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {updateInfo.releaseNotes}
-                      </ReactMarkdown>
-                    </div>
-                  </ScrollArea>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
+        {/* 状态指示条（非更新可用状态时显示） */}
+        {!hasUpdate && (
           <div className="mt-4 pt-3.5 border-t border-border/50 flex items-center justify-between text-xs">
             {status === 'up-to-date' ? (
               <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
@@ -317,6 +142,202 @@ export function AboutSettingsTab() {
           </div>
         )}
       </div>
+
+      {/* 发现新版本独立通知与操作卡片 */}
+      {hasUpdate && updateInfo && (
+        <div className="rounded-xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] to-amber-500/[0.03] dark:from-amber-500/[0.12] dark:to-amber-500/[0.04] p-4 sm:p-5 shadow-xs space-y-3.5">
+          {/* 头部：新版本标识与元信息 */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-8 w-8 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                <span className="font-semibold text-foreground">
+                  {ll.settings.update_available()}:
+                </span>
+                <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-xs sm:text-sm">
+                  v{updateInfo.latestVersion}
+                </span>
+                {updateInfo.isPrerelease && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 text-amber-600 bg-amber-500/10 border-amber-500/20">
+                    Pre-release
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* 版本对比与发布日期 */}
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-normal shrink-0">
+              {currentVersion && (
+                <span className="font-mono bg-background/50 border border-border/40 px-1.5 py-0.5 rounded">
+                  v{currentVersion} → v{updateInfo.latestVersion}
+                </span>
+              )}
+              {updateInfo.releaseDate && (
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(updateInfo.releaseDate).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 下载进度条 */}
+          {isDownloading && (
+            <div className="rounded-lg border border-border/60 bg-background/80 p-3 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-foreground flex items-center gap-1.5">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600 dark:text-amber-400" />
+                  {ll.settings.downloading_update()}
+                </span>
+                <span className="font-mono font-semibold text-foreground">
+                  {progress ? `${Math.round(progress.percent)}%` : '0%'}
+                </span>
+              </div>
+              <Progress value={progress?.percent ?? 0} className="h-2" />
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+                <span>
+                  {formatBytes(progress?.received)} / {formatBytes(progress?.total)}
+                </span>
+                <span>{formatSpeed(progress?.bytesPerSec)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* 下载完成提示 */}
+          {isDownloaded && (
+            <div className="flex items-center gap-2 rounded-lg border border-green-500/25 bg-green-500/10 p-3 text-xs text-green-700 dark:text-green-300">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+              <span className="font-medium">{ll.settings.download_completed()}</span>
+            </div>
+          )}
+
+          {/* 错误提示 */}
+          {isError && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-xs text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="space-y-1 flex-1 min-w-0">
+                <div className="font-medium">{ll.settings.update_check_failed()}</div>
+                {error && <div className="text-[11px] opacity-90 break-words">{error}</div>}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2.5 shrink-0"
+                onClick={startDownload}
+              >
+                {ll.settings.retry_update()}
+              </Button>
+            </div>
+          )}
+
+          {/* 操作控制栏（防溢出、自适应分栏、符合人体工学） */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-amber-500/20">
+            {/* 次要操作按钮组 */}
+            <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+              {hasNotes && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs px-2.5 bg-background/70 hover:bg-background border-border/70 gap-1.5 cursor-pointer shrink-0"
+                  onClick={() => setShowChangelog((prev) => !prev)}
+                >
+                  {showChangelog ? (
+                    <>
+                      <ChevronUp className="h-3.5 w-3.5" />
+                      <span>{ll.settings.hide_changelog()}</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                      <span>{ll.settings.view_changelog()}</span>
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {updateInfo.downloadUrl && !isDownloading && !isDownloaded && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs px-2.5 text-muted-foreground hover:text-foreground gap-1.5 cursor-pointer shrink-0"
+                  onClick={() => openExternalUrl(updateInfo.downloadUrl!)}
+                  title={ll.settings.open_in_browser()}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span>{ll.settings.open_in_browser()}</span>
+                </Button>
+              )}
+
+              {!isDownloading && !isDownloaded && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs px-2.5 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                  onClick={ignoreCurrentVersion}
+                >
+                  {ll.settings.skip_version()}
+                </Button>
+              )}
+            </div>
+
+            {/* 主要操作按钮 */}
+            <div className="shrink-0 flex items-center">
+              {isDownloaded ? (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-8 text-xs px-4 bg-green-600 hover:bg-green-700 text-white gap-1.5 cursor-pointer shadow-xs font-medium shrink-0"
+                  onClick={installAndRestart}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>{ll.settings.install_and_restart()}</span>
+                </Button>
+              ) : isDownloading ? (
+                <Button variant="default" size="sm" className="h-8 text-xs px-4 gap-1.5 shrink-0" disabled>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>{ll.settings.downloading_update()}</span>
+                </Button>
+              ) : (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-8 text-xs px-4 bg-amber-600 hover:bg-amber-700 text-white gap-1.5 cursor-pointer shadow-xs font-medium shrink-0"
+                  onClick={startDownload}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>{ll.settings.download_update()}</span>
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* 更新日志展开区域（独立流畅滚动，防止嵌套冲突，超小窗口自动限高） */}
+          {showChangelog && hasNotes && updateInfo.releaseNotes && (
+            <div className="rounded-lg border border-border/80 bg-background/95 dark:bg-background/80 overflow-hidden shadow-xs">
+              <div className="px-3.5 py-2 border-b border-border/50 bg-muted/30 flex items-center justify-between text-xs">
+                <span className="font-semibold text-foreground flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5 text-amber-500" />
+                  {ll.settings.view_changelog()}
+                </span>
+                <span className="font-mono text-[11px] text-muted-foreground">v{updateInfo.latestVersion}</span>
+              </div>
+              <div
+                className="max-h-60 sm:max-h-72 overflow-y-auto overflow-x-hidden p-3.5 sm:p-4 text-xs leading-relaxed select-text scrollbar-thin space-y-2"
+                style={{ overscrollBehavior: 'contain' }}
+                onWheel={(e) => e.stopPropagation()}
+              >
+                <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed select-text break-words">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {updateInfo.releaseNotes}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 更新策略偏好卡片 */}
       <div className="space-y-4">
