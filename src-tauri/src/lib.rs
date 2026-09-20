@@ -279,6 +279,53 @@ pub(crate) fn sync_environments_dir_override(app: &tauri::AppHandle) {
     flow_engine::storage::set_environments_dir_override(resolve_environments_dir(app));
 }
 
+/// 环境目录覆盖是进程级全局状态；依赖它的测试必须持同一把锁串行执行
+#[cfg(test)]
+static ENV_DIR_OVERRIDE_LOCK: std::sync::LazyLock<std::sync::Mutex<()>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(()));
+
+/// 分层合并执行期变量：流程兜底 → 环境文件 → 本地覆盖 → 运行时覆盖
+///
+/// 环境目录必须已由 [`sync_environments_dir_override`] 登记。
+///
+/// 显式指定了环境却加载失败时返回 `Err`：静默退回流程兜底变量会让流程在错误的
+/// 端点上执行（例如 prod 流程跑在兜底指向的 dev/staging 地址）。
+///
+/// # 返回
+/// - `Ok(Some(vars))`: 合并后的变量对象（非空）
+/// - `Ok(None)`: 无任何变量层
+pub(crate) fn resolve_execution_variables(
+    flow: &flow_engine::flow::Flow,
+    environment_name: Option<&str>,
+    runtime_variables: Option<&std::collections::HashMap<String, serde_json::Value>>,
+) -> Result<Option<serde_json::Value>, String> {
+    let env_set = match environment_name.map(str::trim) {
+        Some(env_name) if !env_name.is_empty() => {
+            let env_dir = flow_engine::storage::get_environments_dir()
+                .map_err(|e| format!("Failed to resolve environments directory: {}", e))?;
+            // `load_environment_file` 自动叠加同名 `.local.yaml` 私有覆盖
+            Some(
+                flow_engine::storage::load_environment_file(env_name, &env_dir)
+                    .map_err(|e| format!("Failed to load environment '{}': {}", env_name, e))?,
+            )
+        }
+        _ => None,
+    };
+
+    let merged = flow_engine::flow::merge_variable_layers(
+        flow.initial_variables.as_ref(),
+        env_set.as_ref(),
+        None,
+        runtime_variables,
+    );
+
+    if merged.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(serde_json::json!(merged)))
+    }
+}
+
 /// 解析默认执行超时时间：`MPE_DEFAULT_TIMEOUT_MS` 环境变量优先，否则设置文件 `defaultExecutionTimeoutMs`，
 /// 缺省回退到 30 秒。
 pub(crate) fn resolve_default_execution_timeout(app: &tauri::AppHandle) -> std::time::Duration {
@@ -731,5 +778,92 @@ mod flows_dir_tests {
             Some(PathBuf::from("/flows/environments"))
         );
         assert_eq!(resolve_environments_dir_from(None, None), None);
+    }
+
+    /// 执行期变量分层：流程兜底 < 环境文件 < `.local.yaml` < 运行时覆盖
+    #[test]
+    fn resolve_execution_variables_layers_environment_and_runtime() {
+        use super::resolve_execution_variables;
+        use flow_engine::flow::{EnvironmentSet, Flow};
+        use std::collections::HashMap;
+
+        let _guard = super::ENV_DIR_OVERRIDE_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let temp = tempfile::TempDir::new().unwrap_or_else(|e| panic!("{e}"));
+        flow_engine::storage::set_environments_dir_override(Some(temp.path().to_path_buf()));
+
+        let write_env = |is_local: bool, vars: &[(&str, &str)]| {
+            let env = EnvironmentSet {
+                name: "dev".to_string(),
+                description: None,
+                variables: vars
+                    .iter()
+                    .map(|(k, v)| (k.to_string(), serde_json::json!(v)))
+                    .collect(),
+            };
+            flow_engine::storage::save_environment_file(&env, is_local, temp.path())
+                .unwrap_or_else(|e| panic!("{e}"));
+        };
+        write_env(false, &[("SHARED", "from-dev"), ("DEV_ONLY", "d")]);
+        write_env(true, &[("SHARED", "from-local"), ("SECRET", "s")]);
+
+        let flow = Flow {
+            uuid: "app-vars-test".to_string(),
+            name: "App Vars Test".to_string(),
+            description: None,
+            initial_variables: Some(HashMap::from([
+                ("SHARED".to_string(), serde_json::json!("from-flow")),
+                ("FLOW_ONLY".to_string(), serde_json::json!("f")),
+            ])),
+            nodes: vec![],
+            connections: vec![],
+            hooks: None,
+        };
+
+        let runtime = HashMap::from([("SHARED".to_string(), serde_json::json!("from-runtime"))]);
+        let merged = resolve_execution_variables(&flow, Some("dev"), Some(&runtime))
+            .unwrap_or_else(|e| panic!("{e}"))
+            .unwrap_or_else(|| panic!("expected merged variables"));
+
+        // 缺省环境目录必须在断言前恢复，避免污染同进程其他测试
+        flow_engine::storage::set_environments_dir_override(None);
+
+        assert_eq!(merged["SHARED"], serde_json::json!("from-runtime"));
+        assert_eq!(merged["FLOW_ONLY"], serde_json::json!("f"));
+        assert_eq!(merged["DEV_ONLY"], serde_json::json!("d"));
+        assert_eq!(merged["SECRET"], serde_json::json!("s"));
+    }
+
+    /// 显式指定却缺失的环境必须报错，而不是静默退回流程兜底变量
+    #[test]
+    fn resolve_execution_variables_errors_on_missing_environment() {
+        use super::resolve_execution_variables;
+        use flow_engine::flow::Flow;
+
+        let _guard = super::ENV_DIR_OVERRIDE_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let temp = tempfile::TempDir::new().unwrap_or_else(|e| panic!("{e}"));
+        flow_engine::storage::set_environments_dir_override(Some(temp.path().to_path_buf()));
+
+        let flow = Flow {
+            uuid: "app-vars-missing".to_string(),
+            name: "Missing Env".to_string(),
+            description: None,
+            initial_variables: Some(std::collections::HashMap::from([(
+                "API_URL".to_string(),
+                serde_json::json!("https://fallback.example"),
+            )])),
+            nodes: vec![],
+            connections: vec![],
+            hooks: None,
+        };
+
+        let result = resolve_execution_variables(&flow, Some("nope"), None);
+        flow_engine::storage::set_environments_dir_override(None);
+
+        let err = result.err().unwrap_or_else(|| panic!("expected error"));
+        assert!(err.contains("nope"), "unexpected error: {err}");
     }
 }

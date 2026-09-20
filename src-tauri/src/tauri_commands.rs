@@ -168,18 +168,6 @@ pub async fn execute_flow(
     //
     // 显式指定环境却加载失败时必须报错返回：静默退回流程内置变量会让流程在错误的
     // 端点上执行（例如 prod 流程跑在兜底变量指向的 dev 地址）。
-    let env_set = match input.environment_name.as_deref().map(str::trim) {
-        Some(env_name) if !env_name.is_empty() => {
-            let env_dir = flow_engine::storage::get_environments_dir()
-                .map_err(|e| format!("Failed to resolve environments directory: {}", e))?;
-            Some(
-                flow_engine::storage::load_environment_file(env_name, &env_dir)
-                    .map_err(|e| format!("Failed to load environment '{}': {}", env_name, e))?,
-            )
-        }
-        _ => None,
-    };
-
     let runtime_vars_map = input_variables.as_ref().and_then(|v| {
         v.as_object().map(|obj| {
             obj.iter()
@@ -188,18 +176,11 @@ pub async fn execute_flow(
         })
     });
 
-    let merged_variables = flow_engine::flow::merge_variable_layers(
-        flow.initial_variables.as_ref(),
-        env_set.as_ref(),
-        None,
+    let resolved_variables = crate::resolve_execution_variables(
+        &flow,
+        input.environment_name.as_deref(),
         runtime_vars_map.as_ref(),
-    );
-
-    let resolved_variables = if merged_variables.is_empty() {
-        input_variables
-    } else {
-        Some(serde_json::json!(merged_variables))
-    };
+    )?;
 
     let result = executor
         .execute_flow(&flow, resolved_variables, None, Some(log_sender))
@@ -699,11 +680,15 @@ pub struct DebugSessionManager {
 
 /// 启动调试会话
 ///
-/// 开始调试指定的流程，设置断点，并通过 Channel 发送调试事件和日志
+/// 开始调试指定的流程，设置断点，并通过 Channel 发送调试事件和日志。
+/// `environment_name` 为前端当前激活的全局环境；显式指定却加载失败时直接报错，
+/// 不允许静默退回流程兜底变量（否则调试会跑在与生产不同的端点上）。
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn start_debug(
     flow: Flow,
     breakpoints: Vec<String>,
+    environment_name: Option<String>,
     on_event: Channel<DebugEvent>,
     on_log: Channel<LogEvent>,
     state: State<'_, Arc<Mutex<DebugSessionManager>>>,
@@ -718,6 +703,10 @@ pub async fn start_debug(
 
     // 子流程按 ID 解析需要与前端列表同一流程目录
     crate::sync_flows_dir_override(&app);
+    crate::sync_environments_dir_override(&app);
+
+    // 多层变量合并：基底兜底(flow.initial_variables) -> 环境(environment_name)
+    let variables = crate::resolve_execution_variables(&flow, environment_name.as_deref(), None)?;
 
     // 创建命令通道
     let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -753,7 +742,7 @@ pub async fn start_debug(
         let _ = executor
             .start_debug(
                 &flow,
-                None,
+                variables,
                 breakpoints,
                 Some(log_sender),
                 event_sender,
@@ -849,10 +838,17 @@ pub async fn force_end_debug(
 pub async fn start_stress_test(
     app_handle: tauri::AppHandle,
     input: StartStressTestInput,
+    environment_name: Option<String>,
     state: State<'_, Arc<StressTestSessionManager>>,
 ) -> Result<(), String> {
     // 子流程按 ID 解析需要与前端列表同一流程目录
     crate::sync_flows_dir_override(&app_handle);
+    crate::sync_environments_dir_override(&app_handle);
+
+    // 与 execute_flow / start_debug 一致：显式指定环境却加载失败时直接报错，
+    // 避免压测静默跑在流程兜底变量指向的端点上。
+    let variables =
+        crate::resolve_execution_variables(&input.flow, environment_name.as_deref(), None)?;
 
     // 创建事件发送器
     let (event_sender, mut event_receiver) = mpsc::unbounded_channel::<StressTestEvent>();
@@ -865,8 +861,13 @@ pub async fn start_stress_test(
     });
 
     // 调用命令处理函数
-    flow_engine::stress_test::handle_start_stress_test(input, event_sender, state.inner().clone())
-        .await
+    flow_engine::stress_test::handle_start_stress_test(
+        input,
+        variables,
+        event_sender,
+        state.inner().clone(),
+    )
+    .await
 }
 
 /// 停止压力测试
