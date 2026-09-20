@@ -69,7 +69,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useCurrentLocale } from '@/hooks/useLocale';
 import { MapIcon, ArrowRightLeft, WrapText, Search } from 'lucide-react';
 import type { Flow } from '@/types';
-import { getNodeMetadata } from '@/lib/NodeRegistry';
+import { getNodeMetadata, getCachedNodeMetadataList } from '@/lib/NodeRegistry';
 import { getLayoutedPositions, getAdaptiveLayoutedPositions, type LayoutDirection } from './layout';
 import {
   convertFlowToReactFlow,
@@ -172,8 +172,10 @@ export const FlowSurface = memo(function FlowSurface({
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialData.edges);
 
   // 动态节点元数据颜色 Map（O(1) 查找）
-  const [nodeColorMap, setNodeColorMap] = useState<Map<string, string>>(() => new Map());
-
+  const [nodeColorMap, setNodeColorMap] = useState<Map<string, string>>(() => {
+    const list = getCachedNodeMetadataList();
+    return list ? new Map(list.map((m) => [m.type_id, m.color])) : new Map();
+  });
   useEffect(() => {
     getNodeMetadata().then((list) =>
       setNodeColorMap(new Map(list.map((m) => [m.type_id, m.color])))
@@ -192,14 +194,22 @@ export const FlowSurface = memo(function FlowSurface({
   const nodesLengthRef = useRef(initialData.nodes.length);
 
   useEffect(() => {
-    if (!flow) return;
+    if (!flow) {
+      if (prevFlowUuidRef.current !== null) {
+        prevFlowUuidRef.current = null;
+        prevConnectionsRef.current = null;
+        nodesLengthRef.current = 0;
+        setNodes([]);
+        setEdges([]);
+      }
+      return;
+    }
     const { nodes: newNodes, edges: newEdges } = convertFlowToReactFlow(flow);
 
     const isSwitchingFlow = flow.uuid !== prevFlowUuidRef.current;
     prevFlowUuidRef.current = flow.uuid;
     const connectionsChanged = prevConnectionsRef.current !== flow.connections;
     prevConnectionsRef.current = flow.connections;
-
     if (isSwitchingFlow) {
       nodesLengthRef.current = newNodes.length;
       setNodes(newNodes.map((n) => ({ ...n, selected: n.id === selectedNodeId })));

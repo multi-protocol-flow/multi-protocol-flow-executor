@@ -326,12 +326,30 @@ function FlowCanvasInner() {
   useEffect(() => {
     if (flow && flow.uuid !== fittedFlowUuidRef.current) {
       fittedFlowUuidRef.current = flow.uuid;
-      // 使用 setTimeout 确保 ReactFlow 已完成节点渲染
+      // 首次加载或切换流程时即时居中适配，无须等待 300ms 缩放动画
       setTimeout(() => {
-        fitView({ padding: 0.4, duration: 300 });
-      }, 100);
+        fitView({ padding: 0.4, duration: 0 });
+      }, 50);
     }
   }, [flow?.uuid, fitView]);
+
+  // 空闲时预加载画布核心模块与常用组件，消除首次点击流程时的 ESM 动态解析延迟
+  useEffect(() => {
+    const preload = () => {
+      import('./FlowSurface');
+      import('./CanvasToolbar');
+      import('./DebugBreadcrumbs');
+      import('./NodePalette');
+      import('@/components/panels/FlowConfigPanel');
+    };
+    if (typeof window !== 'undefined') {
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(preload);
+      } else {
+        setTimeout(preload, 100);
+      }
+    }
+  }, []);
 
   // 应用窗口大小变化时自动调整画布视图
   useEffect(() => {
@@ -868,7 +886,6 @@ function FlowCanvasInner() {
         onDrop={onDrop}
         onNodeContextMenu={onNodeContextMenu}
       />
-
       {/* 节点右键菜单 */}
       {contextMenu && (
         <NodeContextMenu

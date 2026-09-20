@@ -47,6 +47,11 @@ export function clearNodeMetadataCache(): void {
   cachedMetadata = null;
 }
 
+/** 同步获取已缓存的节点元数据列表（未获取过时返回 null） */
+export function getCachedNodeMetadataList(): NodeMetadata[] | null {
+  return cachedMetadata;
+}
+
 /**
  * 按分类对节点元数据分组
  *
