@@ -31,6 +31,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   reportDir: '',
   logDir: '',
   flowsDir: '',
+  environmentsDir: '',
   pluginDir: undefined,
   pluginRegistryUrl: undefined,
   defaultExecutionTimeoutMs: undefined,
@@ -57,6 +58,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         reportDir: settings.reportDir,
         logDir: settings.logDir,
         flowsDir: settings.flowsDir,
+        environmentsDir: settings.environmentsDir ?? '',
         pluginDir: settings.pluginDir,
         pluginRegistryUrl: settings.pluginRegistryUrl,
         defaultExecutionTimeoutMs: settings.defaultExecutionTimeoutMs,
@@ -107,6 +109,16 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       const service = await getSettingsService();
       await service.saveSettings({ flowsDir: dir });
       set({ flowsDir: dir });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setEnvironmentsDir: async (dir: string) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ environmentsDir: dir });
+      set({ environmentsDir: dir });
     } catch (e) {
       set({ error: formatErrorMessage(e) });
     }
@@ -206,6 +218,19 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     try {
       const service = await getSettingsService();
       await service.openDirectory(get().flowsDir);
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+      notifyError(getLL().execution.toast.open_dir_failed(), e, { category: 'Settings' });
+    }
+  },
+  openEnvironmentsDir: async () => {
+    try {
+      const service = await getSettingsService();
+      const current = get().environmentsDir;
+      const targetDir = current && current.trim() !== ''
+        ? current
+        : `${get().flowsDir}/environments`;
+      await service.openDirectory(targetDir);
     } catch (e) {
       set({ error: formatErrorMessage(e) });
       notifyError(getLL().execution.toast.open_dir_failed(), e, { category: 'Settings' });

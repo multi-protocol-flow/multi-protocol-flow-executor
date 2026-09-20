@@ -2,7 +2,7 @@
  * UI 状态管理
  */
 import { create } from 'zustand';
-import type { Flow } from '@/types/flow';
+import type { Flow, FlowMetadata } from '@/types';
 import { startLayoutTransition } from '@/lib/layoutTransition';
 
 /** 面板类型 */
@@ -19,6 +19,9 @@ export type FlowTabDisplayMode = 'scroll' | 'wrap';
 /** 页面导航类型 */
 export type PageType = 'canvas' | 'dataset-reports';
 
+
+/** 环境管理器上下文模式：从侧边栏进入为纯全局环境管理，从画布进入为流程变量兜底与环境级联对比 */
+export type EnvironmentManagerContext = 'sidebar' | 'canvas';
 /** 节点选择器位置 */
 export interface NodePalettePosition {
   x: number;
@@ -108,6 +111,14 @@ interface UIState {
   showDatasetExecutionPanel: boolean;
   /** 是否显示环境管理对话框 */
   showEnvironmentManagerDialog: boolean;
+  /** 环境管理器当前上下文（'sidebar' 或 'canvas'） */
+  environmentManagerContext: EnvironmentManagerContext;
+  /** 环境管理器打开时预置的待删除环境名称（用于从侧边栏直接发起删除） */
+  environmentManagerPendingDelete: string | null;
+  /** 是否显示流程导出固化对话框 */
+  showExportFlowDialog: boolean;
+  /** 流程导出固化目标流程 */
+  exportFlowTarget: Flow | FlowMetadata | null;
   /** 是否显示快捷键面板 */
   showShortcutsDialog: boolean;
   /** 是否显示搜索面板 */
@@ -199,10 +210,17 @@ interface UIState {
   openDatasetExecutionPanel: () => void;
   /** 关闭数据驱动执行面板 */
   closeDatasetExecutionPanel: () => void;
-  /** 打开环境管理对话框 */
-  openEnvironmentManagerDialog: () => void;
+  /** 打开环境管理对话框（可预置待删除环境） */
+  openEnvironmentManagerDialog: (
+    context?: EnvironmentManagerContext,
+    pendingDeleteEnv?: string,
+  ) => void;
   /** 关闭环境管理对话框 */
   closeEnvironmentManagerDialog: () => void;
+  /** 打开导出流程对话框 */
+  openExportFlowDialog: (target: Flow | FlowMetadata) => void;
+  /** 关闭导出流程对话框 */
+  closeExportFlowDialog: () => void;
   /** 打开快捷键面板 */
   openShortcutsDialog: () => void;
   /** 关闭快捷键面板 */
@@ -334,6 +352,10 @@ const initialState = {
   showStressTestConfigDialog: false,
   showDatasetExecutionPanel: false,
   showEnvironmentManagerDialog: false,
+  environmentManagerContext: 'sidebar' as EnvironmentManagerContext,
+  environmentManagerPendingDelete: null as string | null,
+  showExportFlowDialog: false,
+  exportFlowTarget: null as Flow | FlowMetadata | null,
   showShortcutsDialog: false,
   showSearchOverlay: false,
   showScriptHelpDialog: false,
@@ -475,8 +497,18 @@ export const useUIStore = create<UIState>((set) => ({
   openDatasetExecutionPanel: () => set({ showDatasetExecutionPanel: true }),
   closeDatasetExecutionPanel: () => set({ showDatasetExecutionPanel: false }),
 
-  openEnvironmentManagerDialog: () => set({ showEnvironmentManagerDialog: true }),
-  closeEnvironmentManagerDialog: () => set({ showEnvironmentManagerDialog: false }),
+  openEnvironmentManagerDialog: (context = 'sidebar', pendingDeleteEnv) =>
+    set({
+      showEnvironmentManagerDialog: true,
+      environmentManagerContext: context,
+      environmentManagerPendingDelete: pendingDeleteEnv ?? null,
+    }),
+  closeEnvironmentManagerDialog: () =>
+    set({ showEnvironmentManagerDialog: false, environmentManagerPendingDelete: null }),
+  openExportFlowDialog: (target) =>
+    set({ showExportFlowDialog: true, exportFlowTarget: target }),
+  closeExportFlowDialog: () =>
+    set({ showExportFlowDialog: false, exportFlowTarget: null }),
 
   openShortcutsDialog: () => set({ showShortcutsDialog: true }),
   closeShortcutsDialog: () => set({ showShortcutsDialog: false }),
@@ -652,3 +684,13 @@ export const selectFlowConflict = (state: UIState) =>
 /** 选择是否展示流程冲突对话框 */
 export const selectShowFlowConflictDialog = (state: UIState) =>
   state.flowConflict !== null;
+
+/** 选择环境管理器上下文模式 */
+export const selectEnvironmentManagerContext = (state: UIState) =>
+  state.environmentManagerContext;
+/** 选择导出流程对话框是否显示 */
+export const selectShowExportFlowDialog = (state: UIState) =>
+  state.showExportFlowDialog;
+/** 选择导出流程目标对象 */
+export const selectExportFlowTarget = (state: UIState) =>
+  state.exportFlowTarget;

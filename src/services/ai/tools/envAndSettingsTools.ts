@@ -2,8 +2,9 @@
  * AI Environment & Settings Management Tools
  */
 
-import { useFlowStore } from '@/stores/flow';
+import { useEnvironmentStore } from '@/stores/environment';
 import { useSettingsStore } from '@/stores/settings';
+import { environmentStorage } from '@/services/storage/environmentStorage';
 import type { EnvironmentSet } from '@/types';
 import type { ThemeMode, Locale } from '@/types/settings';
 import type { AIToolDefinition } from '@/types/ai';
@@ -87,19 +88,31 @@ export const envAndSettingsToolDefinitions: AIToolDefinition[] = [
 
 export const envAndSettingsToolHandlers = {
   async list_environments() {
-    const flow = useFlowStore.getState().flow;
-    if (!flow) {
-      throw new Error('No active flow.');
+    const envStore = useEnvironmentStore.getState();
+    await envStore.loadEnvironments();
+    const envsWithVars: Array<{ name: string; variable_count: number; variables: Record<string, unknown> }> = [];
+
+    for (const meta of envStore.environments) {
+      try {
+        const fullEnv = await environmentStorage.loadEnvironment(meta.name);
+        envsWithVars.push({
+          name: meta.name,
+          variable_count: Object.keys(fullEnv.variables || {}).length,
+          variables: fullEnv.variables,
+        });
+      } catch {
+        envsWithVars.push({
+          name: meta.name,
+          variable_count: meta.variableCount,
+          variables: {},
+        });
+      }
     }
 
     return {
       success: true,
-      active_environment: flow.active_environment,
-      environments: (flow.environments || []).map((env) => ({
-        name: env.name,
-        variable_count: Object.keys(env.variables || {}).length,
-        variables: env.variables,
-      })),
+      active_environment: envStore.activeEnvironmentName,
+      environments: envsWithVars,
     };
   },
 
@@ -108,35 +121,20 @@ export const envAndSettingsToolHandlers = {
     key: string;
     value: string;
   }) {
-    const flowState = useFlowStore.getState();
-    const flow = flowState.flow;
-    if (!flow) {
-      throw new Error('No active flow.');
+    const envStore = useEnvironmentStore.getState();
+    let targetEnv: EnvironmentSet;
+    try {
+      targetEnv = await environmentStorage.loadEnvironment(args.env_name);
+    } catch {
+      targetEnv = { name: args.env_name, variables: {} };
     }
 
-    const currentEnvs = [...(flow.environments || [])];
-    const existingIndex = currentEnvs.findIndex((e) => e.name === args.env_name);
+    targetEnv.variables = {
+      ...targetEnv.variables,
+      [args.key]: args.value,
+    };
 
-    if (existingIndex >= 0) {
-      const targetEnv = currentEnvs[existingIndex];
-      const updatedEnv: EnvironmentSet = {
-        ...targetEnv,
-        variables: {
-          ...targetEnv.variables,
-          [args.key]: args.value,
-        },
-      };
-      currentEnvs[existingIndex] = updatedEnv;
-    } else {
-      currentEnvs.push({
-        name: args.env_name,
-        variables: {
-          [args.key]: args.value,
-        },
-      });
-    }
-
-    flowState.setEnvironments(currentEnvs);
+    await envStore.saveEnvironment(targetEnv, false);
 
     return {
       success: true,
@@ -147,14 +145,9 @@ export const envAndSettingsToolHandlers = {
   },
 
   async switch_active_environment(args: { env_name?: string | null }) {
-    const flowState = useFlowStore.getState();
-    const flow = flowState.flow;
-    if (!flow) {
-      throw new Error('No active flow.');
-    }
-
+    const envStore = useEnvironmentStore.getState();
     const targetName = args.env_name ? args.env_name : null;
-    flowState.setActiveEnvironment(targetName);
+    await envStore.setActiveEnvironment(targetName);
 
     return {
       success: true,

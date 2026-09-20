@@ -105,8 +105,6 @@ export const flowFileToolHandlers = {
       name: args.name,
       description: args.description,
       initial_variables: {},
-      environments: [],
-      active_environment: undefined,
       nodes: [
         {
           uuid: crypto.randomUUID(),

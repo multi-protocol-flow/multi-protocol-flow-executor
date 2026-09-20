@@ -12,6 +12,7 @@ export { useWsStreamStore } from './wsStream';
 export { usePluginsStore } from './plugins';
 export { useDatasourceStore, connectionFor, connectionsForDatasource } from './datasource';
 export { useAIStore } from './ai';
+export { useEnvironmentStore } from './environment';
 
 // Flow store selectors
 export {
@@ -64,10 +65,21 @@ export {
   selectFlowTabDisplayMode,
   selectFlowConflict,
   selectShowFlowConflictDialog,
+  selectEnvironmentManagerContext,
+  selectShowExportFlowDialog,
+  selectExportFlowTarget,
 } from './ui';
 
 // UI types
-export type { PanelType, BottomPanelTab, PageType, DatasetReportPageState, FlowTabDisplayMode, FlowConflictState } from './ui';
+export type {
+  PanelType,
+  BottomPanelTab,
+  PageType,
+  DatasetReportPageState,
+  FlowTabDisplayMode,
+  FlowConflictState,
+  EnvironmentManagerContext,
+} from './ui';
 
 // Debug store selectors
 export {

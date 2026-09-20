@@ -18,6 +18,7 @@ import type { LogEvent } from '@/types/events';
 import type { DebugEvent } from '@/types/debug';
 import type { ExecutionEvent } from '@/types/execution_event';
 import { getLL } from '@/i18n/i18n-lazy';
+import { useEnvironmentStore } from '@/stores/environment';
 
 /**
  * IPC 错误类
@@ -140,12 +141,16 @@ export async function executeFlowWithChannel(
     const wsEventChannel = new Channel<import('@/types/debug').DebugEvent>();
     wsEventChannel.onmessage = onWsEvent;
 
+    // 当前激活的全局环境：由后端按「流程内置变量 → 环境文件 → 运行时变量」顺序叠加
+    const environmentName = useEnvironmentStore.getState().activeEnvironmentName;
+
     // 调用后端命令，传递三 Channel
     return await invoke<ExecuteFlowCommandOutput>('execute_flow', {
       input: {
         flow_id: flow.uuid,
         variables: variables || null,
         ...(reportsDir ? { reports_dir: reportsDir } : {}),
+        ...(environmentName ? { environment_name: environmentName } : {}),
       } as ExecuteFlowCommandInput,
       flow,
       onEvent: logChannel,

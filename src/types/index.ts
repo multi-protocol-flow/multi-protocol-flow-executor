@@ -108,10 +108,10 @@ export {
 // 连接类型
 export type { Connection } from './connection';
 
-// 流程类型
-export type { Flow, EnvironmentSet, FlowTab, FlowTabSession } from './flow';
+// 流程与环境类型
+export type { Flow, FlowMetadata, FlowTab, FlowTabSession } from './flow';
+export type { EnvironmentSet, EnvironmentMetadata, EnvironmentComparisonItem } from './environment';
 export { getActiveVariables } from './flow';
-
 // 错误类型
 export type { ErrorKind, ErrorCode, ErrorDetail } from './error';
 export { isFatalError } from './error';

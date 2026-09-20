@@ -82,6 +82,8 @@ export interface ExecuteFlowCommandInput {
   variables?: unknown;
   /** 报告存储目录（可选，后端自动直接落盘） */
   reports_dir?: string;
+  /** 激活的全局环境名称（可选，后端按其优先级叠加到流程内置变量之上） */
+  environment_name?: string;
 }
 
 /**

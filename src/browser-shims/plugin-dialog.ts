@@ -12,3 +12,11 @@ export async function open(_options?: Record<string, unknown>): Promise<string |
   // File dialogs not available in browser — return "cancelled"
   return null;
 }
+
+/**
+ * Open a native save file dialog.
+ * In browser mode, returns null.
+ */
+export async function save(_options?: Record<string, unknown>): Promise<string | null> {
+  return null;
+}

@@ -32,6 +32,7 @@ export async function loadSettings(): Promise<Settings> {
     reportDir: stored.reportDir ?? DEFAULT_REPORT_DIR,
     logDir: stored.logDir ?? DEFAULT_LOG_DIR,
     flowsDir: stored.flowsDir ?? DEFAULT_FLOWS_DIR,
+    environmentsDir: stored.environmentsDir ?? '',
     defaultExecutionTimeoutMs: stored.defaultExecutionTimeoutMs,
     pluginMaxConcurrency: stored.pluginMaxConcurrency,
     pluginQueueCapacity: stored.pluginQueueCapacity,

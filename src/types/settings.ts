@@ -30,6 +30,8 @@ export interface Settings {
   logDir: string;
   /** 流程保存目录路径 */
   flowsDir: string;
+  /** 环境保存目录路径（可选，未配置时跟随流程目录: <flowsDir>/environments） */
+  environmentsDir?: string;
   /** 插件目录路径（可选；未配置时用后端默认解析） */
   pluginDir?: string;
   /** 插件市场地址（可选；未配置时 GUI 市场 Tab 显示引导文案） */
@@ -76,6 +78,8 @@ export interface SettingsState {
   logDir: string;
   /** 流程保存目录路径 */
   flowsDir: string;
+  /** 环境保存目录路径（可选，未配置时跟随流程目录: <flowsDir>/environments） */
+  environmentsDir?: string;
   /** 插件目录路径（可选；未配置时用后端默认解析） */
   pluginDir?: string;
   /** 插件市场地址（可选） */
@@ -128,6 +132,8 @@ export interface SettingsActions {
   setLogDir: (dir: string) => Promise<void>;
   /** 设置流程保存目录 */
   setFlowsDir: (dir: string) => Promise<void>;
+  /** 设置环境保存目录 */
+  setEnvironmentsDir: (dir: string) => Promise<void>;
   /** 设置插件目录 */
   setPluginDir: (dir: string) => Promise<void>;
   /** 设置插件市场地址 */
@@ -148,6 +154,8 @@ export interface SettingsActions {
   openLogDir: () => Promise<void>;
   /** 打开流程保存目录 */
   openFlowsDir: () => Promise<void>;
+  /** 打开环境保存目录 */
+  openEnvironmentsDir: () => Promise<void>;
   /** 设置 AI Providers */
   setAiProviders: (providers: AIProviderConfig[]) => Promise<void>;
   /** 设置当前激活的 AI Provider ID */

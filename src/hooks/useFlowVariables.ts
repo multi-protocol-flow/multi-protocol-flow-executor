@@ -4,6 +4,7 @@
  */
 import { useMemo, useRef } from 'react';
 import { useFlowStore } from '@/stores';
+import { useEnvironmentStore } from '@/stores/environment';
 import type { Variable } from '@/types/variable';
 import { isVariableExtractorConfig } from '@/types/node';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -60,6 +61,7 @@ function areVariableResultsEqual(a: FlowVariablesResult, b: FlowVariablesResult)
  */
 export function useFlowVariables(): FlowVariablesResult {
   const flow = useFlowStore((state) => state.flow);
+  const activeEnvData = useEnvironmentStore((state) => state.activeEnvironmentData);
   const prevResultRef = useRef<FlowVariablesResult | null>(null);
 
   return useMemo(() => {
@@ -102,20 +104,15 @@ export function useFlowVariables(): FlowVariablesResult {
     }
 
     // 3. 激活环境的变量
-    if (flow.active_environment && flow.environments) {
-      const env = flow.environments.find(
-        (e) => e.name === flow.active_environment
-      );
-      if (env) {
-        Object.entries(env.variables).forEach(([key, value]) => {
-          vars.push({
-            name: key,
-            value,
-            sourceNodeUuid: '__environment__',
-            description: ll.common.environment_variable({ name: env.name }),
-          });
+    if (activeEnvData) {
+      Object.entries(activeEnvData.variables).forEach(([key, value]) => {
+        vars.push({
+          name: key,
+          value,
+          sourceNodeUuid: '__environment__',
+          description: ll.common.environment_variable({ name: activeEnvData.name }),
         });
-      }
+      });
     }
 
     // 去重变量名
@@ -135,5 +132,5 @@ export function useFlowVariables(): FlowVariablesResult {
     }
     prevResultRef.current = freshResult;
     return freshResult;
-  }, [flow]);
+  }, [flow, activeEnvData]);
 }

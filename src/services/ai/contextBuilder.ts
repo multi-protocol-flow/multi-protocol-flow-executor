@@ -9,6 +9,7 @@ import { useExecutionStore } from '@/stores/execution';
 import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
 import { useAIStore } from '@/stores/ai';
+import { useEnvironmentStore } from '@/stores/environment';
 
 /**
  * 构建系统提示词 (System Prompt)
@@ -409,9 +410,10 @@ export function buildActiveStateSummary(): string {
     if (currentFlow.description) {
       lines.push(`  * Description: "${currentFlow.description}"`);
     }
-    lines.push(`  * Active Environment: ${currentFlow.active_environment ? `"${currentFlow.active_environment}"` : 'None'}`);
-    if (currentFlow.environments && currentFlow.environments.length > 0) {
-      lines.push(`  * Available Environments: ${currentFlow.environments.map(e => e.name).join(', ')}`);
+    const envState = useEnvironmentStore.getState();
+    lines.push(`  * Active Environment: ${envState.activeEnvironmentName ? `"${envState.activeEnvironmentName}"` : 'None'}`);
+    if (envState.environments.length > 0) {
+      lines.push(`  * Available Environments: ${envState.environments.map(e => e.name).join(', ')}`);
     }
     lines.push(`  * Node Count: ${currentFlow.nodes.length}`);
     lines.push(`  * Connection Count: ${currentFlow.connections.length}`);

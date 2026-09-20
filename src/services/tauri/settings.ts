@@ -36,6 +36,7 @@ export async function loadSettings(): Promise<Settings> {
     const reportDir = await store.get<string>('reportDir');
     const logDir = await store.get<string>('logDir');
     const flowsDir = await store.get<string>('flowsDir');
+    const environmentsDir = await store.get<string>('environmentsDir');
     const pluginDir = await store.get<string>('pluginDir');
     const pluginRegistryUrl = await store.get<string>('pluginRegistryUrl');
     const defaultExecutionTimeoutMs = await store.get<number>('defaultExecutionTimeoutMs');
@@ -55,6 +56,7 @@ export async function loadSettings(): Promise<Settings> {
       reportDir: reportDir ?? `${appDataDir}/reports/`,
       logDir: logDir ?? `${appDataDir}/logs/`,
       flowsDir: flowsDir ?? `${appDataDir}/flows/`,
+      environmentsDir: environmentsDir ?? '',
       pluginDir,
       pluginRegistryUrl,
       defaultExecutionTimeoutMs,
@@ -94,6 +96,9 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
     }
     if (settings.flowsDir !== undefined) {
       await store.set('flowsDir', settings.flowsDir);
+    }
+    if (settings.environmentsDir !== undefined) {
+      await store.set('environmentsDir', settings.environmentsDir);
     }
     if (settings.pluginDir !== undefined) {
       await store.set('pluginDir', settings.pluginDir);
