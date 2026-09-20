@@ -109,8 +109,6 @@ async fn test_subflow_basic_execution_and_variable_passing() {
     let child_flow = Flow {
         uuid: "child-flow-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Child Flow".to_string(),
         description: None,
         nodes: vec![
@@ -149,8 +147,6 @@ async fn test_subflow_basic_execution_and_variable_passing() {
     let parent_flow = Flow {
         uuid: "parent-flow-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Parent Flow".to_string(),
         description: None,
         nodes: vec![
@@ -247,8 +243,6 @@ async fn test_subflow_direct_cycle_validation_and_runtime() {
     let self_referencing_flow = Flow {
         uuid: "flow-self".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Self Loop Flow".to_string(),
         description: None,
         nodes: vec![
@@ -326,8 +320,6 @@ async fn test_subflow_indirect_cycle_runtime_guard() {
     let flow_a = Flow {
         uuid: "flow-a-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Flow A".to_string(),
         description: None,
         nodes: vec![
@@ -364,8 +356,6 @@ async fn test_subflow_indirect_cycle_runtime_guard() {
     let flow_b = Flow {
         uuid: "flow-b-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Flow B".to_string(),
         description: None,
         nodes: vec![
@@ -454,8 +444,6 @@ async fn test_subflow_indirect_cycle_static_validator() {
     let flow_a = Flow {
         uuid: "flow-a-static".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Flow A Static".to_string(),
         description: None,
         nodes: vec![
@@ -492,8 +480,6 @@ async fn test_subflow_indirect_cycle_static_validator() {
     let flow_b = Flow {
         uuid: "flow-b-static".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Flow B Static".to_string(),
         description: None,
         nodes: vec![
@@ -560,8 +546,6 @@ async fn test_subflow_nested_3_levels_valid() {
     let flow_c = Flow {
         uuid: "flow-c-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Flow C".to_string(),
         description: None,
         nodes: vec![
@@ -582,8 +566,6 @@ async fn test_subflow_nested_3_levels_valid() {
     let flow_b = Flow {
         uuid: "flow-b-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Flow B".to_string(),
         description: None,
         nodes: vec![
@@ -630,8 +612,6 @@ async fn test_subflow_nested_3_levels_valid() {
     let flow_a = Flow {
         uuid: "flow-a-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Flow A".to_string(),
         description: None,
         nodes: vec![
@@ -701,8 +681,6 @@ async fn test_subflow_failure_routing() {
     let child_flow = Flow {
         uuid: "failing-child-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Failing Child Flow".to_string(),
         description: None,
         nodes: vec![
@@ -729,8 +707,6 @@ async fn test_subflow_failure_routing() {
     let parent_flow = Flow {
         uuid: "parent-recovery-flow".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Parent Recovery Flow".to_string(),
         description: None,
         nodes: vec![
@@ -828,8 +804,6 @@ async fn test_subflow_resolved_by_id_in_configured_flows_dir() {
     let child_flow = Flow {
         uuid: "child-login-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Login".to_string(),
         description: None,
         nodes: vec![
@@ -858,8 +832,6 @@ async fn test_subflow_resolved_by_id_in_configured_flows_dir() {
     let parent_flow = Flow {
         uuid: "parent-flow-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Parent".to_string(),
         description: None,
         nodes: vec![
@@ -934,8 +906,6 @@ async fn test_subflow_missing_id_reports_searched_dirs() {
     let parent_flow = Flow {
         uuid: "parent-missing-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Parent Missing".to_string(),
         description: None,
         nodes: vec![
@@ -1029,8 +999,6 @@ async fn test_subflow_events_are_tagged_with_parent_node_uuid() {
     let child_flow = Flow {
         uuid: "child-events-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Child Events".to_string(),
         description: None,
         nodes: vec![
@@ -1056,8 +1024,6 @@ async fn test_subflow_events_are_tagged_with_parent_node_uuid() {
     let parent_flow = Flow {
         uuid: "parent-events-uuid".to_string(),
         initial_variables: None,
-        environments: vec![],
-        active_environment: None,
         name: "Parent Events".to_string(),
         description: None,
         nodes: vec![

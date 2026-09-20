@@ -549,8 +549,6 @@ mod tests {
             name: "Snapshot Flow".to_string(),
             description: None,
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             nodes: vec![],
             connections: vec![],
             hooks: None,

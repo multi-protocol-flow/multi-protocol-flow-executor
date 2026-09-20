@@ -576,8 +576,6 @@ mod tests {
             name: "Dataset Test Flow".to_string(),
             description: None,
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             nodes: vec![Node {
                 uuid: "entry-001".to_string(),
                 node_type: "entry".to_string(),

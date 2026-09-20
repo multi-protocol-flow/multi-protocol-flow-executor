@@ -837,8 +837,6 @@ mod tests {
             }],
             connections: vec![],
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             hooks: None,
         }
     }

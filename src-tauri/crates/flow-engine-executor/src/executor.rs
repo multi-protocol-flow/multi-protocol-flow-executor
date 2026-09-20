@@ -1589,8 +1589,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node],
@@ -1644,8 +1642,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node],
@@ -1685,8 +1681,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![http_node],
@@ -1744,8 +1738,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node],
@@ -1807,8 +1799,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node],
@@ -1849,8 +1839,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node],
@@ -1903,8 +1891,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node],
@@ -1957,8 +1943,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node],
@@ -2011,8 +1995,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node],
@@ -2055,8 +2037,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node],
@@ -2112,8 +2092,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node],
@@ -2187,8 +2165,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node_1, end_node_2],
@@ -2380,8 +2356,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "取消Test Flow".to_string(),
             description: None,
             nodes: vec![start_node, end_node],
@@ -2436,8 +2410,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "正常执行Test Flow".to_string(),
             description: None,
             nodes: vec![start_node],
@@ -2475,8 +2447,6 @@ mod tests {
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            environments: vec![],
-            active_environment: None,
             name: "取消Error测试".to_string(),
             description: None,
             nodes: vec![start_node],
@@ -2525,8 +2495,6 @@ mod tests {
                 m.insert("host".to_string(), json!("default.com"));
                 m
             }),
-            environments: vec![],
-            active_environment: None,
             name: "runtime_variables 覆盖测试".to_string(),
             description: None,
             nodes: vec![start_node],
@@ -2590,8 +2558,6 @@ mod tests {
                 m.insert("host".to_string(), json!("default.com"));
                 m
             }),
-            environments: vec![],
-            active_environment: None,
             name: "runtime_variables None 测试".to_string(),
             description: None,
             nodes: vec![start_node],
