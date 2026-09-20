@@ -890,10 +890,10 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             />
           ) : (
             <>
-              <p className={cn("truncate font-medium text-[13px] leading-snug", isSelected ? "text-foreground" : "text-foreground/90")}>
+              <p className={cn("truncate font-medium text-xs leading-snug", isSelected ? "text-foreground" : "text-foreground/90")}>
                 {flowMeta.name}
               </p>
-              <p className="text-xs text-muted-foreground/75 truncate leading-none mt-0.5">
+              <p className="text-[11px] text-muted-foreground/75 truncate leading-none mt-0.5">
                 {formatRelativeTime(flowMeta.updated_at)}
               </p>
             </>
@@ -938,7 +938,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                   e.stopPropagation();
                   handleStartRename(flowMeta.uuid);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+                className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
               >
                 <Pencil className="w-3.5 h-3.5" />
                 {getLL().flow.rename()}
@@ -949,7 +949,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                   e.stopPropagation();
                   handleDuplicateFlow(flowMeta.uuid);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+                className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
               >
                 <Copy className="w-3.5 h-3.5" />
                 {getLL().flow.duplicate_flow()}
@@ -960,7 +960,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                   e.stopPropagation();
                   handleCopyFilePath(flowMeta.uuid);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+                className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
               >
                 <ClipboardCopy className="w-3.5 h-3.5" />
                 {getLL().flow.copy_file_path()}
@@ -976,7 +976,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                   setMoveMenuPosition(computeMenuPosition(rect, 180, 300, 4, 'right'));
                   setMoveMenuUuid(flowMeta.uuid);
                 }}
-                className="flex w-full items-center gap-2 py-1.5 px-3 text-sm hover:bg-accent transition-colors"
+                className="flex w-full items-center gap-2 py-1.5 px-2.5 text-xs hover:bg-accent transition-colors"
               >
                 <Move className="w-3.5 h-3.5" />
                 {getLL().flow.move_to()}
@@ -988,7 +988,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                   setOpenMenuUuid(null);
                   openExportFlowDialog(flowMeta);
                 }}
-                className="flex w-full items-center gap-2 py-1.5 px-3 text-sm hover:bg-accent transition-colors"
+                className="flex w-full items-center gap-2 py-1.5 px-2.5 text-xs hover:bg-accent transition-colors"
               >
                 <FileDown className="w-3.5 h-3.5" />
                 {getLL().flow.export_flow_menu()}
@@ -999,7 +999,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                   e.stopPropagation();
                   handleDeleteFlow(flowMeta.uuid);
                 }}
-                className="flex w-full items-center gap-2 py-1.5 px-3 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                className="flex w-full items-center gap-2 py-1.5 px-2.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 {getLL().flow.delete_flow()}
@@ -1034,7 +1034,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             }
           }}
           className={cn(
-            'group flex items-center gap-1.5 h-9 px-2 rounded-md text-[13px] text-left transition-colors cursor-pointer select-none',
+            'group flex items-center gap-1.5 h-8.5 px-2 rounded-md text-xs text-left transition-colors cursor-pointer select-none',
             isExpanded
               ? 'bg-accent/40 hover:bg-accent/60 text-foreground font-semibold'
               : 'hover:bg-accent/50 text-foreground/85 font-medium'
@@ -1099,7 +1099,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
 
           {/* 数字统计放到最右侧 */}
           {renamingFolderPath !== folderPath && (
-            <span className="text-xs text-muted-foreground/75 font-mono shrink-0 tabular-nums ml-0.5">
+            <span className="text-[11px] text-muted-foreground/75 font-mono shrink-0 tabular-nums ml-0.5">
               {`(${folderFlows.length})`}
             </span>
           )}
@@ -1113,7 +1113,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             {folderFlows.map(flow => renderFlowItem(flow, depth + 1))}
             {folderFlows.length === 0 && !childFolderElements && !(isCreatingFolder && newFolderParentPath === folderPath) && (
               <div
-                className="text-xs text-muted-foreground/60 italic px-2 py-1"
+                className="text-[11px] text-muted-foreground/60 italic px-2 py-1"
                 style={{ marginLeft: `${(depth + 1) * 14}px` }}
               >
                 {getLL().flow.empty_folder()}
@@ -1290,8 +1290,8 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             {flows.length === 0 && treeData.rootFolderPaths.length === 0 && !isCreatingFolder && (
               <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
                 <FileJson className="w-8 h-8 mb-2 opacity-40" />
-                <p className="text-sm">{getLL().flow.no_flows()}</p>
-                <p className="text-xs mt-1 opacity-70">{getLL().flow.create_flow_hint()}</p>
+                <p className="text-xs font-medium">{getLL().flow.no_flows()}</p>
+                <p className="text-[11px] mt-1 opacity-70">{getLL().flow.create_flow_hint()}</p>
               </div>
             )}
           </div>
@@ -1306,22 +1306,22 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           style={{ top: sortMenuPosition.top, left: sortMenuPosition.left }}
         >
           <button type="button" onClick={() => handleSelectSort('name', 'asc')}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors">
             <Check className={sortBy === 'name' && sortOrder === 'asc' ? 'w-3.5 h-3.5' : 'w-3.5 h-3.5 invisible'} />
             <span>{getLL().flow.sort_by_name()} {getLL().flow.sort_asc()}</span>
           </button>
           <button type="button" onClick={() => handleSelectSort('name', 'desc')}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors">
             <Check className={sortBy === 'name' && sortOrder === 'desc' ? 'w-3.5 h-3.5' : 'w-3.5 h-3.5 invisible'} />
             <span>{getLL().flow.sort_by_name()} {getLL().flow.sort_desc()}</span>
           </button>
           <button type="button" onClick={() => handleSelectSort('updated_at', 'asc')}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors">
             <Check className={sortBy === 'updated_at' && sortOrder === 'asc' ? 'w-3.5 h-3.5' : 'w-3.5 h-3.5 invisible'} />
             <span>{getLL().flow.sort_by_time()} {getLL().flow.sort_asc()}</span>
           </button>
           <button type="button" onClick={() => handleSelectSort('updated_at', 'desc')}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors">
             <Check className={sortBy === 'updated_at' && sortOrder === 'desc' ? 'w-3.5 h-3.5' : 'w-3.5 h-3.5 invisible'} />
             <span>{getLL().flow.sort_by_time()} {getLL().flow.sort_desc()}</span>
           </button>
@@ -1343,7 +1343,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               setOpenFolderMenuPath(null);
               openNewFlowDialog(openFolderMenuPath ?? undefined);
             }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             {getLL().flow.new_flow()}
@@ -1355,7 +1355,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               setOpenFolderMenuPath(null);
               handleStartCreateFolder(openFolderMenuPath ?? undefined);
             }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
           >
             <FolderPlus className="w-3.5 h-3.5" />
             {getLL().flow.new_subfolder()}
@@ -1370,7 +1370,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               setMoveFolderMenuPosition(computeMenuPosition(rect, 180, 300, 4, 'right'));
               setMoveFolderMenuPath(openFolderMenuPath);
             }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
           >
             <Move className="w-3.5 h-3.5" />
             {getLL().flow.move_to()}
@@ -1381,7 +1381,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               e.stopPropagation();
               handleStartRenameFolder(openFolderMenuPath);
             }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" />
             {getLL().flow.rename()}
@@ -1392,7 +1392,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               e.stopPropagation();
               handleDeleteFolder(openFolderMenuPath);
             }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
             {getLL().flow.delete_folder()}
@@ -1415,7 +1415,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 e.stopPropagation();
                 handleMoveFlow(moveMenuUuid, '');
               }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
             >
               <FileJson className="w-3.5 h-3.5 shrink-0" />
               {getLL().flow.root_dir()}
@@ -1462,7 +1462,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                           handleMoveFlow(moveMenuUuid, path);
                         }}
                         disabled={isCurrentFlowFolder}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex-1 min-w-0"
+                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed flex-1 min-w-0"
                       >
                         <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                         <span className="truncate">{folder.name}</span>
@@ -1499,7 +1499,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 e.stopPropagation();
                 handleMoveFolder(moveFolderMenuPath, '');
               }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
             >
               <FileJson className="w-3.5 h-3.5 shrink-0" />
               {getLL().flow.root_dir()}
@@ -1547,7 +1547,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                           e.stopPropagation();
                           handleMoveFolder(moveFolderMenuPath, path);
                         }}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-sm flex-1 min-w-0"
+                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs flex-1 min-w-0"
                       >
                         <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                         <span className="truncate">{folder.name}</span>

@@ -170,11 +170,11 @@ export function EnvironmentPanel() {
 
             <div className="flex items-center gap-1 shrink-0">
               {env.hasLocalOverride && (
-                <span className="text-[9px] leading-4 text-amber-600 dark:text-amber-400 px-1 rounded border border-amber-500/30">
+                <span className="text-[10px] leading-4 text-amber-600 dark:text-amber-400 px-1 rounded border border-amber-500/30">
                   local
                 </span>
               )}
-              <span className="text-[10px] leading-4 text-muted-foreground/70 px-1 rounded bg-muted/50 tabular-nums">
+              <span className="text-[11px] leading-4 text-muted-foreground/70 px-1 rounded bg-muted/50 tabular-nums">
                 {env.variableCount}
               </span>
               <button
@@ -220,7 +220,7 @@ export function EnvironmentPanel() {
                 setRenamingNewName(openMenuName);
                 setOpenMenuName(null);
               }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
             >
               <Pencil className="w-3.5 h-3.5" />
               {ll.flow.rename()}
@@ -233,7 +233,7 @@ export function EnvironmentPanel() {
                 setOpenMenuName(null);
                 void handleDuplicate(name);
               }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
             >
               <Copy className="w-3.5 h-3.5" />
               {ll.flow.duplicate_env()}
@@ -246,7 +246,7 @@ export function EnvironmentPanel() {
                 setOpenMenuName(null);
                 openEnvironmentManagerDialog('sidebar', name);
               }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
               {ll.flow.delete_env()}

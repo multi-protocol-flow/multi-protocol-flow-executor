@@ -181,7 +181,7 @@ export function FlowNodeList({ readOnly = false, showHeader = true }: FlowNodeLi
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-1 items-center justify-center p-4">
-          <p className="text-sm text-muted-foreground">{ll.empty()}</p>
+          <p className="text-xs text-muted-foreground">{ll.empty()}</p>
         </CardContent>
       </Card>
     );
@@ -262,7 +262,7 @@ export function FlowNodeList({ readOnly = false, showHeader = true }: FlowNodeLi
               {hasBadge && (
                 <span
                   className={cn(
-                    'ml-auto shrink-0 rounded px-1 py-0.5 text-[9px] font-medium leading-none',
+                    'ml-auto shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none',
                     meta?.badge ?? 'bg-muted text-muted-foreground'
                   )}
                 >

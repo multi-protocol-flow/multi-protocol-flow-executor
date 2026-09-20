@@ -234,7 +234,7 @@ function DatasourceEntry({
     <div className="border-b border-border last:border-b-0">
       {/* 插件级头部行 */}
       <div className="flex items-center gap-2 px-3 py-1.5">
-        <span className="flex-1 min-w-0 truncate text-sm font-medium text-foreground">
+        <span className="flex-1 min-w-0 truncate text-xs font-semibold text-foreground">
           {ds.display_name}
         </span>
         {connected ? (
@@ -390,7 +390,7 @@ function DatasourceEntry({
                 {(!isSingle || conn.name) && (
                   <div
                     className={cn(
-                      'flex items-center gap-1.5 h-8 px-2.5 rounded-md cursor-pointer select-none text-[13px] transition-colors',
+                      'flex items-center gap-1.5 h-8 px-2.5 rounded-md cursor-pointer select-none text-xs transition-colors',
                       expanded ? 'bg-accent/20 hover:bg-accent/40 font-medium text-foreground' : 'hover:bg-accent/30 text-muted-foreground',
                     )}
                     onClick={() => toggleConnExpanded(conn.id)}
@@ -815,7 +815,7 @@ function GroupFolderItem({
       <button
         type="button"
         className={cn(
-          'w-full flex items-center gap-1.5 h-8.5 px-2.5 rounded-md text-left text-[13px] transition-colors select-none',
+          'w-full flex items-center gap-1.5 h-8.5 px-2.5 rounded-md text-left text-xs transition-colors select-none',
           isOpen
             ? 'bg-accent/40 hover:bg-accent/60 text-foreground font-semibold'
             : 'hover:bg-accent/50 text-foreground/85 font-medium',
@@ -833,7 +833,7 @@ function GroupFolderItem({
           <Folder className="w-4 h-4 text-amber-500 shrink-0" />
         )}
         <span className="truncate flex-1">{node.name}</span>
-        <span className="text-xs text-muted-foreground/75 font-mono shrink-0 tabular-nums">
+        <span className="text-[11px] text-muted-foreground/75 font-mono shrink-0 tabular-nums">
           {`(${node.totalCount})`}
         </span>
       </button>
@@ -978,7 +978,7 @@ function ResourceLevel({
                 type="button"
                 title={item.extra.length > 0 ? `${item.name}\n${item.extra.map((kv) => `${kv.label}: ${kv.value}`).join(' · ')}` : item.name}
                 className={cn(
-                  'w-full flex items-center gap-1.5 h-8.5 px-2.5 rounded-md text-left text-[13px] transition-colors select-none',
+                  'w-full flex items-center gap-1.5 h-8.5 px-2.5 rounded-md text-left text-xs transition-colors select-none',
                   isExpanded
                     ? 'bg-accent/40 hover:bg-accent/60 text-foreground font-semibold'
                     : 'hover:bg-accent/50 text-foreground/85 font-medium',
@@ -1127,7 +1127,7 @@ function ItemRow({
           {item.method}
         </Badge>
       )}
-      <span className="min-w-0 truncate text-[13px] text-foreground/90 group-hover:text-foreground flex-1">{item.name}</span>
+      <span className="min-w-0 truncate text-xs text-foreground/90 group-hover:text-foreground flex-1">{item.name}</span>
       <Button
         variant="ghost"
         size="icon"
