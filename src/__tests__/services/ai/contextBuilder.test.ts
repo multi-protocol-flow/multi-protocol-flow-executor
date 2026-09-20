@@ -51,7 +51,22 @@ describe('contextBuilder', () => {
       expect(prompt).toContain('{{$timestamp}}');
       expect(prompt).toContain('{{$randomEmail}}');
       expect(prompt).toContain('{{$randomInt}}');
-      expect(prompt).toContain('context.variables.get(\'$guid\')');
+      // 脚本沙箱只暴露 fn.* API；旧文档里的 context.* 在运行期是 undefined
+      expect(prompt).toContain('fn.variables.get(key)');
+      expect(prompt).toContain('fn.response.body');
+    });
+
+    it('包含外挂环境文件与变量分层规范', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toContain('Global Environment Files');
+      expect(prompt).toContain('flow.initial_variables');
+      expect(prompt).toContain('.local.yaml');
+      // 引擎按裸键解析变量，不存在 env./variables. 命名空间前缀
+      expect(prompt).toContain('NEVER emit');
+      // evalexpr 没有 null 字面量：示例必须是可求值的形式，并显式告知模型该限制
+      expect(prompt).toContain('advanced_expression');
+      expect(prompt).toContain('status == 200 && TOKEN != \\"\\"');
+      expect(prompt).toContain('NO `null` literal');
     });
 
     it('包含透明可解释自主执行规划原则', () => {
