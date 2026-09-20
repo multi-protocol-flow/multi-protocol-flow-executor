@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Global Environments**: Environment definitions (variable sets such as `dev` / `staging` / `prod`) are now stored as standalone YAML files under `<flows_dir>/environments/` and shared across every flow, instead of being embedded in each `.mpf` file. A per-environment local override layer (`<name>.local.yaml`) is merged on top and is meant to be git-ignored for machine-private secrets.
+- **Environment Resolution Order**: Execution variables are resolved as `flow.initial_variables` → environment file → local override → runtime variables (`--var` / explicit execution input).
+- **Environment UI**: A resizable *Environments* section in the left sidebar (activate, rename, duplicate, delete), a canvas toolbar environment selector, and a context-aware environment manager dialog — global mode (YAML editing, local override toggling) and canvas mode (flow fallback variables plus a cascade comparison matrix).
+- **Environment Storage Settings**: New global setting `environmentsDir` (falls back to `<flows_dir>/environments`), configurable in Settings → Storage.
+- **CLI Environment Flag**: `mpe run` and `mpe debug` accept `-e, --env <NAME>`, plus the `MPE_ENVIRONMENTS_DIR` environment variable and `storage.environments_dir` config key.
+- **Flow Export with Environment Bake**: Exporting a flow can now bake the active environment into `flow.initial_variables`, producing a self-contained `.mpf` file. A credential scan detects `key` / `secret` / `token` / `password` / `auth` / `cred` / `cert` / `private` variables and clears the values the user selects.
+
+### Changed
+- **Breaking**: Removed `environments` and `active_environment` from the flow data model — no compatibility shim is provided. Existing `.mpf` files still load, but any embedded environment definitions are **ignored**; re-create them as environment files under `<flows_dir>/environments/` (the environment name is the file name).
+- The flow properties panel no longer edits initial variables inline; it links to the environment manager, keeping `flow.initial_variables` as the flow-scoped fallback layer only.
+
 ## [0.4.1-beta] - 2026-09-18
 
 ### Added
