@@ -17,12 +17,102 @@ use tempfile::NamedTempFile;
 static FLOW_METADATA_CACHE: LazyLock<Mutex<HashMap<PathBuf, (u64, String, String)>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-/// 使得指定路径的流程元数据缓存失效
+/// 流程 UUID 到文件绝对路径的内存索引缓存：`uuid` -> `file_path`
+static UUID_PATH_CACHE: LazyLock<Mutex<HashMap<String, PathBuf>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// 使得指定路径的流程元数据与 UUID 缓存失效
 pub(crate) fn invalidate_flow_metadata_cache(path: &Path) {
     let mut cache = FLOW_METADATA_CACHE
         .lock()
         .unwrap_or_else(|e| e.into_inner());
     cache.remove(path);
+    let mut uuid_cache = UUID_PATH_CACHE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    uuid_cache.retain(|_, p| p != path);
+}
+
+/// 按 UUID 查找流程文件路径（优先使用内存索引与 mtime 缓存，极大加速冷热检索）
+pub(crate) fn find_flow_path_by_uuid(uuid: &str, flows_dir: &Path) -> Result<PathBuf, String> {
+    // 1. 优先查 UUID 缓存
+    if let Some(cached_path) = UUID_PATH_CACHE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get(uuid)
+        .cloned()
+    {
+        if cached_path.is_file() {
+            return Ok(cached_path);
+        }
+    }
+
+    // 2. 扫描流程目录，利用 FLOW_METADATA_CACHE 的 mtime 减少磁盘读取与 JSON 反序列化
+    let mut mpf_files = Vec::new();
+    collect_mpf_files(flows_dir, &mut mpf_files)?;
+
+    let mut found = None;
+    for path in &mpf_files {
+        let mtime = fs::metadata(path)
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+
+        let cached_match = {
+            let meta_cache = FLOW_METADATA_CACHE
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            if let Some((cached_mtime, cached_uuid, _)) = meta_cache.get(path) {
+                if *cached_mtime == mtime {
+                    Some(cached_uuid == uuid)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        };
+
+        match cached_match {
+            Some(true) => {
+                let mut uuid_cache = UUID_PATH_CACHE
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                uuid_cache.insert(uuid.to_string(), path.clone());
+                found = Some(path.clone());
+                break;
+            }
+            Some(false) => continue,
+            None => {
+                if let Ok(content) = fs::read_to_string(path) {
+                    if let Ok(meta) = deserialize_flow_file_meta(&content) {
+                        let meta_uuid = meta.flow.uuid;
+                        let meta_name = meta.flow.name;
+                        {
+                            let mut meta_cache = FLOW_METADATA_CACHE
+                                .lock()
+                                .unwrap_or_else(|e| e.into_inner());
+                            meta_cache.insert(path.clone(), (mtime, meta_uuid.clone(), meta_name));
+                        }
+                        {
+                            let mut uuid_cache = UUID_PATH_CACHE
+                                .lock()
+                                .unwrap_or_else(|e| e.into_inner());
+                            uuid_cache.insert(meta_uuid.clone(), path.clone());
+                        }
+                        if meta_uuid == uuid {
+                            found = Some(path.clone());
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    found.ok_or_else(|| format!("Flow not found: {}", uuid))
 }
 
 /// `FlowFile` 默认版本号
@@ -440,22 +530,16 @@ pub fn save_flow_file_with_meta_and_path(
             };
             (explicit_path.to_path_buf(), None, format)
         } else {
-            // 检查是否已存在同 UUID 的文件（更新场景，轻量解析）
-            let mut existing_path: Option<PathBuf> = None;
-            let mut existing_format: Option<FlowFormat> = None;
-            let mut mpf_files = Vec::new();
-            let _ = collect_mpf_files(flows_dir, &mut mpf_files);
-            for path in &mpf_files {
-                if let Ok(content) = fs::read_to_string(path) {
-                    if let Ok(existing) = deserialize_flow_file_meta(&content) {
-                        if existing.flow.uuid == flow.uuid {
-                            existing_format = Some(detect_flow_format(&content));
-                            existing_path = Some(path.clone());
-                            break;
-                        }
-                    }
+            // 检查是否已存在同 UUID 的文件（更新场景，优先利用内存索引加速定位）
+            let (existing_path, existing_format) = match find_flow_path_by_uuid(&flow.uuid, flows_dir) {
+                Ok(path) => {
+                    let format = fs::read_to_string(&path)
+                        .ok()
+                        .map(|c| detect_flow_format(&c));
+                    (Some(path), format)
                 }
-            }
+                Err(_) => (None, None),
+            };
             // 确定目标目录：保持原有文件夹位置，否则使用根目录
             let target_dir = existing_path
                 .as_ref()
@@ -519,6 +603,12 @@ pub fn save_flow_file_with_meta_and_path(
         invalidate_flow_metadata_cache(old_path);
     }
     invalidate_flow_metadata_cache(&target_path);
+    {
+        let mut uuid_cache = UUID_PATH_CACHE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        uuid_cache.insert(flow.uuid.clone(), target_path.clone());
+    }
 
     Ok(())
 }
@@ -547,23 +637,7 @@ pub fn load_flow_file_with_path(
 
     let target_path = match candidate_path {
         Some(p) => p,
-        None => {
-            // 2. 回退到按 UUID 扫描定位文件（兼容老流程或跨目录按 ID 解析）
-            let mut mpf_files = Vec::new();
-            collect_mpf_files(flows_dir, &mut mpf_files)?;
-            let mut found = None;
-            for path in &mpf_files {
-                if let Ok(content) = fs::read_to_string(path) {
-                    if let Ok(meta) = deserialize_flow_file_meta(&content) {
-                        if meta.flow.uuid == uuid_or_path {
-                            found = Some(path.clone());
-                            break;
-                        }
-                    }
-                }
-            }
-            found.ok_or_else(|| format!("Flow not found: {}", uuid_or_path))?
-        }
+        None => find_flow_path_by_uuid(uuid_or_path, flows_dir)?,
     };
 
     let content =
@@ -571,6 +645,12 @@ pub fn load_flow_file_with_path(
     let flow_file = deserialize_flow_file(&content)
         .map_err(|e| format!("Flow file corrupted: {} - {}", target_path.display(), e))?;
 
+    {
+        let mut uuid_cache = UUID_PATH_CACHE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        uuid_cache.insert(flow_file.flow.uuid.clone(), target_path.clone());
+    }
     Ok((flow_file, target_path))
 }
 
