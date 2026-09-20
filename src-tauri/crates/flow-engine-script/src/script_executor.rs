@@ -197,6 +197,12 @@ impl NodeExecutor for ScriptNodeExecutor {
                     ErrorDetail::execution_error(format!("Script execution error: {}", e))
                 })?;
 
+                // `fn.expect` 的断言结果只存在 JS 闭包里（Rust 侧字段不会由 JS 写入），
+                // 必须在脚本执行后主动回捞，否则节点输出与报告中永远看不到断言结果。
+                if let Ok(results) = script_ctx.get_test_results(&ctx) {
+                    script_ctx.test_results.borrow_mut().extend(results);
+                }
+
                 // 收集执行结果
                 let result_vars = script_ctx.variables.borrow().clone();
                 let logs = script_ctx.logs.borrow().clone();
@@ -967,5 +973,48 @@ mod tests {
         assert!(output_data.is_some());
         let output = output_data.unwrap_or_else(|| panic!("expected Some"));
         assert_eq!(output["success"], false);
+    }
+
+    /// `fn.expect` 的断言结果必须出现在节点输出中（JS 侧结果需要主动回捞）
+    #[tokio::test]
+    async fn test_script_expect_results_are_reported() {
+        let executor = ScriptNodeExecutor::new();
+        let node = create_test_node(
+            "script-expect-001",
+            "fn.expect(1).to.equal(1);\nfn.expect([1,2,3]).to.haveLength(3);\n",
+            5000,
+        );
+        let mut context = create_test_context("test-flow");
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        let output = result
+            .unwrap_or_else(|e| panic!("{e}"))
+            .1
+            .unwrap_or_else(|| panic!("expected Some"));
+        assert_eq!(output["success"], true);
+        assert_eq!(output["all_assertions_passed"], true);
+        assert_eq!(output["test_results"].as_array().map(|r| r.len()), Some(2));
+    }
+
+    /// 断言失败只做记录，不改变节点成功状态（失败要由 assertion 节点或 throw 触发）
+    #[tokio::test]
+    async fn test_script_expect_failure_is_recorded_not_fatal() {
+        let executor = ScriptNodeExecutor::new();
+        let node = create_test_node("script-expect-002", "fn.expect(1).to.equal(2);", 5000);
+        let mut context = create_test_context("test-flow");
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        let output = result
+            .unwrap_or_else(|e| panic!("{e}"))
+            .1
+            .unwrap_or_else(|| panic!("expected Some"));
+        assert_eq!(output["success"], true);
+        assert_eq!(output["all_assertions_passed"], false);
     }
 }

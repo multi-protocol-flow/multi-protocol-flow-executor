@@ -22,14 +22,15 @@ Registered on the `fn` global object in QuickJS:
 
 | Namespace | Functions |
 |-----------|-----------|
-| `fn.variables` | `get(key)`, `set(key, value)`, `has(key)`, `keys()`, `all()` |
-| `fn.response` | `status`, `body`, `headers`, `rawBody`, `size`, `time`, `rawOutput` |
+| `fn.variables` | `get(key)` (→ string \| null), `replaceIn(template)`, `set(key, value)` (任意 JS 值按 JSON 类型保存), `has(key)`, `unset(key)`, `clear()`, `setAll(obj)`, `all()` (→ JSON 文本) |
+| `fn.response` | `code`, `status`, `headers`, `body` (JSON 文本), `raw` (完整 last-node output，JSON 文本), `size`, `time`, `text()`, `json()` — 仅当一个上游节点产出过响应时存在 |
 | `fn.request` | `url`, `method`, `headers`, `body` |
-| `fn.console` | `log()`, `info()`, `warn()`, `error()`, `debug()`, `table()` |
+| `fn.console` | `log()`, `info()`, `warn()`, `error()`, `debug()` |
 | `fn.flow` | `skip()`, `abort(msg?)`, `stop(msg?)` |
 | `fn.info` | `nodeId`, `nodeName`, `flowId`, `flowName` |
-| `fn.util` | `base64.encode()`, `base64.decode()`, `hex.encode()`, `hex.decode()`, `json.parse()`, `json.stringify()`, `uuid.v4()`, `timestamp()`, `sleep(ms)`, `hash.md5()`, `hash.sha1()`, `hash.sha256()` |
-| `fn.expect` | `expect(actual)` — chain: `.toBe(expected)`, `.toEqual(expected)`, `.toContain(sub)`, `.toBeTruthy()`, `.toBeFalsy()`, `.toBeGreaterThan(n)`, `.toBeLessThan(n)`, `.toMatch(regex)`, `.not.*` |
+| `fn.util`（标量） | `base64Encode/Decode`, `urlEncode/Decode`, `htmlEscape/Unescape`, `md5`, `sha256`, `sha512`, `hmacSha256(key, message)`, `hmacSha512`, `uuid()`, `uuidv4()`, `timestamp()` (ms), `now()`, `formatTime(fmt)`, `parseTime(str, fmt)`, `sleep(ms)`, `typeOf/isArray/isObject/isString/isNumber/isBoolean/isNull/isUndefined/isEmpty` |
+| `fn.util`（对象/JSON） | `keys(v)`, `values(v)`, `entries(v)`, `hasKey(v, k)`, `pick(v, keys)`, `omit(v, keys)`, `merge(target, source)`, `clone(v)`, `jsonStringify(v, indent)`, `jsonPath(v, path)`, `jsonParse(str)` — 除 `hasKey` 外均返回 JSON 文本；键列表可用原生数组或 `'["a"]'` 字符串；入参经 `js_value_to_json` 递归转换（含深度上限，循环引用按 null 截断） |
+| `fn.expect` | `expect(actual)` — 修饰符 `.to` / `.be` / `.have` / `.not`；断言方法 `.equal(v)`（严格）、`.eql(v)`（深比较）、`.notEqual`、`.exist`、`.beDefined`、`.beNull`、`.notBeNull`、`.beTrue`、`.beFalse`、`.beTruthy`、`.beFalsy`、`.contain`、`.containKey`、`.haveLength`、`.match`、`.startWith`、`.endWith`、`.above`、`.below`。**没有 `toBe`/`toEqual`**；断言结果只记录（节点输出 `test_results` / `all_assertions_passed`），失败不改变节点状态 |
 
 ## Execution Flow
 

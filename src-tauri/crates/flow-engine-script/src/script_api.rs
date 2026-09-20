@@ -64,6 +64,165 @@ pub struct TestResult {
     pub actual: Option<serde_json::Value>,
 }
 
+/// `JS` 值与 JSON 互转的深度上限：超过后按 null 截断。
+///
+/// 脚本可构造循环引用对象（`const a = {}; a.self = a;`），递归转换必须在有限深度内停止，
+/// 否则会栈溢出直接打死宿主进程。
+const MAX_JS_JSON_DEPTH: usize = 32;
+
+/// 单个数组允许转换的元素数上限：超过则整体落为 `null`。
+///
+/// 沙箱内存限制只约束真实数据，`arr.length = 1e9` 这类稀疏数组不占 JS 堆，必须在转换侧设闸。
+const MAX_JS_JSON_ARRAY_ELEMENTS: usize = 1_000_000;
+
+/// 数组转换时的预分配上限：避免稀疏数组的 `length` 直接变成多 GB 的宿主分配
+const ARRAY_PREALLOC_ELEMENTS: usize = 4096;
+
+/// `JS` 值 → `serde_json::Value`
+///
+/// `fn.util.*` 的对象入参必须经过这里。直接 `obj.get::<_, String>(key)` 读取属性只能拿到
+/// 字符串——数字、布尔、嵌套对象、数组一律转换失败并被丢弃，这正是
+/// `pick` / `omit` / `merge` / `clone` / `values` / `entries` / `jsonStringify`
+/// 对非字符串对象静默返回 `{}` / `[]` 的根因。
+fn js_value_to_json(value: &Value) -> serde_json::Value {
+    js_value_to_json_at(value, 0).unwrap_or(serde_json::Value::Null)
+}
+
+/// 递归转换；返回 `None` 表示该属性应被丢弃（函数属性，与 `JSON.stringify` 一致）；
+/// 对象属性值为 `undefined` 同样会被丢弃，数组元素则为 `null`。
+fn js_value_to_json_at(value: &Value, depth: usize) -> Option<serde_json::Value> {
+    use serde_json::Value as Json;
+
+    if value.is_undefined() || value.is_null() {
+        return Some(Json::Null);
+    }
+    if value.is_function() {
+        return None;
+    }
+    if let Some(b) = value.as_bool() {
+        return Some(Json::Bool(b));
+    }
+    if let Some(n) = value.as_number() {
+        return Some(number_to_json(n));
+    }
+    if let Some(s) = value.as_string() {
+        // 原样保留：不再把字符串二次解析成 JSON（那会把 "123" 变成数字、把 "null" 变成 null）
+        return s.to_string().ok().map(Json::String);
+    }
+    if depth >= MAX_JS_JSON_DEPTH {
+        return Some(Json::Null);
+    }
+
+    let obj = value.clone().into_object()?;
+
+    if value.is_array() {
+        let len = obj.get::<_, i32>("length").unwrap_or(0).max(0) as usize;
+
+        // 稀疏数组的 `length` 只是一个数字：`const a = []; a.length = 1e9;` 在 JS 侧几乎不占内存，
+        // 但按 length 预分配 / 逐位转换会让宿主直接 OOM 或长时间卡死（脚本超时不会中断 Rust 侧循环）。
+        // 因此：预分配按小上限封顶，并按元素数硬限制转换规模，超限数组整体落为 null（与深度上限同一策略）。
+        if len > MAX_JS_JSON_ARRAY_ELEMENTS {
+            return Some(Json::Null);
+        }
+        let mut items = Vec::with_capacity(len.min(ARRAY_PREALLOC_ELEMENTS));
+        for index in 0..len {
+            items.push(
+                obj.get::<_, Value>(index as u32)
+                    .ok()
+                    .and_then(|item| js_value_to_json_at(&item, depth + 1))
+                    .unwrap_or(Json::Null),
+            );
+        }
+        return Some(Json::Array(items));
+    }
+
+    let mut map = serde_json::Map::new();
+    for key in Object::keys::<String>(&obj).filter_map(|k| k.ok()) {
+        let Ok(prop) = obj.get::<_, Value>(key.as_str()) else {
+            continue;
+        };
+        // `JSON.stringify` 丢弃 undefined 属性（数组元素则落成 null，见上面的分支）
+        if prop.is_undefined() {
+            continue;
+        }
+        if let Some(converted) = js_value_to_json_at(&prop, depth + 1) {
+            map.insert(key, converted);
+        }
+    }
+    Some(Json::Object(map))
+}
+
+/// JS 数字 → JSON 数字：整数值保留整数形态，`NaN` / `Infinity` 落到 `null`
+/// （`JSON.stringify` 对二者的处理也是 `null`）
+fn number_to_json(n: f64) -> serde_json::Value {
+    const MAX_EXACT_INT_F64: f64 = 9_007_199_254_740_992.0;
+    if !n.is_finite() {
+        return serde_json::Value::Null;
+    }
+    if n.fract() == 0.0 && n.abs() < MAX_EXACT_INT_F64 {
+        return serde_json::Value::Number((n as i64).into());
+    }
+    serde_json::Number::from_f64(n).map_or(serde_json::Value::Null, serde_json::Value::Number)
+}
+
+/// 对象/数组归一化为 `{key: value}` 形式；其他类型返回空对象
+fn to_object_map(value: &Value) -> serde_json::Map<String, serde_json::Value> {
+    match js_value_to_json(value) {
+        serde_json::Value::Object(map) => map,
+        serde_json::Value::Array(items) => items
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| (i.to_string(), v))
+            .collect(),
+        _ => serde_json::Map::new(),
+    }
+}
+
+/// `pick` / `omit` 的键列表参数：接受原生数组 `['a','b']`，也兼容旧的 JSON 字符串 `'["a","b"]'`
+fn coerce_key_list(value: &Value) -> Vec<String> {
+    if let Some(s) = value.as_string().and_then(|s| s.to_string().ok()) {
+        if let Ok(list) = serde_json::from_str::<Vec<String>>(&s) {
+            return list;
+        }
+        // 单个键名也接受，避免调用方必须懂 JSON 字符串约定
+        return vec![s];
+    }
+    match js_value_to_json(value) {
+        serde_json::Value::Array(items) => items
+            .into_iter()
+            .filter_map(|item| match item {
+                serde_json::Value::String(s) => Some(s),
+                serde_json::Value::Number(n) => Some(n.to_string()),
+                _ => None,
+            })
+            .collect(),
+        serde_json::Value::Object(map) => map.into_iter().map(|(k, _)| k).collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// 序列化为紧凑 JSON 文本（`fn.util.*` 的对象类 helper 统一返回 JSON 字符串）
+fn to_json_text(value: &serde_json::Value) -> String {
+    serde_json::to_string(value).unwrap_or_else(|_| "null".to_string())
+}
+
+/// 序列化为 JSON 文本，`indent > 0` 时按指定空格数美化
+fn to_json_text_with_indent(value: &serde_json::Value, indent: i32) -> String {
+    use serde::Serialize;
+
+    if indent <= 0 {
+        return to_json_text(value);
+    }
+    let pad = vec![b' '; indent.min(16) as usize];
+    let mut buf = Vec::new();
+    let formatter = serde_json::ser::PrettyFormatter::with_indent(&pad);
+    let mut serializer = serde_json::Serializer::with_formatter(&mut buf, formatter);
+    match value.serialize(&mut serializer) {
+        Ok(()) => String::from_utf8(buf).unwrap_or_else(|_| to_json_text(value)),
+        Err(_) => to_json_text(value),
+    }
+}
+
 /// 脚本执行上下文（Rust ↔ JS 桥接）
 ///
 /// 提供变量存储和日志输出功能，支持在 `QuickJS` 中访问和修改。
@@ -201,16 +360,12 @@ impl ScriptExecutionContext {
             }),
         )?;
 
-        // set(key, value) - 设置变量
+        // set(key, value) - 设置变量（任意 JS 值按 JSON 类型保存）
         let vars_set = self.variables.clone();
         vars_obj.set(
             "set",
-            Func::from(move |key: String, value: Option<String>| {
-                let val = match value {
-                    Some(s) => serde_json::Value::String(s),
-                    None => serde_json::Value::Null,
-                };
-                vars_set.borrow_mut().insert(key, val);
+            Func::from(move |key: String, value: Value| {
+                vars_set.borrow_mut().insert(key, js_value_to_json(&value));
             }),
         )?;
 
@@ -243,18 +398,18 @@ impl ScriptExecutionContext {
             }),
         )?;
 
-        // setAll(obj) - 批量设置变量
+        // setAll(obj) - 批量设置变量（任意 JS 值按 JSON 类型保存）
         let vars_set_all = self.variables.clone();
         vars_obj.set(
             "setAll",
-            Func::from(move |obj: Object| {
-                let keys: Vec<String> = Object::keys(&obj).filter_map(|k| k.ok()).collect();
-                for key in keys {
-                    if let Ok(value) = obj.get::<String, String>(key.clone()) {
-                        vars_set_all
-                            .borrow_mut()
-                            .insert(key, serde_json::Value::String(value));
-                    }
+            Func::from(move |obj: Value| {
+                let entries = match js_value_to_json(&obj) {
+                    serde_json::Value::Object(map) => map,
+                    _ => return,
+                };
+                let mut vars = vars_set_all.borrow_mut();
+                for (key, value) in entries {
+                    vars.insert(key, value);
                 }
             }),
         )?;
@@ -266,12 +421,12 @@ impl ScriptExecutionContext {
         vars_obj.set(
             "all",
             Func::from(move || -> String {
-                let map: HashMap<String, String> = vars_all
+                let snapshot: serde_json::Map<String, serde_json::Value> = vars_all
                     .borrow()
                     .iter()
-                    .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
+                    .map(|(k, v)| (k.clone(), v.clone()))
                     .collect();
-                serde_json::to_string(&map).unwrap_or_else(|_| "{}".to_string())
+                to_json_text(&serde_json::Value::Object(snapshot))
             }),
         )?;
 
@@ -503,7 +658,8 @@ impl ScriptExecutionContext {
 
         fn_obj.set("flow", flow_obj)?;
 
-        // JS 包装：fn.flow.stop() 支持有参和无参两种调用方式
+        // JS 包装：`fn.flow.stop()` / `fn.flow.abort()` 都支持有参和无参两种调用方式。
+        // 底层 Rust 函数参数是 String，直接无参调用会抛 "expected string, got undefined"。
         ctx.eval::<(), _>(
             r#"
             (function() {
@@ -513,6 +669,13 @@ impl ScriptExecutionContext {
                         message = '';
                     }
                     return origStop(message);
+                };
+                var origAbort = fn.flow.abort;
+                fn.flow.abort = function(message) {
+                    if (arguments.length === 0 || message === undefined) {
+                        message = '';
+                    }
+                    return origAbort(message);
                 };
             })();
         "#,
@@ -797,123 +960,94 @@ impl ScriptExecutionContext {
         // keys(obj) - 返回对象键数组（JSON 字符串）
         util_obj.set(
             "keys",
-            Func::from(move |obj: Object| -> String {
-                let keys: Vec<String> = Object::keys(&obj).filter_map(|k| k.ok()).collect();
-                serde_json::to_string(&keys).unwrap_or_else(|_| "[]".to_string())
+            Func::from(move |value: Value| -> String {
+                let keys: Vec<serde_json::Value> = to_object_map(&value)
+                    .into_iter()
+                    .map(|(k, _)| serde_json::Value::String(k))
+                    .collect();
+                to_json_text(&serde_json::Value::Array(keys))
             }),
         )?;
 
         // values(obj) - 返回对象值数组（JSON 字符串）
         util_obj.set(
             "values",
-            Func::from(move |obj: Object| -> String {
-                let keys: Vec<String> = Object::keys(&obj).filter_map(|k| k.ok()).collect();
-                let values: Vec<String> = keys
-                    .iter()
-                    .filter_map(|k| obj.get::<_, String>(k.clone()).ok())
-                    .collect();
-                serde_json::to_string(&values).unwrap_or_else(|_| "[]".to_string())
+            Func::from(move |value: Value| -> String {
+                let values: Vec<serde_json::Value> = to_object_map(&value).into_values().collect();
+                to_json_text(&serde_json::Value::Array(values))
             }),
         )?;
 
         // entries(obj) - 返回对象键值对数组（JSON 字符串）
         util_obj.set(
             "entries",
-            Func::from(move |obj: Object| -> String {
-                let keys: Vec<String> = Object::keys(&obj).filter_map(|k| k.ok()).collect();
-                let entries: Vec<(String, String)> = keys
-                    .iter()
-                    .filter_map(|k| obj.get::<_, String>(k.clone()).ok().map(|v| (k.clone(), v)))
+            Func::from(move |value: Value| -> String {
+                let entries: Vec<serde_json::Value> = to_object_map(&value)
+                    .into_iter()
+                    .map(|(k, v)| serde_json::Value::Array(vec![serde_json::Value::String(k), v]))
                     .collect();
-                serde_json::to_string(&entries).unwrap_or_else(|_| "[]".to_string())
+                to_json_text(&serde_json::Value::Array(entries))
             }),
         )?;
 
-        // hasKey(obj, key) - 检查对象是否包含键
+        // hasKey(obj, key) - 检查对象/数组是否包含该键
+        // 直接在 JS 对象上查自有键：走 JSON 转换会把 undefined / 函数属性丢掉，
+        // 导致 `hasKey({a: undefined}, 'a')` 误报 false，且大对象白跑一次深拷贝。
         util_obj.set(
             "hasKey",
-            Func::from(move |obj: Object, key: String| -> bool {
-                Object::keys::<String>(&obj).any(|k| k.as_ref().is_ok_and(|k| k == &key))
+            Func::from(move |value: Value, key: String| -> bool {
+                value
+                    .into_object()
+                    .and_then(|obj| obj.contains_key(key.as_str()).ok())
+                    .unwrap_or(false)
             }),
         )?;
 
         // pick(obj, keys) - 从对象中选择指定键（JSON 字符串）
         util_obj.set(
             "pick",
-            Func::from(move |obj: Object, keys_json: String| -> String {
-                let keys: Vec<String> = serde_json::from_str(&keys_json).unwrap_or_default();
+            Func::from(move |value: Value, keys: Value| -> String {
+                let wanted = coerce_key_list(&keys);
+                let source = to_object_map(&value);
                 let mut result = serde_json::Map::new();
-                for key in keys {
-                    if let Ok(value) = obj.get::<_, String>(key.clone()) {
-                        result.insert(key, serde_json::Value::String(value));
+                for key in wanted {
+                    if let Some(item) = source.get(&key) {
+                        result.insert(key, item.clone());
                     }
                 }
-                serde_json::to_string(&serde_json::Value::Object(result))
-                    .unwrap_or_else(|_| "{}".to_string())
+                to_json_text(&serde_json::Value::Object(result))
             }),
         )?;
 
         // omit(obj, keys) - 从对象中排除指定键（JSON 字符串）
         util_obj.set(
             "omit",
-            Func::from(move |obj: Object, keys_json: String| -> String {
-                let keys_to_omit: Vec<String> =
-                    serde_json::from_str(&keys_json).unwrap_or_default();
-                let all_keys: Vec<String> = Object::keys(&obj).filter_map(|k| k.ok()).collect();
-                let mut result = serde_json::Map::new();
-                for key in all_keys {
-                    if !keys_to_omit.contains(&key) {
-                        if let Ok(value) = obj.get::<_, String>(key.clone()) {
-                            result.insert(key, serde_json::Value::String(value));
-                        }
-                    }
-                }
-                serde_json::to_string(&serde_json::Value::Object(result))
-                    .unwrap_or_else(|_| "{}".to_string())
+            Func::from(move |value: Value, keys: Value| -> String {
+                let unwanted = coerce_key_list(&keys);
+                let result: serde_json::Map<String, serde_json::Value> = to_object_map(&value)
+                    .into_iter()
+                    .filter(|(k, _)| !unwanted.contains(k))
+                    .collect();
+                to_json_text(&serde_json::Value::Object(result))
             }),
         )?;
 
-        // merge(target, source) - 合并两个对象（JSON 字符串）
+        // merge(target, source) - 浅合并两个对象，source 覆盖同名键（JSON 字符串）
         util_obj.set(
             "merge",
-            Func::from(move |target: Object, source: Object| -> String {
-                let mut result = serde_json::Map::new();
-
-                // 先添加 target 的键值
-                let keys: Vec<String> = Object::keys(&target).filter_map(|k| k.ok()).collect();
-                for key in keys {
-                    if let Ok(value) = target.get::<_, String>(key.clone()) {
-                        result.insert(key, serde_json::Value::String(value));
-                    }
+            Func::from(move |target: Value, source: Value| -> String {
+                let mut result = to_object_map(&target);
+                for (key, value) in to_object_map(&source) {
+                    result.insert(key, value);
                 }
-
-                // 再添加/覆盖 source 的键值
-                let keys2: Vec<String> = Object::keys(&source).filter_map(|k| k.ok()).collect();
-                for key in keys2 {
-                    if let Ok(value) = source.get::<_, String>(key.clone()) {
-                        result.insert(key, serde_json::Value::String(value));
-                    }
-                }
-
-                serde_json::to_string(&serde_json::Value::Object(result))
-                    .unwrap_or_else(|_| "{}".to_string())
+                to_json_text(&serde_json::Value::Object(result))
             }),
         )?;
 
-        // clone(obj) - 深拷贝对象（通过 JSON 序列化/反序列化）
+        // clone(obj) - 深拷贝任意值（JSON 字符串；数组/标量同样可用）
         util_obj.set(
             "clone",
-            Func::from(move |obj: Object| -> String {
-                let mut result = serde_json::Map::new();
-                let keys: Vec<String> = Object::keys(&obj).filter_map(|k| k.ok()).collect();
-                for key in keys {
-                    if let Ok(value) = obj.get::<_, String>(key.clone()) {
-                        result.insert(key, serde_json::Value::String(value));
-                    }
-                }
-                serde_json::to_string(&serde_json::Value::Object(result))
-                    .unwrap_or_else(|_| "{}".to_string())
-            }),
+            Func::from(move |value: Value| -> String { to_json_text(&js_value_to_json(&value)) }),
         )?;
 
         // === 时间函数 ===
@@ -1011,50 +1145,35 @@ impl ScriptExecutionContext {
             }),
         )?;
 
-        // jsonStringify(obj, indent?) - 将对象转换为 JSON 字符串
+        // jsonStringify(value, indent) - 将任意 JS 值转换为 JSON 字符串（等价于 JSON.stringify）
         util_obj.set(
             "jsonStringify",
-            Func::from(move |obj: Object, indent: Option<i32>| -> String {
-                let mut result = serde_json::Map::new();
-                let keys: Vec<String> = Object::keys(&obj).filter_map(|k| k.ok()).collect();
-                for key in keys {
-                    if let Ok(value) = obj.get::<_, String>(key.clone()) {
-                        // 尝试解析为 JSON 值，否则作为字符串
-                        if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(&value) {
-                            result.insert(key, json_val);
-                        } else {
-                            result.insert(key, serde_json::Value::String(value));
-                        }
-                    }
-                }
-                if let Some(ind) = indent {
-                    if ind > 0 {
-                        return serde_json::to_string_pretty(&serde_json::Value::Object(result))
-                            .unwrap_or_else(|_| "{}".to_string());
-                    }
-                }
-                serde_json::to_string(&serde_json::Value::Object(result))
-                    .unwrap_or_else(|_| "{}".to_string())
+            Func::from(move |value: Value, indent: Option<i32>| -> String {
+                to_json_text_with_indent(&js_value_to_json(&value), indent.unwrap_or(0))
             }),
         )?;
 
-        // jsonPath(obj, path) - 使用 JSONPath 查询对象
-        // 返回匹配结果的 JSON 数组字符串
+        // jsonPath(value, path) - 使用 JSONPath 查询对象/数组
+        // 接受 JS 对象（推荐）或 JSON 字符串；返回匹配结果的 JSON 数组字符串
         util_obj.set(
             "jsonPath",
-            Func::from(move |obj_json: String, path: String| -> String {
+            Func::from(move |value: Value, path: String| -> String {
                 use jsonpath_rust::JsonPath;
-                // 解析对象
-                let value = match serde_json::from_str::<serde_json::Value>(&obj_json) {
-                    Ok(v) => v,
-                    Err(_) => return "[]".to_string(),
+                // 字符串入参按 JSON 文本解析（保留旧调用方式），其他类型直接转换
+                let subject = match value.as_string().and_then(|s| s.to_string().ok()) {
+                    Some(raw) => match serde_json::from_str::<serde_json::Value>(&raw) {
+                        Ok(parsed) => parsed,
+                        Err(_) => return "[]".to_string(),
+                    },
+                    None => js_value_to_json(&value),
                 };
-                // 使用 JsonPath trait 的 query 方法
-                match value.query(&path) {
+                match subject.query(&path) {
                     Ok(result) => {
                         // 将结果转换为 JSON 数组
                         let arr: Vec<&serde_json::Value> = result.into_iter().collect();
-                        serde_json::to_string(&arr).unwrap_or_else(|_| "[]".to_string())
+                        to_json_text(&serde_json::Value::Array(
+                            arr.into_iter().cloned().collect(),
+                        ))
                     }
                     Err(_) => "[]".to_string(),
                 }
@@ -2052,7 +2171,28 @@ mod tests {
                 .register_all_apis(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
 
+            // 真正的无参调用（文档写的是 abort(msg?)）：底层 Rust 参数是 String，
+            // 没有 JS 包装时会抛 "expected string, got undefined"
+            script_ctx.should_abort.replace(false);
+            script_ctx.abort_message.replace(None);
+            let _: () = ctx
+                .eval("fn.flow.abort()")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert!(*script_ctx.should_abort.borrow());
+            assert_eq!(*script_ctx.abort_message.borrow(), None);
+
+            // 传入 undefined 同样按无消息处理
+            script_ctx.should_abort.replace(false);
+            let _: () = ctx
+                .eval("fn.flow.abort(undefined)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert!(*script_ctx.should_abort.borrow());
+            assert_eq!(*script_ctx.abort_message.borrow(), None);
+
             // 传入空字符串表示无消息
+            script_ctx.should_abort.replace(false);
             let _: () = ctx
                 .eval("fn.flow.abort('')")
                 .catch(&ctx)
@@ -2574,11 +2714,23 @@ mod tests {
                 .unwrap_or_else(|e| panic!("{e}"));
 
             let keys_json: String = ctx
-                .eval("fn.util.keys({a: '1', b: '2'})")
+                .eval("fn.util.keys({b: '2', a: '1'})")
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
-            assert!(keys_json.contains("a"));
-            assert!(keys_json.contains("b"));
+            assert_eq!(keys_json, r#"["b","a"]"#); // 保持 JS 的插入顺序
+
+            // 数组按索引取键
+            let array_keys: String = ctx
+                .eval("fn.util.keys([7, 8])")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(array_keys, r#"["0","1"]"#);
+
+            let scalar_keys: String = ctx
+                .eval("fn.util.keys('nope')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(scalar_keys, "[]");
         });
     }
 
@@ -2594,12 +2746,12 @@ mod tests {
                 .unwrap_or_else(|e| panic!("{e}"));
 
             let has_a: bool = ctx
-                .eval("fn.util.hasKey({a: '1', b: '2'}, 'a')")
+                .eval("fn.util.hasKey({a: 1, b: '2'}, 'a')")
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
             assert!(has_a);
             let has_c: bool = ctx
-                .eval("fn.util.hasKey({a: '1', b: '2'}, 'c')")
+                .eval("fn.util.hasKey({a: 1, b: '2'}, 'c')")
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
             assert!(!has_c);
@@ -2618,11 +2770,10 @@ mod tests {
                 .unwrap_or_else(|e| panic!("{e}"));
 
             let values_json: String = ctx
-                .eval("fn.util.values({a: 'x', b: 'y'})")
+                .eval("fn.util.values({b: 'y', a: 'x'})")
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
-            assert!(values_json.contains("x"));
-            assert!(values_json.contains("y"));
+            assert_eq!(values_json, r#"["y","x"]"#);
         });
     }
 
@@ -2641,8 +2792,7 @@ mod tests {
                 .eval("fn.util.entries({a: '1'})")
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
-            assert!(entries_json.contains("a"));
-            assert!(entries_json.contains("1"));
+            assert_eq!(entries_json, r#"[["a","1"]]"#);
         });
     }
 
@@ -2657,23 +2807,26 @@ mod tests {
                 .register_all_apis(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
 
-            // 测试 pick
+            // 测试 pick（原生数组入参 + 非字符串值）
             let picked: String = ctx
-                .eval("fn.util.pick({a: '1', b: '2', c: '3'}, '[\"a\", \"b\"]')")
+                .eval("fn.util.pick({b: '2', a: 1, c: true}, ['a', 'b'])")
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
-            assert!(picked.contains("a"));
-            assert!(picked.contains("b"));
-            assert!(!picked.contains("c"));
+            assert_eq!(picked, r#"{"a":1,"b":"2"}"#);
 
-            // 测试 omit
-            let omitted: String = ctx
-                .eval("fn.util.omit({a: '1', b: '2', c: '3'}, '[\"c\"]')")
+            // 兼容旧的 JSON 字符串写法
+            let picked_legacy: String = ctx
+                .eval(r#"fn.util.pick({a: '1', b: '2', c: '3'}, '["a", "b"]')"#)
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
-            assert!(omitted.contains("a"));
-            assert!(omitted.contains("b"));
-            assert!(!omitted.contains("c"));
+            assert_eq!(picked_legacy, r#"{"a":"1","b":"2"}"#);
+
+            // 测试 omit（保留非字符串值）
+            let omitted: String = ctx
+                .eval("fn.util.omit({a: 1, b: '2', c: true}, ['c'])")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(omitted, r#"{"a":1,"b":"2"}"#);
         });
     }
 
@@ -2688,21 +2841,85 @@ mod tests {
                 .register_all_apis(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
 
-            // 测试 merge
+            // 测试 merge（浅合并 + 嵌套值原样保留）
             let merged: String = ctx
-                .eval("fn.util.merge({a: '1'}, {b: '2'})")
+                .eval("fn.util.merge({a: 1, n: {x: 1}}, {b: true, n: {y: 2}})")
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
-            assert!(merged.contains("a"));
-            assert!(merged.contains("b"));
+            assert_eq!(merged, r#"{"a":1,"n":{"y":2},"b":true}"#);
 
-            // 测试 clone
+            // 测试 clone（深拷贝任意值）
             let cloned: String = ctx
-                .eval("fn.util.clone({x: 'test'})")
+                .eval("fn.util.clone({a: [1, '2'], x: 'test'})")
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
-            assert!(cloned.contains("x"));
-            assert!(cloned.contains("test"));
+            assert_eq!(cloned, r#"{"a":[1,"2"],"x":"test"}"#);
+        });
+    }
+
+    /// 稀疏数组的 length 不能变成宿主的多 GB 预分配（`arr.length = 1e9` 是 DoS 入口）
+    #[test]
+    fn test_fn_util_sparse_array_is_bounded() {
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
+        let script_ctx = ScriptExecutionContext::new();
+
+        ctx.with(|ctx| {
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+
+            // 稀疏数组（只有 length，无元素）在旧实现下会触发 Vec::with_capacity(1e9)
+            let json: String = ctx
+                .eval("const a = []; a.length = 1000000000; fn.util.jsonStringify(a, 0)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(json, "null");
+
+            // 正常数组不受影响，空洞按 null 补齐（与 JSON.stringify 一致）
+            let holes: String = ctx
+                .eval("const b = ['x']; b.length = 3; fn.util.jsonStringify(b, 0)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(holes, r#"["x",null,null]"#);
+        });
+    }
+
+    /// hasKey 必须看 JS 自有键，而不是 JSON 转换结果（后者会丢弃 undefined / 函数属性）
+    #[test]
+    fn test_fn_util_has_key_keeps_undefined_and_function_keys() {
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
+        let script_ctx = ScriptExecutionContext::new();
+
+        ctx.with(|ctx| {
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+
+            let has_undefined: bool = ctx
+                .eval("fn.util.hasKey({a: undefined}, 'a')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert!(has_undefined);
+
+            let has_function: bool = ctx
+                .eval("fn.util.hasKey({fn: () => 1}, 'fn')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert!(has_function);
+
+            let missing: bool = ctx
+                .eval("fn.util.hasKey({a: 1}, 'b')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert!(!missing);
+
+            let not_object: bool = ctx
+                .eval("fn.util.hasKey('nope', 'length')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert!(!not_object);
         });
     }
 
@@ -2901,22 +3118,85 @@ mod tests {
                 .register_all_apis(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
 
-            // 测试无缩进
+            // 混合类型：数字/布尔/null/数组/嵌套对象原样保留，字符串不被二次解析成 JSON
             let json: String = ctx
-                .eval("fn.util.jsonStringify({a: '1', b: '2'}, 0)")
+                .eval(
+                    "fn.util.jsonStringify({n: 1, f: 1.5, s: '123', b: true, nil: null, arr: [1, '2'], obj: {k: 'v'}, fn: () => 1, und: undefined}, 0)",
+                )
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
-            assert!(json.contains("a"));
-            assert!(json.contains("b"));
+            assert_eq!(
+                json,
+                r#"{"n":1,"f":1.5,"s":"123","b":true,"nil":null,"arr":[1,"2"],"obj":{"k":"v"}}"#
+            );
 
-            // 测试带缩进
+            // 带缩进
             let pretty: String = ctx
                 .eval("fn.util.jsonStringify({x: 'test'}, 2)")
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
-            assert!(pretty.contains("x"));
-            // 美化输出应该有换行
-            assert!(pretty.contains('\n'));
+            assert_eq!(pretty, "{\n  \"x\": \"test\"\n}");
+        });
+    }
+
+    /// 循环引用必须被深度上限截断，而不是递归爆栈打死宿主进程
+    #[test]
+    fn test_fn_util_json_stringify_cycle_is_bounded() {
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
+        let script_ctx = ScriptExecutionContext::new();
+
+        ctx.with(|ctx| {
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+
+            let json: String = ctx
+                .eval("const a = {x: 1}; a.self = a; fn.util.jsonStringify(a, 0)")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+
+            // 仍是合法 JSON（末尾被 null 截断），且确实递归了若干层
+            let parsed: serde_json::Value =
+                serde_json::from_str(&json).unwrap_or_else(|e| panic!("{json} -> {e}"));
+            assert_eq!(parsed["x"], serde_json::json!(1));
+            assert!(json.contains("\"self\""));
+            assert!(json.len() > 50);
+        });
+    }
+
+    /// 变量池必须保留 JSON 类型：原先 set/setAll 只接受字符串，数字/布尔/对象被丢弃
+    #[test]
+    fn test_fn_variables_keep_json_types() {
+        let rt = Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let ctx = Context::full(&rt).unwrap_or_else(|e| panic!("{e}"));
+        let script_ctx = ScriptExecutionContext::new();
+
+        ctx.with(|ctx| {
+            script_ctx
+                .register_all_apis(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+
+            let all: String = ctx
+                .eval(
+                    "fn.variables.set('n', 5);\nfn.variables.set('o', {a: [1, 2]});\nfn.variables.setAll({b: true, c: 'x'});\nfn.variables.all()",
+                )
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+
+            // `fn.variables.all()` 返回 JSON 文本（底层变量池是 HashMap，键序不稳定）
+            assert_eq!(
+                serde_json::from_str::<serde_json::Value>(&all)
+                    .unwrap_or_else(|e| panic!("{all} -> {e}")),
+                serde_json::json!({"n": 5, "o": {"a": [1, 2]}, "b": true, "c": "x"})
+            );
+
+            let variables = script_ctx.variables.borrow().clone();
+            assert_eq!(variables.get("n"), Some(&serde_json::json!(5)));
+            assert_eq!(
+                variables.get("o"),
+                Some(&serde_json::json!({"a": [1, 2]}))
+            );
         });
     }
 
@@ -2942,7 +3222,21 @@ mod tests {
                 .eval("fn.util.jsonPath('{\"a\":1}', '$')")
                 .catch(&ctx)
                 .unwrap_or_else(|e| panic!("{e}"));
-            assert!(root.contains("a"));
+            assert_eq!(root, r#"[{"a":1}]"#);
+
+            // 直接传 JS 对象（不再需要手工拼 JSON 字符串）
+            let from_object: String = ctx
+                .eval("fn.util.jsonPath({items: [{id: 7}, {id: 8}]}, '$.items[*].id')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(from_object, "[7,8]");
+
+            // 非法 JSON 文本返回空数组而不是抛错
+            let invalid: String = ctx
+                .eval("fn.util.jsonPath('not json', '$')")
+                .catch(&ctx)
+                .unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(invalid, "[]");
         });
     }
 
