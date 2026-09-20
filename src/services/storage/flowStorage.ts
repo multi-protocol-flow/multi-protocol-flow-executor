@@ -5,6 +5,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { getAppDataDir } from '@/services/tauri/settings';
+import { useSettingsStore } from '@/stores/settings';
 import type { Flow } from '@/types/flow';
 import { isTauriEnv } from '@/lib/platform';
 import { notifyError } from '@/lib/notify';
@@ -45,8 +46,7 @@ interface FlowFileResponse {
  * 优先使用全局设置中的 flowsDir，未设置时默认为 {appDataDir}/flows/
  */
 async function getFlowsDir(): Promise<string> {
-  // 尝试从 Settings Store 缓存中读取自定义目录
-  const { useSettingsStore } = await import('@/stores/settings');
+  // 优先从 Settings Store 缓存中同步读取自定义目录
   const cachedFlowsDir = useSettingsStore.getState().flowsDir;
   if (cachedFlowsDir) {
     return cachedFlowsDir;

@@ -82,6 +82,8 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
 
   // 拖拽流程标识，避免拖拽释放时误触发流程切换
   const isDraggingFlowRef = useRef(false);
+  // 记录最近一次刷新完成的时间戳，避免应用启动时重复触发全盘流程与目录扫描
+  const lastRefreshTimeRef = useRef(0);
 
 
   /** 将 flowStorage 元数据映射为 FlowListStore 元数据 */
@@ -171,7 +173,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 // 版本过期，更新内置模板
                 await flowStorage.saveFlow(flow);
                 // 如果当前正在查看该流程，刷新显示
-                if (currentFlow?.uuid === flow.uuid) {
+                if (useFlowStore.getState().flow?.uuid === flow.uuid) {
                   setFlow(flow);
                 }
               }
@@ -189,18 +191,21 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
 
       // 加载文件夹列表
       await loadFolders();
-
+      lastRefreshTimeRef.current = Date.now();
       setIsLoading(false);
     };
 
     init();
 
     return () => { cancelled = true; };
-  }, [settingsLoading, flowsDir, setFlows, setFlow, currentFlow?.uuid, loadFlowList, loadFolders, mapMetadata]);
+  }, [settingsLoading, flowsDir, setFlows, setFlow, loadFlowList, loadFolders, mapMetadata]);
 
   // 窗口聚焦时刷新流程列表
+  // 窗口聚焦时刷新流程列表（带防抖节流，至少间隔 3 秒，避免启动阶段窗口切换导致连续重复全盘扫描）
   useEffect(() => {
     const handleFocus = async () => {
+      if (Date.now() - lastRefreshTimeRef.current < 3000) return;
+      lastRefreshTimeRef.current = Date.now();
       await refreshAll();
     };
     window.addEventListener('focus', handleFocus);
@@ -229,7 +234,9 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     }
 
     const uuid = typeof metaOrUuid === 'string' ? metaOrUuid : metaOrUuid.uuid;
-    const filePath = typeof metaOrUuid === 'string' ? undefined : metaOrUuid.file_path;
+    const filePath = typeof metaOrUuid === 'string'
+      ? undefined
+      : (metaOrUuid.file_path || ('filePath' in metaOrUuid && typeof metaOrUuid.filePath === 'string' ? metaOrUuid.filePath : undefined));
     const loadTarget = filePath || uuid;
 
     const { tabs, switchTab, openTab } = useFlowStore.getState();
@@ -238,23 +245,29 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       switchTab(existingTab.uuid);
       return;
     }
+    const start = performance.now();
     try {
       const flow = await flowStorage.loadFlow(loadTarget);
+      const loadTime = performance.now() - start;
       if (flow) {
+        const openStart = performance.now();
         const opened = openTab(flow, filePath || loadTarget);
+        const openTime = performance.now() - openStart;
+        console.debug(`[FlowOpen] disk load: ${loadTime.toFixed(1)}ms, tab open: ${openTime.toFixed(1)}ms, total: ${(performance.now() - start).toFixed(1)}ms`);
         if (!opened) return;
-        // 验证流程结构
-        try {
-          const result = await validateFlow(flow);
-          if (!result.valid && result.errors.length > 0) {
-            setValidationErrors(result.errors);
-            setValidationWarnings(result.warnings || []);
-            setValidationType('validation');
-            setShowValidationDialog(true);
-          }
-        } catch {
-          // 验证调用失败（如非 Tauri 环境）静默忽略
-        }
+        // 后台异步验证流程结构，不阻塞主渲染与 Tab 切换
+        validateFlow(flow)
+          .then((result) => {
+            if (!result.valid && result.errors.length > 0) {
+              setValidationErrors(result.errors);
+              setValidationWarnings(result.warnings || []);
+              setValidationType('validation');
+              setShowValidationDialog(true);
+            }
+          })
+          .catch(() => {
+            // 验证调用失败（如非 Tauri 环境）静默忽略
+          });
       }
     } catch (err) {
       // 加载流程文件失败，透传后端原始错误消息
