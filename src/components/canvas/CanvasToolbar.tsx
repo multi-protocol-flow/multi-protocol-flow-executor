@@ -2,7 +2,7 @@
  * CanvasToolbar - 画布悬浮工具栏
  * 位于画布顶部居中，包含撤销/重做、执行按钮、变量按钮
  */
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2, Database, Plus, Radio } from 'lucide-react';
 import { toast } from 'sonner';
 import * as Popover from '@radix-ui/react-popover';
@@ -20,16 +20,20 @@ import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
 import { ValidationErrorDialog } from '@/components/dialogs/ValidationErrorDialog';
 import { DebugToolbar } from './DebugToolbar';
-import { StressTestConfigDialog } from '@/components/stress-test/StressTestConfigDialog';
-import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
-import { DatasetExecutionPanel } from '@/components/execution/DatasetExecutionPanel';
 import { useDatasetExecutionStore } from '@/stores/datasetExecution';
+
 import { EnvironmentSelector } from '@/components/panels/EnvironmentManager';
 import { useEnvironmentStore } from '@/stores/environment';
-
 import { VariablePanel, extractVariableGroups } from '@/components/panels/VariablePanel';
 import { getLL } from '@/i18n/i18n-lazy';
 import { hotkeyLabel } from '@/lib/hotkeyLabels';
+
+const StressTestConfigDialog = lazy(() =>
+  import('@/components/stress-test/StressTestConfigDialog').then((m) => ({ default: m.StressTestConfigDialog }))
+);
+const DatasetExecutionPanel = lazy(() =>
+  import('@/components/execution/DatasetExecutionPanel').then((m) => ({ default: m.DatasetExecutionPanel }))
+);
 
 /**
  * 画布悬浮工具栏组件
@@ -569,21 +573,25 @@ export function CanvasToolbar() {
     <>
       {toolbarContent}
       
-      {/* 压力测试配置对话框 */}
-      <StressTestConfigDialog
-        open={showStressTestConfigDialog}
-        onOpenChange={(open) => !open && closeStressTestConfigDialog()}
-      />
-      
-      {/* 压力测试监控面板（仅在运行时显示） */}
-      <StressTestMonitor />
+      {/* 压力测试配置对话框（按需懒加载） */}
+      {showStressTestConfigDialog && (
+        <Suspense fallback={null}>
+          <StressTestConfigDialog
+            open={showStressTestConfigDialog}
+            onOpenChange={(open) => !open && closeStressTestConfigDialog()}
+          />
+        </Suspense>
+      )}
 
-      {/* 数据驱动执行面板 */}
-      <DatasetExecutionPanel
-        open={showDatasetExecutionPanel}
-        onOpenChange={(open) => !open && closeDatasetExecutionPanel()}
-      />
-
+      {/* 数据驱动执行面板（按需懒加载） */}
+      {showDatasetExecutionPanel && (
+        <Suspense fallback={null}>
+          <DatasetExecutionPanel
+            open={showDatasetExecutionPanel}
+            onOpenChange={(open) => !open && closeDatasetExecutionPanel()}
+          />
+        </Suspense>
+      )}
       {/* 验证错误对话框 */}
       <ValidationErrorDialog
         open={showValidationDialog}

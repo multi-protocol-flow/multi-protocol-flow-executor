@@ -2,6 +2,7 @@
  * MainLayout - 主布局组件
  * 整合所有面板：左侧流程列表/节点库、中间画布、右侧配置、底部历史
  */
+import { useState, useCallback, useRef, useEffect, memo, lazy, Suspense } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { SandboxBanner } from '@/components/common/SandboxBanner';
 
@@ -10,8 +11,6 @@ import { FlowCanvas, FlowTabBar } from '@/components/canvas';
 import { NodeConfigPanel } from '@/components/panels';
 import { ExecutionReport, ExecutionHistory, ConsolePanel, ExecutionPanel } from '@/components/execution';
 import { FlowCompareDialog } from '@/components/execution/FlowCompareDialog';
-import { StressTestResult } from '@/components/stress-test/StressTestResult';
-import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { PluginSettingsDialog } from '@/components/dialogs/PluginSettingsDialog';
 import { SettingsDialog } from '@/components/settings';
@@ -31,7 +30,7 @@ import {
 } from '@/components/reports';
 import { AICopilotPanel, AISpotlightDialog } from '@/components/ai';
 import { useAIStore } from '@/stores/ai';
-
+import { useStressTestStore, selectIsStressTestRunning } from '@/stores/stressTest';
 import { useUIStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
 import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
@@ -43,7 +42,6 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { usePanelDrag } from '@/hooks';
 import { toast } from 'sonner';
 import { loadReport } from '@/services/storage/reportStorage';
@@ -52,6 +50,13 @@ import { flowStorage } from '@/services/storage/flowStorage';
 import type { Flow } from '@/types';
 import { getLL } from '@/i18n/i18n-lazy';
 import { copyToClipboard, safeStringify } from '@/lib/clipboard';
+
+const StressTestResult = lazy(() =>
+  import('@/components/stress-test/StressTestResult').then((m) => ({ default: m.StressTestResult }))
+);
+const StressTestMonitor = lazy(() =>
+  import('@/components/stress-test/StressTestMonitor').then((m) => ({ default: m.StressTestMonitor }))
+);
 /**
  * 确认对话框处理器组件
  * 从 store 读取状态并渲染 ConfirmDialog
@@ -118,13 +123,17 @@ const GlobalDialogs = memo(function GlobalDialogs() {
   const closeScriptHelpDialog = useUIStore((s) => s.closeScriptHelpDialog);
   const showDynamicVariablesHelpDialog = useUIStore((s) => s.showDynamicVariablesHelpDialog);
   const closeDynamicVariablesHelpDialog = useUIStore((s) => s.closeDynamicVariablesHelpDialog);
+  const isReportDialogOpen = useStressTestStore((state) => state.isReportDialogOpen);
+  const isStressTestRunning = useStressTestStore(selectIsStressTestRunning);
 
   return (
     <>
       <ExecutionReport />
-      <StressTestResult />
+      <Suspense fallback={null}>
+        {isReportDialogOpen && <StressTestResult />}
+        {isStressTestRunning && <StressTestMonitor />}
+      </Suspense>
       <DatasetReportDialog />
-      <StressTestMonitor />
       <NewFlowDialog />
       <PluginSettingsDialog />
       <SettingsDialog />
