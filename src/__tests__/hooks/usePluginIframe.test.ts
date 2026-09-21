@@ -40,6 +40,7 @@ function renderBridge(overrides: PartialOptions = {}) {
     hostApi: INITIAL_HOST_API,
     nodeType: 'demo:ping',
     locale: 'en-US',
+    theme: 'light',
     onConfigChange,
     onRequestAction,
     ...overrides,
@@ -84,7 +85,7 @@ describe('usePluginIframe', () => {
   });
 
   describe('init 发送（iframe load）', () => {
-    it('onLoad 时发送 init，携带 config + 变量快照 + host_api 能力声明', () => {
+    it('onLoad 时发送 init，携带 config + 变量快照 + host_api 能力声明 + theme', () => {
       const { result, fake } = renderBridge();
 
       act(() => {
@@ -102,6 +103,7 @@ describe('usePluginIframe', () => {
           host_api: INITIAL_HOST_API,
           nodeType: 'demo:ping',
           locale: 'en-US',
+          theme: 'light',
         },
       });
     });
@@ -182,6 +184,61 @@ describe('usePluginIframe', () => {
         type: 'configUpdated',
         payload: { config: INITIAL_CONFIG },
       });
+    });
+  });
+
+  describe('theme 同步（docs/plugin-frontend-theme.md）', () => {
+    it('已就绪后 theme 变更 → 推送 themeChanged', () => {
+      const { result, rerender, fake, props } = renderBridge();
+
+      act(() => {
+        result.current.handleIframeLoad();
+      });
+      act(() => {
+        dispatchMessage(fake, { type: 'ready', payload: {} });
+      });
+      fake.postMessage.mockClear();
+
+      act(() => {
+        rerender({ ...props, theme: 'dark' });
+      });
+
+      const themeChanged = fake.postMessage.mock.calls.filter(([m]) => m?.type === 'themeChanged');
+      expect(themeChanged).toHaveLength(1);
+      expect(themeChanged[0]?.[0]).toEqual({ type: 'themeChanged', payload: { theme: 'dark' } });
+    });
+
+    it('未就绪时 theme 变更 → 不推送（由后续 init 携带兜底）', () => {
+      const { result, rerender, fake, props } = renderBridge();
+
+      act(() => {
+        result.current.handleIframeLoad();
+      });
+      fake.postMessage.mockClear();
+
+      act(() => {
+        rerender({ ...props, theme: 'dark' });
+      });
+
+      expect(fake.postMessage).not.toHaveBeenCalled();
+    });
+
+    it('theme 未变化 → 不推送', () => {
+      const { result, rerender, fake, props } = renderBridge();
+
+      act(() => {
+        result.current.handleIframeLoad();
+      });
+      act(() => {
+        dispatchMessage(fake, { type: 'ready', payload: {} });
+      });
+      fake.postMessage.mockClear();
+
+      act(() => {
+        rerender({ ...props, config: { url: 'https://changed.example.com' } });
+      });
+
+      expect(fake.postMessage.mock.calls.filter(([m]) => m?.type === 'themeChanged')).toHaveLength(0);
     });
   });
 

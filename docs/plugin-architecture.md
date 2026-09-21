@@ -550,13 +550,17 @@ ConfigPanel 检测到节点 metadata.frontend !== undefined
 
 ### 9.2 postMessage 协议
 
+> 主题（明暗模式）如何跨 iframe 同步、以及插件 CSS 的改造规范，见
+> [plugin-frontend-theme.md](./plugin-frontend-theme.md)。
+
 **宿主 → iframe：**
 
 | type | 场景 |
 |---|---|
-| `init` | 发送初始 config + 变量快照 + host_api 能力声明 |
+| `init` | 发送初始 config + 变量快照 + host_api 能力声明 + nodeType + locale + theme |
 | `configUpdated` | 宿主侧配置变更时推送 |
 | `actionResult` | 响应 iframe 的 requestAction（带 requestId） |
+| `themeChanged` | 宿主 resolved 主题（light/dark）变化时推送 |
 
 **iframe → 宿主：**
 

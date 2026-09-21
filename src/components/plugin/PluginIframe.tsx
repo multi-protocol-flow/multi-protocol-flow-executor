@@ -16,7 +16,11 @@
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePluginIframe } from '@/hooks/usePluginIframe';
-import type { PluginIframeHostApi, PluginIframeNodeSnapshot } from '@/types/plugin-iframe';
+import type {
+  PluginIframeHostApi,
+  PluginIframeNodeSnapshot,
+  PluginIframeTheme,
+} from '@/types/plugin-iframe';
 
 /** 插件未上报 resize 前的兜底高度（px） */
 const DEFAULT_IFRAME_HEIGHT = 300;
@@ -48,6 +52,8 @@ export interface PluginIframeProps {
   nodeType: string;
   /** 宿主当前 UI 语言（BCP-47，透传 init 载荷） */
   locale: string;
+  /** 宿主已解析主题（light/dark，透传 init 载荷并在变化时推 themeChanged） */
+  theme: PluginIframeTheme;
   /** 同插件节点快照（可选；connection 下拉等跨节点引用用） */
   nodes?: PluginIframeNodeSnapshot[];
   /** 插件表单变更 → 宿主保存 */
@@ -68,6 +74,7 @@ export function PluginIframe({
   hostApi,
   nodeType,
   locale,
+  theme,
   nodes,
   onConfigChange,
   onRequestAction,
@@ -83,6 +90,7 @@ export function PluginIframe({
       hostApi,
       nodeType,
       locale,
+      theme,
       nodes,
       onConfigChange,
       onRequestAction,

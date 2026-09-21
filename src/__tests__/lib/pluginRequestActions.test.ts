@@ -77,6 +77,7 @@ function renderWiredHook(config: unknown) {
     hostApi: PLUGIN_HOST_API,
     nodeType: 'demo:ping',
     locale: 'en-US',
+    theme: 'light',
     onConfigChange: vi.fn(),
     onRequestAction: createPluginRequestHandler(config, 'demo:ping'),
   };

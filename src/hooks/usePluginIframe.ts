@@ -29,6 +29,7 @@ import {
   createActionResultMessage,
   createConfigUpdatedMessage,
   createInitMessage,
+  createThemeChangedMessage,
   isPluginIframeMessage,
 } from '@/types/plugin-iframe';
 import type {
@@ -36,6 +37,7 @@ import type {
   PluginIframeMessage,
   PluginIframeNodeSnapshot,
   PluginIframeRequestActionPayload,
+  PluginIframeTheme,
 } from '@/types/plugin-iframe';
 
 /** iframe 加载失败（onError）时展示的错误文案 */
@@ -67,6 +69,11 @@ export interface UsePluginIframeOptions {
   nodeType: string;
   /** 宿主当前 UI 语言（BCP-47，透传给 init 载荷） */
   locale: string;
+  /**
+   * 宿主**已解析**的主题（light/dark，透传给 init 载荷并在变化时推 themeChanged）。
+   * `system` 的解析由宿主完成，不下放给插件（docs/plugin-frontend-theme.md §3.1）。
+   */
+  theme: PluginIframeTheme;
   /** 同插件节点快照（可选；connection 下拉等跨节点引用用） */
   nodes?: PluginIframeNodeSnapshot[];
   /** iframe configChanged → 宿主保存 */
@@ -128,9 +135,10 @@ export function usePluginIframe(options: UsePluginIframeOptions): UsePluginIfram
       hostApi: api,
       nodeType,
       locale,
+      theme,
       nodes,
     } = latestRef.current;
-    sendToIframe(createInitMessage(cfg, vars, api, nodeType, locale, nodes));
+    sendToIframe(createInitMessage(cfg, vars, api, nodeType, locale, theme, nodes));
   }, [sendToIframe]);
 
   /** iframe onError：加载失败 */
@@ -223,6 +231,15 @@ export function usePluginIframe(options: UsePluginIframeOptions): UsePluginIfram
     sendToIframe(createConfigUpdatedMessage(options.config));
   }, [options.config, sendToIframe]);
 
+  // theme prop 变更 → 已就绪则推送 themeChanged（未就绪由 init 携带兜底）
+  const previousThemeRef = useRef<PluginIframeTheme>(options.theme);
+  useEffect(() => {
+    if (previousThemeRef.current === options.theme) return;
+    previousThemeRef.current = options.theme;
+    if (!readyRef.current) return;
+    sendToIframe(createThemeChangedMessage(options.theme));
+  }, [options.theme, sendToIframe]);
+
   // src 变更（切换插件/页面）→ 重置状态，等待新 iframe 重新走状态机
   useEffect(() => {
     readyRef.current = false;
@@ -258,9 +275,10 @@ export function usePluginIframe(options: UsePluginIframeOptions): UsePluginIfram
         hostApi: api,
         nodeType,
         locale,
+        theme,
         nodes,
       } = latestRef.current;
-      sendToIframe(createInitMessage(cfg, vars, api, nodeType, locale, nodes));
+      sendToIframe(createInitMessage(cfg, vars, api, nodeType, locale, theme, nodes));
     }, INIT_RETRY_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [loaded, options.src, sendToIframe]);

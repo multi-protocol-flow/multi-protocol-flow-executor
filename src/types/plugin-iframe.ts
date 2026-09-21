@@ -2,8 +2,11 @@
  * 插件 iframe postMessage 协议类型定义
  *
  * 与 docs/plugin-architecture.md §9.2 wire 契约对齐：
- * 宿主 → iframe: `init` / `configUpdated` / `actionResult`
+ * 宿主 → iframe: `init` / `configUpdated` / `actionResult` / `themeChanged`
  * iframe → 宿主: `ready` / `configChanged` / `requestAction` / `resize` / `error`
+ *
+ * 主题（明暗模式）同步规则见 docs/plugin-frontend-theme.md：宿主只下发**已解析**
+ * 的 `light` / `dark`（`system` 的解析是宿主独有职责，不下放给插件）。
  *
  * 安全（D3）：所有入站消息必须通过 `isPluginIframeMessage` 守卫
  * （信封形状 + 按 type 的 payload 形状校验），再叠加
@@ -12,11 +15,19 @@
  * 未知 type 一律拒绝 —— 新增消息类型必须在此文件显式登记。
  */
 
+/**
+ * 宿主已解析的主题（明暗模式）。
+ * 契约上**不含 `system`** —— `system → light|dark` 的解析由宿主完成（见
+ * docs/plugin-frontend-theme.md §3.1）。
+ */
+export type PluginIframeTheme = 'light' | 'dark';
+
 /** 宿主 → iframe 消息类型 */
 export type PluginIframeHostMessageType =
   | 'init'
   | 'configUpdated'
-  | 'actionResult';
+  | 'actionResult'
+  | 'themeChanged';
 
 /** iframe → 宿主消息类型 */
 export type PluginIframePluginMessageType =
@@ -57,6 +68,12 @@ export interface PluginIframeInitPayload {
   nodeType: string;
   /** 宿主当前 UI 语言（BCP-47，如 `zh-CN` / `en-US`） */
   locale: string;
+  /**
+   * 宿主已解析的主题（明暗模式）。
+   * 可选：旧宿主不携带 —— 插件必须回退到 `prefers-color-scheme`（见
+   * docs/plugin-frontend-theme.md §3.4）。
+   */
+  theme?: PluginIframeTheme;
   /** 同插件节点快照（按前缀过滤；可选，旧宿主不携带） */
   nodes?: PluginIframeNodeSnapshot[];
 }
@@ -72,6 +89,11 @@ export interface PluginIframeActionResultPayload {
   result: unknown;
   /** 失败时携带错误信息（成功时省略） */
   error?: string;
+}
+
+/** `themeChanged`：宿主 resolved 主题变化推送（面板无需重载即可换肤） */
+export interface PluginIframeThemeChangedPayload {
+  theme: PluginIframeTheme;
 }
 
 /* ---------- iframe → 宿主 payload ---------- */
@@ -118,6 +140,11 @@ export interface PluginIframeActionResultMessage {
   payload: PluginIframeActionResultPayload;
 }
 
+export interface PluginIframeThemeChangedMessage {
+  type: 'themeChanged';
+  payload: PluginIframeThemeChangedPayload;
+}
+
 export interface PluginIframeReadyMessage {
   type: 'ready';
   payload: PluginIframeReadyPayload;
@@ -147,7 +174,8 @@ export interface PluginIframeErrorMessage {
 export type PluginIframeHostMessage =
   | PluginIframeInitMessage
   | PluginIframeConfigUpdatedMessage
-  | PluginIframeActionResultMessage;
+  | PluginIframeActionResultMessage
+  | PluginIframeThemeChangedMessage;
 
 /** iframe 发往宿主的消息 */
 export type PluginIframePluginMessage =
@@ -176,6 +204,11 @@ function isNonNegativeNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
+/** 已解析主题枚举（`system` 不属于契约，见 PluginIframeTheme） */
+function isTheme(value: unknown): value is PluginIframeTheme {
+  return value === 'light' || value === 'dark';
+}
+
 /** payload 形状校验：按 type 分派（未知 type 一律 false） */
 function isValidPayload(
   type: PluginIframeMessageType,
@@ -186,6 +219,7 @@ function isValidPayload(
       // config 为任意 JSON 值（unknown），但键必须存在且非 undefined
       // （structured clone 会丢弃 undefined，传输后键不存在）
       const nodes = payload['nodes'];
+      const theme = payload['theme'];
       return (
         'config' in payload &&
         payload['config'] !== undefined &&
@@ -195,6 +229,8 @@ function isValidPayload(
         payload['nodeType'].length > 0 &&
         isString(payload['locale']) &&
         payload['locale'].length > 0 &&
+        // 可选：旧宿主不携带（插件回退 prefers-color-scheme）；携带则必须合法
+        (theme === undefined || isTheme(theme)) &&
         (nodes === undefined ||
           (Array.isArray(nodes) &&
             nodes.every(
@@ -216,6 +252,8 @@ function isValidPayload(
         (payload['error'] === undefined || isString(payload['error']))
       );
     }
+    case 'themeChanged':
+      return isTheme(payload['theme']);
     case 'ready':
       return true;
     case 'requestAction':
@@ -241,6 +279,7 @@ export function isPluginIframeMessage(data: unknown): data is PluginIframeMessag
     case 'init':
     case 'configUpdated':
     case 'actionResult':
+    case 'themeChanged':
     case 'ready':
     case 'configChanged':
     case 'requestAction':
@@ -261,6 +300,7 @@ export function createInitMessage(
   hostApi: PluginIframeHostApi,
   nodeType: string,
   locale: string,
+  theme: PluginIframeTheme,
   nodes?: PluginIframeNodeSnapshot[]
 ): PluginIframeInitMessage {
   const payload: PluginIframeInitPayload = {
@@ -269,6 +309,7 @@ export function createInitMessage(
     host_api: hostApi,
     nodeType,
     locale,
+    theme,
   };
   if (nodes !== undefined) {
     payload.nodes = nodes;
@@ -279,6 +320,11 @@ export function createInitMessage(
 /** 构造 `configUpdated` 消息（宿主侧配置变更推送） */
 export function createConfigUpdatedMessage(config: unknown): PluginIframeConfigUpdatedMessage {
   return { type: 'configUpdated', payload: { config } };
+}
+
+/** 构造 `themeChanged` 消息（宿主 resolved 主题变化推送） */
+export function createThemeChangedMessage(theme: PluginIframeTheme): PluginIframeThemeChangedMessage {
+  return { type: 'themeChanged', payload: { theme } };
 }
 
 /** 构造 `actionResult` 消息（requestAction 响应，成功省略 error） */

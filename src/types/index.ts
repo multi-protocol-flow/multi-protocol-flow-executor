@@ -275,6 +275,7 @@ export {
   createInitMessage,
   createConfigUpdatedMessage,
   createActionResultMessage,
+  createThemeChangedMessage,
 } from './plugin-iframe';
 
 // 动态变量类型

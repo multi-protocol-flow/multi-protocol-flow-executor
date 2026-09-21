@@ -19,6 +19,7 @@ function makeProps(overrides: Partial<PluginIframeProps> = {}): PluginIframeProp
     hostApi: { testConnection: true },
     nodeType: 'demo:ping',
     locale: 'en-US',
+    theme: 'light',
     onConfigChange: vi.fn(),
     ...overrides,
   };
@@ -134,7 +135,7 @@ describe('PluginIframe', () => {
   });
 
   describe('init 发送', () => {
-    it('iframe load 事件触发 init（含 config + 变量 + host_api）', () => {
+    it('iframe load 事件触发 init（含 config + 变量 + host_api + theme）', () => {
       const { iframe } = renderPanel(makeProps());
 
       const postMessageSpy = vi
@@ -152,6 +153,7 @@ describe('PluginIframe', () => {
             host_api: { testConnection: true },
             nodeType: 'demo:ping',
             locale: 'en-US',
+            theme: 'light',
           },
         },
         // 沙箱 iframe 源不透明 → 目标 origin 只能是 '*'（D3 实证）

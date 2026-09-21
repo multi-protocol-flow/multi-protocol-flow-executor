@@ -8,6 +8,7 @@ import {
   createInitMessage,
   createConfigUpdatedMessage,
   createActionResultMessage,
+  createThemeChangedMessage,
 } from '@/types/plugin-iframe';
 
 const CONFIG = { url: 'https://example.com', method: 'get' };
@@ -40,6 +41,17 @@ describe('isPluginIframeMessage', () => {
 
     it('configUpdated', () => {
       expect(isPluginIframeMessage({ type: 'configUpdated', payload: { config: CONFIG } })).toBe(true);
+    });
+
+    it('init 带 theme', () => {
+      const base = { config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 'demo:ping', locale: 'en-US' };
+      expect(isPluginIframeMessage({ type: 'init', payload: { ...base, theme: 'light' } })).toBe(true);
+      expect(isPluginIframeMessage({ type: 'init', payload: { ...base, theme: 'dark' } })).toBe(true);
+    });
+
+    it('themeChanged', () => {
+      expect(isPluginIframeMessage({ type: 'themeChanged', payload: { theme: 'dark' } })).toBe(true);
+      expect(isPluginIframeMessage({ type: 'themeChanged', payload: { theme: 'light' } })).toBe(true);
     });
 
     it('actionResult 无 error', () => {
@@ -150,6 +162,20 @@ describe('isPluginIframeMessage', () => {
       expect(isPluginIframeMessage({ type: 'init', payload: { ...base, nodes: [{ uuid: 'u', label: 'x', type: 'y', config: 'bad' }] } })).toBe(false);
     });
 
+    it('init theme 非法值被拒绝（含 system —— 契约只接受 resolved 值）', () => {
+      const base = { config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 'demo:ping', locale: 'en-US' };
+      expect(isPluginIframeMessage({ type: 'init', payload: { ...base, theme: 'system' } })).toBe(false);
+      expect(isPluginIframeMessage({ type: 'init', payload: { ...base, theme: 'DARK' } })).toBe(false);
+      expect(isPluginIframeMessage({ type: 'init', payload: { ...base, theme: 42 } })).toBe(false);
+      expect(isPluginIframeMessage({ type: 'init', payload: { ...base, theme: null } })).toBe(false);
+    });
+
+    it('themeChanged payload 形状错误', () => {
+      expect(isPluginIframeMessage({ type: 'themeChanged', payload: {} })).toBe(false);
+      expect(isPluginIframeMessage({ type: 'themeChanged', payload: { theme: 'system' } })).toBe(false);
+      expect(isPluginIframeMessage({ type: 'themeChanged', payload: { theme: true } })).toBe(false);
+    });
+
     it('configChanged payload 缺 config', () => {
       expect(isPluginIframeMessage({ type: 'configChanged', payload: {} })).toBe(false);
     });
@@ -158,17 +184,24 @@ describe('isPluginIframeMessage', () => {
 
 describe('消息构造器', () => {
   it('createInitMessage 组装 init 信封', () => {
-    const msg = createInitMessage(CONFIG, VARIABLES, HOST_API, 'demo:ping', 'en-US');
+    const msg = createInitMessage(CONFIG, VARIABLES, HOST_API, 'demo:ping', 'en-US', 'dark');
     expect(msg.type).toBe('init');
-    expect(msg.payload).toEqual({ config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 'demo:ping', locale: 'en-US' });
+    expect(msg.payload).toEqual({ config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 'demo:ping', locale: 'en-US', theme: 'dark' });
     // 构造器产物必须通过守卫（反向一致性）
     expect(isPluginIframeMessage(msg)).toBe(true);
   });
 
   it('createInitMessage 携带 nodes 快照', () => {
     const nodes = [{ uuid: 'node-1', label: 'Conn', type: 'mcp:connect', config: { transport: 'stdio' } }];
-    const msg = createInitMessage(CONFIG, VARIABLES, HOST_API, 'mcp:connect', 'zh-CN', nodes);
-    expect(msg.payload).toEqual({ config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 'mcp:connect', locale: 'zh-CN', nodes });
+    const msg = createInitMessage(CONFIG, VARIABLES, HOST_API, 'mcp:connect', 'zh-CN', 'light', nodes);
+    expect(msg.payload).toEqual({ config: CONFIG, variables: VARIABLES, host_api: HOST_API, nodeType: 'mcp:connect', locale: 'zh-CN', theme: 'light', nodes });
+    expect(isPluginIframeMessage(msg)).toBe(true);
+  });
+
+  it('createThemeChangedMessage 组装 themeChanged 信封', () => {
+    const msg = createThemeChangedMessage('dark');
+    expect(msg.type).toBe('themeChanged');
+    expect(msg.payload).toEqual({ theme: 'dark' });
     expect(isPluginIframeMessage(msg)).toBe(true);
   });
 

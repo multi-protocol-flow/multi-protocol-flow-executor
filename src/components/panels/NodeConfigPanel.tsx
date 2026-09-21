@@ -100,6 +100,7 @@ import { OnErrorSection } from '@/components/panels/shared/OnErrorSection';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import { PluginIframe } from '@/components/plugin/PluginIframe';
 import { useFlowVariables } from '@/hooks/useFlowVariables';
+import { useTheme } from '@/hooks/useTheme';
 import { PLUGIN_HOST_API, createPluginRequestHandler } from '@/lib/pluginRequestActions';
 
 interface NodeConfigPanelProps {
@@ -172,6 +173,10 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   // 宿主当前 UI 语言（BCP-47，透传 iframe init 载荷；设置 store 是唯一事实源）
   // 必须在所有条件 return 之前调用（hook 规则）
   const locale = useSettingsStore((s) => s.locale ?? 'en-US');
+
+  // 宿主已解析主题（light/dark，透传 iframe init 载荷并在变化时推 themeChanged）
+  // 必须在所有条件 return 之前调用（hook 规则）
+  const { resolvedTheme } = useTheme();
 
   // 优先使用外部传入的节点，否则回退到 store 中的选中节点
   const selectedNode = externalNode ?? storeSelectedNode;
@@ -420,9 +425,10 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                       // 经 actionResult 回传错误，插件不会挂起
                       hostApi={PLUGIN_HOST_API}
                       // 节点上下文：nodeType 供面板按类型渲染表单；locale 供面板取内联文案；
-                      // nodes 快照供 connection 下拉等跨节点引用
+                      // theme 供面板跟随宿主明暗模式；nodes 快照供 connection 下拉等跨节点引用
                       nodeType={nodeType}
                       locale={locale}
+                      theme={resolvedTheme}
                       nodes={nodes}
                       onConfigChange={(config) => handlePluginSave(config as NodeData)}
                       onRequestAction={createPluginRequestHandler(nodeData, nodeType)}

@@ -23,6 +23,7 @@ import { VariableChangesCard } from './VariableChangesCard';
 import { useDebugStore } from '@/stores/debug';
 import { useExecutionStore } from '@/stores';
 import { useCurrentLocale } from '@/hooks/useLocale';
+import { useTheme } from '@/hooks/useTheme';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import { getLL } from '@/i18n/i18n-lazy';
 import { createPluginRequestHandler } from '@/lib/pluginRequestActions';
@@ -153,6 +154,12 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
   const [iframeHeight, setIframeHeight] = useState<number>(360);
   const iframeReadyRef = useRef(false);
   const locale = useCurrentLocale();
+  // 宿主已解析主题（light/dark）：随 init 下发，并在变化时推 themeChanged
+  const { resolvedTheme } = useTheme();
+  // 经 ref 读取主题，避免把 resolvedTheme 放进 sendInit 依赖 —— 那会改变
+  // sendInit 身份、进而重启下方 init 重试 effect（把 iframeReadyRef 打回 false）。
+  const themeRef = useRef(resolvedTheme);
+  themeRef.current = resolvedTheme;
   const requestHandler = useMemo(
     () => createPluginRequestHandler(report.plugin_data || report.output_data, report.node_type),
     [report.plugin_data, report.output_data, report.node_type]
@@ -206,6 +213,7 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
           host_api: {},
           nodeType: report.node_type,
           locale,
+          theme: themeRef.current,
           node_report: {
             ...report,
             execution_id: execId,
@@ -298,6 +306,18 @@ function PluginReportIframe({ report, src }: { report: NodeExecutionReport; src:
 
     return () => window.clearInterval(timer);
   }, [sendInit]);
+
+  // 主题变化 → 已就绪则推送 themeChanged（未就绪由 init 携带兜底）
+  const previousThemeRef = useRef(resolvedTheme);
+  useEffect(() => {
+    if (previousThemeRef.current === resolvedTheme) return;
+    previousThemeRef.current = resolvedTheme;
+    if (!ready) return;
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: 'themeChanged', payload: { theme: resolvedTheme } },
+      '*'
+    );
+  }, [resolvedTheme, ready]);
 
   // 重置 chunk 索引（当 nodeUuid 变更时）
   useEffect(() => {
