@@ -20,7 +20,6 @@ TypeScript 类型定义层，与 Rust 后端结构体严格对齐。核心是 `N
 | `ipc.ts` | `flow-engine/src/commands/*` (IPC 命令输入/输出类型) |
 | `port.ts` | `flow-engine-core/src/node.rs` (Port 结构体) |
 | `nodeRegistry.ts` | `flow-engine-core/src/plugin.rs` (NodeMetadata) |
-| `hook.ts` | `flow-engine-core/src/hook.rs` |
 | `dataset.ts` | `flow-engine/src/dataset/types.rs` + events |
 | `events.ts` | `flow-engine-core/src/events.rs` (LogEvent) |
 | `execution_event.ts` | `flow-engine-core/src/events.rs` (ExecutionEvent, camelCase tagged union) |

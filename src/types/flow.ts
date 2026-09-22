@@ -5,10 +5,19 @@
 
 import type { Node } from './node';
 import type { Connection } from './connection';
-import type { FlowHook } from './hook';
 
 export type { EnvironmentSet } from './environment';
 export type { FlowMetadata } from '@/stores/flowList';
+
+/**
+ * 流程子图（用于 Setup 准备阶段与 Teardown 收尾阶段）
+ */
+export interface FlowSubGraph {
+  /** 子图中的节点列表 */
+  nodes: Node[];
+  /** 子图中的连接列表 */
+  connections: Connection[];
+}
 
 /**
  * 流程数据结构
@@ -22,12 +31,14 @@ export interface Flow {
   description?: string;
   /** 流程级别的初始变量（作为环境未定义时的兜底基底） */
   initial_variables?: Record<string, unknown>;
-  /** 流程中的节点列表 */
+  /** Setup 准备阶段子图（可选，测试前单次执行） */
+  setup?: FlowSubGraph;
+  /** 流程中的节点列表（Main 核心业务流程） */
   nodes: Node[];
-  /** 流程中的连接列表 */
+  /** 流程中的连接列表（Main 核心业务流程） */
   connections: Connection[];
-  /** 流程钩子列表（流程完成时自动触发） */
-  hooks?: FlowHook[];
+  /** Teardown 收尾阶段子图（可选，测试后单次执行） */
+  teardown?: FlowSubGraph;
 }
 
 /**
@@ -50,6 +61,7 @@ export interface FlowTab {
 export interface FlowTabSession {
   flow: Flow;
   selectedNodeId: string | null;
+  activeStage?: 'setup' | 'main' | 'teardown';
   isDirty: boolean;
   past: Flow[];
   future: Flow[];

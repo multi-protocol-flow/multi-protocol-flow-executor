@@ -8,11 +8,11 @@ typesafe-i18n v5.26.2 提供编译时类型安全的国际化方案。支持 zh-
 
 ```
 i18n/
-├── en-US/                  # 英文翻译（11 个模块）
+├── en-US/                  # 英文翻译（12 个模块）
 │   ├── common.ts, execution.ts, flow.ts, index.ts
-│   ├── nodes.ts, panels.ts, settings.ts, shortcuts.ts
+│   ├── nodes.ts, panels.ts, stages.ts, settings.ts, shortcuts.ts
 │   └── validation.ts, viewer.ts, welcome.ts
-├── zh-CN/                  # 中文翻译（11 个模块，结构与 en-US 镜像）
+├── zh-CN/                  # 中文翻译（12 个模块，结构与 en-US 镜像）
 ├── i18n-types.ts           # 类型定义（自动生成，33110 行，编译推断所有翻译键）
 ├── i18n-util.ts            # 工具函数（typesafe-i18n 生成）
 ├── i18n-util.sync.ts       # 同步加载器

@@ -249,6 +249,36 @@ export interface ReportMetadata {
 }
 
 // ============================================================================
+// 阶段执行报告
+// ============================================================================
+
+/**
+ * 阶段执行报告
+ */
+export interface StageExecutionReport {
+  /** 执行状态 */
+  status: ExecutionStatus;
+  /** 执行耗时（毫秒） */
+  duration_ms: number;
+  /** 节点执行报告列表 */
+  node_reports: NodeExecutionReport[];
+  /** 错误详情 */
+  error?: ErrorDetail;
+}
+
+/**
+ * 流程各阶段执行报告
+ */
+export interface FlowStagesReport {
+  /** Setup 准备阶段报告 */
+  setup?: StageExecutionReport;
+  /** Main 核心流程报告 */
+  main: StageExecutionReport;
+  /** Teardown 收尾阶段报告 */
+  teardown?: StageExecutionReport;
+}
+
+// ============================================================================
 // 流程执行报告
 // ============================================================================
 
@@ -299,4 +329,8 @@ export interface FlowExecutionReport {
   end_node_reached?: boolean;
   /** 流程级警告信息 */
   flow_warning?: string;
+  /** 各阶段执行报告 */
+  stages?: FlowStagesReport;
+  /** Main 核心流程执行耗时（毫秒） */
+  main_duration_ms?: number;
 }

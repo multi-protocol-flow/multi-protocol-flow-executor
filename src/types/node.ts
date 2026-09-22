@@ -7,7 +7,6 @@ import type { OutputMapping } from './variable';
 
 import type { Port } from './port';
 
-import type { FlowHook } from './hook';
 
 // ============================================================================
 // 节点类型枚举
@@ -179,8 +178,6 @@ export interface EntryConfig {
   dataset_path?: string;
   /** CSV 编码（不设置=自动检测） */
   dataset_encoding?: string;
-  /** 流程钩子列表（入口节点配置中可编辑） */
-  hooks?: FlowHook[];
 }
 
 /**

@@ -12,6 +12,7 @@ import welcome from './welcome';
 import shortcuts from './shortcuts';
 import viewer from './viewer';
 import errors from './errors';
+import stages from './stages';
 import ai from './ai';
 
 const en_US: Translation = {
@@ -28,6 +29,7 @@ const en_US: Translation = {
   shortcuts,
   viewer,
   errors,
+  stages,
   ai,
 } as Translation;
 

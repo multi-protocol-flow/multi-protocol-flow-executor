@@ -109,7 +109,7 @@ export {
 export type { Connection } from './connection';
 
 // 流程与环境类型
-export type { Flow, FlowMetadata, FlowTab, FlowTabSession } from './flow';
+export type { Flow, FlowSubGraph, FlowMetadata, FlowTab, FlowTabSession } from './flow';
 export type { EnvironmentSet, EnvironmentMetadata, EnvironmentComparisonItem } from './environment';
 export { getActiveVariables } from './flow';
 // 错误类型
@@ -121,6 +121,8 @@ export type {
   ExecutionStatus,
   VariableChange,
   NodeExecutionReport,
+  StageExecutionReport,
+  FlowStagesReport,
   FlowStatistics,
   FlowExecutionReport,
   PluginStreamEvent,
@@ -216,15 +218,6 @@ export type {
   DatasetReportSummary,
 } from './dataset';
 
-// 钩子类型
-export type {
-  HookTrigger,
-  WebhookHookAction,
-  ScriptHookAction,
-  NotifyHookAction,
-  HookAction,
-  FlowHook,
-} from './hook';
 
 // 插件 iframe 协议类型
 export type {

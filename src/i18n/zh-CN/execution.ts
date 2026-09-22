@@ -139,6 +139,8 @@ const zh_CN_execution: BaseTranslation = {
     copied: '已复制',
     copied_to_clipboard: '已复制到剪贴板',
     copy_failed: '复制失败',
+    filter_all: '全部',
+    filter_failed: '失败',
     end_node_reached: '流程已到达结束节点',
     end_node_not_reached: '流程未到达任何结束节点',
     no_end_node_hint: '此流程没有结束节点',

@@ -137,6 +137,8 @@ const en_US_execution = {
     copied: 'Copied',
     copied_to_clipboard: 'Copied to clipboard',
     copy_failed: 'Copy failed',
+    filter_all: 'All',
+    filter_failed: 'Failed',
     end_node_reached: 'Flow reached the End node',
     end_node_not_reached: 'Flow did not reach any End node',
     no_end_node_hint: 'This flow has no End node',

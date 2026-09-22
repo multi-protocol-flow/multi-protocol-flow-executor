@@ -12,6 +12,7 @@ import welcome from './welcome';
 import shortcuts from './shortcuts';
 import viewer from './viewer';
 import errors from './errors';
+import stages from './stages';
 import ai from './ai';
 
 const zh_CN = {
@@ -28,6 +29,7 @@ const zh_CN = {
   shortcuts,
   viewer,
   errors,
+  stages,
   ai,
 } as BaseTranslation;
 

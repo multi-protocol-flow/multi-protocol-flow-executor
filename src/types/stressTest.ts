@@ -5,7 +5,7 @@
 
 import type { Flow } from './flow';
 import type { ErrorDetail } from './error';
-
+import type { FlowStagesReport } from './report';
 // ============================================================================
 // 数据集策略
 // ============================================================================
@@ -257,6 +257,8 @@ export interface StressTestReport {
   progressHistory?: StressTestProgress[];
   /** Flow 快照（执行时的流程完整副本） */
   flowSnapshot?: Flow;
+  /** 生命周期执行报告（Setup & Teardown 阶段） */
+  lifecycle?: FlowStagesReport;
 }
 
 // ============================================================================

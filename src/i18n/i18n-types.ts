@@ -1947,75 +1947,6 @@ type RootTranslation = {
 			 * @param {unknown} count
 			 */
 			moreColumns: RequiredParams<'count'>
-			/**
-			 * 流​程​钩​子
-			 */
-			flowHooks: string
-			/**
-			 * 添​加​ ​H​o​o​k
-			 */
-			addHook: string
-			/**
-			 * 配​置​流​程​完​成​后​自​动​触​发​的​动​作
-			 */
-			hooksHint: string
-			/**
-			 * H​o​o​k​ ​名​称
-			 */
-			hookNamePlaceholder: string
-			/**
-			 * 删​除​ ​H​o​o​k
-			 */
-			deleteHook: string
-			/**
-			 * 执​行​成​功​时
-			 */
-			triggerOnSuccess: string
-			/**
-			 * 执​行​失​败​时
-			 */
-			triggerOnFailure: string
-			/**
-			 * 执​行​取​消​时
-			 */
-			triggerOnCancel: string
-			/**
-			 * 执​行​完​成​时​（​任​意​结​果​）
-			 */
-			triggerOnComplete: string
-			/**
-			 * 系​统​通​知
-			 */
-			actionNotify: string
-			/**
-			 * W​e​b​h​o​o​k​ ​回​调
-			 */
-			actionWebhook: string
-			/**
-			 * 脚​本​执​行
-			 */
-			actionScript: string
-			/**
-			 * h​t​t​p​s​:​/​/​e​x​a​m​p​l​e​.​c​o​m​/​h​o​o​k
-			 */
-			hookUrlPlaceholder: string
-			/**
-			 * 请​求​体​模​板​（​可​选​，​支​持​ ​{​{​s​t​a​t​u​s​}​}​ ​{​{​f​l​o​w​_​n​a​m​e​}​}​ ​等​）
-			 */
-			hookBodyPlaceholder: string
-			/**
-			 * /​/​ ​Q​u​i​c​k​J​S​ ​脚​本​代​码​
-		​f​n​.​l​o​g​(​"​流​程​完​成​:​ ​"​ ​+​ ​s​t​a​t​u​s​)
-			 */
-			hookCodePlaceholder: string
-			/**
-			 * 通​知​标​题​（​支​持​ ​{​{​f​l​o​w​_​n​a​m​e​}​}​ ​{​{​s​t​a​t​u​s​}​}​）
-			 */
-			hookTitlePlaceholder: string
-			/**
-			 * 通​知​内​容​（​支​持​ ​{​{​s​t​a​t​u​s​}​}​ ​{​{​d​u​r​a​t​i​o​n​_​m​s​}​}​ ​{​{​e​r​r​o​r​}​}​）
-			 */
-			hookMessagePlaceholder: string
 		}
 		assertion: {
 			/**
@@ -5489,6 +5420,14 @@ type RootTranslation = {
 			 * 复​制​失​败
 			 */
 			copy_failed: string
+			/**
+			 * 全​部
+			 */
+			filter_all: string
+			/**
+			 * 失​败
+			 */
+			filter_failed: string
 			/**
 			 * 流​程​已​到​达​结​束​节​点
 			 */
@@ -10697,29 +10636,9 @@ type RootTranslation = {
 		 */
 		variable_name_duplicate: string
 		/**
-		 * 方​法​不​能​为​空
-		 */
-		webhook_method_required: string
-		/**
 		 * 代​码​不​能​为​空
 		 */
 		script_code_required: string
-		/**
-		 * 标​题​模​板​不​能​为​空
-		 */
-		notify_title_required: string
-		/**
-		 * 消​息​模​板​不​能​为​空
-		 */
-		notify_message_required: string
-		/**
-		 * 名​称​不​能​为​空
-		 */
-		hook_name_required: string
-		/**
-		 * 最​多​ ​1​0​ ​个​钩​子
-		 */
-		hooks_max: string
 		/**
 		 * 匹​配​表​达​式​不​能​为​空
 		 */
@@ -10931,7 +10850,7 @@ type RootTranslation = {
 		 */
 		welcome_step2_title: string
 		/**
-		 * 点​击​左​侧​面​板​的​「​新​建​流​程​」​按​钮​，​然​后​从​节​点​库​拖​拽​节​点​到​画​布​上​，​开​始​编​排​你​的​第​一​个​流​程​。
+		 * 点​击​顶​部​标​签​栏​的​「​+​」​按​钮​新​建​流​程​，​然​后​从​节​点​库​拖​拽​节​点​到​画​布​上​，​开​始​编​排​你​的​第​一​个​流​程​。
 		 */
 		welcome_step2_desc: string
 		/**
@@ -13873,6 +13792,119 @@ type RootTranslation = {
 		 */
 		clipboard_save_failed: string
 	}
+	stages: {
+		/**
+		 * 准​备​阶​段
+		 */
+		tab_setup: string
+		/**
+		 * 核​心​流​程
+		 */
+		tab_main: string
+		/**
+		 * 收​尾​阶​段
+		 */
+		tab_teardown: string
+		/**
+		 * 准​备
+		 */
+		short_setup: string
+		/**
+		 * 核​心
+		 */
+		short_main: string
+		/**
+		 * 收​尾
+		 */
+		short_teardown: string
+		/**
+		 * 测​试​前​执​行​ ​1​ ​次​：​用​于​登​录​预​热​、​变​量​初​始​化​与​资​源​准​备
+		 */
+		hint_setup: string
+		/**
+		 * 核​心​业​务​流​程​：​单​次​运​行​、​压​测​并​发​循​环​或​数​据​集​逐​行​消​费
+		 */
+		hint_main: string
+		/**
+		 * 测​试​后​执​行​ ​1​ ​次​：​可​通​过​ ​$​r​e​p​o​r​t​ ​变​量​获​取​本​次​执​行​统​计
+		 */
+		hint_teardown: string
+		/**
+		 * {​c​o​u​n​t​}​ ​个​节​点
+		 * @param {unknown} count
+		 */
+		node_count: RequiredParams<'count'>
+		/**
+		 * 已​完​成
+		 */
+		status_done: string
+		/**
+		 * 暂​停​在​断​点
+		 */
+		status_paused: string
+		/**
+		 * 等​待​中
+		 */
+		status_waiting: string
+		/**
+		 * 执​行​中
+		 */
+		status_running: string
+		/**
+		 * 暂​停​在​{​s​t​a​g​e​}​：​{​n​o​d​e​}
+		 * @param {unknown} node
+		 * @param {unknown} stage
+		 */
+		back_to_paused: RequiredParams<'node' | 'stage'>
+		/**
+		 * 点​击​定​位
+		 */
+		back_to_paused_action: string
+		/**
+		 * 准​备​阶​段​ ​(​S​e​t​u​p​)
+		 */
+		report_setup: string
+		/**
+		 * 核​心​流​程​ ​(​M​a​i​n​)
+		 */
+		report_main: string
+		/**
+		 * 收​尾​阶​段​ ​(​T​e​a​r​d​o​w​n​)
+		 */
+		report_teardown: string
+		/**
+		 * 生​命​周​期​执​行​记​录​ ​(​S​e​t​u​p​ ​&​ ​T​e​a​r​d​o​w​n​)
+		 */
+		report_lifecycle: string
+		/**
+		 * 未​配​置
+		 */
+		not_configured: string
+		/**
+		 * 无​节​点​执​行​记​录
+		 */
+		no_nodes: string
+		/**
+		 * 已​跳​过
+		 */
+		skipped: string
+		/**
+		 * 在​画​布​中​查​看
+		 */
+		view_in_canvas: string
+		/**
+		 * 耗​时
+		 */
+		duration: string
+		/**
+		 * 建​议​连​线​指​明​顺​序
+		 */
+		unlinked_warning: string
+		/**
+		 * 检​测​到​多​个​未​连​线​的​独​立​节​点​。​建​议​通​过​连​线​明​确​先​后​顺​序​；​未​连​线​节​点​将​按​画​布​位​置​自​上​而​下​顺​序​执​行
+		 */
+		unlinked_warning_tooltip: string
+	}
 	ai: {
 		settings: {
 			/**
@@ -16493,75 +16525,6 @@ export type TranslationFunctions = {
 			 * +{count} 列
 			 */
 			moreColumns: (arg: { count: unknown }) => LocalizedString
-			/**
-			 * 流程钩子
-			 */
-			flowHooks: () => LocalizedString
-			/**
-			 * 添加 Hook
-			 */
-			addHook: () => LocalizedString
-			/**
-			 * 配置流程完成后自动触发的动作
-			 */
-			hooksHint: () => LocalizedString
-			/**
-			 * Hook 名称
-			 */
-			hookNamePlaceholder: () => LocalizedString
-			/**
-			 * 删除 Hook
-			 */
-			deleteHook: () => LocalizedString
-			/**
-			 * 执行成功时
-			 */
-			triggerOnSuccess: () => LocalizedString
-			/**
-			 * 执行失败时
-			 */
-			triggerOnFailure: () => LocalizedString
-			/**
-			 * 执行取消时
-			 */
-			triggerOnCancel: () => LocalizedString
-			/**
-			 * 执行完成时（任意结果）
-			 */
-			triggerOnComplete: () => LocalizedString
-			/**
-			 * 系统通知
-			 */
-			actionNotify: () => LocalizedString
-			/**
-			 * Webhook 回调
-			 */
-			actionWebhook: () => LocalizedString
-			/**
-			 * 脚本执行
-			 */
-			actionScript: () => LocalizedString
-			/**
-			 * https://example.com/hook
-			 */
-			hookUrlPlaceholder: () => LocalizedString
-			/**
-			 * 请求体模板（可选，支持 {{status}} {{flow_name}} 等）
-			 */
-			hookBodyPlaceholder: (arg0: number | string | boolean) => LocalizedString
-			/**
-			 * // QuickJS 脚本代码
-		fn.log("流程完成: " + status)
-			 */
-			hookCodePlaceholder: () => LocalizedString
-			/**
-			 * 通知标题（支持 {{flow_name}} {{status}}）
-			 */
-			hookTitlePlaceholder: (arg0: number | string | boolean) => LocalizedString
-			/**
-			 * 通知内容（支持 {{status}} {{duration_ms}} {{error}}）
-			 */
-			hookMessagePlaceholder: (arg0: number | string | boolean) => LocalizedString
 		}
 		assertion: {
 			/**
@@ -20006,6 +19969,14 @@ export type TranslationFunctions = {
 			 * 复制失败
 			 */
 			copy_failed: () => LocalizedString
+			/**
+			 * 全部
+			 */
+			filter_all: () => LocalizedString
+			/**
+			 * 失败
+			 */
+			filter_failed: () => LocalizedString
 			/**
 			 * 流程已到达结束节点
 			 */
@@ -25119,29 +25090,9 @@ export type TranslationFunctions = {
 		 */
 		variable_name_duplicate: () => LocalizedString
 		/**
-		 * 方法不能为空
-		 */
-		webhook_method_required: () => LocalizedString
-		/**
 		 * 代码不能为空
 		 */
 		script_code_required: () => LocalizedString
-		/**
-		 * 标题模板不能为空
-		 */
-		notify_title_required: () => LocalizedString
-		/**
-		 * 消息模板不能为空
-		 */
-		notify_message_required: () => LocalizedString
-		/**
-		 * 名称不能为空
-		 */
-		hook_name_required: () => LocalizedString
-		/**
-		 * 最多 10 个钩子
-		 */
-		hooks_max: () => LocalizedString
 		/**
 		 * 匹配表达式不能为空
 		 */
@@ -25353,7 +25304,7 @@ export type TranslationFunctions = {
 		 */
 		welcome_step2_title: () => LocalizedString
 		/**
-		 * 点击左侧面板的「新建流程」按钮，然后从节点库拖拽节点到画布上，开始编排你的第一个流程。
+		 * 点击顶部标签栏的「+」按钮新建流程，然后从节点库拖拽节点到画布上，开始编排你的第一个流程。
 		 */
 		welcome_step2_desc: () => LocalizedString
 		/**
@@ -28194,6 +28145,116 @@ export type TranslationFunctions = {
 		 * 节点配置保存到剪贴板失败
 		 */
 		clipboard_save_failed: () => LocalizedString
+	}
+	stages: {
+		/**
+		 * 准备阶段
+		 */
+		tab_setup: () => LocalizedString
+		/**
+		 * 核心流程
+		 */
+		tab_main: () => LocalizedString
+		/**
+		 * 收尾阶段
+		 */
+		tab_teardown: () => LocalizedString
+		/**
+		 * 准备
+		 */
+		short_setup: () => LocalizedString
+		/**
+		 * 核心
+		 */
+		short_main: () => LocalizedString
+		/**
+		 * 收尾
+		 */
+		short_teardown: () => LocalizedString
+		/**
+		 * 测试前执行 1 次：用于登录预热、变量初始化与资源准备
+		 */
+		hint_setup: () => LocalizedString
+		/**
+		 * 核心业务流程：单次运行、压测并发循环或数据集逐行消费
+		 */
+		hint_main: () => LocalizedString
+		/**
+		 * 测试后执行 1 次：可通过 $report 变量获取本次执行统计
+		 */
+		hint_teardown: () => LocalizedString
+		/**
+		 * {count} 个节点
+		 */
+		node_count: (arg: { count: unknown }) => LocalizedString
+		/**
+		 * 已完成
+		 */
+		status_done: () => LocalizedString
+		/**
+		 * 暂停在断点
+		 */
+		status_paused: () => LocalizedString
+		/**
+		 * 等待中
+		 */
+		status_waiting: () => LocalizedString
+		/**
+		 * 执行中
+		 */
+		status_running: () => LocalizedString
+		/**
+		 * 暂停在{stage}：{node}
+		 */
+		back_to_paused: (arg: { node: unknown, stage: unknown }) => LocalizedString
+		/**
+		 * 点击定位
+		 */
+		back_to_paused_action: () => LocalizedString
+		/**
+		 * 准备阶段 (Setup)
+		 */
+		report_setup: () => LocalizedString
+		/**
+		 * 核心流程 (Main)
+		 */
+		report_main: () => LocalizedString
+		/**
+		 * 收尾阶段 (Teardown)
+		 */
+		report_teardown: () => LocalizedString
+		/**
+		 * 生命周期执行记录 (Setup & Teardown)
+		 */
+		report_lifecycle: () => LocalizedString
+		/**
+		 * 未配置
+		 */
+		not_configured: () => LocalizedString
+		/**
+		 * 无节点执行记录
+		 */
+		no_nodes: () => LocalizedString
+		/**
+		 * 已跳过
+		 */
+		skipped: () => LocalizedString
+		/**
+		 * 在画布中查看
+		 */
+		view_in_canvas: () => LocalizedString
+		/**
+		 * 耗时
+		 */
+		duration: () => LocalizedString
+		/**
+		 * 建议连线指明顺序
+		 */
+		unlinked_warning: () => LocalizedString
+		/**
+		 * 检测到多个未连线的独立节点。建议通过连线明确先后顺序；未连线节点将按画布位置自上而下顺序执行
+		 */
+		unlinked_warning_tooltip: () => LocalizedString
 	}
 	ai: {
 		settings: {
