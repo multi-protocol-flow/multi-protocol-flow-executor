@@ -64,11 +64,14 @@ import {
   useExecutionStore,
   selectIsExecuting,
   selectFlow,
+  selectActiveStage,
+  getStageGraph,
 } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
 import { useCurrentLocale } from '@/hooks/useLocale';
 import { MapIcon, ArrowRightLeft, WrapText, Search } from 'lucide-react';
-import type { Flow } from '@/types';
+import type { Flow, FlowSubGraph } from '@/types';
+import type { FlowStage } from '@/stores';
 import { getNodeMetadata, getCachedNodeMetadataList } from '@/lib/NodeRegistry';
 import { getLayoutedPositions, getAdaptiveLayoutedPositions, type LayoutDirection } from './layout';
 import {
@@ -137,6 +140,7 @@ export const FlowSurface = memo(function FlowSurface({
   onNodeContextMenu,
 }: FlowSurfaceProps) {
   const flow = useFlowStore(selectFlow);
+  const activeStage = useFlowStore(selectActiveStage);
   const selectedNodeId = useFlowStore((s) => s.selectedNodeId);
   const focusNodeUuid = useFlowStore((s) => s.focusNodeUuid);
   const clearFocusNode = useFlowStore((s) => s.clearFocusNode);
@@ -161,11 +165,11 @@ export const FlowSurface = memo(function FlowSurface({
 
   const { fitView, setCenter, getNode } = useReactFlow();
 
-  // 转换 Flow 数据为 React Flow 初始格式
+  // 转换 Flow 数据为 React Flow 初始格式（按当前阶段取子图）
   const initialData = useMemo(() => {
     if (!flow) return { nodes: [], edges: [] };
-    return convertFlowToReactFlow(flow);
-  }, [flow]);
+    return convertFlowToReactFlow(flow, activeStage);
+  }, [flow, activeStage]);
 
   // 节点和边状态（下沉到 FlowSurface，拖拽帧仅触发 FlowSurface 重渲染）
   const [nodes, setNodes, onNodesChange] = useNodesState(initialData.nodes);
@@ -190,13 +194,15 @@ export const FlowSurface = memo(function FlowSurface({
 
   // 节点/边身份保持（同步 effect 重写）
   const prevFlowUuidRef = useRef<string | null>(null);
-  const prevConnectionsRef = useRef<Flow['connections'] | null>(null);
+  const prevStageRef = useRef<FlowStage | null>(null);
+  const prevConnectionsRef = useRef<FlowSubGraph['connections'] | null>(null);
   const nodesLengthRef = useRef(initialData.nodes.length);
 
   useEffect(() => {
     if (!flow) {
       if (prevFlowUuidRef.current !== null) {
         prevFlowUuidRef.current = null;
+        prevStageRef.current = null;
         prevConnectionsRef.current = null;
         nodesLengthRef.current = 0;
         setNodes([]);
@@ -204,15 +210,27 @@ export const FlowSurface = memo(function FlowSurface({
       }
       return;
     }
-    const { nodes: newNodes, edges: newEdges } = convertFlowToReactFlow(flow);
+    const { nodes: newNodes, edges: newEdges } = convertFlowToReactFlow(flow, activeStage);
 
-    const isSwitchingFlow = flow.uuid !== prevFlowUuidRef.current;
+    const isSwitchingFlow = flow.uuid !== prevFlowUuidRef.current || activeStage !== prevStageRef.current;
     prevFlowUuidRef.current = flow.uuid;
-    const connectionsChanged = prevConnectionsRef.current !== flow.connections;
-    prevConnectionsRef.current = flow.connections;
+    prevStageRef.current = activeStage;
+    const stageConnections = getStageGraph(flow, activeStage).connections;
+    const connectionsChanged = prevConnectionsRef.current !== stageConnections;
+    prevConnectionsRef.current = stageConnections;
     if (isSwitchingFlow) {
+      finalClassNameDoneRef.current = false;
+      const { nodeReportsMap } = useExecutionStore.getState();
       nodesLengthRef.current = newNodes.length;
-      setNodes(newNodes.map((n) => ({ ...n, selected: n.id === selectedNodeId })));
+      setNodes(
+        newNodes.map((n) => {
+          const report = nodeReportsMap[n.id];
+          let className = n.className;
+          if (report?.status === 'success') className = `${className || ''} node-succeeded`.trim();
+          else if (report?.status === 'failed') className = `${className || ''} node-failed`.trim();
+          return { ...n, className, selected: n.id === selectedNodeId };
+        }),
+      );
       setEdges(newEdges);
       return;
     }
@@ -261,7 +279,7 @@ export const FlowSurface = memo(function FlowSurface({
     }
 
     if (connectionsChanged) setEdges(newEdges);
-  }, [flow, selectedNodeId, setNodes, setEdges]);
+  }, [flow, activeStage, selectedNodeId, setNodes, setEdges]);
 
   // 处理节点聚焦跳转（从调试面板/节点列表点击跳转）
   useEffect(() => {
@@ -379,8 +397,9 @@ export const FlowSurface = memo(function FlowSurface({
   }, [setNodes]);
 
   // 连接验证与创建（使用 ref 保持稳定引用）
-  const connectionsRef = useRef<Flow['connections']>(flow?.connections ?? []);
-  connectionsRef.current = flow?.connections ?? [];
+  const activeStageConnections = flow ? getStageGraph(flow, activeStage).connections : [];
+  const connectionsRef = useRef<Flow['connections']>(activeStageConnections);
+  connectionsRef.current = activeStageConnections;
 
   const isValidConnectionProp = useCallback(
     (connection: Connection | Edge) =>
@@ -516,21 +535,23 @@ export const FlowSurface = memo(function FlowSurface({
     (direction: LayoutDirection) => {
       if (!flow) return;
 
-      const positions = getLayoutedPositions(flow.nodes, flow.connections, direction);
+      const stageGraph = getStageGraph(flow, activeStage);
+      const positions = getLayoutedPositions(stageGraph.nodes, stageGraph.connections, direction);
       batchUpdateNodePositions(positions);
 
       setTimeout(() => {
         fitView({ padding: 0.4, duration: 300 });
       }, 150);
     },
-    [flow, batchUpdateNodePositions, fitView],
+    [flow, activeStage, batchUpdateNodePositions, fitView],
   );
 
   const handleAdaptiveLayout = useCallback(() => {
     if (!flow) return;
 
+    const stageGraph = getStageGraph(flow, activeStage);
     const containerWidth = containerRef.current?.clientWidth ?? 1200;
-    const positions = getAdaptiveLayoutedPositions(flow.nodes, flow.connections, {
+    const positions = getAdaptiveLayoutedPositions(stageGraph.nodes, stageGraph.connections, {
       viewportWidth: containerWidth,
     });
     batchUpdateNodePositions(positions);
@@ -538,7 +559,7 @@ export const FlowSurface = memo(function FlowSurface({
     setTimeout(() => {
       fitView({ padding: 0.2, duration: 300 });
     }, 150);
-  }, [flow, batchUpdateNodePositions, fitView, containerRef]);
+  }, [flow, activeStage, batchUpdateNodePositions, fitView, containerRef]);
 
   // memo 化 children，使 GraphView / FlowRenderer 在拖拽帧整体短路
   const canvasChrome = useMemo(

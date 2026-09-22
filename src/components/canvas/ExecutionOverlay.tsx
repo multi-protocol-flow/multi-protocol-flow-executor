@@ -11,7 +11,7 @@
  */
 import { memo, useEffect, useState, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { useExecutionStore } from '@/stores';
+import { useExecutionStore, useFlowStore, selectActiveStage } from '@/stores';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -46,6 +46,7 @@ export const ExecutionOverlay = memo(function ExecutionOverlay() {
   const [badges, setBadges] = useState<StatusBadge[]>([]);
   const badgesRef = useRef<StatusBadge[]>([]);
   const { getNode } = useReactFlow();
+  const activeStage = useFlowStore(selectActiveStage);
 
   useEffect(() => {
     const update = () => {
@@ -99,9 +100,18 @@ export const ExecutionOverlay = memo(function ExecutionOverlay() {
     // 初始检查
     update();
 
-    const unsub = useExecutionStore.subscribe(update);
-    return () => unsub();
-  }, [getNode]);
+    const unsubExec = useExecutionStore.subscribe(update);
+    // 画布阶段切换或流程变更时刷新徽章
+    const unsubFlow = useFlowStore.subscribe((state, prevState) => {
+      if (state.activeStage !== prevState.activeStage || state.flow !== prevState.flow) {
+        requestAnimationFrame(update);
+      }
+    });
+    return () => {
+      unsubExec();
+      unsubFlow();
+    };
+  }, [getNode, activeStage]);
 
   if (badges.length === 0) return null;
 

@@ -6,7 +6,18 @@ import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2, Database, Plus, Radio } from 'lucide-react';
 import { toast } from 'sonner';
 import * as Popover from '@radix-ui/react-popover';
-import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging, selectCanUndo, selectCanRedo, selectFlow, selectNodes } from '@/stores';
+import {
+  useFlowStore,
+  useUIStore,
+  useExecutionStore,
+  useDebugStore,
+  selectIsDebugging,
+  selectCanUndo,
+  selectCanRedo,
+  selectFlow,
+  selectNodes,
+  getAllNodes,
+} from '@/stores';
 import { notifyError } from '@/lib/notify';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
@@ -233,14 +244,34 @@ export function CanvasToolbar() {
     const entryNode = flow.nodes.find((n) => n.type === 'entry');
     if (!entryNode) return;
 
-    // 收集所有有断点的节点，并确保入口节点始终在断点列表中
-    const breakpointUuids = flow.nodes
+    // 收集所有三阶段中有断点的节点
+    const allNodes = getAllNodes(flow);
+    const breakpointUuids = allNodes
       .filter((n) => n.hasBreakpoint === true)
       .map((n) => n.uuid);
 
-    const breakpoints = breakpointUuids.includes(entryNode.uuid)
-      ? breakpointUuids
-      : [entryNode.uuid, ...breakpointUuids];
+    // 计算调试起始停靠节点：
+    // 若 setup 存在且有节点，调试从 setup 起始节点开始执行，默认应停留在 setup 起始节点；
+    // 否则停留在 main 的 entry 节点。
+    const setupNodes = flow.setup?.nodes ?? [];
+    const setupConnections = flow.setup?.connections ?? [];
+    let initialStartNodeUuid: string = entryNode.uuid;
+
+    if (setupNodes.length > 0) {
+      const targetUuids = new Set(setupConnections.map((c) => c.target_node_uuid));
+      const rootNodes = setupNodes.filter((n) => !targetUuids.has(n.uuid));
+      const setupStartNode = rootNodes[0] ?? setupNodes[0];
+      if (setupStartNode) {
+        initialStartNodeUuid = setupStartNode.uuid;
+        // 自动将画布切到 Setup 阶段，让用户立刻看到起始断点
+        useFlowStore.getState().setActiveStage('setup');
+      }
+    }
+
+    const breakpointsSet = new Set(breakpointUuids);
+    breakpointsSet.add(entryNode.uuid);
+    breakpointsSet.add(initialStartNodeUuid);
+    const breakpoints = Array.from(breakpointsSet);
 
     // 启动调试时自动打开右侧面板以显示调试面板
     setConfigPanelOpen(true);

@@ -5,6 +5,7 @@ import type { Node, Edge } from '@xyflow/react';
 import type { Flow, Connection, NodeData, NodeType, AnyNodeType } from '@/types';
 import { getCachedDefaultConfig } from '@/lib/NodeRegistry';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { getStageGraph, type FlowStage } from '@/stores/flow';
 
 /** React Flow 节点数据类型 */
 export type FlowNodeData = Record<string, unknown> & {
@@ -14,12 +15,16 @@ export type FlowNodeData = Record<string, unknown> & {
 
 /**
  * 将 Flow 数据转换为 React Flow 格式
+ *
+ * `stage` 指定渲染哪个生命周期阶段：`main` 渲染流程主体的
+ * `flow.nodes` / `flow.connections`，`setup` / `teardown` 渲染对应子图。
  */
-export function convertFlowToReactFlow(flow: Flow): {
+export function convertFlowToReactFlow(flow: Flow, stage: FlowStage = 'main'): {
   nodes: Node[];
   edges: Edge[];
 } {
-  const nodes: Node[] = flow.nodes.map((node) => ({
+  const graph = getStageGraph(flow, stage);
+  const nodes: Node[] = graph.nodes.map((node) => ({
     id: node.uuid,
     type: node.type,
     position: { x: node.position.x, y: node.position.y },
@@ -33,7 +38,7 @@ export function convertFlowToReactFlow(flow: Flow): {
     } as FlowNodeData,
   }));
 
-  const edges: Edge[] = flow.connections.map((conn, index) => ({
+  const edges: Edge[] = graph.connections.map((conn, index) => ({
     id: conn.id || `edge-${index}`,
     source: conn.source_node_uuid,
     target: conn.target_node_uuid,

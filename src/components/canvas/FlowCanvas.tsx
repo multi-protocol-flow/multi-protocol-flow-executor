@@ -14,6 +14,7 @@ import '@xyflow/react/dist/style.css';
 import { FlowSurface } from './FlowSurface';
 import { CanvasToolbar } from './CanvasToolbar';
 import { DebugBreadcrumbs } from './DebugBreadcrumbs';
+import { StageTabBar } from './StageTabBar';
 import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
 import { EmptyCanvasTips } from './EmptyCanvasTips';
@@ -24,6 +25,7 @@ import {
   selectFlow,
   selectIsDirty,
   connectionFor,
+  getStageGraph,
 } from '@/stores';
 import type { NodeData, NodeType } from '@/types';
 import { datasourceGetTemplates } from '@/services/tauri/datasource';
@@ -404,10 +406,10 @@ function FlowCanvasInner() {
   // 复制节点（含源端连接复制）
   const handleCopyNode = useCallback(
     (nodeId: string) => {
-      const { flow: currentFlow, addNode: addNewNode } = useFlowStore.getState();
+      const { flow: currentFlow, activeStage, addNode: addNewNode } = useFlowStore.getState();
       if (!currentFlow) return;
 
-      const sourceNode = currentFlow.nodes.find((n) => n.uuid === nodeId);
+      const sourceNode = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
       if (!sourceNode) return;
 
       const newUuid = crypto.randomUUID();
@@ -431,12 +433,11 @@ function FlowCanvasInner() {
   // 复制节点配置到剪贴板
   const handleCopyNodeConfig = useCallback(
     (nodeId: string) => {
-      const { flow: currentFlow } = useFlowStore.getState();
+      const { flow: currentFlow, activeStage } = useFlowStore.getState();
       if (!currentFlow) return;
 
-      const sourceNode = currentFlow.nodes.find((n) => n.uuid === nodeId);
+      const sourceNode = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
       if (!sourceNode) return;
-
       const clipData: NodeConfigClipboard = {
         nodeType: sourceNode.type,
         data: sanitizeNodeData(JSON.parse(JSON.stringify(sourceNode.data))),
@@ -457,12 +458,11 @@ function FlowCanvasInner() {
   // 从剪贴板粘贴节点配置
   const handlePasteNodeConfig = useCallback(
     (nodeId: string) => {
-      const { flow: currentFlow, updateNode: modifyNode } = useFlowStore.getState();
+      const { flow: currentFlow, activeStage, updateNode: modifyNode } = useFlowStore.getState();
       if (!currentFlow) return;
 
-      const targetNode = currentFlow.nodes.find((n) => n.uuid === nodeId);
+      const targetNode = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
       if (!targetNode) return;
-
       let clipData: NodeConfigClipboard | null = null;
       try {
         const raw = localStorage.getItem(NODE_CONFIG_CLIPBOARD_KEY);
@@ -494,12 +494,11 @@ function FlowCanvasInner() {
   // 删除节点（通过确认弹窗）
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
-      const { flow: currentFlow, removeNode: removeNodeById, selectNode: deselectNode } = useFlowStore.getState();
+      const { flow: currentFlow, activeStage, removeNode: removeNodeById, selectNode: deselectNode } = useFlowStore.getState();
       if (!currentFlow) return;
 
-      const node = currentFlow.nodes.find((n) => n.uuid === nodeId);
+      const node = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
       if (!node || node.type === 'entry') return;
-
       const LL = getLL();
       const { showConfirm } = useUIStore.getState();
       showConfirm({
@@ -518,12 +517,11 @@ function FlowCanvasInner() {
   // 触发重命名浮动输入框
   const handleRenameNode = useCallback(
     (nodeId: string) => {
-      const { flow: currentFlow } = useFlowStore.getState();
+      const { flow: currentFlow, activeStage } = useFlowStore.getState();
       if (!currentFlow) return;
 
-      const node = currentFlow.nodes.find((n) => n.uuid === nodeId);
+      const node = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
       if (!node) return;
-
       isRenameCancellingRef.current = false;
       // 使用右键菜单位置作为输入框位置
       setRenamingNodeId(nodeId);
@@ -873,6 +871,9 @@ function FlowCanvasInner() {
 
       {/* 画布悬浮工具栏 */}
       <CanvasToolbar />
+
+      {/* 生命周期阶段切换栏 */}
+      <StageTabBar />
 
       {/* 调试面包屑导航 */}
       <DebugBreadcrumbs />
