@@ -160,9 +160,6 @@ pub async fn execute_flow(
     if let Some(rx) = Some(cancel_rx) {
         executor = executor.with_cancel_receiver(rx);
     }
-    executor = executor.with_hook_executor(std::sync::Arc::new(
-        flow_engine::hook_runner::DefaultHookExecutor::new(),
-    ));
 
     // 多层变量合并：基底兜底(flow.initial_variables) -> 环境(input.environment_name) -> 显式覆盖(input.variables)
     //
@@ -364,10 +361,7 @@ pub async fn execute_single_node(
     let executor = flow_engine::executor::FlowExecutor::new()
         .with_registry(Arc::clone(&snap.registry))
         .with_fallback_timeout(default_timeout)
-        .with_cancel_receiver(cancel_rx)
-        .with_hook_executor(std::sync::Arc::new(
-            flow_engine::hook_runner::DefaultHookExecutor::new(),
-        ));
+        .with_cancel_receiver(cancel_rx);
 
     let result = executor.execute_single_node(&node, variables, None).await;
 
@@ -2818,7 +2812,8 @@ mod tests {
             nodes: vec![start_node, end_node],
             connections: vec![connection],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
@@ -2859,7 +2854,8 @@ mod tests {
             nodes: vec![start_node],
             connections: vec![],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
@@ -2896,7 +2892,8 @@ mod tests {
             nodes: vec![http_node],
             connections: vec![],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
@@ -2978,7 +2975,8 @@ mod tests {
             nodes: vec![start_node, end_node],
             connections: vec![connection],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）

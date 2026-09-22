@@ -122,10 +122,6 @@ pub use flow_engine_plugin_marketplace;
 pub use flow_engine_executor::csv_parser;
 pub use flow_engine_executor::dataset_executor;
 
-// 钩子执行器模块
-pub use flow_engine_core::hook;
-pub use flow_engine_executor::hook_runner;
-
 // Ingress 流程级 Mock 服务模块
 pub use flow_engine_executor::ingress;
 

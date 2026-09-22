@@ -427,6 +427,8 @@ fn test_report_structure_flow_execution_report() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        stages: flow_engine::report::FlowStagesReport::default(),
+        main_duration_ms: 2000,
         plugin_streams: vec![],
     };
 
@@ -513,6 +515,8 @@ fn test_report_structure_flow_execution_report_failed() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        stages: flow_engine::report::FlowStagesReport::default(),
+        main_duration_ms: 4000,
         plugin_streams: vec![],
     };
 
@@ -551,6 +555,8 @@ fn test_report_structure_flow_execution_report_debug_mode() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        stages: flow_engine::report::FlowStagesReport::default(),
+        main_duration_ms: 1000,
         plugin_streams: vec![],
     };
 
@@ -880,6 +886,8 @@ fn test_report_structure_full_roundtrip() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        stages: flow_engine::report::FlowStagesReport::default(),
+        main_duration_ms: 10000,
         plugin_streams: vec![],
     };
 

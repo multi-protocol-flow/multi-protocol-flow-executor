@@ -81,13 +81,54 @@ impl DatasetExecutor {
             },
         );
 
+        // Setup 阶段单次执行
+        let mut setup_vars: HashMap<String, serde_json::Value> =
+            flow.initial_variables.clone().unwrap_or_default();
+
+        if let Some(setup_subgraph) = &flow.setup {
+            if !setup_subgraph.is_empty() {
+                let setup_executor = FlowExecutor::new().with_registry(Arc::clone(&self.registry));
+                match crate::subgraph_runner::execute_subgraph(
+                    setup_subgraph,
+                    setup_vars.clone(),
+                    &setup_executor,
+                    cancel_rx.clone(),
+                )
+                .await
+                {
+                    Ok((updated, rep)) => {
+                        if rep.status == flow_engine_core::report::ExecutionStatus::Failed
+                            || rep.status == flow_engine_core::report::ExecutionStatus::Cancelled
+                        {
+                            let err_msg = rep
+                                .error
+                                .map(|e| e.message)
+                                .unwrap_or_else(|| "Setup stage failed".to_string());
+                            log::error!("[DatasetExecutor] Setup stage failed: {}", err_msg);
+                            return Err(err_msg);
+                        }
+                        setup_vars = updated;
+                    }
+                    Err(err) => {
+                        log::error!("[DatasetExecutor] Setup stage error: {}", err);
+                        return Err(err);
+                    }
+                }
+            }
+        }
+
+        let mut main_flow = flow.clone();
+        main_flow.setup = None;
+        main_flow.teardown = None;
+        main_flow.initial_variables = Some(setup_vars.clone());
+
         // 根据并发数选择执行模式
         let start = Instant::now();
         let result = if config.concurrency <= 1 {
             self.execute_sequential(
                 config,
-                flow,
-                cancel_rx,
+                &main_flow,
+                cancel_rx.clone(),
                 &dataset_name,
                 total_rows,
                 &event_sender,
@@ -97,8 +138,8 @@ impl DatasetExecutor {
         } else {
             self.execute_concurrent(
                 config,
-                flow,
-                cancel_rx,
+                &main_flow,
+                cancel_rx.clone(),
                 &dataset_name,
                 total_rows,
                 &event_sender,
@@ -124,6 +165,26 @@ impl DatasetExecutor {
                     &encoding,
                     elapsed_ms,
                 );
+
+                // Teardown 阶段单次执行
+                if let Some(teardown_subgraph) = &flow.teardown {
+                    if !teardown_subgraph.is_empty() {
+                        let mut teardown_vars = setup_vars.clone();
+                        let report_val =
+                            serde_json::to_value(&report).unwrap_or(serde_json::json!({}));
+                        teardown_vars.insert("$report".to_string(), report_val);
+
+                        let teardown_executor =
+                            FlowExecutor::new().with_registry(Arc::clone(&self.registry));
+                        let _ = crate::subgraph_runner::execute_subgraph(
+                            teardown_subgraph,
+                            teardown_vars,
+                            &teardown_executor,
+                            cancel_rx.clone(),
+                        )
+                        .await;
+                    }
+                }
 
                 let report_uuid = report.uuid.clone();
 
@@ -587,7 +648,8 @@ mod tests {
                 on_error: None,
             }],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         }
     }
 

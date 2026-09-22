@@ -97,7 +97,8 @@ mod tests {
             initial_variables: Some(vars),
             nodes: vec![],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         }
     }
 

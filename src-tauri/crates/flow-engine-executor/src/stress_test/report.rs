@@ -93,6 +93,7 @@ pub fn generate_report(
         node_type_statistics,
         progress_history: vec![],
         flow_snapshot: Some(flow.clone()),
+        lifecycle: None,
     };
 
     // 如果提供了存储目录，保存报告
@@ -130,7 +131,8 @@ mod tests {
             }],
             connections: vec![],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         }
     }
 

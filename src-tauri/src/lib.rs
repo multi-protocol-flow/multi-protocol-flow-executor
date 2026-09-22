@@ -818,7 +818,8 @@ mod flows_dir_tests {
             ])),
             nodes: vec![],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let runtime = HashMap::from([("SHARED".to_string(), serde_json::json!("from-runtime"))]);
@@ -857,7 +858,8 @@ mod flows_dir_tests {
             )])),
             nodes: vec![],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let result = resolve_execution_variables(&flow, Some("nope"), None);

@@ -70,7 +70,8 @@ async fn test_variable_tracking_new_variable() {
         description: None,
         nodes: vec![start_node, end_node],
         connections: vec![connection],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     let executor = FlowExecutor::new();
@@ -134,7 +135,8 @@ async fn test_execution_path_tracking() {
         description: None,
         nodes: vec![start_node.clone(), end_node.clone()],
         connections: vec![connection],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     let executor = FlowExecutor::new();
@@ -195,7 +197,8 @@ async fn test_variable_snapshots() {
         description: None,
         nodes: vec![start_node, end_node],
         connections: vec![connection],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     // 提供初始变量
@@ -256,7 +259,8 @@ async fn test_variable_snapshots_empty_initial() {
         description: None,
         nodes: vec![start_node],
         connections: vec![],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     let executor = FlowExecutor::new();
@@ -306,7 +310,8 @@ async fn test_single_node_execution_path() {
         description: None,
         nodes: vec![start_node.clone()],
         connections: vec![],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     let executor = FlowExecutor::new();
@@ -347,7 +352,8 @@ async fn test_skipped_nodes_default_empty() {
         description: None,
         nodes: vec![start_node],
         connections: vec![],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     let executor = FlowExecutor::new();
@@ -404,7 +410,8 @@ async fn test_all_nodes_have_resolved_config() {
         description: None,
         nodes: vec![start_node, end_node],
         connections: vec![connection],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     let executor = FlowExecutor::new();

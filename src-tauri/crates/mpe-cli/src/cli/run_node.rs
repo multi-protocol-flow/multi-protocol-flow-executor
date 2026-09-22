@@ -3,12 +3,9 @@
 //! Calls `FlowExecutor::execute_single_node()` with the given JSON config.
 //! No flow traversal, no report persistence.
 
-use std::sync::Arc;
-
 use super::output::{self, CliOutput};
 use super::CliError;
 use flow_engine::executor::FlowExecutor;
-use flow_engine::hook_runner::DefaultHookExecutor;
 use flow_engine::node::Node;
 use flow_engine::node::NodePosition;
 use flow_engine::node_config::NodeData;
@@ -52,9 +49,7 @@ pub async fn execute(
 
     // 4. Build executor with the shared registry (built-ins + plugins, so
     // `mpe run node` can drive plugin connect nodes like `redis:connect`).
-    let executor = FlowExecutor::new()
-        .with_registry(registry)
-        .with_hook_executor(Arc::new(DefaultHookExecutor::new()));
+    let executor = FlowExecutor::new().with_registry(registry);
 
     // 5. Execute single node
     let result = executor.execute_single_node(&node, variables, None).await;

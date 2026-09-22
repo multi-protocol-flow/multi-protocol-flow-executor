@@ -284,9 +284,6 @@ async fn execute_simple(
     let mut executor = flow_engine::executor::FlowExecutor::new()
         .with_registry(registry)
         .with_flow_file_path(path)
-        .with_hook_executor(Arc::new(
-            flow_engine::hook_runner::DefaultHookExecutor::new(),
-        ))
         .with_cancel_receiver(cancel_rx);
     if let Some(timeout) = default_timeout {
         executor = executor.with_fallback_timeout(timeout);
@@ -315,9 +312,6 @@ async fn execute_with_streaming(
         .with_registry(registry)
         .with_flow_file_path(path)
         .with_execution_event_sender(sender)
-        .with_hook_executor(Arc::new(
-            flow_engine::hook_runner::DefaultHookExecutor::new(),
-        ))
         .with_cancel_receiver(cancel_rx);
     if let Some(timeout) = default_timeout {
         executor = executor.with_fallback_timeout(timeout);

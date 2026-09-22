@@ -354,6 +354,11 @@ pub struct StressTestReport {
     /// Flow 快照（执行时的流程完整副本）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flow_snapshot: Option<flow_engine_core::flow::Flow>,
+
+    // ===== 生命周期执行报告 =====
+    /// Setup 与 Teardown 生命周期执行报告
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifecycle: Option<flow_engine_core::report::FlowStagesReport>,
 }
 
 #[cfg(test)]
@@ -477,6 +482,7 @@ mod tests {
             node_type_statistics: vec![],
             progress_history: vec![],
             flow_snapshot: None,
+            lifecycle: None,
         };
 
         let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -521,6 +527,7 @@ mod tests {
             node_type_statistics: vec![],
             progress_history: vec![],
             flow_snapshot: None,
+            lifecycle: None,
         };
 
         let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -551,7 +558,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let report = StressTestReport {
@@ -569,6 +577,7 @@ mod tests {
             node_type_statistics: vec![],
             progress_history: vec![],
             flow_snapshot: Some(flow.clone()),
+            lifecycle: None,
         };
 
         let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -640,6 +649,7 @@ mod tests {
             node_type_statistics: vec![],
             progress_history: vec![],
             flow_snapshot: None,
+            lifecycle: None,
         };
 
         let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));

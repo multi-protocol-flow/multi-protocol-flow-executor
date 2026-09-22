@@ -173,6 +173,8 @@ mod tests {
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
+            stages: flow_engine::report::FlowStagesReport::default(),
+            main_duration_ms: 1500,
         }
     }
 

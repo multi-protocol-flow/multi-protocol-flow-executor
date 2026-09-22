@@ -318,7 +318,8 @@ mod tests {
             }],
             connections: vec![],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         }
     }
 
@@ -488,6 +489,7 @@ mod tests {
             node_type_statistics: vec![],
             progress_history: vec![],
             flow_snapshot: None,
+            lifecycle: None,
         };
         let event = StressTestEvent::Ended {
             report: Box::new(report),
@@ -632,7 +634,8 @@ mod tests {
             }],
             connections: vec![],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
         let config2 = StressTestConfig {
             concurrent_users: 10,
@@ -807,7 +810,8 @@ mod tests {
             }],
             connections: vec![],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
         let config2 = StressTestConfig {
             concurrent_users: 5,

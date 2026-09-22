@@ -1,5 +1,6 @@
 // 压力测试执行器
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -320,6 +321,65 @@ impl StressTestExecutor {
         // 累积进度历史，用于持久化到报告中供历史查看时渲染图表
         let mut progress_history: Vec<StressTestProgress> = Vec::new();
 
+        let mut global_vars: HashMap<String, serde_json::Value> = {
+            let mut vars = HashMap::new();
+            if let Some(active) = flow.get_active_variables() {
+                vars.extend(active);
+            }
+            if let Some(v) = variables.as_ref() {
+                if let Some(obj) = v.as_object() {
+                    vars.extend(obj.clone());
+                }
+            }
+            vars
+        };
+
+        // 压测前：单次执行 Setup 子图
+        let mut setup_stage_report: Option<flow_engine_core::report::StageExecutionReport> = None;
+        if let Some(setup_subgraph) = &flow.setup {
+            if !setup_subgraph.is_empty() {
+                let setup_executor = FlowExecutor::new().with_registry(Arc::clone(&registry));
+                match crate::subgraph_runner::execute_subgraph(
+                    setup_subgraph,
+                    global_vars.clone(),
+                    &setup_executor,
+                    None,
+                )
+                .await
+                {
+                    Ok((updated, rep)) => {
+                        global_vars = updated;
+                        setup_stage_report = Some(rep);
+                    }
+                    Err(err) => {
+                        log::error!("[StressTest] Setup stage failed: {}", err);
+                        setup_stage_report = Some(flow_engine_core::report::StageExecutionReport {
+                            status: flow_engine_core::report::ExecutionStatus::Failed,
+                            duration_ms: 0,
+                            node_reports: Vec::new(),
+                            error: Some(flow_engine_core::error::ErrorDetail::execution_error(err)),
+                        });
+                    }
+                }
+            }
+        }
+        let setup_failed = setup_stage_report
+            .as_ref()
+            .map(|r| {
+                r.status == flow_engine_core::report::ExecutionStatus::Failed
+                    || r.status == flow_engine_core::report::ExecutionStatus::Cancelled
+            })
+            .unwrap_or(false);
+
+        if !setup_failed {
+            let variables = Some(Arc::new(
+                serde_json::to_value(global_vars.clone()).unwrap_or(serde_json::json!({})),
+            ));
+        // 虚拟用户仅执行 Main 流程主体
+        let mut main_flow = flow.clone();
+        main_flow.setup = None;
+        main_flow.teardown = None;
+
         // 加载 CSV 数据源（如果配置了）
         let csv_rows: Arc<Vec<serde_json::Value>> = if let Some(ref path) = config.dataset_path {
             match csv_parser::parse_csv(path, config.dataset_encoding.as_deref(), None) {
@@ -396,7 +456,7 @@ impl StressTestExecutor {
 
                 // 启动新的虚拟用户
                 for user_id in 0..needed {
-                    let flow_clone = flow.clone();
+                    let flow_clone = main_flow.clone();
                     let metrics_clone = Arc::clone(&metrics);
                     let stop_flag_clone = Arc::clone(&stop_flag);
                     let stop_rx = task_stop_tx.subscribe();
@@ -499,8 +559,67 @@ impl StressTestExecutor {
             progress_history.push(final_progress);
         }
 
+        }
         // 生成最终报告
-        let report = Self::generate_report(&flow, &config, &metrics, start_time, &progress_history);
+        // 生成最终报告
+        let mut report =
+            Self::generate_report(&flow, &config, &metrics, start_time, &progress_history);
+
+        // 压测后：单次执行 Teardown 子图
+        let mut teardown_stage_report: Option<flow_engine_core::report::StageExecutionReport> =
+            None;
+        if let Some(teardown_subgraph) = &flow.teardown {
+            if !teardown_subgraph.is_empty() {
+                let mut teardown_vars = global_vars.clone();
+                let report_val = serde_json::to_value(&report).unwrap_or(serde_json::json!({}));
+                teardown_vars.insert("$report".to_string(), report_val);
+
+                let teardown_executor = FlowExecutor::new().with_registry(Arc::clone(&registry));
+                match crate::subgraph_runner::execute_subgraph(
+                    teardown_subgraph,
+                    teardown_vars,
+                    &teardown_executor,
+                    None,
+                )
+                .await
+                {
+                    Ok((_, rep)) => {
+                        teardown_stage_report = Some(rep);
+                    }
+                    Err(err) => {
+                        log::error!("[StressTest] Teardown stage failed: {}", err);
+                        teardown_stage_report =
+                            Some(flow_engine_core::report::StageExecutionReport {
+                                status: flow_engine_core::report::ExecutionStatus::Failed,
+                                duration_ms: 0,
+                                node_reports: Vec::new(),
+                                error: Some(flow_engine_core::error::ErrorDetail::execution_error(
+                                    err,
+                                )),
+                            });
+                    }
+                }
+            }
+        }
+
+        if setup_stage_report.is_some() || teardown_stage_report.is_some() {
+            report.lifecycle = Some(flow_engine_core::report::FlowStagesReport {
+                setup: setup_stage_report,
+                main: flow_engine_core::report::StageExecutionReport {
+                    status: if setup_failed {
+                        flow_engine_core::report::ExecutionStatus::Skipped
+                    } else if report.statistics.failed > 0 {
+                        flow_engine_core::report::ExecutionStatus::Failed
+                    } else {
+                        flow_engine_core::report::ExecutionStatus::Success
+                    },
+                    duration_ms: report.duration_ms,
+                    node_reports: Vec::new(),
+                    error: None,
+                },
+                teardown: teardown_stage_report,
+            });
+        }
         // 更新最终状态并存储报告
         {
             let mut state_guard = state.write().await;
@@ -752,6 +871,7 @@ impl StressTestExecutor {
             node_type_statistics,
             progress_history: progress_history.to_vec(),
             flow_snapshot: None,
+            lifecycle: None,
         }
     }
 }
@@ -860,7 +980,8 @@ mod tests {
             }],
             connections: vec![],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         }
     }
 

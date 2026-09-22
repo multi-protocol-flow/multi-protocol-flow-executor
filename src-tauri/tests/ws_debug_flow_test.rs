@@ -40,7 +40,8 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
         name: "WebSocket 调试测试流程".to_string(),
         description: None,
         initial_variables: None,
-        hooks: None,
+        setup: None,
+        teardown: None,
         nodes: vec![
             // Entry 节点
             Node {
@@ -517,6 +518,8 @@ async fn test_report_includes_ws_streams() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        stages: flow_engine::report::FlowStagesReport::default(),
+        main_duration_ms: 1000,
         plugin_streams: vec![],
     };
 

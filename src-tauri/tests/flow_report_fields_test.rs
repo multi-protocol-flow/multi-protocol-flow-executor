@@ -31,6 +31,8 @@ fn test_flow_report_fields_exist() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        stages: flow_engine::report::FlowStagesReport::default(),
+        main_duration_ms: 1000,
         plugin_streams: vec![],
     };
 
@@ -93,6 +95,8 @@ fn test_flow_report_empty_path() {
         flow_snapshot: None,
         end_node_reached: None,
         flow_warning: None,
+        stages: flow_engine::report::FlowStagesReport::default(),
+        main_duration_ms: 0,
         plugin_streams: vec![],
     };
 
