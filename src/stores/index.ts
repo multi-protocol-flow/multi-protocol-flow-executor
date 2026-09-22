@@ -17,10 +17,18 @@ export { useEnvironmentStore } from './environment';
 // Flow store selectors
 export {
   selectFlow,
+  selectActiveStage,
   selectSelectedNodeId,
   selectIsDirty,
   selectNodes,
   selectConnections,
+  selectStageNodes,
+  selectStageConnections,
+  selectSetupNodeCount,
+  selectMainNodeCount,
+  selectTeardownNodeCount,
+  selectAllStageNodes,
+  selectAllNodes,
   selectCanUndo,
   selectCanRedo,
   selectHistoryVersion,
@@ -29,6 +37,9 @@ export {
   selectActiveTabUuid,
   selectTabSessions,
 } from './flow';
+export type { FlowStage, StageNodeEntry } from './flow';
+export { getStageGraph, getStageNodes, getNodeStage } from './flow';
+export { getAllNodes, findNodeInFlow } from './flow';
 
 // FlowList store selectors
 export {

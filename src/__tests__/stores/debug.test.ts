@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useDebugStore, selectDebugStatus, selectCurrentNodeUuid, selectIsDebugging, selectIsPaused, selectVariableDiff, computeVariableDiff, EMPTY_VARIABLE_DIFF } from '@/stores/debug';
 import { useExecutionStore } from '@/stores/execution';
+import { useFlowStore } from '@/stores/flow';
 import type { DebugEvent, ExecutionStackEntry } from '@/types/debug';
 
 // Mock tauri service
@@ -107,6 +108,48 @@ describe('DebugStore', () => {
         expect(state.pauseReason).toEqual({ type: 'step_complete', node_uuid: 'node-2' });
         expect(state.executionStack).toHaveLength(1);
         expect(state.executionStack[0].node_name).toBe('HTTP Request');
+      });
+
+      it('暂停在 Setup 阶段节点时自动切换画布阶段', async () => {
+        useFlowStore.getState().setFlow({
+          uuid: 'flow-stage-debug',
+          name: '阶段调试流程',
+          setup: {
+            nodes: [
+              {
+                uuid: 'setup-1',
+                type: 'script',
+                name: 'Setup 节点',
+                position: { x: 0, y: 0 },
+                data: { type: 'script', script: '' },
+              },
+            ],
+            connections: [],
+          },
+          nodes: [
+            {
+              uuid: 'main-1',
+              type: 'script',
+              name: 'Main 节点',
+              position: { x: 0, y: 0 },
+              data: { type: 'script', script: '' },
+            },
+          ],
+          connections: [],
+        });
+
+        useDebugStore.getState().handleDebugEvent({
+          PausedAtNode: {
+            node_uuid: 'setup-1',
+            reason: { type: 'breakpoint', node_uuid: 'setup-1' },
+            variables: {},
+            execution_stack: [],
+          },
+        });
+
+        // 阶段切换发生在动态导入的 then 回调中
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(useFlowStore.getState().activeStage).toBe('setup');
       });
 
       it('处理 PausedAtNode 事件（错误暂停）', () => {
@@ -879,15 +922,22 @@ describe('DebugStore', () => {
 
   describe('BreakpointModified 事件', () => {
     it('处理 BreakpointModified 事件（启用断点）', async () => {
-      // Mock flow store
+      // Mock flow store（部分替换：保留真实导出，仅覆写 setBreakpoint，
+      // 因为 debug store 的 PausedAtNode 分支还会用到 setActiveStage / getNodeStage）
       const mockSetBreakpoint = vi.fn();
-      vi.doMock('@/stores/flow', () => ({
-        useFlowStore: {
-          getState: () => ({
-            setBreakpoint: mockSetBreakpoint,
-          }),
-        },
-      }));
+      vi.doMock('@/stores/flow', async (importOriginal) => {
+        const actual = await importOriginal<typeof import('@/stores/flow')>();
+        return {
+          ...actual,
+          useFlowStore: {
+            ...actual.useFlowStore,
+            getState: () => ({
+              ...actual.useFlowStore.getState(),
+              setBreakpoint: mockSetBreakpoint,
+            }),
+          },
+        };
+      });
 
       const event: DebugEvent = {
         BreakpointModified: {

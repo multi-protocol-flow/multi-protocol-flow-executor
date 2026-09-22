@@ -6,7 +6,7 @@ import type { FlowExecutionReport, NodeExecutionReport } from '@/types';
 import type { ExecutionEvent, PluginEventData, NodeStreamData, NodeStreamChunk, SubFlowProgress } from '@/types/execution_event';
 import { useWsStreamStore } from './wsStream';
 import { useConsoleStore } from './console';
-
+import { useFlowStore, getNodeStage } from './flow';
 interface ExecutionState {
   /** 是否正在执行 */
   isExecuting: boolean;
@@ -283,6 +283,14 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           return;
         }
         queueEventUpdate({ currentNodeUuid: nodeUuid });
+        // 自动跟随节点切换画布阶段（Setup / Main / Teardown）
+        const flowState = useFlowStore.getState();
+        if (flowState.flow) {
+          const stage = getNodeStage(flowState.flow, nodeUuid);
+          if (stage && stage !== flowState.activeStage) {
+            flowState.setActiveStage(stage);
+          }
+        }
       } else if ('nodeCompleted' in event) {
         const { report, parentNodeUuid } = event.nodeCompleted;
         if (parentNodeUuid) {

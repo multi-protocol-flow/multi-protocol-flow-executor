@@ -663,8 +663,15 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       });
 
       // 异步获取 totalNodes（使用动态导入避免循环依赖）
-      import('./flow').then(({ useFlowStore }) => {
-        const totalNodes = useFlowStore.getState().flow?.nodes.length ?? 0;
+      import('./flow').then(({ useFlowStore, getStageGraph }) => {
+        const flowStore = useFlowStore.getState();
+        const flow = flowStore.flow;
+        // 调试覆盖三个生命周期阶段：总节点数与后端报告口径一致（三阶段节点数之和）
+        const totalNodes = flow
+          ? getStageGraph(flow, 'setup').nodes.length +
+            flow.nodes.length +
+            getStageGraph(flow, 'teardown').nodes.length
+          : 0;
         useExecutionStore.setState({ totalNodes });
       });
     } else if ('PausedAtNode' in event) {
@@ -693,8 +700,16 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       });
 
       // 驱动当前活跃流程的切换与画布展示
-      import('./flow').then(({ useFlowStore }) => {
+      import('./flow').then(({ useFlowStore, getNodeStage }) => {
         const flowStore = useFlowStore.getState();
+        // 暂停节点可能位于 Setup/Teardown 阶段：自动联动切换画布阶段
+        // （仅顶层流程；子流程帧由下方 debugFlowStack 逻辑处理）
+        if (frames.length <= 1 && flowStore.flow) {
+          const stage = getNodeStage(flowStore.flow, node_uuid);
+          if (stage && stage !== flowStore.activeStage) {
+            flowStore.setActiveStage(stage);
+          }
+        }
         if (frames.length > 1) {
           const topFrame = frames[topIndex];
           if (flowStore.flow?.uuid !== topFrame.flow_uuid) {
@@ -860,8 +875,19 @@ export const useDebugStore = create<DebugState>((set, get) => ({
           previousStatus: null,
         });
 
-        // 桥接：心跳修复时也同步当前节点
+        // 桥接：心跳修复时也同步当前节点与阶段
         useExecutionStore.setState({ currentNodeUuid: current_node_uuid || null });
+        if (current_node_uuid) {
+          import('./flow').then(({ useFlowStore, getNodeStage }) => {
+            const flowStore = useFlowStore.getState();
+            if (flowStore.flow) {
+              const stage = getNodeStage(flowStore.flow, current_node_uuid);
+              if (stage && stage !== flowStore.activeStage) {
+                flowStore.setActiveStage(stage);
+              }
+            }
+          });
+        }
       }
       
       // 更新当前节点 UUID（如果后端有值且状态一致）
@@ -872,6 +898,15 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         // 确保底部面板和画布高亮能实时反映当前执行节点
         if (backendStatus === 'running' && current_node_uuid) {
           useExecutionStore.setState({ currentNodeUuid: current_node_uuid });
+          import('./flow').then(({ useFlowStore, getNodeStage }) => {
+            const flowStore = useFlowStore.getState();
+            if (flowStore.flow) {
+              const stage = getNodeStage(flowStore.flow, current_node_uuid);
+              if (stage && stage !== flowStore.activeStage) {
+                flowStore.setActiveStage(stage);
+              }
+            }
+          });
         }
       }
     } else if ('WsStreamCreated' in event || 'WsMessageReceived' in event ||

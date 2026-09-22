@@ -2,10 +2,136 @@
  * 当前编辑流程状态管理
  */
 import { create } from 'zustand';
-import type { Flow, Node, NodeData, Connection, AnyNodeType, FlowTab, FlowTabSession } from '@/types';
+import type { Flow, FlowSubGraph, Node, NodeData, Connection, AnyNodeType, FlowTab, FlowTabSession } from '@/types';
 import { useExecutionStore } from './execution';
 import { useUIStore } from './ui';
 import { checkFlowConflict } from '@/lib/flowConflict';
+
+/**
+ * 流程生命周期阶段
+ * - `setup`：准备阶段（测试前单次执行）
+ * - `main`：核心业务流程（流程主体，压测并发循环执行）
+ * - `teardown`：收尾阶段（测试后单次执行，可消费 `$report` 变量）
+ */
+export type FlowStage = 'setup' | 'main' | 'teardown';
+
+/** 空子图（稳定的共享引用，避免每次调用产生新对象） */
+const EMPTY_SUBGRAPH: FlowSubGraph = { nodes: [], connections: [] };
+const EMPTY_NODES: Node[] = [];
+const EMPTY_CONNECTIONS: Connection[] = [];
+
+/**
+ * 读取指定阶段的节点与连线（`main` 对应流程主体字段；流程为空时返回空子图）
+ */
+export function getStageGraph(flow: Flow | null, stage: FlowStage): FlowSubGraph {
+  if (!flow) return EMPTY_SUBGRAPH;
+  if (stage === 'main') return { nodes: flow.nodes, connections: flow.connections };
+  return (stage === 'setup' ? flow.setup : flow.teardown) ?? EMPTY_SUBGRAPH;
+}
+
+/**
+ * 将子图写回指定阶段的字段（保留另一阶段引用，保证撤销栈/渲染缓存身份稳定）
+ */
+function withStageGraph(flow: Flow, stage: FlowStage, graph: FlowSubGraph): Flow {
+  if (stage === 'main') {
+    return { ...flow, nodes: graph.nodes, connections: graph.connections };
+  }
+  return stage === 'setup' ? { ...flow, setup: graph } : { ...flow, teardown: graph };
+}
+
+/** 阶段化节点条目（含所属阶段，用于跨阶段导航） */
+export interface StageNodeEntry {
+  node: Node;
+  stage: FlowStage;
+}
+
+const EMPTY_STAGE_NODES: StageNodeEntry[] = [];
+
+/**
+ * 收集三个阶段的全部节点（含所属阶段）
+ *
+ * 按 `(flow, setup, teardown)` 引用缓存结果：节点数组引用未变时复用同一数组，
+ * 满足 zustand 的引用相等比较，避免无限重渲染。
+ */
+let stageNodesCacheKey: readonly [Flow | null, FlowSubGraph | undefined, FlowSubGraph | undefined] =
+  [null, undefined, undefined];
+let stageNodesCache: StageNodeEntry[] = EMPTY_STAGE_NODES;
+export function getStageNodes(flow: Flow | null): StageNodeEntry[] {
+  if (!flow) return EMPTY_STAGE_NODES;
+  if (
+    stageNodesCacheKey[0] === flow &&
+    stageNodesCacheKey[1] === flow.setup &&
+    stageNodesCacheKey[2] === flow.teardown
+  ) {
+    return stageNodesCache;
+  }
+  const result: StageNodeEntry[] = [];
+  for (const node of flow.setup?.nodes ?? []) result.push({ node, stage: 'setup' });
+  for (const node of flow.nodes) result.push({ node, stage: 'main' });
+  for (const node of flow.teardown?.nodes ?? []) result.push({ node, stage: 'teardown' });
+  stageNodesCacheKey = [flow, flow.setup, flow.teardown];
+  stageNodesCache = result.length === 0 ? EMPTY_STAGE_NODES : result;
+  return stageNodesCache;
+}
+
+let allNodesCacheKey: readonly [Flow | null, FlowSubGraph | undefined, FlowSubGraph | undefined] =
+  [null, undefined, undefined];
+let allNodesCache: Node[] = EMPTY_NODES;
+
+/**
+ * 收集三个阶段的全部节点列表（按 Setup -> Main -> Teardown 顺序）
+ *
+ * 按 `(flow, setup, teardown)` 引用缓存结果：节点数组引用未变时复用同一数组，
+ * 满足 zustand 的引用相等比较，避免无限重渲染。
+ */
+export function getAllNodes(flow: Flow | null): Node[] {
+  if (!flow) return EMPTY_NODES;
+  if (
+    allNodesCacheKey[0] === flow &&
+    allNodesCacheKey[1] === flow.setup &&
+    allNodesCacheKey[2] === flow.teardown
+  ) {
+    return allNodesCache;
+  }
+  const result: Node[] = [];
+  for (const node of flow.setup?.nodes ?? []) result.push(node);
+  for (const node of flow.nodes) result.push(node);
+  for (const node of flow.teardown?.nodes ?? []) result.push(node);
+  allNodesCacheKey = [flow, flow.setup, flow.teardown];
+  allNodesCache = result.length === 0 ? EMPTY_NODES : result;
+  return allNodesCache;
+}
+
+/** 查找节点（跨 Setup / Main / Teardown 三阶段，未找到返回 null） */
+export function findNodeInFlow(flow: Flow | null, uuid: string): Node | null {
+  if (!flow) return null;
+  return (
+    flow.setup?.nodes.find((n) => n.uuid === uuid) ??
+    flow.nodes.find((n) => n.uuid === uuid) ??
+    flow.teardown?.nodes.find((n) => n.uuid === uuid) ??
+    null
+  );
+}
+
+/** 查找节点所属阶段（未找到返回 null） */
+export function getNodeStage(flow: Flow, uuid: string): FlowStage | null {
+  if (flow.setup?.nodes.some((n) => n.uuid === uuid)) return 'setup';
+  if (flow.nodes.some((n) => n.uuid === uuid)) return 'main';
+  if (flow.teardown?.nodes.some((n) => n.uuid === uuid)) return 'teardown';
+  return null;
+}
+
+/** 对指定阶段的子图施加变更，其余阶段引用保持原样 */
+function mapStageGraph(flow: Flow, stage: FlowStage, fn: (graph: FlowSubGraph) => FlowSubGraph): Flow {
+  return withStageGraph(flow, stage, fn(getStageGraph(flow, stage)));
+}
+
+/** 对包含指定节点的阶段施加变更（节点不在任何阶段时返回 null） */
+function mapGraphOwningNode(flow: Flow, uuid: string, fn: (graph: FlowSubGraph) => FlowSubGraph): Flow | null {
+  const stage = getNodeStage(flow, uuid);
+  return stage ? mapStageGraph(flow, stage, fn) : null;
+}
+
 /** 深度比较两个值是否相等（属性顺序无关，undefined 值视为缺失） */
 function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
@@ -28,10 +154,8 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return false;
 }
 
-/** 深度比较两个 Flow 对象是否相同（用于去重历史快照，属性顺序无关） */
-function isFlowEqual(a: Flow, b: Flow): boolean {
-  if (a.uuid !== b.uuid || a.name !== b.name) return false;
-  if (!deepEqual(a.initial_variables, b.initial_variables)) return false;
+/** 深度比较两个子图的节点与连线是否相同 */
+function isGraphEqual(a: FlowSubGraph, b: FlowSubGraph): boolean {
   if (a.nodes.length !== b.nodes.length) return false;
   if (a.connections.length !== b.connections.length) return false;
   for (let i = 0; i < a.nodes.length; i++) {
@@ -44,9 +168,26 @@ function isFlowEqual(a: Flow, b: Flow): boolean {
   return true;
 }
 
+/** 深度比较两个 Flow 对象是否相同（用于去重历史快照，属性顺序无关） */
+function isFlowEqual(a: Flow, b: Flow): boolean {
+  if (a.uuid !== b.uuid || a.name !== b.name) return false;
+  if (!deepEqual(a.initial_variables, b.initial_variables)) return false;
+  if (Boolean(a.setup) !== Boolean(b.setup) || Boolean(a.teardown) !== Boolean(b.teardown)) {
+    return false;
+  }
+  if (a.setup && b.setup && !isGraphEqual(a.setup, b.setup)) return false;
+  if (a.teardown && b.teardown && !isGraphEqual(a.teardown, b.teardown)) return false;
+  return isGraphEqual(
+    { nodes: a.nodes, connections: a.connections },
+    { nodes: b.nodes, connections: b.connections },
+  );
+}
+
 interface FlowState {
   /** 当前编辑的流程 */
   flow: Flow | null;
+  /** 当前画布展示的生命周期阶段 */
+  activeStage: FlowStage;
   /** 当前选中的节点 UUID */
   selectedNodeId: string | null;
   /** 流程是否已修改（未保存） */
@@ -94,6 +235,8 @@ interface FlowState {
   // ===== Actions =====
   /** 设置当前流程 */
   setFlow: (flow: Flow | null) => void;
+  /** 切换画布展示的生命周期阶段 */
+  setActiveStage: (stage: FlowStage) => void;
   /** 更新流程名称 */
   updateFlowName: (name: string) => void;
   /** 更新流程描述 */
@@ -167,6 +310,7 @@ interface FlowState {
 
 const initialState = {
   flow: null,
+  activeStage: 'main' as FlowStage,
   selectedNodeId: null,
   isDirty: false,
   pendingAddNodeType: null,
@@ -203,9 +347,15 @@ let breakpointCacheSet: ReadonlySet<string> = new Set<string>();
 function getBreakpointSet(flow: Flow | null): ReadonlySet<string> {
   if (flow !== breakpointCacheFlow) {
     breakpointCacheFlow = flow;
-    breakpointCacheSet = new Set(
-      flow ? flow.nodes.filter((n) => n.hasBreakpoint).map((n) => n.uuid) : [],
-    );
+    const set = new Set<string>();
+    if (flow) {
+      for (const stage of ['setup', 'main', 'teardown'] as const) {
+        for (const node of getStageGraph(flow, stage).nodes) {
+          if (node.hasBreakpoint) set.add(node.uuid);
+        }
+      }
+    }
+    breakpointCacheSet = set;
   }
   return breakpointCacheSet;
 }
@@ -234,6 +384,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         useExecutionStore.getState().clearExecutionState();
         return set({
           flow: null,
+          activeStage: 'main',
           activeTabUuid: null,
           selectedNodeId: null,
           isDirty: false,
@@ -243,6 +394,20 @@ export const useFlowStore = create<FlowState>((set, get) => {
       }
       return get().openTab(flow);
     },
+
+    setActiveStage: (stage) =>
+      set((state) => {
+        if (state.activeStage === stage) return state;
+        // 选中节点不属于目标阶段时清除选中，避免配置面板显示画布外的节点
+        const selectedInStage =
+          state.flow && state.selectedNodeId
+            ? getStageGraph(state.flow, stage).nodes.some((n) => n.uuid === state.selectedNodeId)
+            : false;
+        return {
+          activeStage: stage,
+          selectedNodeId: selectedInStage ? state.selectedNodeId : null,
+        };
+      }),
 
     openTab: (flow, filePath, options) => {
       const state = get();
@@ -280,6 +445,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
             tabs: updatedTabs,
             tabSessions: updatedSessions,
             flow,
+            activeStage: 'main',
             selectedNodeId: null,
             isDirty: false,
             past: [],
@@ -319,6 +485,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
           activeTabUuid: matchedTab.uuid,
           tabSessions: updatedSessions,
           flow,
+          activeStage: 'main',
           selectedNodeId: null,
           isDirty: false,
           past: [],
@@ -333,6 +500,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         updatedSessions[state.activeTabUuid] = {
           flow: state.flow,
           selectedNodeId: state.selectedNodeId,
+          activeStage: state.activeStage,
           isDirty: state.isDirty,
           past: state.past,
           future: state.future,
@@ -342,6 +510,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
       updatedSessions[flow.uuid] = {
         flow,
         selectedNodeId: null,
+        activeStage: 'main',
         isDirty: false,
         past: [],
         future: [],
@@ -357,6 +526,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         activeTabUuid: flow.uuid,
         tabSessions: updatedSessions,
         flow,
+        activeStage: 'main',
         selectedNodeId: null,
         isDirty: false,
         past: [],
@@ -377,6 +547,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         updatedSessions[state.activeTabUuid] = {
           flow: state.flow,
           selectedNodeId: state.selectedNodeId,
+          activeStage: state.activeStage,
           isDirty: state.isDirty,
           past: state.past,
           future: state.future,
@@ -385,11 +556,19 @@ export const useFlowStore = create<FlowState>((set, get) => {
       }
 
       useExecutionStore.getState().clearExecutionState();
+      const targetStage = targetSession.activeStage ?? 'main';
+      const isTargetNodeInStage = targetSession.selectedNodeId
+        ? getStageGraph(targetSession.flow, targetStage).nodes.some(
+            (n) => n.uuid === targetSession.selectedNodeId,
+          )
+        : false;
+
       set({
         tabSessions: updatedSessions,
         activeTabUuid: targetUuid,
         flow: targetSession.flow,
-        selectedNodeId: targetSession.selectedNodeId,
+        activeStage: targetStage,
+        selectedNodeId: isTargetNodeInStage ? targetSession.selectedNodeId : null,
         isDirty: targetSession.isDirty,
         past: targetSession.past,
         future: targetSession.future,
@@ -421,6 +600,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
           activeTabUuid: null,
           tabSessions: {},
           flow: null,
+          activeStage: 'main',
           selectedNodeId: null,
           isDirty: false,
           past: [],
@@ -433,6 +613,12 @@ export const useFlowStore = create<FlowState>((set, get) => {
       const nextTabIndex = Math.min(index, newTabs.length - 1);
       const nextTab = newTabs[nextTabIndex];
       const nextSession = newSessions[nextTab.uuid];
+      const nextStage = nextSession?.activeStage ?? 'main';
+      const isNextNodeInStage = nextSession && nextSession.selectedNodeId
+        ? getStageGraph(nextSession.flow, nextStage).nodes.some(
+            (n) => n.uuid === nextSession.selectedNodeId,
+          )
+        : false;
 
       useExecutionStore.getState().clearExecutionState();
       set({
@@ -440,7 +626,8 @@ export const useFlowStore = create<FlowState>((set, get) => {
         activeTabUuid: nextTab.uuid,
         tabSessions: newSessions,
         flow: nextSession ? nextSession.flow : null,
-        selectedNodeId: nextSession ? nextSession.selectedNodeId : null,
+        activeStage: nextStage,
+        selectedNodeId: isNextNodeInStage ? nextSession!.selectedNodeId : null,
         isDirty: nextSession ? nextSession.isDirty : false,
         past: nextSession ? nextSession.past : [],
         future: nextSession ? nextSession.future : [],
@@ -458,6 +645,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
           ? {
               flow: state.flow,
               selectedNodeId: state.selectedNodeId,
+              activeStage: state.activeStage,
               isDirty: state.isDirty,
               past: state.past,
               future: state.future,
@@ -471,13 +659,21 @@ export const useFlowStore = create<FlowState>((set, get) => {
         [keepUuid]: keepSession,
       };
 
+      const keepStage = keepSession.activeStage ?? 'main';
+      const isKeepNodeInStage = keepSession.selectedNodeId
+        ? getStageGraph(keepSession.flow, keepStage).nodes.some(
+            (n) => n.uuid === keepSession.selectedNodeId,
+          )
+        : false;
+
       useExecutionStore.getState().clearExecutionState();
       set({
         tabs: [keepTab],
         activeTabUuid: keepUuid,
         tabSessions: newSessions,
         flow: keepSession.flow,
-        selectedNodeId: keepSession.selectedNodeId,
+        activeStage: keepStage,
+        selectedNodeId: isKeepNodeInStage ? keepSession.selectedNodeId : null,
         isDirty: keepSession.isDirty,
         past: keepSession.past,
         future: keepSession.future,
@@ -498,6 +694,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         updatedSessions[state.activeTabUuid] = {
           flow: state.flow,
           selectedNodeId: state.selectedNodeId,
+          activeStage: state.activeStage,
           isDirty: state.isDirty,
           past: state.past,
           future: state.future,
@@ -512,13 +709,21 @@ export const useFlowStore = create<FlowState>((set, get) => {
 
       if (!remainingUuids.has(state.activeTabUuid ?? '')) {
         const targetSession = updatedSessions[uuid];
+        const targetStage = targetSession?.activeStage ?? 'main';
+        const isTargetNodeInStage = targetSession && targetSession.selectedNodeId
+          ? getStageGraph(targetSession.flow, targetStage).nodes.some(
+              (n) => n.uuid === targetSession.selectedNodeId,
+            )
+          : false;
+
         useExecutionStore.getState().clearExecutionState();
         set({
           tabs: remainingTabs,
           activeTabUuid: uuid,
           tabSessions: updatedSessions,
           flow: targetSession ? targetSession.flow : null,
-          selectedNodeId: targetSession ? targetSession.selectedNodeId : null,
+          activeStage: targetStage,
+          selectedNodeId: isTargetNodeInStage ? targetSession!.selectedNodeId : null,
           isDirty: targetSession ? targetSession.isDirty : false,
           past: targetSession ? targetSession.past : [],
           future: targetSession ? targetSession.future : [],
@@ -539,6 +744,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         activeTabUuid: null,
         tabSessions: {},
         flow: null,
+        activeStage: 'main',
         selectedNodeId: null,
         isDirty: false,
         past: [],
@@ -602,7 +808,10 @@ export const useFlowStore = create<FlowState>((set, get) => {
     addNode: (node) =>
       set((state) => {
         if (!state.flow) return state;
-        const newFlow = { ...state.flow, nodes: [...state.flow.nodes, node] };
+        const newFlow = mapStageGraph(state.flow, state.activeStage, (graph) => ({
+          ...graph,
+          nodes: [...graph.nodes, node],
+        }));
         const history = pushHistory(state, newFlow);
         const tabs = markTabDirty(state.tabs, state.activeTabUuid);
         if (!history) return { flow: newFlow, isDirty: true, tabs };
@@ -612,15 +821,16 @@ export const useFlowStore = create<FlowState>((set, get) => {
     updateNode: (uuid, updates) =>
       set((state) => {
         if (!state.flow) return state;
-        const newFlow = {
-          ...state.flow,
-          nodes: state.flow.nodes.map((n) => {
+        const newFlow = mapGraphOwningNode(state.flow, uuid, (graph) => ({
+          ...graph,
+          nodes: graph.nodes.map((n) => {
             if (n.uuid !== uuid) return n;
             return updates.data && n.data
               ? { ...n, ...updates, data: { ...n.data, ...updates.data } as NodeData }
               : { ...n, ...updates };
           }),
-        };
+        }));
+        if (!newFlow) return state;
         const history = pushHistory(state, newFlow);
         if (!history) {
           return state;
@@ -632,13 +842,13 @@ export const useFlowStore = create<FlowState>((set, get) => {
     batchUpdateNodePositions: (positions) =>
       set((state) => {
         if (!state.flow) return state;
-        const newFlow = {
-          ...state.flow,
-          nodes: state.flow.nodes.map((n) => {
+        const newFlow = mapStageGraph(state.flow, state.activeStage, (graph) => ({
+          ...graph,
+          nodes: graph.nodes.map((n) => {
             const pos = positions.get(n.uuid);
             return pos ? { ...n, position: { x: pos.x, y: pos.y } } : n;
           }),
-        };
+        }));
         const history = pushHistory(state, newFlow);
         const tabs = markTabDirty(state.tabs, state.activeTabUuid);
         if (!history) return { flow: newFlow, isDirty: true, tabs };
@@ -648,14 +858,15 @@ export const useFlowStore = create<FlowState>((set, get) => {
     removeNode: (uuid) =>
       set((state) => {
         if (!state.flow) return state;
-        const newFlow = {
-          ...state.flow,
-          nodes: state.flow.nodes.filter((n) => n.uuid !== uuid),
-          connections: state.flow.connections.filter(
+        const newFlow = mapGraphOwningNode(state.flow, uuid, (graph) => ({
+          ...graph,
+          nodes: graph.nodes.filter((n) => n.uuid !== uuid),
+          connections: graph.connections.filter(
             (c) =>
               c.source_node_uuid !== uuid && c.target_node_uuid !== uuid
           ),
-        };
+        }));
+        if (!newFlow) return state;
         const history = pushHistory(state, newFlow);
         const tabs = markTabDirty(state.tabs, state.activeTabUuid);
         return {
@@ -672,14 +883,20 @@ export const useFlowStore = create<FlowState>((set, get) => {
       set((state) => {
         if (!state.flow || uuids.length === 0) return state;
         const uuidSet = new Set(uuids);
-        const newFlow = {
-          ...state.flow,
-          nodes: state.flow.nodes.filter((n) => !uuidSet.has(n.uuid)),
-          connections: state.flow.connections.filter(
-            (c) => !uuidSet.has(c.source_node_uuid) && !uuidSet.has(c.target_node_uuid)
-          ),
-        };
+        // 批量删除可能跨阶段（节点列表聚合展示三个阶段），逐阶段过滤
+        let newFlow = state.flow;
+        for (const stage of ['setup', 'main', 'teardown'] as const) {
+          if (stage !== 'main' && !newFlow[stage]) continue;
+          newFlow = mapStageGraph(newFlow, stage, (graph) => ({
+            ...graph,
+            nodes: graph.nodes.filter((n) => !uuidSet.has(n.uuid)),
+            connections: graph.connections.filter(
+              (c) => !uuidSet.has(c.source_node_uuid) && !uuidSet.has(c.target_node_uuid)
+            ),
+          }));
+        }
         const history = pushHistory(state, newFlow);
+        if (!history) return state;
         const selectedCleared = uuidSet.has(state.selectedNodeId ?? '');
         const tabs = markTabDirty(state.tabs, state.activeTabUuid);
         return {
@@ -694,10 +911,10 @@ export const useFlowStore = create<FlowState>((set, get) => {
     addConnection: (connection) =>
       set((state) => {
         if (!state.flow) return state;
-        const newFlow = {
-          ...state.flow,
-          connections: [...state.flow.connections, connection],
-        };
+        const newFlow = mapStageGraph(state.flow, state.activeStage, (graph) => ({
+          ...graph,
+          connections: [...graph.connections, connection],
+        }));
         const history = pushHistory(state, newFlow);
         const tabs = markTabDirty(state.tabs, state.activeTabUuid);
         if (!history) return { flow: newFlow, isDirty: true, tabs };
@@ -707,12 +924,12 @@ export const useFlowStore = create<FlowState>((set, get) => {
     removeConnection: (id) =>
       set((state) => {
         if (!state.flow) return state;
-        const newFlow = {
-          ...state.flow,
-          connections: state.flow.connections.filter(
+        const newFlow = mapStageGraph(state.flow, state.activeStage, (graph) => ({
+          ...graph,
+          connections: graph.connections.filter(
             (c) => c.id !== id
           ),
-        };
+        }));
         const history = pushHistory(state, newFlow);
         const tabs = markTabDirty(state.tabs, state.activeTabUuid);
         if (!history) return { flow: newFlow, isDirty: true, tabs };
@@ -744,6 +961,10 @@ export const useFlowStore = create<FlowState>((set, get) => {
   reset: () => {
     breakpointCacheFlow = null;
     breakpointCacheSet = new Set<string>();
+    stageNodesCacheKey = [null, undefined, undefined];
+    stageNodesCache = EMPTY_STAGE_NODES;
+    allNodesCacheKey = [null, undefined, undefined];
+    allNodesCache = EMPTY_NODES;
     set(initialState);
   },
 
@@ -792,7 +1013,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
   toggleBreakpoint: (uuid) =>
     set((state) => {
       if (!state.flow) return state;
-      const node = state.flow.nodes.find((n) => n.uuid === uuid);
+      const stage = getNodeStage(state.flow, uuid);
+      if (!stage) return state;
+      const node = getStageGraph(state.flow, stage).nodes.find((n) => n.uuid === uuid);
       if (!node) return state;
       const currentBreakpoint = node.hasBreakpoint ?? false;
       const newBreakpoint = !currentBreakpoint;
@@ -809,30 +1032,31 @@ export const useFlowStore = create<FlowState>((set, get) => {
       });
 
         return {
-          flow: {
-            ...state.flow,
-            nodes: state.flow.nodes.map((n) =>
+          flow: mapStageGraph(state.flow, stage, (graph) => ({
+            ...graph,
+            nodes: graph.nodes.map((n) =>
               n.uuid === uuid ? { ...n, hasBreakpoint: newBreakpoint } : n
             ),
-          },
+          })),
           isDirty: true,
           tabs: markTabDirty(state.tabs, state.activeTabUuid),
         };
       }),
 
   setBreakpoint: (uuid, enabled) =>
-    set((state) => ({
-      flow: state.flow
-        ? {
-            ...state.flow,
-            nodes: state.flow.nodes.map((n) =>
-              n.uuid === uuid ? { ...n, hasBreakpoint: enabled } : n
-            ),
-          }
-        : null,
-      isDirty: true,
-      tabs: markTabDirty(state.tabs, state.activeTabUuid),
-    })),
+    set((state) => {
+      if (!state.flow) return state;
+      return {
+        flow: mapGraphOwningNode(state.flow, uuid, (graph) => ({
+          ...graph,
+          nodes: graph.nodes.map((n) =>
+            n.uuid === uuid ? { ...n, hasBreakpoint: enabled } : n
+          ),
+        })) ?? state.flow,
+        isDirty: true,
+        tabs: markTabDirty(state.tabs, state.activeTabUuid),
+      };
+    }),
 
   focusOnNode: (uuid) => set({ focusNodeUuid: uuid }),
 
@@ -849,9 +1073,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
     if (!flow || past.length === 0) return;
     const restoredFlow = past[past.length - 1];
     // 保留选中状态，仅当节点不存在于恢复后的 flow 时才清除
-    const stillExists = selectedNodeId
-      ? restoredFlow.nodes.some((n) => n.uuid === selectedNodeId)
-      : false;
+    const stillExists = selectedNodeId ? getNodeStage(restoredFlow, selectedNodeId) !== null : false;
     set({
       past: past.slice(0, -1),
       future: [...future, flow],
@@ -868,9 +1090,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
     if (!flow || future.length === 0) return;
     const restoredFlow = future[future.length - 1];
     // 保留选中状态，仅当节点不存在于恢复后的 flow 时才清除
-    const stillExists = selectedNodeId
-      ? restoredFlow.nodes.some((n) => n.uuid === selectedNodeId)
-      : false;
+    const stillExists = selectedNodeId ? getNodeStage(restoredFlow, selectedNodeId) !== null : false;
     set({
       past: [...past, flow],
       future: future.slice(0, -1),
@@ -886,13 +1106,17 @@ export const useFlowStore = create<FlowState>((set, get) => {
   getSelectedNode: () => {
     const { flow, selectedNodeId } = get();
     if (!flow || !selectedNodeId) return null;
-    return flow.nodes.find((n) => n.uuid === selectedNodeId) || null;
+    const stage = getNodeStage(flow, selectedNodeId);
+    if (!stage) return null;
+    return getStageGraph(flow, stage).nodes.find((n) => n.uuid === selectedNodeId) || null;
   },
 
   getNodeByUuid: (uuid: string) => {
     const { flow } = get();
     if (!flow) return null;
-    return flow.nodes.find((n) => n.uuid === uuid) || null;
+    const stage = getNodeStage(flow, uuid);
+    if (!stage) return null;
+    return getStageGraph(flow, stage).nodes.find((n) => n.uuid === uuid) || null;
   },
 
   hasBreakpoint: (uuid: string) => getBreakpointSet(get().flow).has(uuid),
@@ -904,20 +1128,35 @@ export const useFlowStore = create<FlowState>((set, get) => {
 
 // ===== Selectors =====
 /** 稳定的空数组引用，避免 useSyncExternalStore 无限循环 */
-const EMPTY_NODES: Node[] = [];
-const EMPTY_CONNECTIONS: Connection[] = [];
 
 /** 选择当前流程 */
 export const selectFlow = (state: FlowState) => state.flow;
+/** 选择画布当前展示的生命周期阶段 */
+export const selectActiveStage = (state: FlowState) => state.activeStage;
 /** 选择选中的节点 ID */
 export const selectSelectedNodeId = (state: FlowState) => state.selectedNodeId;
 /** 选择是否已修改 */
 export const selectIsDirty = (state: FlowState) => state.isDirty;
-/** 选择节点列表 */
+/** 选择 Main 核心流程的节点列表（流程主体，不含 Setup/Teardown） */
 export const selectNodes = (state: FlowState) => state.flow?.nodes ?? EMPTY_NODES;
-/** 选择连接列表 */
+/** 选择 Main 核心流程的连接列表 */
 export const selectConnections = (state: FlowState) =>
   state.flow?.connections ?? EMPTY_CONNECTIONS;
+/** 选择当前阶段画布的节点列表 */
+export const selectStageNodes = (state: FlowState) => getStageGraph(state.flow, state.activeStage).nodes;
+/** 选择当前阶段画布的连接列表 */
+export const selectStageConnections = (state: FlowState) =>
+  getStageGraph(state.flow, state.activeStage).connections;
+/** 选择 Setup 阶段节点数量 */
+export const selectSetupNodeCount = (state: FlowState) => state.flow?.setup?.nodes.length ?? 0;
+/** 选择 Main 阶段节点数量 */
+export const selectMainNodeCount = (state: FlowState) => state.flow?.nodes.length ?? 0;
+/** 选择 Teardown 阶段节点数量 */
+export const selectTeardownNodeCount = (state: FlowState) => state.flow?.teardown?.nodes.length ?? 0;
+/** 选择三阶段全部节点（含所属阶段） */
+export const selectAllStageNodes = (state: FlowState) => getStageNodes(state.flow);
+/** 选择三阶段全部节点（Setup -> Main -> Teardown 聚合列表） */
+export const selectAllNodes = (state: FlowState) => getAllNodes(state.flow);
 /** 选择流程是否被锁定 */
 export const selectIsLocked = (state: FlowState) => state.isLocked;
 /** 选择锁定原因 */

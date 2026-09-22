@@ -2,7 +2,18 @@
  * Flow Store 测试
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useFlowStore } from '@/stores/flow';
+import {
+  useFlowStore,
+  selectAllStageNodes,
+  selectAllNodes,
+  selectMainNodeCount,
+  selectNodes,
+  selectSetupNodeCount,
+  selectStageNodes,
+  selectTeardownNodeCount,
+  getAllNodes,
+  findNodeInFlow,
+} from '@/stores/flow';
 import type { Flow, Node, Connection } from '@/types';
 
 describe('FlowStore', () => {
@@ -906,6 +917,184 @@ describe('FlowStore', () => {
 
       useFlowStore.getState().setFlow(flowB);
       expect(useFlowStore.getState().hasBreakpoint('node-1')).toBe(false);
+    });
+  });
+
+  describe('生命周期阶段 (Setup / Main / Teardown)', () => {
+    const makeNode = (uuid: string, name: string): Node => ({
+      uuid,
+      type: 'script',
+      name,
+      position: { x: 0, y: 0 },
+      data: { type: 'script', script: '' },
+    });
+
+    const makeFlow = (): Flow => ({
+      uuid: 'flow-stages',
+      name: '阶段测试流程',
+      nodes: [makeNode('main-1', 'Main 节点')],
+      connections: [
+        {
+          id: 'conn-main-1',
+          source_node_uuid: 'main-1',
+          source_port_id: 'out',
+          target_node_uuid: 'main-2',
+          target_port_id: 'in',
+        },
+      ],
+    });
+
+    it('初始 activeStage 为 main', () => {
+      expect(useFlowStore.getState().activeStage).toBe('main');
+    });
+
+    it('在 setup 阶段新增节点写入 flow.setup 而非 flow.nodes', () => {
+      useFlowStore.getState().setFlow(makeFlow());
+      useFlowStore.getState().setActiveStage('setup');
+      useFlowStore.getState().addNode(makeNode('setup-1', 'Setup 节点'));
+
+      const flow = useFlowStore.getState().flow;
+      expect(flow?.setup?.nodes.map((n) => n.uuid)).toEqual(['setup-1']);
+      expect(flow?.nodes.map((n) => n.uuid)).toEqual(['main-1']);
+    });
+
+    it('在 teardown 阶段新增连线写入 flow.teardown.connections', () => {
+      useFlowStore.getState().setFlow(makeFlow());
+      useFlowStore.getState().setActiveStage('teardown');
+      useFlowStore.getState().addNode(makeNode('teardown-1', 'Teardown 节点'));
+      useFlowStore.getState().addConnection({
+        id: 'conn-td',
+        source_node_uuid: 'teardown-1',
+        source_port_id: 'out',
+        target_node_uuid: 'teardown-2',
+        target_port_id: 'in',
+      });
+
+      const flow = useFlowStore.getState().flow;
+      expect(flow?.teardown?.connections.map((c) => c.id)).toEqual(['conn-td']);
+      expect(flow?.connections.map((c) => c.id)).toEqual(['conn-main-1']);
+    });
+
+    it('updateNode 定位到节点所属阶段（非当前阶段也可更新）', () => {
+      useFlowStore.getState().setFlow(makeFlow());
+      useFlowStore.getState().setActiveStage('setup');
+      useFlowStore.getState().addNode(makeNode('setup-1', 'Setup 节点'));
+
+      useFlowStore.getState().setActiveStage('main');
+      useFlowStore.getState().updateNode('setup-1', { name: '改名后' });
+
+      expect(useFlowStore.getState().flow?.setup?.nodes[0].name).toBe('改名后');
+      expect(useFlowStore.getState().flow?.nodes[0].name).toBe('Main 节点');
+    });
+
+    it('removeNode 跨阶段删除节点及其所属阶段的连线', () => {
+      useFlowStore.getState().setFlow(makeFlow());
+      useFlowStore.getState().setActiveStage('main');
+      useFlowStore.getState().removeNode('main-1');
+
+      const flow = useFlowStore.getState().flow;
+      expect(flow?.nodes).toHaveLength(0);
+      expect(flow?.connections).toHaveLength(0);
+    });
+
+    it('removeNodes 批量删除跨阶段节点', () => {
+      useFlowStore.getState().setFlow(makeFlow());
+      useFlowStore.getState().setActiveStage('setup');
+      useFlowStore.getState().addNode(makeNode('setup-1', 'Setup 节点'));
+      useFlowStore.getState().setActiveStage('teardown');
+      useFlowStore.getState().addNode(makeNode('teardown-1', 'Teardown 节点'));
+
+      useFlowStore.getState().removeNodes(['setup-1', 'teardown-1']);
+
+      const flow = useFlowStore.getState().flow;
+      expect(flow?.setup?.nodes).toHaveLength(0);
+      expect(flow?.teardown?.nodes).toHaveLength(0);
+      expect(flow?.nodes.map((n) => n.uuid)).toEqual(['main-1']);
+    });
+
+    it('子图变更进入撤销栈并可重做', () => {
+      useFlowStore.getState().setFlow(makeFlow());
+      useFlowStore.getState().setActiveStage('setup');
+      useFlowStore.getState().addNode(makeNode('setup-1', 'Setup 节点'));
+      expect(useFlowStore.getState().flow?.setup?.nodes).toHaveLength(1);
+
+      useFlowStore.getState().undo();
+      expect(useFlowStore.getState().flow?.setup?.nodes ?? []).toHaveLength(0);
+
+      useFlowStore.getState().redo();
+      expect(useFlowStore.getState().flow?.setup?.nodes).toHaveLength(1);
+    });
+
+    it('切换阶段时清除不属于目标阶段的选中节点', () => {
+      useFlowStore.getState().setFlow(makeFlow());
+      useFlowStore.getState().selectNode('main-1');
+
+      useFlowStore.getState().setActiveStage('setup');
+      expect(useFlowStore.getState().selectedNodeId).toBeNull();
+
+      useFlowStore.getState().setActiveStage('main');
+      useFlowStore.getState().selectNode('main-1');
+      useFlowStore.getState().setActiveStage('main');
+      expect(useFlowStore.getState().selectedNodeId).toBe('main-1');
+    });
+
+    it('getNodeByUuid 可跨阶段查找节点', () => {
+      useFlowStore.getState().setFlow(makeFlow());
+      useFlowStore.getState().setActiveStage('teardown');
+      useFlowStore.getState().addNode(makeNode('teardown-1', 'Teardown 节点'));
+
+      expect(useFlowStore.getState().getNodeByUuid('teardown-1')?.name).toBe('Teardown 节点');
+      expect(useFlowStore.getState().getNodeByUuid('missing')).toBeNull();
+    });
+
+    it('阶段节点计数选择器按阶段统计', () => {
+      useFlowStore.getState().setFlow(makeFlow());
+      useFlowStore.getState().setActiveStage('setup');
+      useFlowStore.getState().addNode(makeNode('setup-1', 'Setup 节点'));
+      useFlowStore.getState().setActiveStage('teardown');
+      useFlowStore.getState().addNode(makeNode('teardown-1', 'Teardown 节点'));
+
+      const state = useFlowStore.getState();
+      expect(selectSetupNodeCount(state)).toBe(1);
+      expect(selectMainNodeCount(state)).toBe(1);
+      expect(selectTeardownNodeCount(state)).toBe(1);
+      expect(selectAllStageNodes(state).map((entry) => entry.stage)).toEqual([
+        'setup',
+        'main',
+        'teardown',
+      ]);
+    });
+
+    it('selectStageNodes 随 activeStage 返回对应子图节点', () => {
+      useFlowStore.getState().setFlow(makeFlow());
+      useFlowStore.getState().setActiveStage('teardown');
+      useFlowStore.getState().addNode(makeNode('teardown-1', 'Teardown 节点'));
+
+      expect(selectStageNodes(useFlowStore.getState()).map((n) => n.uuid)).toEqual(['teardown-1']);
+      expect(selectNodes(useFlowStore.getState()).map((n) => n.uuid)).toEqual(['main-1']);
+    });
+
+    it('getAllNodes 和 selectAllNodes 聚合三阶段节点且满足引用稳定性（防止 infinite loop）', () => {
+      useFlowStore.getState().setFlow(makeFlow());
+      useFlowStore.getState().setActiveStage('setup');
+      useFlowStore.getState().addNode(makeNode('setup-1', 'Setup 节点'));
+      useFlowStore.getState().setActiveStage('teardown');
+      useFlowStore.getState().addNode(makeNode('teardown-1', 'Teardown 节点'));
+
+      const state = useFlowStore.getState();
+      const allNodes1 = selectAllNodes(state);
+      expect(allNodes1.map((n) => n.uuid)).toEqual(['setup-1', 'main-1', 'teardown-1']);
+
+      // 多次调用 selectAllNodes 在 flow 未变时必须返回严格相同的数组引用
+      const allNodes2 = selectAllNodes(state);
+      expect(allNodes1).toBe(allNodes2);
+      expect(getAllNodes(state.flow)).toBe(allNodes1);
+
+      // findNodeInFlow 跨阶段查找
+      expect(findNodeInFlow(state.flow, 'setup-1')?.name).toBe('Setup 节点');
+      expect(findNodeInFlow(state.flow, 'main-1')?.name).toBe('Main 节点');
+      expect(findNodeInFlow(state.flow, 'teardown-1')?.name).toBe('Teardown 节点');
+      expect(findNodeInFlow(state.flow, 'missing')).toBeNull();
     });
   });
 });

@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-Frontend unit test suite. Vitest 3.x + Testing Library 16.x, jsdom. **121 test files**. Coverage thresholds: 80% statements, 75% branches, 80% functions, 80% lines（注意：当前全局覆盖率约 lines 57% / branches 74%，阈值未达标，见下方「已知缺口」；新增测试已把先前 0% 覆盖的面板/store/hook 提升至 63–100%）。
+Frontend unit test suite. Vitest 3.x + Testing Library 16.x, jsdom. **183 test files**. Coverage thresholds: 80% statements, 75% branches, 80% functions, 80% lines（注意：当前全局覆盖率约 lines 57% / branches 74%，阈值未达标，见下方「已知缺口」；新增测试已把先前 0% 覆盖的面板/store/hook 提升至 63–100%）。
 
 ## STRUCTURE
 
