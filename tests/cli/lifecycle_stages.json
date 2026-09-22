@@ -1,0 +1,83 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "lifecycle-e2e",
+    "name": "Lifecycle E2E Flow",
+    "initial_variables": {
+      "base": "init"
+    },
+    "setup": {
+      "nodes": [
+        {
+          "uuid": "setup-script-1",
+          "type": "script",
+          "name": "Setup Script",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "type": "script",
+            "script": "fn.variables.set('token', 'from-setup');\nfn.console.log('setup done');"
+          }
+        }
+      ],
+      "connections": []
+    },
+    "nodes": [
+      {
+        "uuid": "entry-001",
+        "type": "entry",
+        "name": "Entry",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "type": "entry"
+        }
+      },
+      {
+        "uuid": "main-script-1",
+        "type": "script",
+        "name": "Main Script",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "data": {
+          "type": "script",
+          "script": "let tok = fn.variables.get('token');\nif (tok !== 'from-setup') { throw new Error('setup token missing: ' + tok); }\nfn.variables.set('main_token', tok);\nfn.console.log('main ran with token=' + tok);"
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-001",
+        "source_node_uuid": "entry-001",
+        "target_node_uuid": "main-script-1",
+        "source_port_id": "out",
+        "target_port_id": "in"
+      }
+    ],
+    "teardown": {
+      "nodes": [
+        {
+          "uuid": "teardown-script-1",
+          "type": "script",
+          "name": "Teardown Script",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "type": "script",
+            "script": "let status = fn.variables.replaceIn('{{$report.status}}');\nlet duration = fn.variables.replaceIn('{{$report.duration_ms}}');\nfn.variables.set('teardown_status', status);\nfn.console.log('teardown observed main status=' + status + ' duration=' + duration);\nif (status !== 'success') { throw new Error('unexpected main status: ' + status); }"
+          }
+        }
+      ],
+      "connections": []
+    }
+  },
+  "_meta": null
+}
