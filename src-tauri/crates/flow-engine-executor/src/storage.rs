@@ -27,9 +27,7 @@ pub(crate) fn invalidate_flow_metadata_cache(path: &Path) {
         .lock()
         .unwrap_or_else(|e| e.into_inner());
     cache.remove(path);
-    let mut uuid_cache = UUID_PATH_CACHE
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+    let mut uuid_cache = UUID_PATH_CACHE.lock().unwrap_or_else(|e| e.into_inner());
     uuid_cache.retain(|_, p| p != path);
 }
 
@@ -77,9 +75,7 @@ pub(crate) fn find_flow_path_by_uuid(uuid: &str, flows_dir: &Path) -> Result<Pat
 
         match cached_match {
             Some(true) => {
-                let mut uuid_cache = UUID_PATH_CACHE
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner());
+                let mut uuid_cache = UUID_PATH_CACHE.lock().unwrap_or_else(|e| e.into_inner());
                 uuid_cache.insert(uuid.to_string(), path.clone());
                 found = Some(path.clone());
                 break;
@@ -97,9 +93,8 @@ pub(crate) fn find_flow_path_by_uuid(uuid: &str, flows_dir: &Path) -> Result<Pat
                             meta_cache.insert(path.clone(), (mtime, meta_uuid.clone(), meta_name));
                         }
                         {
-                            let mut uuid_cache = UUID_PATH_CACHE
-                                .lock()
-                                .unwrap_or_else(|e| e.into_inner());
+                            let mut uuid_cache =
+                                UUID_PATH_CACHE.lock().unwrap_or_else(|e| e.into_inner());
                             uuid_cache.insert(meta_uuid.clone(), path.clone());
                         }
                         if meta_uuid == uuid {
@@ -519,63 +514,64 @@ pub fn save_flow_file_with_meta_and_path(
         _meta: meta,
     };
 
-    let (target_path, old_path_to_remove, existing_format) =
-        if let Some(explicit_path) = target_file_path {
-            let format = if explicit_path.exists() {
-                fs::read_to_string(explicit_path)
-                    .ok()
-                    .map(|c| detect_flow_format(&c))
-            } else {
-                None
-            };
-            (explicit_path.to_path_buf(), None, format)
+    let (target_path, old_path_to_remove, existing_format) = if let Some(explicit_path) =
+        target_file_path
+    {
+        let format = if explicit_path.exists() {
+            fs::read_to_string(explicit_path)
+                .ok()
+                .map(|c| detect_flow_format(&c))
         } else {
-            // 检查是否已存在同 UUID 的文件（更新场景，优先利用内存索引加速定位）
-            let (existing_path, existing_format) = match find_flow_path_by_uuid(&flow.uuid, flows_dir) {
-                Ok(path) => {
-                    let format = fs::read_to_string(&path)
-                        .ok()
-                        .map(|c| detect_flow_format(&c));
-                    (Some(path), format)
-                }
-                Err(_) => (None, None),
-            };
-            // 确定目标目录：保持原有文件夹位置，否则使用根目录
-            let target_dir = existing_path
-                .as_ref()
-                .and_then(|p| p.parent().map(|parent| parent.to_path_buf()))
-                .unwrap_or_else(|| flows_dir.to_path_buf());
-
-            // 确保目标目录存在
-            if target_dir != flows_dir {
-                fs::create_dir_all(&target_dir)
-                    .map_err(|e| format!("Failed to create target directory: {}", e))?;
-            }
-
-            // 生成文件名，处理冲突
-            let safe_name = sanitize_filename(&flow.name);
-            let mut filename = format!("{}.mpf", safe_name);
-            let mut counter = 2u32;
-
-            loop {
-                let candidate_path = target_dir.join(&filename);
-                // 如果目标路径就是旧文件路径（名称未变），直接跳出
-                let is_old_path = existing_path.as_ref() == Some(&candidate_path);
-                if is_old_path
-                    || !candidate_path
-                        .try_exists()
-                        .map_err(|e| format!("failed to check file: {}", e))?
-                {
-                    break;
-                }
-                filename = format!("{}_{}.mpf", safe_name, counter);
-                counter += 1;
-            }
-
-            let computed_path = target_dir.join(&filename);
-            let to_remove = existing_path.filter(|p| *p != computed_path);
-            (computed_path, to_remove, existing_format)
+            None
         };
+        (explicit_path.to_path_buf(), None, format)
+    } else {
+        // 检查是否已存在同 UUID 的文件（更新场景，优先利用内存索引加速定位）
+        let (existing_path, existing_format) = match find_flow_path_by_uuid(&flow.uuid, flows_dir) {
+            Ok(path) => {
+                let format = fs::read_to_string(&path)
+                    .ok()
+                    .map(|c| detect_flow_format(&c));
+                (Some(path), format)
+            }
+            Err(_) => (None, None),
+        };
+        // 确定目标目录：保持原有文件夹位置，否则使用根目录
+        let target_dir = existing_path
+            .as_ref()
+            .and_then(|p| p.parent().map(|parent| parent.to_path_buf()))
+            .unwrap_or_else(|| flows_dir.to_path_buf());
+
+        // 确保目标目录存在
+        if target_dir != flows_dir {
+            fs::create_dir_all(&target_dir)
+                .map_err(|e| format!("Failed to create target directory: {}", e))?;
+        }
+
+        // 生成文件名，处理冲突
+        let safe_name = sanitize_filename(&flow.name);
+        let mut filename = format!("{}.mpf", safe_name);
+        let mut counter = 2u32;
+
+        loop {
+            let candidate_path = target_dir.join(&filename);
+            // 如果目标路径就是旧文件路径（名称未变），直接跳出
+            let is_old_path = existing_path.as_ref() == Some(&candidate_path);
+            if is_old_path
+                || !candidate_path
+                    .try_exists()
+                    .map_err(|e| format!("failed to check file: {}", e))?
+            {
+                break;
+            }
+            filename = format!("{}_{}.mpf", safe_name, counter);
+            counter += 1;
+        }
+
+        let computed_path = target_dir.join(&filename);
+        let to_remove = existing_path.filter(|p| *p != computed_path);
+        (computed_path, to_remove, existing_format)
+    };
 
     let format = existing_format.unwrap_or(FlowFormat::Yaml);
     let output_string = serialize_flow_file(&flow_file, format)?;
@@ -604,9 +600,7 @@ pub fn save_flow_file_with_meta_and_path(
     }
     invalidate_flow_metadata_cache(&target_path);
     {
-        let mut uuid_cache = UUID_PATH_CACHE
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut uuid_cache = UUID_PATH_CACHE.lock().unwrap_or_else(|e| e.into_inner());
         uuid_cache.insert(flow.uuid.clone(), target_path.clone());
     }
 
@@ -646,9 +640,7 @@ pub fn load_flow_file_with_path(
         .map_err(|e| format!("Flow file corrupted: {} - {}", target_path.display(), e))?;
 
     {
-        let mut uuid_cache = UUID_PATH_CACHE
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut uuid_cache = UUID_PATH_CACHE.lock().unwrap_or_else(|e| e.into_inner());
         uuid_cache.insert(flow_file.flow.uuid.clone(), target_path.clone());
     }
     Ok((flow_file, target_path))
@@ -2481,6 +2473,7 @@ mod tests {
             node_type_statistics: vec![],
             progress_history: vec![],
             flow_snapshot: None,
+            lifecycle: None,
         };
 
         // 保存报告
@@ -2542,6 +2535,7 @@ mod tests {
                 node_type_statistics: vec![],
                 progress_history: vec![],
                 flow_snapshot: None,
+                lifecycle: None,
             },
             StressTestReport {
                 uuid: "report-002".to_string(),
@@ -2558,6 +2552,7 @@ mod tests {
                 node_type_statistics: vec![],
                 progress_history: vec![],
                 flow_snapshot: None,
+                lifecycle: None,
             },
             StressTestReport {
                 uuid: "report-003".to_string(),
@@ -2574,6 +2569,7 @@ mod tests {
                 node_type_statistics: vec![],
                 progress_history: vec![],
                 flow_snapshot: None,
+                lifecycle: None,
             },
         ];
 
@@ -2637,7 +2633,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
         let flow_file = FlowFile {
             _version: 1,
@@ -2668,7 +2665,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
         let meta = serde_json::json!({
             "version": 5,
@@ -2706,7 +2704,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
         let flow_file = FlowFile {
             _version: 1,
@@ -2811,7 +2810,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         }
     }
 

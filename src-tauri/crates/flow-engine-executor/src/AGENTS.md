@@ -17,7 +17,7 @@ src/
 ├── validator.rs                 # Flow structure and config validation
 ├── storage.rs                   # Flow file read/write and persistence
 ├── provider_builder.rs          # DRY: protocol provider construction
-├── hook_runner.rs               # Webhook/Script/Notify hook execution
+├── subgraph_runner.rs           # Setup/Teardown sub-graph execution (topological + visual order, $report injection)
 ├── csv_parser.rs                # Multi-encoding CSV parser for datasets
 ├── command.rs                   # Shared I/O types for CLI and IPC
 ├── debug_event_adapter.rs       # Debug event translation layer
@@ -45,7 +45,7 @@ src/
 | Modify execution loop (traversal, error handling) | `executor.rs` |
 | Add or change node plugin registration | `default_registry.rs` |
 | Add new business command (IPC/CLI handler) | `commands/` (new file + `mod.rs`) |
-| Debug mode: breakpoints, step, continue, inspect | `debug/executor.rs` |
+| Debug mode: breakpoints, step, continue, lifecycle stages (setup/main/teardown) | `debug/executor.rs` |
 | Stress test: concurrency, ramp-up, metrics | `stress_test/` |
 | Data-driven execution (CSV rows into flow) | `dataset_executor/` |
 | Change condition evaluation or branching logic | `conditional_executor.rs` |

@@ -1276,7 +1276,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![create_end_node()],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1302,7 +1303,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node1, start_node2],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1333,7 +1335,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![http_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1360,7 +1363,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1403,7 +1407,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![http_node1, http_node2],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1429,7 +1434,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1449,7 +1455,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1488,7 +1495,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node, http_node, end_node],
             connections: vec![connection1, connection2],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1526,7 +1534,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node, http_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1558,7 +1567,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node.clone(), end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1612,7 +1622,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node, other_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1656,7 +1667,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![http_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1688,7 +1700,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node, end_node_1, end_node_2],
             connections: vec![connection_1, connection_2],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1742,7 +1755,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1778,7 +1792,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node, http_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1809,7 +1824,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1843,7 +1859,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![start_node, http_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1881,7 +1898,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![entry, end1, end2],
             connections: vec![conn1, conn2],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1945,7 +1963,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![entry, conditional, http_node, end_node],
             connections: vec![conn_true, conn_false],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -1997,7 +2016,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![node_a, node_b],
             connections: vec![conn1, conn2],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -2033,7 +2053,8 @@ mod tests {
             initial_variables: None,
             nodes: vec![node_a, node_b, node_c],
             connections: vec![conn1, conn2],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();
@@ -2090,7 +2111,8 @@ mod tests {
             initial_variables: None,
             nodes,
             connections,
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let validator = FlowValidator::new();

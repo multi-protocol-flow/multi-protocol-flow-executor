@@ -45,7 +45,7 @@ pub struct ExecutionResult {
 ///
 /// `input_data` 代表节点消费的输入数据（配置信息）
 /// 通过 `NodeRegistry` 查找对应插件的 `build_report_input` 方法
-fn build_input_data_from_node_config(
+pub(crate) fn build_input_data_from_node_config(
     registry: &NodeRegistry,
     node: &flow_engine_core::node::Node,
 ) -> Option<serde_json::Value> {
@@ -116,8 +116,6 @@ pub struct FlowExecutor {
     cancel_receiver: Option<tokio::sync::watch::Receiver<bool>>,
     /// 节点插件注册表（通过 registry 查找替代 match 分发）
     registry: Arc<NodeRegistry>,
-    /// 钩子执行器（流程完成时触发预定义动作）
-    hook_executor: Option<Arc<dyn flow_engine_core::traits::HookExecutor>>,
     /// 节点无配置超时时的兜底超时（默认 30s）
     fallback_timeout: std::time::Duration,
     /// 子流程调用栈（用于循环调用检测与深度防护）
@@ -145,7 +143,6 @@ impl FlowExecutor {
             debug_event_sender: None,
             cancel_receiver: None,
             registry: Arc::new(crate::default_registry::default_registry()),
-            hook_executor: None,
             fallback_timeout: std::time::Duration::from_millis(FALLBACK_TIMEOUT_MS),
             call_stack: Vec::new(),
             parent_node_uuid: None,
@@ -236,13 +233,44 @@ impl FlowExecutor {
         self
     }
 
-    /// 设置钩子执行器（流程完成时触发预定义动作）
-    pub fn with_hook_executor(
-        mut self,
-        executor: Arc<dyn flow_engine_core::traits::HookExecutor>,
-    ) -> Self {
-        self.hook_executor = Some(executor);
-        self
+    /// 获取节点插件注册表引用
+    pub fn registry(&self) -> &Arc<NodeRegistry> {
+        &self.registry
+    }
+
+    /// 获取流程文件路径
+    pub fn flow_file_path(&self) -> Option<&PathBuf> {
+        self.flow_file_path.as_ref()
+    }
+
+    /// 获取调试事件发送器
+    pub fn debug_event_sender(&self) -> Option<&Arc<dyn DebugEventSender>> {
+        self.debug_event_sender.as_ref()
+    }
+
+    /// 获取执行事件发送器
+    pub fn execution_event_sender(&self) -> Option<&Arc<dyn ExecutionEventSender>> {
+        self.execution_event_sender.as_ref()
+    }
+
+    /// 获取取消信号接收器
+    pub fn cancel_receiver(&self) -> Option<&tokio::sync::watch::Receiver<bool>> {
+        self.cancel_receiver.as_ref()
+    }
+
+    /// 获取调用栈引用
+    pub fn call_stack(&self) -> &Vec<String> {
+        &self.call_stack
+    }
+
+    /// 获取父节点 UUID 引用
+    pub fn parent_node_uuid(&self) -> &Option<String> {
+        &self.parent_node_uuid
+    }
+
+    /// 获取自定义 Provider 映射引用
+    pub fn extra_providers(&self) -> &HashMap<String, Arc<dyn std::any::Any + Send + Sync>> {
+        &self.extra_providers
     }
 
     /// 执行流程
@@ -264,7 +292,6 @@ impl FlowExecutor {
         log_sender: Option<Arc<dyn LogSender>>,
     ) -> ExecutionResult {
         let start_time = tokio::time::Instant::now();
-        let mut executed_count = 0u32;
         let mut node_reports = Vec::new();
         // 每次执行生成独立的 execution_id：同一 flow（相同 flow_uuid）可被多次执行
         // （压测多虚拟用户、数据集多行、重复运行），execution_id 必须每次唯一，
@@ -274,11 +301,19 @@ impl FlowExecutor {
         let initial_variables = variables
             .or_else(|| flow.get_active_variables().map(|v| json!(v)))
             .unwrap_or_else(|| json!({}));
-        let mut var_storage = VariableStorage::new();
-        if let Some(obj) = initial_variables.as_object() {
-            for (key, value) in obj {
-                var_storage.set_variable(key.clone(), value.clone(), String::new());
+        let mut current_vars_map: HashMap<String, serde_json::Value> =
+            match initial_variables.as_object() {
+                Some(obj) => obj.clone().into_iter().collect(),
+                None => HashMap::new(),
+            };
+        if let Some(runtime_vars) = runtime_variables.as_ref().and_then(|v| v.as_object()) {
+            for (k, v) in runtime_vars {
+                current_vars_map.insert(k.clone(), v.clone());
             }
+        }
+        let mut var_storage = VariableStorage::new();
+        for (key, value) in &current_vars_map {
+            var_storage.set_variable(key.clone(), value.clone(), String::new());
         }
 
         let mut call_stack = self.call_stack.clone();
@@ -349,6 +384,202 @@ impl FlowExecutor {
                 Some(warnings.join("; "))
             }
         };
+        let total_flow_nodes = (flow.nodes.len()
+            + flow.setup.as_ref().map(|s| s.nodes.len()).unwrap_or(0)
+            + flow.teardown.as_ref().map(|t| t.nodes.len()).unwrap_or(0))
+            as u32;
+
+        // 发送流程开始事件
+        context
+            .emit_execution_event(ExecutionEvent::FlowStarted {
+                flow_uuid: flow.uuid.clone(),
+                flow_name: flow.name.clone(),
+                total_nodes: total_flow_nodes,
+                parent_node_uuid: self.parent_node_uuid.clone(),
+            })
+            .await;
+
+        // ===== 1. Setup 准备阶段 =====
+        let mut setup_stage_report: Option<flow_engine_core::report::StageExecutionReport> = None;
+        let mut setup_failed = false;
+
+        if let Some(setup_subgraph) = &flow.setup {
+            if !setup_subgraph.is_empty() {
+                match crate::subgraph_runner::execute_subgraph(
+                    setup_subgraph,
+                    current_vars_map.clone(),
+                    self,
+                    self.cancel_receiver.clone(),
+                )
+                .await
+                {
+                    Ok((updated_vars, rep)) => {
+                        if rep.status == flow_engine_core::report::ExecutionStatus::Failed
+                            || rep.status == flow_engine_core::report::ExecutionStatus::Cancelled
+                        {
+                            setup_failed = true;
+                        }
+                        current_vars_map = updated_vars;
+                        setup_stage_report = Some(rep);
+                    }
+                    Err(err) => {
+                        setup_failed = true;
+                        setup_stage_report = Some(flow_engine_core::report::StageExecutionReport {
+                            status: flow_engine_core::report::ExecutionStatus::Failed,
+                            duration_ms: 0,
+                            node_reports: Vec::new(),
+                            error: Some(flow_engine_core::error::ErrorDetail::execution_error(err)),
+                        });
+                    }
+                }
+            }
+        }
+
+        if setup_failed {
+            let is_cancelled = setup_stage_report
+                .as_ref()
+                .map(|r| r.status == flow_engine_core::report::ExecutionStatus::Cancelled)
+                .unwrap_or(false);
+            let mut flow_status = if is_cancelled {
+                flow_engine_core::report::ExecutionStatus::Cancelled
+            } else {
+                flow_engine_core::report::ExecutionStatus::Failed
+            };
+            let flow_error = setup_stage_report
+                .as_ref()
+                .and_then(|r| r.error.clone())
+                .or_else(|| {
+                    Some(ErrorDetail::execution_error(
+                        "Setup stage failed".to_string(),
+                    ))
+                });
+            let main_stage_report = flow_engine_core::report::StageExecutionReport {
+                status: flow_engine_core::report::ExecutionStatus::Skipped,
+                duration_ms: 0,
+                node_reports: Vec::new(),
+                error: None,
+            };
+
+            // ===== 3. Teardown 收尾阶段 =====
+            let mut teardown_stage_report: Option<flow_engine_core::report::StageExecutionReport> =
+                None;
+            let report_snapshot = serde_json::to_value(&main_stage_report).unwrap_or(json!({}));
+            current_vars_map.insert("$report".to_string(), report_snapshot);
+
+            if let Some(teardown_subgraph) = &flow.teardown {
+                if !teardown_subgraph.is_empty() {
+                    match crate::subgraph_runner::execute_subgraph(
+                        teardown_subgraph,
+                        current_vars_map.clone(),
+                        self,
+                        self.cancel_receiver.clone(),
+                    )
+                    .await
+                    {
+                        Ok((updated_vars, rep)) => {
+                            if rep.status == flow_engine_core::report::ExecutionStatus::Cancelled {
+                                flow_status = flow_engine_core::report::ExecutionStatus::Cancelled;
+                            }
+                            current_vars_map = updated_vars;
+                            teardown_stage_report = Some(rep);
+                        }
+                        Err(err) => {
+                            teardown_stage_report =
+                                Some(flow_engine_core::report::StageExecutionReport {
+                                    status: flow_engine_core::report::ExecutionStatus::Failed,
+                                    duration_ms: 0,
+                                    node_reports: Vec::new(),
+                                    error: Some(flow_engine_core::error::ErrorDetail::execution_error(err)),
+                                });
+                        }
+                    }
+                }
+            }
+
+            let stages = flow_engine_core::report::FlowStagesReport {
+                setup: setup_stage_report.clone(),
+                main: main_stage_report,
+                teardown: teardown_stage_report.clone(),
+            };
+
+            let mut all_node_reports = Vec::new();
+            if let Some(s) = &setup_stage_report {
+                all_node_reports.extend(s.node_reports.clone());
+            }
+            if let Some(t) = &teardown_stage_report {
+                all_node_reports.extend(t.node_reports.clone());
+            }
+
+            let total_duration_ms = start_time.elapsed().as_millis() as u64;
+            let end_time = flow_engine_core::utils::unix_timestamp_ms();
+
+            let flow_report = flow_engine_core::report::FlowExecutionReport {
+                uuid: Uuid::new_v4().to_string(),
+                flow_uuid: flow.uuid.clone(),
+                flow_name: flow.name.clone(),
+                start_time: end_time.saturating_sub(total_duration_ms),
+                end_time,
+                duration_ms: total_duration_ms,
+                total_nodes: total_flow_nodes,
+                executed_count: all_node_reports.len() as u32,
+                status: flow_status.clone(),
+                node_reports: all_node_reports.clone(),
+                statistics: flow_engine_core::statistics::FlowStatistics::from_reports(
+                    &all_node_reports,
+                    total_flow_nodes,
+                ),
+                flow_error: flow_error.clone(),
+                execution_mode: flow_engine_core::report::ExecutionMode::Normal,
+                initial_variables: Some(json!(initial_variables)),
+                final_variables: Some(json!(current_vars_map)),
+                execution_path: Vec::new(),
+                skipped_nodes: Vec::new(),
+                ws_streams: Vec::new(),
+                plugin_streams: vec![],
+                flow_snapshot: Some(flow.clone()),
+                end_node_reached: None,
+                flow_warning: None,
+                stages,
+                main_duration_ms: 0,
+            };
+            if flow_status == flow_engine_core::report::ExecutionStatus::Cancelled {
+                context
+                    .emit_execution_event(ExecutionEvent::FlowCancelled {
+                        flow_uuid: flow.uuid.clone(),
+                        reason: "Execution cancelled".to_string(),
+                        parent_node_uuid: self.parent_node_uuid.clone(),
+                    })
+                    .await;
+            } else {
+                context
+                    .emit_execution_event(ExecutionEvent::FlowCompleted {
+                        report: Box::new(flow_report.clone()),
+                        parent_node_uuid: self.parent_node_uuid.clone(),
+                    })
+                    .await;
+            }
+
+            return ExecutionResult {
+                success: false,
+                data: None,
+                error: flow_error
+                    .map(|e| e.message)
+                    .or_else(|| Some("Setup stage failed".to_string())),
+                executed_count: all_node_reports.len() as u32,
+                node_reports: all_node_reports,
+                flow_report: Some(flow_report),
+                execution_id: execution_id.clone(),
+            };
+        }
+
+        // Setup 成功后，将更新后的变量注入 Main 阶段的 context
+        context.variables = VariableStorage::new();
+        for (k, v) in &current_vars_map {
+            context
+                .variables
+                .set_variable(k.clone(), v.clone(), String::new());
+        }
+        let main_start_time = tokio::time::Instant::now();
 
         // 查找开始节点
         // 查找开始节点：优先标准 entry 节点，缺失时回退到 http:ingress（Mock 服务入口）
@@ -402,15 +633,7 @@ impl FlowExecutor {
         // 跳过节点记录（Task 15）：记录被跳过的节点及原因
         let skipped_nodes: Vec<flow_engine_core::report::SkippedNodeInfo> = Vec::new();
 
-        // 发送流程开始事件
-        context
-            .emit_execution_event(ExecutionEvent::FlowStarted {
-                flow_uuid: flow.uuid.clone(),
-                flow_name: flow.name.clone(),
-                total_nodes: flow.nodes.len() as u32,
-                parent_node_uuid: self.parent_node_uuid.clone(),
-            })
-            .await;
+        // 主循环遍历
 
         'execution: while let Some(node) = node_map.get(&current_node_id) {
             // 检测循环（简单防止无限循环）
@@ -557,7 +780,6 @@ impl FlowExecutor {
                     let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
                     let node_duration = node_start_time.elapsed().as_millis() as u64;
 
-                    executed_count += 1;
 
                     // 根据节点类型设置 used_port_id（通过 registry 查找）
                     let type_id = node.data.type_name();
@@ -902,7 +1124,6 @@ impl FlowExecutor {
                         })
                         .await;
 
-                    executed_count += 1;
 
                     // RouteToFalse（默认）: 如果有 false 端口连接，继续执行 false 分支
                     if route_to_false {
@@ -982,57 +1203,7 @@ impl FlowExecutor {
                             })
                             .await;
 
-                        // 生成部分报告（包含已执行节点）
-                        let end_time_ms = flow_engine_core::utils::unix_timestamp_ms();
-                        let flow_status = flow_engine_core::report::ExecutionStatus::Failed;
-
-                        // 获取最终变量快照（Task 16）
-                        let final_variables = context.variables.get_merged_variables();
-
-                        // 收集 WebSocket 消息流（完整数据）
-                        let ws_streams: Vec<flow_engine_core::ws_stream::WsConnectionStream> = {
-                            let streams = context.ws_streams.read().await;
-                            streams.values().cloned().collect()
-                        };
-
-                        let flow_report = flow_engine_core::report::FlowExecutionReport {
-                            uuid: Uuid::new_v4().to_string(),
-                            flow_uuid: flow.uuid.clone(),
-                            flow_name: flow.name.clone(),
-                            start_time: end_time_ms - start_time.elapsed().as_millis() as u64,
-                            end_time: end_time_ms,
-                            duration_ms: start_time.elapsed().as_millis() as u64,
-                            total_nodes: flow.nodes.len() as u32,
-                            executed_count,
-                            status: flow_status,
-                            node_reports: node_reports.clone(),
-                            statistics: flow_engine_core::statistics::FlowStatistics::from_reports(
-                                &node_reports,
-                                flow.nodes.len() as u32,
-                            ),
-                            flow_error: Some(error_detail.clone()),
-                            execution_mode: flow_engine_core::report::ExecutionMode::Normal,
-                            // 新增字段（Task 14, 15, 16）
-                            initial_variables: Some(json!(initial_variables)),
-                            final_variables: Some(json!(final_variables)),
-                            execution_path: execution_path.clone(),
-                            skipped_nodes: skipped_nodes.clone(),
-                            ws_streams,
-                            flow_snapshot: Some(flow.clone()),
-                            end_node_reached: None,
-                            flow_warning: None,
-                            plugin_streams: vec![],
-                        };
-
-                        return ExecutionResult {
-                            success: false,
-                            data: None,
-                            error: Some(error_detail.message.clone()),
-                            executed_count,
-                            node_reports,
-                            flow_report: Some(flow_report),
-                            execution_id: execution_id.clone(),
-                        };
+                        break 'execution;
                     } else {
                         // 可恢复Error（Execution, Connection, Timeout 等）：记录Failed，, terminating current branch
                         log::warn!(
@@ -1067,10 +1238,8 @@ impl FlowExecutor {
 
         // 生成流程执行报告
         let end_time = flow_engine_core::utils::unix_timestamp_ms();
-        let start_time_ms = start_time.elapsed().as_millis() as u64;
 
         // 获取最终变量快照
-        let final_variables = context.variables.get_merged_variables();
 
         // 收集 WebSocket 消息流（完整数据）
         let ws_streams: Vec<flow_engine_core::ws_stream::WsConnectionStream> = {
@@ -1097,7 +1266,7 @@ impl FlowExecutor {
             });
 
         #[allow(clippy::if_same_then_else)]
-        let flow_status = if is_cancelled {
+        let mut flow_status = if is_cancelled {
             flow_engine_core::report::ExecutionStatus::Cancelled
         } else if node_reports
             .iter()
@@ -1109,18 +1278,13 @@ impl FlowExecutor {
         } else {
             flow_engine_core::report::ExecutionStatus::Success
         };
-
-        // 在 flow_status 被 move 到 FlowExecutionReport 之前判断是否Success
-        let flow_succeeded = !matches!(
-            flow_status,
-            flow_engine_core::report::ExecutionStatus::Failed
-        );
-
-        let flow_error = if is_cancelled {
+        let mut flow_error = if is_cancelled {
             Some(ErrorDetail::new(
                 ErrorKind::Cancelled,
                 "Flow execution cancelled by user".to_string(),
             ))
+        } else if let Some(err) = node_reports.iter().find_map(|r| r.error.clone()) {
+            Some(err)
         } else if has_end_nodes && !reached_end_node {
             Some(ErrorDetail::new(
                 ErrorKind::Execution,
@@ -1130,25 +1294,113 @@ impl FlowExecutor {
             None
         };
 
+        // 在 flow_status 被 move 到 FlowExecutionReport 之前判断是否Success
+        let main_duration_ms = main_start_time.elapsed().as_millis() as u64;
+        let main_stage_report = flow_engine_core::report::StageExecutionReport {
+            status: flow_status.clone(),
+            duration_ms: main_duration_ms,
+            node_reports: node_reports.clone(),
+            error: flow_error.clone(),
+        };
+        current_vars_map = context.variables.get_merged_variables();
+
+        // ===== 3. Teardown 收尾阶段 =====
+        let mut teardown_stage_report: Option<flow_engine_core::report::StageExecutionReport> =
+            None;
+        let report_snapshot = serde_json::to_value(&main_stage_report).unwrap_or(json!({}));
+        current_vars_map.insert("$report".to_string(), report_snapshot);
+
+        if let Some(teardown_subgraph) = &flow.teardown {
+            if !teardown_subgraph.is_empty() {
+                match crate::subgraph_runner::execute_subgraph(
+                    teardown_subgraph,
+                    current_vars_map.clone(),
+                    self,
+                    self.cancel_receiver.clone(),
+                )
+                .await
+                {
+                    Ok((updated_vars, rep)) => {
+                        if rep.status == flow_engine_core::report::ExecutionStatus::Cancelled {
+                            flow_status = flow_engine_core::report::ExecutionStatus::Cancelled;
+                            if flow_error.is_none() {
+                                flow_error = rep.error.clone().or_else(|| {
+                                    Some(ErrorDetail::new(
+                                        ErrorKind::Cancelled,
+                                        "Teardown stage cancelled".to_string(),
+                                    ))
+                                });
+                            }
+                        } else if rep.status == flow_engine_core::report::ExecutionStatus::Failed {
+                            if flow_status == flow_engine_core::report::ExecutionStatus::Success {
+                                flow_status = flow_engine_core::report::ExecutionStatus::Failed;
+                                if flow_error.is_none() {
+                                    flow_error = rep.error.clone().or_else(|| {
+                                        Some(ErrorDetail::execution_error(
+                                            "Teardown stage failed".to_string(),
+                                        ))
+                                    });
+                                }
+                            }
+                        }
+                        current_vars_map = updated_vars;
+                        teardown_stage_report = Some(rep);
+                    }
+                    Err(err) => {
+                        if flow_status == flow_engine_core::report::ExecutionStatus::Success {
+                            flow_status = flow_engine_core::report::ExecutionStatus::Failed;
+                            if flow_error.is_none() {
+                                flow_error = Some(ErrorDetail::execution_error(err.clone()));
+                            }
+                        }
+                        teardown_stage_report =
+                            Some(flow_engine_core::report::StageExecutionReport {
+                                status: flow_engine_core::report::ExecutionStatus::Failed,
+                                duration_ms: 0,
+                                node_reports: Vec::new(),
+                                error: Some(ErrorDetail::execution_error(err)),
+                            });
+                    }
+                }
+            }
+        }
+
+        let stages = flow_engine_core::report::FlowStagesReport {
+            setup: setup_stage_report.clone(),
+            main: main_stage_report,
+            teardown: teardown_stage_report.clone(),
+        };
+
+        let mut all_node_reports = Vec::new();
+        if let Some(s) = &setup_stage_report {
+            all_node_reports.extend(s.node_reports.clone());
+        }
+        all_node_reports.extend(node_reports.clone());
+        if let Some(t) = &teardown_stage_report {
+            all_node_reports.extend(t.node_reports.clone());
+        }
+        let total_executed_count = all_node_reports.len() as u32;
+        let total_duration_ms = start_time.elapsed().as_millis() as u64;
+
         let flow_report = flow_engine_core::report::FlowExecutionReport {
             uuid: Uuid::new_v4().to_string(),
             flow_uuid: flow.uuid.clone(),
             flow_name: flow.name.clone(),
-            start_time: end_time - start_time_ms,
+            start_time: end_time.saturating_sub(total_duration_ms),
             end_time,
-            duration_ms: start_time_ms,
-            total_nodes: flow.nodes.len() as u32,
-            executed_count,
-            status: flow_status,
-            node_reports: node_reports.clone(),
+            duration_ms: total_duration_ms,
+            total_nodes: total_flow_nodes,
+            executed_count: total_executed_count,
+            status: flow_status.clone(),
+            node_reports: all_node_reports.clone(),
             statistics: flow_engine_core::statistics::FlowStatistics::from_reports(
-                &node_reports,
-                flow.nodes.len() as u32,
+                &all_node_reports,
+                total_flow_nodes,
             ),
-            flow_error,
+            flow_error: flow_error.clone(),
             execution_mode: flow_engine_core::report::ExecutionMode::Normal,
             initial_variables: Some(json!(initial_variables)),
-            final_variables: Some(json!(final_variables)),
+            final_variables: Some(json!(current_vars_map)),
             execution_path,
             skipped_nodes,
             ws_streams,
@@ -1160,9 +1412,13 @@ impl FlowExecutor {
                 None
             },
             flow_warning,
+            stages,
+            main_duration_ms,
         };
 
         // 发送流程结束事件
+        let is_cancelled = is_cancelled
+            || flow_status == flow_engine_core::report::ExecutionStatus::Cancelled;
         if is_cancelled {
             context
                 .emit_execution_event(ExecutionEvent::FlowCancelled {
@@ -1180,40 +1436,14 @@ impl FlowExecutor {
                 .await;
         }
 
-        // 触发流程钩子
-        if let Some(ref hook_executor) = self.hook_executor {
-            if let Some(ref hooks) = flow.hooks {
-                if !hooks.is_empty() {
-                    let status = if is_cancelled {
-                        "cancelled"
-                    } else if matches!(
-                        flow_report.status,
-                        flow_engine_core::report::ExecutionStatus::Success
-                    ) {
-                        "success"
-                    } else {
-                        "failure"
-                    };
-                    let error_msg = flow_report.flow_error.as_ref().map(|e| e.message.clone());
-                    let hook_context = flow_engine_core::hook::HookContext {
-                        flow_uuid: flow.uuid.clone(),
-                        flow_name: flow.name.clone(),
-                        status: status.to_string(),
-                        duration_ms: flow_report.duration_ms,
-                        error: error_msg,
-                    };
-                    hook_executor.execute_all(hooks, &hook_context);
-                }
-            }
-        }
-
+        let flow_succeeded = flow_status == flow_engine_core::report::ExecutionStatus::Success;
         if is_cancelled {
             ExecutionResult {
                 success: false,
                 data: None,
                 error: Some("Flow execution cancelled".to_string()),
-                executed_count,
-                node_reports,
+                executed_count: total_executed_count,
+                node_reports: all_node_reports,
                 flow_report: Some(flow_report),
                 execution_id: execution_id.clone(),
             }
@@ -1223,8 +1453,8 @@ impl FlowExecutor {
                 data: if flow_succeeded {
                     Some(json!({
                         "flow_id": flow.uuid,
-                        "executed_count": executed_count,
-                        "execution_time": start_time_ms,
+                        "executed_count": total_executed_count,
+                        "execution_time": total_duration_ms,
                     }))
                 } else {
                     None
@@ -1232,10 +1462,12 @@ impl FlowExecutor {
                 error: if flow_succeeded {
                     None
                 } else {
-                    Some("Flow execution failed".to_string())
+                    flow_error
+                        .map(|e| e.message)
+                        .or_else(|| Some("Flow execution failed".to_string()))
                 },
-                executed_count,
-                node_reports,
+                executed_count: total_executed_count,
+                node_reports: all_node_reports,
                 flow_report: Some(flow_report),
                 execution_id: execution_id.clone(),
             }
@@ -1253,7 +1485,7 @@ impl FlowExecutor {
     /// - `Result<(Option<String>, Option<serde_json::Value>), String>`:
     ///   - `Ok((next_node_id`, `output_data))`: 执行Success，返回下一个节点 ID 和输出数据
     ///   - Err(error): 执行Failed，返回Error信息
-    async fn execute_node(
+    pub(crate) async fn execute_node(
         &self,
         node: &Node,
         context: &mut ExecutionContext,
@@ -1506,7 +1738,9 @@ impl FlowExecutor {
 /// 协议执行器在 Ok 路径下将错误信息作为字符串嵌入 `output_data`["error"]，
 /// 以在保留部分输出数据（如请求信息、时序）的同时传递错误信息。
 /// 此函数提取该错误并构建 ErrorDetail，同时通过文本匹配推测 `ErrorKind`。
-fn extract_error_from_output(output_data: &Option<serde_json::Value>) -> Option<ErrorDetail> {
+pub(crate) fn extract_error_from_output(
+    output_data: &Option<serde_json::Value>,
+) -> Option<ErrorDetail> {
     let msg = output_data.as_ref()?.get("error")?;
     let msg = match msg {
         serde_json::Value::String(s) => s.clone(),
@@ -1593,7 +1827,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -1646,7 +1881,8 @@ mod tests {
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -1685,7 +1921,8 @@ mod tests {
             description: None,
             nodes: vec![http_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -1742,7 +1979,8 @@ mod tests {
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let variables = json!({
@@ -1803,7 +2041,8 @@ mod tests {
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -1843,7 +2082,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -1895,7 +2135,8 @@ mod tests {
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -1947,7 +2188,8 @@ mod tests {
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -1999,7 +2241,8 @@ mod tests {
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -2041,7 +2284,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -2096,7 +2340,8 @@ mod tests {
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -2169,7 +2414,8 @@ mod tests {
             description: None,
             nodes: vec![start_node, end_node_1, end_node_2],
             connections: vec![connection_1, connection_2],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -2360,7 +2606,8 @@ mod tests {
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         // 创建取消通道并立即发送取消信号
@@ -2414,7 +2661,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         // 创建取消通道但不发送信号
@@ -2451,7 +2699,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let (tx, rx) = tokio::sync::watch::channel(false);
@@ -2499,7 +2748,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();
@@ -2562,7 +2812,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let executor = FlowExecutor::new();

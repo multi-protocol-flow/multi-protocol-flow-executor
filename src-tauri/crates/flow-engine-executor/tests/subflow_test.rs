@@ -126,7 +126,8 @@ async fn test_subflow_basic_execution_and_variable_passing() {
             target_node_uuid: "child-script".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+            teardown: None,
     };
 
     write_flow_file(&child_path, &child_flow);
@@ -185,7 +186,8 @@ async fn test_subflow_basic_execution_and_variable_passing() {
             target_node_uuid: "parent-subflow".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     let executor = FlowExecutor::new();
@@ -272,7 +274,8 @@ async fn test_subflow_direct_cycle_validation_and_runtime() {
             target_node_uuid: "subflow-1".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     // 1. 静态验证拦截自引用
@@ -349,7 +352,8 @@ async fn test_subflow_indirect_cycle_runtime_guard() {
             target_node_uuid: "a-subflow".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     // Flow B calls Flow A (indirect cycle)
@@ -385,7 +389,8 @@ async fn test_subflow_indirect_cycle_runtime_guard() {
             target_node_uuid: "b-subflow".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     write_flow_file(&flow_a_path, &flow_a);
@@ -473,7 +478,8 @@ async fn test_subflow_indirect_cycle_static_validator() {
             target_node_uuid: "a-subflow".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     // Flow B calls Flow A (indirect cycle)
@@ -509,7 +515,8 @@ async fn test_subflow_indirect_cycle_static_validator() {
             target_node_uuid: "b-subflow".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     write_flow_file(&flow_a_path, &flow_a);
@@ -559,7 +566,8 @@ async fn test_subflow_nested_3_levels_valid() {
             target_node_uuid: "c-end".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     // Flow B calls Flow C
@@ -605,7 +613,8 @@ async fn test_subflow_nested_3_levels_valid() {
                 target_port_id: "in".to_string(),
             },
         ],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     // Flow A calls Flow B
@@ -651,7 +660,8 @@ async fn test_subflow_nested_3_levels_valid() {
                 target_port_id: "in".to_string(),
             },
         ],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     write_flow_file(&flow_a_path, &flow_a);
@@ -698,7 +708,8 @@ async fn test_subflow_failure_routing() {
             target_node_uuid: "c-script".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     write_flow_file(&child_path, &child_flow);
@@ -766,7 +777,8 @@ async fn test_subflow_failure_routing() {
                 target_port_id: "in".to_string(),
             },
         ],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     let executor = FlowExecutor::new();
@@ -821,7 +833,8 @@ async fn test_subflow_resolved_by_id_in_configured_flows_dir() {
             target_node_uuid: "child-script".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
     // 用生产同款存储写入，落在配置目录的子文件夹中（文件名由流程名生成，与 UUID 不同）
     flow_engine_executor::storage::save_flow_file(&child_flow, &nested_dir)
@@ -861,7 +874,8 @@ async fn test_subflow_resolved_by_id_in_configured_flows_dir() {
             target_node_uuid: "parent-subflow".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     let result = FlowExecutor::new()
@@ -935,7 +949,8 @@ async fn test_subflow_missing_id_reports_searched_dirs() {
             target_node_uuid: "parent-subflow".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     let result = FlowExecutor::new()
@@ -1016,7 +1031,8 @@ async fn test_subflow_events_are_tagged_with_parent_node_uuid() {
             target_node_uuid: "child-script".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
     write_flow_file(&child_path, &child_flow);
 
@@ -1053,7 +1069,8 @@ async fn test_subflow_events_are_tagged_with_parent_node_uuid() {
             target_node_uuid: "parent-subflow".to_string(),
             target_port_id: "in".to_string(),
         }],
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     let recorder = std::sync::Arc::new(EventRecorder::default());
