@@ -119,6 +119,8 @@ mod tests {
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
+            stages: flow_engine_core::report::FlowStagesReport::default(),
+            main_duration_ms: 1000,
             plugin_streams: vec![],
         }
     }

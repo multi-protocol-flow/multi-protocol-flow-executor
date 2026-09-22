@@ -758,7 +758,8 @@ mod tests {
                 "flow_seed".to_string(),
                 serde_json::json!("seed-1"),
             )])),
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let manager = IngressManager::new();
@@ -903,7 +904,8 @@ mod tests {
             nodes: vec![ingress_node, assert_node, respond_node],
             connections: vec![conn1, conn2],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let manager = IngressManager::new();
@@ -1035,7 +1037,8 @@ mod tests {
             nodes: vec![ingress_node, respond_node],
             connections: vec![conn],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let (event_tx, mut event_rx) = mpsc::unbounded_channel::<DebugEvent>();
@@ -1165,7 +1168,8 @@ mod tests {
                 target_port_id: "flow_in".to_string(),
             }],
             initial_variables: None,
-            hooks: None,
+            setup: None,
+            teardown: None,
         }
     }
 

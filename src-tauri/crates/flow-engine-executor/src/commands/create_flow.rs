@@ -51,7 +51,8 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
         nodes: vec![start_node, end_node],
         connections: vec![],
         initial_variables: None,
-        hooks: None,
+        setup: None,
+        teardown: None,
     };
 
     CreateFlowCommandOutput { flow }

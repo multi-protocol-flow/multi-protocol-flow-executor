@@ -114,9 +114,6 @@ pub async fn execute_flow(
     if let Some(rx) = cancel_receiver {
         executor = executor.with_cancel_receiver(rx);
     }
-    // 挂载默认钩子执行器
-    executor =
-        executor.with_hook_executor(Arc::new(crate::hook_runner::DefaultHookExecutor::new()));
     let result = executor
         .execute_flow(&flow, resolved_variables, None, log_sender.clone())
         .await;
@@ -220,7 +217,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let input = ExecuteFlowCommandInput::new(flow_id.clone());
@@ -263,7 +261,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         // 传入变量
@@ -321,7 +320,8 @@ mod tests {
             description: None,
             nodes: vec![http_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let input = ExecuteFlowCommandInput::new(flow_id.clone());
@@ -366,7 +366,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let input = ExecuteFlowCommandInput::new(flow_id.clone());
@@ -431,7 +432,8 @@ mod tests {
             description: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let input = ExecuteFlowCommandInput::new(flow_id.clone());
@@ -469,7 +471,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let input = ExecuteFlowCommandInput::new(flow_id.clone());
@@ -509,7 +512,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let input = ExecuteFlowCommandInput::new(flow_id.clone());
@@ -549,7 +553,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         // 传入空对象
@@ -601,7 +606,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let input = ExecuteFlowCommandInput::new(flow_id.clone());
@@ -682,7 +688,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let input = ExecuteFlowCommandInput::new(flow_id)
@@ -747,7 +754,8 @@ mod tests {
             description: None,
             nodes: vec![start_node],
             connections: vec![],
-            hooks: None,
+            setup: None,
+            teardown: None,
         };
 
         let input =
