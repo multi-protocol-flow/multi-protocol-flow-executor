@@ -55,6 +55,7 @@ import { NodeExecutionDetails } from '@/components/execution/NodeExecutionDetail
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import type { ExecutionStatus, FlowExecutionReport, NodeExecutionReport } from '@/types';
+import type { FlowStage } from '@/stores';
 
 // ============================================================================
 // 常量
@@ -117,22 +118,39 @@ interface ExecStatusInfo {
 /**
  * 根据报告获取节点的执行状态信息
  */
-function getExecStatus(nodeId: string, report: FlowExecutionReport): ExecStatusInfo {
-  const isInPath = report.execution_path?.includes(nodeId);
-  const nodeReport = report.node_reports.find((r) => r.node_uuid === nodeId);
+function getExecStatus(
+  nodeId: string,
+  report: FlowExecutionReport,
+  stage: FlowStage = 'main',
+): ExecStatusInfo {
+  const stageReports = report.stages?.[stage]?.node_reports;
+  const nodeReport = (stageReports ?? report.node_reports).find((r) => r.node_uuid === nodeId);
 
-  if (!nodeReport || !isInPath) {
+  if (!nodeReport) {
     return { status: 'unexecuted' };
   }
 
-  const order =
-    nodeReport.status === 'success'
-      ? (report.execution_path?.indexOf(nodeId) ?? -1) + 1
-      : undefined;
+  if (stage === 'main' && report.execution_path && report.execution_path.length > 0) {
+    const isInPath = report.execution_path.includes(nodeId);
+    if (!isInPath && nodeReport.status === 'success') {
+      return { status: 'unexecuted' };
+    }
+  }
+
+  let order: number | undefined;
+  if (nodeReport.status === 'success') {
+    if (stage === 'main' && report.execution_path) {
+      const idx = report.execution_path.indexOf(nodeId);
+      if (idx >= 0) order = idx + 1;
+    } else if (stageReports) {
+      const idx = stageReports.findIndex((r) => r.node_uuid === nodeId && r.status === 'success');
+      if (idx >= 0) order = idx + 1;
+    }
+  }
 
   return {
     status: nodeReport.status,
-    order: order && order > 0 ? order : undefined,
+    order,
     nodeReport,
   };
 }
@@ -274,6 +292,8 @@ function CanvasReportViewerInner({
   const { fitView, setCenter } = useReactFlow();
   const [panelWidth, setPanelWidth] = useState(500);
   const [isDragging, setIsDragging] = useState(false);
+  // 报告快照中的生命周期阶段：Setup/Teardown 存在于快照时可按阶段切换查看执行状态
+  const [stage, setStage] = useState<FlowStage>('main');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -304,15 +324,20 @@ function CanvasReportViewerInner({
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging]);
+  // 快照包含生命周期阶段时才提供阶段切换
+  const hasLifecycleStages = Boolean(
+    report.flow_snapshot && (report.flow_snapshot.setup || report.flow_snapshot.teardown),
+  );
+
   // 将 flow_snapshot 转换为增强的 React Flow 节点和边
   const { nodes, edges } = useMemo(() => {
     if (!report.flow_snapshot) return { nodes: [], edges: [] };
 
-    const { nodes: rfNodes, edges: rfEdges } = convertFlowToReactFlow(report.flow_snapshot);
+    const { nodes: rfNodes, edges: rfEdges } = convertFlowToReactFlow(report.flow_snapshot, stage);
 
     // 增强节点：添加执行状态信息和样式
     const enhancedNodes: FlowNode[] = rfNodes.map((node) => {
-      const { status, order } = getExecStatus(node.id, report);
+      const { status, order } = getExecStatus(node.id, report, stage);
 
       const classNames: string[] = [];
       if (status === 'unexecuted') {
@@ -360,7 +385,7 @@ function CanvasReportViewerInner({
     });
 
     return { nodes: enhancedNodes, edges: enhancedEdges };
-  }, [report]);
+  }, [report, stage]);
 
   // 组件挂载时 fitView
   useEffect(() => {
@@ -370,7 +395,7 @@ function CanvasReportViewerInner({
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [fitView, nodes.length]);
+  }, [fitView, nodes.length, stage]);
   // 节点点击处理：选中并平滑平移可视区域居中聚焦
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: FlowNode) => {
@@ -407,6 +432,34 @@ function CanvasReportViewerInner({
     >
       {/* 左侧画布：自适应占据剩余可视区域 */}
       <div className="flex-1 h-full min-w-0 relative">
+        {/* 阶段切换（仅当快照包含 Setup/Teardown 时显示） */}
+        {hasLifecycleStages && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 rounded-lg border border-border bg-background/95 p-1 shadow-md backdrop-blur">
+            {(['setup', 'main', 'teardown'] as const).map((candidate) => (
+              <button
+                key={candidate}
+                type="button"
+                data-testid={`report-stage-${candidate}`}
+                onClick={() => {
+                  setStage(candidate);
+                  onNodeSelect(null);
+                }}
+                className={cn(
+                  'rounded-md px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                  candidate === stage
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+                )}
+              >
+                {candidate === 'setup'
+                  ? getLL().stages.short_setup()
+                  : candidate === 'teardown'
+                    ? getLL().stages.short_teardown()
+                    : getLL().stages.short_main()}
+              </button>
+            ))}
+          </div>
+        )}
         <ReactFlow
           nodes={nodes}
           edges={edges}

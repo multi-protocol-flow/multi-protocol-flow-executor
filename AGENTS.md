@@ -33,6 +33,8 @@ root/
 | Rust crate 总览 | `src-tauri/crates/AGENTS.md` |
 | IPC 命令 | `src-tauri/src/tauri_commands.rs` |
 | 执行引擎 | `src-tauri/crates/flow-engine-executor/` |
+| 生命周期阶段执行 (Setup/Teardown) | `src-tauri/crates/flow-engine-executor/src/subgraph_runner.rs` |
+| 阶段切换栏 | `src/components/canvas/StageTabBar.tsx` |
 | 协议执行器 | `src-tauri/crates/flow-engine-*/` |
 | CLI 入口 | `src-tauri/crates/mpe-cli/src/` (注意: `src-tauri/src/cli/` 是过期副本) |
 | CLI 测试夹具 | `tests/cli/` + `tests/fixtures/flows/` |
@@ -82,6 +84,18 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 ### 节点类型 (37 variants)
 
 定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), script, assertion, tcp(4), udp(4), sse(3), graphql(5), variable_extractor, proxy。（redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 及 mcp/grpc 已移出宿主，见 plugins/*——插件节点以 `<proto>:*` 命名空间提供）
+
+### 流程生命周期阶段 (Setup / Main / Teardown)
+
+`Flow` 由三个阶段组成（定义在 `flow-engine-core/src/flow.rs`）：
+
+- **Main** — `flow.nodes` + `flow.connections`，核心业务流程。单次运行、压测时并发循环、数据集执行时逐行消费。
+- **Setup** — `flow.setup`（`FlowSubGraph`，可选），测试前**单次**执行：登录预热、变量初始化、资源准备。导出的变量合并进 Main 上下文。
+- **Teardown** — `flow.teardown`（`FlowSubGraph`，可选），测试后**单次**执行：告警通知、资源清理。可用只读保留变量 `$report`（Main 阶段报告，如 `{{$report.status}}`、`{{$report.duration_ms}}`）。
+
+执行编排在 `flow-engine-executor/src/executor.rs`（`execute_flow`，子图执行走 `subgraph_runner.rs`）：Setup → Main → Teardown。Setup 失败则跳过 Main（`stages.main.status == "skipped"`）但仍执行 Teardown；Main 成功而 Teardown 失败时整体标记失败，但 `stages.main.status` 保持 `success`。压测（`stress_test/executor.rs`）与数据集执行（`dataset_executor/executor.rs`）同样单次执行 Setup/Teardown，且压测指标仅采集 Main 节点，保证 QPS/P99 纯净。
+
+阶段状态在 `FlowExecutionReport.stages`（`FlowStagesReport`）与 `StressTestReport.lifecycle` 中上报；前端画布通过 `useFlowStore.activeStage` 在三个阶段子图之间切换（节点/连线变更只作用于当前阶段），报告详情用 `StagesSection` 分阶段折叠展示。
 
 ### 执行错误策略 (on_error)
 

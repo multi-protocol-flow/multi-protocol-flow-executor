@@ -17,6 +17,8 @@ import {
 import { cn } from '@/lib/utils';
 import { getNodeMeta } from '@/lib/nodeMeta';
 import { containsNodeReport } from '@/lib/reportTree';
+import { useFlowStore, getNodeStage } from '@/stores';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { NodeExecutionReport } from '@/types';
 
 interface NodeListItemProps {
@@ -81,11 +83,13 @@ function NodeTreeRow({
   onSelect,
   onSelectNode,
 }: NodeTreeRowProps) {
+  const flow = useFlowStore((s) => s.flow);
+  const stage = flow ? getNodeStage(flow, report.node_uuid) : null;
+  const stageLl = getLL().stages;
   const subNodes = report.sub_flow_report?.node_reports;
   const hasSubNodes = Boolean(subNodes && subNodes.length > 0);
   const isDescendantSelected = containsNodeReport(subNodes, selectedNodeUuid);
   const [isExpanded, setIsExpanded] = useState<boolean>(isDescendantSelected);
-
   // 选中的是更深层子节点时自动展开
   useEffect(() => {
     if (isDescendantSelected) {
@@ -156,6 +160,21 @@ function NodeTreeRow({
         >
           {report.node_name}
         </span>
+
+        {/* 所属阶段标记 (Setup / Teardown) */}
+        {stage && stage !== 'main' && (
+          <span
+            className={cn(
+              'shrink-0 rounded px-1 py-0.5 font-medium leading-none border',
+              isTopLevel ? 'text-[9px]' : 'text-[8px]',
+              stage === 'setup'
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+            )}
+          >
+            {stage === 'setup' ? stageLl.short_setup() : stageLl.short_teardown()}
+          </span>
+        )}
 
         {/* 类型标签 */}
         <span

@@ -179,54 +179,6 @@ export const OPERATOR_OPTIONS = [
 // ============================================================================
 // Entry 配置 Schema
 // ============================================================================
-// Hook 钩子 Schema
-// ============================================================================
-
-/** 钩子触发条件 schema */
-const hookTriggerSchema = z.enum(['on_success', 'on_failure', 'on_cancel', 'on_complete']);
-
-/** Webhook 动作 schema */
-const webhookHookActionSchema = z.object({
-  type: z.literal('webhook'),
-  url: z.string().min(1, getLL().validation.url_required()),
-  method: z.string().min(1, getLL().validation.webhook_method_required()),
-  headers: z.record(z.string(), z.string()),
-  body_template: z.string().optional(),
-  timeout_ms: z.number().min(1000).max(300000).optional(),
-});
-
-/** Script 动作 schema */
-const scriptHookActionSchema = z.object({
-  type: z.literal('script'),
-  code: z.string().min(1, getLL().validation.script_code_required()),
-  timeout_ms: z.number().min(1000).max(300000).optional(),
-});
-
-/** Notify 动作 schema */
-const notifyHookActionSchema = z.object({
-  type: z.literal('notify'),
-  title_template: z.string().min(1, getLL().validation.notify_title_required()),
-  message_template: z.string().min(1, getLL().validation.notify_message_required()),
-});
-
-/** 钩子动作 discriminated union */
-const hookActionSchema = z.discriminatedUnion('type', [
-  webhookHookActionSchema,
-  scriptHookActionSchema,
-  notifyHookActionSchema,
-]);
-
-/** 单个钩子 schema */
-const flowHookSchema = z.object({
-  uuid: z.string(),
-  name: z.string().min(1, getLL().validation.hook_name_required()),
-  enabled: z.boolean(),
-  trigger: hookTriggerSchema,
-  action: hookActionSchema,
-});
-
-/** 钩子列表 schema */
-const hooksSchema = z.array(flowHookSchema).max(10, getLL().validation.hooks_max()).optional();
 
 /**
  * Entry 配置表单 Schema
@@ -237,8 +189,6 @@ export const entryConfigSchema = z.object({
   dataset_path: z.string().optional(),
   /** CSV 编码（不设置=自动检测） */
   dataset_encoding: z.string().optional(),
-  /** 流程钩子配置 */
-  hooks: hooksSchema,
 });
 
 export type EntryConfigFormData = z.infer<typeof entryConfigSchema>;

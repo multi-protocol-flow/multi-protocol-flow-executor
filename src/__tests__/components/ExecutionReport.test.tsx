@@ -11,6 +11,10 @@ import type { FlowExecutionReport } from '@/types';
 // Mock Zustand store
 vi.mock('@/stores', () => ({
   useExecutionStore: vi.fn(),
+  useFlowStore: vi.fn((selector) =>
+    typeof selector === 'function' ? selector({ flow: null }) : { flow: null },
+  ),
+  getNodeStage: vi.fn(() => null),
 }));
 
 // Mock scroll-area to avoid Radix issues in tests

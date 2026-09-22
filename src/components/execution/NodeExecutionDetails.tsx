@@ -16,6 +16,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
+import { useFlowStore, getNodeStage } from '@/stores';
 import { NODE_TYPE_NAMES, NODE_TYPE_COLORS } from './constants';
 import { RawJsonViewer } from './viewers/RawJsonViewer';
 import { getViewerComponent } from '@/lib/viewerRegistry';
@@ -54,6 +55,9 @@ export function NodeExecutionDetails({ report, className }: NodeExecutionDetails
   const isCancelled = status === 'cancelled';
   const nodeTypeLabel = NODE_TYPE_NAMES[report.node_type] || report.node_type;
   const nodeTypeColor = NODE_TYPE_COLORS[report.node_type] || '';
+  const flow = useFlowStore((s) => s.flow);
+  const stage = flow ? getNodeStage(flow, report.node_uuid) : null;
+  const stageLl = getLL().stages;
 
   return (
     <div
@@ -93,6 +97,19 @@ export function NodeExecutionDetails({ report, className }: NodeExecutionDetails
               {report.node_name}
             </span>
 
+            {/* 所属阶段标记 (Setup / Teardown) */}
+            {stage && stage !== 'main' && (
+              <span
+                className={cn(
+                  'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none border',
+                  stage === 'setup'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+                )}
+              >
+                {stage === 'setup' ? stageLl.short_setup() : stageLl.short_teardown()}
+              </span>
+            )}
             {/* 节点类型标签 */}
             <Badge
               variant="outline"

@@ -41,7 +41,7 @@ import { CanvasReportViewer } from './CanvasReportViewer';
 import { cn } from '@/lib/utils';
 import { findNodeReportInTree } from '@/lib/reportTree';
 import { Button } from '@/components/ui/button';
-import { CopyButton } from '@/components/common';
+import { CopyButton, StagesSection } from '@/components/common';
 /** 统计卡片组件 */
 function StatCard({
   icon: Icon,
@@ -429,6 +429,11 @@ export function ExecutionReport() {
                     </div>
                   )}
 
+                  {/* 生命周期阶段执行记录（Setup / Main / Teardown） */}
+                  {displayReport.stages && (
+                    <StagesSection stages={displayReport.stages} />
+                  )}
+
                   {/* WebSocket 消息流 */}
                   {displayReport.ws_streams && displayReport.ws_streams.length > 0 && (
                     <div className="rounded-xl border border-border/50 overflow-hidden">
@@ -490,7 +495,7 @@ export function ExecutionReport() {
                           : 'text-muted-foreground hover:text-foreground'
                       )}
                     >
-                      全部 ({displayReport.node_reports.length})
+                      {ll.execution.report.filter_all()} ({displayReport.node_reports.length})
                     </button>
                     <button
                       type="button"
@@ -503,7 +508,7 @@ export function ExecutionReport() {
                       )}
                     >
                       <XCircle className="w-3 h-3" />
-                      <span>失败 ({failedNodes.length})</span>
+                      <span>{ll.execution.report.filter_failed()} ({failedNodes.length})</span>
                     </button>
                   </div>
                 )}

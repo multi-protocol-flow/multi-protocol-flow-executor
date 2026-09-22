@@ -29,6 +29,7 @@ import {
 } from '@/stores/stressTest';
 import { StressTestCharts } from './StressTestCharts';
 import { ErrorSampleDialog } from './ErrorSampleDialog';
+import { StagesSection } from '@/components/common';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { ErrorSample } from '@/types/stressTest';
@@ -598,6 +599,13 @@ export function StressTestResult() {
                   <span>{getLL().flow.stress_result_config_duration({ seconds: report.config.durationSeconds })}</span>
                 </div>
               </>
+            )}
+
+            {/* 生命周期执行记录（Setup & Teardown 单次执行日志）
+                顶部指标卡严格为 Main 并发循环指标，前置/后置阶段单独折叠展示，
+                避免单次执行的耗时污染 QPS/P99 统计。 */}
+            {report.lifecycle && (
+              <StagesSection stages={report.lifecycle} nodeRowLimit={20} />
             )}
           </div>
         </ScrollArea>

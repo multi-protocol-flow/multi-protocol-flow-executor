@@ -3,7 +3,12 @@
  * 按加入时间排序，支持选择高亮、跳转定位、全选和批量删除
  */
 import { useState, useMemo, useCallback } from 'react';
-import { useFlowStore, useUIStore, selectNodes } from '@/stores';
+import {
+  useFlowStore,
+  useUIStore,
+  selectAllStageNodes,
+  type FlowStage,
+} from '@/stores';
 import { NODE_META, getNodeDisplayName } from '@/lib/nodeMeta';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import { resolveBackendIcon } from '@/lib/nodeIcons';
@@ -98,8 +103,25 @@ function NodeTypeIcon({ type }: { type: NodeType }) {
 
 export function FlowNodeList({ readOnly = false, showHeader = true }: FlowNodeListProps) {
   const ll = getLL().panels.flowNodeList;
-  // 按加入时间排序（flow.nodes 的顺序即为加入顺序）
-  const nodes = useFlowStore(selectNodes);
+  const stageLl = getLL().stages;
+  // 三阶段节点按 准备 → 核心 → 收尾 顺序聚合展示（各阶段内保持加入顺序）
+  const stageNodes = useFlowStore(selectAllStageNodes);
+  const nodes = useMemo(() => stageNodes.map((entry) => entry.node), [stageNodes]);
+  const stageLabel = useCallback(
+    (stage: FlowStage) =>
+      stage === 'setup'
+        ? stageLl.short_setup()
+        : stage === 'teardown'
+          ? stageLl.short_teardown()
+          : stageLl.short_main(),
+    [stageLl],
+  );
+  const stageByUuid = useMemo(
+    () => new Map(stageNodes.map((entry) => [entry.node.uuid, entry.stage])),
+    [stageNodes],
+  );
+  const activeStage = useFlowStore((s) => s.activeStage);
+  const setActiveStage = useFlowStore((s) => s.setActiveStage);
   const selectedNodeId = useFlowStore((s) => s.selectedNodeId);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
 
@@ -141,11 +163,16 @@ export function FlowNodeList({ readOnly = false, showHeader = true }: FlowNodeLi
     }
   }, [allChecked, nodes]);
 
-  // 点击节点 → 选中并居中定位，切换到节点配置面板
-  const handleClickNode = useCallback((uuid: string) => {
-    useFlowStore.getState().selectNode(uuid);
-    useFlowStore.getState().focusOnNode(uuid);
-  }, []);
+  // 点击节点 → 先切到其所属阶段画布，再选中并居中定位
+  const handleClickNode = useCallback(
+    (uuid: string) => {
+      const stage = stageByUuid.get(uuid);
+      if (stage && stage !== activeStage) setActiveStage(stage);
+      useFlowStore.getState().selectNode(uuid);
+      useFlowStore.getState().focusOnNode(uuid);
+    },
+    [activeStage, setActiveStage, stageByUuid],
+  );
 
   // 批量删除
   const handleBatchDelete = useCallback(() => {
@@ -257,6 +284,20 @@ export function FlowNodeList({ readOnly = false, showHeader = true }: FlowNodeLi
 
               {/* 节点名称 */}
               <span className="truncate text-xs flex-1">{node.name}</span>
+
+              {/* 所属阶段标记（Setup/Teardown 节点需与画布阶段区分） */}
+              {stageByUuid.get(node.uuid) !== 'main' && (
+                <span
+                  className={cn(
+                    'shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none',
+                    stageByUuid.get(node.uuid) === 'setup'
+                      ? 'bg-emerald-500/10 text-emerald-600'
+                      : 'bg-amber-500/10 text-amber-600',
+                  )}
+                >
+                  {stageLabel(stageByUuid.get(node.uuid) as FlowStage)}
+                </span>
+              )}
 
               {/* 节点类型标签 */}
               {hasBadge && (

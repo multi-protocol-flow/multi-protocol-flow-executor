@@ -14,7 +14,15 @@ import {
   Ban,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { useExecutionStore, useFlowStore, useDebugStore, useUIStore } from '@/stores';
+import {
+  useExecutionStore,
+  useFlowStore,
+  useDebugStore,
+  useUIStore,
+  getNodeStage,
+  selectAllNodes,
+  findNodeInFlow,
+} from '@/stores';
 import {
   selectIsExecuting,
   selectCompletedNodeCount,
@@ -82,7 +90,9 @@ const NodeStatusItem = memo(function NodeStatusItem({
 }: NodeStatusItemProps) {
   const meta = getNodeMeta(node.data.type);
   const nodeTypeLabel = meta?.name ?? node.data.type;
-
+  const flow = useFlowStore((s) => s.flow);
+  const stage = flow ? getNodeStage(flow, node.uuid) : null;
+  const stageLl = getLL().stages;
   return (
     <button
       type="button"
@@ -105,6 +115,18 @@ const NodeStatusItem = memo(function NodeStatusItem({
       >
         {node.name}
       </span>
+      {stage && stage !== 'main' && (
+        <span
+          className={cn(
+            'shrink-0 rounded px-1 py-0.5 text-[9px] font-medium leading-none border',
+            stage === 'setup'
+              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+          )}
+        >
+          {stage === 'setup' ? stageLl.short_setup() : stageLl.short_teardown()}
+        </span>
+      )}
       <span
         className={cn(
           'text-[10px] px-1.5 py-0.5 rounded shrink-0 font-medium leading-none',
@@ -244,9 +266,7 @@ const NodeOutputPane = memo(function NodeOutputPane({
   );
   const isExecuting = useExecutionStore(selectIsExecuting);
   const nodeName = useFlowStore((state) =>
-    nodeUuid
-      ? state.flow?.nodes.find((n) => n.uuid === nodeUuid)?.name ?? null
-      : null,
+    nodeUuid ? findNodeInFlow(state.flow, nodeUuid)?.name ?? null : null,
   );
 
   // ===== 冷通道按需拉取完整报文 =====
@@ -313,12 +333,10 @@ const NodeOutputPane = memo(function NodeOutputPane({
 /** 详情区域子标签类型 */
 type DetailTab = 'output' | 'ws' | 'variables' | 'stack';
 
-const EMPTY_NODES: Node[] = [];
-
 export const ExecutionPanel = memo(function ExecutionPanel() {
   const ll = getLL();
   // ===== Store 数据 =====
-  const nodes = useFlowStore((state) => state.flow?.nodes ?? EMPTY_NODES);
+  const nodes = useFlowStore(selectAllNodes);
   const isExecuting = useExecutionStore(selectIsExecuting);
   const currentNodeUuid = useExecutionStore((state) => state.currentNodeUuid);
   const report = useExecutionStore(selectReport);
@@ -352,6 +370,13 @@ export const ExecutionPanel = memo(function ExecutionPanel() {
 
   // ===== 节点选择回调（恒等引用，保证 ExecutionNodeList 的 memo 生效） =====
   const handleSelectNode = useCallback((nodeUuid: string) => {
+    const flow = useFlowStore.getState().flow;
+    if (flow) {
+      const stage = getNodeStage(flow, nodeUuid);
+      if (stage && stage !== useFlowStore.getState().activeStage) {
+        useFlowStore.getState().setActiveStage(stage);
+      }
+    }
     if (selectedNodeUuidRef.current === nodeUuid) {
       // 已选中：直接定位到画布，不取消选择
       useFlowStore.getState().focusOnNode(nodeUuid);
@@ -422,7 +447,9 @@ export const ExecutionPanel = memo(function ExecutionPanel() {
     const activeEl = nodeListRef.current?.querySelector(
       '[data-status="running"], [data-status="success"]:last-of-type',
     );
-    activeEl?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    if (typeof activeEl?.scrollIntoView === 'function') {
+      activeEl.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    }
   }, [currentNodeUuid]);
 
   // ===== 选中节点的 WS 流 =====
