@@ -22,13 +22,12 @@ src/
 ├── executor.rs         # NodeExecutor trait (the core execution interface)
 ├── plugin.rs           # NodePlugin trait (validation + metadata + port definitions)
 ├── registry.rs         # NodeRegistry (maps NodeType to Box<dyn NodePlugin>)
-├── report.rs           # FlowExecutionReport, NodeExecutionReport, ExecutionStatus
+├── report.rs           # FlowExecutionReport (+FlowStagesReport, StageExecutionReport), NodeExecutionReport, ExecutionStatus
 ├── statistics.rs       # FlowStatistics (timing, node count, etc.)
 ├── execution_event.rs  # ExecutionEvent enum (real-time frontend push events)
 ├── ws_stream.rs        # WsConnectionStream, WsMessage, WsStreamSegment
 ├── debug_types.rs      # DebugSessionState, DebugCommand, DebugEvent, PauseReason
 ├── dataset.rs          # DatasetConfig, DataPickStrategy, DatasetExecutionReport
-├── hook.rs             # FlowHook, HookAction, HookTrigger, HookContext
 ├── log_event.rs        # LogLevel, LogEvent
 ├── email_types.rs      # SmtpConfig, ImapConfig, EmailAuthConfig, EmailProvider
 ├── email_auth.rs       # EmailProviderPreset, OAuth2/SASL builders
@@ -38,7 +37,7 @@ src/
     ├── provider_key.rs # ProviderKey trait + marker types (Ws, Grpc, ...)
     ├── log_sender.rs   # LogSender, QueuedLogSender, ConsoleLogSender
     ├── *provider.rs    # One file per protocol: WsProvider, GrpcProvider, etc.
-    └── app_dir.rs / debug_event_sender.rs / execution_event_sender.rs / directory_opener.rs / hook_executor.rs
+    └── app_dir.rs / debug_event_sender.rs / execution_event_sender.rs / directory_opener.rs
 ```
 
 ## WHERE TO LOOK
@@ -51,9 +50,9 @@ src/
 | Add/modify provider trait | `traits/` — create or edit `<protocol>_provider.rs` |
 | Understand execution flow | `executor.rs` (NodeExecutor trait) + `plugin.rs` (NodePlugin trait) |
 | Add runtime event for frontend | `execution_event.rs` (ExecutionEvent) |
-| Modify report structure | `report.rs` (FlowExecutionReport, NodeExecutionReport) |
+| Modify report structure | `report.rs` (FlowExecutionReport, NodeExecutionReport, FlowStagesReport) |
+| Modify flow lifecycle stages | `flow.rs` (`Flow.setup` / `Flow.teardown` as `FlowSubGraph`) |
 | Add debug feature | `debug_types.rs` (DebugCommand, DebugEvent, DebugSessionState) |
-| Add flow hook | `hook.rs` (HookTrigger, HookAction, FlowHook) |
 
 ## KEY TYPES
 
@@ -63,6 +62,8 @@ src/
 - **ErrorKind** (`error.rs`): Two-tier classification — `Fatal` (stops flow) vs `Recoverable` (continues). Includes typed error codes.
 - **ExecutionContext** (`context.rs`): Runtime variable store with scoped resolution. Holds flow inputs, node outputs, proxy state.
 - **NodeData** (`node_config.rs`): 14-protocol enum with ~120 config struct variants. All protocol-specific configuration.
+- **Flow / FlowSubGraph** (`flow.rs`): `Flow.nodes` + `Flow.connections` are the **Main** stage; the optional `Flow.setup` / `Flow.teardown` sub-graphs are the single-run before/after stages.
+- **FlowStagesReport** (`report.rs`): Per-stage status/duration/node reports (`setup` / `main` / `teardown`) carried by every `FlowExecutionReport`.
 - **node_types** (`node_types.rs`): String constants for built-in and protocol node types.
 
 ## CONVENTIONS

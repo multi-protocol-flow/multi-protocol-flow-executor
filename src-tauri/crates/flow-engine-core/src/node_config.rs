@@ -18,9 +18,6 @@ pub struct EntryConfig {
     /// CSV 编码（None=自动检测）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dataset_encoding: Option<String>,
-    /// 流程钩子列表（入口节点配置中可编辑）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hooks: Option<Vec<crate::hook::FlowHook>>,
 }
 
 // ============================================================================
@@ -2867,7 +2864,6 @@ mod tests {
         let config = EntryConfig {
             dataset_path: None,
             dataset_encoding: None,
-            hooks: None,
         };
         let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(!json.contains("dataset_path"));
@@ -2879,7 +2875,6 @@ mod tests {
         let config = EntryConfig {
             dataset_path: Some("/data/test.csv".to_string()),
             dataset_encoding: Some("gbk".to_string()),
-            hooks: None,
         };
         let json = serde_json::to_string(&config).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("dataset_path"));

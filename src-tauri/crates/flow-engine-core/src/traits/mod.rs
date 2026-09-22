@@ -7,7 +7,6 @@ mod debug_event_sender;
 mod directory_opener;
 mod execution_event_sender;
 mod graphql_provider;
-mod hook_executor;
 mod log_sender;
 mod provider_key;
 mod sse_provider;
@@ -24,7 +23,6 @@ pub use graphql_provider::{
     GraphqlQueryOutput, GraphqlQueryTemplate, GraphqlSubscribeOutput, GraphqlSubscriptionEvent,
     GraphqlTimingInfo,
 };
-pub use hook_executor::{HookExecutor, NoopHookExecutor};
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
 };

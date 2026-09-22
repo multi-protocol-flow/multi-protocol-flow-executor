@@ -276,6 +276,45 @@ pub struct PluginStreamRecord {
 /// 插件流记录中保存的事件样本上限
 pub const MAX_PLUGIN_STREAM_SAMPLES: usize = 20;
 
+/// 阶段执行报告
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct StageExecutionReport {
+    /// 阶段执行状态
+    pub status: ExecutionStatus,
+    /// 阶段执行耗时（毫秒）
+    pub duration_ms: u64,
+    /// 节点执行报告列表
+    #[serde(default)]
+    pub node_reports: Vec<NodeExecutionReport>,
+    /// 阶段错误详情
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<crate::error::ErrorDetail>,
+}
+
+impl Default for StageExecutionReport {
+    fn default() -> Self {
+        Self {
+            status: ExecutionStatus::Success,
+            duration_ms: 0,
+            node_reports: Vec::new(),
+            error: None,
+        }
+    }
+}
+
+/// 流程各阶段执行报告
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
+pub struct FlowStagesReport {
+    /// Setup 准备阶段报告
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub setup: Option<StageExecutionReport>,
+    /// Main 核心流程报告
+    pub main: StageExecutionReport,
+    /// Teardown 收尾阶段报告
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub teardown: Option<StageExecutionReport>,
+}
+
 /// 流程执行报告
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FlowExecutionReport {
@@ -335,6 +374,43 @@ pub struct FlowExecutionReport {
     /// 流程级警告信息（如缺少 End 节点）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flow_warning: Option<String>,
+    /// 各阶段执行报告
+    #[serde(default)]
+    pub stages: FlowStagesReport,
+    /// Main 核心流程执行耗时（毫秒）
+    #[serde(default)]
+    pub main_duration_ms: u64,
+}
+
+impl Default for FlowExecutionReport {
+    fn default() -> Self {
+        Self {
+            uuid: String::new(),
+            flow_uuid: String::new(),
+            flow_name: String::new(),
+            start_time: 0,
+            end_time: 0,
+            duration_ms: 0,
+            total_nodes: 0,
+            executed_count: 0,
+            status: ExecutionStatus::Success,
+            node_reports: Vec::new(),
+            statistics: crate::statistics::FlowStatistics::default(),
+            flow_error: None,
+            execution_mode: ExecutionMode::Normal,
+            initial_variables: None,
+            final_variables: None,
+            execution_path: Vec::new(),
+            skipped_nodes: Vec::new(),
+            ws_streams: Vec::new(),
+            plugin_streams: Vec::new(),
+            flow_snapshot: None,
+            end_node_reached: None,
+            flow_warning: None,
+            stages: FlowStagesReport::default(),
+            main_duration_ms: 0,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -536,6 +612,8 @@ mod tests {
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
+            stages: FlowStagesReport::default(),
+            main_duration_ms: 1000,
         };
 
         let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -572,6 +650,8 @@ mod tests {
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
+            stages: FlowStagesReport::default(),
+            main_duration_ms: 1000,
         };
 
         let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
@@ -608,9 +688,10 @@ mod tests {
             name: "Snapshot Flow".to_string(),
             description: None,
             initial_variables: None,
+            setup: None,
             nodes: vec![],
             connections: vec![],
-            hooks: None,
+            teardown: None,
         };
 
         let report = FlowExecutionReport {
@@ -635,9 +716,10 @@ mod tests {
             flow_snapshot: Some(flow.clone()),
             end_node_reached: None,
             flow_warning: None,
+            stages: FlowStagesReport::default(),
+            main_duration_ms: 1000,
             plugin_streams: vec![],
         };
-
         let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(json.contains("flow_snapshot"));
         assert!(json.contains("flow-snap-001"));
@@ -709,12 +791,60 @@ mod tests {
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
+            stages: FlowStagesReport::default(),
+            main_duration_ms: 1000,
         };
 
         let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
         assert!(
             !json.contains("flow_snapshot"),
             "flow_snapshot 为 None 时不应出现在 JSON 中"
+        );
+    }
+    /// 测试 `FlowStagesReport` 序列化与反序列化
+    #[test]
+    fn test_flow_stages_report_serialization() {
+        let stages = FlowStagesReport {
+            setup: Some(StageExecutionReport {
+                status: ExecutionStatus::Success,
+                duration_ms: 100,
+                node_reports: vec![],
+                error: None,
+            }),
+            main: StageExecutionReport {
+                status: ExecutionStatus::Success,
+                duration_ms: 500,
+                node_reports: vec![],
+                error: None,
+            },
+            teardown: Some(StageExecutionReport {
+                status: ExecutionStatus::Success,
+                duration_ms: 50,
+                node_reports: vec![],
+                error: None,
+            }),
+        };
+
+        let json = serde_json::to_string(&stages).unwrap_or_else(|e| panic!("{e}"));
+        assert!(json.contains("setup"));
+        assert!(json.contains("main"));
+        assert!(json.contains("teardown"));
+
+        let deser: FlowStagesReport = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(deser.main.duration_ms, 500);
+        assert_eq!(
+            deser
+                .setup
+                .unwrap_or_else(|| panic!("expected Some"))
+                .duration_ms,
+            100
+        );
+        assert_eq!(
+            deser
+                .teardown
+                .unwrap_or_else(|| panic!("expected Some"))
+                .duration_ms,
+            50
         );
     }
 
@@ -827,6 +957,8 @@ mod tests {
             plugin_streams: vec![],
             flow_snapshot: None,
             end_node_reached: None,
+            stages: FlowStagesReport::default(),
+            main_duration_ms: 1000,
             flow_warning: None,
         };
         let json = serde_json::to_string(&report).unwrap_or_else(|e| panic!("序列化Failed: {e}"));

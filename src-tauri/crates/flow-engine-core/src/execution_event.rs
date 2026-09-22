@@ -269,6 +269,8 @@ mod tests {
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
+            stages: Default::default(),
+            main_duration_ms: 1000,
         };
 
         let event = ExecutionEvent::FlowCompleted {
@@ -376,6 +378,8 @@ mod tests {
             flow_snapshot: None,
             end_node_reached: None,
             flow_warning: None,
+            stages: Default::default(),
+            main_duration_ms: 1000,
         };
         let event = ExecutionEvent::FlowCompleted {
             report: Box::new(report),
