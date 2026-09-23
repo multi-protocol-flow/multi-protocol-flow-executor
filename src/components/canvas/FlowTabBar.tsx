@@ -16,6 +16,7 @@ import {
   WrapText,
   Check,
   ChevronDown,
+  LocateFixed,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { toast } from 'sonner';
@@ -732,6 +733,20 @@ export const FlowTabBar = memo(function FlowTabBar() {
                 </button>
 
                 <div className="my-1 border-t border-border/40 dark:border-white/10" />
+                {/* 在列表中定位 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tab = contextMenu.tab!;
+                    setContextMenu(null);
+                    useUIStore.getState().revealFlowInList({ uuid: tab.uuid, filePath: tab.filePath });
+                  }}
+                  className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors cursor-pointer outline-none"
+                >
+                  <LocateFixed className="w-3.5 h-3.5 text-muted-foreground" />
+                  {LL.flow.locate_in_flow_list()}
+                </button>
+
 
                 {/* 流程属性 */}
                 <button

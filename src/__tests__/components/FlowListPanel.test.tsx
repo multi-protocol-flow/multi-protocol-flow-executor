@@ -460,6 +460,70 @@ describe('FlowListPanel', () => {
       expect(useFlowListStore.getState().flows[0].file_path).toBe('/fallback/path/to/flow-fallback.mpf');
     });
   });
+  describe('流程定位与微发光高亮效果', () => {
+    it('当前打开的流程项应应用主色微发光选中样式', async () => {
+      const flowMeta = {
+        uuid: 'active-flow-1',
+        name: '活动流程',
+        updated_at: Date.now(),
+        created_at: Date.now(),
+      };
+      mockFlowStorage.listFlows.mockResolvedValue([flowMeta]);
+      useFlowListStore.getState().setFlows([flowMeta]);
+      useFlowStore.setState({
+        flow: createMockFlow('active-flow-1', '活动流程'),
+        tabs: [{ uuid: 'active-flow-1', name: '活动流程', isDirty: false }],
+        activeTabUuid: 'active-flow-1',
+      });
+
+      await act(async () => {
+        render(<FlowListPanel />);
+      });
+
+      const item = screen.getByText('活动流程').closest('[role="button"]');
+      expect(item).not.toBeNull();
+      expect(item?.className).toContain('bg-primary/10');
+      expect(item?.className).toContain('border-primary/60');
+    });
+
+    it('触发 revealFlowInList 时应自动展开祖先文件夹并定位', async () => {
+      const folderFlow = {
+        uuid: 'nested-flow-1',
+        name: '嵌套流程',
+        folder_path: 'folderA/subFolderB',
+        folderPath: 'folderA/subFolderB',
+        updated_at: Date.now(),
+        updatedAt: Date.now(),
+        created_at: Date.now(),
+      };
+      mockFlowStorage.listFlows.mockResolvedValue([folderFlow]);
+      mockFlowStorage.listFolders.mockResolvedValue([
+        { path: 'folderA', name: 'folderA' },
+        { path: 'folderA/subFolderB', name: 'subFolderB' },
+      ]);
+      useFlowListStore.getState().setFlows([folderFlow]);
+      useFlowStore.setState({
+        flow: createMockFlow('nested-flow-1', '嵌套流程'),
+        tabs: [{ uuid: 'nested-flow-1', name: '嵌套流程', isDirty: false }],
+        activeTabUuid: 'nested-flow-1',
+      });
+
+      await act(async () => {
+        render(<FlowListPanel />);
+      });
+
+      // 触发定位
+      await act(async () => {
+        useUIStore.getState().revealFlowInList({ uuid: 'nested-flow-1' });
+      });
+
+      // 验证祖先文件夹均被自动展开
+      const expanded = useFlowListStore.getState().expandedFolders;
+      expect(expanded.has('folderA')).toBe(true);
+      expect(expanded.has('folderA/subFolderB')).toBe(true);
+    });
+  });
+
 
 
   describe('空列表状态', () => {

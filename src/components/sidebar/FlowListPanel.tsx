@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import {
   Plus, FileJson, MoreVertical, Copy, Trash2, Pencil, Bug, RefreshCw,
   FolderPlus, Folder, FolderOpen, ChevronDown, ChevronRight, Move,
-  Search, ArrowUpDown, Check, ClipboardCopy, FileDown,
+  Search, ArrowUpDown, Check, ClipboardCopy, FileDown, LocateFixed,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard } from '@/lib/clipboard';
@@ -20,6 +20,7 @@ import {
   useDebugStore,
   selectIsExecuting,
   selectIsDebugging,
+  selectLocateFlowTarget,
 } from '@/stores';
 import { useSettingsStore } from '@/stores/settings';
 import { flowStorage } from '@/services/storage';
@@ -42,6 +43,20 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const settingsLoading = useSettingsStore((state) => state.isLoading);
   const locale = useCurrentLocale();
 
+  const activeTabUuid = useFlowStore((state) => state.activeTabUuid);
+  const tabs = useFlowStore((state) => state.tabs);
+  const locateFlowTarget = useUIStore(selectLocateFlowTarget);
+  const [highlightingFlowUuid, setHighlightingFlowUuid] = useState<string | null>(null);
+  const highlightTimerRef = useRef<number | null>(null);
+  const lastLocateTimestampRef = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        window.clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
   const formatRelativeTime = (timestamp: number): string => {
     const now = Date.now();
     const diff = now - timestamp;
@@ -695,6 +710,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
 
   const flows = useFlowListStore((state) => state.flows);
   const expandedFolders = useFlowListStore((state) => state.expandedFolders);
+  const expandFolders = useFlowListStore((state) => state.expandFolders);
   const toggleFolder = useFlowListStore((state) => state.toggleFolder);
   const searchKeyword = useFlowListStore((state) => state.searchKeyword);
   const setSearchKeyword = useFlowListStore((state) => state.setSearchKeyword);
@@ -708,6 +724,74 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     setSortOrder(newSortOrder);
     setSortMenuOpen(false);
   }, [setSortBy, setSortOrder]);
+  // ===== 定位流程 =====
+  const handleLocateFlow = useCallback((target?: { uuid?: string; filePath?: string }) => {
+    const currentActiveTab = tabs.find((t) => t.uuid === activeTabUuid);
+    const targetUuid = target?.uuid ?? currentActiveTab?.uuid ?? currentFlow?.uuid;
+    const targetFilePath = target?.filePath ?? currentActiveTab?.filePath;
+
+    if (!targetUuid && !targetFilePath) {
+      toast.info(getLL().flow.locate_flow_not_found());
+      return;
+    }
+
+    const targetFlow = flows.find(
+      (f) => (targetUuid && f.uuid === targetUuid) || (targetFilePath && f.file_path && f.file_path === targetFilePath)
+    );
+
+    if (!targetFlow) {
+      toast.info(getLL().flow.locate_flow_not_found());
+      return;
+    }
+
+    // 1. 如果在文件夹中，展开所有祖先文件夹
+    if (targetFlow.folder_path) {
+      const segments = targetFlow.folder_path.split('/').filter(Boolean);
+      const ancestorPaths: string[] = [];
+      let acc = '';
+      for (const seg of segments) {
+        acc = acc ? `${acc}/${seg}` : seg;
+        ancestorPaths.push(acc);
+      }
+      expandFolders(ancestorPaths);
+    }
+
+    // 2. 如果存在搜索过滤且目标被过滤隐藏了，清空搜索以确保其可见
+    if (searchKeyword.trim()) {
+      const keyword = searchKeyword.toLowerCase();
+      if (!targetFlow.name.toLowerCase().includes(keyword)) {
+        setSearchKeyword('');
+      }
+    }
+
+    // 3. 滚动并添加发光高亮动效
+    const executeScrollAndHighlight = () => {
+      const element = document.querySelector(`[data-flow-uuid="${targetFlow.uuid}"]`) as HTMLElement | null;
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightingFlowUuid(targetFlow.uuid);
+        if (highlightTimerRef.current) {
+          window.clearTimeout(highlightTimerRef.current);
+        }
+        highlightTimerRef.current = window.setTimeout(() => {
+          setHighlightingFlowUuid(null);
+          highlightTimerRef.current = null;
+        }, 1500);
+      }
+    };
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(executeScrollAndHighlight);
+    });
+  }, [tabs, activeTabUuid, currentFlow, flows, expandFolders, searchKeyword, setSearchKeyword]);
+
+  useEffect(() => {
+    if (locateFlowTarget && locateFlowTarget.timestamp > lastLocateTimestampRef.current) {
+      lastLocateTimestampRef.current = locateFlowTarget.timestamp;
+      handleLocateFlow(locateFlowTarget);
+    }
+  }, [locateFlowTarget, handleLocateFlow]);
+
 
   // ===== 构建树形结构 =====
   const treeData = useMemo(() => {
@@ -813,8 +897,9 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
 
   // ===== 渲染流程项 =====
   const renderFlowItem = (flowMeta: typeof flows[number], depth: number) => {
-    const activeTab = useFlowStore.getState().tabs.find((t) => t.uuid === useFlowStore.getState().activeTabUuid);
+    const activeTab = tabs.find((t) => t.uuid === activeTabUuid);
     const isSelected = currentFlow?.uuid === flowMeta.uuid || (activeTab?.filePath && flowMeta.file_path && activeTab.filePath === flowMeta.file_path);
+    const isHighlighting = highlightingFlowUuid === flowMeta.uuid;
     const isDebugFlow = disabled && debugFlowUuid === flowMeta.uuid;
 
     const canDrag = !disabled && renamingUuid !== flowMeta.uuid;
@@ -848,6 +933,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     return (
       <div
         key={flowMeta.uuid}
+        data-flow-uuid={flowMeta.uuid}
         role="button"
         tabIndex={disabled ? -1 : 0}
         draggable={canDrag}
@@ -873,8 +959,9 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           'group flex items-center gap-2.5 px-3 h-10.5 rounded-lg text-xs text-left transition-all duration-150',
           'border select-none',
           !disabled && 'cursor-pointer active:cursor-grabbing',
-          isSelected && !disabled && 'bg-accent/80 border-border text-foreground font-medium shadow-xs',
+          isSelected && !disabled && 'bg-primary/10 border-primary/60 text-foreground font-medium shadow-[0_0_12px_rgba(var(--primary-rgb),0.1)] ring-1 ring-primary/25',
           !isSelected && !disabled && 'border-border/40 bg-background/50 hover:bg-accent/50 hover:border-border text-foreground/80 hover:text-foreground',
+          isHighlighting && '!ring-2 !ring-primary !border-primary !bg-primary/20 animate-pulse duration-500',
           disabled && 'opacity-50 pointer-events-none',
           isDebugFlow && '!opacity-100 !pointer-events-none border-primary/50 bg-primary/5'
         )}
@@ -885,7 +972,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           <FileJson
             className={cn(
               'w-4 h-4 shrink-0 transition-colors',
-              isSelected ? 'text-emerald-500' : 'text-muted-foreground'
+              isSelected ? 'text-primary' : 'text-muted-foreground'
             )}
           />
         )}
@@ -1175,6 +1262,16 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             <Button
               variant="ghost"
               size="icon"
+              onClick={disabled ? undefined : () => handleLocateFlow()}
+              disabled={disabled || (!currentFlow && !activeTabUuid)}
+              className="h-7 w-7 rounded-md bg-background border border-border hover:bg-accent disabled:opacity-50"
+              title={getLL().flow.locate_in_flow_list()}
+            >
+              <LocateFixed className="w-3.5 h-3.5 text-foreground" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={disabled ? undefined : handleRefresh}
               disabled={disabled || isRefreshing}
               className="h-7 w-7 rounded-md bg-background border border-border hover:bg-accent disabled:opacity-50"
@@ -1229,6 +1326,17 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 className="w-full h-7 pl-7 pr-2 text-xs rounded-md border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
+            {/* 定位当前打开的流程 */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleLocateFlow()}
+              disabled={disabled || (!currentFlow && !activeTabUuid)}
+              className="h-7 px-1.5 rounded-md hover:bg-accent text-xs gap-0.5 shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40"
+              title={getLL().flow.locate_in_flow_list()}
+            >
+              <LocateFixed className="w-3.5 h-3.5" />
+            </Button>
             {/* 排序下拉按钮 */}
             <Button
               variant="ghost"
