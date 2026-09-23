@@ -168,10 +168,10 @@ export function CollapsiblePanel({
         <div
           role="separator"
           aria-orientation="horizontal"
-          className="absolute -top-1 left-0 right-0 h-2 cursor-row-resize z-20 group"
+          className="absolute top-0 left-0 right-0 h-2 cursor-row-resize z-20 group flex items-center"
           onMouseDown={handleHeaderMouseDown}
         >
-          <div className="w-full h-0.5 group-hover:bg-primary/50 transition-colors" />
+          <div className="w-full h-0.5 bg-transparent group-hover:bg-primary/70 transition-colors" />
         </div>
       )}
       {/* 标题栏 - 点击折叠，上边缘拖拽调整高度 */}

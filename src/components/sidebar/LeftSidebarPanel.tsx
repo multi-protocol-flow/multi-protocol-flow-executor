@@ -122,25 +122,56 @@ export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
     setIsEnvCollapsed((prev) => !prev);
   }, []);
 
+  // 顶部流程列表保底保留高度（展开时留给主列表的内容最小空间）
+  const flowListMinTotal = isFlowListCollapsed
+    ? HEADER_HEIGHT
+    : (HEADER_HEIGHT + FLOW_LIST_MIN_HEIGHT);
+
+  // 各展开面板的保底占用（折叠时为 HEADER_HEIGHT，展开时为最低保证高度，避免兄弟面板间循环过度预留压死拉伸空间）
+  const nodeOutlineReserved = !flow
+    ? 0
+    : isNodeOutlineCollapsed
+    ? HEADER_HEIGHT
+    : NODE_OUTLINE_MIN_HEIGHT;
+
+  const envReserved = isEnvCollapsed
+    ? HEADER_HEIGHT
+    : ENV_PANEL_MIN_HEIGHT;
+
+  const datasourceReserved = isDatasourceCollapsed
+    ? HEADER_HEIGHT
+    : DATASOURCE_PANEL_MIN_HEIGHT;
+
+  // 为每个面板计算可拉伸的最大高度（保证兄弟面板保底与 FlowList 保底空间不被挤压溢出）
   const maxNodeOutlineHeight = Math.max(
-    NODE_OUTLINE_MIN_HEIGHT + 40,
-    containerHeight - (FLOW_LIST_MIN_HEIGHT + HEADER_HEIGHT * 2)
+    NODE_OUTLINE_MIN_HEIGHT,
+    containerHeight - flowListMinTotal - envReserved - datasourceReserved
   );
 
-  // 三个面板都是 shrink-0，只能靠各自的 maxHeight 保证不溢出容器；
-  // 因此为已展开的兄弟面板预留其最小高度，否则底部面板会被挤出可视区。
-  const siblingReserved =
-    (isNodeOutlineCollapsed ? 0 : NODE_OUTLINE_MIN_HEIGHT) +
-    (isDatasourceCollapsed ? 0 : DATASOURCE_PANEL_MIN_HEIGHT);
-
   const maxEnvHeight = Math.max(
-    ENV_PANEL_MIN_HEIGHT + 40,
-    containerHeight - (FLOW_LIST_MIN_HEIGHT + siblingReserved + HEADER_HEIGHT * (flow ? 3 : 2))
+    ENV_PANEL_MIN_HEIGHT,
+    containerHeight - flowListMinTotal - (flow ? nodeOutlineReserved : 0) - datasourceReserved
   );
 
   const maxDatasourceHeight = Math.max(
-    DATASOURCE_PANEL_MIN_HEIGHT + 50,
-    containerHeight - (FLOW_LIST_MIN_HEIGHT + HEADER_HEIGHT * (flow ? 2 : 1))
+    DATASOURCE_PANEL_MIN_HEIGHT,
+    containerHeight - flowListMinTotal - (flow ? nodeOutlineReserved : 0) - envReserved
+  );
+
+  // 约束实际渲染高度，确保哪怕默认高度很大，也不会把容器撑爆
+  const effectiveNodeOutlineHeight = Math.max(
+    NODE_OUTLINE_MIN_HEIGHT,
+    Math.min(nodeOutlineHeight, maxNodeOutlineHeight)
+  );
+
+  const effectiveEnvHeight = Math.max(
+    ENV_PANEL_MIN_HEIGHT,
+    Math.min(envHeight, maxEnvHeight)
+  );
+
+  const effectiveDatasourceHeight = Math.max(
+    DATASOURCE_PANEL_MIN_HEIGHT,
+    Math.min(datasourceHeight, maxDatasourceHeight)
   );
   return (
     <div
@@ -227,7 +258,7 @@ export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
               ? undefined
               : isFlowListCollapsed
               ? undefined
-              : nodeOutlineHeight
+              : effectiveNodeOutlineHeight
           }
           onHeightChange={setNodeOutlineHeight}
           resizable={!isFlowListCollapsed && !isNodeOutlineCollapsed}
@@ -261,7 +292,7 @@ export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
             ? undefined
             : isFlowListCollapsed
             ? undefined
-            : envHeight
+            : effectiveEnvHeight
         }
         onHeightChange={setEnvHeight}
         resizable={!isFlowListCollapsed && !isEnvCollapsed}
@@ -290,7 +321,7 @@ export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
             ? undefined
             : isFlowListCollapsed
             ? undefined
-            : datasourceHeight
+            : effectiveDatasourceHeight
         }
         onHeightChange={setDatasourceHeight}
         resizable={!isFlowListCollapsed && !isDatasourceCollapsed}

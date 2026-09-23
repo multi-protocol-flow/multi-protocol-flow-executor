@@ -1326,17 +1326,6 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 className="w-full h-7 pl-7 pr-2 text-xs rounded-md border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
-            {/* 定位当前打开的流程 */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleLocateFlow()}
-              disabled={disabled || (!currentFlow && !activeTabUuid)}
-              className="h-7 px-1.5 rounded-md hover:bg-accent text-xs gap-0.5 shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40"
-              title={getLL().flow.locate_in_flow_list()}
-            >
-              <LocateFixed className="w-3.5 h-3.5" />
-            </Button>
             {/* 排序下拉按钮 */}
             <Button
               variant="ghost"
