@@ -63,16 +63,16 @@ function CollapsibleSection({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 p-3 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+        className="w-full flex flex-wrap items-center gap-2 p-3 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
       >
         {isOpen ? (
           <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         ) : (
           <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         )}
-        {icon}
-        <span className="font-medium text-xs text-foreground flex-1">{title}</span>
-        {badge}
+        {icon && <div className="shrink-0">{icon}</div>}
+        <span className="font-medium text-xs text-foreground flex-1 min-w-0 truncate">{title}</span>
+        {badge && <div className="shrink-0">{badge}</div>}
       </button>
       {isOpen && <div className="p-3 bg-background border-t border-border/60">{children}</div>}
     </div>
@@ -214,7 +214,7 @@ export const SubFlowViewer = memo(function SubFlowViewer({ report }: SubFlowView
     <div className="space-y-4">
       {/* 1. 子流程执行概览 */}
       <div className="p-4 rounded-xl border border-violet-500/30 bg-violet-500/5 space-y-3">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-2 rounded-lg bg-violet-500 text-white shadow-sm shrink-0">
               <Workflow className="w-5 h-5" />

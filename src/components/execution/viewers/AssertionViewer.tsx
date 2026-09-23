@@ -40,23 +40,25 @@ function CollapsibleSection({ title, icon, defaultOpen = false, badge, extra, ch
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <div className="flex items-center w-full bg-muted/30 hover:bg-muted/50 transition-colors">
+      <div className="flex flex-wrap items-center justify-between w-full bg-muted/30 hover:bg-muted/50 transition-colors gap-2 pr-3">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex-1 flex items-center gap-2 p-3 text-left"
+          className="flex-1 min-w-0 flex items-center gap-2 p-3 text-left"
           aria-expanded={isOpen}
         >
-          <div className="text-muted-foreground">
+          <div className="text-muted-foreground shrink-0">
             {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           </div>
-          <div className="text-muted-foreground">{icon}</div>
-          <span className="font-medium text-foreground text-sm">{title}</span>
+          <div className="text-muted-foreground shrink-0">{icon}</div>
+          <span className="font-medium text-foreground text-sm truncate min-w-0">{title}</span>
         </button>
-        <div className="flex items-center gap-2 pr-3">
-          {badge}
-          {extra}
-        </div>
+        {(badge || extra) && (
+          <div className="flex items-center gap-2 shrink-0 pl-3 sm:pl-0 py-1">
+            {badge}
+            {extra}
+          </div>
+        )}
       </div>
       {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
     </div>
@@ -116,12 +118,12 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
         onClick={() => setShowDetails(!showDetails)}
         className="w-full p-3 bg-red-100/50 dark:bg-red-900/30 hover:bg-red-100/70 dark:hover:bg-red-900/50 transition-colors text-left"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
-          <span className="font-medium text-red-700 dark:text-red-300 text-sm">
+          <span className="font-medium text-red-700 dark:text-red-300 text-sm truncate min-w-0">
             {result.description || ll.execution.viewers.assertion_item({ index: index + 1 })}
           </span>
-          <div className="ml-auto text-muted-foreground">
+          <div className="ml-auto text-muted-foreground shrink-0">
             {showDetails ? (
               <ChevronDown className="w-4 h-4" />
             ) : (
@@ -159,14 +161,14 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
           {/* 期望值 vs 实际值 */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">{getLL().execution.viewers.assertion_expected()}</span>
+              <div className="flex flex-wrap items-center justify-between gap-1">
+                <span className="text-xs font-medium text-muted-foreground truncate min-w-0">{getLL().execution.viewers.assertion_expected()}</span>
                 <CopyButton
                   value={result.expected}
                   format="json"
                   title={ll.execution.viewers.copy_expected()}
                   size="xs"
-                  className="h-5 p-0.5"
+                  className="h-5 p-0.5 shrink-0"
                 />
               </div>
               <div className="bg-background/60 rounded p-2 font-mono text-sm text-foreground break-all select-text cursor-text">
@@ -174,14 +176,14 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
               </div>
             </div>
             <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">{getLL().execution.viewers.assertion_actual()}</span>
+              <div className="flex flex-wrap items-center justify-between gap-1">
+                <span className="text-xs font-medium text-muted-foreground truncate min-w-0">{getLL().execution.viewers.assertion_actual()}</span>
                 <CopyButton
                   value={result.actual}
                   format="json"
                   title={ll.execution.viewers.copy_actual()}
                   size="xs"
-                  className="h-5 p-0.5"
+                  className="h-5 p-0.5 shrink-0"
                 />
               </div>
               <div className="bg-background/60 rounded p-2 font-mono text-sm text-foreground break-all select-text cursor-text">

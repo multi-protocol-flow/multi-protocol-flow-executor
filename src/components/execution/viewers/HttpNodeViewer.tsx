@@ -66,20 +66,20 @@ function CollapsibleSection({ title, icon, defaultOpen = false, extra, children 
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <div className="flex items-center w-full bg-muted/30 hover:bg-muted/50 transition-colors">
+      <div className="flex flex-wrap items-center justify-between w-full bg-muted/30 hover:bg-muted/50 transition-colors gap-2 pr-3">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex-1 flex items-center gap-2 p-3 text-left"
+          className="flex-1 min-w-0 flex items-center gap-2 p-3 text-left"
           aria-expanded={isOpen}
         >
-          <div className="text-muted-foreground">
+          <div className="text-muted-foreground shrink-0">
             {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           </div>
-          <div className="text-muted-foreground">{icon}</div>
-          <span className="font-medium text-foreground text-sm">{title}</span>
+          <div className="text-muted-foreground shrink-0">{icon}</div>
+          <span className="font-medium text-foreground text-sm truncate min-w-0">{title}</span>
         </button>
-        {extra && <div className="pr-3">{extra}</div>}
+        {extra && <div className="shrink-0 pl-3 sm:pl-0 py-1">{extra}</div>}
       </div>
       {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
     </div>
@@ -414,11 +414,11 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
       >
         <div className="space-y-3">
           {/* URL 和 Method */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge className={cn('font-mono text-xs shrink-0', getMethodColor(config.method || 'GET'))}>
               {config.method}
             </Badge>
-            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded select-text cursor-text">
+            <code className="flex-1 min-w-0 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded select-text cursor-text">
               {config.url || <span className="text-muted-foreground italic">{ll.execution.viewers.not_configured_url()}</span>}
             </code>
             {config.url && (
@@ -426,19 +426,21 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
                 value={config.url}
                 title={ll.execution.viewers.copy_url()}
                 size="xs"
+                className="shrink-0"
               />
             )}
           </div>
           {/* Headers */}
           {config.headers && Object.keys(config.headers).length > 0 && (
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-medium text-muted-foreground">{ll.execution.viewers.request_headers()}</span>
+              <div className="flex flex-wrap items-center justify-between gap-1 mb-1.5">
+                <span className="text-xs font-medium text-muted-foreground truncate min-w-0">{ll.execution.viewers.request_headers()}</span>
                 <CopyButton
                   value={config.headers}
                   format="json"
                   label={ll.execution.viewers.copy_headers()}
                   size="xs"
+                  className="shrink-0"
                 />
               </div>
               <KeyValueList data={config.headers} />
@@ -447,8 +449,8 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
           {/* Body */}
           {showBody && (
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-medium text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-between gap-1 mb-1.5">
+                <span className="text-xs font-medium text-muted-foreground truncate min-w-0">
                   {ll.execution.viewers.request_body()} <span className="font-normal">({bodyLabel})</span>
                 </span>
                 {hasBody && (
@@ -457,6 +459,7 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
                     format="json"
                     label={ll.execution.viewers.copy_body()}
                     size="xs"
+                    className="shrink-0"
                   />
                 )}
               </div>

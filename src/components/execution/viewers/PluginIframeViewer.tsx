@@ -48,21 +48,21 @@ function CollapsibleSection({ title, icon, defaultOpen = false, extra, children 
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors">
+      <div className="flex flex-wrap items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors gap-2">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex-1 flex items-center gap-2 text-left"
+          className="flex-1 min-w-0 flex items-center gap-2 text-left"
         >
-          <div className="text-muted-foreground">{icon}</div>
-          <span className="text-sm font-medium text-foreground">{title}</span>
+          <div className="text-muted-foreground shrink-0">{icon}</div>
+          <span className="text-sm font-medium text-foreground truncate min-w-0">{title}</span>
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {extra}
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground shrink-0"
             aria-label={isOpen ? "Collapse" : "Expand"}
           >
             {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}

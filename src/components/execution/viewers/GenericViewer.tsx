@@ -40,20 +40,20 @@ function CollapsibleSection({ title, icon, defaultOpen = false, extra, children 
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <div className="flex items-center w-full bg-muted/30 hover:bg-muted/50 transition-colors">
+      <div className="flex flex-wrap items-center justify-between w-full bg-muted/30 hover:bg-muted/50 transition-colors gap-2 pr-3">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex-1 flex items-center gap-2 p-3 text-left"
+          className="flex-1 min-w-0 flex items-center gap-2 p-3 text-left"
           aria-expanded={isOpen}
         >
-          <div className="text-muted-foreground">
+          <div className="text-muted-foreground shrink-0">
             {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           </div>
-          <div className="text-muted-foreground">{icon}</div>
-          <span className="font-medium text-foreground text-sm">{title}</span>
+          <div className="text-muted-foreground shrink-0">{icon}</div>
+          <span className="font-medium text-foreground text-sm truncate min-w-0">{title}</span>
         </button>
-        {extra && <div className="pr-3">{extra}</div>}
+        {extra && <div className="shrink-0 pl-3 sm:pl-0 py-1">{extra}</div>}
       </div>
       {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
     </div>
@@ -116,13 +116,13 @@ export const GenericViewer = memo(function GenericViewer({ report }: GenericView
             ) : null}
             {nodeStreamData.fullContent ? (
               <div className="bg-background border border-border rounded-md p-3">
-                <div className="text-xs font-semibold text-foreground/80 mb-1.5 flex items-center justify-between">
-                  <span>{ll.execution.viewers.stream_content()}</span>
-                  <div className="flex items-center gap-2">
+                <div className="text-xs font-semibold text-foreground/80 mb-1.5 flex flex-wrap items-center justify-between gap-1">
+                  <span className="truncate min-w-0">{ll.execution.viewers.stream_content()}</span>
+                  <div className="flex items-center gap-2 shrink-0">
                     <span className="text-[10px] text-muted-foreground font-mono">
                       {ll.execution.viewers.chars_count({ count: nodeStreamData.fullContent.length })}
                     </span>
-                    <CopyButton value={nodeStreamData.fullContent} size="xs" />
+                    <CopyButton value={nodeStreamData.fullContent} size="xs" className="shrink-0" />
                   </div>
                 </div>
                 <div className="text-xs text-foreground font-sans whitespace-pre-wrap leading-relaxed select-text cursor-text">

@@ -57,31 +57,32 @@ export const VariableChangesCard = memo(function VariableChangesCard({ changes, 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       {/* 标题栏 */}
-      <div className="flex items-center justify-between w-full bg-muted/30 hover:bg-muted/50 transition-colors">
+      <div className="flex flex-wrap items-center justify-between w-full bg-muted/30 hover:bg-muted/50 transition-colors gap-2 pr-3">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex-1 flex items-center gap-2 p-3 text-left"
+          className="flex-1 min-w-0 flex items-center gap-2 p-3 text-left"
           aria-expanded={isOpen}
         >
-          <div className="text-muted-foreground">
+          <div className="text-muted-foreground shrink-0">
             {isOpen ? (
               <ChevronDown className="w-4 h-4" />
             ) : (
               <ChevronRight className="w-4 h-4" />
             )}
           </div>
-          <Variable className="w-4 h-4 text-violet-500" />
-          <span className="font-medium text-foreground text-sm">{ll.execution.viewers.variable_changes()}</span>
+          <Variable className="w-4 h-4 text-violet-500 shrink-0" />
+          <span className="font-medium text-foreground text-sm truncate min-w-0">{ll.execution.viewers.variable_changes()}</span>
         </button>
-        <div className="flex items-center gap-2 pr-3">
+        <div className="flex items-center gap-2 shrink-0 pl-3 sm:pl-0 py-1">
           <CopyButton
             value={changes}
             format="json"
             label={ll.execution.report.copy_all()}
             size="xs"
+            className="shrink-0"
           />
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground shrink-0">
             {changes.length}
           </span>
         </div>
@@ -128,14 +129,14 @@ export const VariableChangesCard = memo(function VariableChangesCard({ changes, 
                   <div className="flex items-center gap-3 text-sm">
                     {/* 当前值 */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-xs text-muted-foreground">{ll.execution.viewers.var_new_value()}</span>
+                      <div className="flex flex-wrap items-center justify-between gap-1 mb-0.5">
+                        <span className="text-xs text-muted-foreground truncate min-w-0">{ll.execution.viewers.var_new_value()}</span>
                         <CopyButton
                           value={change.new_value}
                           format="json"
                           title={ll.execution.viewers.copy_new_value()}
                           size="xs"
-                          className="h-5 p-0.5"
+                          className="h-5 p-0.5 shrink-0"
                         />
                       </div>
                       {typeof change.new_value === 'object' && change.new_value !== null ? (
@@ -154,14 +155,14 @@ export const VariableChangesCard = memo(function VariableChangesCard({ changes, 
                       <>
                         <span className="text-muted-foreground shrink-0">←</span>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-0.5">
-                            <span className="text-xs text-muted-foreground">{ll.execution.viewers.var_old_value()}</span>
+                          <div className="flex flex-wrap items-center justify-between gap-1 mb-0.5">
+                            <span className="text-xs text-muted-foreground truncate min-w-0">{ll.execution.viewers.var_old_value()}</span>
                             <CopyButton
                               value={change.old_value}
                               format="json"
                               title={ll.execution.viewers.copy_old_value()}
                               size="xs"
-                              className="h-5 p-0.5"
+                              className="h-5 p-0.5 shrink-0"
                             />
                           </div>
                           {typeof change.old_value === 'object' && change.old_value !== null ? (

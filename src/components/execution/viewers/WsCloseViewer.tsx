@@ -72,14 +72,14 @@ function CollapsibleSection({ title, icon, defaultOpen = false, children }: Coll
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+        className="w-full min-w-0 flex items-center gap-2 p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
         aria-expanded={isOpen}
       >
-        <div className="text-muted-foreground">
+        <div className="text-muted-foreground shrink-0">
           {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </div>
-        <div className="text-muted-foreground">{icon}</div>
-        <span className="font-medium text-foreground text-sm">{title}</span>
+        <div className="text-muted-foreground shrink-0">{icon}</div>
+        <span className="font-medium text-foreground text-sm truncate min-w-0">{title}</span>
       </button>
       {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
     </div>
