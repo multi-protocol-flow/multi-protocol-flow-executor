@@ -104,6 +104,8 @@ const en_US_flow = {
   executing_no_switch: 'Cannot switch flows during execution',
   drag_to_canvas_as_subflow: 'Drag to canvas to generate subflow',
   cannot_reference_self_subflow: 'Cannot reference the current flow as a subflow',
+  locate_in_flow_list: 'Reveal in Flow List',
+  locate_flow_not_found: 'Flow not found in list',
   close_tab: 'Close Tab',
   close_other_tabs: 'Close Other Tabs',
   close_tabs_to_right: 'Close Tabs to the Right',

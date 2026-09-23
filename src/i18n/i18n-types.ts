@@ -8669,6 +8669,14 @@ type RootTranslation = {
 		 */
 		cannot_reference_self_subflow: string
 		/**
+		 * 在​流​程​列​表​中​定​位
+		 */
+		locate_in_flow_list: string
+		/**
+		 * 未​在​流​程​列​表​中​找​到​对​应​流​程
+		 */
+		locate_flow_not_found: string
+		/**
 		 * 关​闭​标​签
 		 */
 		close_tab: string
@@ -23178,6 +23186,14 @@ export type TranslationFunctions = {
 		 * 不能将当前流程作为自身的子流程
 		 */
 		cannot_reference_self_subflow: () => LocalizedString
+		/**
+		 * 在流程列表中定位
+		 */
+		locate_in_flow_list: () => LocalizedString
+		/**
+		 * 未在流程列表中找到对应流程
+		 */
+		locate_flow_not_found: () => LocalizedString
 		/**
 		 * 关闭标签
 		 */

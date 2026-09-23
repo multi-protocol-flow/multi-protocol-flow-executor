@@ -105,6 +105,8 @@ const zh_CN_flow: BaseTranslation = {
   executing_no_switch: '执行中不可切换流程',
   drag_to_canvas_as_subflow: '拖拽至画布生成子流程',
   cannot_reference_self_subflow: '不能将当前流程作为自身的子流程',
+  locate_in_flow_list: '在流程列表中定位',
+  locate_flow_not_found: '未在流程列表中找到对应流程',
   close_tab: '关闭标签',
   close_other_tabs: '关闭其他标签',
   close_tabs_to_right: '关闭右侧标签',
