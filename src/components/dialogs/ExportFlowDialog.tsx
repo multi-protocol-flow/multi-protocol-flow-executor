@@ -15,6 +15,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { FileDown, ShieldAlert, Loader2, KeyRound } from 'lucide-react';
 import { useUIStore } from '@/stores/ui';
 import { useEnvironmentStore } from '@/stores/environment';
@@ -228,12 +229,11 @@ export function ExportFlowDialog() {
           <div className="space-y-4 py-2 text-xs">
             {/* Bake Environment 复选框 */}
             <div className="p-3 rounded-lg border border-border bg-muted/20 space-y-2">
-              <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
+              <div className="flex items-start gap-2.5 select-none">
+                <Checkbox
                   checked={bakeEnvironment}
-                  onChange={(e) => setBakeEnvironment(e.target.checked)}
-                  className="mt-0.5 rounded border-border text-primary focus:ring-primary h-4 w-4"
+                  onCheckedChange={(checked) => setBakeEnvironment(checked)}
+                  className="mt-0.5"
                 />
                 <div className="space-y-1">
                   <span className="font-medium text-foreground block">
@@ -248,7 +248,7 @@ export function ExportFlowDialog() {
                       : ll.bake_no_env_desc()}
                   </p>
                 </div>
-              </label>
+              </div>
             </div>
 
             {/* 敏感凭据扫描 */}
@@ -271,11 +271,10 @@ export function ExportFlowDialog() {
                         className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-amber-500/10 transition-colors cursor-pointer select-none text-[11px]"
                       >
                         <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={isChecked}
-                            onChange={() => toggleSanitizeKey(key)}
-                            className="rounded border-amber-500/40 text-amber-600 focus:ring-amber-500 h-3.5 w-3.5"
+                            onCheckedChange={() => toggleSanitizeKey(key)}
+                            className="h-3.5 w-3.5"
                           />
                           <KeyRound className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                           <span className="font-mono font-medium text-foreground">{key}</span>

@@ -6,6 +6,7 @@
  */
 import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import {
@@ -233,14 +234,11 @@ function FieldTreeNode({
 
         {/* 勾选框 */}
         <label className="flex items-center gap-1.5 cursor-pointer min-w-0 flex-1">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={node.checked}
-            ref={(el) => {
-              if (el) el.indeterminate = partialChecked;
-            }}
-            onChange={(e) => onCheck(path, e.target.checked)}
-            className="shrink-0 w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer accent-indigo-600 dark:accent-indigo-400"
+            indeterminate={partialChecked}
+            onCheckedChange={(checked) => onCheck(path, checked)}
+            className="shrink-0 w-3.5 h-3.5"
           />
 
           {/* 字段名 */}

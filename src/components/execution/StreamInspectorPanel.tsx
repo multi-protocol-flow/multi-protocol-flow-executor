@@ -18,6 +18,7 @@ import {
   FileText,
   Binary,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useWsStreamStore } from '@/stores/wsStream';
 import { useDebugStore } from '@/stores/debug';
 import { cn } from '@/lib/utils';
@@ -240,11 +241,9 @@ export function StreamInspectorPanel({ streams, live = false }: StreamInspectorP
         <div className="flex items-center gap-2 shrink-0">
           {/* 自动心跳保活 */}
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground select-none cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={keepAlive}
-              onChange={(e) => setKeepAlive(e.target.checked)}
-              className="rounded border-border"
+              onCheckedChange={(checked) => setKeepAlive(checked)}
             />
             <Activity className="w-3 h-3 text-amber-500" />
             <span className="text-[11px] hidden sm:inline">{ll.flow.stream_probe_keepalive()}</span>
