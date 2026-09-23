@@ -91,6 +91,7 @@ export {
   isUdpCloseConfig,
   isAssertionConfig,
   isScriptConfig,
+  isSubFlowConfig,
   isVariableExtractorConfig,
   isSseConnectConfig,
   isSseListenConfig,

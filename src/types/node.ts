@@ -1154,6 +1154,13 @@ export function isScriptConfig(data: NodeData): data is ScriptNodeConfig {
 }
 
 /**
+ * 判断是否为 SubFlowConfig
+ */
+export function isSubFlowConfig(data: NodeData): data is SubFlowConfig {
+  return data.type === 'flow:sub';
+}
+
+/**
  * 判断是否为 TcpConnectConfig
  */
 export function isTcpConnectConfig(data: NodeData): data is TcpConnectConfig {
