@@ -100,7 +100,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
   });
 
   // 获取流程变量
-  const { variables, availableVariableNames, nodeLabels } = useFlowVariables();
+  const { variables, availableVariableNames, nodeLabels, hasOpenEndedSubflow } = useFlowVariables();
 
   // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
   const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
@@ -235,6 +235,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
         <VariableValidationWarning
           value={watch('url') || ''}
           availableVariables={availableVariableNames}
+          hasOpenEndedSubflow={hasOpenEndedSubflow}
           compact
         />
       </div>
@@ -289,6 +290,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                 <VariableValidationWarning
                   value={watch(`headers.${index}.value`) || ''}
                   availableVariables={availableVariableNames}
+                  hasOpenEndedSubflow={hasOpenEndedSubflow}
                   compact
                 />
               </div>
@@ -536,6 +538,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                   <VariableValidationWarning
                     value={watch('collect_condition.expression') || ''}
                     availableVariables={availableVariableNames}
+                    hasOpenEndedSubflow={hasOpenEndedSubflow}
                     compact
                   />
                   

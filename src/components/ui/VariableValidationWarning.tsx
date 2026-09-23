@@ -4,7 +4,7 @@
  */
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 import { isDynamicVariable } from "@/types/dynamicVariable";
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -59,6 +59,8 @@ export interface VariableValidationWarningProps {
   showIcon?: boolean;
   /** 是否紧凑模式（更小的 padding） */
   compact?: boolean;
+  /** 流程中是否存在开启全量导出的子流程节点（存在时降级警告为温和提示） */
+  hasOpenEndedSubflow?: boolean;
 }
 
 // ============================================================================
@@ -82,6 +84,7 @@ export function VariableValidationWarning({
   className,
   showIcon = true,
   compact = false,
+  hasOpenEndedSubflow = false,
 }: VariableValidationWarningProps) {
   const LL = getLL();
 
@@ -98,24 +101,34 @@ export function VariableValidationWarning({
     <div
       className={cn(
         "flex items-center gap-2 rounded-md border",
-        "bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300",
+        hasOpenEndedSubflow
+          ? "bg-blue-50/70 dark:bg-blue-950/40 border-blue-200/80 dark:border-blue-900/60 text-blue-700 dark:text-blue-300"
+          : "bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300",
         compact ? "px-2 py-1" : "px-3 py-2",
         className
       )}
     >
       {showIcon && (
-        <AlertCircle className={cn("shrink-0", compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+        hasOpenEndedSubflow ? (
+          <Info className={cn("shrink-0 text-blue-500", compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+        ) : (
+          <AlertCircle className={cn("shrink-0", compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+        )
       )}
       <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
         <span className="text-xs font-medium shrink-0">
-          {LL.flow.var_ref_invalid()}
+          {hasOpenEndedSubflow
+            ? LL.flow.var_ref_dynamic_subflow()
+            : LL.flow.var_ref_invalid()}
         </span>
         {invalidRefs.map((ref, index) => (
           <code
             key={`${ref}-${index}`}
             className={cn(
               "inline-flex items-center rounded px-1.5 py-0.5",
-              "bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 font-mono text-xs",
+              hasOpenEndedSubflow
+                ? "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 font-mono text-xs"
+                : "bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 font-mono text-xs",
               "break-all"
             )}
           >

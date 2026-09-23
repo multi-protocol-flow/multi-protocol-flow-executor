@@ -128,7 +128,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
 
   // 获取流程变量
-  const { variables, availableVariableNames, nodeLabels } = useFlowVariables();
+  const { variables, availableVariableNames, nodeLabels, hasOpenEndedSubflow } = useFlowVariables();
 
   // 获取 flow 用于连接提取
   const flow = useFlowStore((state) => state.flow);
@@ -333,6 +333,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
         <VariableValidationWarning
           value={watch('connection_id') || ''}
           availableVariables={availableVariableNames}
+          hasOpenEndedSubflow={hasOpenEndedSubflow}
           compact
         />
         {availableConnectionIds.length === 0 && (
@@ -405,6 +406,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
         <VariableValidationWarning
           value={watch('message') || ''}
           availableVariables={availableVariableNames}
+          hasOpenEndedSubflow={hasOpenEndedSubflow}
         />
         {messageType !== 'binary' && (
           <p className="text-xs text-muted-foreground">
@@ -559,6 +561,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
                   <VariableValidationWarning
                     value={watch('collect_condition.expression') || ''}
                     availableVariables={availableVariableNames}
+                    hasOpenEndedSubflow={hasOpenEndedSubflow}
                     compact
                   />
                   

@@ -130,5 +130,18 @@ describe('VariableValidationWarning', () => {
       // 即使没有图标，文字仍然应该显示
       expect(screen.getByText(/变量引用失效:/)).toBeDefined();
     });
+
+    it('当存在全量导出子流程时降级为温和提示', () => {
+      render(
+        <VariableValidationWarning
+          value="{{dynamic_subflow_var}}"
+          availableVariables={['status']}
+          hasOpenEndedSubflow
+        />
+      );
+
+      expect(screen.getByText(/未静态声明/)).toBeInTheDocument();
+      expect(screen.getByText('{{dynamic_subflow_var}}')).toBeInTheDocument();
+    });
   });
 });

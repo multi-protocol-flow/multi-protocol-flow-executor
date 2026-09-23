@@ -244,7 +244,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   const [activeTab, setActiveTab] = useState<'headers' | 'body' | 'auth' | 'settings'>('headers');
 
   // 获取流程变量
-  const { variables, availableVariableNames, nodeLabels } = useFlowVariables();
+  const { variables, availableVariableNames, nodeLabels, hasOpenEndedSubflow } = useFlowVariables();
 
   // 监听核心字段变化
   const watchedMethod = watch('method');
@@ -715,6 +715,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           <VariableValidationWarning
             value={watch('url') || ''}
             availableVariables={availableVariableNames}
+            hasOpenEndedSubflow={hasOpenEndedSubflow}
             compact
           />
         </div>
@@ -853,6 +854,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   <VariableValidationWarning
                     value={watch(`headers.${index}.value`) || ''}
                     availableVariables={availableVariableNames}
+                    hasOpenEndedSubflow={hasOpenEndedSubflow}
                     compact
                   />
                 </div>
@@ -967,6 +969,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 <VariableValidationWarning
                   value={watch('body') || ''}
                   availableVariables={availableVariableNames}
+                  hasOpenEndedSubflow={hasOpenEndedSubflow}
                 />
               </div>
             </div>
@@ -1078,6 +1081,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                             <VariableValidationWarning
                               value={watch(`form_fields.${index}.value`) || ''}
                               availableVariables={availableVariableNames}
+                              hasOpenEndedSubflow={hasOpenEndedSubflow}
                               compact
                             />
                           </>

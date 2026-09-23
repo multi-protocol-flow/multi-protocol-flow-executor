@@ -91,7 +91,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
 
   // 获取流程变量
-  const { variables, availableVariableNames, nodeLabels } = useFlowVariables();
+  const { variables, availableVariableNames, nodeLabels, hasOpenEndedSubflow } = useFlowVariables();
 
   // 获取 flow 用于连接提取
   const flow = useFlowStore((state) => state.flow);
@@ -243,6 +243,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
         <VariableValidationWarning
           value={watch('connection_id') || ''}
           availableVariables={availableVariableNames}
+          hasOpenEndedSubflow={hasOpenEndedSubflow}
           compact
         />
         {availableConnectionIds.length === 0 && (

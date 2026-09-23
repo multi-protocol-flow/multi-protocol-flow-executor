@@ -112,7 +112,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
   const watchedOperator = watch("operator");
 
   // 获取流程变量
-  const { variables, availableVariableNames, nodeLabels } = useFlowVariables();
+  const { variables, availableVariableNames, nodeLabels, hasOpenEndedSubflow } = useFlowVariables();
 
   // 获取当前流程节点列表和当前选中节点（用于数据来源选择）
   const flow = useFlowStore((state) => state.flow);
@@ -308,6 +308,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             <VariableValidationWarning
               value={watch("field_path") || ""}
               availableVariables={availableVariableNames}
+              hasOpenEndedSubflow={hasOpenEndedSubflow}
               compact
             />
           </div>
@@ -386,6 +387,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             <VariableValidationWarning
               value={watch("expected_value") || ""}
               availableVariables={availableVariableNames}
+              hasOpenEndedSubflow={hasOpenEndedSubflow}
               compact
             />
           </div>
@@ -441,6 +443,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
           <VariableValidationWarning
             value={watch("advanced_expression") || ""}
             availableVariables={availableVariableNames}
+            hasOpenEndedSubflow={hasOpenEndedSubflow}
           />
         </div>
       )}
