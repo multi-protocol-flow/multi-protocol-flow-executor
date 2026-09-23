@@ -150,8 +150,8 @@ export function StageTabBar() {
                 className={cn(
                   'relative flex items-center justify-center w-8 h-8 rounded-md transition-all duration-150 cursor-pointer',
                   isActive
-                    ? 'bg-accent text-accent-foreground font-semibold shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                    ? 'bg-primary/15 text-primary border border-primary/30 font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent'
                 )}
               >
                 <StageIcon className="w-4 h-4 shrink-0" />

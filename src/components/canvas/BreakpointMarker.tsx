@@ -74,12 +74,12 @@ export const BreakpointMarker = memo(function BreakpointMarker({ hasBreakpoint, 
           'hover:border-red-700',
           'shadow-sm',
         ],
-        // 无断点：灰色空心，悬停显示红色
+        // 无断点：灰色空心，悬停显示红色（适配暗黑模式背景，避免高光泛白）
         !hasBreakpoint && [
           'bg-background',
-          'border-border',
-          'hover:bg-red-50',
-          'hover:border-red-500',
+          'border-border dark:border-zinc-600',
+          'hover:bg-red-50 dark:hover:bg-red-950/60',
+          'hover:border-red-500 dark:hover:border-red-500',
         ]
       )}
       title={hasBreakpoint ? getLL().flow.breakpoint_set() : getLL().flow.breakpoint_unset()}
