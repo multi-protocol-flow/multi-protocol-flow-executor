@@ -8,6 +8,15 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
   open: vi.fn(),
 }));
 
+vi.mock('@/lib/variableExtraction', () => ({
+  loadAndResolveSubFlowVariables: vi.fn().mockResolvedValue({
+    flow: null,
+    variables: [
+      { name: 'mock_token', sourceNodeUuid: 'n1', description: '登录凭证' },
+    ],
+  }),
+}));
+
 const ROOT_FLOW = {
   uuid: 'flow-root',
   name: '根目录流程',
@@ -164,5 +173,21 @@ describe('SubFlowConfig', () => {
         target_flow_id: '',
       })
     );
+  });
+
+  it('开启全部导出时展示预计导出变量卡片并列出检测到的变量', async () => {
+    const data: SubFlowConfigType = {
+      type: 'flow:sub',
+      target_flow_id: 'flow-nested',
+      export_all_variables: true,
+    };
+    const onSave = vi.fn();
+
+    await act(async () => {
+      render(<SubFlowConfig data={data} onSave={onSave} />);
+    });
+
+    expect(screen.getByText(/预计导出变量/)).toBeInTheDocument();
+    expect(screen.getByText('mock_token')).toBeInTheDocument();
   });
 });

@@ -26,6 +26,9 @@ import type { SubFlowConfig as SubFlowConfigType, VariableMapping } from '@/type
 import { useFlowListStore, useFlowStore } from '@/stores';
 import { useCurrentLocale } from '@/hooks/useLocale';
 import { flowStorage } from '@/services/storage';
+import { loadAndResolveSubFlowVariables } from '@/lib/variableExtraction';
+import type { Variable } from '@/types/variable';
+import { copyToClipboard } from '@/lib/clipboard';
 import { getLL } from '@/i18n/i18n-lazy';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -99,6 +102,8 @@ export function SubFlowConfig({ data, onSave }: SubFlowConfigProps) {
   const [config, setConfig] = useState<PanelConfig>(() => normalize(data));
   const [mode, setMode] = useState<TargetMode>(() => resolveMode(data));
   const [pathDraft, setPathDraft] = useState<string>(() => data.target_flow_path ?? '');
+  const [detectedVars, setDetectedVars] = useState<Variable[]>([]);
+  const [loadingDetected, setLoadingDetected] = useState<boolean>(false);
   const configRef = useRef(config);
   configRef.current = config;
 
@@ -141,6 +146,32 @@ export function SubFlowConfig({ data, onSave }: SubFlowConfigProps) {
     Boolean(config.target_flow_id || config.target_flow_path) &&
     flows.length > 0 &&
     !currentFlow;
+  const target = config.target_flow_path || config.target_flow_id;
+
+  useEffect(() => {
+    if (!target || !config.export_all_variables) {
+      setDetectedVars([]);
+      setLoadingDetected(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingDetected(true);
+    loadAndResolveSubFlowVariables(target)
+      .then((res) => {
+        if (cancelled) return;
+        setDetectedVars(res.variables);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDetectedVars([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDetected(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [target, config.export_all_variables]);
 
   /** 选择目标流程（文件夹层级树） */
   const flowItems = useMemo(
@@ -461,6 +492,46 @@ export function SubFlowConfig({ data, onSave }: SubFlowConfigProps) {
             onCheckedChange={(checked) => update({ export_all_variables: checked })}
           />
         </div>
+
+        {config.export_all_variables && target && (
+          <div className="space-y-2 border-t border-border/50 pt-2.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                <Workflow className="w-3.5 h-3.5 text-violet-500" />
+                {ll.detected_export_variables()} ({detectedVars.length})
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">{ll.detected_export_variables_desc()}</p>
+            {loadingDetected ? (
+              <div className="text-xs text-muted-foreground animate-pulse py-2">
+                ...
+              </div>
+            ) : detectedVars.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {detectedVars.map((v) => (
+                  <button
+                    key={v.name}
+                    type="button"
+                    onClick={async () => {
+                      const success = await copyToClipboard(`{{${v.name}}}`);
+                      if (success) {
+                        toast.success(`{{${v.name}}}`);
+                      }
+                    }}
+                    title={v.description ? `${v.description} ({{${v.name}}})` : `{{${v.name}}}`}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 text-xs font-mono hover:bg-violet-100 dark:hover:bg-violet-900/60 transition-colors cursor-pointer"
+                  >
+                    <span>{v.name}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground italic py-1">
+                {ll.no_detected_export_variables()}
+              </div>
+            )}
+          </div>
+        )}
 
         {!config.export_all_variables && (
           <div className="space-y-2 border-t border-border/50 pt-2">
