@@ -355,7 +355,9 @@ export const ExecutionPanel = memo(function ExecutionPanel() {
   const executionStack = useDebugStore((state) => state.executionStack);
   const focusOnNode = useFlowStore((state) => state.focusOnNode);
 
-  const showDebugTabs = isDebugging;
+  const debugStatus = useDebugStore((state) => state.status);
+  const hasDebugStack = useDebugStore((state) => state.executionStack.length > 0);
+  const showDebugTabs = isDebugging || (debugStatus === 'ended' && hasDebugStack);
 
   // ===== 本地状态 =====
   const [selectedNodeUuid, setSelectedNodeUuid] = useState<string | null>(null);
