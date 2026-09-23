@@ -529,6 +529,7 @@ const zh_CN_flow: BaseTranslation = {
 
   // 变量引用验证
   var_ref_invalid: '变量引用失效:',
+  var_ref_dynamic_subflow: '未静态声明（可能由子流程运行时导出）:',
 
   // 流程信息
   flow_info_title: '流程信息',

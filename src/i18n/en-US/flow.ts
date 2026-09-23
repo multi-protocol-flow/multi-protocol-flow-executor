@@ -529,6 +529,7 @@ const en_US_flow = {
 
   // Variable validation
   var_ref_invalid: 'Invalid variable references:',
+  var_ref_dynamic_subflow: 'Not statically declared (may be exported by subflow at runtime):',
 
   // Flow info
   flow_info_title: 'Flow Info',

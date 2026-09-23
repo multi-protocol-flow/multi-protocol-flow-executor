@@ -4878,6 +4878,18 @@ type RootTranslation = {
 			 */
 			export_all_variables_desc: string
 			/**
+			 * 预​计​导​出​变​量
+			 */
+			detected_export_variables: string
+			/**
+			 * 根​据​目​标​子​流​程​静​态​推​导​出​的​变​量​，​下​游​节​点​可​直​接​引​用​与​补​全
+			 */
+			detected_export_variables_desc: string
+			/**
+			 * 未​在​目​标​子​流​程​中​检​测​到​静​态​变​量​（​如​通​过​脚​本​动​态​写​入​，​下​游​仍​可​直​接​引​用​）
+			 */
+			no_detected_export_variables: string
+			/**
 			 * 指​定​导​出​变​量
 			 */
 			output_mappings: string
@@ -10237,6 +10249,10 @@ type RootTranslation = {
 		 * 变​量​引​用​失​效​:
 		 */
 		var_ref_invalid: string
+		/**
+		 * 未​静​态​声​明​（​可​能​由​子​流​程​运​行​时​导​出​）​:
+		 */
+		var_ref_dynamic_subflow: string
 		/**
 		 * 流​程​信​息
 		 */
@@ -19436,6 +19452,18 @@ export type TranslationFunctions = {
 			 */
 			export_all_variables_desc: () => LocalizedString
 			/**
+			 * 预计导出变量
+			 */
+			detected_export_variables: () => LocalizedString
+			/**
+			 * 根据目标子流程静态推导出的变量，下游节点可直接引用与补全
+			 */
+			detected_export_variables_desc: () => LocalizedString
+			/**
+			 * 未在目标子流程中检测到静态变量（如通过脚本动态写入，下游仍可直接引用）
+			 */
+			no_detected_export_variables: () => LocalizedString
+			/**
 			 * 指定导出变量
 			 */
 			output_mappings: () => LocalizedString
@@ -24691,6 +24719,10 @@ export type TranslationFunctions = {
 		 * 变量引用失效:
 		 */
 		var_ref_invalid: () => LocalizedString
+		/**
+		 * 未静态声明（可能由子流程运行时导出）:
+		 */
+		var_ref_dynamic_subflow: () => LocalizedString
 		/**
 		 * 流程信息
 		 */
