@@ -467,6 +467,7 @@ describe('FlowListPanel', () => {
         name: '活动流程',
         updated_at: Date.now(),
         created_at: Date.now(),
+        folder_path: '',
       };
       mockFlowStorage.listFlows.mockResolvedValue([flowMeta]);
       useFlowListStore.getState().setFlows([flowMeta]);
