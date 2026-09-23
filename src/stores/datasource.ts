@@ -120,9 +120,13 @@ export const useDatasourceStore = create<DatasourceState>((set, get) => ({
       throw new Error(err);
     }
 
+    const sameDsConnections = get().connections.filter((c) => c.datasource_id === datasourceId);
+    const isSingleConnection = sameDsConnections.length <= 1;
+
     const key = `${conn.id}/${resourceId}/${parentId ?? ''}`;
     const legacyKey = `${datasourceId}/${resourceId}/${parentId ?? ''}`;
-    const cached = get().browseCache[key] ?? get().browseCache[legacyKey];
+    // 多连接时严格按 conn.id 隔离缓存，绝不跨连接读取共享的 legacyKey 造成数据串味
+    const cached = get().browseCache[key] ?? (isSingleConnection ? get().browseCache[legacyKey] : undefined);
     if (cached && !force) {
       return cached;
     }
@@ -138,7 +142,7 @@ export const useDatasourceStore = create<DatasourceState>((set, get) => ({
         browseCache: {
           ...state.browseCache,
           [key]: items,
-          [legacyKey]: items,
+          ...(isSingleConnection ? { [legacyKey]: items } : {}),
         },
         loading: false,
       }));
