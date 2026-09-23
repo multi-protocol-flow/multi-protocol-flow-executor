@@ -446,6 +446,36 @@ describe('DebugStore', () => {
         // 恢复原始方法
         execStore.getState = originalGetState;
       });
+      it('SessionEnded 携带 final_variables 时同步最终变量到 store', () => {
+        const report = {
+          uuid: 'report-1',
+          flow_uuid: 'flow-1',
+          flow_name: '测试流程',
+          start_time: 1000,
+          end_time: 2000,
+          duration_ms: 1000,
+          total_nodes: 1,
+          executed_count: 1,
+          status: 'success' as const,
+          node_reports: [],
+          statistics: { success_count: 1, failed_count: 0 },
+          final_variables: { token: 'new-token-123', count: 42 },
+        };
+
+        const event: DebugEvent = {
+          SessionEnded: {
+            reason: { type: 'completed' },
+            execution_stack: [],
+            report,
+          },
+        };
+
+        useDebugStore.getState().handleDebugEvent(event);
+        expect(useDebugStore.getState().variables).toEqual({
+          token: 'new-token-123',
+          count: 42,
+        });
+      });
 
       it('SessionEnded 无报告时不显示 toast 通知', async () => {
         const { toast } = await import('sonner');

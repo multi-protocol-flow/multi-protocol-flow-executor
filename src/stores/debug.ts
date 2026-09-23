@@ -785,6 +785,10 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         lastDebugReport: report || null,
         // 更新执行堆栈（包含所有节点，包括最后一个）
         executionStack: execution_stack,
+        // 同步最终变量，供调试结束后的变量面板与节点查看
+        ...(report?.final_variables && typeof report.final_variables === 'object'
+          ? { variables: report.final_variables as Record<string, unknown> }
+          : {}),
       });
 
       // 桥接：从最终执行堆栈同步所有节点报告到 executionStore
